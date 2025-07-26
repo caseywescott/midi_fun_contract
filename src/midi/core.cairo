@@ -262,26 +262,26 @@ impl MidiImpl of MidiTrait {
         match lastmsgtime {
             Option::Some(currentev) => {
                 match currentev {
-                    Message::NOTE_ON((note_on)) => { maxtime = note_on.time; },
-                    Message::NOTE_OFF((note_off)) => { maxtime = note_off.time; },
-                    Message::SET_TEMPO((set_tempo)) => {
+                    Message::NOTE_ON(note_on) => { maxtime = note_on.time; },
+                    Message::NOTE_OFF(note_off) => { maxtime = note_off.time; },
+                    Message::SET_TEMPO(set_tempo) => {
                         match set_tempo.time {
                             Option::Some(time) => { maxtime = time; },
                             Option::None => {},
                         }
                     },
-                    Message::TIME_SIGNATURE((time_signature)) => {
+                    Message::TIME_SIGNATURE(time_signature) => {
                         match time_signature.time {
                             Option::Some(time) => { maxtime = time; },
                             Option::None => {},
                         }
                     },
-                    Message::CONTROL_CHANGE((control_change)) => { maxtime = control_change.time; },
-                    Message::PITCH_WHEEL((pitch_wheel)) => { maxtime = pitch_wheel.time; },
-                    Message::AFTER_TOUCH((after_touch)) => { maxtime = after_touch.time; },
-                    Message::POLY_TOUCH((poly_touch)) => { maxtime = poly_touch.time; },
-                    Message::PROGRAM_CHANGE((program_change)) => { maxtime = program_change.time; },
-                    Message::SYSTEM_EXCLUSIVE((system_exclusive)) => {
+                    Message::CONTROL_CHANGE(control_change) => { maxtime = control_change.time; },
+                    Message::PITCH_WHEEL(pitch_wheel) => { maxtime = pitch_wheel.time; },
+                    Message::AFTER_TOUCH(after_touch) => { maxtime = after_touch.time; },
+                    Message::POLY_TOUCH(poly_touch) => { maxtime = poly_touch.time; },
+                    Message::PROGRAM_CHANGE(program_change) => { maxtime = program_change.time; },
+                    Message::SYSTEM_EXCLUSIVE(system_exclusive) => {
                         maxtime = system_exclusive.time;
                     },
                 }
@@ -293,26 +293,26 @@ impl MidiImpl of MidiTrait {
         match firstmsgtime {
             Option::Some(currentev) => {
                 match currentev {
-                    Message::NOTE_ON((note_on)) => { mintime = note_on.time; },
-                    Message::NOTE_OFF((note_off)) => { mintime = note_off.time; },
-                    Message::SET_TEMPO((set_tempo)) => {
+                    Message::NOTE_ON(note_on) => { mintime = note_on.time; },
+                    Message::NOTE_OFF(note_off) => { mintime = note_off.time; },
+                    Message::SET_TEMPO(set_tempo) => {
                         match set_tempo.time {
                             Option::Some(time) => { mintime = time; },
                             Option::None => {},
                         }
                     },
-                    Message::TIME_SIGNATURE((time_signature)) => {
+                    Message::TIME_SIGNATURE(time_signature) => {
                         match time_signature.time {
                             Option::Some(time) => { mintime = time; },
                             Option::None => {},
                         }
                     },
-                    Message::CONTROL_CHANGE((control_change)) => { mintime = control_change.time; },
-                    Message::PITCH_WHEEL((pitch_wheel)) => { mintime = pitch_wheel.time; },
-                    Message::AFTER_TOUCH((after_touch)) => { mintime = after_touch.time; },
-                    Message::POLY_TOUCH((poly_touch)) => { mintime = poly_touch.time; },
-                    Message::PROGRAM_CHANGE((program_change)) => { mintime = program_change.time; },
-                    Message::SYSTEM_EXCLUSIVE((system_exclusive)) => {
+                    Message::CONTROL_CHANGE(control_change) => { mintime = control_change.time; },
+                    Message::PITCH_WHEEL(pitch_wheel) => { mintime = pitch_wheel.time; },
+                    Message::AFTER_TOUCH(after_touch) => { mintime = after_touch.time; },
+                    Message::POLY_TOUCH(poly_touch) => { mintime = poly_touch.time; },
+                    Message::PROGRAM_CHANGE(program_change) => { mintime = program_change.time; },
+                    Message::SYSTEM_EXCLUSIVE(system_exclusive) => {
                         mintime = system_exclusive.time;
                     },
                 }
@@ -324,27 +324,27 @@ impl MidiImpl of MidiTrait {
             match rev.pop_front() {
                 Option::Some(currentevent) => {
                     match currentevent {
-                        Message::NOTE_ON((note_on)) => {
+                        Message::NOTE_ON(note_on) => {
                             let newnote = NoteOff {
                                 channel: note_on.channel,
                                 note: note_on.note,
                                 velocity: note_on.velocity,
                                 time: time_add(time_sub(maxtime, note_on.time), mintime)
                             };
-                            let notemessage = Message::NOTE_OFF((newnote));
+                            let notemessage = Message::NOTE_OFF(newnote);
                             eventlist.append(notemessage);
                         },
-                        Message::NOTE_OFF((note_off)) => {
+                        Message::NOTE_OFF(note_off) => {
                             let newnote = NoteOn {
                                 channel: note_off.channel,
                                 note: note_off.note,
                                 velocity: note_off.velocity,
                                 time: time_add(time_sub(maxtime, note_off.time), mintime)
                             };
-                            let notemessage = Message::NOTE_ON((newnote));
+                            let notemessage = Message::NOTE_ON(newnote);
                             eventlist.append(notemessage);
                         },
-                        Message::SET_TEMPO((set_tempo)) => {
+                        Message::SET_TEMPO(set_tempo) => {
                             let scaledtempo = SetTempo {
                                 tempo: set_tempo.tempo,
                                 time: match set_tempo.time {
@@ -352,10 +352,10 @@ impl MidiImpl of MidiTrait {
                                     Option::None => Option::None,
                                 }
                             };
-                            let tempomessage = Message::SET_TEMPO((scaledtempo));
+                            let tempomessage = Message::SET_TEMPO(scaledtempo);
                             eventlist.append(tempomessage);
                         },
-                        Message::TIME_SIGNATURE((time_signature)) => {
+                        Message::TIME_SIGNATURE(time_signature) => {
                             let newtimesig = TimeSignature {
                                 numerator: time_signature.numerator,
                                 denominator: time_signature.denominator,
@@ -365,65 +365,62 @@ impl MidiImpl of MidiTrait {
                                     Option::None => Option::None,
                                 }
                             };
-                            let tsmessage = Message::TIME_SIGNATURE((newtimesig));
+                            let tsmessage = Message::TIME_SIGNATURE(newtimesig);
                             eventlist.append(tsmessage);
                         },
-                        Message::CONTROL_CHANGE((control_change)) => {
+                        Message::CONTROL_CHANGE(control_change) => {
                             let newcontrolchange = ControlChange {
                                 channel: control_change.channel,
                                 control: control_change.control,
                                 value: control_change.value,
                                 time: time_add(time_sub(maxtime, control_change.time), mintime)
                             };
-                            let ccmessage = Message::CONTROL_CHANGE((newcontrolchange));
+                            let ccmessage = Message::CONTROL_CHANGE(newcontrolchange);
                             eventlist.append(ccmessage);
                         },
-                        Message::PITCH_WHEEL((pitch_wheel)) => {
+                        Message::PITCH_WHEEL(pitch_wheel) => {
                             let newpitchwheel = PitchWheel {
                                 channel: pitch_wheel.channel,
-                                pitch: pitch_wheel.pitch,
+                                value: pitch_wheel.value,
                                 time: time_add(time_sub(maxtime, pitch_wheel.time), mintime)
                             };
-                            let pwmessage = Message::PITCH_WHEEL((newpitchwheel));
+                            let pwmessage = Message::PITCH_WHEEL(newpitchwheel);
                             eventlist.append(pwmessage);
                         },
-                        Message::AFTER_TOUCH((after_touch)) => {
+                        Message::AFTER_TOUCH(after_touch) => {
                             let newaftertouch = AfterTouch {
                                 channel: after_touch.channel,
                                 value: after_touch.value,
                                 time: time_add(time_sub(maxtime, after_touch.time), mintime)
                             };
-                            let atmessage = Message::AFTER_TOUCH((newaftertouch));
+                            let atmessage = Message::AFTER_TOUCH(newaftertouch);
                             eventlist.append(atmessage);
                         },
-                        Message::POLY_TOUCH((poly_touch)) => {
+                        Message::POLY_TOUCH(poly_touch) => {
                             let newpolytouch = PolyTouch {
                                 channel: poly_touch.channel,
                                 note: poly_touch.note,
                                 value: poly_touch.value,
                                 time: time_add(time_sub(maxtime, poly_touch.time), mintime)
                             };
-                            let ptmessage = Message::POLY_TOUCH((newpolytouch));
+                            let ptmessage = Message::POLY_TOUCH(newpolytouch);
                             eventlist.append(ptmessage);
                         },
-                        Message::PROGRAM_CHANGE((program_change)) => {
+                        Message::PROGRAM_CHANGE(program_change) => {
                             let newprogchg = ProgramChange {
                                 channel: program_change.channel,
                                 program: program_change.program,
                                 time: time_add(time_sub(maxtime, program_change.time), mintime)
                             };
-                            let pchgmessage = Message::PROGRAM_CHANGE((newprogchg));
+                            let pchgmessage = Message::PROGRAM_CHANGE(newprogchg);
                             eventlist.append(pchgmessage);
                         },
-                        Message::SYSTEM_EXCLUSIVE((system_exclusive)) => {
+                        Message::SYSTEM_EXCLUSIVE(system_exclusive) => {
                             let newsysex = SystemExclusive {
-                                manufacturer_id: system_exclusive.manufacturer_id,
-                                device_id: system_exclusive.device_id,
                                 data: system_exclusive.data,
-                                checksum: system_exclusive.checksum,
                                 time: time_add(time_sub(maxtime, system_exclusive.time), mintime)
                             };
-                            let sysexgmessage = Message::SYSTEM_EXCLUSIVE((newsysex));
+                            let sysexgmessage = Message::SYSTEM_EXCLUSIVE(newsysex);
                             eventlist.append(sysexgmessage);
                         },
                     }

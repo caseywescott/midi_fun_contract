@@ -10,9 +10,9 @@ use koji::midi::modes::{
 /// ================ MIDI ===================
 /// =========================================
 
-#[derive(Copy, Drop)]
-struct Midi {
-    events: Span<Message>
+#[derive(Copy, Drop, Serde)]
+pub struct Midi {
+    pub events: Span<Message>
 }
 
 
@@ -20,8 +20,8 @@ struct Midi {
 /// ================ MESSAGES ===============
 /// =========================================
 
-#[derive(Copy, Drop)]
-enum Message {
+#[derive(Copy, Drop, Serde)]
+pub enum Message {
     NOTE_ON: NoteOn,
     NOTE_OFF: NoteOff,
     SET_TEMPO: SetTempo,
@@ -31,91 +31,88 @@ enum Message {
     AFTER_TOUCH: AfterTouch,
     POLY_TOUCH: PolyTouch,
     PROGRAM_CHANGE: ProgramChange,
-    SYSTEM_EXCLUSIVE: SystemExclusive
+    SYSTEM_EXCLUSIVE: SystemExclusive,
 }
 
-#[derive(Copy, Drop)]
-struct NoteOn {
-    channel: u8,
-    note: u8,
-    velocity: u8,
-    time: Time
+#[derive(Copy, Drop, Serde)]
+pub struct NoteOn {
+    pub channel: u8,
+    pub note: u8,
+    pub velocity: u8,
+    pub time: Time
 }
 
-#[derive(Copy, Drop)]
-struct NoteOff {
-    channel: u8,
-    note: u8,
-    velocity: u8,
-    time: Time
+#[derive(Copy, Drop, Serde)]
+pub struct NoteOff {
+    pub channel: u8,
+    pub note: u8,
+    pub velocity: u8,
+    pub time: Time
 }
 
-#[derive(Copy, Drop)]
-struct SetTempo {
-    tempo: u32, // microseconds per beat
-    time: Option<Time>
+#[derive(Copy, Drop, Serde)]
+pub struct SetTempo {
+    pub tempo: u32, // microseconds per beat
+    pub time: Option<Time>
 }
 
-#[derive(Copy, Drop)]
-struct TimeSignature {
-    numerator: u8,
-    denominator: u8,
-    clocks_per_click: u8,
-    time: Option<Time>
+#[derive(Copy, Drop, Serde)]
+pub struct TimeSignature {
+    pub numerator: u8,
+    pub denominator: u8,
+    pub clocks_per_click: u8,
+    pub time: Option<Time>
 }
 
-#[derive(Copy, Drop)]
-struct ControlChange {
-    channel: u8,
-    control: u8,
-    value: u8,
-    time: Time
+#[derive(Copy, Drop, Serde)]
+pub struct ControlChange {
+    pub channel: u8,
+    pub control: u8,
+    pub value: u8,
+    pub time: Time
 }
 
-#[derive(Copy, Drop)]
-struct PitchWheel {
-    channel: u8,
-    pitch: i32,
-    time: Time
+#[derive(Copy, Drop, Serde)]
+pub struct PitchWheel {
+    pub channel: u8,
+    pub value: u16,
+    pub time: Time
 }
 
-#[derive(Copy, Drop)]
-struct AfterTouch {
-    channel: u8,
-    value: u8,
-    time: Time
+#[derive(Copy, Drop, Serde)]
+pub struct AfterTouch {
+    pub channel: u8,
+    pub value: u8,
+    pub time: Time
 }
 
-#[derive(Copy, Drop)]
-struct PolyTouch {
-    channel: u8,
-    note: u8,
-    value: u8,
-    time: Time
+#[derive(Copy, Drop, Serde)]
+pub struct PolyTouch {
+    pub channel: u8,
+    pub note: u8,
+    pub value: u8,
+    pub time: Time
 }
 
-#[derive(Copy, Drop)]
-struct ProgramChange {
-    channel: u8,
-    program: u8, // Program number (0 to 127)
-    time: Time
+#[derive(Copy, Drop, Serde)]
+pub struct ProgramChange {
+    pub channel: u8,
+    pub program: u8,
+    pub time: Time
 }
 
-#[derive(Copy, Drop)]
-struct SystemExclusive {
-    manufacturer_id: Span<u8>, // Manufacturer ID bytes
-    device_id: Option<u8>, // Optional device ID byte
-    data: Span<u8>, // Data payload
-    checksum: Option<u8>, // Optional checksum byte
-    time: Time
+#[derive(Copy, Drop, Serde)]
+pub struct SystemExclusive {
+    pub data: Span<u8>,
+    pub time: Time
 }
 
 /// =========================================
 /// ================ PATTERNS ===============
 /// =========================================
 
-#[derive(Copy, Drop)]
-enum Modes {
+#[derive(Copy, Drop, Serde)]
+pub enum Modes {
     Major: (),
     Minor: (),
     Lydian: (),
@@ -124,20 +121,31 @@ enum Modes {
     Phrygian: (),
     Locrian: (),
     Aeolian: (),
-    Harmonicminor: (),
-    Naturalminor: (),
+    HarmonicMinor: (),
+    NaturalMinor: (),
     Chromatic: (),
-    Pentatonic: ()
+    Pentatonic: (),
 }
 
-#[derive(Copy, Drop)]
-enum ArpPattern {} //TODO
+#[derive(Copy, Drop, Serde)]
+pub enum ArpPattern {
+    Up: (),
+    Down: (),
+    UpDown: (),
+    DownUp: (),
+    Converge: (),
+    Diverge: (),
+    ConDiverge: (),
+    Pinky: (),
+    Thumb: (),
+    Random: (),
+}
 
 // VelocityCurve represents time & level "breakpoint" pairs indexed:
-#[derive(Copy, Drop)]
-struct VelocityCurve {
-    times: Span<Time>,
-    levels: Span<u8>
+#[derive(Copy, Drop, Serde)]
+pub struct VelocityCurve {
+    pub times: Span<Time>,
+    pub levels: Span<u8>
 }
 
 /// =========================================
@@ -147,7 +155,7 @@ struct VelocityCurve {
 // Define a 12 note octave base
 // For Microtonal mode definition, change the OCTAVEBASE and represent scales as intervallic ratios summing to OCTAVEBASE
 
-const OCTAVEBASE: u8 = 12;
+pub const OCTAVEBASE: u8 = 12;
 
 //*************************************************************************
 // Pitch and Interval Structs 
@@ -160,28 +168,28 @@ const OCTAVEBASE: u8 = 12;
 // Example 2: MIDI Keynum 69: Note = 9, Octave = 5
 //*************************************************************************
 
-#[derive(Copy, Drop)]
-struct PitchClass {
-    note: u8,
-    octave: u8,
+#[derive(Copy, Drop, Serde)]
+pub struct PitchClass {
+    pub note: u8,
+    pub octave: u8,
 }
 
-#[derive(Copy, Drop)]
-enum Direction {
+#[derive(Copy, Drop, Serde)]
+pub enum Direction {
     Up: (),
     Down: (),
     Oblique: ()
 }
 
-#[derive(Copy, Drop)]
-struct PitchInterval {
-    size: u8,
-    direction: Direction,
-    quality: Option<Quality>,
+#[derive(Copy, Drop, Serde)]
+pub struct PitchInterval {
+    pub size: u8,
+    pub direction: Direction,
+    pub quality: Option<Quality>,
 }
 
-#[derive(Copy, Drop)]
-enum Quality {
+#[derive(Copy, Drop, Serde)]
+pub enum Quality {
     Major: (),
     Minor: (),
     Perfect: (),

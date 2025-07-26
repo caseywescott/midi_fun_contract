@@ -1,10 +1,7 @@
 use core::option::OptionTrait;
-use array::ArrayTrait;
-use array::SpanTrait;
-use clone::Clone;
-use array::ArrayTCloneImpl;
-use traits::TryInto;
-use traits::Into;
+use core::array::{ArrayTrait, SpanTrait};
+use core::clone::Clone;
+use core::traits::{TryInto, Into};
 use debug::PrintTrait;
 
 use koji::midi::types::{Modes, PitchClass, OCTAVEBASE, Direction, Quality};
@@ -24,7 +21,7 @@ use koji::math::{freq_from_keynum};
 // Scale Degree - The position of a particular note on a scale relative to the tonic
 //*****************************************************************************************************************
 
-trait PitchClassTrait {
+pub trait PitchClassTrait {
     fn keynum(self: @PitchClass) -> u8;
     fn freq(self: @PitchClass) -> u32;
     fn abs_diff_between_pc(self: @PitchClass, pc2: PitchClass) -> u8;
@@ -63,26 +60,26 @@ impl PitchClassImpl of PitchClassTrait {
 }
 
 // Converts a PitchClass to a MIDI keynum
-fn pc_to_keynum(pc: PitchClass) -> u8 {
+pub fn pc_to_keynum(pc: PitchClass) -> u8 {
     pc.note + (OCTAVEBASE * (pc.octave + 1))
 }
 
 // Converts a PitchClass to a Frequency using lookup table
-fn freq(pc: PitchClass) -> u32 {
+pub fn freq(pc: PitchClass) -> u32 {
     let keynum = pc.keynum();
     // Return frequency in Hz * 1000 for integer precision  
     freq_from_keynum(keynum)
 }
 
 // Converts a MIDI keynum to a PitchClass 
-fn keynum_to_pc(keynum: u8) -> PitchClass {
+pub fn keynum_to_pc(keynum: u8) -> PitchClass {
     let mut outnote = keynum % OCTAVEBASE;
     let mut outoctave = (keynum / OCTAVEBASE);
     PitchClass { note: outnote, octave: outoctave, }
 }
 
 // absolute difference between two PitchClasses
-fn abs_diff_between_pc(pc1: PitchClass, pc2: PitchClass) -> u8 {
+pub fn abs_diff_between_pc(pc1: PitchClass, pc2: PitchClass) -> u8 {
     let keynum_1 = pc_to_keynum(pc1);
     let keynum_2 = pc_to_keynum(pc2);
 
@@ -97,7 +94,7 @@ fn abs_diff_between_pc(pc1: PitchClass, pc2: PitchClass) -> u8 {
 
 //Compute the difference between two notes and the direction of that melodic motion
 // Direction -> 0 == /oblique, 1 == /down, 2 == /up
-fn diff_between_pc(pc1: PitchClass, pc2: PitchClass) -> (u8, Direction) {
+pub fn diff_between_pc(pc1: PitchClass, pc2: PitchClass) -> (u8, Direction) {
     let keynum_1 = pc_to_keynum(pc1);
     let keynum_2 = pc_to_keynum(pc2);
 
@@ -112,19 +109,19 @@ fn diff_between_pc(pc1: PitchClass, pc2: PitchClass) -> (u8, Direction) {
 
 //Provide Array, Compute and Return notes of mode at note base - note base is omitted
 
-fn mode_notes_above_note_base(pc: PitchClass, pcoll: Span<u8>) -> Span<u8> {
-    let mut outarr = ArrayTrait::new();
+pub fn mode_notes_above_note_base(pc: PitchClass, pcoll: Span<u8>) -> Span<u8> {
+    let mut outarr: Array<u8> = ArrayTrait::new();
     let mut pcollection = pcoll.clone();
     let pcnote = pc.note;
-    let mut sum = 0;
+    let mut sum: u8 = 0;
 
     loop {
         match pcollection.pop_front() {
             Option::Some(step) => {
-                sum += *step;
-                outarr.append((pcnote + sum) % OCTAVEBASE);
+                sum = sum + *step;
+                ArrayTrait::append(ref outarr, (pcnote + sum) % OCTAVEBASE);
             },
-            Option::None(_) => {
+            Option::None => {
                 break;
             }
         };
@@ -136,22 +133,22 @@ fn mode_notes_above_note_base(pc: PitchClass, pcoll: Span<u8>) -> Span<u8> {
 // Functions that compute collect notes of a mode at a specified pitch base in Normal Form (% OCTAVEBASE)
 // Example: E Major -> [1,3,4,6,8,9,11]  (C#,D#,E,F#,G#,A,B)
 
-fn get_notes_of_key(pc: PitchClass, pcoll: Span<u8>) -> Span<u8> {
-    let mut outarr = ArrayTrait::<u8>::new();
+pub fn get_notes_of_key(pc: PitchClass, pcoll: Span<u8>) -> Span<u8> {
+    let mut outarr: Array<u8> = ArrayTrait::<u8>::new();
     let mut pcollection = pcoll.clone();
 
     let mut sum = pc.note;
     let mut _i = 0;
 
-    outarr.append(sum);
+    ArrayTrait::append(ref outarr, sum);
 
     loop {
         match pcollection.pop_front() {
             Option::Some(step) => {
-                sum += *step;
-                outarr.append(sum % OCTAVEBASE);
+                sum = sum + *step;
+                ArrayTrait::append(ref outarr, sum % OCTAVEBASE);
             },
-            Option::None(_) => {
+            Option::None => {
                 break;
             }
         };
@@ -164,8 +161,8 @@ fn get_notes_of_key(pc: PitchClass, pcoll: Span<u8>) -> Span<u8> {
 // In this implementation, Scale degrees doesn't use zero-based counting - Zero if the note is note present in the key.
 // Perhaps implement Option for when a note is not a scale degree          
 
-fn get_scale_degree(pc: PitchClass, tonic: PitchClass, pcoll: Span<u8>) -> u8 {
-    let mut notesofkey = tonic.get_notes_of_key(pcoll.snapshot.clone().span());
+pub fn get_scale_degree(pc: PitchClass, tonic: PitchClass, pcoll: Span<u8>) -> u8 {
+    let mut notesofkey = tonic.get_notes_of_key(pcoll);
     let notesofkeylen = notesofkey.len();
     let mut _i = 0;
     let mut outdegree = 0;
@@ -180,7 +177,7 @@ fn get_scale_degree(pc: PitchClass, tonic: PitchClass, pcoll: Span<u8>) -> u8 {
                     };
                 }
             },
-            Option::None(_) => {
+            Option::None => {
                 break;
             }
         };
@@ -191,10 +188,10 @@ fn get_scale_degree(pc: PitchClass, tonic: PitchClass, pcoll: Span<u8>) -> u8 {
     scaledegree
 }
 
-fn modal_transposition(
+pub fn modal_transposition(
     pc: PitchClass, tonic: PitchClass, pcoll: Span<u8>, numsteps: u8, direction: Direction
 ) -> u8 {
-    let mut degree8 = pc.get_scale_degree(tonic, pcoll.snapshot.clone().span());
+    let mut degree8 = pc.get_scale_degree(tonic, pcoll);
 
     //convert scale degree to u32 in order use as index into modal step array
     let mut degree: u32 = degree8.into();
@@ -216,7 +213,7 @@ fn modal_transposition(
             },
             Direction::Down(_) => {
                 if (degree == 0) {
-                    degree = pcoll.snapshot.clone().len() - 1;
+                    degree = pcoll.len() - 1;
                 } else {
                     degree -= 1;
                 }

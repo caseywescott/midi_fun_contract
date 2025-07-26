@@ -13,160 +13,148 @@ use koji::midi::types::Modes;
 //**********************************************************************************************************
 
 fn major_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
     mode.span()
 }
 
 fn minor_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
 fn lydian_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
     mode.span()
 }
 
 fn mixolydian_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
 fn dorian_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
 fn phrygian_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
 fn locrian_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
 fn aeolian_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
 fn harmonicminor_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(3);
-    mode.append(1);
-
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 3);
+    ArrayTrait::append(ref mode, 1);
     mode.span()
 }
 
 fn naturalminor_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
 fn chromatic_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
     mode.span()
 }
 
 fn pentatonic_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(2);
-    mode.append(3);
-    mode.append(2);
-    mode.append(3);
-
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 3);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 3);
     mode.span()
 }
 

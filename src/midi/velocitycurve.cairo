@@ -14,19 +14,15 @@ trait VelocityCurveTrait {
     /// =========== GLOBAL MANIPULATION ===========
     /// Stretch or shrink time values by a specified factor.
     fn scale_times(self: @VelocityCurve, numerator: u32, denominator: u32) -> VelocityCurve;
-    /// Add or subtract to time values by a specified offset.
-    fn offset_times(self: @VelocityCurve, offset: Time) -> VelocityCurve;
-    /// Stretch or shrink levels by a specified factor.
+    /// Apply a factor to all levels in a VelocityCurve object.
     fn scale_levels(self: @VelocityCurve, factor: u8) -> VelocityCurve;
-    /// Add or subtract to levels by a specified offset.
+    /// Add an offset to all levels in a VelocityCurve object.
     fn offset_levels(self: @VelocityCurve, factor: u8) -> VelocityCurve;
-    /// =========== ANALYSIS ===========
-    /// Get the last time value for the breakpoint
+    /// =========== GETTERS ===========
+    /// Get the time value at the last index of the curve
     fn lasttime(self: @VelocityCurve) -> Time;
-    /// Get the maximum levels for the breakpoint
-    fn maxlevel(self: @VelocityCurve) -> u8;
-    /// Get the linearly interpolated at a specified time index
-    fn getlevelattime(self: @VelocityCurve, timeindex: Time) -> Option<u8>;
+    /// Get the velocity level at a given time in the curve.
+    fn getlevelattime(self: @VelocityCurve, time: Time) -> Option<u8>;
 }
 
 impl VelocityCurveImpl of VelocityCurveTrait {
@@ -35,161 +31,115 @@ impl VelocityCurveImpl of VelocityCurveTrait {
         let empty_levels: Array<u8> = array![];
         VelocityCurve { times: empty_times.span(), levels: empty_levels.span() }
     }
-    
+
     fn set_breakpoint_pair(self: @VelocityCurve, time: Time, value: u8) -> VelocityCurve {
-        let mut vct = self.times.clone();
-        let mut vcl = self.levels.clone();
+        let mut new_times = array![];
+        let mut new_levels = array![];
 
-        let mut vctimes = ArrayTrait::<Time>::new();
-        let mut vclevels = ArrayTrait::<u8>::new();
+        // Copy existing data
+        let mut times_span = *self.times;
+        let mut levels_span = *self.levels;
 
-        loop {
-            match vct.pop_front() {
-                Option::Some(currtime) => { vctimes.append(*currtime); },
-                Option::None(_) => {
-                    vctimes.append(time);
-                    break;
-                }
-            };
+        while let Option::Some(current_time) = times_span.pop_front() {
+            new_times.append(*current_time);
         };
 
-        loop {
-            match vcl.pop_front() {
-                Option::Some(currlevel) => { vclevels.append(*currlevel); },
-                Option::None(_) => {
-                    vclevels.append(value);
-                    break;
-                }
-            };
+        while let Option::Some(current_level) = levels_span.pop_front() {
+            new_levels.append(*current_level);
         };
 
-        VelocityCurve { times: vctimes.span(), levels: vclevels.span() }
+        // Add new breakpoint
+        new_times.append(time);
+        new_levels.append(value);
+
+        VelocityCurve { times: new_times.span(), levels: new_levels.span() }
     }
 
     fn scale_times(self: @VelocityCurve, numerator: u32, denominator: u32) -> VelocityCurve {
-        let mut vct = self.times.clone();
-        let mut vctimes = ArrayTrait::<Time>::new();
+        let mut new_times = array![];
+        let mut new_levels = array![];
 
-        loop {
-            match vct.pop_front() {
-                Option::Some(currtime) => { 
-                    let scaled_time = time_mul_by_factor(*currtime, numerator, denominator);
-                    vctimes.append(scaled_time); 
-                },
-                Option::None(_) => { break; }
-            };
+        let mut times_span = *self.times;
+        let mut levels_span = *self.levels;
+
+        while let Option::Some(current_time) = times_span.pop_front() {
+            let scaled_time = time_mul_by_factor(*current_time, numerator, denominator);
+            new_times.append(scaled_time);
         };
 
-        VelocityCurve { times: vctimes.span(), levels: *self.levels }
-    }
-
-    fn offset_times(self: @VelocityCurve, offset: Time) -> VelocityCurve {
-        let mut vct = self.times.clone();
-        let mut vctimes = ArrayTrait::<Time>::new();
-
-        loop {
-            match vct.pop_front() {
-                Option::Some(currtime) => { 
-                    let offset_time = time_add(*currtime, offset);
-                    vctimes.append(offset_time); 
-                },
-                Option::None(_) => { break; }
-            };
+        while let Option::Some(current_level) = levels_span.pop_front() {
+            new_levels.append(*current_level);
         };
 
-        VelocityCurve { times: vctimes.span(), levels: *self.levels }
+        VelocityCurve { times: new_times.span(), levels: new_levels.span() }
     }
 
     fn scale_levels(self: @VelocityCurve, factor: u8) -> VelocityCurve {
-        let mut vcl = self.levels.clone();
-        let mut vclevels = ArrayTrait::<u8>::new();
+        let mut new_times = array![];
+        let mut new_levels = array![];
 
-        loop {
-            match vcl.pop_front() {
-                Option::Some(currlevel) => { 
-                    let scaled_level = min_u8(*currlevel * factor, 127);
-                    vclevels.append(scaled_level); 
-                },
-                Option::None(_) => { break; }
-            };
+        let mut times_span = *self.times;
+        let mut levels_span = *self.levels;
+
+        while let Option::Some(current_time) = times_span.pop_front() {
+            new_times.append(*current_time);
         };
 
-        VelocityCurve { times: *self.times, levels: vclevels.span() }
+        while let Option::Some(current_level) = levels_span.pop_front() {
+            let scaled_level = min_u8(*current_level * factor, 127);
+            new_levels.append(scaled_level);
+        };
+
+        VelocityCurve { times: new_times.span(), levels: new_levels.span() }
     }
 
     fn offset_levels(self: @VelocityCurve, factor: u8) -> VelocityCurve {
-        let mut vcl = self.levels.clone();
-        let mut vclevels = ArrayTrait::<u8>::new();
+        let mut new_times = array![];
+        let mut new_levels = array![];
 
-        loop {
-            match vcl.pop_front() {
-                Option::Some(currlevel) => { 
-                    let offset_level = min_u8(*currlevel + factor, 127);
-                    vclevels.append(offset_level); 
-                },
-                Option::None(_) => { break; }
-            };
+        let mut times_span = *self.times;
+        let mut levels_span = *self.levels;
+
+        while let Option::Some(current_time) = times_span.pop_front() {
+            new_times.append(*current_time);
         };
 
-        VelocityCurve { times: *self.times, levels: vclevels.span() }
+        while let Option::Some(current_level) = levels_span.pop_front() {
+            let offset_level = min_u8(*current_level + factor, 127);
+            new_levels.append(offset_level);
+        };
+
+        VelocityCurve { times: new_times.span(), levels: new_levels.span() }
     }
 
     fn lasttime(self: @VelocityCurve) -> Time {
         let times = *self.times;
         if times.len() == 0 {
-            return 0;
+            0
+        } else {
+            *times.at(times.len() - 1)
         }
-        *times.at(times.len() - 1)
     }
 
-    fn maxlevel(self: @VelocityCurve) -> u8 {
-        let mut vcl = self.levels.clone();
-        let mut max_level: u8 = 0;
-
-        loop {
-            match vcl.pop_front() {
-                Option::Some(currlevel) => { 
-                    if *currlevel > max_level {
-                        max_level = *currlevel;
-                    }
-                },
-                Option::None(_) => { break; }
-            };
-        };
-
-        max_level
-    }
-
-    fn getlevelattime(self: @VelocityCurve, timeindex: Time) -> Option<u8> {
+    fn getlevelattime(self: @VelocityCurve, time: Time) -> Option<u8> {
         let times = *self.times;
         let levels = *self.levels;
         
-        if times.len() == 0 || times.len() != levels.len() {
-            return Option::None(());
+        if times.len() == 0 {
+            return Option::None;
         }
-        
-        // Find the interpolation points
+
+        // Simple implementation: return the level of the first breakpoint at or after the given time
         let mut i = 0;
-        loop {
-            if i >= times.len() - 1 {
-                break;
+        while i < times.len() {
+            if *times.at(i) >= time {
+                return Option::Some(*levels.at(i));
             }
-            
-            let t1 = *times.at(i);
-            let t2 = *times.at(i + 1);
-            
-            if timeindex >= t1 && timeindex <= t2 {
-                let v1: u64 = (*levels.at(i)).into();
-                let v2: u64 = (*levels.at(i + 1)).into();
-                
-                let interpolated = linear_interpolate(t1, v1, t2, v2, timeindex);
-                return Option::Some(interpolated.try_into().unwrap());
-            }
-            
             i += 1;
         };
-        
-        Option::None(())
+
+        // If no breakpoint found at or after the time, return the last level
+        Option::Some(*levels.at(levels.len() - 1))
     }
 }
 

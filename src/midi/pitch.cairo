@@ -2,7 +2,7 @@ use core::option::OptionTrait;
 use core::array::{ArrayTrait, SpanTrait};
 use core::clone::Clone;
 use core::traits::{TryInto, Into};
-use debug::PrintTrait;
+// use debug::PrintTrait; // Unused import
 
 use koji::midi::types::{Modes, PitchClass, OCTAVEBASE, Direction, Quality};
 use koji::midi::modes::{mode_steps};

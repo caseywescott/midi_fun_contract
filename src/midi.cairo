@@ -6,4 +6,4 @@ pub mod pitch;
 pub mod euclidean;
 pub mod instruments;
 pub mod velocitycurve;
-pub mod voicings;
+// pub mod voicings;  // TODO: Fix PitchInterval quality field issues

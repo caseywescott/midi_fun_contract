@@ -7,6 +7,11 @@ use core::option::OptionTrait;
 // Time type definition using microseconds precision
 type Time = u64; // microseconds
 
+// Helper functions for u8 operations
+fn min_u8(a: u8, b: u8) -> u8 {
+    if a < b { a } else { b }
+}
+
 // Helper functions for time operations
 fn time_from_seconds(seconds: u32) -> Time {
     (seconds * 1_000_000).into()

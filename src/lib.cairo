@@ -1,4 +1,5 @@
 mod midi;
+mod math;
 
 mod tests {
     mod test_euclidean;

@@ -3,8 +3,6 @@ mod tests {
     use debug::PrintTrait;
     use core::traits::Into;
     use core::traits::TryInto;
-    use orion::operators::tensor::{Tensor, U32Tensor,};
-    use orion::numbers::{FP32x32};
     use core::option::OptionTrait;
     use dict::Felt252DictTrait;
     use koji::midi::types::{
@@ -12,6 +10,7 @@ mod tests {
         ControlChange, PitchWheel, AfterTouch, PolyTouch, Direction, PitchClass, ProgramChange,
         SystemExclusive,
     };
+    use koji::math::{Time, time_from_seconds, time_from_milliseconds};
     use alexandria_data_structures::stack::{StackTrait, Felt252Stack, NullableStack};
     use alexandria_data_structures::array_ext::{ArrayTraitExt, SpanTraitExt};
 
@@ -21,9 +20,9 @@ mod tests {
     };
     use koji::midi::time::round_to_nearest_nth;
     use koji::midi::modes::{mode_steps};
-    use koji::midi::core::{MidiTrait};
     use koji::midi::pitch::{PitchClassTrait, keynum_to_pc};
-    use koji::midi::modes::{major_steps};
+    use koji::midi::velocitycurve::{VelocityCurveTrait};
+    use koji::midi::core::{MidiTrait};
 
     #[test]
     #[available_gas(10000000)]

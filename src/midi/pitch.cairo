@@ -9,9 +9,7 @@ use debug::PrintTrait;
 
 use koji::midi::types::{Modes, PitchClass, OCTAVEBASE, Direction, Quality};
 use koji::midi::modes::{mode_steps};
-
-use orion::numbers::{FP32x32, FP32x32Impl, FixedTrait};
-
+use koji::math::{freq_from_keynum};
 
 //*****************************************************************************************************************
 // PitchClass and Note Utils 
@@ -69,25 +67,11 @@ fn pc_to_keynum(pc: PitchClass) -> u8 {
     pc.note + (OCTAVEBASE * (pc.octave + 1))
 }
 
-// Converts a PitchClass to a Frequency: freq = 440.0 * (2 ** ((keynum - 69) / 12.0))
-
+// Converts a PitchClass to a Frequency using lookup table
 fn freq(pc: PitchClass) -> u32 {
     let keynum = pc.keynum();
-    let a = FP32x32 { mag: 440, sign: false };
-    let numsemitones = FP32x32 { mag: 12, sign: false };
-
-    let mut keynumscale = FP32x32 { mag: 0, sign: true };
-    if (keynum > 69) {
-        keynumscale = FP32x32 { mag: (keynum - 69).into(), sign: false };
-    } else {
-        keynumscale =
-            FP32x32 {
-                mag: (69 - keynum).into(), sign: false
-            }; // currently not allowing negative values
-    };
-    let keynumscaleratio = keynumscale / numsemitones;
-    let freq = a * keynumscaleratio.exp2();
-    freq.mag.try_into().unwrap()
+    // Return frequency in Hz * 1000 for integer precision  
+    freq_from_keynum(keynum)
 }
 
 // Converts a MIDI keynum to a PitchClass 

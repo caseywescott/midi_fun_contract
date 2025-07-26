@@ -1,12 +1,11 @@
 use core::traits::TryInto;
-use orion::operators::tensor::{Tensor, U32Tensor,};
-use orion::numbers::FP32x32;
 use core::option::OptionTrait;
 use koji::midi::types::{
     Midi, Message, Modes, ArpPattern, VelocityCurve, NoteOn, NoteOff, SetTempo, TimeSignature,
     ControlChange, PitchWheel, AfterTouch, PolyTouch, Direction, PitchClass, ProgramChange,
     SystemExclusive,
 };
+use koji::math::{Time, time_from_seconds, time_add, time_sub, time_mul_by_factor};
 use alexandria_data_structures::stack::{StackTrait, Felt252Stack, NullableStack};
 use alexandria_data_structures::array_ext::{ArrayTraitExt, SpanTraitExt};
 

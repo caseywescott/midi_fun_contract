@@ -1,4 +1,4 @@
-use orion::numbers::FP32x32;
+use koji::math::Time;
 use koji::midi::modes::{
     major_steps, minor_steps, lydian_steps, mixolydian_steps, dorian_steps, phrygian_steps,
     locrian_steps, aeolian_steps, harmonicminor_steps, naturalminor_steps, chromatic_steps,
@@ -39,7 +39,7 @@ struct NoteOn {
     channel: u8,
     note: u8,
     velocity: u8,
-    time: FP32x32
+    time: Time
 }
 
 #[derive(Copy, Drop)]
@@ -47,13 +47,13 @@ struct NoteOff {
     channel: u8,
     note: u8,
     velocity: u8,
-    time: FP32x32
+    time: Time
 }
 
 #[derive(Copy, Drop)]
 struct SetTempo {
     tempo: u32, // microseconds per beat
-    time: Option<FP32x32>
+    time: Option<Time>
 }
 
 #[derive(Copy, Drop)]
@@ -61,7 +61,7 @@ struct TimeSignature {
     numerator: u8,
     denominator: u8,
     clocks_per_click: u8,
-    time: Option<FP32x32>
+    time: Option<Time>
 }
 
 #[derive(Copy, Drop)]
@@ -69,21 +69,21 @@ struct ControlChange {
     channel: u8,
     control: u8,
     value: u8,
-    time: FP32x32
+    time: Time
 }
 
 #[derive(Copy, Drop)]
 struct PitchWheel {
     channel: u8,
     pitch: i32,
-    time: FP32x32
+    time: Time
 }
 
 #[derive(Copy, Drop)]
 struct AfterTouch {
     channel: u8,
     value: u8,
-    time: FP32x32
+    time: Time
 }
 
 #[derive(Copy, Drop)]
@@ -91,14 +91,14 @@ struct PolyTouch {
     channel: u8,
     note: u8,
     value: u8,
-    time: FP32x32
+    time: Time
 }
 
 #[derive(Copy, Drop)]
 struct ProgramChange {
     channel: u8,
     program: u8, // Program number (0 to 127)
-    time: FP32x32
+    time: Time
 }
 
 #[derive(Copy, Drop)]
@@ -107,7 +107,7 @@ struct SystemExclusive {
     device_id: Option<u8>, // Optional device ID byte
     data: Span<u8>, // Data payload
     checksum: Option<u8>, // Optional checksum byte
-    time: FP32x32
+    time: Time
 }
 
 /// =========================================
@@ -136,7 +136,7 @@ enum ArpPattern {} //TODO
 // VelocityCurve represents time & level "breakpoint" pairs indexed:
 #[derive(Copy, Drop)]
 struct VelocityCurve {
-    times: Span<FP32x32>,
+    times: Span<Time>,
     levels: Span<u8>
 }
 

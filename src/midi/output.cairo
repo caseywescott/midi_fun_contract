@@ -36,7 +36,7 @@ impl MidiOutputImpl of MidiOutputTrait {
         loop {
             match values.pop_front() {
                 Option::Some(value) => {
-                    self.data.append(*value);
+                    self.data.append(value);
                 },
                 Option::None => { break; }
             };
@@ -52,7 +52,7 @@ impl MidiOutputImpl of MidiOutputTrait {
         let mut data = self.data.clone();
         loop {
             match data.pop_front() {
-                Option::Some(value) => { result.append(*value); },
+                Option::Some(value) => { result.append(value); },
                 Option::None => { break; }
             };
         }
@@ -83,26 +83,26 @@ fn output_midi_object(midi: @Midi) -> Array<u8> {
             Option::Some(event) => {
                 match event {
                     Message::NOTE_ON(note) => {
-                        let delta = note.time.mag - prev_time;
-                        prev_time = note.time.mag;
+                        let delta = note.time - prev_time;
+                        prev_time = note.time;
                         write_variable_length(delta, ref output);
                         
-                        output.append_byte(0x90 + note.channel.try_into().unwrap());
+                        output.append_byte(0x90 + (*note.channel).try_into().unwrap());
                         output.append_byte(note.note.try_into().unwrap());
                         output.append_byte(note.velocity.try_into().unwrap());
                     },
                     Message::NOTE_OFF(note) => {
-                        let delta = note.time.mag - prev_time;
-                        prev_time = note.time.mag;
+                        let delta = note.time - prev_time;
+                        prev_time = note.time;
                         write_variable_length(delta, ref output);
                         
-                        output.append_byte(0x80 + note.channel.try_into().unwrap());
+                        output.append_byte(0x80 + (*note.channel).try_into().unwrap());
                         output.append_byte(note.note.try_into().unwrap());
                         output.append_byte(note.velocity.try_into().unwrap());
                     },
                     Message::SET_TEMPO(tempo) => {
                         let time = match tempo.time {
-                            Option::Some(t) => t.mag,
+                            Option::Some(t) => t,
                             Option::None => prev_time
                         };
                         let delta = time - prev_time;
@@ -139,7 +139,7 @@ fn output_midi_object(midi: @Midi) -> Array<u8> {
             break;
         }
         match output.data.get(i) {
-            Option::Some(value) => { final_output.append_byte(*value); },
+            Option::Some(value) => { final_output.append_byte(value); },
             Option::None => { break; }
         }
         i += 1;
@@ -158,7 +158,7 @@ fn output_midi_object(midi: @Midi) -> Array<u8> {
             break;
         }
         match output.data.get(i) {
-            Option::Some(value) => { final_output.append_byte(*value); },
+            Option::Some(value) => { final_output.append_byte(value); },
             Option::None => { break; }
         }
         i += 1;
@@ -200,7 +200,7 @@ fn write_variable_length(mut value: u32, ref output: MidiOutput) {
         }
         i -= 1;
         match buffer.get(i) {
-            Option::Some(byte) => { output.append_byte(*byte); },
+            Option::Some(byte) => { output.append_byte(byte); },
             Option::None => {},
         }
     }

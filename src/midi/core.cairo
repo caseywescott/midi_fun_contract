@@ -1,21 +1,39 @@
-use core::traits::TryInto;
 use core::option::OptionTrait;
+use core::traits::TryInto;
+use koji::math::{Time, time_add, time_from_seconds, time_mul_by_factor, time_sub};
 use koji::midi::types::{
-    Midi, Message, Modes, ArpPattern, VelocityCurve, NoteOn, NoteOff, SetTempo, TimeSignature,
-    ControlChange, PitchWheel, AfterTouch, PolyTouch, Direction, PitchClass, ProgramChange,
-    SystemExclusive,
+    AfterTouch, ArpPattern, ControlChange, Direction, Message, Midi, Modes, NoteOff, NoteOn,
+    PitchClass, PitchWheel, PolyTouch, ProgramChange, SetTempo, SystemExclusive, TimeSignature,
+    VelocityCurve,
 };
-use koji::math::{Time, time_from_seconds, time_add, time_sub, time_mul_by_factor};
 
-// Stub functions for missing dependencies
+// Implementation of quantization function
 fn round_to_nearest_nth(time: Time, grid_size: usize) -> Time {
-    // Simple stub - just return the original time for now
-    time
+    if grid_size == 0 {
+        return time;
+    }
+
+    let grid: Time = grid_size.into();
+    // Round to nearest grid point
+    let remainder = time % grid;
+    let half_grid = grid / 2;
+
+    if remainder < half_grid {
+        // Round down
+        time - remainder
+    } else {
+        // Round up
+        time - remainder + grid
+    }
 }
 
 fn next_instrument_in_group(program: u8) -> u8 {
-    // Simple stub - just return the same program for now
-    program
+    // Simple instrument remapping - cycle through a few instruments
+    if program < 127 {
+        program + 1
+    } else {
+        0
+    }
 }
 // use alexandria_data_structures::stack::{StackTrait, Felt252Stack, NullableStack};
 // use alexandria_data_structures::array_ext::{ArrayTraitExt};
@@ -29,7 +47,7 @@ use koji::midi::modes::{mode_steps};
 use koji::midi::pitch::{PitchClassTrait, keynum_to_pc};
 // use koji::midi::velocitycurve::{VelocityCurveTrait};
 
-trait MidiTrait {
+pub trait MidiTrait {
     /// =========== NOTE MANIPULATION ===========
     /// Instantiate a Midi.
     fn new() -> Midi;
@@ -43,7 +61,7 @@ trait MidiTrait {
         chanel: u32,
         steps: i32,
         tonic: PitchClass,
-        modes: Modes
+        modes: Modes,
     ) -> Midi;
     /// Append a message in a Midi object.
     fn append_message(self: @Midi, msg: Message) -> Midi;
@@ -91,14 +109,12 @@ impl MidiImpl of MidiTrait {
         chanel: u32,
         steps: i32,
         tonic: PitchClass,
-        modes: Modes
+        modes: Modes,
     ) -> Midi {
         let mut eventlist = ArrayTrait::<Message>::new();
 
         // Set Instrument
-        let outpc = ProgramChange {
-            channel: 0, program: 7, time: time_from_seconds(6)
-        };
+        let outpc = ProgramChange { channel: 0, program: 7, time: time_from_seconds(6) };
 
         let pcmessage = Message::PROGRAM_CHANGE((outpc));
 
@@ -106,28 +122,24 @@ impl MidiImpl of MidiTrait {
         let newtempo = SetTempo { tempo: 0, time: Option::Some(time_from_seconds(0)) };
 
         // Create Notes
-        let newnoteon1 = NoteOn {
-            channel: 0, note: 60, velocity: 100, time: time_from_seconds(0)
-        };
+        let newnoteon1 = NoteOn { channel: 0, note: 60, velocity: 100, time: time_from_seconds(0) };
 
-        let newnoteon2 = NoteOn {
-            channel: 0, note: 21, velocity: 100, time: time_from_seconds(1)
-        };
+        let newnoteon2 = NoteOn { channel: 0, note: 21, velocity: 100, time: time_from_seconds(1) };
 
         let newnoteon3 = NoteOn {
-            channel: 0, note: 90, velocity: 100, time: time_from_seconds(1) + 500000  // 1.5 seconds
+            channel: 0, note: 90, velocity: 100, time: time_from_seconds(1) + 500000 // 1.5 seconds
         };
 
         let newnoteoff1 = NoteOff {
-            channel: 0, note: 60, velocity: 100, time: time_from_seconds(2)
+            channel: 0, note: 60, velocity: 100, time: time_from_seconds(2),
         };
 
         let newnoteoff2 = NoteOff {
-            channel: 0, note: 21, velocity: 100, time: time_from_seconds(1) + 500000  // 1.5 seconds
+            channel: 0, note: 21, velocity: 100, time: time_from_seconds(1) + 500000 // 1.5 seconds
         };
 
         let newnoteoff3 = NoteOff {
-            channel: 0, note: 90, velocity: 100, time: time_from_seconds(5)
+            channel: 0, note: 90, velocity: 100, time: time_from_seconds(5),
         };
 
         let tempomessage = Message::SET_TEMPO((newtempo));
@@ -174,7 +186,7 @@ impl MidiImpl of MidiTrait {
                 Option::Some(currentevent) => { output.append(*currentevent); },
                 Option::None(_) => { break; },
             };
-        };
+        }
 
         output.append(msg);
         Midi { events: output.span() }
@@ -198,7 +210,7 @@ impl MidiImpl of MidiTrait {
                                 channel: *note_on.channel,
                                 note: outnote,
                                 velocity: *note_on.velocity,
-                                time: *note_on.time
+                                time: *note_on.time,
                             };
                             let notemessage = Message::NOTE_ON((newnote));
                             eventlist.append(notemessage);
@@ -214,7 +226,7 @@ impl MidiImpl of MidiTrait {
                                 channel: *note_off.channel,
                                 note: outnote,
                                 velocity: *note_off.velocity,
-                                time: *note_off.time
+                                time: *note_off.time,
                             };
                             let notemessage = Message::NOTE_OFF((newnote));
                             eventlist.append(notemessage);
@@ -237,9 +249,9 @@ impl MidiImpl of MidiTrait {
                         },
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
-        };
+        }
 
         Midi { events: eventlist.span() }
     }
@@ -247,12 +259,12 @@ impl MidiImpl of MidiTrait {
     fn reverse_notes(self: @Midi) -> Midi {
         let mut ev = self.clone().events;
         let mut events_array = array![];
-        
+
         // Copy events to array for reversal
         let mut events_copy = *self.events;
         while let Option::Some(event) = events_copy.pop_front() {
             events_array.append(*event);
-        };
+        }
 
         // Manual reverse
         let mut rev_array = array![];
@@ -260,9 +272,9 @@ impl MidiImpl of MidiTrait {
         while i > 0 {
             i -= 1;
             rev_array.append(*events_array.at(i));
-        };
+        }
         let mut rev = rev_array.span();
-        
+
         let lastmsgtime = rev.pop_front();
         let firstmsgtime = ev.pop_front();
         let mut maxtime: Time = 0;
@@ -297,8 +309,8 @@ impl MidiImpl of MidiTrait {
                     },
                 }
             },
-            Option::None(_) => {}
-        };
+            Option::None(_) => {},
+        }
 
         //assign mintime to the first message's time value
         match firstmsgtime {
@@ -328,8 +340,8 @@ impl MidiImpl of MidiTrait {
                     },
                 }
             },
-            Option::None(_) => {}
-        };
+            Option::None(_) => {},
+        }
 
         loop {
             match rev.pop_front() {
@@ -340,7 +352,7 @@ impl MidiImpl of MidiTrait {
                                 channel: *note_on.channel,
                                 note: *note_on.note,
                                 velocity: *note_on.velocity,
-                                time: time_add(time_sub(maxtime, *note_on.time), mintime)
+                                time: time_add(time_sub(maxtime, *note_on.time), mintime),
                             };
                             let notemessage = Message::NOTE_OFF(newnote);
                             eventlist.append(notemessage);
@@ -350,7 +362,7 @@ impl MidiImpl of MidiTrait {
                                 channel: *note_off.channel,
                                 note: *note_off.note,
                                 velocity: *note_off.velocity,
-                                time: time_add(time_sub(maxtime, *note_off.time), mintime)
+                                time: time_add(time_sub(maxtime, *note_off.time), mintime),
                             };
                             let notemessage = Message::NOTE_ON(newnote);
                             eventlist.append(notemessage);
@@ -359,9 +371,11 @@ impl MidiImpl of MidiTrait {
                             let scaledtempo = SetTempo {
                                 tempo: *set_tempo.tempo,
                                 time: match *set_tempo.time {
-                                    Option::Some(time) => Option::Some(time_add(time_sub(maxtime, time), mintime)),
+                                    Option::Some(time) => Option::Some(
+                                        time_add(time_sub(maxtime, time), mintime),
+                                    ),
                                     Option::None => Option::None,
-                                }
+                                },
                             };
                             let tempomessage = Message::SET_TEMPO(scaledtempo);
                             eventlist.append(tempomessage);
@@ -372,9 +386,11 @@ impl MidiImpl of MidiTrait {
                                 denominator: *time_signature.denominator,
                                 clocks_per_click: *time_signature.clocks_per_click,
                                 time: match *time_signature.time {
-                                    Option::Some(time) => Option::Some(time_add(time_sub(maxtime, time), mintime)),
+                                    Option::Some(time) => Option::Some(
+                                        time_add(time_sub(maxtime, time), mintime),
+                                    ),
                                     Option::None => Option::None,
-                                }
+                                },
                             };
                             let tsmessage = Message::TIME_SIGNATURE(newtimesig);
                             eventlist.append(tsmessage);
@@ -384,7 +400,7 @@ impl MidiImpl of MidiTrait {
                                 channel: *control_change.channel,
                                 control: *control_change.control,
                                 value: *control_change.value,
-                                time: time_add(time_sub(maxtime, *control_change.time), mintime)
+                                time: time_add(time_sub(maxtime, *control_change.time), mintime),
                             };
                             let ccmessage = Message::CONTROL_CHANGE(newcontrolchange);
                             eventlist.append(ccmessage);
@@ -393,7 +409,7 @@ impl MidiImpl of MidiTrait {
                             let newpitchwheel = PitchWheel {
                                 channel: *pitch_wheel.channel,
                                 value: *pitch_wheel.value,
-                                time: time_add(time_sub(maxtime, *pitch_wheel.time), mintime)
+                                time: time_add(time_sub(maxtime, *pitch_wheel.time), mintime),
                             };
                             let pwmessage = Message::PITCH_WHEEL(newpitchwheel);
                             eventlist.append(pwmessage);
@@ -402,7 +418,7 @@ impl MidiImpl of MidiTrait {
                             let newaftertouch = AfterTouch {
                                 channel: *after_touch.channel,
                                 value: *after_touch.value,
-                                time: time_add(time_sub(maxtime, *after_touch.time), mintime)
+                                time: time_add(time_sub(maxtime, *after_touch.time), mintime),
                             };
                             let atmessage = Message::AFTER_TOUCH(newaftertouch);
                             eventlist.append(atmessage);
@@ -412,7 +428,7 @@ impl MidiImpl of MidiTrait {
                                 channel: *poly_touch.channel,
                                 note: *poly_touch.note,
                                 value: *poly_touch.value,
-                                time: time_add(time_sub(maxtime, *poly_touch.time), mintime)
+                                time: time_add(time_sub(maxtime, *poly_touch.time), mintime),
                             };
                             let ptmessage = Message::POLY_TOUCH(newpolytouch);
                             eventlist.append(ptmessage);
@@ -421,7 +437,7 @@ impl MidiImpl of MidiTrait {
                             let newprogchg = ProgramChange {
                                 channel: *program_change.channel,
                                 program: *program_change.program,
-                                time: time_add(time_sub(maxtime, *program_change.time), mintime)
+                                time: time_add(time_sub(maxtime, *program_change.time), mintime),
                             };
                             let pchgmessage = Message::PROGRAM_CHANGE(newprogchg);
                             eventlist.append(pchgmessage);
@@ -429,16 +445,16 @@ impl MidiImpl of MidiTrait {
                         Message::SYSTEM_EXCLUSIVE(system_exclusive) => {
                             let newsysex = SystemExclusive {
                                 data: *system_exclusive.data,
-                                time: time_add(time_sub(maxtime, *system_exclusive.time), mintime)
+                                time: time_add(time_sub(maxtime, *system_exclusive.time), mintime),
                             };
                             let sysexgmessage = Message::SYSTEM_EXCLUSIVE(newsysex);
                             eventlist.append(sysexgmessage);
                         },
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
-        };
+        }
 
         Midi { events: eventlist.span() }
     }
@@ -456,7 +472,7 @@ impl MidiImpl of MidiTrait {
                                 channel: *note_on.channel,
                                 note: *note_on.note,
                                 velocity: *note_on.velocity,
-                                time: round_to_nearest_nth(*note_on.time, grid_size)
+                                time: round_to_nearest_nth(*note_on.time, grid_size),
                             };
                             let notemessage = Message::NOTE_ON((newnote));
                             eventlist.append(notemessage);
@@ -466,7 +482,7 @@ impl MidiImpl of MidiTrait {
                                 channel: *note_off.channel,
                                 note: *note_off.note,
                                 velocity: *note_off.velocity,
-                                time: round_to_nearest_nth(*note_off.time, grid_size)
+                                time: round_to_nearest_nth(*note_off.time, grid_size),
                             };
                             let notemessage = Message::NOTE_OFF((newnote));
                             eventlist.append(notemessage);
@@ -489,9 +505,9 @@ impl MidiImpl of MidiTrait {
                         },
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
-        };
+        }
 
         // Create a new Midi object with the modified event list
         Midi { events: eventlist.span() }
@@ -541,9 +557,9 @@ impl MidiImpl of MidiTrait {
                         Message::SYSTEM_EXCLUSIVE(_system_exclusive) => {},
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
-        };
+        }
 
         // Create a new Midi object with the modified event list
         Midi { events: eventlist.span() }
@@ -562,7 +578,9 @@ impl MidiImpl of MidiTrait {
                                 channel: *note_on.channel,
                                 note: *note_on.note,
                                 velocity: *note_on.velocity,
-                                time: time_mul_by_factor(*note_on.time, factor.try_into().unwrap(), 1)
+                                time: time_mul_by_factor(
+                                    *note_on.time, factor.try_into().unwrap(), 1,
+                                ),
                             };
                             let notemessage = Message::NOTE_ON((newnote));
                             eventlist.append(notemessage);
@@ -572,7 +590,9 @@ impl MidiImpl of MidiTrait {
                                 channel: *note_off.channel,
                                 note: *note_off.note,
                                 velocity: *note_off.velocity,
-                                time: time_mul_by_factor(*note_off.time, factor.try_into().unwrap(), 1)
+                                time: time_mul_by_factor(
+                                    *note_off.time, factor.try_into().unwrap(), 1,
+                                ),
                             };
                             let notemessage = Message::NOTE_OFF((newnote));
                             eventlist.append(notemessage);
@@ -581,9 +601,11 @@ impl MidiImpl of MidiTrait {
                             let scaledtempo = SetTempo {
                                 tempo: *set_tempo.tempo,
                                 time: match *set_tempo.time {
-                                    Option::Some(time) => Option::Some(time_mul_by_factor(time, factor.try_into().unwrap(), 1)),
+                                    Option::Some(time) => Option::Some(
+                                        time_mul_by_factor(time, factor.try_into().unwrap(), 1),
+                                    ),
                                     Option::None => Option::None,
-                                }
+                                },
                             };
                             let tempomessage = Message::SET_TEMPO((scaledtempo));
                             eventlist.append(tempomessage);
@@ -594,9 +616,11 @@ impl MidiImpl of MidiTrait {
                                 denominator: *time_signature.denominator,
                                 clocks_per_click: *time_signature.clocks_per_click,
                                 time: match *time_signature.time {
-                                    Option::Some(time) => Option::Some(time_mul_by_factor(time, factor.try_into().unwrap(), 1)),
+                                    Option::Some(time) => Option::Some(
+                                        time_mul_by_factor(time, factor.try_into().unwrap(), 1),
+                                    ),
                                     Option::None => Option::None,
-                                }
+                                },
                             };
                             let tsmessage = Message::TIME_SIGNATURE((newtimesig));
                             eventlist.append(tsmessage);
@@ -606,7 +630,9 @@ impl MidiImpl of MidiTrait {
                                 channel: *control_change.channel,
                                 control: *control_change.control,
                                 value: *control_change.value,
-                                time: time_mul_by_factor(*control_change.time, factor.try_into().unwrap(), 1)
+                                time: time_mul_by_factor(
+                                    *control_change.time, factor.try_into().unwrap(), 1,
+                                ),
                             };
                             let ccmessage = Message::CONTROL_CHANGE(newcontrolchange);
                             eventlist.append(ccmessage);
@@ -615,7 +641,9 @@ impl MidiImpl of MidiTrait {
                             let newpitchwheel = PitchWheel {
                                 channel: *pitch_wheel.channel,
                                 value: *pitch_wheel.value,
-                                time: time_mul_by_factor(*pitch_wheel.time, factor.try_into().unwrap(), 1)
+                                time: time_mul_by_factor(
+                                    *pitch_wheel.time, factor.try_into().unwrap(), 1,
+                                ),
                             };
                             let pwmessage = Message::PITCH_WHEEL(newpitchwheel);
                             eventlist.append(pwmessage);
@@ -624,7 +652,9 @@ impl MidiImpl of MidiTrait {
                             let newaftertouch = AfterTouch {
                                 channel: *after_touch.channel,
                                 value: *after_touch.value,
-                                time: time_mul_by_factor(*after_touch.time, factor.try_into().unwrap(), 1)
+                                time: time_mul_by_factor(
+                                    *after_touch.time, factor.try_into().unwrap(), 1,
+                                ),
                             };
                             let atmessage = Message::AFTER_TOUCH(newaftertouch);
                             eventlist.append(atmessage);
@@ -634,7 +664,9 @@ impl MidiImpl of MidiTrait {
                                 channel: *poly_touch.channel,
                                 note: *poly_touch.note,
                                 value: *poly_touch.value,
-                                time: time_mul_by_factor(*poly_touch.time, factor.try_into().unwrap(), 1)
+                                time: time_mul_by_factor(
+                                    *poly_touch.time, factor.try_into().unwrap(), 1,
+                                ),
                             };
                             let ptmessage = Message::POLY_TOUCH(newpolytouch);
                             eventlist.append(ptmessage);
@@ -643,7 +675,9 @@ impl MidiImpl of MidiTrait {
                             let newprogchg = ProgramChange {
                                 channel: *program_change.channel,
                                 program: *program_change.program,
-                                time: time_mul_by_factor(*program_change.time, factor.try_into().unwrap(), 1)
+                                time: time_mul_by_factor(
+                                    *program_change.time, factor.try_into().unwrap(), 1,
+                                ),
                             };
                             let pchgmessage = Message::PROGRAM_CHANGE(newprogchg);
                             eventlist.append(pchgmessage);
@@ -651,16 +685,18 @@ impl MidiImpl of MidiTrait {
                         Message::SYSTEM_EXCLUSIVE(system_exclusive) => {
                             let newsysex = SystemExclusive {
                                 data: *system_exclusive.data,
-                                time: time_mul_by_factor(*system_exclusive.time, factor.try_into().unwrap(), 1)
+                                time: time_mul_by_factor(
+                                    *system_exclusive.time, factor.try_into().unwrap(), 1,
+                                ),
                             };
                             let sysexgmessage = Message::SYSTEM_EXCLUSIVE(newsysex);
                             eventlist.append(sysexgmessage);
                         },
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
-        };
+        }
 
         // Create a new Midi object with the modified event list
         Midi { events: eventlist.span() }
@@ -707,9 +743,9 @@ impl MidiImpl of MidiTrait {
                 Option::None(_) => {
                     // If there are no more events, break out of the loop
                     break;
-                }
+                },
             };
-        };
+        }
 
         // Create a new Midi object with the modified event list
         Midi { events: eventlist.span() }
@@ -747,7 +783,7 @@ impl MidiImpl of MidiTrait {
                             let newprogchg = ProgramChange {
                                 channel: *program_change.channel,
                                 program: next_instrument_in_group(*program_change.program),
-                                time: *program_change.time
+                                time: *program_change.time,
                             };
                             let pchgmessage = Message::PROGRAM_CHANGE((newprogchg));
                             eventlist.append(pchgmessage);
@@ -760,9 +796,9 @@ impl MidiImpl of MidiTrait {
                 Option::None(_) => {
                     // If there are no more events, break out of the loop
                     break;
-                }
+                },
             };
-        };
+        }
 
         // Create a new Midi object with the modified event list
         Midi { events: eventlist.span() }
@@ -789,9 +825,9 @@ impl MidiImpl of MidiTrait {
                         Message::SYSTEM_EXCLUSIVE(_system_exclusive) => {},
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
-        };
+        }
 
         outtempo
     }
@@ -822,7 +858,7 @@ impl MidiImpl of MidiTrait {
                                 channel: *note_on.channel,
                                 note: outnote,
                                 velocity: *note_on.velocity,
-                                time: *note_on.time
+                                time: *note_on.time,
                             };
 
                             let notemessage = Message::NOTE_ON((newnote));
@@ -841,7 +877,7 @@ impl MidiImpl of MidiTrait {
                                 channel: *note_off.channel,
                                 note: outnote,
                                 velocity: *note_off.velocity,
-                                time: *note_off.time
+                                time: *note_off.time,
                             };
 
                             let notemessage = Message::NOTE_OFF((newnote));
@@ -867,9 +903,9 @@ impl MidiImpl of MidiTrait {
                         },
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
-        };
+        }
 
         Midi { events: eventlist.span() }
     }
@@ -900,7 +936,7 @@ impl MidiImpl of MidiTrait {
                                 channel: *note_on.channel,
                                 note: *note_on.note,
                                 velocity: outvelocity,
-                                time: *note_on.time
+                                time: *note_on.time,
                             };
                             let notemessage = Message::NOTE_ON(newnote);
                             eventlist.append(notemessage);
@@ -917,7 +953,7 @@ impl MidiImpl of MidiTrait {
                                 channel: *note_off.channel,
                                 note: *note_off.note,
                                 velocity: outvelocity,
-                                time: *note_off.time
+                                time: *note_off.time,
                             };
                             let notemessage = Message::NOTE_OFF(newnote);
                             eventlist.append(notemessage);
@@ -940,9 +976,9 @@ impl MidiImpl of MidiTrait {
                         },
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
-        };
+        }
 
         Midi { events: eventlist.span() }
     }

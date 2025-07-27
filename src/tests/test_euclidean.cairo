@@ -1,11 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use core::array::SpanTrait;
-    use core::traits::Into;
-    use core::traits::IndexView;
     use core::array::ArrayTrait;
-    use core::fmt::Display;
-    use core::fmt::Formatter;
     use koji::midi::euclidean::{euclidean, modify_array};
     // use super::euclidean;
     // use super::modify_array;

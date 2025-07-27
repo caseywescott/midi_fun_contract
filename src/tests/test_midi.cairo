@@ -4,7 +4,9 @@ mod tests {
     use core::option::OptionTrait;
     use core::traits::TryInto;
     use koji::midi::core::MidiTrait;
-    use koji::midi::types::{Message, Midi, NoteOff, NoteOn, ProgramChange, SetTempo};
+    use koji::midi::types::{
+        Message, Midi, Modes, NoteOff, NoteOn, PitchClass, ProgramChange, SetTempo,
+    };
 
     #[test]
     #[available_gas(10000000)]
@@ -420,5 +422,63 @@ mod tests {
                 Option::None(_) => { break; },
             };
         };
+    }
+
+    #[test]
+    #[available_gas(100000000)]
+    fn generate_harmony_combined_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+
+        let note_on1 = NoteOn { channel: 0, note: 60, velocity: 100, time: 0 };
+        let note_off1 = NoteOff { channel: 0, note: 60, velocity: 100, time: 1000 };
+
+        let note_on2 = NoteOn { channel: 0, note: 64, velocity: 100, time: 500 };
+        let note_off2 = NoteOff { channel: 0, note: 64, velocity: 100, time: 1500 };
+
+        eventlist.append(Message::NOTE_ON(note_on1));
+        eventlist.append(Message::NOTE_OFF(note_off1));
+        eventlist.append(Message::NOTE_ON(note_on2));
+        eventlist.append(Message::NOTE_OFF(note_off2));
+
+        let midi = Midi { events: eventlist.span() };
+
+        let tonic = PitchClass { note: 0, octave: 4 };
+        let mode = Modes::Major;
+
+        // Test with single step first (using existing function)
+        let harmonized_midi = midi.generate_harmony(4, tonic, mode);
+
+        let mut events = harmonized_midi.events;
+        let mut note_on_count = 0;
+        let mut note_off_count = 0;
+
+        loop {
+            match events.pop_front() {
+                Option::Some(current_event) => match current_event {
+                    Message::NOTE_ON(note_on) => {
+                        note_on_count += 1;
+                        // Should have both original and harmony notes
+                        assert!(
+                            *note_on.note >= 48 && *note_on.note <= 84,
+                            "Generated NOTE_ON out of range",
+                        );
+                    },
+                    Message::NOTE_OFF(note_off) => {
+                        note_off_count += 1;
+                        // Should have both original and harmony notes
+                        assert!(
+                            *note_off.note >= 48 && *note_off.note <= 84,
+                            "Generated NOTE_OFF out of range",
+                        );
+                    },
+                    _ => {},
+                },
+                Option::None(_) => { break; },
+            }
+        }
+
+        // Should have doubled the notes (original + harmony)
+        assert!(note_on_count == 4, "Should have 4 note on events");
+        assert!(note_off_count == 4, "Should have 4 note off events");
     }
 }

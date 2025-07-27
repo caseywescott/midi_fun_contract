@@ -13,17 +13,20 @@ fn round_to_nearest_nth(time: Time, grid_size: usize) -> Time {
         return time;
     }
 
-    let grid: Time = grid_size.into();
-    // Round to nearest grid point
-    let remainder = time % grid;
-    let half_grid = grid / 2;
+    let grid_resolution: u64 = grid_size.into();
 
-    if remainder < half_grid {
-        // Round down
-        time - remainder
+    // Equivalent to original: (time.mag / grid_resolution) * grid_resolution
+    let rounded = (time / grid_resolution) * grid_resolution;
+
+    // Calculate remainder: time.mag - rounded
+    let remainder = time - rounded;
+    let half_resolution = grid_resolution / 2;
+
+    // Original logic: if remainder >= half_resolution, round up, else round down
+    if remainder >= half_resolution {
+        rounded + grid_resolution
     } else {
-        // Round up
-        time - remainder + grid
+        rounded
     }
 }
 

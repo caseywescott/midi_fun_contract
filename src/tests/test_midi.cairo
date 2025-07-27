@@ -654,4 +654,42 @@ mod tests {
         assert!(notes_in_chord == 3, "Should find exactly 3 notes");
         assert!(chord_count == 3, "Should find exactly 3 note-offs");
     }
+
+    #[test]
+    #[available_gas(10000000)]
+    fn output_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+
+        // Create a simple MIDI sequence
+        let note_on1 = NoteOn { channel: 0, note: 60, velocity: 100, time: 0 };
+        let note_off1 = NoteOff { channel: 0, note: 60, velocity: 100, time: 1000 };
+        let note_on2 = NoteOn { channel: 0, note: 64, velocity: 100, time: 500 };
+        let note_off2 = NoteOff { channel: 0, note: 64, velocity: 100, time: 1500 };
+
+        // Add tempo
+        let tempo = SetTempo { tempo: 120, time: Option::Some(0) };
+
+        eventlist.append(Message::SET_TEMPO(tempo));
+        eventlist.append(Message::NOTE_ON(note_on1));
+        eventlist.append(Message::NOTE_ON(note_on2));
+        eventlist.append(Message::NOTE_OFF(note_off1));
+        eventlist.append(Message::NOTE_OFF(note_off2));
+
+        let midi = Midi { events: eventlist.span() };
+
+        // Test MIDI binary output
+        let binary_output = koji::midi::output::output_midi_object(@midi);
+
+        // Verify we got some output
+        assert!(binary_output.len() > 0, "MIDI output should not be empty");
+
+        // Check that it starts with MIDI header "MThd"
+        assert!(*binary_output.get(0).unwrap().unbox() == 0x4D, "Should start with 'M'");
+        assert!(*binary_output.get(1).unwrap().unbox() == 0x54, "Should have 'T'");
+        assert!(*binary_output.get(2).unwrap().unbox() == 0x68, "Should have 'h'");
+        assert!(*binary_output.get(3).unwrap().unbox() == 0x64, "Should have 'd'");
+
+        // Check that we have at least the minimum expected size (header + track header + some data)
+        assert!(binary_output.len() >= 22, "Should have at least header + track data");
+    }
 }

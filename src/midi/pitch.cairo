@@ -1,20 +1,21 @@
-use core::option::OptionTrait;
 use core::array::{ArrayTrait, SpanTrait};
 use core::clone::Clone;
-use core::traits::{TryInto, Into};
+use core::option::OptionTrait;
+use core::traits::{Into, TryInto};
+use koji::math::freq_from_keynum;
 // use debug::PrintTrait; // Unused import
 
-use koji::midi::types::{Modes, PitchClass, OCTAVEBASE, Direction, Quality};
-use koji::midi::modes::{mode_steps};
-use koji::math::{freq_from_keynum};
+use koji::midi::types::{Direction, OCTAVEBASE, PitchClass};
 
 //*****************************************************************************************************************
-// PitchClass and Note Utils 
+// PitchClass and Note Utils
 //
 // Defintions:
-// Note - Integer representation of pitches % OCTAVEBASE. Example E Major -> [1,3,4,6,8,9,11]  (C#,D#,E,F#,G#,A,B)
+// Note - Integer representation of pitches % OCTAVEBASE. Example E Major -> [1,3,4,6,8,9,11]
+// (C#,D#,E,F#,G#,A,B)
 // Keynum - Integer representing MIDI note. Keynum = Note * (OCTAVEBASE * OctaveOfNote)
-// Mode - Distances between adjacent notes within an OCTAVEBASE. Example: Major Key -> [2,2,1,2,2,2,1]
+// Mode - Distances between adjacent notes within an OCTAVEBASE. Example: Major Key ->
+// [2,2,1,2,2,2,1]
 // Key  - A Mode transposed at a given pitch base
 // Tonic - A Note transposing a Mode
 // Modal Transposition - Moving up or down in pitch by a constant interval within a given mode
@@ -29,7 +30,7 @@ pub trait PitchClassTrait {
     fn get_notes_of_key(self: @PitchClass, pcoll: Span<u8>) -> Span<u8>;
     fn get_scale_degree(self: @PitchClass, tonic: PitchClass, pcoll: Span<u8>) -> u8;
     fn modal_transposition(
-        self: @PitchClass, tonic: PitchClass, pcoll: Span<u8>, numsteps: u8, direction: Direction
+        self: @PitchClass, tonic: PitchClass, pcoll: Span<u8>, numsteps: u8, direction: Direction,
     ) -> u8;
 }
 
@@ -53,7 +54,7 @@ impl PitchClassImpl of PitchClassTrait {
         get_scale_degree(*self, tonic, pcoll)
     }
     fn modal_transposition(
-        self: @PitchClass, tonic: PitchClass, pcoll: Span<u8>, numsteps: u8, direction: Direction
+        self: @PitchClass, tonic: PitchClass, pcoll: Span<u8>, numsteps: u8, direction: Direction,
     ) -> u8 {
         modal_transposition(*self, tonic, pcoll, numsteps, direction)
     }
@@ -67,15 +68,15 @@ pub fn pc_to_keynum(pc: PitchClass) -> u8 {
 // Converts a PitchClass to a Frequency using lookup table
 pub fn freq(pc: PitchClass) -> u32 {
     let keynum = pc.keynum();
-    // Return frequency in Hz * 1000 for integer precision  
+    // Return frequency in Hz * 1000 for integer precision
     freq_from_keynum(keynum)
 }
 
-// Converts a MIDI keynum to a PitchClass 
+// Converts a MIDI keynum to a PitchClass
 pub fn keynum_to_pc(keynum: u8) -> PitchClass {
     let mut outnote = keynum % OCTAVEBASE;
     let mut outoctave = (keynum / OCTAVEBASE);
-    PitchClass { note: outnote, octave: outoctave, }
+    PitchClass { note: outnote, octave: outoctave }
 }
 
 // absolute difference between two PitchClasses
@@ -121,16 +122,15 @@ pub fn mode_notes_above_note_base(pc: PitchClass, pcoll: Span<u8>) -> Span<u8> {
                 sum = sum + *step;
                 ArrayTrait::append(ref outarr, (pcnote + sum) % OCTAVEBASE);
             },
-            Option::None => {
-                break;
-            }
+            Option::None => { break; },
         };
-    };
+    }
 
     outarr.span()
 }
 
-// Functions that compute collect notes of a mode at a specified pitch base in Normal Form (% OCTAVEBASE)
+// Functions that compute collect notes of a mode at a specified pitch base in Normal Form (%
+// OCTAVEBASE)
 // Example: E Major -> [1,3,4,6,8,9,11]  (C#,D#,E,F#,G#,A,B)
 
 pub fn get_notes_of_key(pc: PitchClass, pcoll: Span<u8>) -> Span<u8> {
@@ -148,18 +148,17 @@ pub fn get_notes_of_key(pc: PitchClass, pcoll: Span<u8>) -> Span<u8> {
                 sum = sum + *step;
                 ArrayTrait::append(ref outarr, sum % OCTAVEBASE);
             },
-            Option::None => {
-                break;
-            }
+            Option::None => { break; },
         };
-    };
+    }
 
     outarr.span()
 }
 
 // Compute the scale degree of a note given a key
-// In this implementation, Scale degrees doesn't use zero-based counting - Zero if the note is note present in the key.
-// Perhaps implement Option for when a note is not a scale degree          
+// In this implementation, Scale degrees doesn't use zero-based counting - Zero if the note is note
+// present in the key.
+// Perhaps implement Option for when a note is not a scale degree
 
 pub fn get_scale_degree(pc: PitchClass, tonic: PitchClass, pcoll: Span<u8>) -> u8 {
     let mut notesofkey = tonic.get_notes_of_key(pcoll);
@@ -177,11 +176,9 @@ pub fn get_scale_degree(pc: PitchClass, tonic: PitchClass, pcoll: Span<u8>) -> u
                     };
                 }
             },
-            Option::None => {
-                break;
-            }
+            Option::None => { break; },
         };
-    };
+    }
 
     let scaledegree: u8 = outdegree.try_into().unwrap();
 
@@ -189,7 +186,7 @@ pub fn get_scale_degree(pc: PitchClass, tonic: PitchClass, pcoll: Span<u8>) -> u
 }
 
 pub fn modal_transposition(
-    pc: PitchClass, tonic: PitchClass, pcoll: Span<u8>, numsteps: u8, direction: Direction
+    pc: PitchClass, tonic: PitchClass, pcoll: Span<u8>, numsteps: u8, direction: Direction,
 ) -> u8 {
     let mut degree8 = pc.get_scale_degree(tonic, pcoll);
 
@@ -223,17 +220,13 @@ pub fn modal_transposition(
         }
 
         i += 1;
-    };
+    }
 
     let mut keyn = pc.keynum();
 
     match direction {
-        Direction::Up(_) => {
-            keyn = keyn + sum;
-        },
-        Direction::Down(_) => {
-            keyn = keyn - sum;
-        },
+        Direction::Up(_) => { keyn = keyn + sum; },
+        Direction::Down(_) => { keyn = keyn - sum; },
         Direction::Oblique(_) => {},
     }
 

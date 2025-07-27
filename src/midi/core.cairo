@@ -916,7 +916,7 @@ impl MidiImpl of MidiTrait {
 
     fn edit_dynamics(self: @Midi, curve: VelocityCurve) -> Midi {
         let mut ev = self.clone().events;
-        let mut vcurve = curve.clone();
+        let mut _vcurve = curve.clone();
         let mut outvelocity = 0;
         let mut eventlist = ArrayTrait::<Message>::new();
 

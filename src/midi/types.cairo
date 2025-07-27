@@ -1,9 +1,4 @@
 use koji::math::Time;
-use koji::midi::modes::{
-    major_steps, minor_steps, lydian_steps, mixolydian_steps, dorian_steps, phrygian_steps,
-    locrian_steps, aeolian_steps, harmonicminor_steps, naturalminor_steps, chromatic_steps,
-    pentatonic_steps
-};
 
 
 /// =========================================
@@ -12,7 +7,7 @@ use koji::midi::modes::{
 
 #[derive(Copy, Drop, Serde)]
 pub struct Midi {
-    pub events: Span<Message>
+    pub events: Span<Message>,
 }
 
 
@@ -39,7 +34,7 @@ pub struct NoteOn {
     pub channel: u8,
     pub note: u8,
     pub velocity: u8,
-    pub time: Time
+    pub time: Time,
 }
 
 #[derive(Copy, Drop, Serde)]
@@ -47,13 +42,13 @@ pub struct NoteOff {
     pub channel: u8,
     pub note: u8,
     pub velocity: u8,
-    pub time: Time
+    pub time: Time,
 }
 
 #[derive(Copy, Drop, Serde)]
 pub struct SetTempo {
     pub tempo: u32, // microseconds per beat
-    pub time: Option<Time>
+    pub time: Option<Time>,
 }
 
 #[derive(Copy, Drop, Serde)]
@@ -61,7 +56,7 @@ pub struct TimeSignature {
     pub numerator: u8,
     pub denominator: u8,
     pub clocks_per_click: u8,
-    pub time: Option<Time>
+    pub time: Option<Time>,
 }
 
 #[derive(Copy, Drop, Serde)]
@@ -69,21 +64,21 @@ pub struct ControlChange {
     pub channel: u8,
     pub control: u8,
     pub value: u8,
-    pub time: Time
+    pub time: Time,
 }
 
 #[derive(Copy, Drop, Serde)]
 pub struct PitchWheel {
     pub channel: u8,
     pub value: u16,
-    pub time: Time
+    pub time: Time,
 }
 
 #[derive(Copy, Drop, Serde)]
 pub struct AfterTouch {
     pub channel: u8,
     pub value: u8,
-    pub time: Time
+    pub time: Time,
 }
 
 #[derive(Copy, Drop, Serde)]
@@ -91,20 +86,20 @@ pub struct PolyTouch {
     pub channel: u8,
     pub note: u8,
     pub value: u8,
-    pub time: Time
+    pub time: Time,
 }
 
 #[derive(Copy, Drop, Serde)]
 pub struct ProgramChange {
     pub channel: u8,
     pub program: u8,
-    pub time: Time
+    pub time: Time,
 }
 
 #[derive(Copy, Drop, Serde)]
 pub struct SystemExclusive {
     pub data: Span<u8>,
-    pub time: Time
+    pub time: Time,
 }
 
 /// =========================================
@@ -145,7 +140,7 @@ pub enum ArpPattern {
 #[derive(Copy, Drop, Serde)]
 pub struct VelocityCurve {
     pub times: Span<Time>,
-    pub levels: Span<u8>
+    pub levels: Span<u8>,
 }
 
 /// =========================================
@@ -153,15 +148,16 @@ pub struct VelocityCurve {
 /// =========================================
 
 // Define a 12 note octave base
-// For Microtonal mode definition, change the OCTAVEBASE and represent scales as intervallic ratios summing to OCTAVEBASE
+// For Microtonal mode definition, change the OCTAVEBASE and represent scales as intervallic ratios
+// summing to OCTAVEBASE
 
 pub const OCTAVEBASE: u8 = 12;
 
 //*************************************************************************
-// Pitch and Interval Structs 
+// Pitch and Interval Structs
 //
 // PitchClass: Used to Calculate Keynums. Pitch Class Keynums can be 0-127
-// Example: MIDI Keynum 69 == A440 
+// Example: MIDI Keynum 69 == A440
 //
 // Notes are values from 0 <= note < OCTAVEBASE and increment
 // Example: If OCTAVEBASE = 12, [C -> 0, C# -> 1, D -> 2...B-> 11]
@@ -178,7 +174,7 @@ pub struct PitchClass {
 pub enum Direction {
     Up: (),
     Down: (),
-    Oblique: ()
+    Oblique: (),
 }
 
 #[derive(Copy, Drop, Serde)]
@@ -195,5 +191,5 @@ pub enum Quality {
     Perfect: (),
     Diminshed: (),
     Augmented: (),
-    Undefined: ()
+    Undefined: (),
 }

@@ -1,6 +1,4 @@
-use core::array::{ArrayTrait, SpanTrait};
-use core::fmt::{Display, Formatter};
-use core::traits::{IndexView, Into};
+use core::array::ArrayTrait;
 
 /// ======================================================
 /// ============= Euclidean Rhythm Algorithm =============

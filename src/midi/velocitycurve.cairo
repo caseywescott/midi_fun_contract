@@ -1,9 +1,5 @@
-use core::option::OptionTrait;
-use koji::midi::types::{
-    Midi, Message, Modes, ArpPattern, VelocityCurve, NoteOn, NoteOff, SetTempo, TimeSignature,
-    ControlChange, PitchWheel, AfterTouch, PolyTouch, Direction, PitchClass
-};
-use koji::math::{Time, time_add, time_sub, time_mul_by_factor, linear_interpolate, min_u8};
+use koji::math::{Time, min_u8, time_mul_by_factor};
+use koji::midi::types::VelocityCurve;
 
 trait VelocityCurveTrait {
     /// =========== VelocityCurve MANIPULATION ===========
@@ -42,11 +38,11 @@ impl VelocityCurveImpl of VelocityCurveTrait {
 
         while let Option::Some(current_time) = times_span.pop_front() {
             new_times.append(*current_time);
-        };
+        }
 
         while let Option::Some(current_level) = levels_span.pop_front() {
             new_levels.append(*current_level);
-        };
+        }
 
         // Add new breakpoint
         new_times.append(time);
@@ -65,11 +61,11 @@ impl VelocityCurveImpl of VelocityCurveTrait {
         while let Option::Some(current_time) = times_span.pop_front() {
             let scaled_time = time_mul_by_factor(*current_time, numerator, denominator);
             new_times.append(scaled_time);
-        };
+        }
 
         while let Option::Some(current_level) = levels_span.pop_front() {
             new_levels.append(*current_level);
-        };
+        }
 
         VelocityCurve { times: new_times.span(), levels: new_levels.span() }
     }
@@ -83,12 +79,12 @@ impl VelocityCurveImpl of VelocityCurveTrait {
 
         while let Option::Some(current_time) = times_span.pop_front() {
             new_times.append(*current_time);
-        };
+        }
 
         while let Option::Some(current_level) = levels_span.pop_front() {
             let scaled_level = min_u8(*current_level * factor, 127);
             new_levels.append(scaled_level);
-        };
+        }
 
         VelocityCurve { times: new_times.span(), levels: new_levels.span() }
     }
@@ -102,12 +98,12 @@ impl VelocityCurveImpl of VelocityCurveTrait {
 
         while let Option::Some(current_time) = times_span.pop_front() {
             new_times.append(*current_time);
-        };
+        }
 
         while let Option::Some(current_level) = levels_span.pop_front() {
             let offset_level = min_u8(*current_level + factor, 127);
             new_levels.append(offset_level);
-        };
+        }
 
         VelocityCurve { times: new_times.span(), levels: new_levels.span() }
     }
@@ -124,19 +120,20 @@ impl VelocityCurveImpl of VelocityCurveTrait {
     fn getlevelattime(self: @VelocityCurve, time: Time) -> Option<u8> {
         let times = *self.times;
         let levels = *self.levels;
-        
+
         if times.len() == 0 {
             return Option::None;
         }
 
-        // Simple implementation: return the level of the first breakpoint at or after the given time
+        // Simple implementation: return the level of the first breakpoint at or after the given
+        // time
         let mut i = 0;
         while i < times.len() {
             if *times.at(i) >= time {
                 return Option::Some(*levels.at(i));
             }
             i += 1;
-        };
+        }
 
         // If no breakpoint found at or after the time, return the last level
         Option::Some(*levels.at(levels.len() - 1))

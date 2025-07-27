@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use core::array::ArrayTrait;
     use koji::midi::euclidean::{euclidean, modify_array};
     // use super::euclidean;
     // use super::modify_array;

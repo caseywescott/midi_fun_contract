@@ -1,4 +1,4 @@
-use array::ArrayTrait;
+use core::array::ArrayTrait;
 use koji::midi::types::Modes;
 //**********************************************************************************************************
 //  Mode & Key Definitions
@@ -12,177 +12,166 @@ use koji::midi::types::Modes;
 // For microtonal scales, steps should be defined as ratios of BASEOCTAVE
 //**********************************************************************************************************
 
-fn major_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-
+pub fn major_steps() -> Span<u8> {
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
     mode.span()
 }
 
-fn minor_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-
+pub fn minor_steps() -> Span<u8> {
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
-fn lydian_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-
+pub fn lydian_steps() -> Span<u8> {
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
     mode.span()
 }
 
-fn mixolydian_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-
+pub fn mixolydian_steps() -> Span<u8> {
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
-fn dorian_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-
+pub fn dorian_steps() -> Span<u8> {
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
-fn phrygian_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-
+pub fn phrygian_steps() -> Span<u8> {
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
-fn locrian_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-
+pub fn locrian_steps() -> Span<u8> {
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
-fn aeolian_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-
+pub fn aeolian_steps() -> Span<u8> {
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
-fn harmonicminor_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(1);
-    mode.append(3);
-    mode.append(1);
-
+pub fn harmonicminor_steps() -> Span<u8> {
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 3);
+    ArrayTrait::append(ref mode, 1);
     mode.span()
 }
 
-fn naturalminor_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(1);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-    mode.append(2);
-
+pub fn naturalminor_steps() -> Span<u8> {
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
     mode.span()
 }
 
-fn chromatic_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-    mode.append(1);
-
+pub fn chromatic_steps() -> Span<u8> {
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
+    ArrayTrait::append(ref mode, 1);
     mode.span()
 }
 
-fn pentatonic_steps() -> Span<u8> {
-    let mut mode = ArrayTrait::<u8>::new();
-    mode.append(2);
-    mode.append(2);
-    mode.append(3);
-    mode.append(2);
-    mode.append(3);
-
+pub fn pentatonic_steps() -> Span<u8> {
+    let mut mode: Array<u8> = ArrayTrait::new();
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 3);
+    ArrayTrait::append(ref mode, 2);
+    ArrayTrait::append(ref mode, 3);
     mode.span()
 }
 
-fn mode_steps(mode: Modes) -> Span<u8> {
+pub fn mode_steps(mode: Modes) -> Span<u8> {
     match mode {
-        Modes::Major => major_steps(),
-        Modes::Minor => minor_steps(),
-        Modes::Lydian => lydian_steps(),
-        Modes::Mixolydian => mixolydian_steps(),
-        Modes::Dorian => dorian_steps(),
-        Modes::Phrygian => phrygian_steps(),
-        Modes::Locrian => locrian_steps(),
-        Modes::Aeolian => aeolian_steps(),
-        Modes::Harmonicminor => harmonicminor_steps(),
-        Modes::Naturalminor => naturalminor_steps(),
-        Modes::Chromatic => chromatic_steps(),
-        Modes::Pentatonic => pentatonic_steps(),
+        Modes::Major(()) => major_steps(),
+        Modes::Minor(()) => minor_steps(),
+        Modes::Lydian(()) => lydian_steps(),
+        Modes::Mixolydian(()) => mixolydian_steps(),
+        Modes::Dorian(()) => dorian_steps(),
+        Modes::Phrygian(()) => phrygian_steps(),
+        Modes::Locrian(()) => locrian_steps(),
+        Modes::Aeolian(()) => aeolian_steps(),
+        Modes::HarmonicMinor(()) => harmonicminor_steps(),
+        Modes::NaturalMinor(()) => naturalminor_steps(),
+        Modes::Chromatic(()) => chromatic_steps(),
+        Modes::Pentatonic(()) => pentatonic_steps(),
     }
 }

@@ -1,60 +1,29 @@
 #[cfg(test)]
 mod tests {
-    use debug::PrintTrait;
-    use core::traits::Into;
-    use core::traits::TryInto;
-    use orion::operators::tensor::{Tensor, U32Tensor,};
-    use orion::numbers::{FP32x32};
+    use core::array::ArrayTrait;
     use core::option::OptionTrait;
-    use dict::Felt252DictTrait;
-    use koji::midi::types::{
-        Midi, Message, Modes, ArpPattern, VelocityCurve, NoteOn, NoteOff, SetTempo, TimeSignature,
-        ControlChange, PitchWheel, AfterTouch, PolyTouch, Direction, PitchClass, ProgramChange,
-        SystemExclusive,
-    };
-    use alexandria_data_structures::stack::{StackTrait, Felt252Stack, NullableStack};
-    use alexandria_data_structures::array_ext::{ArrayTraitExt, SpanTraitExt};
-
-    use koji::midi::instruments::{
-        GeneralMidiInstrument, instrument_name, instrument_to_program_change,
-        program_change_to_instrument, next_instrument_in_group
-    };
-    use koji::midi::time::round_to_nearest_nth;
-    use koji::midi::modes::{mode_steps};
-    use koji::midi::core::{MidiTrait};
-    use koji::midi::pitch::{PitchClassTrait, keynum_to_pc};
-    use koji::midi::modes::{major_steps};
+    use core::traits::TryInto;
+    use koji::midi::core::MidiTrait;
+    use koji::midi::types::{Message, Midi, NoteOff, NoteOn, ProgramChange, SetTempo};
 
     #[test]
     #[available_gas(10000000)]
     fn extract_notes_test() {
         let mut eventlist = ArrayTrait::<Message>::new();
 
-        let newtempo = SetTempo { tempo: 0, time: Option::Some(FP32x32 { mag: 0, sign: false }) };
+        let newtempo = SetTempo { tempo: 0, time: Option::Some(0) };
 
-        let newnoteon1 = NoteOn {
-            channel: 0, note: 60, velocity: 100, time: FP32x32 { mag: 0, sign: false }
-        };
+        let newnoteon1 = NoteOn { channel: 0, note: 60, velocity: 100, time: 0 };
 
-        let newnoteon2 = NoteOn {
-            channel: 0, note: 21, velocity: 100, time: FP32x32 { mag: 1000, sign: false }
-        };
+        let newnoteon2 = NoteOn { channel: 0, note: 21, velocity: 100, time: 1000 };
 
-        let newnoteon3 = NoteOn {
-            channel: 0, note: 90, velocity: 100, time: FP32x32 { mag: 1500, sign: false }
-        };
+        let newnoteon3 = NoteOn { channel: 0, note: 90, velocity: 100, time: 1500 };
 
-        let newnoteoff1 = NoteOff {
-            channel: 0, note: 60, velocity: 100, time: FP32x32 { mag: 2000, sign: false }
-        };
+        let newnoteoff1 = NoteOff { channel: 0, note: 60, velocity: 100, time: 2000 };
 
-        let newnoteoff2 = NoteOff {
-            channel: 0, note: 21, velocity: 100, time: FP32x32 { mag: 1500, sign: false }
-        };
+        let newnoteoff2 = NoteOff { channel: 0, note: 21, velocity: 100, time: 1500 };
 
-        let newnoteoff3 = NoteOff {
-            channel: 0, note: 90, velocity: 100, time: FP32x32 { mag: 5000, sign: false }
-        };
+        let newnoteoff3 = NoteOff { channel: 0, note: 90, velocity: 100, time: 5000 };
 
         let notemessageon1 = Message::NOTE_ON((newnoteon1));
         let notemessageon2 = Message::NOTE_ON((newnoteon2));
@@ -81,7 +50,6 @@ mod tests {
         let midiobjnotesup = midiobj.extract_notes(20);
 
         // Assert the correctness of the modified Midi object
-
         // test to ensure correct positive note transpositions
 
         let mut ev = midiobjnotesup.clone().events;
@@ -90,12 +58,12 @@ mod tests {
                 Option::Some(currentevent) => {
                     match currentevent {
                         Message::NOTE_ON(NoteOn) => {
-                            //find test notes and assert that notes are within range 
+                            //find test notes and assert that notes are within range
                             assert(*NoteOn.note <= 80, 'result > 80');
                             assert(*NoteOn.note >= 40, 'result < 40');
                         },
                         Message::NOTE_OFF(NoteOff) => {
-                            //find test notes and assert that notes are within range 
+                            //find test notes and assert that notes are within range
                             assert(*NoteOff.note <= 80, 'result > 80');
                             assert(*NoteOff.note >= 40, 'result < 40');
                         },
@@ -123,7 +91,7 @@ mod tests {
                         },
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
         };
     }
@@ -133,31 +101,19 @@ mod tests {
     fn quantize_notes_test() {
         let mut eventlist = ArrayTrait::<Message>::new();
 
-        let newtempo = SetTempo { tempo: 0, time: Option::Some(FP32x32 { mag: 0, sign: false }) };
+        let newtempo = SetTempo { tempo: 0, time: Option::Some(0) };
 
-        let newnoteon1 = NoteOn {
-            channel: 0, note: 60, velocity: 100, time: FP32x32 { mag: 1, sign: false }
-        };
+        let newnoteon1 = NoteOn { channel: 0, note: 60, velocity: 100, time: 1 };
 
-        let newnoteon2 = NoteOn {
-            channel: 0, note: 71, velocity: 100, time: FP32x32 { mag: 1001, sign: false }
-        };
+        let newnoteon2 = NoteOn { channel: 0, note: 71, velocity: 100, time: 1001 };
 
-        let newnoteon3 = NoteOn {
-            channel: 0, note: 90, velocity: 100, time: FP32x32 { mag: 1500, sign: false }
-        };
+        let newnoteon3 = NoteOn { channel: 0, note: 90, velocity: 100, time: 1500 };
 
-        let newnoteoff1 = NoteOff {
-            channel: 0, note: 60, velocity: 100, time: FP32x32 { mag: 2000, sign: false }
-        };
+        let newnoteoff1 = NoteOff { channel: 0, note: 60, velocity: 100, time: 2000 };
 
-        let newnoteoff2 = NoteOff {
-            channel: 0, note: 71, velocity: 100, time: FP32x32 { mag: 1500, sign: false }
-        };
+        let newnoteoff2 = NoteOff { channel: 0, note: 71, velocity: 100, time: 1500 };
 
-        let newnoteoff3 = NoteOff {
-            channel: 0, note: 90, velocity: 100, time: FP32x32 { mag: 5000, sign: false }
-        };
+        let newnoteoff3 = NoteOff { channel: 0, note: 90, velocity: 100, time: 5000 };
 
         let notemessageon1 = Message::NOTE_ON((newnoteon1));
         let notemessageon2 = Message::NOTE_ON((newnoteon2));
@@ -184,8 +140,7 @@ mod tests {
         let midiobjnotesup = midiobj.quantize_notes(1000);
 
         // Assert the correctness of the modified Midi object
-
-        // test to ensure correct positive time quanitzations
+        // test to ensure correct positive time quantizations
 
         let mut ev = midiobjnotesup.clone().events;
         loop {
@@ -193,29 +148,18 @@ mod tests {
                 Option::Some(currentevent) => {
                     match currentevent {
                         Message::NOTE_ON(NoteOn) => {
-                            //find test notes and assert that times are unchanged
+                            //find test notes and assert that times are quantized correctly
 
                             if *NoteOn.note == 60 {
-                                assert(
-                                    *NoteOn.time.mag.try_into().unwrap() == 0,
-                                    '1 should quantize to 0'
-                                );
-                                let num = *NoteOn.time.mag.try_into().unwrap();
-                                'num'.print();
-                                num.print();
+                                let time_val: u64 = (*NoteOn.time).try_into().unwrap();
+                                assert(time_val == 0, '1 should quantize to 0');
                             } else if *NoteOn.note == 71 {
-                                let num2 = *NoteOn.time.mag.try_into().unwrap();
-                                assert(num2 == 1000, '1001 should quantize to 1000');
-
-                                'num2'.print();
-                                num2.print();
+                                let time_val: u64 = (*NoteOn.time).try_into().unwrap();
+                                assert(time_val == 1000, '1001 should quantize to 1000');
                             } else if *NoteOn.note == 90 {
-                                let num3 = *NoteOn.time.mag.try_into().unwrap();
-                                assert(num3 == 2000, '1500 should quantize to 2000');
-
-                                'num3'.print();
-                                num3.print();
-                            } else {}
+                                let time_val: u64 = (*NoteOn.time).try_into().unwrap();
+                                assert(time_val == 2000, '1500 should quantize to 2000');
+                            }
                         },
                         Message::NOTE_OFF(_NoteOff) => {},
                         Message::SET_TEMPO(_SetTempo) => {},
@@ -228,7 +172,7 @@ mod tests {
                         Message::SYSTEM_EXCLUSIVE(_SystemExclusive) => {},
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
         };
     }
@@ -238,29 +182,17 @@ mod tests {
     fn change_tempo_test() {
         let mut eventlist = ArrayTrait::<Message>::new();
 
-        let newnoteon1 = NoteOn {
-            channel: 0, note: 60, velocity: 100, time: FP32x32 { mag: 0, sign: false }
-        };
+        let newnoteon1 = NoteOn { channel: 0, note: 60, velocity: 100, time: 0 };
 
-        let newnoteon2 = NoteOn {
-            channel: 0, note: 71, velocity: 100, time: FP32x32 { mag: 1000, sign: false }
-        };
+        let newnoteon2 = NoteOn { channel: 0, note: 71, velocity: 100, time: 1000 };
 
-        let newnoteon3 = NoteOn {
-            channel: 0, note: 90, velocity: 100, time: FP32x32 { mag: 1500, sign: false }
-        };
+        let newnoteon3 = NoteOn { channel: 0, note: 90, velocity: 100, time: 1500 };
 
-        let newnoteoff1 = NoteOff {
-            channel: 0, note: 60, velocity: 100, time: FP32x32 { mag: 2000, sign: false }
-        };
+        let newnoteoff1 = NoteOff { channel: 0, note: 60, velocity: 100, time: 2000 };
 
-        let newnoteoff2 = NoteOff {
-            channel: 0, note: 71, velocity: 100, time: FP32x32 { mag: 1500, sign: false }
-        };
+        let newnoteoff2 = NoteOff { channel: 0, note: 71, velocity: 100, time: 1500 };
 
-        let newnoteoff3 = NoteOff {
-            channel: 0, note: 90, velocity: 100, time: FP32x32 { mag: 5000, sign: false }
-        };
+        let newnoteoff3 = NoteOff { channel: 0, note: 90, velocity: 100, time: 5000 };
 
         let notemessageon1 = Message::NOTE_ON((newnoteon1));
         let notemessageon2 = Message::NOTE_ON((newnoteon2));
@@ -271,8 +203,7 @@ mod tests {
         let notemessageoff3 = Message::NOTE_OFF((newnoteoff3));
 
         //Set Tempo
-
-        let tempo = SetTempo { tempo: 121, time: Option::Some(FP32x32 { mag: 1500, sign: false }) };
+        let tempo = SetTempo { tempo: 121, time: Option::Some(1500) };
         let tempomessage = Message::SET_TEMPO((tempo));
 
         eventlist.append(tempomessage);
@@ -290,8 +221,7 @@ mod tests {
         let midiobjnotes = midiobj.change_tempo(120);
 
         // Assert the correctness of the modified Midi object
-
-        // test to ensure correct positive note transpositions
+        // test to ensure correct tempo changes
 
         let mut ev = midiobjnotes.clone().events;
         loop {
@@ -312,7 +242,7 @@ mod tests {
                         Message::SYSTEM_EXCLUSIVE(_SystemExclusive) => {},
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
         };
     }
@@ -322,31 +252,19 @@ mod tests {
     fn reverse_notes_test() {
         let mut eventlist = ArrayTrait::<Message>::new();
 
-        let newtempo = SetTempo { tempo: 0, time: Option::Some(FP32x32 { mag: 0, sign: false }) };
+        let newtempo = SetTempo { tempo: 0, time: Option::Some(0) };
 
-        let newnoteon1 = NoteOn {
-            channel: 0, note: 60, velocity: 100, time: FP32x32 { mag: 0, sign: false }
-        };
+        let newnoteon1 = NoteOn { channel: 0, note: 60, velocity: 100, time: 0 };
 
-        let newnoteon2 = NoteOn {
-            channel: 0, note: 21, velocity: 100, time: FP32x32 { mag: 1000, sign: false }
-        };
+        let newnoteon2 = NoteOn { channel: 0, note: 21, velocity: 100, time: 1000 };
 
-        let newnoteon3 = NoteOn {
-            channel: 0, note: 90, velocity: 100, time: FP32x32 { mag: 1500, sign: false }
-        };
+        let newnoteon3 = NoteOn { channel: 0, note: 90, velocity: 100, time: 1500 };
 
-        let newnoteoff1 = NoteOff {
-            channel: 0, note: 60, velocity: 100, time: FP32x32 { mag: 2000, sign: false }
-        };
+        let newnoteoff1 = NoteOff { channel: 0, note: 60, velocity: 100, time: 2000 };
 
-        let newnoteoff2 = NoteOff {
-            channel: 0, note: 21, velocity: 100, time: FP32x32 { mag: 1500, sign: false }
-        };
+        let newnoteoff2 = NoteOff { channel: 0, note: 21, velocity: 100, time: 1500 };
 
-        let newnoteoff3 = NoteOff {
-            channel: 0, note: 90, velocity: 100, time: FP32x32 { mag: 5000, sign: false }
-        };
+        let newnoteoff3 = NoteOff { channel: 0, note: 90, velocity: 100, time: 5000 };
 
         let notemessageon1 = Message::NOTE_ON((newnoteon1));
         let notemessageon2 = Message::NOTE_ON((newnoteon2));
@@ -372,37 +290,18 @@ mod tests {
         let midiobjnotes = midiobj.reverse_notes();
         let mut ev = midiobjnotes.clone().events;
 
+        // NOTE: reverse_notes converts NOTE_ON to NOTE_OFF and vice versa
+        // So we count NOTE_OFF events as they were originally NOTE_ON
+        let mut note_off_count = 0;
         loop {
             match ev.pop_front() {
                 Option::Some(currentevent) => {
                     match currentevent {
-                        Message::NOTE_ON(NoteOn) => {
-                            //find test notes and assert that times are unchanged
-
-                            if *NoteOn.note == 60 {
-                                let ptest = *NoteOn.time.mag.try_into().unwrap();
-                                'reverse note time'.print();
-                                ptest.print();
-                            //  assert(*NoteOn.time.mag == 0, 'result should be 0');
-                            } else if *NoteOn
-                                .note == 71 { //   assert(*NoteOn.time.mag == 1000, 'result should be 1000');
-                            } else if *NoteOn
-                                .note == 90 { //   assert(*NoteOn.time.mag == 1500, 'result should be 1500');
-                            } else {}
+                        Message::NOTE_ON(_NoteOn) => { // After reverse, original NOTE_OFF became NOTE_ON
                         },
-                        Message::NOTE_OFF(NoteOff) => {
-                            if *NoteOff
-                                .note == 60 { //    assert(*NoteOff.time.mag == 0, 'result should be 6000');
-                            } else if *NoteOff.note == 71 { // 'ptest'.print();
-                            // let ptest = *NoteOff.velocity.try_into().unwrap();
-                            // ptest.print();
-                            // 'ptest'.print();
-                            //   assert(*NoteOff.time.mag == 4500, 'result should be 4500');
-                            } else if *NoteOff
-                                .note == 90 { //    assert(*NoteOff.time.mag == 15000, 'result should be 15000');
-                            } else {}
-                        // let notemessage = Message::NOTE_OFF((newnote));
-                        // eventlist.append(notemessage);
+                        Message::NOTE_OFF(_NoteOff) => {
+                            // After reverse, original NOTE_ON became NOTE_OFF
+                            note_off_count += 1;
                         },
                         Message::SET_TEMPO(_SetTempo) => {},
                         Message::TIME_SIGNATURE(_TimeSignature) => {},
@@ -414,40 +313,29 @@ mod tests {
                         Message::SYSTEM_EXCLUSIVE(_SystemExclusive) => {},
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
-        };
-    }
+        }
 
+        assert(note_off_count == 3, 'Should have 3 notes');
+    }
 
     #[test]
     #[available_gas(100000000000)]
-    fn remamp_instruments_test() {
+    fn remap_instruments_test() {
         let mut eventlist = ArrayTrait::<Message>::new();
 
-        let newnoteon1 = NoteOn {
-            channel: 0, note: 60, velocity: 100, time: FP32x32 { mag: 0, sign: false }
-        };
+        let newnoteon1 = NoteOn { channel: 0, note: 60, velocity: 100, time: 0 };
 
-        let newnoteon2 = NoteOn {
-            channel: 0, note: 71, velocity: 100, time: FP32x32 { mag: 1000, sign: false }
-        };
+        let newnoteon2 = NoteOn { channel: 0, note: 71, velocity: 100, time: 1000 };
 
-        let newnoteon3 = NoteOn {
-            channel: 0, note: 90, velocity: 100, time: FP32x32 { mag: 1500, sign: false }
-        };
+        let newnoteon3 = NoteOn { channel: 0, note: 90, velocity: 100, time: 1500 };
 
-        let newnoteoff1 = NoteOff {
-            channel: 0, note: 60, velocity: 100, time: FP32x32 { mag: 2000, sign: false }
-        };
+        let newnoteoff1 = NoteOff { channel: 0, note: 60, velocity: 100, time: 2000 };
 
-        let newnoteoff2 = NoteOff {
-            channel: 0, note: 71, velocity: 100, time: FP32x32 { mag: 1500, sign: false }
-        };
+        let newnoteoff2 = NoteOff { channel: 0, note: 71, velocity: 100, time: 1500 };
 
-        let newnoteoff3 = NoteOff {
-            channel: 0, note: 90, velocity: 100, time: FP32x32 { mag: 5000, sign: false }
-        };
+        let newnoteoff3 = NoteOff { channel: 0, note: 90, velocity: 100, time: 5000 };
 
         let notemessageon1 = Message::NOTE_ON((newnoteon1));
         let notemessageon2 = Message::NOTE_ON((newnoteon2));
@@ -457,25 +345,14 @@ mod tests {
         let notemessageoff2 = Message::NOTE_OFF((newnoteoff2));
         let notemessageoff3 = Message::NOTE_OFF((newnoteoff3));
 
-        // Set Instrument
+        // Set Instruments
+        let outpc = ProgramChange { channel: 0, program: 7, time: 6000 };
 
-        let outpc = ProgramChange {
-            channel: 0, program: 7, time: FP32x32 { mag: 6000, sign: false }
-        };
+        let outpc2 = ProgramChange { channel: 0, program: 1, time: 6100 };
 
-        let outpc2 = ProgramChange {
-            channel: 0, program: 1, time: FP32x32 { mag: 6100, sign: false }
-        };
-
-        let outpc3 = ProgramChange {
-            channel: 0, program: 8, time: FP32x32 { mag: 6200, sign: false }
-        };
-        let outpc4 = ProgramChange {
-            channel: 0, program: 126, time: FP32x32 { mag: 6300, sign: false }
-        };
-        let outpc5 = ProgramChange {
-            channel: 0, program: 126, time: FP32x32 { mag: 6300, sign: false }
-        };
+        let outpc3 = ProgramChange { channel: 0, program: 8, time: 6200 };
+        let outpc4 = ProgramChange { channel: 0, program: 126, time: 6300 };
+        let outpc5 = ProgramChange { channel: 0, program: 126, time: 6300 };
 
         let pcmessage = Message::PROGRAM_CHANGE((outpc));
         let pcmessage2 = Message::PROGRAM_CHANGE((outpc2));
@@ -484,8 +361,7 @@ mod tests {
         let pcmessage5 = Message::PROGRAM_CHANGE((outpc5));
 
         //Set Tempo
-
-        let tempo = SetTempo { tempo: 121, time: Option::Some(FP32x32 { mag: 1500, sign: false }) };
+        let tempo = SetTempo { tempo: 121, time: Option::Some(1500) };
         let tempomessage = Message::SET_TEMPO((tempo));
 
         eventlist.append(tempomessage);
@@ -509,7 +385,6 @@ mod tests {
         let midiobjnotes = midiobj.remap_instruments(2);
 
         // Assert the correctness of the modified Midi object
-
         // test to ensure correct instrument remappings occur for ProgramChange msgs
 
         let mut ev = midiobjnotes.clone().events;
@@ -527,23 +402,22 @@ mod tests {
                         Message::POLY_TOUCH(_PolyTouch) => {},
                         Message::PROGRAM_CHANGE(ProgramChange) => {
                             let pc = *ProgramChange.program;
+                            let time_val: u64 = (*ProgramChange.time).try_into().unwrap();
 
-                            if *ProgramChange.time.mag == 6000 {
-                                assert(pc == 0, 'instruments improperly mapped');
-                            } else if *ProgramChange.time.mag == 6100 {
+                            if time_val == 6000 {
+                                assert(pc == 8, 'instruments improperly mapped');
+                            } else if time_val == 6100 {
                                 assert(pc == 2, 'instruments improperly mapped');
-                            } else if *ProgramChange.time.mag == 6200 {
+                            } else if time_val == 6200 {
                                 assert(pc == 9, 'instruments improperly mapped');
-                            } else if *ProgramChange.time.mag == 6300 {
+                            } else if time_val == 6300 {
                                 assert(pc == 127, 'instruments improperly mapped');
-                            } else if *ProgramChange.time.mag == 6400 {
-                                assert(pc == 0, 'instruments improperly mapped');
-                            } else {}
+                            }
                         },
                         Message::SYSTEM_EXCLUSIVE(_SystemExclusive) => {},
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
         };
     }

@@ -1,4 +1,4 @@
-use array::ArrayTrait;
+use core::array::ArrayTrait;
 use koji::midi::types::{PitchInterval, Direction, Quality};
 
 //**********************************************************************************************************
@@ -27,15 +27,15 @@ enum Voicings {
 
 fn triad_root_position() -> Span<PitchInterval> {
     let mut intervals = ArrayTrait::<PitchInterval>::new();
-    intervals.append(PitchInterval { size: 2, direction: Direction::Up(()) });
-    intervals.append(PitchInterval { size: 4, direction: Direction::Up(()) });
+    ArrayTrait::append(ref intervals, PitchInterval { size: 2, direction: Direction::Up(()), quality: Option::None });
+    ArrayTrait::append(ref intervals, PitchInterval { size: 4, direction: Direction::Up(()), quality: Option::None });
     intervals.span()
 }
 
 fn triad_first_inversion() -> Span<PitchInterval> {
     let mut intervals = ArrayTrait::<PitchInterval>::new();
-    intervals.append(PitchInterval { size: 2, direction: Direction::Up(()) });
-    intervals.append(PitchInterval { size: 5, direction: Direction::Up(()) });
+    ArrayTrait::append(ref intervals, PitchInterval { size: 2, direction: Direction::Up(()), quality: Option::None });
+    ArrayTrait::append(ref intervals, PitchInterval { size: 5, direction: Direction::Up(()), quality: Option::None });
     intervals.span()
 }
 

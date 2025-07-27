@@ -429,27 +429,25 @@ mod tests {
 
         // Create test notes - using middle C (60) as pivot
         let newnoteon1 = NoteOn {
-            channel: 0, note: 48, velocity: 100, time: FP32x32 { mag: 0, sign: false }
+            channel: 0, note: 48, velocity: 100, time: 0,
         }; // C3 - should become C5 (72)
 
         let newnoteon2 = NoteOn {
-            channel: 0, note: 67, velocity: 100, time: FP32x32 { mag: 1000, sign: false }
+            channel: 0, note: 67, velocity: 100, time: 1000,
         }; // G4 - should become Db4 (53)
 
         let newnoteon3 = NoteOn {
-            channel: 0, note: 60, velocity: 100, time: FP32x32 { mag: 1500, sign: false }
+            channel: 0, note: 60, velocity: 100, time: 1500,
         }; // C4 (pivot) - should stay C4 (60)
 
-        let newnoteoff1 = NoteOff {
-            channel: 0, note: 48, velocity: 100, time: FP32x32 { mag: 2000, sign: false }
-        };
+        let newnoteoff1 = NoteOff { channel: 0, note: 48, velocity: 100, time: 2000 };
 
         let newnoteoff2 = NoteOff {
-            channel: 0, note: 67, velocity: 100, time: FP32x32 { mag: 1500, sign: false }
+            channel: 0, note: 67, velocity: 100, time: 1500,
         };
 
         let newnoteoff3 = NoteOff {
-            channel: 0, note: 60, velocity: 100, time: FP32x32 { mag: 5000, sign: false }
+            channel: 0, note: 60, velocity: 100, time: 5000,
         };
 
         // Create messages
@@ -462,7 +460,7 @@ mod tests {
         let notemessageoff3 = Message::NOTE_OFF((newnoteoff3));
 
         // Add tempo message
-        let newtempo = SetTempo { tempo: 120, time: Option::Some(FP32x32 { mag: 0, sign: false }) };
+        let newtempo = SetTempo { tempo: 120, time: Option::Some(0) };
         let tempomessage = Message::SET_TEMPO((newtempo));
 
         // Build event list
@@ -486,23 +484,23 @@ mod tests {
                 Option::Some(currentevent) => {
                     match currentevent {
                         Message::NOTE_ON(NoteOn) => {
-                            if *NoteOn.time.mag == 0 {
+                            if (*NoteOn.time).try_into().unwrap() == 0 {
                                 // First note (C3 -> C5)
                                 assert(*NoteOn.note == 72, 'C3 should invert to C5');
-                            } else if *NoteOn.time.mag == 1000 {
+                            } else if (*NoteOn.time).try_into().unwrap() == 1000 {
                                 // Second note (G4 -> Db4)
                                 assert(*NoteOn.note == 53, 'G4 should invert to Db4');
-                            } else if *NoteOn.time.mag == 1500 {
+                            } else if (*NoteOn.time).try_into().unwrap() == 1500 {
                                 // Third note (pivot note)
                                 assert(*NoteOn.note == 60, 'Pivot note should not change');
                             }
                         },
                         Message::NOTE_OFF(NoteOff) => {
-                            if *NoteOff.time.mag == 2000 {
+                            if (*NoteOff.time).try_into().unwrap() == 2000 {
                                 assert(*NoteOff.note == 72, 'C3 OFF should invert to C5');
-                            } else if *NoteOff.time.mag == 1500 {
+                            } else if (*NoteOff.time).try_into().unwrap() == 1500 {
                                 assert(*NoteOff.note == 53, 'G4 OFF should invert to Db4');
-                            } else if *NoteOff.time.mag == 5000 {
+                            } else if (*NoteOff.time).try_into().unwrap() == 5000 {
                                 assert(*NoteOff.note == 60, 'Pivot OFF should not change');
                             }
                         },
@@ -516,7 +514,7 @@ mod tests {
                         Message::SYSTEM_EXCLUSIVE(_) => {},
                     }
                 },
-                Option::None(_) => { break; }
+                Option::None(_) => { break; },
             };
         };
     }

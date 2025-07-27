@@ -44,7 +44,7 @@ fn next_instrument_in_group(program: u8) -> u8 {
 // };
 // use koji::midi::time::round_to_nearest_nth;
 use koji::midi::modes::{mode_steps};
-use koji::midi::pitch::{PitchClassTrait, keynum_to_pc};
+use koji::midi::pitch::{PitchClassTrait, keynum_to_pc, pc_to_keynum};
 // use koji::midi::velocitycurve::{VelocityCurveTrait};
 
 pub trait MidiTrait {
@@ -87,6 +87,12 @@ pub trait MidiTrait {
     /// =========== ADVANCED MANIPULATION ===========
     /// Add harmonies to existing melodies based on specified intervals.
     fn generate_harmony(self: @Midi, steps: i32, tonic: PitchClass, modes: Modes) -> Midi;
+    /// Invert notes around a pivot point.
+    fn invert_notes(self: @Midi, pivot_note: u8) -> Midi;
+    /// Add notes one or more octaves higher or lower.
+    fn octave_double(self: @Midi, octave_count: i32) -> Midi;
+    /// Detect chords based on timing windows.
+    fn detect_chords(self: @Midi, window_size: usize, minimum_notes: usize) -> Midi;
     /// Convert chords into arpeggios based on a given pattern.
     fn arpeggiate_chords(self: @Midi, pattern: ArpPattern) -> Midi;
     /// Add or modify dynamics (velocity) of notes based on a specified curve or pattern.
@@ -904,6 +910,220 @@ impl MidiImpl of MidiTrait {
                     }
                 },
                 Option::None(_) => { break; },
+            };
+        }
+
+        Midi { events: eventlist.span() }
+    }
+
+    fn invert_notes(self: @Midi, pivot_note: u8) -> Midi {
+        let mut ev = self.clone().events;
+        let mut eventlist = ArrayTrait::<Message>::new();
+
+        loop {
+            match ev.pop_front() {
+                Option::Some(currentevent) => {
+                    match currentevent {
+                        Message::NOTE_ON(note_on) => {
+                            // Calculate inverted pitch
+                            let original_note = *note_on.note;
+                            let inverted_note = if original_note <= pivot_note {
+                                pivot_note + (pivot_note - original_note)
+                            } else {
+                                // When original note is above pivot, we subtract in reverse
+                                pivot_note - (original_note - pivot_note)
+                            };
+
+                            // Ensure note stays within MIDI range (0-127)
+                            let final_note = if inverted_note > 127 {
+                                127
+                            } else {
+                                inverted_note
+                            };
+
+                            let newnote = NoteOn {
+                                channel: *note_on.channel,
+                                note: final_note,
+                                velocity: *note_on.velocity,
+                                time: *note_on.time,
+                            };
+                            let notemessage = Message::NOTE_ON((newnote));
+                            eventlist.append(notemessage);
+                        },
+                        Message::NOTE_OFF(note_off) => {
+                            let original_note = *note_off.note;
+                            let inverted_note = if original_note <= pivot_note {
+                                pivot_note + (pivot_note - original_note)
+                            } else {
+                                pivot_note - (original_note - pivot_note)
+                            };
+
+                            // Ensure note stays within MIDI range (0-127)
+                            let final_note = if inverted_note > 127 {
+                                127
+                            } else {
+                                inverted_note
+                            };
+
+                            let newnote = NoteOff {
+                                channel: *note_off.channel,
+                                note: final_note,
+                                velocity: *note_off.velocity,
+                                time: *note_off.time,
+                            };
+                            let notemessage = Message::NOTE_OFF((newnote));
+                            eventlist.append(notemessage);
+                        },
+                        _ => {
+                            // Pass through all other message types unchanged
+                            eventlist.append(*currentevent);
+                        },
+                    }
+                },
+                Option::None(_) => { break; },
+            };
+        }
+
+        Midi { events: eventlist.span() }
+    }
+
+    fn octave_double(self: @Midi, octave_count: i32) -> Midi {
+        let mut ev = self.clone().events;
+        let mut eventlist = ArrayTrait::<Message>::new();
+
+        loop {
+            match ev.pop_front() {
+                Option::Some(currentevent) => {
+                    match currentevent {
+                        Message::NOTE_ON(note_on) => {
+                            // Get original pitch class from note
+                            let original_pc = keynum_to_pc(*note_on.note);
+
+                            // Create new PitchClass with adjusted octave
+                            let new_octave: u8 = if octave_count < 0 {
+                                if original_pc.octave >= (-octave_count).try_into().unwrap() {
+                                    original_pc.octave - (-octave_count).try_into().unwrap()
+                                } else {
+                                    0
+                                }
+                            } else {
+                                original_pc.octave + octave_count.try_into().unwrap()
+                            };
+
+                            let new_pc = PitchClass { note: original_pc.note, octave: new_octave };
+
+                            let new_note = pc_to_keynum(new_pc);
+
+                            let doubled_note = NoteOn {
+                                channel: *note_on.channel,
+                                note: new_note,
+                                velocity: *note_on.velocity,
+                                time: *note_on.time,
+                            };
+                            let note_message = Message::NOTE_ON((doubled_note));
+                            eventlist.append(note_message);
+                        },
+                        Message::NOTE_OFF(note_off) => {
+                            // Get original pitch class from note
+                            let original_pc = keynum_to_pc(*note_off.note);
+
+                            // Create new PitchClass with adjusted octave
+                            let new_octave: u8 = if octave_count < 0 {
+                                if original_pc.octave >= (-octave_count).try_into().unwrap() {
+                                    original_pc.octave - (-octave_count).try_into().unwrap()
+                                } else {
+                                    0
+                                }
+                            } else {
+                                original_pc.octave + octave_count.try_into().unwrap()
+                            };
+
+                            let new_pc = PitchClass { note: original_pc.note, octave: new_octave };
+
+                            let new_note = pc_to_keynum(new_pc);
+
+                            let doubled_note = NoteOff {
+                                channel: *note_off.channel,
+                                note: new_note,
+                                velocity: *note_off.velocity,
+                                time: *note_off.time,
+                            };
+                            let note_message = Message::NOTE_OFF((doubled_note));
+                            eventlist.append(note_message);
+                        },
+                        _ => {
+                            // All other message types are passed through unchanged
+                            eventlist.append(*currentevent);
+                        },
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+
+        Midi { events: eventlist.span() }
+    }
+
+    fn detect_chords(self: @Midi, window_size: usize, minimum_notes: usize) -> Midi {
+        let mut ev = self.clone().events;
+        let mut eventlist = ArrayTrait::<Message>::new();
+        let mut current_window = ArrayTrait::<Message>::new();
+        let mut current_time: Time = 0;
+        let window_size_time: Time = window_size.into();
+
+        // First pass: Group notes into windows
+        loop {
+            match ev.pop_front() {
+                Option::Some(currentevent) => {
+                    match currentevent {
+                        Message::NOTE_ON(note_on) => {
+                            // Check if this note belongs in the current window
+                            if *note_on.time - current_time <= window_size_time {
+                                current_window.append(*currentevent);
+                            } else {
+                                // Process current window if it has enough notes
+                                if current_window.len() >= minimum_notes {
+                                    // Add all notes in the window as a chord
+                                    let mut window_iter = current_window.span();
+                                    loop {
+                                        match window_iter.pop_front() {
+                                            Option::Some(note) => { eventlist.append(*note); },
+                                            Option::None => { break; },
+                                        };
+                                    };
+                                }
+
+                                // Start new window
+                                current_window = ArrayTrait::new();
+                                current_window.append(*currentevent);
+                                current_time = *note_on.time;
+                            }
+                        },
+                        Message::NOTE_OFF(_note_off) => {
+                            // Add corresponding NOTE_OFF events for detected chords
+                            if current_window.len() >= minimum_notes {
+                                eventlist.append(*currentevent);
+                            }
+                        },
+                        _ => {
+                            // Pass through other message types
+                            eventlist.append(*currentevent);
+                        },
+                    }
+                },
+                Option::None(_) => {
+                    // Process final window
+                    if current_window.len() >= minimum_notes {
+                        let mut window_iter = current_window.span();
+                        loop {
+                            match window_iter.pop_front() {
+                                Option::Some(note) => { eventlist.append(*note); },
+                                Option::None => { break; },
+                            };
+                        };
+                    }
+                    break;
+                },
             };
         }
 

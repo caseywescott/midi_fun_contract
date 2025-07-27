@@ -4,7 +4,9 @@ mod tests {
     use core::option::OptionTrait;
     use core::traits::TryInto;
     use koji::midi::core::MidiTrait;
-    use koji::midi::types::{Message, Midi, NoteOff, NoteOn, ProgramChange, SetTempo};
+    use koji::midi::types::{
+        Message, Midi, Modes, NoteOff, NoteOn, PitchClass, ProgramChange, SetTempo,
+    };
 
     #[test]
     #[available_gas(10000000)]
@@ -420,5 +422,236 @@ mod tests {
                 Option::None(_) => { break; },
             };
         };
+    }
+
+    #[test]
+    #[available_gas(10000000)]
+    fn invert_notes_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+
+        // Create test notes - using middle C (60) as pivot
+        let newnoteon1 = NoteOn {
+            channel: 0, note: 48, velocity: 100, time: 0,
+        }; // C3 - should become C5 (72)
+
+        let newnoteon2 = NoteOn {
+            channel: 0, note: 67, velocity: 100, time: 1000,
+        }; // G4 - should become Db4 (53)
+
+        let newnoteon3 = NoteOn {
+            channel: 0, note: 60, velocity: 100, time: 1500,
+        }; // C4 (pivot) - should stay C4 (60)
+
+        let newnoteoff1 = NoteOff { channel: 0, note: 48, velocity: 100, time: 2000 };
+        let newnoteoff2 = NoteOff { channel: 0, note: 67, velocity: 100, time: 1500 };
+        let newnoteoff3 = NoteOff { channel: 0, note: 60, velocity: 100, time: 5000 };
+
+        // Create messages
+        let notemessageon1 = Message::NOTE_ON((newnoteon1));
+        let notemessageon2 = Message::NOTE_ON((newnoteon2));
+        let notemessageon3 = Message::NOTE_ON((newnoteon3));
+
+        let notemessageoff1 = Message::NOTE_OFF((newnoteoff1));
+        let notemessageoff2 = Message::NOTE_OFF((newnoteoff2));
+        let notemessageoff3 = Message::NOTE_OFF((newnoteoff3));
+
+        // Add tempo message
+        let newtempo = SetTempo { tempo: 120, time: Option::Some(0) };
+        let tempomessage = Message::SET_TEMPO((newtempo));
+
+        // Build event list
+        eventlist.append(tempomessage);
+        eventlist.append(notemessageon1);
+        eventlist.append(notemessageon2);
+        eventlist.append(notemessageon3);
+        eventlist.append(notemessageoff1);
+        eventlist.append(notemessageoff2);
+        eventlist.append(notemessageoff3);
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        // Invert around middle C (60)
+        let midiobjnotes = midiobj.invert_notes(60);
+
+        // Test the inverted notes
+        let mut ev = midiobjnotes.clone().events;
+        loop {
+            match ev.pop_front() {
+                Option::Some(currentevent) => {
+                    match currentevent {
+                        Message::NOTE_ON(note_on) => {
+                            if *note_on.time == 0 {
+                                // Original note 48 should become 72 (60 + (60-48) = 72)
+                                assert!(*note_on.note == 72, "First note should be inverted to 72");
+                            } else if *note_on.time == 1000 {
+                                // Original note 67 should become 53 (60 - (67-60) = 53)
+                                assert!(
+                                    *note_on.note == 53, "Second note should be inverted to 53",
+                                );
+                            } else if *note_on.time == 1500 {
+                                // Original note 60 should stay 60 (pivot point)
+                                assert!(*note_on.note == 60, "Pivot note should remain 60");
+                            }
+                        },
+                        Message::NOTE_OFF(note_off) => {
+                            if *note_off.time == 2000 {
+                                // Original note 48 should become 72
+                                assert!(
+                                    *note_off.note == 72, "First note off should be inverted to 72",
+                                );
+                            } else if *note_off.time == 1500 {
+                                // Original note 67 should become 53
+                                assert!(
+                                    *note_off.note == 53,
+                                    "Second note off should be inverted to 53",
+                                );
+                            } else if *note_off.time == 5000 {
+                                // Original note 60 should stay 60
+                                assert!(*note_off.note == 60, "Pivot note off should remain 60");
+                            }
+                        },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            };
+        }
+    }
+
+    #[test]
+    #[available_gas(100000000)]
+    fn generate_harmony_combined_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+
+        let note_on1 = NoteOn { channel: 0, note: 60, velocity: 100, time: 0 };
+        let note_off1 = NoteOff { channel: 0, note: 60, velocity: 100, time: 1000 };
+
+        let note_on2 = NoteOn { channel: 0, note: 64, velocity: 100, time: 500 };
+        let note_off2 = NoteOff { channel: 0, note: 64, velocity: 100, time: 1500 };
+
+        eventlist.append(Message::NOTE_ON(note_on1));
+        eventlist.append(Message::NOTE_OFF(note_off1));
+        eventlist.append(Message::NOTE_ON(note_on2));
+        eventlist.append(Message::NOTE_OFF(note_off2));
+
+        let midi = Midi { events: eventlist.span() };
+
+        let tonic = PitchClass { note: 0, octave: 4 };
+        let mode = Modes::Major;
+
+        // Test with single step first (using existing function)
+        let harmonized_midi = midi.generate_harmony(4, tonic, mode);
+
+        let mut events = harmonized_midi.events;
+        let mut note_on_count = 0;
+        let mut note_off_count = 0;
+
+        loop {
+            match events.pop_front() {
+                Option::Some(current_event) => match current_event {
+                    Message::NOTE_ON(note_on) => {
+                        note_on_count += 1;
+                        // Should have both original and harmony notes
+                        assert!(
+                            *note_on.note >= 48 && *note_on.note <= 84,
+                            "Generated NOTE_ON out of range",
+                        );
+                    },
+                    Message::NOTE_OFF(note_off) => {
+                        note_off_count += 1;
+                        // Should have both original and harmony notes
+                        assert!(
+                            *note_off.note >= 48 && *note_off.note <= 84,
+                            "Generated NOTE_OFF out of range",
+                        );
+                    },
+                    _ => {},
+                },
+                Option::None(_) => { break; },
+            }
+        }
+
+        // Should have doubled the notes (original + harmony)
+        assert!(note_on_count == 4, "Should have 4 note on events");
+        assert!(note_off_count == 4, "Should have 4 note off events");
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn detect_chords_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+
+        // Create three notes that should form a chord (even closer in time)
+        let chord_note1 = NoteOn { channel: 0, note: 60, // Middle C
+        velocity: 100, time: 1000 };
+
+        let chord_note2 = NoteOn {
+            channel: 0, note: 64, // E
+            velocity: 100, time: 1005 // Reduced time difference
+        };
+
+        let chord_note3 = NoteOn {
+            channel: 0, note: 67, // G
+            velocity: 100, time: 1010 // Reduced time difference
+        };
+
+        // Create corresponding note-off events (closer together)
+        let chord_note1_off = NoteOff { channel: 0, note: 60, velocity: 100, time: 1200 };
+        let chord_note2_off = NoteOff { channel: 0, note: 64, velocity: 100, time: 1205 };
+        let chord_note3_off = NoteOff { channel: 0, note: 67, velocity: 100, time: 1210 };
+
+        // Convert notes to messages
+        let msg1_on = Message::NOTE_ON((chord_note1));
+        let msg2_on = Message::NOTE_ON((chord_note2));
+        let msg3_on = Message::NOTE_ON((chord_note3));
+
+        let msg1_off = Message::NOTE_OFF((chord_note1_off));
+        let msg2_off = Message::NOTE_OFF((chord_note2_off));
+        let msg3_off = Message::NOTE_OFF((chord_note3_off));
+
+        // Add messages to event list in chronological order
+        eventlist.append(msg1_on);
+        eventlist.append(msg2_on);
+        eventlist.append(msg3_on);
+        eventlist.append(msg1_off);
+        eventlist.append(msg2_off);
+        eventlist.append(msg3_off);
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        // Detect chords with a window size of 20 ticks and minimum 3 notes
+        let chords = midiobj.detect_chords(20, 3);
+
+        // Verify the results
+        let mut ev = chords.events;
+        let mut chord_count = 0;
+        let mut notes_in_chord = 0;
+
+        loop {
+            match ev.pop_front() {
+                Option::Some(currentevent) => {
+                    match currentevent {
+                        Message::NOTE_ON(note_on) => {
+                            // Verify the notes are part of our expected chord (C major: 60, 64, 67)
+                            assert!(
+                                *note_on.note == 60 || *note_on.note == 64 || *note_on.note == 67,
+                                "Unexpected note in chord",
+                            );
+                            notes_in_chord += 1;
+                        },
+                        Message::NOTE_OFF(_note_off) => {
+                            // Count note-offs to verify we have the right number
+                            chord_count += 1;
+                        },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+
+        // Verify we found exactly one chord with three notes
+        assert!(notes_in_chord == 3, "Should find exactly 3 notes");
+        assert!(chord_count == 3, "Should find exactly 3 note-offs");
     }
 }

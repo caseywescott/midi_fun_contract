@@ -1,6 +1,5 @@
-mod midi;
+pub mod math;
+pub mod midi;
 
-mod tests {
-    mod test_euclidean;
-    mod test_midi;
-}
+#[cfg(test)]
+pub mod tests;

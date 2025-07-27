@@ -989,17 +989,17 @@ impl MidiImpl of MidiTrait {
         let mut ev = self.clone().events;
         let mut eventlist = ArrayTrait::<Message>::new();
         let mut current_window = ArrayTrait::<Message>::new();
-        let mut current_time = FP32x32 { mag: 0, sign: false };
-        let window_size_fp = FP32x32 { mag: window_size.try_into().unwrap(), sign: false };
+        let mut current_time: Time = 0;
+        let window_size_time: Time = window_size.into();
 
         // First pass: Group notes into windows
         loop {
             match ev.pop_front() {
                 Option::Some(currentevent) => {
                     match currentevent {
-                        Message::NOTE_ON(NoteOn) => {
+                        Message::NOTE_ON(note_on) => {
                             // Check if this note belongs in the current window
-                            if *NoteOn.time - current_time <= window_size_fp {
+                            if *note_on.time - current_time <= window_size_time {
                                 current_window.append(*currentevent);
                             } else {
                                 // Process current window if it has enough notes
@@ -1008,21 +1008,19 @@ impl MidiImpl of MidiTrait {
                                     let mut window_iter = current_window.span();
                                     loop {
                                         match window_iter.pop_front() {
-                                            Option::Some(note) => {
-                                                eventlist.append(*note);
-                                            },
-                                            Option::None => { break; }
+                                            Option::Some(note) => { eventlist.append(*note); },
+                                            Option::None => { break; },
                                         };
                                     };
                                 }
-                                
+
                                 // Start new window
                                 current_window = ArrayTrait::new();
                                 current_window.append(*currentevent);
-                                current_time = *NoteOn.time;
+                                current_time = *note_on.time;
                             }
                         },
-                        Message::NOTE_OFF(NoteOff) => {
+                        Message::NOTE_OFF(_note_off) => {
                             // Add corresponding NOTE_OFF events for detected chords
                             if current_window.len() >= minimum_notes {
                                 eventlist.append(*currentevent);
@@ -1040,17 +1038,15 @@ impl MidiImpl of MidiTrait {
                         let mut window_iter = current_window.span();
                         loop {
                             match window_iter.pop_front() {
-                                Option::Some(note) => {
-                                    eventlist.append(*note);
-                                },
-                                Option::None => { break; }
+                                Option::Some(note) => { eventlist.append(*note); },
+                                Option::None => { break; },
                             };
                         };
                     }
                     break;
-                }
+                },
             };
-        };
+        }
 
         Midi { events: eventlist.span() }
     }

@@ -15,6 +15,7 @@ export interface CairoParsedMidiEvent {
     ticksPerBeat: number; ////the same as ppq
     meta: boolean; //if the event it's for metadata
     programNumber: number; //required to change instrument type, for example 24 = Nylon String Guitar
+    data: number[]; // For system exclusive data
 }
 /**
  * Parse a cairo event into a CairoParsedMidiEvent.
@@ -27,7 +28,7 @@ export function parseEvent(cairoEvent: string): CairoParsedMidiEvent | null {
 
     const [, type, content] = match;
     let parsedEvent: Partial<CairoParsedMidiEvent> = { type: toCamelCase(type) };
-    parsedEvent.deltaTime = parseFP32x32(content.match(/time: (FP32x32 {[^}]+})/)?.[1] || "");
+    parsedEvent.deltaTime = parseTime(content.match(/time: (\d+)/)?.[1] || "");
 
     switch (type) {
         case "HEADER":
@@ -46,13 +47,13 @@ export function parseEvent(cairoEvent: string): CairoParsedMidiEvent | null {
             break;
 
         case "SET_TEMPO":
-            const tempoMag = parseFP32x32(content.match(/tempo: (FP32x32 {[^}]+})/)?.[1] || "");
-            if (tempoMag !== undefined) {
-                parsedEvent.microsecondsPerBeat = tempoMag;
+            const tempoValue = parseInt(content.match(/tempo: (\d+)/)?.[1] || "0");
+            if (tempoValue !== undefined) {
+                parsedEvent.microsecondsPerBeat = tempoValue;
             }
-            const timeOptionMatch = content.match(/time: Option::Some\((FP32x32 {[^}]+})\)/);
+            const timeOptionMatch = content.match(/time: Option::Some\((\d+)\)/);
             if (timeOptionMatch) {
-                parsedEvent.deltaTime = parseFP32x32(timeOptionMatch[1]);
+                parsedEvent.deltaTime = parseInt(timeOptionMatch[1]);
             } else {
                 parsedEvent.deltaTime = undefined;
             }
@@ -62,7 +63,6 @@ export function parseEvent(cairoEvent: string): CairoParsedMidiEvent | null {
         case "TIME_SIGNATURE":
             parsedEvent.numerator = parseInt(content.match(/numerator: (\d+)/)?.[1] || "0");
             parsedEvent.denominator = parseInt(content.match(/denominator: (\d+)/)?.[1] || "0");
-            parsedEvent.clock = parseInt(content.match(/clocks_per_click: (\d+)/)?.[1] || "0");
             parsedEvent.meta = true
             break;
 
@@ -70,12 +70,11 @@ export function parseEvent(cairoEvent: string): CairoParsedMidiEvent | null {
             parsedEvent.channel = parseInt(content.match(/channel: (\d+)/)?.[1] || "0");
             parsedEvent.controllerType = parseInt(content.match(/control: (\d+)/)?.[1] || "0");
             parsedEvent.value = parseInt(content.match(/value: (\d+)/)?.[1] || "0");
-            parsedEvent.type = "controller"
             break;
 
         case "PITCH_WHEEL":
             parsedEvent.channel = parseInt(content.match(/channel: (\d+)/)?.[1] || "0");
-            parsedEvent.pitch = parseInt(content.match(/pitch: (\d+)/)?.[1] || "0");
+            parsedEvent.value = parseInt(content.match(/pitch: (\d+)/)?.[1] || "0");
             break;
 
         case "AFTER_TOUCH":
@@ -88,13 +87,22 @@ export function parseEvent(cairoEvent: string): CairoParsedMidiEvent | null {
             parsedEvent.noteNumber = parseInt(content.match(/note: (\d+)/)?.[1] || "0");
             parsedEvent.value = parseInt(content.match(/value: (\d+)/)?.[1] || "0");
             break;
-        case "END_OF_TRACK":
-            parsedEvent.meta = true
-            break;
+
         case "PROGRAM_CHANGE":
             parsedEvent.channel = parseInt(content.match(/channel: (\d+)/)?.[1] || "0");
             parsedEvent.programNumber = parseInt(content.match(/program: (\d+)/)?.[1] || "0");
             break;
+
+        case "SYSTEM_EXCLUSIVE":
+            // Handle system exclusive data
+            const dataMatch = content.match(/data: \[([^\]]+)\]/);
+            if (dataMatch) {
+                const dataString = dataMatch[1];
+                const dataArray = dataString.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+                parsedEvent.data = dataArray;
+            }
+            break;
+
         default:
             return null;
     }
@@ -102,20 +110,12 @@ export function parseEvent(cairoEvent: string): CairoParsedMidiEvent | null {
     return parsedEvent as CairoParsedMidiEvent;
 }
 
-function toCamelCase(str: string) {
-    return str
-        .toLowerCase()
-        .split('_')
-        .map((word, index) =>
-            index === 0
-                ? word
-                : word.charAt(0).toUpperCase() + word.slice(1)
-        )
-        .join('');
+function toCamelCase(str: string): string {
+    return str.toLowerCase().replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
 }
 
-function parseFP32x32(fp: string): number  {
-    const match = fp.match(/FP32x32 { mag: (\d+), sign: (\w+) }/);
+function parseTime(timeStr: string): number {
+    const match = timeStr.match(/(\d+)/);
     if (match) {
         return parseInt(match[1], 10);
     }

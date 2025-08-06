@@ -1,23 +1,5 @@
 # Koji: A Cairo library for Autonomous Music
 
-Autonomous Music library based on previous [work](https://github.com/caseywescott/MusicTools-StarkNet) made by Casey Wescott.
-
-# Midi Conversion
-
-Convert Midi to JSON format:
-
-```bash
-make convert-json MIDI_FILE="path/to/midi/file.mid" OUTPUT_FILE="path/to/output"
-```
-
-Convert to Cairo format:
-
-```bash
-make convert-cairo MIDI_FILE="path/to/midi/file.mid" OUTPUT_FILE="path/to/output"
-```
-
-# MIDI Fun Contract
-
 A comprehensive Cairo contract for MIDI music processing, featuring advanced algorithms for Euclidean rhythms, velocity curves, and musical transformations.
 
 ## Features
@@ -31,6 +13,8 @@ A comprehensive Cairo contract for MIDI music processing, featuring advanced alg
 - **TypeScript Parser**: Parse Cairo MIDI events back to standard MIDI format
 
 ## Quick Start
+
+[Cairo Music Composition Guide](docs/composing.md) - Complete workflow for composing music with Cairo and Koji utilities
 
 ### Cairo Code Generation
 
@@ -138,6 +122,24 @@ cd python && pip install -r requirements.txt
 # Install TypeScript dependencies
 cd typescript && npm install
 ```
+
+Autonomous Music library based on previous [work](https://github.com/caseywescott/MusicTools-StarkNet) made by Casey Wescott.
+
+# Midi Conversion
+
+Convert Midi to JSON format:
+
+```bash
+make convert-json MIDI_FILE="path/to/midi/file.mid" OUTPUT_FILE="path/to/output"
+```
+
+Convert to Cairo format:
+
+```bash
+make convert-cairo MIDI_FILE="path/to/midi/file.mid" OUTPUT_FILE="path/to/output"
+```
+
+# MIDI Fun Contract
 
 ## License
 

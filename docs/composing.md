@@ -10,7 +10,6 @@ Cairo provides a unique approach to music composition where you can:
 - **Test your compositions** using Scarb's testing framework
 - **Generate MIDI files** directly from your Cairo code
 - **Use Koji utilities** for advanced MIDI manipulation
-- **Version control your music** alongside your code
 - **Create reproducible compositions** with deterministic algorithms
 
 ## 🚀 Quick Start: Your First Cairo Composition

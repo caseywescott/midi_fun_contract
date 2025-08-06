@@ -1,5 +1,5 @@
 use core::array::ArrayTrait;
-use koji::lcg::{LCG, RNGTrait, LCGImpl};
+use koji::lcg::{LCG, LCGImpl, RNGTrait};
 
 #[test]
 #[available_gas(1000000000000)]
@@ -64,4 +64,4 @@ fn test_lcg_getlist() {
     assert(result[2] == expected_span[2], 'Third value wrong');
     assert(result[3] == expected_span[3], 'Fourth value wrong');
     assert(result[4] == expected_span[4], 'Fifth value wrong');
-} 
+}

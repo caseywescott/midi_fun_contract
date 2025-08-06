@@ -99,8 +99,6 @@ midi_fun_contract/
 ## Documentation
 
 - [Cairo Music Composition Guide](docs/composing.md) - Complete workflow for composing music with Cairo and Koji utilities
-- [Scarb Commands](docs/scarb_commands.md) - Scarb usage and configuration
-- [Testing Guide](docs/scarb_testing_guide.md) - Testing strategies and best practices
 
 ## Development
 

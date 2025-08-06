@@ -3,7 +3,9 @@
 Autonomous Music library based on previous [work](https://github.com/caseywescott/MusicTools-StarkNet) made by Casey Wescott.
 
 # Midi Conversion
+
 Convert Midi to JSON format:
+
 ```bash
 make convert-json MIDI_FILE="path/to/midi/file.mid" OUTPUT_FILE="path/to/output"
 ```
@@ -24,6 +26,7 @@ A comprehensive Cairo contract for MIDI music processing, featuring advanced alg
 - **Velocity Curve Processing**: Apply dynamic velocity transformations to MIDI events
 - **MIDI Event Handling**: Full support for NoteOn, NoteOff, SetTempo, and other MIDI messages
 - **Cairo Code Generation**: Generate clean Cairo code from MIDI data structures
+- **Cairo to MIDI Conversion**: Convert Cairo code back to playable MIDI files
 - **Python Integration**: Convert MIDI files to Cairo structs and JSON formats
 - **TypeScript Parser**: Parse Cairo MIDI events back to standard MIDI format
 
@@ -40,6 +43,24 @@ Generate clean Cairo code from MIDI data:
 # Or manually with redirection
 SCARB_UI_VERBOSITY=quiet scarb test -- --filter midi_to_cairo_file_output_test 2>&1 | \
 grep -v "running\|test\|gas usage\|test result" > my_midi.cairo
+```
+
+### Cairo to MIDI Conversion
+
+Convert Cairo code back to playable MIDI files:
+
+```bash
+# Generate both Cairo code and MIDI file
+./scripts/generate_cairo_and_midi.sh
+
+# Generate only Cairo code
+./scripts/generate_cairo_and_midi.sh --cairo-only
+
+# Generate only MIDI from existing Cairo file
+./scripts/generate_cairo_and_midi.sh --midi-only
+
+# Use custom filenames
+./scripts/generate_cairo_and_midi.sh --cairo-output my_music.cairo --midi-output my_music.mid
 ```
 
 ### Running Tests
@@ -84,9 +105,10 @@ midi_fun_contract/
 │   └── tests/
 │       └── midi_2_cairo_print.cairo # Cairo code generation tests
 ├── python/             # Python MIDI conversion tools
-├── typescript/         # TypeScript MIDI parsing
+├── typescript/         # TypeScript MIDI parsing and conversion
 ├── scripts/
-│   └── generate_cairo_output.sh # Automated Cairo code generation
+│   ├── generate_cairo_output.sh # Cairo code generation
+│   └── generate_cairo_and_midi.sh # Full Cairo to MIDI pipeline
 └── docs/               # Documentation
 ```
 

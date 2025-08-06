@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "generate": "ts-node src/generateAndConvert.ts",
+    "generate:cairo-only": "ts-node src/generateAndConvert.ts --cairo-only",
+    "generate:midi-only": "ts-node src/generateAndConvert.ts --midi-only"
   },
   "keywords": [],
   "author": "",

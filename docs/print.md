@@ -133,9 +133,11 @@ Printing complex data types this way might not be ideal as it requires additiona
 This project includes specialized functionality for generating Cairo code from MIDI data structures. The `midi_2_cairo_print.cairo` test file provides two main functions:
 
 ### 1. Standard Test Output (`midi_to_cairo_file_test`)
+
 Generates Cairo code with test metadata included. This is useful for debugging and development.
 
 ### 2. Clean Code Generation (`midi_to_cairo_file_output_test`)
+
 Generates clean, production-ready Cairo code without test metadata. This function produces properly formatted Cairo code that can be directly used in projects.
 
 ### Output File Generation
@@ -143,6 +145,7 @@ Generates clean, production-ready Cairo code without test metadata. This functio
 While Scarb doesn't natively support saving test output to files, several solutions are provided:
 
 #### Option 1: Simple Redirection
+
 ```bash
 # Save all output (including test info)
 SCARB_UI_VERBOSITY=quiet scarb test -- --filter midi_to_cairo_file_test > output.cairo 2>&1
@@ -153,7 +156,9 @@ grep -v "running\|test\|gas usage\|test result" > clean_output.cairo
 ```
 
 #### Option 2: Automated Script
+
 Use the provided `scripts/generate_cairo_output.sh` script:
+
 ```bash
 ./scripts/generate_cairo_output.sh                    # saves to generated_midi.cairo
 ./scripts/generate_cairo_output.sh my_custom_file.cairo  # saves to custom filename
@@ -162,6 +167,7 @@ Use the provided `scripts/generate_cairo_output.sh` script:
 ### Generated Output Format
 
 The generated Cairo code includes:
+
 - Proper import statements for MIDI types
 - Complete MIDI struct definition
 - All MIDI events (NoteOn, NoteOff, SetTempo, etc.)
@@ -169,6 +175,7 @@ The generated Cairo code includes:
 - Ready-to-use code structure
 
 Example output:
+
 ```cairo
 use koji::math::Time;
 use koji::midi::types::{Midi, Message, NoteOn, NoteOff, SetTempo, TimeSignature, ControlChange, PitchWheel, AfterTouch, PolyTouch, Modes};

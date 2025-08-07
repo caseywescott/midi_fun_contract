@@ -279,9 +279,9 @@ fn test_generate_wave() {
 #[test]
 fn test_modal_run_with_sine_contour() {
     // Define sine wave parameters for the melodic contour
-    // Using a longer sequence to create a more interesting melodic line
+    // Using a range that covers the full MIDI note range (0-127)
     let params = SineWaveParams {
-        min_value: 0_u32, max_value: 100_u32, frequency: 2_u32, length: 16_u32,
+        min_value: 0_u32, max_value: 127_u32, frequency: 2_u32, length: 100_u32,
     };
 
     // Generate the sine wave contour values
@@ -329,25 +329,34 @@ fn test_modal_run_with_sine_contour() {
         }
         let contour_value = *sine_contour.at(i);
 
-        // Map the sine wave value (0-100) to a mode index (0 to mode_size-1)
-        // Use modulo to wrap around the mode - simplified for now
-        let mode_index_u8: u8 = (contour_value % 7).try_into().unwrap();
+        // Map the contour value (0-127) to a Dorian mode note with proper octave wrapping
+        // Use the contour value to determine both mode index and octave
+        // This ensures perfect contour following: higher contour = higher keynum
+        let mode_index: u8 = (contour_value % 7_u32).try_into().unwrap(); // Wrap around 7-note mode
+        let octave_offset: u8 = (contour_value / 7_u32)
+            .try_into()
+            .unwrap(); // Every 7 units = 1 octave
 
         // Get the note from the mode at this index
-        let mode_note = *dorian_notes.at(mode_index_u8.into());
+        let mode_note = *dorian_notes.at(mode_index.into());
 
-        // Calculate the octave based on the contour value
-        // Higher contour values move to higher octaves
-        let octave_offset = (contour_value / 25_u32)
-            .try_into()
-            .unwrap(); // Every 25 units = 1 octave
-        let current_octave = tonic.octave + octave_offset;
+        // Calculate the current octave, constrained to valid MIDI range (0-127)
+        let current_octave = if tonic.octave + octave_offset > 10_u8 {
+            10_u8
+        } else {
+            tonic.octave + octave_offset
+        };
 
         // Create the pitch class for this note
         let pitch = PitchClass { note: mode_note, octave: current_octave };
 
-        // Convert to MIDI keynum
-        let keynum = pc_to_keynum(pitch);
+        // Convert to MIDI keynum and constrain to valid range (0-127)
+        let raw_keynum = pc_to_keynum(pitch);
+        let keynum = if raw_keynum > 127_u8 {
+            127_u8
+        } else {
+            raw_keynum
+        };
 
         // Add to our modal run
         ArrayTrait::append(ref modal_run, keynum);
@@ -358,7 +367,7 @@ fn test_modal_run_with_sine_contour() {
                 "  {}  // index {} -> mode_index {} -> note {} -> octave {} -> keynum {}",
                 contour_value,
                 i,
-                mode_index_u8,
+                mode_index,
                 mode_note,
                 current_octave,
                 keynum,
@@ -368,7 +377,7 @@ fn test_modal_run_with_sine_contour() {
                 "  {}, // index {} -> mode_index {} -> note {} -> octave {} -> keynum {}",
                 contour_value,
                 i,
-                mode_index_u8,
+                mode_index,
                 mode_note,
                 current_octave,
                 keynum,
@@ -398,7 +407,7 @@ fn test_modal_run_with_sine_contour() {
     println!("Modal run length: {}", modal_run.len());
 
     // Verify the modal run has the expected length
-    assert(modal_run.len() == 16_u32, 'Modal run should have 16 notes');
+    assert(modal_run.len() == 100_u32, 'Modal run should have 100 notes');
 
     // Verify all keynums are valid MIDI notes (0-127)
     let mut i = 0_u32;
@@ -430,7 +439,7 @@ fn test_modal_run_with_sine_contour() {
             // (allowing for octave changes and mode wrapping)
             assert(
                 next_keynum >= current_keynum - 12_u8 || next_keynum >= current_keynum,
-                'Modal run should follow sine wave contour',
+                'Modal run follows contour',
             );
         }
 

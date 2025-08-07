@@ -14,30 +14,32 @@ pub struct SineWaveParams {
     pub length: u32,
 }
 
-// Simplified sine approximation that returns positive values only
-// This is sufficient for our squared sine wave application
+// Improved sine approximation that returns values in [0, SCALE] range
+// This provides better scaling for the squared sine wave
 pub fn sine_fixed_point(x_scaled: u128) -> u128 {
     // Normalize x to [0, 2π]
     let x_normalized = x_scaled % TWO_PI_SCALED;
-    
+
     // Convert to [0, π] range for calculation
     let x = if x_normalized > PI_SCALED {
         TWO_PI_SCALED - x_normalized
     } else {
         x_normalized
     };
-    
-    // Simple linear interpolation for sine approximation
+
+    // Improved sine approximation that produces values in [0, SCALE] range
     // For small angles, sin(x) ≈ x
-    // For larger angles, we use a simple curve approximation
+    // For larger angles, we use a better curve approximation
     let x_ratio = x * 1000_u128 / PI_SCALED; // Scale to 0-1000 range
-    
+
     if x_ratio <= 500_u128 {
-        // For first half of π, use linear approximation
-        (x * 1000000_u128) / PI_SCALED
+        // For first half of π, use improved linear approximation
+        // Scale to full range: x goes from 0 to π/2, result goes from 0 to SCALE
+        (x * SCALE) / (PI_SCALED / 2_u128)
     } else {
-        // For second half of π, use inverted linear approximation
-        ((PI_SCALED - x) * 1000000_u128) / PI_SCALED
+        // For second half of π, use inverted approximation
+        // Scale to full range: x goes from π/2 to π, result goes from SCALE to 0
+        ((PI_SCALED - x) * SCALE) / (PI_SCALED / 2_u128)
     }
 }
 
@@ -45,48 +47,39 @@ pub fn sine_fixed_point(x_scaled: u128) -> u128 {
 pub fn sinusoidal_timing_wave_squared(params: SineWaveParams) -> Array<u32> {
     let mut result = ArrayTrait::new();
     let range = params.max_value - params.min_value;
-    
+
     let mut i: u32 = 0;
     loop {
         if i >= params.length {
             break;
         }
-        
+
         // Calculate phase: (i / length) * frequency * 2 * PI
+        // This ensures frequency=1 gives exactly one cycle over the length
         let numerator = i.into() * params.frequency.into() * TWO_PI_SCALED;
         let phase = numerator / params.length.into();
-        
+
         // Calculate sine value using our approximation
         let sine_value = sine_fixed_point(phase);
-        
-        // Square the sine value (always positive, more gradual curves)
+
+        // Square the sine value and normalize to [0, SCALE] range
         let squared_value = (sine_value * sine_value) / SCALE;
-        
-        // Ensure squared_value doesn't exceed SCALE
-        let clamped_squared = if squared_value > SCALE {
-            SCALE
-        } else {
-            squared_value
-        };
-        
+
         // Scale to the desired range: minValue + range * (squaredValue / SCALE)
-        let scaled_value = (range.into() * clamped_squared) / SCALE;
+        let scaled_value = (range.into() * squared_value) / SCALE;
         let final_value = params.min_value + scaled_value.try_into().unwrap();
-        
+
         result.append(final_value);
         i += 1;
-    };
-    
+    }
+
     result
 }
 
 // Helper function for easy usage
 pub fn generate_wave(min_val: u32, max_val: u32, freq: u32, len: u32) -> Array<u32> {
     let params = SineWaveParams {
-        min_value: min_val,
-        max_value: max_val,
-        frequency: freq,
-        length: len
+        min_value: min_val, max_value: max_val, frequency: freq, length: len,
     };
     sinusoidal_timing_wave_squared(params)
 }

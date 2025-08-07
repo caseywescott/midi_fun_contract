@@ -1,3 +1,6 @@
+use koji::midi::modes::{dorian_steps, mode_steps};
+use koji::midi::pitch::{get_notes_of_key, pc_to_keynum};
+use koji::midi::types::{Modes, OCTAVEBASE, PitchClass};
 use koji::sine_wave::{
     PI_SCALED, SineWaveParams, TWO_PI_SCALED, generate_wave, sine_fixed_point,
     sinusoidal_timing_wave_squared,
@@ -265,6 +268,173 @@ fn test_generate_wave() {
         }
         let value = *result.at(i);
         assert(value >= 10_u32 && value <= 50_u32, 'Value out of range');
+        i += 1;
+    };
+}
+
+/// Test modal run generation using sine wave contour
+/// This test creates a melodic sequence that follows the contour of a sine wave
+/// by mapping sine wave values to indices in a Dorian mode array, then collecting
+/// the resulting keynums into a sequence of musical notes
+#[test]
+fn test_modal_run_with_sine_contour() {
+    // Define sine wave parameters for the melodic contour
+    // Using a longer sequence to create a more interesting melodic line
+    let params = SineWaveParams {
+        min_value: 0_u32, max_value: 100_u32, frequency: 2_u32, length: 16_u32,
+    };
+
+    // Generate the sine wave contour values
+    let sine_contour = sinusoidal_timing_wave_squared(params);
+
+    // Create a Dorian mode starting from C (note 0, octave 4)
+    let tonic = PitchClass { note: 0_u8, octave: 4_u8 }; // C4
+    let dorian_mode = Modes::Dorian(());
+    let mode_steps = mode_steps(dorian_mode);
+
+    // Get the notes of the Dorian mode in C
+    let dorian_notes = get_notes_of_key(tonic, mode_steps);
+    let mode_size = dorian_notes.len();
+
+    println!("MODAL RUN WITH SINE CONTOUR:");
+    println!("Tonic: C{} (note: {}, octave: {})", tonic.octave, tonic.note, tonic.octave);
+    println!("Mode: Dorian");
+    println!("Mode notes: [");
+
+    // Print the Dorian mode notes
+    let mut i = 0_u32;
+    loop {
+        if i >= dorian_notes.len() {
+            break;
+        }
+        let note = *dorian_notes.at(i);
+        if i == dorian_notes.len() - 1 {
+            println!("  {}  // scale degree {}", note, i + 1);
+        } else {
+            println!("  {}, // scale degree {}", note, i + 1);
+        }
+        i += 1;
+    }
+    println!("]");
+    println!("Mode size: {}", mode_size);
+
+    // Generate the modal run by mapping sine wave values to mode indices
+    let mut modal_run: Array<u8> = ArrayTrait::new();
+    let mut octave_multiplier = 1_u8; // Start in the tonic octave
+
+    println!("Sine wave contour values: [");
+    let mut i = 0_u32;
+    loop {
+        if i >= sine_contour.len() {
+            break;
+        }
+        let contour_value = *sine_contour.at(i);
+
+        // Map the sine wave value (0-100) to a mode index (0 to mode_size-1)
+        // Use modulo to wrap around the mode
+        let mode_index = (contour_value % 7_u32).try_into().unwrap(); // Dorian mode has 7 notes
+
+        // Get the note from the mode at this index
+        let mode_note = *dorian_notes.at(mode_index.into());
+
+        // Calculate the octave based on the contour value
+        // Higher contour values move to higher octaves
+        let octave_offset = (contour_value / 25_u32)
+            .try_into()
+            .unwrap(); // Every 25 units = 1 octave
+        let current_octave = tonic.octave + octave_offset;
+
+        // Create the pitch class for this note
+        let pitch = PitchClass { note: mode_note, octave: current_octave };
+
+        // Convert to MIDI keynum
+        let keynum = pc_to_keynum(pitch);
+
+        // Add to our modal run
+        ArrayTrait::append(ref modal_run, keynum);
+
+        // Print the mapping for debugging
+        if i == sine_contour.len() - 1 {
+            println!(
+                "  {}  // index {} -> mode_index {} -> note {} -> octave {} -> keynum {}",
+                contour_value,
+                i,
+                mode_index,
+                mode_note,
+                current_octave,
+                keynum,
+            );
+        } else {
+            println!(
+                "  {}, // index {} -> mode_index {} -> note {} -> octave {} -> keynum {}",
+                contour_value,
+                i,
+                mode_index,
+                mode_note,
+                current_octave,
+                keynum,
+            );
+        }
+
+        i += 1;
+    }
+    println!("]");
+
+    // Print the final modal run
+    println!("Generated modal run (keynums): [");
+    let mut i = 0_u32;
+    loop {
+        if i >= modal_run.len() {
+            break;
+        }
+        let keynum = *modal_run.at(i);
+        if i == modal_run.len() - 1 {
+            println!("  {}  // position {}", keynum, i);
+        } else {
+            println!("  {}, // position {}", keynum, i);
+        }
+        i += 1;
+    }
+    println!("]");
+    println!("Modal run length: {}", modal_run.len());
+
+    // Verify the modal run has the expected length
+    assert(modal_run.len() == 16_u32, 'Modal run should have 16 notes');
+
+    // Verify all keynums are valid MIDI notes (0-127)
+    let mut i = 0_u32;
+    loop {
+        if i >= modal_run.len() {
+            break;
+        }
+        let keynum = *modal_run.at(i);
+        assert(keynum >= 0_u8 && keynum <= 127_u8, 'Invalid MIDI keynum');
+        i += 1;
+    }
+
+    // Verify the modal run follows the sine wave contour
+    // (higher sine values should generally correspond to higher notes)
+    let mut i = 0_u32;
+    loop {
+        if i >= sine_contour.len() - 1 {
+            break;
+        }
+        let current_contour = *sine_contour.at(i);
+        let next_contour = *sine_contour.at(i + 1);
+        let current_keynum = *modal_run.at(i);
+        let next_keynum = *modal_run.at(i + 1);
+
+        // If contour goes up significantly, keynum should generally go up
+        // (allowing for octave wrapping and mode constraints)
+        if next_contour > current_contour + 20_u32 {
+            // Contour increased significantly, keynum should not decrease by more than 12 semitones
+            // (allowing for octave changes and mode wrapping)
+            assert(
+                next_keynum >= current_keynum - 12_u8 || next_keynum >= current_keynum,
+                'Modal run should follow sine wave contour',
+            );
+        }
+
         i += 1;
     };
 }

@@ -320,7 +320,6 @@ fn test_modal_run_with_sine_contour() {
 
     // Generate the modal run by mapping sine wave values to mode indices
     let mut modal_run: Array<u8> = ArrayTrait::new();
-    let mut octave_multiplier = 1_u8; // Start in the tonic octave
 
     println!("Sine wave contour values: [");
     let mut i = 0_u32;
@@ -331,11 +330,11 @@ fn test_modal_run_with_sine_contour() {
         let contour_value = *sine_contour.at(i);
 
         // Map the sine wave value (0-100) to a mode index (0 to mode_size-1)
-        // Use modulo to wrap around the mode
-        let mode_index = (contour_value % 7_u32).try_into().unwrap(); // Dorian mode has 7 notes
+        // Use modulo to wrap around the mode - simplified for now
+        let mode_index_u8: u8 = (contour_value % 7).try_into().unwrap();
 
         // Get the note from the mode at this index
-        let mode_note = *dorian_notes.at(mode_index.into());
+        let mode_note = *dorian_notes.at(mode_index_u8.into());
 
         // Calculate the octave based on the contour value
         // Higher contour values move to higher octaves
@@ -359,7 +358,7 @@ fn test_modal_run_with_sine_contour() {
                 "  {}  // index {} -> mode_index {} -> note {} -> octave {} -> keynum {}",
                 contour_value,
                 i,
-                mode_index,
+                mode_index_u8,
                 mode_note,
                 current_octave,
                 keynum,
@@ -369,7 +368,7 @@ fn test_modal_run_with_sine_contour() {
                 "  {}, // index {} -> mode_index {} -> note {} -> octave {} -> keynum {}",
                 contour_value,
                 i,
-                mode_index,
+                mode_index_u8,
                 mode_note,
                 current_octave,
                 keynum,

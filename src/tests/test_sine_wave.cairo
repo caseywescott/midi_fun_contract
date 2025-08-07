@@ -279,9 +279,10 @@ fn test_generate_wave() {
 #[test]
 fn test_modal_run_with_sine_contour() {
     // Define sine wave parameters for the melodic contour
-    // Using a range that covers the full MIDI note range (0-127)
+    // Using a smaller range (0-35) to keep notes closer together
+    // This gives us 5 octaves of the 7-note Dorian mode (5 * 7 = 35)
     let params = SineWaveParams {
-        min_value: 0_u32, max_value: 127_u32, frequency: 2_u32, length: 100_u32,
+        min_value: 0_u32, max_value: 35_u32, frequency: 2_u32, length: 100_u32,
     };
 
     // Generate the sine wave contour values
@@ -329,9 +330,9 @@ fn test_modal_run_with_sine_contour() {
         }
         let contour_value = *sine_contour.at(i);
 
-        // Map the contour value (0-127) to a Dorian mode note with proper octave wrapping
-        // Use the contour value to determine both mode index and octave
-        // This ensures perfect contour following: higher contour = higher keynum
+        // Use contour value as direct index into a repeating table of Dorian mode notes
+        // The table repeats every 7 notes and shifts octaves as it wraps
+        // This ensures perfect 1:1 mapping: contour value = keynum index
         let mode_index: u8 = (contour_value % 7_u32).try_into().unwrap(); // Wrap around 7-note mode
         let octave_offset: u8 = (contour_value / 7_u32)
             .try_into()

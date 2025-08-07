@@ -129,13 +129,16 @@ mod tests {
         let zero_sine = sine_fixed_point(0_u128);
         let pi_half_sine = sine_fixed_point(PI_SCALED / 2_u128);
         let pi_sine = sine_fixed_point(PI_SCALED);
-        
+
         // sin(0) should be close to 0
         assert(zero_sine < 10000_u128, 'sin(0) should be close to 0');
-        
+
         // sin(pi/2) should be close to 1 (scaled) - adjusted for our approximation
-        assert(pi_half_sine > 400000_u128 && pi_half_sine < 600000_u128, 'sin(pi/2) should be reasonable');
-        
+        assert(
+            pi_half_sine > 400000_u128 && pi_half_sine < 600000_u128,
+            'sin(pi/2) should be reasonable',
+        );
+
         // sin(pi) should be close to 0
         assert(pi_sine < 10000_u128, 'sin(pi) should be close to 0');
     }

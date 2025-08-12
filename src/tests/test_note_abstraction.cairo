@@ -1,169 +1,371 @@
-use core::array::ArrayTrait;
-use core::option::OptionTrait;
-use koji::midi::types::{NoteOn, NoteOff, Message, Midi, SetTempo};
+#[cfg(test)]
+mod tests {
+    use core::array::ArrayTrait;
+    use koji::midi::note_abstraction::{
+        NoteCollectionBuilderTrait, NoteCollectionTrait, NoteTrait, TimingUtilsImpl,
+        create_chord_midi,
+    };
+    use koji::midi::types::{Message, Midi, SetTempo};
 
-#[test]
-fn test_note_abstraction_import() {
-    // This test just verifies that the module can be imported
-    assert(1 == 1, 'Basic test');
-}
+    #[test]
+    #[available_gas(1000000000000)]
+    fn test_note_creation() {
+        let note = NoteTrait::new(60, 100, 200, 80, 0);
+        assert(note.keynum == 60, 'Wrong keynum');
+        assert(note.start_time == 100, 'Wrong start_time');
+        assert(note.duration == 200, 'Wrong duration');
+        assert(note.velocity == 80, 'Wrong velocity');
+        assert(note.channel == 0, 'Wrong channel');
+    }
 
-#[test]
-fn test_midi_types_work() {
-    // This test verifies that MIDI types can be used
-    let note_on = NoteOn { channel: 0, note: 60, velocity: 80, time: 1000 };
-    assert(note_on.note == 60, 'Wrong note');
-}
+    #[test]
+    #[available_gas(1000000000000)]
+    fn test_note_end_time() {
+        let note = NoteTrait::new(60, 100, 200, 80, 0);
+        assert(note.end_time() == 300, 'Wrong end time');
+    }
 
-#[test]
-fn test_note_abstraction_module_exists() {
-    // This test tries to access the note_abstraction module
-    // If this compiles, the module exists
-    assert(1 == 1, 'Module exists');
-}
+    #[test]
+    #[available_gas(1000000000000)]
+    fn test_note_to_midi_events() {
+        let note = NoteTrait::new(60, 100, 200, 80, 0);
+        let (note_on, note_off) = note.to_midi_events();
 
-// Let me try to create a simple example that demonstrates the note abstraction
-#[test]
-fn test_note_abstraction_example() {
-    // This test demonstrates how to use the note abstraction
-    // We'll create a simple MIDI file with a chord using the note abstraction
-    
-    // Create a C major chord (C, E, G) using keynums 60, 64, 67
-    let chord_keynums = array![60, 64, 67];
-    
-    // Create MIDI events manually for now
-    let mut events = array![
-        Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }),
-        Message::NOTE_ON(NoteOn { channel: 0, note: 60, velocity: 80, time: 0 }),
-        Message::NOTE_ON(NoteOn { channel: 0, note: 64, velocity: 80, time: 0 }),
-        Message::NOTE_ON(NoteOn { channel: 0, note: 67, velocity: 80, time: 0 }),
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 60, velocity: 0, time: 1000 }),
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 64, velocity: 0, time: 0 }),
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 67, velocity: 0, time: 0 }),
-    ];
-    
-    let midi = Midi { events: events.span() };
-    
-    // Verify we have the expected number of events
-    assert(midi.events.len() == 7, 'Wrong number of events');
-    
-    // This demonstrates the concept of the note abstraction:
-    // - Notes with keynum, start_time, duration
-    // - Collection of notes that can be converted to MIDI
-    // - Proper timing for chords (all notes start and end together)
-}
+        // Check NoteOn event
+        assert(note_on.channel == 0, 'Wrong NoteOn channel');
+        assert(note_on.note == 60, 'Wrong NoteOn note');
+        assert(note_on.velocity == 80, 'Wrong NoteOn velocity');
+        assert(note_on.time == 100, 'Wrong NoteOn time');
 
-// Now let me try to use the actual note abstraction
-#[test]
-fn test_note_abstraction_usage() {
-    // This test demonstrates the note abstraction concept
-    // We'll create notes with keynum, start_time, and duration
-    // and then convert them to MIDI events
-    
-    // Conceptually, this is what the note abstraction provides:
-    // Note { keynum: 60, start_time: 0, duration: 1000, velocity: 80, channel: 0 }
-    // Note { keynum: 64, start_time: 0, duration: 1000, velocity: 80, channel: 0 }
-    // Note { keynum: 67, start_time: 0, duration: 1000, velocity: 80, channel: 0 }
-    
-    // These notes would be converted to MIDI events with proper timing:
-    // - All NoteOn events have the same start time (0)
-    // - All NoteOff events have the same duration (1000)
-    // - This ensures perfect chordal timing
-    
-    // For now, we'll create the MIDI events manually to demonstrate the concept
-    let mut events = array![
-        Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }),
-        Message::NOTE_ON(NoteOn { channel: 0, note: 60, velocity: 80, time: 0 }),
-        Message::NOTE_ON(NoteOn { channel: 0, note: 64, velocity: 80, time: 0 }),
-        Message::NOTE_ON(NoteOn { channel: 0, note: 67, velocity: 80, time: 0 }),
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 60, velocity: 0, time: 1000 }),
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 64, velocity: 0, time: 0 }),
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 67, velocity: 0, time: 0 }),
-    ];
-    
-    let midi = Midi { events: events.span() };
-    
-    // Verify the chord plays correctly
-    assert(midi.events.len() == 7, 'Wrong number of events');
-    
-    // The note abstraction provides:
-    // 1. A Note struct with keynum, start_time, duration, velocity, channel
-    // 2. A NoteCollection to store multiple notes
-    // 3. A NoteCollectionBuilder to easily create collections
-    // 4. Methods to convert notes to MIDI events with proper timing
-    // 5. Support for chords (multiple notes with same start time)
-    // 6. Proper delta time calculation for MIDI output
-}
+        // Check NoteOff event
+        assert(note_off.channel == 0, 'Wrong NoteOff channel');
+        assert(note_off.note == 60, 'Wrong NoteOff note');
+        assert(note_off.velocity == 0, 'Wrong NoteOff velocity');
+        assert(note_off.time == 200, 'Wrong NoteOff time');
+    }
 
-#[test]
-fn test_complete_note_abstraction_workflow() {
-    // This test demonstrates the complete note abstraction workflow
-    // showing how to create a musical piece with multiple chords and notes
-    
-    // Step 1: Define the musical content using note abstraction concepts
-    // 
-    // Chord 1: C major (C, E, G) at time 0, duration 1000ms
-    // Note { keynum: 60, start_time: 0, duration: 1000, velocity: 80, channel: 0 }  // C
-    // Note { keynum: 64, start_time: 0, duration: 1000, velocity: 80, channel: 0 }  // E
-    // Note { keynum: 67, start_time: 0, duration: 1000, velocity: 80, channel: 0 }  // G
-    //
-    // Chord 2: F major (F, A, C) at time 1000, duration 1000ms
-    // Note { keynum: 65, start_time: 1000, duration: 1000, velocity: 80, channel: 0 }  // F
-    // Note { keynum: 69, start_time: 1000, duration: 1000, velocity: 80, channel: 0 }  // A
-    // Note { keynum: 72, start_time: 1000, duration: 1000, velocity: 80, channel: 0 }  // C
-    //
-    // Chord 3: G major (G, B, D) at time 2000, duration 1000ms
-    // Note { keynum: 67, start_time: 2000, duration: 1000, velocity: 80, channel: 0 }  // G
-    // Note { keynum: 71, start_time: 2000, duration: 1000, velocity: 80, channel: 0 }  // B
-    // Note { keynum: 74, start_time: 2000, duration: 1000, velocity: 80, channel: 0 }  // D
-    
-    // Step 2: Convert to MIDI events with proper timing
-    let mut events = array![
-        // Tempo event
-        Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }),
-        
-        // Chord 1: C major (all notes start at time 0)
-        Message::NOTE_ON(NoteOn { channel: 0, note: 60, velocity: 80, time: 0 }),   // C
-        Message::NOTE_ON(NoteOn { channel: 0, note: 64, velocity: 80, time: 0 }),   // E
-        Message::NOTE_ON(NoteOn { channel: 0, note: 67, velocity: 80, time: 0 }),   // G
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 60, velocity: 0, time: 1000 }), // C
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 64, velocity: 0, time: 0 }),   // E
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 67, velocity: 0, time: 0 }),   // G
-        
-        // Chord 2: F major (all notes start at time 1000)
-        Message::NOTE_ON(NoteOn { channel: 0, note: 65, velocity: 80, time: 0 }),   // F
-        Message::NOTE_ON(NoteOn { channel: 0, note: 69, velocity: 80, time: 0 }),   // A
-        Message::NOTE_ON(NoteOn { channel: 0, note: 72, velocity: 80, time: 0 }),   // C
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 65, velocity: 0, time: 1000 }), // F
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 69, velocity: 0, time: 0 }),   // A
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 72, velocity: 0, time: 0 }),   // C
-        
-        // Chord 3: G major (all notes start at time 2000)
-        Message::NOTE_ON(NoteOn { channel: 0, note: 67, velocity: 80, time: 0 }),   // G
-        Message::NOTE_ON(NoteOn { channel: 0, note: 71, velocity: 80, time: 0 }),   // B
-        Message::NOTE_ON(NoteOn { channel: 0, note: 74, velocity: 80, time: 0 }),   // D
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 67, velocity: 0, time: 1000 }), // G
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 71, velocity: 0, time: 0 }),   // B
-        Message::NOTE_OFF(NoteOff { channel: 0, note: 74, velocity: 0, time: 0 }),   // D
-    ];
-    
-    let midi = Midi { events: events.span() };
-    
-    // Step 3: Verify the result
-    // We should have: 1 tempo event + 9 NoteOn events + 9 NoteOff events = 19 total events
-    assert(midi.events.len() == 19, 'Wrong number of events');
-    
-    // This demonstrates the complete note abstraction workflow:
-    // 1. Define notes with keynum, start_time, duration, velocity, channel
-    // 2. Group notes into collections (chords, melodies, etc.)
-    // 3. Convert collections to MIDI events with proper timing
-    // 4. Ensure perfect chordal timing (all notes in a chord start and end together)
-    // 5. Handle delta times correctly for MIDI output
-    
-    // The note abstraction system provides:
-    // - Clean separation between musical content (notes) and MIDI representation
-    // - Easy creation of chords and complex musical structures
-    // - Automatic handling of timing and delta time calculations
-    // - Type safety and compile-time guarantees
-    // - Reusable components for building complex musical pieces
+    #[test]
+    #[available_gas(1000000000000)]
+    fn test_create_chord_midi() {
+        // Create a C major triad (C4, E4, G4)
+        let mut chord_notes = ArrayTrait::<u8>::new();
+        chord_notes.append(60); // C4
+        chord_notes.append(64); // E4
+        chord_notes.append(67); // G4
+
+        let events = create_chord_midi(chord_notes.span(), 10, 100, 80, 0);
+        let events_span = events.span();
+
+        // Check number of events
+        assert(events_span.len() == 6, 'Wrong number of events'); // 3 NoteOn + 3 NoteOff
+
+        // Check NoteOn events
+        let mut i = 0;
+        let mut first_note = true;
+        while i != 3 { // Check all NoteOn events
+            match *events_span.at(i) {
+                Message::NOTE_ON(note_on) => {
+                    if first_note {
+                        assert(note_on.time == 10, 'Wrong first NoteOn time');
+                        first_note = false;
+                    } else {
+                        assert(note_on.time == 0, 'Wrong subsequent NoteOn time');
+                    }
+                },
+                _ => { assert(false, 'Expected NoteOn event'); },
+            }
+            i += 1;
+        }
+
+        // Check NoteOff events
+        let mut first_note_off = true;
+        while i != 6 { // Check all NoteOff events
+            match *events_span.at(i) {
+                Message::NOTE_OFF(note_off) => {
+                    if first_note_off {
+                        assert(note_off.time == 100, 'Wrong first NoteOff time');
+                        first_note_off = false;
+                    } else {
+                        assert(note_off.time == 0, 'Wrong subsequent NoteOff time');
+                    }
+                },
+                _ => { assert(false, 'Expected NoteOff event'); },
+            }
+            i += 1;
+        }
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn test_note_collection() {
+        // Create a sequence of notes
+        let mut notes = ArrayTrait::new();
+        notes.append(NoteTrait::new(60, 0, 100, 80, 0)); // C4
+        notes.append(NoteTrait::new(64, 100, 100, 80, 0)); // E4
+        notes.append(NoteTrait::new(67, 200, 100, 80, 0)); // G4
+
+        let collection = NoteCollectionTrait::new(notes.span());
+        let midi = collection.to_midi(500000); // 120 BPM
+
+        // Check MIDI events
+        let events = midi.events;
+        assert(events.len() == 7, 'Wrong number of events'); // 1 tempo + 3 NoteOn + 3 NoteOff
+
+        // Check tempo event
+        match *events.at(0) {
+            Message::SET_TEMPO(tempo) => {
+                assert(tempo.tempo == 500000, 'Wrong tempo');
+                assert(tempo.time == Option::Some(0), 'Wrong tempo time');
+            },
+            _ => { assert(false, 'Expected tempo event'); },
+        }
+
+        // Check note events
+        let mut i = 1;
+        while i < 7 {
+            match *events.at(i) {
+                Message::NOTE_ON(note_on) => {
+                    assert(note_on.velocity == 80, 'Wrong velocity');
+                    assert(note_on.channel == 0, 'Wrong channel');
+                },
+                Message::NOTE_OFF(note_off) => {
+                    assert(note_off.velocity == 0, 'Wrong velocity');
+                    assert(note_off.channel == 0, 'Wrong channel');
+                },
+                _ => { assert(false, 'Expected note event'); },
+            }
+            i += 1;
+        }
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn test_note_collection_builder() {
+        let mut builder = NoteCollectionBuilderTrait::new();
+
+        // Add individual notes
+        let note1 = NoteTrait::new(60, 0, 100, 80, 0); // C4
+        let note2 = NoteTrait::new(64, 100, 100, 80, 0); // E4
+        builder.add_note(note1);
+        builder.add_note(note2);
+
+        // Add a chord
+        let mut chord_notes = ArrayTrait::new();
+        chord_notes.append(67); // G4
+        chord_notes.append(71); // B4
+        builder.add_chord(chord_notes.span(), 200, 100, 80, 0);
+
+        // Build and check the collection
+        let collection = builder.build();
+        let notes = collection.notes;
+
+        assert(notes.len() == 4, 'Wrong number of notes');
+
+        // Check first note (C4)
+        let first = *notes.at(0);
+        assert(first.keynum == 60, 'Wrong first note keynum');
+        assert(first.start_time == 0, 'Wrong first note start');
+        assert(first.duration == 100, 'Wrong first note duration');
+
+        // Check second note (E4)
+        let second = *notes.at(1);
+        assert(second.keynum == 64, 'Wrong second note keynum');
+        assert(second.start_time == 100, 'Wrong second note start');
+        assert(second.duration == 100, 'Wrong second note duration');
+
+        // Check chord notes (G4, B4)
+        let third = *notes.at(2);
+        let fourth = *notes.at(3);
+        assert(third.keynum == 67, 'Wrong third note keynum');
+        assert(fourth.keynum == 71, 'Wrong fourth note keynum');
+        assert(third.start_time == 200, 'Wrong chord start time');
+        assert(fourth.start_time == 200, 'Wrong chord start time');
+        assert(third.duration == 100, 'Wrong chord duration');
+        assert(fourth.duration == 100, 'Wrong chord duration');
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn test_timing_utils() {
+        let mut notes = ArrayTrait::new();
+        notes.append(NoteTrait::new(60, 200, 100, 80, 0)); // C4 at t=200
+        notes.append(NoteTrait::new(64, 0, 100, 80, 0)); // E4 at t=0
+        notes.append(NoteTrait::new(67, 0, 100, 80, 0)); // G4 at t=0
+        notes.append(NoteTrait::new(71, 200, 100, 80, 0)); // B4 at t=200
+
+        let note_groups = TimingUtilsImpl::sort_and_group_notes(notes.span());
+        assert(note_groups.len() == 2, 'Wrong number of groups');
+
+        // Check first group (t=0)
+        let group1 = note_groups.at(0);
+        assert(group1.len() == 2, 'Wrong group1 size');
+        let note1 = *group1.at(0);
+        let note2 = *group1.at(1);
+        assert(note1.start_time == 0, 'Wrong group1 start time');
+        assert(note2.start_time == 0, 'Wrong group1 start time');
+        assert(note1.keynum == 64 || note1.keynum == 67, 'Wrong group1 note1');
+        assert(note2.keynum == 64 || note2.keynum == 67, 'Wrong group1 note2');
+        assert(note1.keynum != note2.keynum, 'Duplicate notes in group1');
+
+        // Check second group (t=200)
+        let group2 = note_groups.at(1);
+        assert(group2.len() == 2, 'Wrong group2 size');
+        let note1 = *group2.at(0);
+        let note2 = *group2.at(1);
+        assert(note1.start_time == 200, 'Wrong group2 start time');
+        assert(note2.start_time == 200, 'Wrong group2 start time');
+        assert(note1.keynum == 60 || note1.keynum == 71, 'Wrong group2 note1');
+        assert(note2.keynum == 60 || note2.keynum == 71, 'Wrong group2 note2');
+        assert(note1.keynum != note2.keynum, 'Duplicate notes in group2');
+
+        // Test delta time calculation
+        let delta1 = TimingUtilsImpl::calculate_delta_time(0, 100);
+        let delta2 = TimingUtilsImpl::calculate_delta_time(100, 200);
+        let delta3 = TimingUtilsImpl::calculate_delta_time(200, 100);
+        assert(delta1 == 100, 'Wrong delta time 1');
+        assert(delta2 == 100, 'Wrong delta time 2');
+        assert(delta3 == 0, 'Wrong delta time 3');
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn test_note_collection_with_delta_times() {
+        let mut notes = ArrayTrait::new();
+        notes.append(NoteTrait::new(60, 0, 100, 80, 0)); // C4 at t=0
+        notes.append(NoteTrait::new(64, 0, 100, 80, 0)); // E4 at t=0
+        notes.append(NoteTrait::new(67, 200, 100, 80, 0)); // G4 at t=200
+        notes.append(NoteTrait::new(71, 200, 100, 80, 0)); // B4 at t=200
+
+        let collection = NoteCollectionTrait::new(notes.span());
+        let midi = collection.to_midi_with_delta_times(500000);
+        let events = midi.events;
+
+        // Check number of events
+        assert(events.len() == 9, 'Wrong number of events'); // 1 tempo + 4 NoteOn + 4 NoteOff
+
+        // Check tempo event
+        match *events.at(0) {
+            Message::SET_TEMPO(tempo) => {
+                assert(tempo.tempo == 500000, 'Wrong tempo');
+                assert(tempo.time == Option::Some(0), 'Wrong tempo time');
+            },
+            _ => { assert(false, 'Expected tempo event'); },
+        }
+
+        // Check first chord (t=0)
+        match *events.at(1) {
+            Message::NOTE_ON(note_on) => { assert(note_on.time == 0, 'Wrong first chord time'); },
+            _ => { assert(false, 'Expected NoteOn event'); },
+        }
+        match *events.at(2) {
+            Message::NOTE_ON(note_on) => { assert(note_on.time == 0, 'Wrong first chord time'); },
+            _ => { assert(false, 'Expected NoteOn event'); },
+        }
+
+        // Check second chord (t=200)
+        match *events.at(5) {
+            Message::NOTE_ON(note_on) => {
+                assert(note_on.time == 100, 'Wrong second chord time');
+            },
+            _ => { assert(false, 'Expected NoteOn event'); },
+        }
+        match *events.at(6) {
+            Message::NOTE_ON(note_on) => { assert(note_on.time == 0, 'Wrong second chord time'); },
+            _ => { assert(false, 'Expected NoteOn event'); },
+        }
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn test_multiple_chords_timing() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+
+        // Add tempo event
+        let tempo = SetTempo { tempo: 60, time: Option::Some(0) };
+        eventlist.append(Message::SET_TEMPO(tempo));
+
+        // First chord: C major (C4, E4, G4) at t=0
+        let mut chord1 = ArrayTrait::<u8>::new();
+        chord1.append(60);
+        chord1.append(64);
+        chord1.append(67);
+        let chord1_events = create_chord_midi(chord1.span(), 0, 10, 80, 0);
+        let mut chord1_events_span = chord1_events.span();
+        while let Option::Some(event) = chord1_events_span.pop_front() {
+            eventlist.append(*event);
+        }
+
+        // Second chord: F major (F4, A4, C5) at t=1000
+        let mut chord2 = ArrayTrait::<u8>::new();
+        chord2.append(65);
+        chord2.append(69);
+        chord2.append(72);
+        let chord2_events = create_chord_midi(chord2.span(), 10, 10, 80, 0);
+        let mut chord2_events_span = chord2_events.span();
+        while let Option::Some(event) = chord2_events_span.pop_front() {
+            eventlist.append(*event);
+        }
+
+        let midiobj = Midi { events: eventlist.span() };
+        let events = midiobj.events;
+
+        // Check number of events
+        assert(events.len() == 13, 'Wrong number of events'); // 1 tempo + 6 NoteOn + 6 NoteOff
+
+        // Check timing pattern
+        let mut i = 1; // Skip tempo event
+        let mut first_note_on = true;
+        let mut first_chord = true;
+
+        // Check NoteOn events
+        while i != 7 { // Check all NoteOn events
+            match *events.at(i) {
+                Message::NOTE_ON(note_on) => {
+                    if first_note_on {
+                        if first_chord {
+                            assert(note_on.time == 0, 'Wrong first chord first NoteOn');
+                        } else {
+                            assert(note_on.time == 10, 'Wrong second chord first NoteOn');
+                        }
+                        first_note_on = false;
+                    } else {
+                        assert(note_on.time == 0, 'Wrong subsequent NoteOn');
+                    }
+                },
+                _ => { assert(false, 'Expected NoteOn event'); },
+            }
+            i += 1;
+            if i == 4 { // After first chord
+                first_note_on = true;
+                first_chord = false;
+            }
+        }
+
+        // Check NoteOff events
+        let mut first_note_off = true;
+        first_chord = true;
+
+        while i != 13 { // Check all NoteOff events
+            match *events.at(i) {
+                Message::NOTE_OFF(note_off) => {
+                    if first_note_off {
+                        if first_chord {
+                            assert(note_off.time == 10, 'Wrong first chord first NoteOff');
+                        } else {
+                            assert(note_off.time == 10, 'Wrong NoteOff time');
+                        }
+                        first_note_off = false;
+                    } else {
+                        assert(note_off.time == 0, 'Wrong subsequent NoteOff');
+                    }
+                },
+                _ => { assert(false, 'Expected NoteOff event'); },
+            }
+            i += 1;
+            if i == 10 { // After first chord
+                first_note_off = true;
+                first_chord = false;
+            }
+        }
+    }
 }

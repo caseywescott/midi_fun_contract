@@ -7,6 +7,6 @@ pub mod pitch;
 pub mod time;
 pub mod types;
 pub mod velocitycurve;
-// pub mod voicings;  // TODO: Fix PitchInterval quality field issues
+pub mod voicings;
 
 

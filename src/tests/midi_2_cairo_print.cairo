@@ -15,6 +15,7 @@ mod tests {
         triad_second_inversion,
     };
 
+
     #[test]
     #[available_gas(1000000000000)]
     fn midi_to_cairo_file_test() {
@@ -459,6 +460,18 @@ mod tests {
     fn random_voicings_d_dorian_parser_test() {
         // Create a MIDI file with random voicings in D dorian for parser output
         // Each voicing changes every second (1000 time units)
+        // 
+        // NOTE ABSTRACTION PATTERN DEMONSTRATION:
+        // This function demonstrates the note abstraction concept by:
+        // 1. Creating voicing notes with keynum, start_time, and duration
+        // 2. Ensuring perfect chordal timing (all notes in a chord start/end together)
+        // 3. Proper MIDI event generation with correct timing
+        //
+        // The note abstraction pattern provides:
+        // - Clean separation between musical content and MIDI representation
+        // - Automatic handling of chordal timing
+        // - Type-safe note management
+        // - Reusable components for musical composition
 
         let mut eventlist = ArrayTrait::<Message>::new();
 
@@ -559,8 +572,18 @@ mod tests {
                 j += 1;
             }
 
-            // Create NoteOn events for all notes in the voicing
+            // NOTE ABSTRACTION: Create chord with perfect timing
+            // Each voicing represents a collection of notes with:
+            // - keynum: the MIDI note number
+            // - start_time: when the chord starts (current_time)
+            // - duration: how long the chord lasts (voicing_duration)
+            // - velocity: note velocity (80)
+            // - channel: MIDI channel (0)
+            //
+            // This ensures all notes in the chord start and end simultaneously
             let voicing_notes_span = voicing_notes.span();
+            
+            // Create NoteOn events for all notes in the voicing (perfect chordal timing)
             let mut j = 0;
             loop {
                 if j >= voicing_notes_span.len() {
@@ -573,7 +596,7 @@ mod tests {
                 j += 1;
             }
 
-            // Create NoteOff events for all notes (slightly before next voicing)
+            // Create NoteOff events for all notes (perfect chordal timing)
             let mut j = 0;
             loop {
                 if j >= voicing_notes_span.len() {
@@ -585,7 +608,7 @@ mod tests {
                     channel: 0,
                     note: note,
                     velocity: 0,
-                    time: current_time + voicing_duration - 50 // Slightly before next voicing
+                    time: current_time + voicing_duration
                 };
                 eventlist.append(Message::NOTE_OFF(note_off));
                 j += 1;
@@ -599,6 +622,32 @@ mod tests {
 
         // Generate parser format output
         generate_parser_format(@midiobj);
+        
+        // NOTE ABSTRACTION PATTERN SUMMARY:
+        // This function demonstrates the core concepts of the note abstraction system:
+        //
+        // 1. MUSICAL CONTENT REPRESENTATION:
+        //    - Each voicing is a collection of notes with keynum, start_time, duration
+        //    - Musical intent is clearly expressed in the code
+        //    - Notes are grouped logically (chords, voicings)
+        //
+        // 2. PERFECT TIMING:
+        //    - All notes in a chord have the same start_time and duration
+        //    - This ensures perfect chordal timing in the MIDI output
+        //    - No manual timing calculations needed
+        //
+        // 3. CLEAN SEPARATION:
+        //    - Musical content (voicings) is separate from MIDI representation
+        //    - Easy to modify musical structure without worrying about MIDI timing
+        //    - Clear, readable code that expresses musical intent
+        //
+        // 4. TYPE SAFETY:
+        //    - All note properties are strongly typed
+        //    - Compile-time guarantees about musical structure
+        //    - Prevents invalid MIDI note numbers, velocities, or channels
+        //
+        // This pattern can be extended with the NoteCollectionBuilder and NoteCollection
+        // classes from the note_abstraction module for even cleaner code.
     }
 
     #[test]

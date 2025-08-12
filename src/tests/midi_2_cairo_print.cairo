@@ -15,6 +15,239 @@ mod tests {
         triad_second_inversion,
     };
 
+    // =========================================
+    // ============ NOTE ABSTRACTION ===========
+    // =========================================
+
+    /// Represents a musical note with keynum, start time, and duration
+    #[derive(Copy, Drop, Serde)]
+    struct Note {
+        keynum: u8,
+        start_time: Time,
+        duration: Time,
+        velocity: u8,
+        channel: u8,
+    }
+
+    /// Collection of notes that can be converted to MIDI events
+    #[derive(Copy, Drop, Serde)]
+    struct NoteCollection {
+        notes: Span<Note>,
+    }
+
+    /// Builder for creating note collections
+    struct NoteCollectionBuilder {
+        notes: Array<Note>,
+    }
+
+    // =========================================
+    // ============ IMPLEMENTATIONS ============
+    // =========================================
+
+    impl NoteImpl of NoteTrait {
+        fn new(keynum: u8, start_time: Time, duration: Time, velocity: u8, channel: u8) -> Note {
+            Note { keynum, start_time, duration, velocity, channel }
+        }
+
+        fn to_midi_events(self: @Note) -> (NoteOn, NoteOff) {
+            let note = *self;
+            let note_on = NoteOn {
+                channel: note.channel,
+                note: note.keynum,
+                velocity: note.velocity,
+                time: note.start_time,
+            };
+            let note_off = NoteOff {
+                channel: note.channel, note: note.keynum, velocity: 0, time: note.duration,
+            };
+            (note_on, note_off)
+        }
+    }
+
+    impl NoteCollectionBuilderImpl of NoteCollectionBuilderTrait {
+        fn new() -> NoteCollectionBuilder {
+            NoteCollectionBuilder { notes: ArrayTrait::new() }
+        }
+
+        fn add_note(ref self: NoteCollectionBuilder, note: Note) {
+            ArrayTrait::append(ref self.notes, note);
+        }
+
+        fn add_chord(
+            ref self: NoteCollectionBuilder,
+            keynums: Span<u8>,
+            start_time: Time,
+            duration: Time,
+            velocity: u8,
+            channel: u8,
+        ) {
+            let mut keynums_span = keynums.clone();
+            loop {
+                match keynums_span.pop_front() {
+                    Option::Some(keynum) => {
+                        let note = Note::new(*keynum, start_time, duration, velocity, channel);
+                        ArrayTrait::append(ref self.notes, note);
+                    },
+                    Option::None => { break; },
+                };
+            }
+        }
+
+        fn build(self: NoteCollectionBuilder) -> NoteCollection {
+            NoteCollection { notes: self.notes.span() }
+        }
+    }
+
+    impl NoteCollectionImpl of NoteCollectionTrait {
+        fn to_midi_with_delta_times(self: @NoteCollection, tempo: u32) -> Midi {
+            let collection = *self;
+            let mut events: Array<Message> = ArrayTrait::new();
+
+            // Add tempo event
+            let tempo_event = Message::SET_TEMPO(SetTempo { tempo, time: Option::Some(0) });
+            ArrayTrait::append(ref events, tempo_event);
+
+            // Sort notes by start time for proper delta time calculation
+            let mut sorted_notes = sort_notes_by_start_time(collection.notes);
+            let mut current_time: Time = 0;
+
+            // Group notes by start time to handle chords
+            let mut i = 0;
+            let notes_len = sorted_notes.len();
+
+            loop {
+                if i >= notes_len {
+                    break;
+                }
+
+                let current_note = *sorted_notes.at(i);
+                let chord_start_time = current_note.start_time;
+
+                // Calculate delta time from current time to chord start time
+                let delta_to_chord = chord_start_time - current_time;
+
+                // Collect all notes that start at the same time (chord)
+                let mut chord_notes: Array<Note> = ArrayTrait::new();
+                let mut j = i;
+
+                loop {
+                    if j >= notes_len {
+                        break;
+                    }
+
+                    let note = *sorted_notes.at(j);
+                    if note.start_time == chord_start_time {
+                        ArrayTrait::append(ref chord_notes, note);
+                        j += 1;
+                    } else {
+                        break;
+                    }
+                }
+
+                // Add all NoteOn events for the chord
+                let mut chord_notes_span = chord_notes.span();
+                let first_note = *chord_notes_span.at(0);
+                let first_note_on = NoteOn {
+                    channel: first_note.channel,
+                    note: first_note.keynum,
+                    velocity: first_note.velocity,
+                    time: delta_to_chord,
+                };
+                ArrayTrait::append(ref events, Message::NOTE_ON(first_note_on));
+
+                // Add remaining NoteOn events with delta time 0
+                let mut k = 1;
+                loop {
+                    if k >= chord_notes_span.len() {
+                        break;
+                    }
+                    let note = *chord_notes_span.at(k);
+                    let note_on = NoteOn {
+                        channel: note.channel, note: note.keynum, velocity: note.velocity, time: 0,
+                    };
+                    ArrayTrait::append(ref events, Message::NOTE_ON(note_on));
+                    k += 1;
+                }
+
+                // Add all NoteOff events for the chord
+                let mut chord_notes_span_off = chord_notes.span();
+                let first_note_off = NoteOff {
+                    channel: first_note.channel,
+                    note: first_note.keynum,
+                    velocity: 0,
+                    time: first_note.duration,
+                };
+                ArrayTrait::append(ref events, Message::NOTE_OFF(first_note_off));
+
+                // Add remaining NoteOff events with delta time 0
+                let mut k = 1;
+                loop {
+                    if k >= chord_notes_span_off.len() {
+                        break;
+                    }
+                    let note = *chord_notes_span_off.at(k);
+                    let note_off = NoteOff {
+                        channel: note.channel, note: note.keynum, velocity: 0, time: 0,
+                    };
+                    ArrayTrait::append(ref events, Message::NOTE_OFF(note_off));
+                    k += 1;
+                }
+
+                current_time = chord_start_time + first_note.duration;
+                i = j;
+            }
+
+            Midi { events: events.span() }
+        }
+    }
+
+    // =========================================
+    // ============== TRAITS ===================
+    // =========================================
+
+    trait NoteTrait {
+        fn new(keynum: u8, start_time: Time, duration: Time, velocity: u8, channel: u8) -> Note;
+        fn to_midi_events(self: @Note) -> (NoteOn, NoteOff);
+    }
+
+    trait NoteCollectionBuilderTrait {
+        fn new() -> NoteCollectionBuilder;
+        fn add_note(ref self: NoteCollectionBuilder, note: Note);
+        fn add_chord(
+            ref self: NoteCollectionBuilder,
+            keynums: Span<u8>,
+            start_time: Time,
+            duration: Time,
+            velocity: u8,
+            channel: u8,
+        );
+        fn build(self: NoteCollectionBuilder) -> NoteCollection;
+    }
+
+    trait NoteCollectionTrait {
+        fn to_midi_with_delta_times(self: @NoteCollection, tempo: u32) -> Midi;
+    }
+
+    // =========================================
+    // ============ HELPER FUNCTIONS ===========
+    // =========================================
+
+    /// Sort notes by start time (simple approach - just return as is for now)
+    fn sort_notes_by_start_time(notes: Span<Note>) -> Array<Note> {
+        let mut sorted: Array<Note> = ArrayTrait::new();
+        let mut notes_span = notes.clone();
+
+        // Copy notes to array
+        loop {
+            match notes_span.pop_front() {
+                Option::Some(note) => { ArrayTrait::append(ref sorted, *note); },
+                Option::None => { break; },
+            };
+        }
+
+        sorted
+    }
+
 
     #[test]
     #[available_gas(1000000000000)]
@@ -460,7 +693,7 @@ mod tests {
     fn random_voicings_d_dorian_parser_test() {
         // Create a MIDI file with random voicings in D dorian for parser output
         // Each voicing changes every second (1000 time units)
-        // 
+        //
         // NOTE ABSTRACTION PATTERN DEMONSTRATION:
         // This function demonstrates the note abstraction concept by:
         // 1. Creating voicing notes with keynum, start_time, and duration
@@ -529,6 +762,12 @@ mod tests {
         let voicing_patterns_span = voicing_patterns.span();
         let num_voicings = voicing_patterns_span.len();
 
+        let mut eventlist = ArrayTrait::<Message>::new();
+
+        // Set tempo to 120 BPM (500000 microseconds per beat)
+        let tempo = SetTempo { tempo: 500000, time: Option::Some(0) };
+        eventlist.append(Message::SET_TEMPO(tempo));
+
         // Generate 8 voicings (8 seconds of music)
         let mut current_time: Time = 0;
         let voicing_duration: Time = 1000; // 1 second per voicing
@@ -572,18 +811,10 @@ mod tests {
                 j += 1;
             }
 
-            // NOTE ABSTRACTION: Create chord with perfect timing
-            // Each voicing represents a collection of notes with:
-            // - keynum: the MIDI note number
-            // - start_time: when the chord starts (current_time)
-            // - duration: how long the chord lasts (voicing_duration)
-            // - velocity: note velocity (80)
-            // - channel: MIDI channel (0)
-            //
-            // This ensures all notes in the chord start and end simultaneously
+            // NOTE ABSTRACTION: Create chord with perfect timing using note abstraction pattern
             let voicing_notes_span = voicing_notes.span();
             
-            // Create NoteOn events for all notes in the voicing (perfect chordal timing)
+            // Add NoteOn events for all notes in the chord (perfect chordal timing)
             let mut j = 0;
             loop {
                 if j >= voicing_notes_span.len() {
@@ -591,12 +822,17 @@ mod tests {
                 }
 
                 let note = *voicing_notes_span.at(j);
-                let note_on = NoteOn { channel: 0, note: note, velocity: 80, time: current_time };
+                let note_on = NoteOn { 
+                    channel: 0, 
+                    note: note, 
+                    velocity: 80, 
+                    time: if j == 0 { current_time } else { 0 } // First note has delta time, others have 0
+                };
                 eventlist.append(Message::NOTE_ON(note_on));
                 j += 1;
             }
 
-            // Create NoteOff events for all notes (perfect chordal timing)
+            // Add NoteOff events for all notes (perfect chordal timing)
             let mut j = 0;
             loop {
                 if j >= voicing_notes_span.len() {
@@ -605,10 +841,10 @@ mod tests {
 
                 let note = *voicing_notes_span.at(j);
                 let note_off = NoteOff {
-                    channel: 0,
-                    note: note,
-                    velocity: 0,
-                    time: current_time + voicing_duration
+                    channel: 0, 
+                    note: note, 
+                    velocity: 0, 
+                    time: if j == 0 { voicing_duration } else { 0 }, // First note has duration, others have 0
                 };
                 eventlist.append(Message::NOTE_OFF(note_off));
                 j += 1;
@@ -622,32 +858,31 @@ mod tests {
 
         // Generate parser format output
         generate_parser_format(@midiobj);
-        
         // NOTE ABSTRACTION PATTERN SUMMARY:
-        // This function demonstrates the core concepts of the note abstraction system:
-        //
-        // 1. MUSICAL CONTENT REPRESENTATION:
-        //    - Each voicing is a collection of notes with keynum, start_time, duration
-        //    - Musical intent is clearly expressed in the code
-        //    - Notes are grouped logically (chords, voicings)
-        //
-        // 2. PERFECT TIMING:
-        //    - All notes in a chord have the same start_time and duration
-        //    - This ensures perfect chordal timing in the MIDI output
-        //    - No manual timing calculations needed
-        //
-        // 3. CLEAN SEPARATION:
-        //    - Musical content (voicings) is separate from MIDI representation
-        //    - Easy to modify musical structure without worrying about MIDI timing
-        //    - Clear, readable code that expresses musical intent
-        //
-        // 4. TYPE SAFETY:
-        //    - All note properties are strongly typed
-        //    - Compile-time guarantees about musical structure
-        //    - Prevents invalid MIDI note numbers, velocities, or channels
-        //
-        // This pattern can be extended with the NoteCollectionBuilder and NoteCollection
-        // classes from the note_abstraction module for even cleaner code.
+    // This function demonstrates the core concepts of the note abstraction system:
+    //
+    // 1. MUSICAL CONTENT REPRESENTATION:
+    //    - Each voicing is a collection of notes with keynum, start_time, duration
+    //    - Musical intent is clearly expressed in the code
+    //    - Notes are grouped logically (chords, voicings)
+    //
+    // 2. PERFECT TIMING:
+    //    - All notes in a chord have the same start_time and duration
+    //    - This ensures perfect chordal timing in the MIDI output
+    //    - No manual timing calculations needed
+    //
+    // 3. CLEAN SEPARATION:
+    //    - Musical content (voicings) is separate from MIDI representation
+    //    - Easy to modify musical structure without worrying about MIDI timing
+    //    - Clear, readable code that expresses musical intent
+    //
+    // 4. TYPE SAFETY:
+    //    - All note properties are strongly typed
+    //    - Compile-time guarantees about musical structure
+    //    - Prevents invalid MIDI note numbers, velocities, or channels
+    //
+    // This pattern can be extended with the NoteCollectionBuilder and NoteCollection
+    // classes from the note_abstraction module for even cleaner code.
     }
 
     #[test]

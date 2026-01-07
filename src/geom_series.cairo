@@ -35,6 +35,131 @@ pub fn geom_array_fill(arr_size: felt252, grow_rate: felt252, initval: felt252) 
     result
 }
 
+/// Create Arithmetic Series
+/// Useful for creating linear progressions with constant step size
+///
+/// Fills an array with an arithmetic series where each value increases by a constant step.
+/// Example: size=5, start=0, step=1 → [0, 1, 2, 3, 4]
+/// Example: size=5, start=10, step=2 → [10, 12, 14, 16, 18]
+pub fn arith_array_fill(size: felt252, start: felt252, step: felt252) -> Array<felt252> {
+    let mut result = ArrayTrait::new();
+
+    if size == 0 {
+        return result;
+    }
+
+    let mut current_val = start;
+    let mut remaining = size;
+
+    loop {
+        if remaining == 0 {
+            break ();
+        }
+
+        result.append(current_val);
+        current_val = current_val + step;
+        remaining = remaining - 1;
+    }
+
+    result
+}
+
+/// Create Arithmetic Series and differentiate values
+/// Useful for creating linear progressions with constant step size and tracking the step
+///
+/// Returns a tuple of (series_array, diff_array) where diff_array contains the constant step value.
+pub fn arith_array_diff_fill(
+    size: felt252, start: felt252, step: felt252,
+) -> (Array<felt252>, Array<felt252>) {
+    let mut series = ArrayTrait::new();
+    let mut diff = ArrayTrait::new();
+
+    if size == 0 {
+        return (series, diff);
+    }
+
+    let mut current_val = start;
+    let mut remaining = size;
+
+    loop {
+        if remaining == 0 {
+            break ();
+        }
+
+        series.append(current_val);
+        diff.append(step); // Constant step for arithmetic series
+        current_val = current_val + step;
+        remaining = remaining - 1;
+    }
+
+    (series, diff)
+}
+
+/// Create Arithmetic Series with wave cycles
+/// Extends arith_array_diff_fill by creating wave patterns through cycles
+///
+/// Each cycle consists of: original array + reversed array
+/// For cycles=1: [original] + [reversed]
+/// For cycles=2: [original] + [reversed] + [original] + [reversed]
+///
+/// Useful for creating oscillating/breathing patterns in music with linear progressions
+/// Returns a tuple of (series_array, diff_array) with wave patterns applied
+pub fn arith_array_diff_fill_waves(
+    size: felt252, start: felt252, step: felt252, cycles: felt252,
+) -> (Array<felt252>, Array<felt252>) {
+    // Generate the base arithmetic series
+    let (base_series, base_diff) = arith_array_diff_fill(size, start, step);
+
+    // If cycles is 0 or base array is empty, return empty arrays
+    if cycles == 0 || base_series.len() == 0 {
+        return (ArrayTrait::new(), ArrayTrait::new());
+    }
+
+    // Create reversed versions
+    let reversed_series = reverse_arr(@base_series);
+    let reversed_diff = reverse_arr(@base_diff);
+
+    // Build wave pattern by repeating original + reversed cycles times
+    let mut wave_series = ArrayTrait::new();
+    let mut wave_diff = ArrayTrait::new();
+
+    // Convert cycles to usize for loop counter
+    let cycles_usize: usize = cycles.try_into().unwrap();
+    let mut cycle_count: usize = 0;
+
+    loop {
+        if cycle_count >= cycles_usize {
+            break ();
+        }
+
+        // Append original array (copy it)
+        let mut i: usize = 0;
+        loop {
+            if i >= base_series.len() {
+                break;
+            }
+            wave_series.append(*base_series.at(i));
+            wave_diff.append(*base_diff.at(i));
+            i += 1;
+        }
+
+        // Append reversed array (copy it)
+        let mut i: usize = 0;
+        loop {
+            if i >= reversed_series.len() {
+                break;
+            }
+            wave_series.append(*reversed_series.at(i));
+            wave_diff.append(*reversed_diff.at(i));
+            i += 1;
+        }
+
+        cycle_count += 1;
+    }
+
+    (wave_series, wave_diff)
+}
+
 /// Create Geometric Series and differentiate values
 /// Useful for creating notes for Accelerandos/Deccelerandos that play until the next note
 ///

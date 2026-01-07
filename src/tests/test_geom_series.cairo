@@ -1,4 +1,6 @@
-use koji::geom_series::{geom_array_diff_fill, geom_array_diff_fill_waves};
+use koji::geom_series::{
+    arith_array_diff_fill_waves, arith_array_fill, geom_array_diff_fill, geom_array_diff_fill_waves,
+};
 
 /// Test geom_array_diff_fill function
 /// This test verifies that the geometric series with differentiation function:
@@ -181,8 +183,173 @@ fn test_geom_array_diff_fill_waves() {
     let expected_len: felt252 = (arr_size * cycles * 2).into();
     let series_len: felt252 = wave_series.len().into();
     let diff_len: felt252 = wave_diff.len().into();
-    assert(series_len == expected_len, 'Wave series should have correct length');
-    assert(diff_len == expected_len, 'Wave diff should have correct length');
+    assert(series_len == expected_len, 'Wave series length');
+    assert(diff_len == expected_len, 'Wave diff length');
     assert(series_len == diff_len, 'Same length');
+}
+
+/// Test arith_array_fill function
+/// This test verifies that the arithmetic series function:
+/// - Generates the correct number of values
+/// - Uses constant step size
+/// - Prints the output for inspection
+#[test]
+fn test_arith_array_fill() {
+    // Test parameters: size=10, start=0, step=1
+    let size: felt252 = 10;
+    let start: felt252 = 0;
+    let step: felt252 = 1;
+
+    // Generate the arithmetic series
+    let result = arith_array_fill(size, start, step);
+
+    // Print the array
+    println!("ARITHMETIC SERIES:");
+    println!("Parameters: size={}, start={}, step={}", size, start, step);
+    println!("Array: [");
+
+    let mut i: usize = 0;
+    loop {
+        if i >= result.len() {
+            break;
+        }
+        let value = *result.at(i);
+        if i == result.len() - 1 {
+            println!("  {}  // index {}", value, i);
+        } else {
+            println!("  {}, // index {}", value, i);
+        }
+        i += 1;
+    }
+    println!("]");
+    println!("Array length: {}", result.len());
+
+    // Assertions
+    let result_len: felt252 = result.len().into();
+    assert(result_len == 10, 'Array should have 10');
+
+    // Verify first value is start
+    assert(*result.at(0) == start, 'First value should be start');
+
+    // Verify step is constant
+    if result.len() > 1 {
+        let first_step = *result.at(1) - *result.at(0);
+        assert(first_step == step, 'Step should be constant');
+    }
+}
+
+/// Test arith_array_fill with different parameters
+#[test]
+fn test_arith_array_fill_different_params() {
+    // Test parameters: size=8, start=10, step=3
+    let size: felt252 = 8;
+    let start: felt252 = 10;
+    let step: felt252 = 3;
+
+    // Generate the arithmetic series
+    let result = arith_array_fill(size, start, step);
+
+    // Print the array
+    println!("ARITHMETIC SERIES (Different Parameters):");
+    println!("Parameters: size={}, start={}, step={}", size, start, step);
+    println!("Array: [");
+
+    let mut i: usize = 0;
+    loop {
+        if i >= result.len() {
+            break;
+        }
+        let value = *result.at(i);
+        if i == result.len() - 1 {
+            println!("  {}  // index {}", value, i);
+        } else {
+            println!("  {}, // index {}", value, i);
+        }
+        i += 1;
+    }
+    println!("]");
+    println!("Array length: {}", result.len());
+
+    // Assertions
+    let result_len: felt252 = result.len().into();
+    assert(result_len == 8, 'Array should have 8');
+    assert(*result.at(0) == start, 'First value should be start');
+
+    // Verify the sequence: 10, 13, 16, 19, 22, 25, 28, 31
+    assert(*result.at(0) == 10, 'Value at index 0');
+    assert(*result.at(1) == 13, 'Value at index 1');
+    assert(*result.at(7) == 31, 'Value at index 7');
+}
+
+/// Test arith_array_diff_fill_waves function
+/// This test verifies that the arithmetic wave function creates oscillating patterns
+#[test]
+fn test_arith_array_diff_fill_waves() {
+    // Test parameters: size=5, start=0, step=2, cycles=2
+    let size: felt252 = 5;
+    let start: felt252 = 0;
+    let step: felt252 = 2;
+    let cycles: felt252 = 2;
+
+    // Generate the wave pattern
+    let (wave_series, wave_diff) = arith_array_diff_fill_waves(size, start, step, cycles);
+
+    // Print the wave series array
+    println!("ARITHMETIC SERIES WITH WAVES:");
+    println!(
+        "Parameters: size={}, start={}, step={}, cycles={}",
+        size, start, step, cycles,
+    );
+    println!("Wave series array: [");
+
+    let mut i: usize = 0;
+    loop {
+        if i >= wave_series.len() {
+            break;
+        }
+        let value = *wave_series.at(i);
+        if i == wave_series.len() - 1 {
+            println!("  {}  // index {}", value, i);
+        } else {
+            println!("  {}, // index {}", value, i);
+        }
+        i += 1;
+    }
+    println!("]");
+    println!("Wave series array length: {}", wave_series.len());
+
+    // Print the wave diff array
+    println!("Wave diff array (step values): [");
+    let mut i: usize = 0;
+    loop {
+        if i >= wave_diff.len() {
+            break;
+        }
+        let value = *wave_diff.at(i);
+        if i == wave_diff.len() - 1 {
+            println!("  {}  // index {}", value, i);
+        } else {
+            println!("  {}, // index {}", value, i);
+        }
+        i += 1;
+    }
+    println!("]");
+    println!("Wave diff array length: {}", wave_diff.len());
+
+    // Assertions
+    // Base array has 5 elements, each cycle adds 10 (5 original + 5 reversed)
+    // So cycles=2 should give us 20 elements total
+    let expected_len: felt252 = (size * cycles * 2).into();
+    let series_len: felt252 = wave_series.len().into();
+    let diff_len: felt252 = wave_diff.len().into();
+    assert(series_len == expected_len, 'Wave series length');
+    assert(diff_len == expected_len, 'Wave diff length');
+    assert(series_len == diff_len, 'Same length');
+    
+    // Verify the wave pattern: [0, 2, 4, 6, 8, 8, 6, 4, 2, 0, 0, 2, 4, 6, 8, 8, 6, 4, 2, 0]
+    assert(*wave_series.at(0) == 0, 'First value');
+    assert(*wave_series.at(4) == 8, 'Peak of first wave');
+    assert(*wave_series.at(5) == 8, 'Start of reverse');
+    assert(*wave_series.at(9) == 0, 'End of first cycle');
 }
 

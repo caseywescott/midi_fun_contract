@@ -3,6 +3,7 @@ mod tests {
     use core::array::ArrayTrait;
     use core::option::OptionTrait;
     use core::traits::TryInto;
+    use koji::geom_series::geom_array_fill;
     use koji::lcg::{LCG, RNGTrait};
     use koji::math::Time;
     use koji::midi::modes::dorian_steps;
@@ -17,6 +18,7 @@ mod tests {
         plus_four_7_2, seventh_and_third, triad_first_inversion, triad_root_position,
         triad_second_inversion,
     };
+    use koji::sine_wave::generate_wave;
 
 
     #[test]
@@ -281,6 +283,68 @@ mod tests {
         let midiobj = collection.to_midi_with_delta_times(500000); // 120 BPM
 
         // Generate individual MIDI event lines for parser
+        generate_parser_format(@midiobj);
+    }
+
+    /// Composition using sine_wave: note values 1–127 from sinusoidal_timing_wave_squared.
+    /// Run: SCARB_UI_VERBOSITY=quiet scarb test -- --filter composition_sine_wave_midi_test 2>&1 | grep -v "running\|test\|gas usage\|test result" > composition_sine_parser.cairo
+    /// Then: npx ts-node typescript/src/simpleMidiConverter.ts composition_sine_parser.cairo composition_sine.mid
+    #[test]
+    #[available_gas(1000000000000)]
+    fn composition_sine_wave_midi_test() {
+        let mut builder = NoteCollectionBuilderTrait::new();
+
+        // Sine wave: min=1, max=127, 2 cycles over 32 steps → note values 1–127
+        let note_values = generate_wave(1_u32, 127_u32, 2_u32, 32_u32);
+        let step_time: Time = 250000; // 250ms per note (120 BPM: 500000 µs/beat)
+        let note_duration: Time = 200000; // 200ms hold
+
+        let mut i: u32 = 0;
+        loop {
+            if i >= note_values.len() {
+                break;
+            }
+            let val: u32 = *note_values.at(i);
+            let note: u8 = val.try_into().unwrap();
+            let start_time: Time = (i.into() * step_time).try_into().unwrap();
+            builder.add_chord(array![note].span(), start_time, note_duration, 90, 0);
+            i += 1;
+        }
+
+        let collection = builder.build();
+        let midiobj = collection.to_midi_with_delta_times(500000); // 120 BPM
+        generate_parser_format(@midiobj);
+    }
+
+    /// Composition using geom_series: geometric series mapped to a high pitch band, legato (notes start when previous ends).
+    /// Run: SCARB_UI_VERBOSITY=quiet scarb test -- --filter composition_geom_series_midi_test 2>&1 | grep -v "running\|test\|gas usage\|test result" > composition_geom_parser.cairo
+    /// Then: npx ts-node typescript/src/simpleMidiConverter.ts composition_geom_parser.cairo composition_geom.mid
+    #[test]
+    #[available_gas(1000000000000)]
+    fn composition_geom_series_midi_test() {
+        let mut builder = NoteCollectionBuilderTrait::new();
+
+        // Geometric series → map to high register (84–99, C6–E7) so notes are close together in pitch
+        let geom = geom_array_fill(24, 1, 0);
+        let step_time: Time = 100000; // 100ms per note (close together)
+        let note_duration: Time = step_time; // legato: each note lasts until the next starts
+
+        let mut i: usize = 0;
+        loop {
+            if i >= geom.len() {
+                break;
+            }
+            let raw: felt252 = *geom.at(i);
+            let v: u32 = raw.try_into().unwrap();
+            let note_u32: u32 = 84_u32 + (v % 16_u32); // high region 84–99
+            let note: u8 = note_u32.try_into().unwrap();
+            let start_time: Time = (i.into() * step_time).try_into().unwrap();
+            builder.add_chord(array![note].span(), start_time, note_duration, 90, 0);
+            i += 1;
+        }
+
+        let collection = builder.build();
+        let midiobj = collection.to_midi_with_delta_times(500000);
         generate_parser_format(@midiobj);
     }
 

@@ -263,6 +263,30 @@ grep -v "running\|test\|gas usage\|test result" > my_composition.cairo
 npx ts-node typescript/src/simpleMidiConverter.ts my_composition.cairo my_composition.mid
 ```
 
+#### Compositions using geom_series and sine_wave (notes 1–127)
+
+The library includes two composition tests that derive **note values in the MIDI range 1–127** from `sine_wave` and `geom_series`, then output parser format for the conversion scripts.
+
+**Sine-wave melody** (smooth contour 1–127):
+
+```bash
+SCARB_UI_VERBOSITY=quiet scarb test -- --filter composition_sine_wave_midi_test 2>&1 | \
+grep -v "running\|test\|gas usage\|test result" > composition_sine_parser.cairo
+npx ts-node typescript/src/simpleMidiConverter.ts composition_sine_parser.cairo composition_sine.mid
+```
+
+**Geom-series melody** (accelerando-like, values mapped to 1–127 via modulo):
+
+```bash
+SCARB_UI_VERBOSITY=quiet scarb test -- --filter composition_geom_series_midi_test 2>&1 | \
+grep -v "running\|test\|gas usage\|test result" > composition_geom_parser.cairo
+npx ts-node typescript/src/simpleMidiConverter.ts composition_geom_parser.cairo composition_geom.mid
+```
+
+- **Sine**: `generate_wave(1, 127, 2, 32)` → 32 notes in a sinusoidal contour.
+- **Geom**: `geom_array_fill(24, 1, 0)` → 24 values, then `(value % 127) + 1` for MIDI notes.
+- Both use `NoteCollectionBuilder` and `to_midi_with_delta_times(500000)` (120 BPM). Times are in microseconds.
+
 ## 📁 Project Structure for Compositions
 
 Organize your compositions in the test files:

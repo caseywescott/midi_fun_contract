@@ -296,10 +296,7 @@ fn test_arith_array_diff_fill_waves() {
 
     // Print the wave series array
     println!("ARITHMETIC SERIES WITH WAVES:");
-    println!(
-        "Parameters: size={}, start={}, step={}, cycles={}",
-        size, start, step, cycles,
-    );
+    println!("Parameters: size={}, start={}, step={}, cycles={}", size, start, step, cycles);
     println!("Wave series array: [");
 
     let mut i: usize = 0;
@@ -345,7 +342,7 @@ fn test_arith_array_diff_fill_waves() {
     assert(series_len == expected_len, 'Wave series length');
     assert(diff_len == expected_len, 'Wave diff length');
     assert(series_len == diff_len, 'Same length');
-    
+
     // Verify the wave pattern: [0, 2, 4, 6, 8, 8, 6, 4, 2, 0, 0, 2, 4, 6, 8, 8, 6, 4, 2, 0]
     assert(*wave_series.at(0) == 0, 'First value');
     assert(*wave_series.at(4) == 8, 'Peak of first wave');

@@ -495,89 +495,54 @@ mod tests {
         generate_cairo_code(@midiobj);
     }
 
+    /// Random voicings in D dorian — outputs parser format for MIDI conversion.
+    /// Run: SCARB_UI_VERBOSITY=quiet scarb test -- --filter random_voicings_d_dorian_parser_test 2>&1 | grep -v "running\|test\|gas usage\|test result" > random_d_dorian_parser.cairo
+    /// Then: npx ts-node typescript/src/simpleMidiConverter.ts random_d_dorian_parser.cairo random_d_dorian.mid
     #[test]
     #[available_gas(1000000000000)]
-    fn _random_voicings_d_dorian_parser_test() {
-        // Create a MIDI file with random voicings in D dorian for parser output
-        // Each voicing changes every second (1000 time units)
-        //
-        // NOTE ABSTRACTION PATTERN DEMONSTRATION:
-        // This function demonstrates the note abstraction concept by:
-        // 1. Creating voicing notes with keynum, start_time, and duration
-        // 2. Ensuring perfect chordal timing (all notes in a chord start/end together)
-        // 3. Proper MIDI event generation with correct timing
-        //
-        // The note abstraction pattern provides:
-        // - Clean separation between musical content and MIDI representation
-        // - Automatic handling of chordal timing
-        // - Type-safe note management
-        // - Reusable components for musical composition
-
-        let mut eventlist = ArrayTrait::<Message>::new();
-
-        // Set tempo to 120 BPM (500000 microseconds per beat)
-        let tempo = SetTempo { tempo: 500000, time: Option::Some(0) };
-        eventlist.append(Message::SET_TEMPO(tempo));
+    fn random_voicings_d_dorian_parser_test() {
+        let mut builder = NoteCollectionBuilderTrait::new();
 
         // Initialize LCG with seed for reproducible randomness
         let mut lcg = LCG {
-            state: 42, // Seed for reproducible results
+            state: 42,
             multiplier: 13,
             increment: 7,
-            modulus: 100 // Very small modulus to avoid overflow
+            modulus: 100,
         };
 
         // D dorian key (D = note 2, octave 4)
         let tonic = PitchClass { note: 2, octave: 4 }; // D4
         let dorian_steps = dorian_steps(); // [2,1,2,2,2,1,2]
 
-        // Simple voicing patterns (since voicings module is not available)
-        // Each pattern is an array of intervals to add to the root note
+        // Voicing patterns: intervals from root
         let mut voicing_patterns = ArrayTrait::<Array<u8>>::new();
-
-        // Triad root position: root, third, fifth
         let mut triad_root = ArrayTrait::<u8>::new();
-        triad_root.append(4); // major third
-        triad_root.append(7); // perfect fifth
+        triad_root.append(4);
+        triad_root.append(7);
         voicing_patterns.append(triad_root);
-
-        // Triad first inversion: root, third, sixth
         let mut triad_first = ArrayTrait::<u8>::new();
-        triad_first.append(4); // major third
-        triad_first.append(9); // major sixth
+        triad_first.append(4);
+        triad_first.append(9);
         voicing_patterns.append(triad_first);
-
-        // Triad second inversion: root, fourth, sixth
         let mut triad_second = ArrayTrait::<u8>::new();
-        triad_second.append(5); // perfect fourth
-        triad_second.append(9); // major sixth
+        triad_second.append(5);
+        triad_second.append(9);
         voicing_patterns.append(triad_second);
-
-        // Seventh chord: root, third, fifth, seventh
         let mut seventh = ArrayTrait::<u8>::new();
-        seventh.append(4); // major third
-        seventh.append(7); // perfect fifth
-        seventh.append(10); // minor seventh
+        seventh.append(4);
+        seventh.append(7);
+        seventh.append(10);
         voicing_patterns.append(seventh);
-
-        // Quartal voicing: root, fourth, seventh
         let mut quartal = ArrayTrait::<u8>::new();
-        quartal.append(5); // perfect fourth
-        quartal.append(10); // minor seventh
+        quartal.append(5);
+        quartal.append(10);
         voicing_patterns.append(quartal);
 
         let voicing_patterns_span = voicing_patterns.span();
         let num_voicings = voicing_patterns_span.len();
-
-        let mut eventlist = ArrayTrait::<Message>::new();
-
-        // Set tempo to 120 BPM (500000 microseconds per beat)
-        let tempo = SetTempo { tempo: 500000, time: Option::Some(0) };
-        eventlist.append(Message::SET_TEMPO(tempo));
-
-        // Generate 8 voicings (8 seconds of music)
-        let mut current_time: Time = 0;
-        let voicing_duration: Time = 1000; // 1 second per voicing
+        let voicing_duration: Time = 1000000; // 1 second per voicing
+        let note_duration: Time = 950000; // 950ms (50ms gap before next chord)
 
         let mut i: u32 = 0;
         loop {
@@ -585,26 +550,19 @@ mod tests {
                 break;
             }
 
-            // Randomly select a voicing pattern
             let voicing_index = lcg.value() % num_voicings;
             let selected_pattern = voicing_patterns_span.at(voicing_index);
             lcg = lcg.next();
-
-            // Randomly select a scale degree (1-7 for dorian mode)
-            let scale_degree = (lcg.value() % 7) + 1; // 1-7
+            let scale_degree = (lcg.value() % 7) + 1;
             lcg = lcg.next();
 
-            // Calculate the root note for this scale degree
             let root_note = tonic
                 .modal_transposition(
                     tonic, dorian_steps, (scale_degree - 1).try_into().unwrap(), Direction::Up(()),
                 );
 
-            // Generate notes for the voicing
             let mut voicing_notes = ArrayTrait::<u8>::new();
-            voicing_notes.append(root_note); // Add root note
-
-            // Add intervals from the voicing pattern
+            voicing_notes.append(root_note);
             let pattern_intervals = selected_pattern;
             let pattern_len = pattern_intervals.len();
             let mut j = 0;
@@ -613,31 +571,17 @@ mod tests {
                     break;
                 }
                 let interval = *pattern_intervals.at(j);
-                let next_note = root_note + interval;
-                voicing_notes.append(next_note);
+                voicing_notes.append(root_note + interval);
                 j += 1;
             }
 
-            // Create chord events with perfect timing using note abstraction
-            let voicing_notes_span = voicing_notes.span();
-            let chord_events = create_chord_midi(
-                voicing_notes_span, current_time, voicing_duration, 80, 0,
-            );
-            let mut chord_events_span = chord_events.span();
-            loop {
-                match chord_events_span.pop_front() {
-                    Option::Some(event) => { eventlist.append(*event); },
-                    Option::None => { break; },
-                };
-            }
-
-            current_time += voicing_duration;
+            let start_time: Time = (i.into() * voicing_duration).try_into().unwrap();
+            builder.add_chord(voicing_notes.span(), start_time, note_duration, 80, 0);
             i += 1;
         }
 
-        let midiobj = Midi { events: eventlist.span() };
-
-        // Generate parser format output
+        let collection = builder.build();
+        let midiobj = collection.to_midi_with_delta_times(500000); // 120 BPM
         generate_parser_format(@midiobj);
         // NOTE ABSTRACTION PATTERN SUMMARY:
     // This function demonstrates the core concepts of the note abstraction system:

@@ -310,62 +310,63 @@ mod tests {
         let events = midiobj.events;
 
         // Check number of events
-        assert(events.len() == 13, 'Wrong number of events'); // 1 tempo + 6 NoteOn + 6 NoteOff
+        // Order: tempo, chord1 (3 NoteOn + 3 NoteOff), chord2 (3 NoteOn + 3 NoteOff)
+        assert(events.len() == 13, 'Wrong number of events');
 
-        // Check timing pattern
-        let mut i = 1; // Skip tempo event
-        let mut first_note_on = true;
-        let mut first_chord = true;
-
-        // Check NoteOn events
-        while i != 7 { // Check all NoteOn events
-            match *events.at(i) {
-                Message::NOTE_ON(note_on) => {
-                    if first_note_on {
-                        if first_chord {
-                            assert(note_on.time == 0, 'Wrong first chord first NoteOn');
-                        } else {
-                            assert(note_on.time == 10, 'Wrong second chord first NoteOn');
-                        }
-                        first_note_on = false;
-                    } else {
-                        assert(note_on.time == 0, 'Wrong subsequent NoteOn');
-                    }
-                },
-                _ => { assert(false, 'Expected NoteOn event'); },
-            }
-            i += 1;
-            if i == 4 { // After first chord
-                first_note_on = true;
-                first_chord = false;
-            }
+        // Chord 1 NoteOn at indices 1-3 (first has time 0, rest 0)
+        match *events.at(1) {
+            Message::NOTE_ON(note_on) => { assert(note_on.time == 0, 'Wrong first chord first NoteOn'); },
+            _ => { assert(false, 'Expected NoteOn event'); },
+        }
+        match *events.at(2) {
+            Message::NOTE_ON(note_on) => { assert(note_on.time == 0, 'Wrong chord1 NoteOn'); },
+            _ => { assert(false, 'Expected NoteOn event'); },
+        }
+        match *events.at(3) {
+            Message::NOTE_ON(note_on) => { assert(note_on.time == 0, 'Wrong chord1 NoteOn'); },
+            _ => { assert(false, 'Expected NoteOn event'); },
         }
 
-        // Check NoteOff events
-        let mut first_note_off = true;
-        first_chord = true;
+        // Chord 1 NoteOff at indices 4-6 (first has time 10, rest 0)
+        match *events.at(4) {
+            Message::NOTE_OFF(note_off) => { assert(note_off.time == 10, 'Wrong first chord first NoteOff'); },
+            _ => { assert(false, 'Expected NoteOff event'); },
+        }
+        match *events.at(5) {
+            Message::NOTE_OFF(note_off) => { assert(note_off.time == 0, 'Wrong chord1 NoteOff'); },
+            _ => { assert(false, 'Expected NoteOff event'); },
+        }
+        match *events.at(6) {
+            Message::NOTE_OFF(note_off) => { assert(note_off.time == 0, 'Wrong chord1 NoteOff'); },
+            _ => { assert(false, 'Expected NoteOff event'); },
+        }
 
-        while i != 13 { // Check all NoteOff events
-            match *events.at(i) {
-                Message::NOTE_OFF(note_off) => {
-                    if first_note_off {
-                        if first_chord {
-                            assert(note_off.time == 10, 'Wrong first chord first NoteOff');
-                        } else {
-                            assert(note_off.time == 10, 'Wrong NoteOff time');
-                        }
-                        first_note_off = false;
-                    } else {
-                        assert(note_off.time == 0, 'Wrong subsequent NoteOff');
-                    }
-                },
-                _ => { assert(false, 'Expected NoteOff event'); },
-            }
-            i += 1;
-            if i == 10 { // After first chord
-                first_note_off = true;
-                first_chord = false;
-            }
+        // Chord 2 NoteOn at indices 7-9 (first has time 10, rest 0)
+        match *events.at(7) {
+            Message::NOTE_ON(note_on) => { assert(note_on.time == 10, 'Wrong second chord first NoteOn'); },
+            _ => { assert(false, 'Expected NoteOn event'); },
+        }
+        match *events.at(8) {
+            Message::NOTE_ON(note_on) => { assert(note_on.time == 0, 'Wrong chord2 NoteOn'); },
+            _ => { assert(false, 'Expected NoteOn event'); },
+        }
+        match *events.at(9) {
+            Message::NOTE_ON(note_on) => { assert(note_on.time == 0, 'Wrong chord2 NoteOn'); },
+            _ => { assert(false, 'Expected NoteOn event'); },
+        }
+
+        // Chord 2 NoteOff at indices 10-12 (first has time 10, rest 0)
+        match *events.at(10) {
+            Message::NOTE_OFF(note_off) => { assert(note_off.time == 10, 'Wrong chord2 first NoteOff'); },
+            _ => { assert(false, 'Expected NoteOff event'); },
+        }
+        match *events.at(11) {
+            Message::NOTE_OFF(note_off) => { assert(note_off.time == 0, 'Wrong chord2 NoteOff'); },
+            _ => { assert(false, 'Expected NoteOff event'); },
+        }
+        match *events.at(12) {
+            Message::NOTE_OFF(note_off) => { assert(note_off.time == 0, 'Wrong chord2 NoteOff'); },
+            _ => { assert(false, 'Expected NoteOff event'); },
         }
     }
 }

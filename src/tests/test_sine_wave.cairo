@@ -239,10 +239,9 @@ fn test_sine_approximation() {
     // sin(0) should be close to 0 (allowing for approximation error)
     assert(zero_sine < 10000_u128, 'sin(0) should be close to 0');
 
-    // sin(π/2) should be close to 1 (scaled) - allowing for approximation tolerance
-    // The range 400000-600000 accounts for our fixed-point representation
+    // sin(π/2) should be close to 1 (scaled) - sine_fixed_point returns [0, SCALE], SCALE=1000000
     assert(
-        pi_half_sine > 400000_u128 && pi_half_sine < 600000_u128, 'sin(pi/2) should be reasonable',
+        pi_half_sine > 900000_u128 && pi_half_sine <= 1000000_u128, 'sin(pi/2) should be reasonable',
     );
 
     // sin(π) should be close to 0 (allowing for approximation error)

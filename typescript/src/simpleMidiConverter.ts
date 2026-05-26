@@ -20,77 +20,79 @@ export function simpleCairoToMidi(cairoFilePath: string, outputFile: string): Mi
 
 function createMidiFromEvents(events: CairoParsedMidiEvent[], outputFile: string): Midi {
     const midi = new Midi();
-    
-    // Set default tempo if no tempo event is found
-    let tempo = 120; // Default BPM
-    
-    // Find tempo from events
+
+    // Find tempo from events (microsecondsPerBeat → BPM)
+    let tempoUs = 500000; // default: 120 BPM
     const tempoEvent = events.find(event => event.type === 'setTempo');
     if (tempoEvent && tempoEvent.microsecondsPerBeat) {
-        // Convert microseconds per beat to BPM
-        tempo = Math.round(60000000 / tempoEvent.microsecondsPerBeat);
+        tempoUs = tempoEvent.microsecondsPerBeat;
     }
-    
-    // Set tempo
-    midi.header.setTempo(tempo);
-    
-    // Create a single track
+    midi.header.setTempo(Math.round(60000000 / tempoUs));
+
     const track = midi.addTrack();
-    
-    // Process events and add them to the track
-    let currentTime = 0;
-    
+
+    // Cairo `time` is an absolute position in microseconds.
+    // The parser stores it in the `deltaTime` field (misnamed).
+    // We pair NOTE_ON / NOTE_OFF by note number to compute real durations.
+    const openNotes = new Map<number, { startUs: number; velocity: number }>();
+
     events.forEach(event => {
+        // `deltaTime` holds the absolute time in µs from the Cairo `time` field
+        const absoluteUs: number = event.deltaTime ?? 0;
+        const absoluteSec = absoluteUs / 1_000_000;
+
         switch (event.type) {
             case 'noteOn':
-                if (event.noteNumber !== undefined && event.velocity !== undefined) {
+                // Record the start time and velocity; emit the note when we see NOTE_OFF
+                openNotes.set(event.noteNumber, {
+                    startUs: absoluteUs,
+                    velocity: event.velocity,
+                });
+                break;
+
+            case 'noteOff': {
+                const open = openNotes.get(event.noteNumber);
+                if (open !== undefined) {
+                    const startSec = open.startUs / 1_000_000;
+                    const durationSec = absoluteSec - startSec;
                     track.addNote({
                         midi: event.noteNumber,
-                        time: currentTime / 1000, // Convert to seconds
-                        duration: 0.5, // Default duration
-                        velocity: event.velocity / 127 // Normalize velocity
+                        time: startSec,
+                        duration: durationSec > 0 ? durationSec : 0.01,
+                        velocity: open.velocity / 127,
                     });
+                    openNotes.delete(event.noteNumber);
                 }
                 break;
-                
-            case 'noteOff':
-                // NoteOff events are handled automatically by the library
-                break;
-                
-            case 'setTempo':
-                // Tempo is already set in header
-                break;
-                
+            }
+
             case 'controlChange':
                 if (event.controllerType !== undefined && event.value !== undefined) {
-                    track.addCC({
-                        number: event.controllerType,
-                        value: event.value,
-                        time: currentTime / 1000
-                    });
+                    track.addCC({ number: event.controllerType, value: event.value, time: absoluteSec });
                 }
                 break;
-                
+
             case 'pitchWheel':
                 if (event.value !== undefined) {
-                    track.addPitchBend({
-                        value: event.value,
-                        time: currentTime / 1000
-                    });
+                    track.addPitchBend({ value: event.value, time: absoluteSec });
                 }
                 break;
         }
-        
-        // Update time based on delta time
-        if (event.deltaTime !== undefined) {
-            currentTime += event.deltaTime;
-        }
     });
-    
-    // Save the MIDI file
+
+    // Emit any NOTE_ONs that had no matching NOTE_OFF (give them a short default duration)
+    openNotes.forEach((open, noteNumber) => {
+        track.addNote({
+            midi: noteNumber,
+            time: open.startUs / 1_000_000,
+            duration: 0.5,
+            velocity: open.velocity / 127,
+        });
+    });
+
     const midiBuffer = midi.toArray();
     fs.writeFileSync(outputFile, new Uint8Array(midiBuffer));
-    
+
     return midi;
 }
 

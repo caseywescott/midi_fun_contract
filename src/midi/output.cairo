@@ -2,7 +2,7 @@ use core::array::{ArrayTrait, SpanTrait};
 use core::option::OptionTrait;
 use core::traits::TryInto;
 use koji::math::Time;
-use koji::midi::types::{ControlChange, Message, Midi, NoteOff, NoteOn, ProgramChange, SetTempo};
+use koji::midi::types::{Message, Midi};
 
 #[derive(Drop)]
 struct MidiOutput {
@@ -212,4 +212,35 @@ fn write_variable_length(mut value: u32, ref output: MidiOutput) {
             Option::None => {},
         }
     }
+}
+
+/// Pack raw MIDI bytes for RPC transport (Koji PRD v0.2 §5.2).
+/// Element `[0]` is `midi_bytes.len()`; each subsequent felt packs up to 31 bytes big-endian.
+/// Must match `frontend/lib/packMidiToFelts.ts` and `deserializeFeltsToMidi`.
+pub fn to_felt252_array(mut midi_bytes: Array<u8>) -> Array<felt252> {
+    let mut result: Array<felt252> = ArrayTrait::new();
+    let total_len = midi_bytes.len();
+    result.append(total_len.into());
+
+    let mut i: usize = 0;
+    loop {
+        if i >= total_len {
+            break;
+        }
+        let mut val: u256 = 0;
+        let mut j: usize = 0;
+        loop {
+            if j >= 31 {
+                break;
+            }
+            if i + j >= total_len {
+                break;
+            }
+            val = val * 256_u256 + (*midi_bytes.at(i + j)).into();
+            j += 1;
+        };
+        result.append(val.try_into().unwrap());
+        i += 31;
+    };
+    result
 }

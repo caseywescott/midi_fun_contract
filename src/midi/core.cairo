@@ -211,7 +211,7 @@ impl MidiImpl of MidiTrait {
                     match currentevent {
                         Message::NOTE_ON(note_on) => {
                             let outnote = if semitones < 0 {
-                                *note_on.note - semitones.try_into().unwrap()
+                                *note_on.note - (-semitones).try_into().unwrap()
                             } else {
                                 *note_on.note + semitones.try_into().unwrap()
                             };
@@ -226,7 +226,7 @@ impl MidiImpl of MidiTrait {
                         },
                         Message::NOTE_OFF(note_off) => {
                             let outnote = if semitones < 0 {
-                                *note_off.note - semitones.try_into().unwrap()
+                                *note_off.note - (-semitones).try_into().unwrap()
                             } else {
                                 *note_off.note + semitones.try_into().unwrap()
                             };

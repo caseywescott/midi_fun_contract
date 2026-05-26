@@ -551,7 +551,9 @@ fn instrument_to_program_change(instrument: GeneralMidiInstrument) -> u8 {
 }
 
 fn program_change_to_instrument(program_change: u8) -> GeneralMidiInstrument {
-    let instrument = if program_change == 1 {
+    let instrument = if program_change == 0 {
+        GeneralMidiInstrument::PIANO(Piano::AcousticGrandPiano)
+    } else if program_change == 1 {
         GeneralMidiInstrument::PIANO(Piano::BrightAcousticPiano)
     } else if program_change == 2 {
         GeneralMidiInstrument::PIANO(Piano::ElectricGrandPiano)

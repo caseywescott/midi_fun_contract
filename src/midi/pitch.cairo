@@ -73,10 +73,12 @@ pub fn freq(pc: PitchClass) -> u32 {
 }
 
 // Converts a MIDI keynum to a PitchClass
+// Inverse of pc_to_keynum which uses (octave + 1), so we subtract 1 here.
+// Keynums 0-11 (below C0) map to octave 0 as the lowest representable value.
 pub fn keynum_to_pc(keynum: u8) -> PitchClass {
-    let mut outnote = keynum % OCTAVEBASE;
-    let mut outoctave = (keynum / OCTAVEBASE);
-    PitchClass { note: outnote, octave: outoctave }
+    let note = keynum % OCTAVEBASE;
+    let octave = if keynum >= OCTAVEBASE { (keynum / OCTAVEBASE) - 1 } else { 0 };
+    PitchClass { note, octave }
 }
 
 // absolute difference between two PitchClasses
@@ -99,7 +101,7 @@ pub fn diff_between_pc(pc1: PitchClass, pc2: PitchClass) -> (u8, Direction) {
     let keynum_1 = pc_to_keynum(pc1);
     let keynum_2 = pc_to_keynum(pc2);
 
-    if (keynum_1 - keynum_2) == 0 {
+    if keynum_1 == keynum_2 {
         (0, Direction::Oblique(()))
     } else if keynum_1 <= keynum_2 {
         (keynum_2 - keynum_1, Direction::Up(()))

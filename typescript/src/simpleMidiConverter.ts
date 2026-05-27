@@ -29,60 +29,73 @@ function createMidiFromEvents(events: CairoParsedMidiEvent[], outputFile: string
     }
     midi.header.setTempo(Math.round(60000000 / tempoUs));
 
-    const track = midi.addTrack();
+    // One track per MIDI channel — created on demand
+    const tracksByChannel = new Map<number, ReturnType<typeof midi.addTrack>>();
+    const getTrack = (channel: number) => {
+        if (!tracksByChannel.has(channel)) {
+            const t = midi.addTrack();
+            t.channel = channel;
+            tracksByChannel.set(channel, t);
+        }
+        return tracksByChannel.get(channel)!;
+    };
 
     // Cairo `time` is an absolute position in microseconds.
     // The parser stores it in the `deltaTime` field (misnamed).
-    // We pair NOTE_ON / NOTE_OFF by note number to compute real durations.
-    const openNotes = new Map<number, { startUs: number; velocity: number }>();
+    // Key = "channel-noteNumber" so the same pitch on different channels never collide.
+    const openNotes = new Map<string, { startUs: number; velocity: number; channel: number }>();
 
     events.forEach(event => {
         // `deltaTime` holds the absolute time in µs from the Cairo `time` field
         const absoluteUs: number = event.deltaTime ?? 0;
         const absoluteSec = absoluteUs / 1_000_000;
+        const ch = event.channel ?? 0;
 
         switch (event.type) {
             case 'noteOn':
                 // Record the start time and velocity; emit the note when we see NOTE_OFF
-                openNotes.set(event.noteNumber, {
+                openNotes.set(`${ch}-${event.noteNumber}`, {
                     startUs: absoluteUs,
                     velocity: event.velocity,
+                    channel: ch,
                 });
                 break;
 
             case 'noteOff': {
-                const open = openNotes.get(event.noteNumber);
+                const key = `${ch}-${event.noteNumber}`;
+                const open = openNotes.get(key);
                 if (open !== undefined) {
                     const startSec = open.startUs / 1_000_000;
                     const durationSec = absoluteSec - startSec;
-                    track.addNote({
+                    getTrack(open.channel).addNote({
                         midi: event.noteNumber,
                         time: startSec,
                         duration: durationSec > 0 ? durationSec : 0.01,
                         velocity: open.velocity / 127,
                     });
-                    openNotes.delete(event.noteNumber);
+                    openNotes.delete(key);
                 }
                 break;
             }
 
             case 'controlChange':
                 if (event.controllerType !== undefined && event.value !== undefined) {
-                    track.addCC({ number: event.controllerType, value: event.value, time: absoluteSec });
+                    getTrack(ch).addCC({ number: event.controllerType, value: event.value, time: absoluteSec });
                 }
                 break;
 
             case 'pitchWheel':
                 if (event.value !== undefined) {
-                    track.addPitchBend({ value: event.value, time: absoluteSec });
+                    getTrack(ch).addPitchBend({ value: event.value, time: absoluteSec });
                 }
                 break;
         }
     });
 
     // Emit any NOTE_ONs that had no matching NOTE_OFF (give them a short default duration)
-    openNotes.forEach((open, noteNumber) => {
-        track.addNote({
+    openNotes.forEach((open, key) => {
+        const noteNumber = parseInt(key.split('-')[1]);
+        getTrack(open.channel).addNote({
             midi: noteNumber,
             time: open.startUs / 1_000_000,
             duration: 0.5,

@@ -11,6 +11,9 @@ mod tests {
     use koji::midi::pitch::{get_notes_of_key, keynum_to_pc, modal_transposition, pc_to_keynum};
     use koji::midi::types::{Direction, Message, Midi, Modes, NoteOff, NoteOn, PitchClass, SetTempo};
     use koji::sine_wave::{SineWaveParams, sinusoidal_timing_wave_squared};
+    use koji::composition::envelope::{TimePoint, PitchRangeEnvelope, range_at};
+    use koji::composition::tendency_mask::pick_pitch_in_range;
+    use koji::rng::{LCGRandomSource, RandomSource};
 
     #[test]
     #[available_gas(1000000000000)]
@@ -1027,6 +1030,130 @@ mod tests {
         assert!(note_on_count == 99, "Expected 99 NoteOn events");
         assert!(note_off_count == 99, "Expected 99 NoteOff events");
 
+        let binary = output_midi_object(@midiobj);
+        assert!(binary.len() >= 22, "MIDI output too short");
+        assert!(*binary.get(0).unwrap().unbox() == 0x4D, "byte 0 should be M");
+        assert!(*binary.get(1).unwrap().unbox() == 0x54, "byte 1 should be T");
+        assert!(*binary.get(2).unwrap().unbox() == 0x68, "byte 2 should be h");
+        assert!(*binary.get(3).unwrap().unbox() == 0x64, "byte 3 should be d");
+    }
+
+    /// Tendency-mask swarm: pinhole C4 → 4-octave explosion → 1-octave high cloud.
+    ///
+    /// Timeline (6 seconds total, C major throughout, root = 0):
+    ///
+    ///   Phase 1 (0–4 s, 40 steps × 100 ms):
+    ///     lo envelope: C4 (60) → C2 (36)   [opens downward]
+    ///     hi envelope: C4 (60) → C6 (84)   [opens upward]
+    ///     → starts as a single C4, spreads to a 4-octave (48 semitone) cloud.
+    ///
+    ///   Phase 2 (4–6 s, 40 steps × 50 ms — twice as dense):
+    ///     lo envelope: C2 (36) → C5 (72)   [floor rises into high register]
+    ///     hi envelope: stays C6 (84)
+    ///     → swarm contracts to 1-octave bright cloud (C5–C6), with double the note rate.
+    ///
+    /// Scale  : C major C2–C6, absolute MIDI numbers as degrees from root 0 (29 pitches).
+    /// LCG    : state=17, mult=5, inc=3, mod=256  (5×255+3=1278 — no u32 overflow).
+    /// Events : 80 NoteOn + 80 NoteOff + 1 SetTempo = 161 total.
+    #[test]
+    #[available_gas(2000000000000)]
+    fn tendency_mask_swarm_test() {
+        // ── Pitch-range envelope ──────────────────────────────────────────────────────────
+        let lo_pts = array![
+            TimePoint { x: 0, y: 60 },        // pinhole: C4
+            TimePoint { x: 4000000, y: 36 },   // bottom of spread: C2
+            TimePoint { x: 6000000, y: 72 },   // high floor: C5
+        ];
+        let hi_pts = array![
+            TimePoint { x: 0, y: 60 },        // pinhole: C4
+            TimePoint { x: 4000000, y: 84 },   // ceiling: C6
+            TimePoint { x: 6000000, y: 84 },   // ceiling stays: C6
+        ];
+        let env = PitchRangeEnvelope { lo: lo_pts.span(), hi: hi_pts.span() };
+
+        // ── Scale: C major C2–C6 as absolute MIDI numbers (root=0 so midi = 0 + degree) ──
+        let scale: Array<u8> = array![
+            36_u8, 38, 40, 41, 43, 45, 47, // C2–B2
+            48, 50, 52, 53, 55, 57, 59,     // C3–B3
+            60, 62, 64, 65, 67, 69, 71,     // C4–B4
+            72, 74, 76, 77, 79, 81, 83,     // C5–B5
+            84,                              // C6
+        ];
+        let scale_span = scale.span();
+
+        // ── LCG ──────────────────────────────────────────────────────────────────────────
+        let mut lcg = LCG { state: 17, multiplier: 5, increment: 3, modulus: 256 };
+
+        // ── Event list ────────────────────────────────────────────────────────────────────
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut current_time: u64 = 0_u64;
+        let mut step: u32 = 0;
+
+        loop {
+            if step >= 80_u32 {
+                break;
+            }
+
+            // Phase 1: 100 ms steps (sparse). Phase 2: 50 ms steps (2× density).
+            let step_dur: u64 = if step < 40_u32 { 100000_u64 } else { 50000_u64 };
+            let note_dur: u64 = if step < 40_u32 { 88000_u64 } else { 44000_u64 };
+
+            // Envelope lookup (max t = 5 950 000 µs, fits in u32)
+            let t: u32 = current_time.try_into().unwrap();
+            let (lo, hi) = range_at(@env, t);
+
+            let (raw, new_lcg) = LCGRandomSource::draw(@lcg);
+            lcg = new_lcg;
+
+            // root=0 so each scale degree IS the absolute MIDI note number
+            let pitch = pick_pitch_in_range(scale_span, 0_u8, lo, hi, raw);
+
+            eventlist
+                .append(
+                    Message::NOTE_ON(
+                        NoteOn { channel: 0, note: pitch, velocity: 90, time: current_time },
+                    ),
+                );
+            eventlist
+                .append(
+                    Message::NOTE_OFF(
+                        NoteOff {
+                            channel: 0, note: pitch, velocity: 64, time: current_time + note_dur,
+                        },
+                    ),
+                );
+
+            current_time += step_dur;
+            step += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        // Print as Cairo code — pipe through TypeScript converter for .mid file
+        generate_cairo_code(@midiobj);
+
+        // ── Verify event counts ───────────────────────────────────────────────────────────
+        let mut ev = midiobj.events;
+        let mut note_on_count: u32 = 0;
+        let mut note_off_count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(event) => {
+                    match event {
+                        Message::NOTE_ON(_) => { note_on_count += 1; },
+                        Message::NOTE_OFF(_) => { note_off_count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+        assert!(note_on_count == 80, "Expected 80 NoteOn events");
+        assert!(note_off_count == 80, "Expected 80 NoteOff events");
+
+        // ── Verify binary MIDI header ─────────────────────────────────────────────────────
         let binary = output_midi_object(@midiobj);
         assert!(binary.len() >= 22, "MIDI output too short");
         assert!(*binary.get(0).unwrap().unbox() == 0x4D, "byte 0 should be M");

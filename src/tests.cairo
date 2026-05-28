@@ -4,3 +4,4 @@ pub mod test_lcg;
 pub mod test_midi;
 pub mod test_output;
 pub mod test_sine_wave;
+pub mod test_tendency_mask;

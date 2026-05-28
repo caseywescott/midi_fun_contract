@@ -8,3 +8,11 @@ __pycache__
 .DS_Store
 
 Scarb.lock
+
+#######
+Node / TypeScript
+#######
+
+node_modules/
+package-lock.json
+*.mid

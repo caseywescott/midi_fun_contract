@@ -1,2 +1,11 @@
+pub mod canon_rules;
+pub mod counterpoint;
+pub mod counterpoint_canon;
 pub mod envelope;
+pub mod melodic_canon;
+pub mod known_symmetric_worlds;
+pub mod known_tilings;
+pub mod messiaen_modes;
+pub mod rhythmic_tiling;
+pub mod symmetry_engine;
 pub mod tendency_mask;

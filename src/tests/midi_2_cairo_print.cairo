@@ -8,11 +8,40 @@ mod tests {
     use koji::midi::euclidean::euclidean;
     use koji::midi::modes::mode_steps;
     use koji::midi::output::output_midi_object;
-    use koji::midi::pitch::{get_notes_of_key, keynum_to_pc, modal_transposition, pc_to_keynum};
+    use koji::midi::pitch::{
+        get_notes_of_key, keynum_to_pc, modal_transposition, pc_to_keynum,
+    };
     use koji::midi::types::{Direction, Message, Midi, Modes, NoteOff, NoteOn, PitchClass, SetTempo};
     use koji::sine_wave::{SineWaveParams, sinusoidal_timing_wave_squared};
     use koji::composition::envelope::{TimePoint, PitchRangeEnvelope, range_at};
     use koji::composition::tendency_mask::pick_pitch_in_range;
+    use koji::composition::rhythmic_tiling::{
+        generate_rhythmic_canon, generate_rhythmic_canon_for_cycle,
+        generate_rhythmic_canon_for_cycle_min_voices, canon_to_events, RhythmicVoice,
+    };
+    use koji::composition::symmetry_engine::{
+        add_pitch, generate_world_chord, generate_world_motif, get_pitch_at_index, get_world_by_id,
+        transpose_world, world_pc_to_midi,
+    };
+    use koji::composition::messiaen_modes::{
+        chord_pcs_to_midi, generate_chord, generate_diminished_symmetry_chord,
+        generate_melody_pitch_classes, mode_pc_to_midi,
+    };
+    use koji::composition::counterpoint::{
+        CounterpointParams, VoicePlacement, generate_counterpoint, motion_bias_balanced,
+        motion_bias_contrary, motion_bias_parallel, violates_forbidden_interval,
+    };
+    use koji::composition::counterpoint::REST_PITCH;
+    use koji::composition::counterpoint_canon::{
+        CanonHarmonyPlan, harmony_plan_is_rest, lydian_pitch_world_mask,
+        pitch_from_harmony_plan, plan_canon_harmony, plan_lydian_canon_harmony,
+        uniform_mode_timeline, count_tiling_voices,
+    };
+    use koji::composition::symmetry_engine::has_pitch;
+    use koji::composition::melodic_canon::{
+        generate_melodic_canon, generate_ornamented_canon, canon_to_note_events,
+        canon_to_ornamented_note_events,
+    };
     use koji::rng::{LCGRandomSource, RandomSource};
 
     #[test]
@@ -1162,6 +1191,1901 @@ mod tests {
         assert!(*binary.get(3).unwrap().unbox() == 0x64, "byte 3 should be d");
     }
 
+    /// Append a legato note pair (NOTE_ON + NOTE_OFF) at absolute microsecond times.
+    fn append_legato_note(
+        ref eventlist: Array<Message>,
+        channel: u8,
+        note: u8,
+        velocity: u8,
+        on_time: Time,
+        off_time: Time,
+    ) {
+        eventlist
+            .append(
+                Message::NOTE_ON(NoteOn { channel, note, velocity, time: on_time }),
+            );
+        eventlist
+            .append(
+                Message::NOTE_OFF(NoteOff { channel, note, velocity: 64, time: off_time }),
+            );
+    }
+
+    /// Map voice + legato length to pitch. Duration tiers follow the n=12, k=3 tile
+    /// [2, 2, 8]: pickup on the fifth, middle on the third, long on the root.
+    fn pitch_for_canon_event(voice_id: u32, duration: u32) -> u8 {
+        let base: u8 = if voice_id == 0 {
+            60 // C4
+        } else if voice_id == 1 {
+            72 // C5
+        } else if voice_id == 2 {
+            63 // Eb4
+        } else {
+            75 // Eb5
+        };
+        if duration <= 2 {
+            base + 7
+        } else if duration <= 4 {
+            base + 4
+        } else {
+            base
+        }
+    }
+
+    /// Syncopated four-voice rhythmic tiling canon → MIDI.
+    ///
+    /// Seed 17 → n=12, R={0,2,4}, S={0,1,6,7} (class-2 hocket, 4 voices): each voice
+    /// plays short–short–long [2,2,8] legato groups while the four entry offsets interlock
+    /// across the cycle. Loops three times (~7.2 s at 120 BPM, 200 ms per grid step).
+    #[test]
+    #[available_gas(1000000000000)]
+    fn rhythmic_canon_midi_test() {
+        // 120 BPM; 200 ms per grid step → 12 × 200 ms = 2.4 s/cycle × 3 loops ≈ 7.2 s.
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 200000;
+        let num_loops: u32 = 3;
+
+        // n=12, k=3, d=2 → R={0,2,4}, S={0,1,6,7} (4 voices, syncopated class-2).
+        let canon = generate_rhythmic_canon(17);
+        assert!(canon.n == 12, "expected n=12");
+        assert!(canon.translations.len() == 4, "expected 4 voices");
+        assert!(canon.rhythm_tile.len() == 3, "expected 3 onsets per voice");
+
+        let onset_events = canon_to_events(@canon);
+        assert!(onset_events.len() == canon.n, "one onset per cycle position");
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let n = canon.n;
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let cycle_start: Time = (loop_i * n).into() * step_us;
+
+            let mut ei: u32 = 0;
+            loop {
+                if ei >= onset_events.len() {
+                    break;
+                }
+                let e = *onset_events.at(ei);
+                let on_time: Time = cycle_start + e.time.into() * step_us;
+                let off_time: Time = on_time + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                let pitch = pitch_for_canon_event(e.voice_id, e.duration);
+                append_legato_note(
+                    ref eventlist, channel, pitch, e.velocity, on_time, off_time,
+                );
+                ei += 1;
+            };
+            loop_i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        generate_cairo_code(@midiobj);
+        generate_parser_format(@midiobj);
+
+        // 3 loops × 12 onsets = 36 NoteOn + 36 NoteOff
+        let mut ev = midiobj.events;
+        let mut note_on_count: u32 = 0;
+        let mut note_off_count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(event) => {
+                    match event {
+                        Message::NOTE_ON(_) => { note_on_count += 1; },
+                        Message::NOTE_OFF(_) => { note_off_count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+        assert!(note_on_count == 36, "expected 36 NoteOn");
+        assert!(note_off_count == 36, "expected 36 NoteOff");
+
+        let binary = output_midi_object(@midiobj);
+        assert!(binary.len() >= 22, "MIDI output too short");
+        assert!(*binary.get(0).unwrap().unbox() == 0x4D, "byte 0 should be M");
+        assert!(*binary.get(1).unwrap().unbox() == 0x54, "byte 1 should be T");
+        assert!(*binary.get(2).unwrap().unbox() == 0x68, "byte 2 should be h");
+        assert!(*binary.get(3).unwrap().unbox() == 0x64, "byte 3 should be d");
+    }
+
+    /// Pitch for a voice at a given tile index: voice 0 carries the LCG melody; each later
+    /// voice is a diatonic 3rd (two Lydian steps) above the previous voice at the same tile.
+    fn pitch_for_canon_voice(
+        voice_id: u32,
+        tile_idx: u32,
+        leader0: u8,
+        leader1: u8,
+        tonic: PitchClass,
+        lyd_steps: Span<u8>,
+    ) -> u8 {
+        let leaders = array![leader0, leader1];
+        pitch_for_canon_voice_at_tile(voice_id, tile_idx, leaders.span(), tonic, lyd_steps)
+    }
+
+    /// Generalized leader lookup for tiles with any number of onsets per voice.
+    fn pitch_for_canon_voice_at_tile(
+        voice_id: u32,
+        tile_idx: u32,
+        leaders: Span<u8>,
+        tonic: PitchClass,
+        lyd_steps: Span<u8>,
+    ) -> u8 {
+        let leader = *leaders.at(tile_idx);
+        if voice_id == 0 {
+            return leader;
+        }
+        let v1 = modal_transposition(
+            keynum_to_pc(leader), tonic, lyd_steps, 2, Direction::Up(()),
+        );
+        if voice_id == 1 {
+            return v1;
+        }
+        let v2 = modal_transposition(
+            keynum_to_pc(v1), tonic, lyd_steps, 2, Direction::Up(()),
+        );
+        if voice_id == 2 {
+            return v2;
+        }
+        modal_transposition(keynum_to_pc(v2), tonic, lyd_steps, 2, Direction::Up(()))
+    }
+
+    /// Accent sixteenth pickups; soften the long tail and upper voices.
+    fn velocity_for_canon_voice_tile(voice_id: u32, tile_idx: u32, dur: u32) -> u8 {
+        let base = velocity_for_canon_voice(voice_id);
+        if dur <= 1 {
+            if base > 85 {
+                base
+            } else {
+                base + 10
+            }
+        } else if tile_idx >= 3 {
+            base - 8
+        } else {
+            base
+        }
+    }
+
+    /// Softer dynamics on upper harmonic voices.
+    fn velocity_for_canon_voice(voice_id: u32) -> u8 {
+        if voice_id == 0 {
+            92
+        } else if voice_id == 1 {
+            78
+        } else if voice_id == 2 {
+            72
+        } else {
+            66
+        }
+    }
+
+    /// Syncopated four-voice tiling canon with modal-transposition harmony.
+    ///
+    /// Seed 0 → n=8, R={0,2}, S={0,1,4,5} (class-2 hocket): each voice alternates a 2-step
+    /// pickup with a 6-step sustain — not straight eighths. Voice 0 carries an LCG melody in
+    /// C Lydian; voices 1–3 each add a diatonic 3rd above the previous voice at the same tile
+    /// position (stacked 3rds within the mode). Loops four times (~7.2 s at 120 BPM).
+    #[test]
+    #[available_gas(1000000000000)]
+    fn rhythmic_canon_modal_harmony_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 225000; // 8 × 225 ms = 1.8 s/cycle
+        let num_loops: u32 = 4;
+
+        // n=8, k=2, d=2 → R={0,2}, S={0,1,4,5}; legato [2, 6].
+        let canon = generate_rhythmic_canon(0);
+        assert!(canon.n == 8, "expected n=8");
+        assert!(canon.translations.len() == 4, "expected 4 voices");
+        assert!(canon.rhythm_tile.len() == 2, "expected 2 onsets per voice");
+
+        let lyd_steps = mode_steps(Modes::Lydian(()));
+        let tonic = PitchClass { note: 0_u8, octave: 4_u8 };
+        let scale: Array<u8> = array![60_u8, 62, 64, 66, 67, 69, 71]; // C Lydian, C4..B4
+
+        // Leader melody: one Lydian pitch per tile onset (held across loops).
+        let melody_lcg = LCG { state: 91, multiplier: 5, increment: 3, modulus: 16 };
+        let raw = melody_lcg.getlist(2);
+        let idx0: usize = (*raw.at(0) % scale.len()).try_into().unwrap();
+        let idx1: usize = (*raw.at(1) % scale.len()).try_into().unwrap();
+        let leader0: u8 = *scale.at(idx0);
+        let leader1: u8 = *scale.at(idx1);
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let n = canon.n;
+        let tile = canon.rhythm_tile;
+        let durs = canon.durations;
+        let voices = canon.voices;
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let cycle_start: Time = (loop_i * n).into() * step_us;
+
+            let mut vi: u32 = 0;
+            loop {
+                if vi >= voices.len() {
+                    break;
+                }
+                let voice = *voices.at(vi);
+                if !voice.tiling_participant {
+                    vi += 1;
+                    continue;
+                }
+
+                let mut ti: u32 = 0;
+                loop {
+                    if ti >= tile.len() {
+                        break;
+                    }
+                    let r = *tile.at(ti);
+                    let grid_time = (r + voice.translation) % n;
+                    let on_time: Time = cycle_start + grid_time.into() * step_us;
+                    let dur: u64 = (*durs.at(ti)).into();
+                    let off_time: Time = on_time + dur * step_us;
+                    let pitch = pitch_for_canon_voice(
+                        voice.voice_id, ti, leader0, leader1, tonic, lyd_steps,
+                    );
+                    let vel = velocity_for_canon_voice(voice.voice_id);
+                    append_legato_note(
+                        ref eventlist,
+                        voice.voice_id.try_into().unwrap(),
+                        pitch,
+                        vel,
+                        on_time,
+                        off_time,
+                    );
+                    ti += 1;
+                };
+                vi += 1;
+            };
+            loop_i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        generate_cairo_code(@midiobj);
+        generate_parser_format(@midiobj);
+
+        // 4 loops × 4 voices × 2 onsets = 32 NoteOn + 32 NoteOff
+        let mut ev = midiobj.events;
+        let mut note_on_count: u32 = 0;
+        let mut note_off_count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(event) => {
+                    match event {
+                        Message::NOTE_ON(_) => { note_on_count += 1; },
+                        Message::NOTE_OFF(_) => { note_off_count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+        assert!(note_on_count == 32, "expected 32 NoteOn");
+        assert!(note_off_count == 32, "expected 32 NoteOff");
+
+        let binary = output_midi_object(@midiobj);
+        assert!(binary.len() >= 22, "MIDI output too short");
+        assert!(*binary.get(0).unwrap().unbox() == 0x4D, "byte 0 should be M");
+        assert!(*binary.get(1).unwrap().unbox() == 0x54, "byte 1 should be T");
+        assert!(*binary.get(2).unwrap().unbox() == 0x68, "byte 2 should be h");
+        assert!(*binary.get(3).unwrap().unbox() == 0x64, "byte 3 should be d");
+    }
+
+    /// Dense sixteenth-note tiling canon with modal-transposition harmony.
+    ///
+    /// Seed 274 → n=16, R={0,1,2,3}, S={0,4,8,12} (4 voices): each voice opens with a
+    /// four-sixteenth pickup [1,1,1,13] then a long sustain — 16 attacks per bar, not straight
+    /// eighths. Voice 0 carries an LCG melody in C Lydian (one pitch per tile onset); voices
+    /// 1–3 stack diatonic 3rds above the previous voice. Four bars at 120 BPM (125 ms/step).
+    #[test]
+    #[available_gas(1000000000000)]
+    fn rhythmic_canon_modal_16ths_midi_test() {
+        // 120 BPM; 125 ms per 16th → 16 steps = one 4/4 bar (2 s) × 4 bars = 8 s.
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 125000;
+        let num_loops: u32 = 4;
+
+        // n=16, k=4, d=1 → R={0,1,2,3}, S={0,4,8,12}; legato [1, 1, 1, 13].
+        let canon = generate_rhythmic_canon(274);
+        assert!(canon.n == 16, "expected n=16");
+        assert!(canon.translations.len() == 4, "expected 4 voices");
+        assert!(canon.rhythm_tile.len() == 4, "expected 4 onsets per voice");
+
+        let lyd_steps = mode_steps(Modes::Lydian(()));
+        let tonic = PitchClass { note: 0_u8, octave: 4_u8 };
+        let scale: Array<u8> = array![60_u8, 62, 64, 66, 67, 69, 71];
+
+        let melody_lcg = LCG { state: 37, multiplier: 5, increment: 3, modulus: 16 };
+        let raw = melody_lcg.getlist(4);
+        let mut leaders: Array<u8> = ArrayTrait::new();
+        let mut li: u32 = 0;
+        loop {
+            if li >= 4 {
+                break;
+            }
+            let idx: usize = (*raw.at(li) % scale.len()).try_into().unwrap();
+            leaders.append(*scale.at(idx));
+            li += 1;
+        };
+        let leaders_span = leaders.span();
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let n = canon.n;
+        let tile = canon.rhythm_tile;
+        let durs = canon.durations;
+        let voices = canon.voices;
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let cycle_start: Time = (loop_i * n).into() * step_us;
+
+            let mut vi: u32 = 0;
+            loop {
+                if vi >= voices.len() {
+                    break;
+                }
+                let voice = *voices.at(vi);
+                if !voice.tiling_participant {
+                    vi += 1;
+                    continue;
+                }
+
+                let mut ti: u32 = 0;
+                loop {
+                    if ti >= tile.len() {
+                        break;
+                    }
+                    let r = *tile.at(ti);
+                    let grid_time = (r + voice.translation) % n;
+                    let on_time: Time = cycle_start + grid_time.into() * step_us;
+                    let dur: u64 = (*durs.at(ti)).into();
+                    let off_time: Time = on_time + dur * step_us;
+                    let pitch = pitch_for_canon_voice_at_tile(
+                        voice.voice_id, ti, leaders_span, tonic, lyd_steps,
+                    );
+                    let vel = velocity_for_canon_voice_tile(
+                        voice.voice_id, ti, *durs.at(ti),
+                    );
+                    append_legato_note(
+                        ref eventlist,
+                        voice.voice_id.try_into().unwrap(),
+                        pitch,
+                        vel,
+                        on_time,
+                        off_time,
+                    );
+                    ti += 1;
+                };
+                vi += 1;
+            };
+            loop_i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        generate_cairo_code(@midiobj);
+        generate_parser_format(@midiobj);
+
+        // 4 bars × 16 grid onsets = 64 NoteOn + 64 NoteOff
+        let mut ev = midiobj.events;
+        let mut note_on_count: u32 = 0;
+        let mut note_off_count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(event) => {
+                    match event {
+                        Message::NOTE_ON(_) => { note_on_count += 1; },
+                        Message::NOTE_OFF(_) => { note_off_count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+        assert!(note_on_count == 64, "expected 64 NoteOn");
+        assert!(note_off_count == 64, "expected 64 NoteOff");
+
+        let binary = output_midi_object(@midiobj);
+        assert!(binary.len() >= 22, "MIDI output too short");
+        assert!(*binary.get(0).unwrap().unbox() == 0x4D, "byte 0 should be M");
+        assert!(*binary.get(1).unwrap().unbox() == 0x54, "byte 1 should be T");
+        assert!(*binary.get(2).unwrap().unbox() == 0x68, "byte 2 should be h");
+        assert!(*binary.get(3).unwrap().unbox() == 0x64, "byte 3 should be d");
+    }
+
+    /// Build one-octave MIDI keynums for a mode at the given tonic.
+    fn build_scale_keynums(tonic: PitchClass, mode: Modes) -> Array<u8> {
+        let steps = mode_steps(mode);
+        let pcs = get_notes_of_key(tonic, steps);
+        let mut out: Array<u8> = ArrayTrait::new();
+        let mut i: u32 = 0;
+        loop {
+            if i >= pcs.len() {
+                break;
+            }
+            let pc_n = *pcs.at(i);
+            out.append(pc_to_keynum(PitchClass { note: pc_n, octave: tonic.octave }));
+            i += 1;
+        };
+        out
+    }
+
+    /// LCG leader pitches — one per tile onset — drawn from the section scale.
+    fn build_section_leaders(
+        lcg_state: u32,
+        k: u32,
+        tonic: PitchClass,
+        mode: Modes,
+    ) -> Array<u8> {
+        let lcg = LCG { state: lcg_state, multiplier: 5, increment: 3, modulus: 16 };
+        let scale = build_scale_keynums(tonic, mode);
+        let raw = lcg.getlist(k);
+        let mut leaders: Array<u8> = ArrayTrait::new();
+        let mut i: u32 = 0;
+        loop {
+            if i >= k {
+                break;
+            }
+            let idx: usize = (*raw.at(i) % scale.len()).try_into().unwrap();
+            leaders.append(*scale.at(idx));
+            i += 1;
+        };
+        leaders
+    }
+
+    fn section_tonic(section: u32) -> PitchClass {
+        if section == 0 {
+            PitchClass { note: 0_u8, octave: 4_u8 } // C — I
+        } else if section == 1 {
+            PitchClass { note: 5_u8, octave: 4_u8 } // F — IV
+        } else if section == 2 {
+            PitchClass { note: 7_u8, octave: 4_u8 } // G — V
+        } else {
+            PitchClass { note: 9_u8, octave: 4_u8 } // A — vi
+        }
+    }
+
+    fn section_mode(section: u32) -> Modes {
+        if section == 0 {
+            Modes::Lydian(())
+        } else if section == 1 {
+            Modes::Lydian(())
+        } else if section == 2 {
+            Modes::Mixolydian(())
+        } else {
+            Modes::Aeolian(())
+        }
+    }
+
+    /// Four-section modal canon progression with dense sixteenth/eighth pickup tiling.
+    ///
+    /// Seed 35 → n=24, R={0,2,4,6,8,10}, S={0,1,12,13} (4 voices, 6 onsets/voice,
+    /// legato [2,2,2,2,2,14]). Sixteen cycles = 4 sections × 4 bars each (~38 s):
+    ///   §1 C Lydian (I) → §2 F Lydian (IV) → §3 G Mixolydian (V) → §4 A Aeolian (vi).
+    /// Voice 0 LCG melody per section; voices 1–3 stack diatonic 3rds above the previous.
+    #[test]
+    #[available_gas(2000000000000)]
+    fn rhythmic_canon_modal_progression_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 100000; // 100 ms/step → 24 steps = 2.4 s/cycle
+        let loops_per_section: u32 = 4;
+        let num_sections: u32 = 4;
+        let num_loops: u32 = loops_per_section * num_sections;
+
+        // n=24, k=6, d=2 → six short pickups + long tail per voice.
+        let canon = generate_rhythmic_canon(35);
+        assert!(canon.n == 24, "expected n=24");
+        assert!(canon.translations.len() == 4, "expected 4 voices");
+        assert!(canon.rhythm_tile.len() == 6, "expected 6 onsets per voice");
+
+        let k = canon.rhythm_tile.len();
+
+        // Precompute leader pitches for each harmonic section (I–IV–V–vi).
+        let leaders0 = build_section_leaders(37, k, section_tonic(0), section_mode(0));
+        let leaders1 = build_section_leaders(53, k, section_tonic(1), section_mode(1));
+        let leaders2 = build_section_leaders(71, k, section_tonic(2), section_mode(2));
+        let leaders3 = build_section_leaders(89, k, section_tonic(3), section_mode(3));
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let n = canon.n;
+        let tile = canon.rhythm_tile;
+        let durs = canon.durations;
+        let voices = canon.voices;
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let section = loop_i / loops_per_section;
+            let tonic = section_tonic(section);
+            let steps = mode_steps(section_mode(section));
+            let leaders_span = if section == 0 {
+                leaders0.span()
+            } else if section == 1 {
+                leaders1.span()
+            } else if section == 2 {
+                leaders2.span()
+            } else {
+                leaders3.span()
+            };
+
+            let cycle_start: Time = (loop_i * n).into() * step_us;
+
+            let mut vi: u32 = 0;
+            loop {
+                if vi >= voices.len() {
+                    break;
+                }
+                let voice = *voices.at(vi);
+                if !voice.tiling_participant {
+                    vi += 1;
+                    continue;
+                }
+
+                let mut ti: u32 = 0;
+                loop {
+                    if ti >= tile.len() {
+                        break;
+                    }
+                    let r = *tile.at(ti);
+                    let grid_time = (r + voice.translation) % n;
+                    let on_time: Time = cycle_start + grid_time.into() * step_us;
+                    let dur_steps = *durs.at(ti);
+                    let dur: u64 = dur_steps.into();
+                    let off_time: Time = on_time + dur * step_us;
+                    let pitch = pitch_for_canon_voice_at_tile(
+                        voice.voice_id, ti, leaders_span, tonic, steps,
+                    );
+                    let vel = velocity_for_canon_voice_tile(
+                        voice.voice_id, ti, dur_steps,
+                    );
+                    append_legato_note(
+                        ref eventlist,
+                        voice.voice_id.try_into().unwrap(),
+                        pitch,
+                        vel,
+                        on_time,
+                        off_time,
+                    );
+                    ti += 1;
+                };
+                vi += 1;
+            };
+            loop_i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        generate_cairo_code(@midiobj);
+        generate_parser_format(@midiobj);
+
+        // 16 cycles × 24 grid onsets = 384 NoteOn + 384 NoteOff
+        let mut ev = midiobj.events;
+        let mut note_on_count: u32 = 0;
+        let mut note_off_count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(event) => {
+                    match event {
+                        Message::NOTE_ON(_) => { note_on_count += 1; },
+                        Message::NOTE_OFF(_) => { note_off_count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+        assert!(note_on_count == 384, "expected 384 NoteOn");
+        assert!(note_off_count == 384, "expected 384 NoteOff");
+
+        let binary = output_midi_object(@midiobj);
+        assert!(binary.len() >= 22, "MIDI output too short");
+        assert!(*binary.get(0).unwrap().unbox() == 0x4D, "byte 0 should be M");
+        assert!(*binary.get(1).unwrap().unbox() == 0x54, "byte 1 should be T");
+        assert!(*binary.get(2).unwrap().unbox() == 0x68, "byte 2 should be h");
+        assert!(*binary.get(3).unwrap().unbox() == 0x64, "byte 3 should be d");
+    }
+
+    // ── Symmetry-engine canon helpers ────────────────────────────────────────────────
+
+    fn symmetry_section_world_id(section: u32) -> u16 {
+        if section == 0 {
+            6 // Messiaen Mode 2
+        } else if section == 1 {
+            7 // Messiaen Mode 3
+        } else if section == 2 {
+            12 // Octatonic Variant B
+        } else if section == 3 {
+            10 // Messiaen Mode 6
+        } else if section == 4 {
+            14 // Hexatonic Augmented
+        } else {
+            11 // Messiaen Mode 7
+        }
+    }
+
+    fn symmetry_section_transposition(section: u32) -> u8 {
+        if section == 0 {
+            0
+        } else if section == 1 {
+            1
+        } else if section == 2 {
+            0
+        } else if section == 3 {
+            2
+        } else if section == 4 {
+            0
+        } else {
+            1
+        }
+    }
+
+    fn symmetry_section_chord_start(section: u32, chord_variant: u32) -> u8 {
+        let base = if section == 0 {
+            0
+        } else if section == 1 {
+            2
+        } else if section == 2 {
+            1
+        } else if section == 3 {
+            0
+        } else if section == 4 {
+            0
+        } else {
+            3
+        };
+        base + chord_variant.try_into().unwrap()
+    }
+
+    fn symmetry_section_chord_skip(section: u32) -> u8 {
+        if section == 0 {
+            2
+        } else if section == 1 {
+            1
+        } else if section == 2 {
+            3
+        } else if section == 3 {
+            2
+        } else if section == 4 {
+            1
+        } else {
+            2
+        }
+    }
+
+    fn symmetry_section_chord_size(section: u32) -> u8 {
+        if section == 0 {
+            4
+        } else if section == 1 {
+            5
+        } else if section == 2 {
+            4
+        } else if section == 3 {
+            6
+        } else if section == 4 {
+            3
+        } else {
+            5
+        }
+    }
+
+    fn symmetry_section_motif_seed(section: u32) -> felt252 {
+        if section == 0 {
+            0x1001
+        } else if section == 1 {
+            0x2002
+        } else if section == 2 {
+            0x3003
+        } else if section == 3 {
+            0x4004
+        } else if section == 4 {
+            0x5005
+        } else {
+            0x6006
+        }
+    }
+
+    /// One MIDI leader pitch per tile onset, drawn from a symmetry-world motif.
+    fn build_symmetry_section_leaders(
+        section: u32, k: u32,
+    ) -> Array<u8> {
+        let world_id = symmetry_section_world_id(section);
+        let transposition = symmetry_section_transposition(section);
+        let world = transpose_world(get_world_by_id(world_id), transposition);
+        let seed = symmetry_section_motif_seed(section);
+        let motif = generate_world_motif(seed, world.mask, k.try_into().unwrap());
+        let mut leaders: Array<u8> = ArrayTrait::new();
+        let mut i: u32 = 0;
+        loop {
+            if i >= k {
+                break;
+            }
+            let pc = *motif.at(i.try_into().unwrap());
+            let oct: u8 = if i % 3 == 0 {
+                4
+            } else if i % 3 == 1 {
+                5
+            } else {
+                4
+            };
+            leaders.append(world_pc_to_midi(pc, oct));
+            i += 1;
+        };
+        leaders
+    }
+
+    fn pitch_for_symmetry_canon_voice(
+        voice_id: u32,
+        tile_idx: u32,
+        leaders: Span<u8>,
+        mask: u16,
+        chord_skip: u8,
+    ) -> u8 {
+        if voice_id == 0 {
+            return *leaders.at(tile_idx);
+        }
+        let idx_u32: u32 = tile_idx + voice_id * chord_skip.into();
+        let idx: u8 = idx_u32.try_into().unwrap();
+        let pc = get_pitch_at_index(mask, idx);
+        let oct: u8 = if voice_id == 1 {
+            4
+        } else if voice_id == 2 {
+            5
+        } else {
+            5
+        };
+        world_pc_to_midi(pc, oct)
+    }
+
+    fn append_symmetry_harmony_chord(
+        ref eventlist: Array<Message>,
+        mask: u16,
+        start_index: u8,
+        skip: u8,
+        chord_size: u8,
+        on_time: Time,
+        off_time: Time,
+    ) {
+        let chord = generate_world_chord(mask, start_index, skip, chord_size, false);
+        let notes = chord_pcs_to_midi(chord.span());
+        let mut i: usize = 0;
+        loop {
+            if i >= notes.len() {
+                break;
+            }
+            let note = *notes.at(i);
+            append_legato_note(ref eventlist, 4, note, 68, on_time, off_time);
+            i += 1;
+        };
+    }
+
+    /// Six-section symmetry-world tiling canon with evolving harmony.
+    ///
+    /// n=24 canon (seed 35): six short pickups + long tail, four interlocking voices.
+    /// Six harmonic sections (5 loops each = 30 cycles, ~72 s at 120 BPM):
+    ///   §1 Mode 2 → §2 Mode 3 → §3 Octatonic B → §4 Mode 6 → §5 Hex Aug → §6 Mode 7.
+    /// Voice 0: symmetry-world LCG motif per section; voices 1–3 arpeggiate the active
+    /// world with section-specific skip spacing. Channel 4 carries block chords that
+    /// change at every section boundary and alternate voicings every two loops.
+    #[test]
+    #[available_gas(2000000000000)]
+    fn symmetry_canon_multivoice_harmony_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 100000; // 100 ms/step → 2.4 s/cycle
+        let loops_per_section: u32 = 5;
+        let num_sections: u32 = 6;
+        let num_loops: u32 = loops_per_section * num_sections;
+
+        let canon = generate_rhythmic_canon_for_cycle(35, 24);
+        assert!(canon.n == 24, "expected n=24");
+        assert!(canon.translations.len() == 4, "expected 4 voices");
+        assert!(canon.rhythm_tile.len() == 6, "expected 6 onsets per voice");
+
+        let k = canon.rhythm_tile.len();
+
+        let leaders0 = build_symmetry_section_leaders(0, k);
+        let leaders1 = build_symmetry_section_leaders(1, k);
+        let leaders2 = build_symmetry_section_leaders(2, k);
+        let leaders3 = build_symmetry_section_leaders(3, k);
+        let leaders4 = build_symmetry_section_leaders(4, k);
+        let leaders5 = build_symmetry_section_leaders(5, k);
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let n = canon.n;
+        let tile = canon.rhythm_tile;
+        let durs = canon.durations;
+        let voices = canon.voices;
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let section = loop_i / loops_per_section;
+            let loop_in_section = loop_i % loops_per_section;
+            let world_id = symmetry_section_world_id(section);
+            let transposition = symmetry_section_transposition(section);
+            let world = transpose_world(get_world_by_id(world_id), transposition);
+            let chord_skip = symmetry_section_chord_skip(section);
+            let chord_size = symmetry_section_chord_size(section);
+            let chord_variant = loop_in_section / 2;
+            let chord_start = symmetry_section_chord_start(section, chord_variant);
+
+            let leaders_span = if section == 0 {
+                leaders0.span()
+            } else if section == 1 {
+                leaders1.span()
+            } else if section == 2 {
+                leaders2.span()
+            } else if section == 3 {
+                leaders3.span()
+            } else if section == 4 {
+                leaders4.span()
+            } else {
+                leaders5.span()
+            };
+
+            let cycle_start: Time = (loop_i * n).into() * step_us;
+
+            // Section-opening and mid-section harmony (channel 4)
+            if loop_in_section == 0 || loop_in_section == 2 {
+                let harm_on = cycle_start;
+                let harm_off: Time = cycle_start + (n.into() * step_us) / 2;
+                append_symmetry_harmony_chord(
+                    ref eventlist,
+                    world.mask,
+                    chord_start,
+                    chord_skip,
+                    chord_size,
+                    harm_on,
+                    harm_off,
+                );
+            }
+
+            let mut vi: u32 = 0;
+            loop {
+                if vi >= voices.len() {
+                    break;
+                }
+                let voice = *voices.at(vi);
+                if !voice.tiling_participant {
+                    vi += 1;
+                    continue;
+                }
+
+                let mut ti: u32 = 0;
+                loop {
+                    if ti >= tile.len() {
+                        break;
+                    }
+                    let r = *tile.at(ti);
+                    let grid_time = (r + voice.translation) % n;
+                    let on_time: Time = cycle_start + grid_time.into() * step_us;
+                    let dur_steps = *durs.at(ti);
+                    let dur: u64 = dur_steps.into();
+                    let off_time: Time = on_time + dur * step_us;
+                    let pitch = pitch_for_symmetry_canon_voice(
+                        voice.voice_id, ti, leaders_span, world.mask, chord_skip,
+                    );
+                    let vel = velocity_for_canon_voice_tile(
+                        voice.voice_id, ti, dur_steps,
+                    );
+                    append_legato_note(
+                        ref eventlist,
+                        voice.voice_id.try_into().unwrap(),
+                        pitch,
+                        vel,
+                        on_time,
+                        off_time,
+                    );
+                    ti += 1;
+                };
+                vi += 1;
+            };
+            loop_i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        generate_cairo_code(@midiobj);
+        generate_parser_format(@midiobj);
+
+        // 30 cycles × 24 grid onsets = 720 canon NoteOn + harmony chords
+        let mut ev = midiobj.events;
+        let mut note_on_count: u32 = 0;
+        let mut note_off_count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(event) => {
+                    match event {
+                        Message::NOTE_ON(_) => { note_on_count += 1; },
+                        Message::NOTE_OFF(_) => { note_off_count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+        assert!(note_on_count >= 720, "expected at least 720 NoteOn");
+        assert!(note_off_count >= 720, "expected at least 720 NoteOff");
+        assert!(note_on_count == note_off_count, "on/off balance");
+
+        let binary = output_midi_object(@midiobj);
+        assert!(binary.len() >= 22, "MIDI output too short");
+        assert!(*binary.get(0).unwrap().unbox() == 0x4D, "byte 0 should be M");
+        assert!(*binary.get(1).unwrap().unbox() == 0x54, "byte 1 should be T");
+        assert!(*binary.get(2).unwrap().unbox() == 0x68, "byte 2 should be h");
+        assert!(*binary.get(3).unwrap().unbox() == 0x64, "byte 3 should be d");
+    }
+
+    // ── Lydian + symmetry-engine canon ───────────────────────────────────────────────
+
+    fn lydian_section_tonic(section: u32) -> PitchClass {
+        if section == 0 {
+            PitchClass { note: 0_u8, octave: 4_u8 } // C Lydian
+        } else if section == 1 {
+            PitchClass { note: 5_u8, octave: 4_u8 } // F Lydian
+        } else if section == 2 {
+            PitchClass { note: 7_u8, octave: 4_u8 } // G Lydian
+        } else if section == 3 {
+            PitchClass { note: 2_u8, octave: 4_u8 } // D Lydian
+        } else if section == 4 {
+            PitchClass { note: 9_u8, octave: 4_u8 } // A Lydian
+        } else {
+            PitchClass { note: 4_u8, octave: 4_u8 } // E Lydian
+        }
+    }
+
+    fn lydian_mask_for_tonic(tonic: PitchClass) -> u16 {
+        let steps = mode_steps(Modes::Lydian(()));
+        let pcs = get_notes_of_key(tonic, steps);
+        let mut mask: u16 = 0;
+        let mut i: u32 = 0;
+        loop {
+            if i >= pcs.len() {
+                break;
+            }
+            mask = add_pitch(mask, *pcs.at(i));
+            i += 1;
+        };
+        mask
+    }
+
+    fn lydian_keynum_from_scale_pc(pc: u8, octave: u8) -> u8 {
+        pc_to_keynum(PitchClass { note: pc % 12, octave })
+    }
+
+    /// Chord skip tuned for a 7-note Lydian scale (not octatonic symmetry spacing).
+    fn lydian_section_chord_skip(section: u32) -> u8 {
+        if section == 0 || section == 3 {
+            2 // diatonic third spacing → e.g. C E G B in C Lydian
+        } else if section == 1 || section == 4 {
+            1 // stepwise scale tones
+        } else {
+            2
+        }
+    }
+
+    fn lydian_section_chord_size(section: u32) -> u8 {
+        if section == 1 || section == 5 {
+            5
+        } else if section == 3 {
+            6
+        } else {
+            4
+        }
+    }
+
+    fn lydian_section_chord_start(section: u32, chord_variant: u32) -> u8 {
+        let base = if section == 0 {
+            0
+        } else if section == 1 {
+            1
+        } else if section == 2 {
+            0
+        } else if section == 3 {
+            2
+        } else if section == 4 {
+            1
+        } else {
+            0
+        };
+        base + chord_variant.try_into().unwrap()
+    }
+
+    /// Motif leaders drawn directly from the section Lydian pitch-world (7-note mask).
+    fn build_lydian_leaders_for_block_loop(
+        section: u32, k: u32, tonic: PitchClass, rhythm_block: u32, loop_i: u32,
+    ) -> Array<u8> {
+        let lydian = lydian_mask_for_tonic(tonic);
+        let base = symmetry_section_motif_seed(section);
+        let block_felt: felt252 = rhythm_block.into();
+        let loop_felt: felt252 = loop_i.into();
+        let seed = base + block_felt + loop_felt;
+        let motif = generate_world_motif(seed, lydian, k.try_into().unwrap());
+        let mut leaders: Array<u8> = ArrayTrait::new();
+        let mut i: u32 = 0;
+        loop {
+            if i >= k {
+                break;
+            }
+            let pc = *motif.at(i.try_into().unwrap());
+            let oct: u8 = if i % 3 == 0 {
+                4
+            } else if i % 3 == 1 {
+                5
+            } else {
+                4
+            };
+            leaders.append(lydian_keynum_from_scale_pc(pc, oct));
+            i += 1;
+        };
+        leaders
+    }
+
+    fn build_lydian_leaders_for_block(
+        section: u32, k: u32, tonic: PitchClass, rhythm_block: u32,
+    ) -> Array<u8> {
+        build_lydian_leaders_for_block_loop(section, k, tonic, rhythm_block, 0)
+    }
+
+    fn build_lydian_symmetry_section_leaders(
+        section: u32, k: u32, tonic: PitchClass,
+    ) -> Array<u8> {
+        build_lydian_leaders_for_block(section, k, tonic, 0)
+    }
+
+    /// Deterministic n=24 canon seed per harmonic/rhythm block (section × block).
+    fn rhythm_block_seed(section: u32, rhythm_block: u32) -> felt252 {
+        let idx = section * 3 + rhythm_block;
+        if idx % 7 == 0 {
+            35
+        } else if idx % 7 == 1 {
+            42
+        } else if idx % 7 == 2 {
+            17
+        } else if idx % 7 == 3 {
+            100
+        } else if idx % 7 == 4 {
+            555
+        } else if idx % 7 == 5 {
+            888
+        } else {
+            1234
+        }
+    }
+
+    const NO_PRIOR_PITCH: u8 = 255;
+    const PITCH_MEMORY_CHANNELS: u32 = 5;
+
+    #[derive(Copy, Drop)]
+    struct ChannelPitchMemory {
+        ch0_pitch: u8,
+        ch0_time: Time,
+        ch1_pitch: u8,
+        ch1_time: Time,
+        ch2_pitch: u8,
+        ch2_time: Time,
+        ch3_pitch: u8,
+        ch3_time: Time,
+        ch4_pitch: u8,
+        ch4_time: Time,
+    }
+
+    fn channel_pitch_memory_new() -> ChannelPitchMemory {
+        ChannelPitchMemory {
+            ch0_pitch: NO_PRIOR_PITCH,
+            ch0_time: 0,
+            ch1_pitch: NO_PRIOR_PITCH,
+            ch1_time: 0,
+            ch2_pitch: NO_PRIOR_PITCH,
+            ch2_time: 0,
+            ch3_pitch: NO_PRIOR_PITCH,
+            ch3_time: 0,
+            ch4_pitch: NO_PRIOR_PITCH,
+            ch4_time: 0,
+        }
+    }
+
+    fn memory_get_last(mem: @ChannelPitchMemory, channel: u8) -> (u8, Time) {
+        if channel == 0 {
+            (*mem.ch0_pitch, *mem.ch0_time)
+        } else if channel == 1 {
+            (*mem.ch1_pitch, *mem.ch1_time)
+        } else if channel == 2 {
+            (*mem.ch2_pitch, *mem.ch2_time)
+        } else if channel == 3 {
+            (*mem.ch3_pitch, *mem.ch3_time)
+        } else {
+            (*mem.ch4_pitch, *mem.ch4_time)
+        }
+    }
+
+    fn memory_set_last(ref mem: ChannelPitchMemory, channel: u8, pitch: u8, on_time: Time) {
+        if channel == 0 {
+            mem.ch0_pitch = pitch;
+            mem.ch0_time = on_time;
+        } else if channel == 1 {
+            mem.ch1_pitch = pitch;
+            mem.ch1_time = on_time;
+        } else if channel == 2 {
+            mem.ch2_pitch = pitch;
+            mem.ch2_time = on_time;
+        } else if channel == 3 {
+            mem.ch3_pitch = pitch;
+            mem.ch3_time = on_time;
+        } else {
+            mem.ch4_pitch = pitch;
+            mem.ch4_time = on_time;
+        }
+    }
+
+    /// If the same channel re-attacks the same pitch within min_gap, step up in Lydian.
+    fn lydian_pitch_avoid_channel_repeat(
+        candidate: u8,
+        channel: u8,
+        on_time: Time,
+        min_gap: Time,
+        tonic: PitchClass,
+        lyd_steps: Span<u8>,
+        mem: @ChannelPitchMemory,
+    ) -> u8 {
+        let (last_pitch, last_time) = memory_get_last(mem, channel);
+        if last_pitch == NO_PRIOR_PITCH {
+            return candidate;
+        }
+        if candidate != last_pitch {
+            return candidate;
+        }
+        if on_time > last_time + min_gap {
+            return candidate;
+        }
+        let mut out = candidate;
+        let mut tries: u8 = 0;
+        loop {
+            if tries >= 5 {
+                break;
+            }
+            out = modal_transposition(
+                keynum_to_pc(out), tonic, lyd_steps, 1, Direction::Up(()),
+            );
+            if out != last_pitch {
+                break;
+            }
+            tries += 1;
+        };
+        out
+    }
+
+    fn pitch_for_lydian_canon_voice_varied(
+        voice_id: u32,
+        tile_idx: u32,
+        loop_i: u32,
+        leaders: Span<u8>,
+        tonic: PitchClass,
+        lyd_steps: Span<u8>,
+    ) -> u8 {
+        let k: u32 = leaders.len();
+        if k == 0 {
+            return 60;
+        }
+        let rot: u32 = (tile_idx + voice_id + loop_i) % k;
+        pitch_for_canon_voice_at_tile(voice_id, rot, leaders, tonic, lyd_steps)
+    }
+
+    fn append_lydian_canon_cycle_smooth(
+        ref eventlist: Array<Message>,
+        ref mem: ChannelPitchMemory,
+        cycle_start: Time,
+        step_us: u64,
+        min_gap: Time,
+        loop_i: u32,
+        n: u32,
+        tile: Span<u32>,
+        durs: Span<u32>,
+        voices: Span<RhythmicVoice>,
+        leaders: Span<u8>,
+        tonic: PitchClass,
+        lyd_steps: Span<u8>,
+    ) {
+        let mut vi: u32 = 0;
+        loop {
+            if vi >= voices.len() {
+                break;
+            }
+            let voice = *voices.at(vi);
+            if !voice.tiling_participant {
+                vi += 1;
+                continue;
+            }
+
+            let channel: u8 = voice.voice_id.try_into().unwrap();
+            let mut ti: u32 = 0;
+            loop {
+                if ti >= tile.len() {
+                    break;
+                }
+                let r = *tile.at(ti);
+                let grid_time = (r + voice.translation) % n;
+                let on_time: Time = cycle_start + grid_time.into() * step_us;
+                let dur_steps = *durs.at(ti);
+                let dur: u64 = dur_steps.into();
+                let off_time: Time = on_time + dur * step_us;
+                let candidate = pitch_for_lydian_canon_voice_varied(
+                    voice.voice_id, ti, loop_i, leaders, tonic, lyd_steps,
+                );
+                let pitch = lydian_pitch_avoid_channel_repeat(
+                    candidate, channel, on_time, min_gap, tonic, lyd_steps, @mem,
+                );
+                memory_set_last(ref mem, channel, pitch, on_time);
+                let vel = velocity_for_canon_voice_tile(voice.voice_id, ti, dur_steps);
+                append_legato_note(
+                    ref eventlist, channel, pitch, vel, on_time, off_time,
+                );
+                ti += 1;
+            };
+            vi += 1;
+        };
+    }
+
+    fn append_lydian_symmetry_harmony_chord_smooth(
+        ref eventlist: Array<Message>,
+        ref mem: ChannelPitchMemory,
+        lydian: u16,
+        start_index: u8,
+        skip: u8,
+        chord_size: u8,
+        on_time: Time,
+        off_time: Time,
+        min_gap: Time,
+        tonic: PitchClass,
+        lyd_steps: Span<u8>,
+    ) {
+        let chord = generate_world_chord(lydian, start_index, skip, chord_size, false);
+        let mut i: usize = 0;
+        loop {
+            if i >= chord.len() {
+                break;
+            }
+            let pc = *chord.at(i);
+            let oct: u8 = if i == 0 {
+                3
+            } else if i <= 2 {
+                4
+            } else {
+                4
+            };
+            let candidate = lydian_keynum_from_scale_pc(pc, oct);
+            let pitch = lydian_pitch_avoid_channel_repeat(
+                candidate, 4, on_time, min_gap, tonic, lyd_steps, @mem,
+            );
+            memory_set_last(ref mem, 4, pitch, on_time);
+            append_legato_note(ref eventlist, 4, pitch, 70, on_time, off_time);
+            i += 1;
+        };
+    }
+
+    fn append_lydian_canon_cycle(
+        ref eventlist: Array<Message>,
+        cycle_start: Time,
+        step_us: u64,
+        n: u32,
+        tile: Span<u32>,
+        durs: Span<u32>,
+        voices: Span<RhythmicVoice>,
+        leaders: Span<u8>,
+        tonic: PitchClass,
+        lyd_steps: Span<u8>,
+    ) {
+        let mut vi: u32 = 0;
+        loop {
+            if vi >= voices.len() {
+                break;
+            }
+            let voice = *voices.at(vi);
+            if !voice.tiling_participant {
+                vi += 1;
+                continue;
+            }
+
+            let mut ti: u32 = 0;
+            loop {
+                if ti >= tile.len() {
+                    break;
+                }
+                let r = *tile.at(ti);
+                let grid_time = (r + voice.translation) % n;
+                let on_time: Time = cycle_start + grid_time.into() * step_us;
+                let dur_steps = *durs.at(ti);
+                let dur: u64 = dur_steps.into();
+                let off_time: Time = on_time + dur * step_us;
+                let pitch = pitch_for_lydian_symmetry_canon_voice(
+                    voice.voice_id, ti, leaders, tonic, lyd_steps,
+                );
+                let vel = velocity_for_canon_voice_tile(voice.voice_id, ti, dur_steps);
+                append_legato_note(
+                    ref eventlist,
+                    voice.voice_id.try_into().unwrap(),
+                    pitch,
+                    vel,
+                    on_time,
+                    off_time,
+                );
+                ti += 1;
+            };
+            vi += 1;
+        };
+    }
+
+    /// Thin cantus motif: hocket rests on a section/block-dependent grid (keeps first/last onsets).
+    fn inject_sparse_rests(leaders: Span<u8>, section: u32, rhythm_block: u32) -> Array<u8> {
+        let len = leaders.len();
+        let gap: u32 = 2 + (section % 2);
+        let phase: u32 = (section + rhythm_block) % gap;
+        let last: u32 = if len == 0 {
+            0
+        } else {
+            (len - 1).try_into().unwrap()
+        };
+        let mut out: Array<u8> = ArrayTrait::new();
+        let mut i: u32 = 0;
+        loop {
+            if i >= len.try_into().unwrap() {
+                break;
+            }
+            let idx: usize = i.try_into().unwrap();
+            if i == 0 || i == last {
+                out.append(*leaders.at(idx));
+            } else if (i + phase) % gap == 0 {
+                out.append(REST_PITCH);
+            } else {
+                out.append(*leaders.at(idx));
+            }
+            i += 1;
+        };
+        out
+    }
+
+    /// Render one canon cycle from a precomputed pairwise counterpoint harmony plan.
+    fn append_counterpoint_canon_cycle(
+        ref eventlist: Array<Message>,
+        cycle_start: Time,
+        step_us: u64,
+        n: u32,
+        tile: Span<u32>,
+        durs: Span<u32>,
+        voices: Span<RhythmicVoice>,
+        plan: @CanonHarmonyPlan,
+    ) {
+        let mut vi: u32 = 0;
+        loop {
+            if vi >= voices.len() {
+                break;
+            }
+            let voice = *voices.at(vi);
+            if !voice.tiling_participant {
+                vi += 1;
+                continue;
+            }
+
+            let mut ti: u32 = 0;
+            loop {
+                if ti >= tile.len() {
+                    break;
+                }
+                if harmony_plan_is_rest(plan, voice.voice_id, ti) {
+                    ti += 1;
+                    continue;
+                }
+                let r = *tile.at(ti);
+                let grid_time = (r + voice.translation) % n;
+                let on_time: Time = cycle_start + grid_time.into() * step_us;
+                let dur_steps = *durs.at(ti);
+                let off_time: Time = on_time + dur_steps.into() * step_us;
+                let pitch = pitch_from_harmony_plan(plan, voice.voice_id, ti);
+                let vel = velocity_for_canon_voice_tile(voice.voice_id, ti, dur_steps);
+                append_legato_note(
+                    ref eventlist,
+                    voice.voice_id.try_into().unwrap(),
+                    pitch,
+                    vel,
+                    on_time,
+                    off_time,
+                );
+                ti += 1;
+            };
+            vi += 1;
+        };
+    }
+
+    fn pitch_for_lydian_symmetry_canon_voice(
+        voice_id: u32,
+        tile_idx: u32,
+        leaders: Span<u8>,
+        tonic: PitchClass,
+        lyd_steps: Span<u8>,
+    ) -> u8 {
+        pitch_for_canon_voice_at_tile(voice_id, tile_idx, leaders, tonic, lyd_steps)
+    }
+
+    fn append_lydian_symmetry_harmony_chord(
+        ref eventlist: Array<Message>,
+        lydian: u16,
+        start_index: u8,
+        skip: u8,
+        chord_size: u8,
+        on_time: Time,
+        off_time: Time,
+    ) {
+        let chord = generate_world_chord(lydian, start_index, skip, chord_size, false);
+        let mut i: usize = 0;
+        loop {
+            if i >= chord.len() {
+                break;
+            }
+            let pc = *chord.at(i);
+            let oct: u8 = if i == 0 {
+                3
+            } else if i <= 2 {
+                4
+            } else {
+                4
+            };
+            let note = lydian_keynum_from_scale_pc(pc, oct);
+            append_legato_note(ref eventlist, 4, note, 70, on_time, off_time);
+            i += 1;
+        };
+    }
+
+    /// Lydian multivoice symmetry canon — same architecture as the octatonic version,
+    /// but all pitch material lives in the active section Lydian collection.
+    ///
+    /// n=24 (seed 42), 6 sections × 5 loops (~72 s). Each section modulates Lydian center:
+    ///   C → F → G → D → A → E. Motifs and block chords are generated from each section's
+    ///   7-note Lydian mask (not octatonic symmetry worlds). §1 opening chord: C–E–G–B
+    ///   (C Lydian maj7). Canon voices 0–3 stack diatonic 3rds via modal_transposition.
+    #[test]
+    #[available_gas(2000000000000)]
+    fn symmetry_canon_lydian_multivoice_harmony_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 100000;
+        let loops_per_section: u32 = 5;
+        let num_sections: u32 = 6;
+        let num_loops: u32 = loops_per_section * num_sections;
+
+        let canon = generate_rhythmic_canon_for_cycle(42, 24);
+        assert!(canon.n == 24, "expected n=24");
+        assert!(canon.translations.len() == 4, "expected 4 voices");
+
+        let k = canon.rhythm_tile.len();
+        let lyd_steps = mode_steps(Modes::Lydian(()));
+
+        // §1 opening voicing must be C Lydian maj7: C E G B (pcs 0,4,7,11).
+        let c_lydian = lydian_mask_for_tonic(lydian_section_tonic(0));
+        let opening = generate_world_chord(c_lydian, 0, 2, 4, false);
+        assert!(opening.len() == 4, "opening chord len");
+        assert!(*opening.at(0) == 0, "C root");
+        assert!(*opening.at(1) == 4, "E third");
+        assert!(*opening.at(2) == 7, "G fifth");
+        assert!(*opening.at(3) == 11, "B lyd seventh");
+
+        let leaders0 = build_lydian_symmetry_section_leaders(0, k, lydian_section_tonic(0));
+        let leaders1 = build_lydian_symmetry_section_leaders(1, k, lydian_section_tonic(1));
+        let leaders2 = build_lydian_symmetry_section_leaders(2, k, lydian_section_tonic(2));
+        let leaders3 = build_lydian_symmetry_section_leaders(3, k, lydian_section_tonic(3));
+        let leaders4 = build_lydian_symmetry_section_leaders(4, k, lydian_section_tonic(4));
+        let leaders5 = build_lydian_symmetry_section_leaders(5, k, lydian_section_tonic(5));
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let n = canon.n;
+        let tile = canon.rhythm_tile;
+        let durs = canon.durations;
+        let voices = canon.voices;
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let section = loop_i / loops_per_section;
+            let loop_in_section = loop_i % loops_per_section;
+            let tonic = lydian_section_tonic(section);
+            let lydian = lydian_mask_for_tonic(tonic);
+            let chord_skip = lydian_section_chord_skip(section);
+            let chord_size = lydian_section_chord_size(section);
+            let chord_variant = loop_in_section / 2;
+            let chord_start = lydian_section_chord_start(section, chord_variant);
+
+            let leaders_span = if section == 0 {
+                leaders0.span()
+            } else if section == 1 {
+                leaders1.span()
+            } else if section == 2 {
+                leaders2.span()
+            } else if section == 3 {
+                leaders3.span()
+            } else if section == 4 {
+                leaders4.span()
+            } else {
+                leaders5.span()
+            };
+
+            let cycle_start: Time = (loop_i * n).into() * step_us;
+
+            if loop_in_section == 0 || loop_in_section == 2 || loop_in_section == 4 {
+                let harm_on = cycle_start;
+                let harm_off: Time = cycle_start + (n.into() * step_us) / 2;
+                append_lydian_symmetry_harmony_chord(
+                    ref eventlist,
+                    lydian,
+                    chord_start,
+                    chord_skip,
+                    chord_size,
+                    harm_on,
+                    harm_off,
+                );
+            }
+
+            let mut vi: u32 = 0;
+            loop {
+                if vi >= voices.len() {
+                    break;
+                }
+                let voice = *voices.at(vi);
+                if !voice.tiling_participant {
+                    vi += 1;
+                    continue;
+                }
+
+                let mut ti: u32 = 0;
+                loop {
+                    if ti >= tile.len() {
+                        break;
+                    }
+                    let r = *tile.at(ti);
+                    let grid_time = (r + voice.translation) % n;
+                    let on_time: Time = cycle_start + grid_time.into() * step_us;
+                    let dur_steps = *durs.at(ti);
+                    let dur: u64 = dur_steps.into();
+                    let off_time: Time = on_time + dur * step_us;
+                    let pitch = pitch_for_lydian_symmetry_canon_voice(
+                        voice.voice_id, ti, leaders_span, tonic, lyd_steps,
+                    );
+                    let vel = velocity_for_canon_voice_tile(
+                        voice.voice_id, ti, dur_steps,
+                    );
+                    append_legato_note(
+                        ref eventlist,
+                        voice.voice_id.try_into().unwrap(),
+                        pitch,
+                        vel,
+                        on_time,
+                        off_time,
+                    );
+                    ti += 1;
+                };
+                vi += 1;
+            };
+            loop_i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        generate_cairo_code(@midiobj);
+        generate_parser_format(@midiobj);
+
+        let mut ev = midiobj.events;
+        let mut note_on_count: u32 = 0;
+        let mut note_off_count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(event) => {
+                    match event {
+                        Message::NOTE_ON(_) => { note_on_count += 1; },
+                        Message::NOTE_OFF(_) => { note_off_count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+        assert!(note_on_count >= 720, "expected at least 720 NoteOn");
+        assert!(note_off_count >= 720, "expected at least 720 NoteOff");
+        assert!(note_on_count == note_off_count, "on/off balance");
+
+        let binary = output_midi_object(@midiobj);
+        assert!(binary.len() >= 22, "MIDI output too short");
+        assert!(*binary.get(0).unwrap().unbox() == 0x4D, "byte 0 should be M");
+        assert!(*binary.get(1).unwrap().unbox() == 0x54, "byte 1 should be T");
+        assert!(*binary.get(2).unwrap().unbox() == 0x68, "byte 2 should be h");
+        assert!(*binary.get(3).unwrap().unbox() == 0x64, "byte 3 should be d");
+    }
+
+    /// Lydian canon with **rhythm pattern rotating on every chord change** (every 2 loops).
+    ///
+    /// Same harmonic plan as `symmetry_canon_lydian_multivoice_harmony_midi_test`, but each
+    /// chord variant (loops 0/2/4 within a section) selects a fresh n=24 tiling template
+    /// and matching tile-length motif leaders. Loops 1 and 3 repeat the prior block's rhythm.
+    #[test]
+    #[available_gas(3000000000000)]
+    fn symmetry_canon_lydian_varied_rhythm_harmony_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 100000;
+        let loops_per_section: u32 = 5;
+        let num_sections: u32 = 6;
+        let num_loops: u32 = loops_per_section * num_sections;
+        let cycle_n: u32 = 24;
+
+        let lyd_steps = mode_steps(Modes::Lydian(()));
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let section = loop_i / loops_per_section;
+            let loop_in_section = loop_i % loops_per_section;
+            let rhythm_block = loop_in_section / 2;
+            let chord_variant = rhythm_block;
+            let tonic = lydian_section_tonic(section);
+            let lydian = lydian_mask_for_tonic(tonic);
+
+            let rhythm_seed = rhythm_block_seed(section, rhythm_block);
+            let canon = generate_rhythmic_canon_for_cycle(rhythm_seed, cycle_n);
+            assert!(canon.n == cycle_n, "expected n=24");
+            let k = canon.rhythm_tile.len();
+            let leaders = build_lydian_leaders_for_block(section, k, tonic, rhythm_block);
+
+            let chord_skip = lydian_section_chord_skip(section);
+            let chord_size = lydian_section_chord_size(section);
+            let chord_start = lydian_section_chord_start(section, chord_variant);
+
+            let cycle_start: Time = (loop_i * cycle_n).into() * step_us;
+
+            if loop_in_section % 2 == 0 {
+                let harm_on = cycle_start;
+                let harm_off: Time = cycle_start + (cycle_n.into() * step_us) / 2;
+                append_lydian_symmetry_harmony_chord(
+                    ref eventlist,
+                    lydian,
+                    chord_start,
+                    chord_skip,
+                    chord_size,
+                    harm_on,
+                    harm_off,
+                );
+            }
+
+            append_lydian_canon_cycle(
+                ref eventlist,
+                cycle_start,
+                step_us,
+                cycle_n,
+                canon.rhythm_tile,
+                canon.durations,
+                canon.voices,
+                leaders.span(),
+                tonic,
+                lyd_steps,
+            );
+            loop_i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        generate_cairo_code(@midiobj);
+        generate_parser_format(@midiobj);
+
+        let mut ev = midiobj.events;
+        let mut note_on_count: u32 = 0;
+        let mut note_off_count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(event) => {
+                    match event {
+                        Message::NOTE_ON(_) => { note_on_count += 1; },
+                        Message::NOTE_OFF(_) => { note_off_count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+        assert!(note_on_count >= 720, "expected at least 720 NoteOn");
+        assert!(note_off_count >= 720, "expected at least 720 NoteOff");
+        assert!(note_on_count == note_off_count, "on/off balance");
+
+        let binary = output_midi_object(@midiobj);
+        assert!(binary.len() >= 22, "MIDI output too short");
+        assert!(*binary.get(0).unwrap().unbox() == 0x4D, "byte 0 should be M");
+        assert!(*binary.get(1).unwrap().unbox() == 0x54, "byte 1 should be T");
+        assert!(*binary.get(2).unwrap().unbox() == 0x68, "byte 2 should be h");
+        assert!(*binary.get(3).unwrap().unbox() == 0x64, "byte 3 should be d");
+    }
+
+    /// Varied-rhythm Lydian canon with anti-repetition: per-loop motif rotation plus modal
+    /// step-up when a channel re-attacks the same pitch within one grid step.
+    #[test]
+    #[available_gas(3500000000000)]
+    fn symmetry_canon_lydian_varied_rhythm_smooth_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 100000;
+        let min_gap: Time = step_us;
+        let loops_per_section: u32 = 5;
+        let num_sections: u32 = 6;
+        let num_loops: u32 = loops_per_section * num_sections;
+        let cycle_n: u32 = 24;
+
+        let lyd_steps = mode_steps(Modes::Lydian(()));
+        let mut pitch_mem = channel_pitch_memory_new();
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let section = loop_i / loops_per_section;
+            let loop_in_section = loop_i % loops_per_section;
+            let rhythm_block = loop_in_section / 2;
+            let chord_variant = rhythm_block;
+            let tonic = lydian_section_tonic(section);
+            let lydian = lydian_mask_for_tonic(tonic);
+
+            let rhythm_seed = rhythm_block_seed(section, rhythm_block);
+            let canon = generate_rhythmic_canon_for_cycle(rhythm_seed, cycle_n);
+            assert!(canon.n == cycle_n, "expected n=24");
+            let k = canon.rhythm_tile.len();
+            let leaders = build_lydian_leaders_for_block_loop(
+                section, k, tonic, rhythm_block, loop_i,
+            );
+
+            let chord_skip = lydian_section_chord_skip(section);
+            let chord_size = lydian_section_chord_size(section);
+            let chord_start = lydian_section_chord_start(section, chord_variant);
+
+            let cycle_start: Time = (loop_i * cycle_n).into() * step_us;
+
+            if loop_in_section % 2 == 0 {
+                let harm_on = cycle_start;
+                let harm_off: Time = cycle_start + (cycle_n.into() * step_us) / 2;
+                append_lydian_symmetry_harmony_chord_smooth(
+                    ref eventlist,
+                    ref pitch_mem,
+                    lydian,
+                    chord_start,
+                    chord_skip,
+                    chord_size,
+                    harm_on,
+                    harm_off,
+                    min_gap,
+                    tonic,
+                    lyd_steps,
+                );
+            }
+
+            append_lydian_canon_cycle_smooth(
+                ref eventlist,
+                ref pitch_mem,
+                cycle_start,
+                step_us,
+                min_gap,
+                loop_i,
+                cycle_n,
+                canon.rhythm_tile,
+                canon.durations,
+                canon.voices,
+                leaders.span(),
+                tonic,
+                lyd_steps,
+            );
+            loop_i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        generate_cairo_code(@midiobj);
+        generate_parser_format(@midiobj);
+
+        let mut ev = midiobj.events;
+        let mut note_on_count: u32 = 0;
+        let mut note_off_count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(event) => {
+                    match event {
+                        Message::NOTE_ON(_) => { note_on_count += 1; },
+                        Message::NOTE_OFF(_) => { note_off_count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+        assert!(note_on_count >= 720, "expected at least 720 NoteOn");
+        assert!(note_off_count >= 720, "expected at least 720 NoteOff");
+        assert!(note_on_count == note_off_count, "on/off balance");
+
+        let binary = output_midi_object(@midiobj);
+        assert!(binary.len() >= 22, "MIDI output too short");
+        assert!(*binary.get(0).unwrap().unbox() == 0x4D, "byte 0 should be M");
+        assert!(*binary.get(1).unwrap().unbox() == 0x54, "byte 1 should be T");
+        assert!(*binary.get(2).unwrap().unbox() == 0x68, "byte 2 should be h");
+        assert!(*binary.get(3).unwrap().unbox() == 0x64, "byte 3 should be d");
+    }
+
     fn generate_parser_format(self: @Midi) {
         // Generate individual MIDI event lines for the TypeScript parser
         let mut ev = self.clone().events;
@@ -1226,5 +3150,836 @@ mod tests {
                 Option::None(_) => { break; },
             };
         }
+    }
+
+    /// Long LCG melody in Messiaen Mode 2 (octatonic), harmonized with modal chords, 3 repetitions.
+    ///
+    /// Mode   : 2 — [0,1,3,4,6,7,9,10], transposition 0
+    /// Melody : LCG { state:91, mult:5, inc:3, mod:64 } → 32 pitch classes per cycle
+    /// Harmony: diminished symmetry chord (skip=2, size=4) every 8 melody steps
+    ///          + dense color chord (skip=1, size=6) at cycle start
+    ///
+    /// Timing : step = 125 000 µs (1/16 @ 120 BPM), note_dur = 100 000 µs
+    ///          1 cycle = 32 × 125 000 = 4 000 000 µs (4 s)
+    ///          3 cycles = 12 000 000 µs (12 s)
+    ///
+    /// Events : 3 × (32 melody + 4 block + 4 block) NoteOn/Off + SetTempo
+    #[test]
+    #[available_gas(2000000000000)]
+    fn messiaen_lcg_melody_harmony_test() {
+        let mode_id: u8 = 2;
+        let transposition: u8 = 0;
+        let n_steps: u32 = 32;
+        let n_reps: u32 = 3;
+
+        let melody_pcs = generate_melody_pitch_classes(mode_id, transposition, n_steps, 91);
+        assert!(melody_pcs.len() == n_steps, "melody length");
+
+        let color_chord = generate_chord(mode_id, transposition, 1, 1, 6);
+        let color_midi = chord_pcs_to_midi(color_chord.span());
+
+        let step_dur: u64 = 125000_u64;
+        let note_dur: u64 = 100000_u64;
+        let chord_dur: u64 = 350000_u64;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut current_time: u64 = 0_u64;
+        let mut rep: u32 = 0;
+        loop {
+            if rep >= n_reps {
+                break;
+            }
+
+            // Cycle-opening color chord (channel 1)
+            let mut ci: usize = 0;
+            loop {
+                if ci >= color_midi.len() {
+                    break;
+                }
+                let note = *color_midi.at(ci);
+                eventlist
+                    .append(
+                        Message::NOTE_ON(
+                            NoteOn { channel: 1, note: note, velocity: 72, time: current_time },
+                        ),
+                    );
+                eventlist
+                    .append(
+                        Message::NOTE_OFF(
+                            NoteOff {
+                                channel: 1,
+                                note: note,
+                                velocity: 64,
+                                time: current_time + chord_dur,
+                            },
+                        ),
+                    );
+                ci += 1;
+            };
+
+            let mut step: u32 = 0;
+            loop {
+                if step >= n_steps {
+                    break;
+                }
+
+                // Melody: LCG mode index → MIDI (octave 4–5 by step)
+                let pc = *melody_pcs.at(step.try_into().unwrap());
+                let oct: u8 = if step % 2 == 0 { 4 } else { 5 };
+                let mel_note = mode_pc_to_midi(pc, oct);
+                eventlist
+                    .append(
+                        Message::NOTE_ON(
+                            NoteOn { channel: 0, note: mel_note, velocity: 88, time: current_time },
+                        ),
+                    );
+                eventlist
+                    .append(
+                        Message::NOTE_OFF(
+                            NoteOff {
+                                channel: 0,
+                                note: mel_note,
+                                velocity: 64,
+                                time: current_time + note_dur,
+                            },
+                        ),
+                    );
+
+                // Every 8 steps: diminished block chord rooted at current melody pc
+                if step % 8 == 4 {
+                    let start_idx: u8 = (step % 8).try_into().unwrap();
+                    let harm = generate_diminished_symmetry_chord(transposition, start_idx);
+                    let harm_midi = chord_pcs_to_midi(harm.span());
+                    let mut hi: usize = 0;
+                    loop {
+                        if hi >= harm_midi.len() {
+                            break;
+                        }
+                        let hnote = *harm_midi.at(hi);
+                        eventlist
+                            .append(
+                                Message::NOTE_ON(
+                                    NoteOn {
+                                        channel: 1,
+                                        note: hnote,
+                                        velocity: 70,
+                                        time: current_time,
+                                    },
+                                ),
+                            );
+                        eventlist
+                            .append(
+                                Message::NOTE_OFF(
+                                    NoteOff {
+                                        channel: 1,
+                                        note: hnote,
+                                        velocity: 64,
+                                        time: current_time + chord_dur,
+                                    },
+                                ),
+                            );
+                        hi += 1;
+                    };
+                }
+
+                current_time += step_dur;
+                step += 1;
+            };
+            rep += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        generate_cairo_code(@midiobj);
+        generate_parser_format(@midiobj);
+
+        let mut ev = midiobj.events;
+        let mut note_on_count: u32 = 0;
+        let mut note_off_count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(event) => {
+                    match event {
+                        Message::NOTE_ON(_) => { note_on_count += 1; },
+                        Message::NOTE_OFF(_) => { note_off_count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+        // 3 reps × (32 melody + 6 color + 4×4 block at steps 4,12,20,28) = 3×54 = 162 each
+        assert!(note_on_count == 162, "Expected 162 NoteOn");
+        assert!(note_off_count == 162, "Expected 162 NoteOff");
+
+        let binary = output_midi_object(@midiobj);
+        assert!(binary.len() >= 22, "MIDI output too short");
+        assert!(*binary.get(0).unwrap().unbox() == 0x4D, "byte 0 should be M");
+        assert!(*binary.get(1).unwrap().unbox() == 0x54, "byte 1 should be T");
+        assert!(*binary.get(2).unwrap().unbox() == 0x68, "byte 2 should be h");
+        assert!(*binary.get(3).unwrap().unbox() == 0x64, "byte 3 should be d");
+    }
+
+    /// Lydian canon with counterpoint-generated harmony voices (replaces fixed diatonic 3rds).
+    #[test]
+    #[available_gas(2000000000000)]
+    fn symmetry_canon_lydian_counterpoint_harmony_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 100000;
+        let num_loops: u32 = 2;
+
+        let canon = generate_rhythmic_canon_for_cycle(42, 24);
+        assert!(canon.n == 24, "expected n=24");
+        let k = canon.rhythm_tile.len();
+        let tonic = lydian_section_tonic(0);
+        let leaders = build_lydian_symmetry_section_leaders(0, k, tonic);
+        let num_voices = count_tiling_voices(@canon);
+        let plan = plan_lydian_canon_harmony(4242, leaders.span(), tonic, 0, num_voices);
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let n = canon.n;
+        let tile = canon.rhythm_tile;
+        let durs = canon.durations;
+        let voices = canon.voices;
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let cycle_start: Time = (loop_i * n).into() * step_us;
+
+            let mut vi: u32 = 0;
+            loop {
+                if vi >= voices.len() {
+                    break;
+                }
+                let voice = *voices.at(vi);
+                if !voice.tiling_participant {
+                    vi += 1;
+                    continue;
+                }
+
+                let mut ti: u32 = 0;
+                loop {
+                    if ti >= tile.len() {
+                        break;
+                    }
+                    let r = *tile.at(ti);
+                    let grid_time = (r + voice.translation) % n;
+                    let on_time: Time = cycle_start + grid_time.into() * step_us;
+                    let dur_steps = *durs.at(ti);
+                    let off_time: Time = on_time + dur_steps.into() * step_us;
+                    let pitch = pitch_from_harmony_plan(@plan, voice.voice_id, ti);
+                    if harmony_plan_is_rest(@plan, voice.voice_id, ti) {
+                        ti += 1;
+                        continue;
+                    }
+                    let vel = velocity_for_canon_voice_tile(
+                        voice.voice_id, ti, dur_steps,
+                    );
+                    append_legato_note(
+                        ref eventlist,
+                        voice.voice_id.try_into().unwrap(),
+                        pitch,
+                        vel,
+                        on_time,
+                        off_time,
+                    );
+                    ti += 1;
+                };
+                vi += 1;
+            };
+            loop_i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        let mut ev = midiobj.events;
+        let mut note_on_count: u32 = 0;
+        let mut note_off_count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(event) => {
+                    match event {
+                        Message::NOTE_ON(_) => { note_on_count += 1; },
+                        Message::NOTE_OFF(_) => { note_off_count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+        assert!(note_on_count >= 32, "expected counterpoint canon notes");
+        assert!(note_on_count == note_off_count, "on/off balance");
+
+        let binary = output_midi_object(@midiobj);
+        assert!(binary.len() >= 22, "MIDI output too short");
+        assert!(*binary.get(0).unwrap().unbox() == 0x4D, "byte 0 should be M");
+    }
+
+    /// Full integration: varied n=24 rhythmic templates, sparse cantus rests, and
+    /// pairwise N-voice counterpoint harmony on every tiling voice.
+    ///
+    /// **C Lydian throughout** (tonic C4, F# scale) — counterpoint candidates are
+    /// constrained to the same 7-note Lydian pitch-world as the leader motifs.
+    #[test]
+    #[available_gas(5000000000000)]
+    fn rhythmic_canon_counterpoint_varied_sparse_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 100000;
+        let loops_per_section: u32 = 5;
+        let num_sections: u32 = 6;
+        let num_loops: u32 = loops_per_section * num_sections;
+        let cycle_n: u32 = 24;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let mut max_tile_onsets: u32 = 0;
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let section = loop_i / loops_per_section;
+            let loop_in_section = loop_i % loops_per_section;
+            let rhythm_block = loop_in_section / 2;
+            let chord_variant = rhythm_block;
+            let tonic = PitchClass { note: 0_u8, octave: 4_u8 };
+            let lydian = lydian_mask_for_tonic(tonic);
+            let c_lydian_world = lydian;
+
+            let rhythm_seed = rhythm_block_seed(section, rhythm_block);
+            let canon = generate_rhythmic_canon_for_cycle_min_voices(rhythm_seed, cycle_n, 8);
+            assert!(canon.n == cycle_n, "expected n=24");
+            let k = canon.rhythm_tile.len();
+            if k > max_tile_onsets {
+                max_tile_onsets = k;
+            }
+
+            let num_voices = count_tiling_voices(@canon);
+            assert!(num_voices == 8, "expected 8-voice canon");
+
+            let leaders_dense = build_lydian_leaders_for_block_loop(
+                0, k, tonic, rhythm_block, loop_in_section,
+            );
+            let leaders = inject_sparse_rests(leaders_dense.span(), section, rhythm_block);
+
+            let cp_seed: felt252 = 7700 + section.into() + rhythm_block.into() + loop_i.into();
+            let plan = plan_lydian_canon_harmony(
+                cp_seed, leaders.span(), tonic, 0, num_voices,
+            );
+            assert!(plan.voices.len() == num_voices, "plan voice count");
+            assert!(plan.onset_mask.len() == k, "onset mask len");
+
+            let mut vcheck: u32 = 0;
+            loop {
+                if vcheck >= num_voices {
+                    break;
+                }
+                let voice = plan.voices.at(vcheck);
+                let mut ti: u32 = 0;
+                loop {
+                    if ti >= voice.len() {
+                        break;
+                    }
+                    if !harmony_plan_is_rest(@plan, vcheck, ti) {
+                        let p = pitch_from_harmony_plan(@plan, vcheck, ti);
+                        assert!(
+                            has_pitch(c_lydian_world, p % 12),
+                            "pitch must stay in C Lydian",
+                        );
+                    }
+                    ti += 1;
+                };
+                vcheck += 1;
+            };
+
+            let cycle_start: Time = (loop_i * cycle_n).into() * step_us;
+
+            if loop_in_section % 2 == 0 {
+                let harm_on = cycle_start;
+                let harm_off: Time = cycle_start + (cycle_n.into() * step_us) / 2;
+                append_lydian_symmetry_harmony_chord(
+                    ref eventlist,
+                    lydian,
+                    lydian_section_chord_start(0, chord_variant),
+                    lydian_section_chord_skip(0),
+                    lydian_section_chord_size(0),
+                    harm_on,
+                    harm_off,
+                );
+            }
+
+            append_counterpoint_canon_cycle(
+                ref eventlist,
+                cycle_start,
+                step_us,
+                cycle_n,
+                canon.rhythm_tile,
+                canon.durations,
+                canon.voices,
+                @plan,
+            );
+            loop_i += 1;
+        };
+
+        assert!(max_tile_onsets >= 3, "expected varied tile sizes");
+
+        let midiobj = Midi { events: eventlist.span() };
+
+        generate_cairo_code(@midiobj);
+        generate_parser_format(@midiobj);
+
+        let mut ev = midiobj.events;
+        let mut note_on_count: u32 = 0;
+        let mut note_off_count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(event) => {
+                    match event {
+                        Message::NOTE_ON(_) => { note_on_count += 1; },
+                        Message::NOTE_OFF(_) => { note_off_count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+        assert!(note_on_count >= 400, "expected dense counterpoint canon");
+        assert!(note_on_count == note_off_count, "on/off balance");
+
+        let binary = output_midi_object(@midiobj);
+        assert!(binary.len() >= 22, "MIDI output too short");
+        assert!(*binary.get(0).unwrap().unbox() == 0x4D, "byte 0 should be M");
+        assert!(*binary.get(1).unwrap().unbox() == 0x54, "byte 1 should be T");
+        assert!(*binary.get(2).unwrap().unbox() == 0x68, "byte 2 should be h");
+        assert!(*binary.get(3).unwrap().unbox() == 0x64, "byte 3 should be d");
+    }
+
+    // ── Counterpoint tooling demos (simple MIDI examples) ─────────────────────────
+
+    fn c_lydian_demo_tonic() -> PitchClass {
+        PitchClass { note: 0_u8, octave: 4_u8 }
+    }
+
+    /// C Lydian counterpoint params with explicit motion bias (for demos).
+    fn c_lydian_counterpoint_demo_params(
+        seed: felt252,
+        tile_len: u32,
+        motion_bias: koji::composition::counterpoint::MotionBias,
+    ) -> CounterpointParams {
+        c_lydian_counterpoint_demo_params_placed(
+            seed, tile_len, motion_bias, VoicePlacement::BelowCantus(()),
+        )
+    }
+
+    fn c_lydian_counterpoint_demo_params_placed(
+        seed: felt252,
+        tile_len: u32,
+        motion_bias: koji::composition::counterpoint::MotionBias,
+        placement: VoicePlacement,
+    ) -> CounterpointParams {
+        let tonic = c_lydian_demo_tonic();
+        let mode_spec = uniform_mode_timeline(
+            tile_len, Modes::Lydian(()), lydian_pitch_world_mask(tonic), tonic,
+        );
+        CounterpointParams {
+            seed,
+            tonic,
+            mode_spec,
+            register_lo: 48,
+            register_hi: 84,
+            max_melodic_leap: 12,
+            motion_bias,
+            voice_placement: placement,
+            forbid_parallel_perfects: true,
+            forbid_similar_perfects: true,
+        }
+    }
+
+    /// Render cantus + counter as two aligned monophonic lines (no rhythmic canon).
+    fn append_two_voice_counterpoint_demo(
+        ref eventlist: Array<Message>,
+        cantus: Span<u8>,
+        counter: Span<u8>,
+        step_us: u64,
+        note_dur_us: u64,
+    ) {
+        assert!(cantus.len() == counter.len(), "line length mismatch");
+        let len: u32 = cantus.len().try_into().unwrap();
+        let mut i: u32 = 0;
+        loop {
+            if i >= len {
+                break;
+            }
+            let idx: usize = i.try_into().unwrap();
+            let on: Time = i.into() * step_us;
+            let off: Time = on + note_dur_us;
+            append_legato_note(ref eventlist, 0, *cantus.at(idx), 92, on, off);
+            append_legato_note(ref eventlist, 1, *counter.at(idx), 78, on, off);
+            i += 1;
+        };
+    }
+
+    fn assert_valid_demo_midi(midiobj: @Midi, expected_note_ons: u32) {
+        let mut ev = midiobj.clone().events;
+        let mut note_on_count: u32 = 0;
+        let mut note_off_count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(msg) => {
+                    match msg {
+                        Message::NOTE_ON(_) => { note_on_count += 1; },
+                        Message::NOTE_OFF(_) => { note_off_count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        }
+        assert!(note_on_count == expected_note_ons, "note on count");
+        assert!(note_on_count == note_off_count, "on off balance");
+        let binary = output_midi_object(midiobj);
+        assert!(binary.len() >= 22, "MIDI output too short");
+        assert!(*binary.get(0).unwrap().unbox() == 0x4D, "MThd");
+    }
+
+    /// Stepwise C Lydian cantus (C5→C4) with harmony generated **below**, biased to
+    /// contrary motion. Two channels, quarter notes (~8 s @ 120 BPM).
+    ///
+    /// Export: `scarb test -- --filter counterpoint_contrary_two_voice_midi_test`
+    #[test]
+    #[available_gas(1000000000000)]
+    fn counterpoint_contrary_two_voice_midi_test() {
+        let cantus = array![60_u8, 64, 67, 72, 67, 64, 60, 55];
+        let strong_contrary = koji::composition::counterpoint::MotionBias {
+            parallel: 5, contrary: 95, oblique: 15,
+        };
+        let params = c_lydian_counterpoint_demo_params_placed(
+            101,
+            cantus.len().try_into().unwrap(),
+            strong_contrary,
+            VoicePlacement::AboveCantus(()),
+        );
+        let result = generate_counterpoint(cantus.span(), params);
+        assert!(result.contrary_count + result.oblique_count >= 3, "motion variety");
+        assert!(result.contrary_count >= result.parallel_count, "contrary favored");
+        let mut vi: usize = 0;
+        loop {
+            if vi >= cantus.len() {
+                break;
+            }
+            assert(
+                !violates_forbidden_interval(*result.counter.at(vi), *cantus.at(vi)),
+                'no seconds',
+            );
+            vi += 1;
+        };
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        append_two_voice_counterpoint_demo(
+            ref eventlist, cantus.span(), result.counter.span(), 500000, 450000,
+        );
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, 16);
+    }
+
+    /// Append a long ornamented melodic canon (Montanos "divided" style) to a MIDI event list.
+    fn append_long_ornamented_canon(
+        ref eventlist: Array<Message>,
+        seed: felt252,
+        config_id: u32,
+        length: u32,
+        step_us: u64,
+        num_loops: u32,
+    ) -> u32 {
+        let (canon, subs) = generate_ornamented_canon(seed, config_id, length);
+        let events = canon_to_ornamented_note_events(@canon, subs.span());
+        let n = events.len();
+        assert!(n > 0, "ornamented canon events");
+        let len = canon.leader_degrees.len();
+        let nv = canon.voices.len();
+        let unit = canon.time_unit;
+        let cycle_ticks = (len + nv - 1) * unit;
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        n * num_loops
+    }
+
+    /// Renaissance improvised canon (Schubert / Cumming): a seeded melodic canon rendered to
+    /// MIDI. Each voice on its own channel; the leader is steered to a cadence on the modal final.
+    /// Config index in the seed's low nibble selects the canon type (1 = fifth below).
+    ///
+    /// Export: `scarb test -- --filter renaissance_canon_fifth_below_midi_test`
+    #[test]
+    #[available_gas(2000000000000)]
+    fn renaissance_canon_fifth_below_midi_test() {
+        let seed: felt252 = 0x80000 + 1; // config 1 = fifth below
+        let canon = generate_melodic_canon(seed);
+        let events = canon_to_note_events(@canon);
+        let n = events.len();
+        assert!(n > 0, "canon produced events");
+
+        let step_us: u64 = 400000;
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut i: u32 = 0;
+        loop {
+            if i >= n {
+                break;
+            }
+            let e = *events.at(i);
+            let on: Time = e.time.into() * step_us;
+            let off: Time = on + e.duration.into() * step_us;
+            let channel: u8 = e.voice_id.try_into().unwrap();
+            append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+            i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, n);
+    }
+
+    /// Three-voice improvised canon (leader, fifth below, octave above that) rendered to MIDI.
+    ///
+    /// Export: `scarb test -- --filter renaissance_canon_three_voice_midi_test`
+    #[test]
+    #[available_gas(2000000000000)]
+    fn renaissance_canon_three_voice_midi_test() {
+        let seed: felt252 = 0x80000 + 4; // config 4 = three-voice (5th below + octave)
+        let canon = generate_melodic_canon(seed);
+        assert!(canon.voices.len() == 3, "three voices");
+        let events = canon_to_note_events(@canon);
+        let n = events.len();
+
+        let step_us: u64 = 400000;
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut i: u32 = 0;
+        loop {
+            if i >= n {
+                break;
+            }
+            let e = *events.at(i);
+            let on: Time = e.time.into() * step_us;
+            let off: Time = on + e.duration.into() * step_us;
+            let channel: u8 = e.voice_id.try_into().unwrap();
+            append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+            i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, n);
+    }
+
+    /// Long two-voice canon at the fifth below with passing-tone / division ornamentation.
+    /// 40 structural notes × 2 loops ≈ 80 s @ 120 BPM.
+    ///
+    /// Export: `scarb test -- --filter renaissance_canon_long_2voice_ornamented_midi_test`
+    #[test]
+    #[available_gas(4000000000000)]
+    fn renaissance_canon_long_2voice_ornamented_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_ornamented_canon(
+            ref eventlist, 4242, 1, 40, 250000, 2,
+        );
+        assert!(note_ons >= 120, "long 2-voice ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Long three-voice canon (5th below + octave stack) with ornamentation, 2 loops.
+    ///
+    /// Export: `scarb test -- --filter renaissance_canon_long_3voice_ornamented_midi_test`
+    #[test]
+    #[available_gas(4000000000000)]
+    fn renaissance_canon_long_3voice_ornamented_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_ornamented_canon(
+            ref eventlist, 4343, 4, 36, 250000, 2,
+        );
+        assert!(note_ons >= 180, "long 3-voice ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Long four-voice stacked-fifth-below canon with ornamentation, 2 loops.
+    ///
+    /// Export: `scarb test -- --filter renaissance_canon_long_4voice_ornamented_midi_test`
+    #[test]
+    #[available_gas(5000000000000)]
+    fn renaissance_canon_long_4voice_ornamented_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_ornamented_canon(
+            ref eventlist, 4444, 6, 32, 250000, 2,
+        );
+        assert!(note_ons >= 200, "long 4-voice ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Same cantus as the contrary demo but with parallel motion bias (for A/B comparison).
+    ///
+    /// Export: `scarb test -- --filter counterpoint_parallel_two_voice_midi_test`
+    #[test]
+    #[available_gas(1000000000000)]
+    fn counterpoint_parallel_two_voice_midi_test() {
+        let cantus = array![60_u8, 64, 67, 72, 67, 64, 60, 55];
+        let strong_parallel = koji::composition::counterpoint::MotionBias {
+            parallel: 95, contrary: 5, oblique: 15,
+        };
+        let params = c_lydian_counterpoint_demo_params_placed(
+            202,
+            cantus.len().try_into().unwrap(),
+            strong_parallel,
+            VoicePlacement::BelowCantus(()),
+        );
+        let result = generate_counterpoint(cantus.span(), params);
+        assert!(result.parallel_count + result.oblique_count >= 3, "motion variety");
+        assert!(result.parallel_count >= result.contrary_count, "parallel favored");
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        append_two_voice_counterpoint_demo(
+            ref eventlist, cantus.span(), result.counter.span(), 500000, 450000,
+        );
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, 16);
+    }
+
+    /// Balanced motion bias on a 4-voice hocket canon (seed 0, n=8) — cantus + 3
+    /// counterpoint voices with pairwise scoring.
+    ///
+    /// Export: `scarb test -- --filter counterpoint_balanced_canon_demo_midi_test`
+    #[test]
+    #[available_gas(1500000000000)]
+    fn counterpoint_balanced_canon_demo_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 225000;
+        let num_loops: u32 = 4;
+        let canon = generate_rhythmic_canon(0);
+        let k = canon.rhythm_tile.len();
+        let leaders = array![72_u8, 60_u8];
+        let num_voices = count_tiling_voices(@canon);
+        let params = c_lydian_counterpoint_demo_params(303, k, motion_bias_balanced());
+        let plan = plan_canon_harmony(leaders.span(), @params, num_voices);
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }));
+
+        let n = canon.n;
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            append_counterpoint_canon_cycle(
+                ref eventlist,
+                (loop_i * n).into() * step_us,
+                step_us,
+                n,
+                canon.rhythm_tile,
+                canon.durations,
+                canon.voices,
+                @plan,
+            );
+            loop_i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, 32);
+    }
+
+    /// Four-voice syncopated canon (n=8 hocket) with **contrary-motion** counterpoint
+    /// on voices 1–3 below/above the cantus leader.
+    ///
+    /// Export: `scarb test -- --filter counterpoint_contrary_canon_demo_midi_test`
+    #[test]
+    #[available_gas(1500000000000)]
+    fn counterpoint_contrary_canon_demo_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 225000;
+        let num_loops: u32 = 4;
+        let canon = generate_rhythmic_canon(0);
+        assert!(canon.n == 8, "n=8 hocket");
+        assert!(canon.translations.len() == 4, "4 voices");
+        let k = canon.rhythm_tile.len();
+        let leaders = array![72_u8, 60_u8];
+        let num_voices = count_tiling_voices(@canon);
+        let params = c_lydian_counterpoint_demo_params(404, k, motion_bias_contrary());
+        let plan = plan_canon_harmony(leaders.span(), @params, num_voices);
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }));
+
+        let n = canon.n;
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            append_counterpoint_canon_cycle(
+                ref eventlist,
+                (loop_i * n).into() * step_us,
+                step_us,
+                n,
+                canon.rhythm_tile,
+                canon.durations,
+                canon.voices,
+                @plan,
+            );
+            loop_i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, 32);
     }
 }

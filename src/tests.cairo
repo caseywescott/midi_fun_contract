@@ -1,7 +1,13 @@
 pub mod midi_2_cairo_print;
+pub mod test_canon_rules;
+pub mod test_counterpoint;
+pub mod test_melodic_canon;
 pub mod test_euclidean;
+pub mod test_messiaen_modes;
 pub mod test_lcg;
 pub mod test_midi;
 pub mod test_output;
+pub mod test_rhythmic_tiling;
 pub mod test_sine_wave;
+pub mod test_symmetry_engine;
 pub mod test_tendency_mask;

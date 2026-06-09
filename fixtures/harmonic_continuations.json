@@ -1,0 +1,10 @@
+{
+  "version": "harmonic_walk_v1",
+  "prefix_cmin_f7": {"from_q": 2, "to_q": 1, "to_root": 5},
+  "continuations": [
+    {"prefix": "cmin_f7", "next": "Bbmin", "weight": 100, "surprise_tier": 0},
+    {"prefix": "cmin_f7", "next": "Eb7", "weight": 90, "surprise_tier": 20},
+    {"prefix": "cmin_f7", "next": "F", "weight": 80, "surprise_tier": 40},
+    {"prefix": "cmin_f7", "next": "D7", "weight": 30, "surprise_tier": 255}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "version": "harmonic_walk_v1",
+  "attribution": "pachet_manual",
+  "rules": [
+    {"id": 0, "kind": "repetition", "lhs_beats": 4, "rhs_beats": [2, 2]},
+    {"id": 1, "kind": "enrichment", "lhs": "C", "rhs": "C7"},
+    {"id": 2, "kind": "relative_minor", "lhs": "C", "rhs": "Am"},
+    {"id": 3, "kind": "tritone_sub", "lhs": "C7", "rhs": "F#7"},
+    {"id": 4, "kind": "prep_dom", "lhs": "C", "rhs": ["G7", "C"]},
+    {"id": 5, "kind": "prep_minor", "lhs": "G7", "rhs": ["Dm7", "G7"]},
+    {"id": 6, "kind": "to_fourth", "lhs": "C7", "rhs": ["C7", "F"]},
+    {"id": 7, "kind": "two_five", "lhs": "C", "rhs": ["Dm7", "G7"]}
+  ]
+}

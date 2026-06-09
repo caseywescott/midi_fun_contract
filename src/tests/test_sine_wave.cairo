@@ -2,15 +2,14 @@ use koji::midi::modes::{dorian_steps, mode_steps};
 use koji::midi::pitch::{get_notes_of_key, pc_to_keynum};
 use koji::midi::types::{Modes, OCTAVEBASE, PitchClass};
 use koji::sine_wave::{
-    PI_SCALED, SineWaveParams, TWO_PI_SCALED, generate_wave, sine_fixed_point,
-    sinusoidal_timing_wave_squared,
+    PI_SCALED, SineWaveParams, TIMING_WAVE_REF, TWO_PI_SCALED, cumulative_beat_starts,
+    generate_wave, long_sequence_timing_wave, scale_duration_by_wave,
+    sine_offset_positive_fixed_point, sine_signed_fixed_point, sinusoidal_timing_wave,
+    total_scaled_span,
 };
 
-/// Test basic sine wave generation with simple parameters
-/// This test verifies that the sinusoidal_timing_wave_squared function:
-/// - Generates the correct number of values (length parameter)
-/// - Produces values within the specified range (min_value to max_value)
-/// - Handles basic frequency settings
+/// Test basic sine wave generation with simple parameters.
+/// Uses offset sin(x): values oscillate through [min, max], not a one-way |sin| envelope.
 #[test]
 fn test_wave_generation() {
     // Define sine wave parameters: min=0, max=100, frequency=1, length=10
@@ -24,11 +23,9 @@ fn test_wave_generation() {
     let freq = params.frequency;
     let len = params.length;
 
-    // Generate the sine wave using squared sine function
-    let result = sinusoidal_timing_wave_squared(params);
+    let result = sinusoidal_timing_wave(params);
 
-    // Print the generated sine wave values for debugging and verification
-    println!("SINE WAVE VALUES:");
+    println!("SINE WAVE VALUES (offset sin):");
     println!("Min: {}, Max: {}, Frequency: {}, Length: {}", min_val, max_val, freq, len);
     println!("Generated array: [");
 
@@ -80,10 +77,8 @@ fn test_wave_generation_different_params() {
     let freq = params.frequency;
     let len = params.length;
 
-    // Generate the sine wave using squared sine function
-    let result = sinusoidal_timing_wave_squared(params);
+    let result = sinusoidal_timing_wave(params);
 
-    // Print the generated sine wave values for debugging and verification
     println!("SINE WAVE VALUES (Different Parameters):");
     println!("Min: {}, Max: {}, Frequency: {}, Length: {}", min_val, max_val, freq, len);
     println!("Generated array: [");
@@ -120,6 +115,22 @@ fn test_wave_generation_different_params() {
     };
 }
 
+/// Timing rubato helpers: long-sequence wave scales beat durations around the neutral midpoint.
+#[test]
+fn test_timing_wave_helpers() {
+    let wave = long_sequence_timing_wave(10_u32);
+    assert(wave.len() == 10_u32, 'wave length');
+    assert(scale_duration_by_wave(4_u32, TIMING_WAVE_REF) == 4_u32, 'neutral scale');
+    assert(scale_duration_by_wave(4_u32, 100_u32) == 8_u32, 'slow scale');
+    assert(scale_duration_by_wave(4_u32, 1_u32) >= 1_u32, 'fast scale min 1');
+    let starts = cumulative_beat_starts(wave.span(), 4_u32);
+    assert(starts.len() == 11_u32, 'starts length');
+    assert(*starts.at(0) == 0_u32, 'start at 0');
+    let span = total_scaled_span(wave.span(), 4_u32);
+    assert(span > 0_u32, 'positive span');
+    assert(*starts.at(10) == span, 'span matches final cum');
+}
+
 /// Test sine wave generation with a longer sequence
 /// This test verifies that the function can handle larger arrays (100 elements)
 /// and maintains performance and correctness with longer sequences
@@ -136,10 +147,8 @@ fn test_wave_generation_long_sequence() {
     let freq = params.frequency;
     let len = params.length;
 
-    // Generate the sine wave using squared sine function
-    let result = sinusoidal_timing_wave_squared(params);
+    let result = sinusoidal_timing_wave(params);
 
-    // Print the generated sine wave values for debugging and verification
     println!("SINE WAVE VALUES (Long Sequence):");
     println!("Min: {}, Max: {}, Frequency: {}, Length: {}", min_val, max_val, freq, len);
     println!("Generated array: [");
@@ -191,39 +200,34 @@ fn test_sine_debug() {
     let three_quarter_phase = PI_SCALED * 3_u128 / 2_u128; // 3π/2 radians
     let full_phase = TWO_PI_SCALED; // 2π radians
 
-    // Calculate sine values at each key point
-    let zero_sine = sine_fixed_point(zero_phase);
-    let quarter_sine = sine_fixed_point(quarter_phase);
-    let half_sine = sine_fixed_point(half_phase);
-    let three_quarter_sine = sine_fixed_point(three_quarter_phase);
-    let full_sine = sine_fixed_point(full_phase);
+    let zero_sine = sine_signed_fixed_point(zero_phase);
+    let quarter_sine = sine_signed_fixed_point(quarter_phase);
+    let half_sine = sine_signed_fixed_point(half_phase);
+    let three_quarter_sine = sine_signed_fixed_point(three_quarter_phase);
+    let full_sine = sine_signed_fixed_point(full_phase);
 
-    // Print the raw sine values to understand the fixed-point representation
     println!("sin(0) = {}", zero_sine);
     println!("sin(pi/2) = {}", quarter_sine);
     println!("sin(pi) = {}", half_sine);
     println!("sin(3pi/2) = {}", three_quarter_sine);
     println!("sin(2pi) = {}", full_sine);
 
-    // Test squared values (since we use sin² in the wave generation)
-    // Divide by 1000000 to normalize the fixed-point representation
-    let zero_squared = (zero_sine * zero_sine) / 1000000_u128;
-    let quarter_squared = (quarter_sine * quarter_sine) / 1000000_u128;
-    let half_squared = (half_sine * half_sine) / 1000000_u128;
+    let zero_off = sine_offset_positive_fixed_point(zero_phase);
+    let quarter_off = sine_offset_positive_fixed_point(quarter_phase);
+    let trough_off = sine_offset_positive_fixed_point(three_quarter_phase);
 
-    println!("sin^2(0) = {}", zero_squared);
-    println!("sin^2(pi/2) = {}", quarter_squared);
-    println!("sin^2(pi) = {}", half_squared);
+    println!("(sin+1)/2 at 0 = {}", zero_off);
+    println!("(sin+1)/2 at pi/2 = {}", quarter_off);
+    println!("(sin+1)/2 at 3pi/2 = {}", trough_off);
 
-    // Test scaling to a specific range (1-100) to simulate the wave generation
-    let range = 99_u128; // max - min = 100 - 1 = 99
-    let zero_scaled = 1_u128 + (range * zero_squared) / 1000000_u128;
-    let quarter_scaled = 1_u128 + (range * quarter_squared) / 1000000_u128;
-    let half_scaled = 1_u128 + (range * half_squared) / 1000000_u128;
+    let range = 99_u128;
+    let zero_scaled = 1_u128 + (range * zero_off) / 1000000_u128;
+    let peak_scaled = 1_u128 + (range * quarter_off) / 1000000_u128;
+    let trough_scaled = 1_u128 + (range * trough_off) / 1000000_u128;
 
-    println!("Scaled sin^2(0) = {}", zero_scaled);
-    println!("Scaled sin^2(pi/2) = {}", quarter_scaled);
-    println!("Scaled sin^2(pi) = {}", half_scaled);
+    println!("Scaled offset sin(0) = {}", zero_scaled);
+    println!("Scaled offset sin(pi/2) = {}", peak_scaled);
+    println!("Scaled offset sin(3pi/2) = {}", trough_scaled);
 }
 
 /// Test the sine approximation accuracy
@@ -231,22 +235,38 @@ fn test_sine_debug() {
 /// reasonable values that match expected mathematical behavior
 #[test]
 fn test_sine_approximation() {
-    // Test that sine approximation produces reasonable values
-    let zero_sine = sine_fixed_point(0_u128);
-    let pi_half_sine = sine_fixed_point(PI_SCALED / 2_u128);
-    let pi_sine = sine_fixed_point(PI_SCALED);
+    let scale_i: i128 = 1000000;
+    let zero_sine = sine_signed_fixed_point(0_u128);
+    let pi_half_sine = sine_signed_fixed_point(PI_SCALED / 2_u128);
+    let pi_sine = sine_signed_fixed_point(PI_SCALED);
+    let three_half_sine = sine_signed_fixed_point(PI_SCALED * 3_u128 / 2_u128);
 
-    // sin(0) should be close to 0 (allowing for approximation error)
-    assert(zero_sine < 10000_u128, 'sin(0) should be close to 0');
+    let zero_abs: i128 = if zero_sine < 0 { -zero_sine } else { zero_sine };
+    let pi_abs: i128 = if pi_sine < 0 { -pi_sine } else { pi_sine };
+    assert(zero_abs < 10000, 'sin(0) near 0');
+    assert(pi_half_sine >= 900000 && pi_half_sine <= scale_i, 'sin(pi/2) peak');
+    assert(pi_abs < 10000, 'sin(pi) near 0');
+    assert(three_half_sine <= -900000, 'sin(3pi/2) trough');
+}
 
-    // sin(π/2) should equal SCALE (1000000) in our linear approximation
-    assert(
-        pi_half_sine >= 900000_u128 && pi_half_sine <= 1000000_u128,
-        'sin(pi/2) should be reasonable',
-    );
+/// One full cycle (length=100, freq=1, range 1–100) must peak near 100, trough near 1, mid near 50.
+#[test]
+fn test_offset_sine_wave_shape() {
+    let params = SineWaveParams {
+        min_value: 1_u32, max_value: 100_u32, frequency: 1_u32, length: 100_u32,
+    };
+    let result = sinusoidal_timing_wave(params);
 
-    // sin(π) should be close to 0 (allowing for approximation error)
-    assert(pi_sine < 10000_u128, 'sin(pi) should be close to 0');
+    let at_zero = *result.at(0);
+    let at_quarter = *result.at(25);
+    let at_half = *result.at(50);
+    let at_three_quarter = *result.at(75);
+
+    assert(at_quarter >= 90_u32, 'peak near max');
+    assert(at_three_quarter <= 10_u32, 'trough near min');
+    assert(at_zero >= 40_u32 && at_zero <= 60_u32, 'zero crossing mid');
+    assert(at_half >= 40_u32 && at_half <= 60_u32, 'pi crossing mid');
+    assert(at_quarter > at_three_quarter, 'peak above trough');
 }
 
 /// Test the simplified generate_wave function
@@ -285,8 +305,7 @@ fn test_modal_run_with_sine_contour() {
         min_value: 0_u32, max_value: 35_u32, frequency: 2_u32, length: 100_u32,
     };
 
-    // Generate the sine wave contour values
-    let sine_contour = sinusoidal_timing_wave_squared(params);
+    let sine_contour = sinusoidal_timing_wave(params);
 
     // Create a Dorian mode starting from C (note 0, octave 4)
     let tonic = PitchClass { note: 0_u8, octave: 4_u8 }; // C4

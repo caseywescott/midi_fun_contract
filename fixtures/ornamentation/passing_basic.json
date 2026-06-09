@@ -1,0 +1,7 @@
+{
+  "selection": { "kind": "seeded", "seed": 42 },
+  "styleProfile": "modal_canon",
+  "enabledOrnaments": ["PassingAscending"],
+  "input": { "degrees": [0, 2, 4, 7], "tonic": 60, "unit": 4 },
+  "expected": { "ornamentKinds": ["PassingAscending"], "deterministic": true }
+}

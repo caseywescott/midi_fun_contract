@@ -1,0 +1,6 @@
+{
+  "selection": { "kind": "seeded", "seed": 91 },
+  "enabledOrnaments": ["Suspension23Bass"],
+  "resolution": "bass_step_up",
+  "deterministic": true
+}

@@ -1,0 +1,6 @@
+{
+  "selection": { "kind": "seeded", "seed": 33 },
+  "styleProfile": "bebop",
+  "enabledOrnaments": ["EnclosureUpperFirst", "ChromaticApproachUpper"],
+  "deterministic": true
+}

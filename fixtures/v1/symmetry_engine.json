@@ -1,0 +1,38 @@
+{
+  "version": "v1",
+  "registry_size": 49,
+  "vectors": [
+    {
+      "seed": "0x3039",
+      "world_id": 12,
+      "mask": 2925,
+      "family_id": 7,
+      "motif_length": 4,
+      "name": "Octatonic Variant B"
+    },
+    {
+      "seed": "0x2a",
+      "world_id": 45,
+      "mask": 2470,
+      "family_id": 7,
+      "motif_length": 4,
+      "name": "Symmetric Set 46"
+    },
+    {
+      "seed": "0x309",
+      "world_id": 11,
+      "mask": 3055,
+      "family_id": 1,
+      "motif_length": 4,
+      "name": "Messiaen Mode 7"
+    },
+    {
+      "seed": "0xabcdef",
+      "world_id": 6,
+      "mask": 1755,
+      "family_id": 1,
+      "motif_length": 4,
+      "name": "Messiaen Mode 2"
+    }
+  ]
+}

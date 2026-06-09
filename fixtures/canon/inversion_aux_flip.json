@@ -1,0 +1,8 @@
+{
+  "selection": { "kind": "seeded", "seed": 201 },
+  "canonWorkflow": "ornamentFirst",
+  "appliedTransform": { "pitchMap": "invert" },
+  "ornament": "TrillUpper",
+  "expectedAuxiliary": "lower",
+  "deterministic": true
+}

@@ -1,0 +1,7 @@
+{
+  "selection": { "kind": "seeded", "seed": 55 },
+  "enabledOrnaments": ["Cambiata"],
+  "contourDegrees": [0, -1, -3, -2, -1],
+  "noteCount": 5,
+  "deterministic": true
+}

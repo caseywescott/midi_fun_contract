@@ -1,0 +1,12 @@
+{
+  "module": "harmonic_walk_v1",
+  "rewrite_fixture": "fixtures/harmonic_rewrites.json",
+  "continuation_fixture": "fixtures/harmonic_continuations.json",
+  "skeletons": [
+    "turnaround_axiom_3",
+    "two_five_one_1",
+    "blues_12",
+    "rhythm_changes_32"
+  ],
+  "tests": "scarb test -f test_harmonic"
+}

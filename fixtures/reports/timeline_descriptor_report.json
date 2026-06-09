@@ -1,0 +1,290 @@
+{
+  "catalog_checksum": "f31dc726d136d009e311a2d46e09ec422e8504a746221cdc666bbd3bda3ee11b",
+  "listening_review_status": "Pending human audition of Son-family canonical variants (rotation 0) and generated oriented candidates; use MIDI demos above as starting points.",
+  "midi_preview_paths": [
+    "demos/timeline_rhythm/reference_presets.mid",
+    "demos/timeline_rhythm/son_family_morph_walk.mid",
+    "demos/timeline_rhythm/son_phase_orbit.mid"
+  ],
+  "preset_distance_matrix": {
+    "distance_sq": [
+      [
+        0,
+        2,
+        4,
+        2,
+        4,
+        2
+      ],
+      [
+        2,
+        0,
+        2,
+        2,
+        2,
+        2
+      ],
+      [
+        4,
+        2,
+        0,
+        4,
+        6,
+        6
+      ],
+      [
+        2,
+        2,
+        4,
+        0,
+        2,
+        2
+      ],
+      [
+        4,
+        2,
+        6,
+        2,
+        0,
+        2
+      ],
+      [
+        2,
+        2,
+        6,
+        2,
+        2,
+        0
+      ]
+    ],
+    "labels": [
+      "Shiko",
+      "Son",
+      "Soukous",
+      "Rumba",
+      "Bossa-Nova",
+      "Gahu"
+    ]
+  },
+  "preset_morph_graph": {
+    "edges": [
+      {
+        "displacement": 1,
+        "from": "Shiko",
+        "to": "Son"
+      },
+      {
+        "displacement": 1,
+        "from": "Son",
+        "to": "Soukous"
+      },
+      {
+        "displacement": 1,
+        "from": "Son",
+        "to": "Rumba"
+      },
+      {
+        "displacement": 1,
+        "from": "Son",
+        "to": "Bossa-Nova"
+      },
+      {
+        "displacement": 1,
+        "from": "Bossa-Nova",
+        "to": "Gahu"
+      }
+    ],
+    "max_displacement": 1
+  },
+  "reference_only_families": {
+    "Bossa-Nova": {
+      "metric_complexity": 6,
+      "reference_ioi": [
+        3,
+        3,
+        4,
+        3,
+        3
+      ],
+      "son_distance_sq": 2,
+      "symmetry": "strong"
+    },
+    "Shiko": {
+      "metric_complexity": 2,
+      "reference_ioi": [
+        4,
+        2,
+        4,
+        2,
+        4
+      ],
+      "son_distance_sq": 2,
+      "symmetry": "strong"
+    },
+    "Soukous": {
+      "metric_complexity": 6,
+      "reference_ioi": [
+        3,
+        3,
+        4,
+        1,
+        5
+      ],
+      "son_distance_sq": 2,
+      "symmetry": "none"
+    }
+  },
+  "son_canonical_distance_matrix": {
+    "distance_sq": [
+      [
+        0,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      [
+        2,
+        0,
+        2,
+        2,
+        2,
+        2
+      ],
+      [
+        2,
+        2,
+        0,
+        4,
+        2,
+        2
+      ],
+      [
+        2,
+        2,
+        4,
+        0,
+        2,
+        2
+      ],
+      [
+        2,
+        2,
+        2,
+        2,
+        0,
+        2
+      ],
+      [
+        2,
+        2,
+        2,
+        2,
+        2,
+        0
+      ]
+    ],
+    "labels": [
+      "variant_0_rot_0",
+      "variant_1_rot_0",
+      "variant_2_rot_0",
+      "variant_3_rot_0",
+      "variant_4_rot_0",
+      "variant_5_rot_0"
+    ]
+  },
+  "son_family_variants": [
+    {
+      "ioi": [
+        2,
+        3,
+        3,
+        4,
+        4
+      ],
+      "label": "clave-derived timeline",
+      "mask_hex": "0x1125",
+      "metric_complexity": 2,
+      "son_distance_sq": 2,
+      "symmetry": "none",
+      "variant_id": 0
+    },
+    {
+      "ioi": [
+        2,
+        3,
+        4,
+        3,
+        4
+      ],
+      "label": "clave-derived timeline",
+      "mask_hex": "0x1225",
+      "metric_complexity": 5,
+      "son_distance_sq": 2,
+      "symmetry": "none",
+      "variant_id": 1
+    },
+    {
+      "ioi": [
+        2,
+        3,
+        4,
+        4,
+        3
+      ],
+      "label": "clave-derived timeline",
+      "mask_hex": "0x2225",
+      "metric_complexity": 7,
+      "son_distance_sq": 4,
+      "symmetry": "weak",
+      "variant_id": 2
+    },
+    {
+      "ioi": [
+        2,
+        4,
+        3,
+        3,
+        4
+      ],
+      "label": "clave-derived timeline",
+      "mask_hex": "0x1245",
+      "metric_complexity": 4,
+      "son_distance_sq": 0,
+      "symmetry": "weak",
+      "variant_id": 3
+    },
+    {
+      "ioi": [
+        2,
+        4,
+        3,
+        4,
+        3
+      ],
+      "label": "clave-derived timeline",
+      "mask_hex": "0x2245",
+      "metric_complexity": 6,
+      "son_distance_sq": 2,
+      "symmetry": "none",
+      "variant_id": 4
+    },
+    {
+      "ioi": [
+        2,
+        4,
+        4,
+        3,
+        3
+      ],
+      "label": "clave-derived timeline",
+      "mask_hex": "0x2445",
+      "metric_complexity": 5,
+      "son_distance_sq": 2,
+      "symmetry": "none",
+      "variant_id": 5
+    }
+  ],
+  "son_oriented_candidate_count": 96
+}

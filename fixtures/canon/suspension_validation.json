@@ -1,0 +1,7 @@
+{
+  "selection": { "kind": "seeded", "seed": 150 },
+  "canonWorkflow": "canonFirst",
+  "ornament": "Suspension43",
+  "verticalPolicy": { "allowPreparedDissonance": true },
+  "deterministic": true
+}

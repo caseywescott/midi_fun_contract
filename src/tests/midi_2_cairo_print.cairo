@@ -11,13 +11,24 @@ mod tests {
     use koji::midi::pitch::{
         get_notes_of_key, keynum_to_pc, modal_transposition, pc_to_keynum,
     };
+    use koji::midi::modes::dorian_steps;
     use koji::midi::types::{Direction, Message, Midi, Modes, NoteOff, NoteOn, PitchClass, SetTempo};
-    use koji::sine_wave::{SineWaveParams, sinusoidal_timing_wave_squared};
+    use koji::sine_wave::{
+        contour_to_duration_symmetric_us, long_sequence_timing_wave_freq, modal_contour_wave,
+        MODAL_CONTOUR_LEN, MODAL_CONTOUR_MAX, MODAL_CONTOUR_MIN, textured_span_ticks,
+    };
     use koji::composition::envelope::{TimePoint, PitchRangeEnvelope, range_at};
     use koji::composition::tendency_mask::pick_pitch_in_range;
     use koji::composition::rhythmic_tiling::{
         generate_rhythmic_canon, generate_rhythmic_canon_for_cycle,
         generate_rhythmic_canon_for_cycle_min_voices, canon_to_events, RhythmicVoice,
+    };
+    use koji::composition::known_timeline_rhythms::all_preset_ids;
+    use koji::composition::phase_rhythm::{phase_orbit_length, render_phase_plan, PhaseRhythmPlan};
+    use koji::composition::timeline_rhythm::{
+        PRESET_SON, SYMMETRY_ANY, SYMMETRY_WEAK, TimelineRhythm, TimelineSelectionProfile,
+        generate_profiled_son_family_timeline, generate_son_family_timeline, known_timeline,
+        next_known_morph, son_family_candidate_at_index, timeline_accent, timeline_to_events,
     };
     use koji::composition::symmetry_engine::{
         add_pitch, generate_world_chord, generate_world_motif, get_pitch_at_index, get_world_by_id,
@@ -38,9 +49,52 @@ mod tests {
         uniform_mode_timeline, count_tiling_voices,
     };
     use koji::composition::symmetry_engine::has_pitch;
-    use koji::composition::melodic_canon::{
-        generate_melodic_canon, generate_ornamented_canon, canon_to_note_events,
-        canon_to_ornamented_note_events,
+    use koji::composition::melodic_motion::{ORN_FILL_MATERIAL, ORN_FILL_MIN_STEP};
+    use koji::composition::jazz_harmony::{
+        turnaround_has_tritone_sub, turnaround_plan_from_canon_seed,
+    };
+use koji::composition::melodic_canon::{
+    generate_melodic_canon, generate_melodic_canon_with_params, generate_ornamented_canon,
+    generate_profiled_ornamented_canon,
+    generate_jazz_improv_ornamented_canon, generate_jazz_improv_ornamented_canon_light,
+    generate_jazz_improv_harmonic_walk_ornamented_canon,
+    generate_pentatonic_smooth_ornamented_canon,
+        generate_ligeti_banded_canon, canon_to_note_events,
+        canon_to_ornamented_note_events, canon_to_ornamented_note_events_with_fill,
+        remap_events_with_timing_wave, NoteEvent,
+    };
+    use koji::composition::ornamentation_v2::canon::v2_note_to_legacy;
+    use koji::composition::ornamentation_v2::engine::{default_config, ornament_canon};
+    use koji::composition::ornamentation_v2::profiles::profile_common_practice;
+    use koji::composition::ornamentation_v2::types::{
+        all_enabled_ornaments, HarmonyEvent, WORKFLOW_CANON_FIRST,
+    };
+    use koji::composition::canon_entry_rules::{
+        EntryLagCanonConfig, config_three_voice_5b_8va_lag2,
+    };
+    use koji::composition::entry_lag_canon::{
+        generate_entry_lag_ornamented_canon, canon_texture_span,
+    };
+    use koji::composition::baroque_improvisation::{
+        generate_baroque_cadential_improvisation,
+        generate_baroque_cadential_improvisation_with_transforms,
+        baroque_to_note_events, validate_baroque_realization,
+        MODULE_CADENCE_FRENCH_LONG5, MODULE_CADENCE_DESC_3451,
+        MODULE_CADENZA_DOPPIA, MODULE_FAUXBOURDON_76, MODULE_ROMANESCA,
+    };
+    use koji::composition::parsimonious_progression::{
+        generate_parsimonious_progression, generate_ornamented_parsimonious_progression,
+        voice_leading_smooth, no_minor_ninth_in_chords,
+    };
+    use koji::composition::voice_leading::{
+        generate_ornamented_min_motion_progression, ornamented_min_motion_cycle_ticks,
+    };
+    use koji::composition::harmonic_walk::{
+        generate_ornamented_harmonic_walk_progression, harmonic_walk_progression_cycle_ticks,
+        harmonic_walk_demo_seed, jazz_canon_walk_demo_seed,
+    };
+    use koji::composition::transform::{
+        apply_to_object, assemble, MusicalObject, Pipeline, PlaneId, PlaneOp, U32Pair,
     };
     use koji::rng::{LCGRandomSource, RandomSource};
 
@@ -1189,6 +1243,85 @@ mod tests {
         assert!(*binary.get(1).unwrap().unbox() == 0x54, "byte 1 should be T");
         assert!(*binary.get(2).unwrap().unbox() == 0x68, "byte 2 should be h");
         assert!(*binary.get(3).unwrap().unbox() == 0x64, "byte 3 should be d");
+    }
+
+    /// Walk `contour` diatonic steps from tonic — monotonic in contour, no modulo wrap jumps.
+    fn contour_to_dorian_keynum(
+        contour_value: u32, tonic: PitchClass, mode_steps: Span<u8>,
+    ) -> u8 {
+        let steps: u8 = contour_value.try_into().unwrap();
+        let keynum = modal_transposition(tonic, tonic, mode_steps, steps, Direction::Up(()));
+        if keynum > 127_u8 {
+            127_u8
+        } else {
+            keynum
+        }
+    }
+
+    fn transpose_keynum_diatonic(
+        keynum: u8, offset: i32, tonic: PitchClass, steps: Span<u8>,
+    ) -> u8 {
+        let pc = keynum_to_pc(keynum);
+        if offset >= 0 {
+            let n: u8 = offset.try_into().unwrap();
+            modal_transposition(pc, tonic, steps, n, Direction::Up(()))
+        } else {
+            let n: u8 = (-offset).try_into().unwrap();
+            modal_transposition(pc, tonic, steps, n, Direction::Down(()))
+        }
+    }
+
+    /// Cumulative onsets (µs); timing is symmetric — slowest at peak/trough, fastest at mid-crossing.
+    fn build_modal_run_schedule(
+        contour: Span<u32>, min_us: u64, max_us: u64, total_slots: u32,
+    ) -> Array<u64> {
+        let mut starts: Array<u64> = ArrayTrait::new();
+        let mut t: u64 = 0;
+        let mut i: u32 = 0;
+        loop {
+            if i >= total_slots {
+                break;
+            }
+            starts.append(t);
+            let cv = *contour.at(i % contour.len());
+            t += contour_to_duration_symmetric_us(
+                cv, MODAL_CONTOUR_MIN, MODAL_CONTOUR_MAX, min_us, max_us,
+            );
+            i += 1;
+        };
+        starts
+    }
+
+    /// One voice of a sin modal run: pitch follows contour; timing is symmetric around mid-contour.
+    fn append_modal_run_voice(
+        ref eventlist: Array<Message>,
+        channel: u8,
+        contour: Span<u32>,
+        schedule: Span<u64>,
+        start_slot: u32,
+        tonic: PitchClass,
+        mode_steps: Span<u8>,
+        diatonic_offset: i32,
+        min_us: u64,
+        max_us: u64,
+    ) -> u32 {
+        let n = contour.len();
+        let mut i: u32 = 0;
+        loop {
+            if i >= n {
+                break;
+            }
+            let cv = *contour.at(i);
+            let keynum = contour_to_dorian_keynum(cv, tonic, mode_steps);
+            let pitch = transpose_keynum_diatonic(keynum, diatonic_offset, tonic, mode_steps);
+            let on = *schedule.at(start_slot + i);
+            let dur = contour_to_duration_symmetric_us(
+                cv, MODAL_CONTOUR_MIN, MODAL_CONTOUR_MAX, min_us, max_us,
+            );
+            append_legato_note(ref eventlist, channel, pitch, 90, on, on + dur);
+            i += 1;
+        };
+        n
     }
 
     /// Append a legato note pair (NOTE_ON + NOTE_OFF) at absolute microsecond times.
@@ -3700,6 +3833,97 @@ mod tests {
     }
 
     /// Append a long ornamented melodic canon (Montanos "divided" style) to a MIDI event list.
+    fn pow2_u256(p: u32) -> u256 {
+        let mut r: u256 = 1;
+        let mut i: u32 = 0;
+        loop {
+            if i >= p {
+                break;
+            }
+            r *= 2;
+            i += 1;
+        };
+        r
+    }
+
+    fn extract_seed_bits(s: u256, shift: u32, width: u32) -> u32 {
+        let v = (s / pow2_u256(shift)) % pow2_u256(width);
+        v.try_into().unwrap()
+    }
+
+    /// Ornament RNG sub-seed — same bit layout as `plan_ornament_subdivisions` in
+    /// `generate_ornamented_canon`, so v1 and v2 demos share comparable entropy from one seed.
+    fn v2_ornament_seed_from_canon_seed(seed: felt252) -> felt252 {
+        let s: u256 = seed.into();
+        let mut orn = extract_seed_bits(s, 51, 8) % 256;
+        if orn == 0 {
+            orn = 19;
+        }
+        orn.into()
+    }
+
+    /// Long canon with v2 typed-ornament engine (canon-first, per-voice elaboration).
+    /// Structural frame matches `generate_melodic_canon_with_params`; surface comes from
+    /// `ornamentation_v2` rule selection instead of Montanos subdivisions.
+    fn append_long_v2_ornamented_canon(
+        ref eventlist: Array<Message>,
+        seed: felt252,
+        config_id: u32,
+        length: u32,
+        step_us: u64,
+        num_loops: u32,
+    ) -> u32 {
+        let canon = generate_melodic_canon_with_params(seed, config_id, length);
+        let len = canon.leader_degrees.len();
+        let nv = canon.voices.len();
+        let unit = canon.time_unit;
+        let cycle_ticks = (len + nv - 1) * unit;
+
+        let mut harmony: Array<HarmonyEvent> = ArrayTrait::new();
+        let tonic_pc = canon.tonic_keynum % 12;
+        harmony
+            .append(
+                HarmonyEvent {
+                    root_pc: tonic_pc,
+                    bass_pc: tonic_pc,
+                    start: 0,
+                    duration: cycle_ticks * num_loops * unit,
+                    function_label: 0,
+                },
+            );
+
+        let mut cfg = default_config(v2_ornament_seed_from_canon_seed(seed));
+        cfg.style = profile_common_practice();
+        cfg.canon_workflow = WORKFLOW_CANON_FIRST;
+        let enabled = all_enabled_ornaments();
+        let result = ornament_canon(@canon, harmony.span(), cfg, enabled.span());
+        let events = result.events;
+        let n = events.len();
+        assert!(n > 0, "v2 ornamented canon events");
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let legacy = v2_note_to_legacy(*events.at(i));
+                let on: Time = base + legacy.time.into() * step_us;
+                let off: Time = on + legacy.duration.into() * step_us;
+                let channel: u8 = legacy.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, legacy.pitch, legacy.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        n * num_loops
+    }
+
     fn append_long_ornamented_canon(
         ref eventlist: Array<Message>,
         seed: felt252,
@@ -3738,6 +3962,95 @@ mod tests {
             loop_i += 1;
         };
         n * num_loops
+    }
+
+    /// Append a long ornamented entry-lag canon (custom follower entry delays).
+    fn append_long_entry_lag_ornamented_canon(
+        ref eventlist: Array<Message>,
+        seed: felt252,
+        config: EntryLagCanonConfig,
+        length: u32,
+        step_us: u64,
+        num_loops: u32,
+    ) -> u32 {
+        let (canon, subs) = generate_entry_lag_ornamented_canon(seed, config, length);
+        let events = canon_to_ornamented_note_events(@canon, subs.span());
+        let n = events.len();
+        assert!(n > 0, "entry-lag ornamented events");
+        let unit = canon.time_unit;
+        let cycle_ticks = canon_texture_span(@canon) * unit;
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        n * num_loops
+    }
+
+    /// Long ornamented canon with offset-sine tempo rubato: leader structural beats define the
+    /// wave; followers inherit the same scale factor at each imitated position.
+    fn append_long_ornamented_canon_with_sine_tempo(
+        ref eventlist: Array<Message>,
+        seed: felt252,
+        config_id: u32,
+        length: u32,
+        step_us: u64,
+        num_loops: u32,
+        wave_frequency: u32,
+    ) -> u32 {
+        let (canon, subs) = generate_ornamented_canon(seed, config_id, length);
+        let events = canon_to_ornamented_note_events(@canon, subs.span());
+        let n = events.len();
+        assert!(n > 0, "ornamented canon events");
+        let len = canon.leader_degrees.len();
+        let nv = canon.voices.len();
+        let unit = canon.time_unit;
+        let span = len + nv - 1;
+        let wave = long_sequence_timing_wave_freq(span, wave_frequency);
+        let scaled_events = remap_events_with_timing_wave(
+            events.span(), wave.span(), unit, canon.voices,
+        );
+        let scaled_n = scaled_events.len();
+        assert!(scaled_n > 0, "scaled ornamented events");
+        let cycle_ticks = textured_span_ticks(wave.span(), unit, span);
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= scaled_n {
+                    break;
+                }
+                let e = *scaled_events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        scaled_n * num_loops
     }
 
     /// Renaissance improvised canon (Schubert / Cumming): a seeded melodic canon rendered to
@@ -3810,6 +4123,326 @@ mod tests {
         assert_valid_demo_midi(@midiobj, n);
     }
 
+    fn render_baroque_seed_midi(seed: felt252, step_us: u64) -> u32 {
+        let real = generate_baroque_cadential_improvisation(seed);
+        assert!(validate_baroque_realization(@real), "baroque valid");
+        let events = baroque_to_note_events(@real);
+        let n = events.len();
+        assert!(n > 0, "baroque produced events");
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut i: u32 = 0;
+        loop {
+            if i >= n {
+                break;
+            }
+            let e = *events.at(i);
+            let on: Time = e.time.into() * step_us;
+            let off: Time = on + e.duration.into() * step_us;
+            let channel: u8 = e.voice_id.try_into().unwrap();
+            append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+            i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, n);
+        n
+    }
+
+    fn baroque_soft_velocity(v: u8) -> u8 {
+        let vu: u32 = v.into();
+        if vu > 14 {
+            (vu - 12).try_into().unwrap()
+        } else {
+            v
+        }
+    }
+
+    fn baroque_neighbor_pitch(pitch: u8, index: u32) -> u8 {
+        let p: u32 = pitch.into();
+        if index % 4 == 0 && p < 104 {
+            (p + 2).try_into().unwrap()
+        } else if p > 36 {
+            (p - 1).try_into().unwrap()
+        } else {
+            pitch
+        }
+    }
+
+    fn append_baroque_demo_event(
+        ref eventlist: Array<Message>,
+        e: NoteEvent,
+        section_base: Time,
+        step_us: u64,
+        ornament_rate: u32,
+        event_index: u32,
+    ) -> u32 {
+        let on: Time = section_base + e.time.into() * step_us;
+        let dur_us: Time = e.duration.into() * step_us;
+        let off: Time = on + dur_us;
+        let channel: u8 = e.voice_id.try_into().unwrap();
+
+        if e.voice_id == 0 && e.duration >= 4 && ornament_rate > 0
+            && event_index % ornament_rate == 0 {
+            let mid: Time = on + dur_us / 2;
+            let orn = baroque_neighbor_pitch(e.pitch, event_index);
+            append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, mid);
+            append_legato_note(
+                ref eventlist, channel, orn, baroque_soft_velocity(e.velocity), mid, off,
+            );
+            2
+        } else {
+            append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+            1
+        }
+    }
+
+    fn append_baroque_seed_section_with_transforms(
+        ref eventlist: Array<Message>,
+        seed: felt252,
+        ref section_base: Time,
+        step_us: u64,
+        ornament_rate: u32,
+    ) -> u32 {
+        let real = generate_baroque_cadential_improvisation_with_transforms(seed);
+        assert!(validate_baroque_realization(@real), "baroque transforms valid");
+        let events = baroque_to_note_events(@real);
+        let n = events.len();
+        assert!(n > 0, "baroque transform events");
+
+        let mut emitted: u32 = 0;
+        let mut max_tick: u32 = 0;
+        let mut i: u32 = 0;
+        loop {
+            if i >= n {
+                break;
+            }
+            let e = *events.at(i);
+            let event_end = e.time + e.duration;
+            if event_end > max_tick {
+                max_tick = event_end;
+            }
+            emitted += append_baroque_demo_event(
+                ref eventlist, e, section_base, step_us, ornament_rate, i,
+            );
+            i += 1;
+        };
+
+        section_base += (max_tick.into() + 2) * step_us;
+        emitted
+    }
+
+    fn append_baroque_seed_section(
+        ref eventlist: Array<Message>,
+        seed: felt252,
+        ref section_base: Time,
+        step_us: u64,
+        ornament_rate: u32,
+    ) -> u32 {
+        let real = generate_baroque_cadential_improvisation(seed);
+        assert!(validate_baroque_realization(@real), "baroque valid");
+        let events = baroque_to_note_events(@real);
+        let n = events.len();
+        assert!(n > 0, "baroque events");
+
+        let mut emitted: u32 = 0;
+        let mut max_tick: u32 = 0;
+        let mut i: u32 = 0;
+        loop {
+            if i >= n {
+                break;
+            }
+            let e = *events.at(i);
+            let event_end = e.time + e.duration;
+            if event_end > max_tick {
+                max_tick = event_end;
+            }
+            emitted += append_baroque_demo_event(
+                ref eventlist, e, section_base, step_us, ornament_rate, i,
+            );
+            i += 1;
+        };
+
+        section_base += (max_tick.into() + 2) * step_us;
+        emitted
+    }
+
+    fn render_long_baroque_suite(seeds: Span<felt252>, step_us: u64, ornament_rate: u32) -> u32 {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut note_ons: u32 = 0;
+        let mut section_base: Time = 0;
+        let mut i: u32 = 0;
+        loop {
+            if i >= seeds.len() {
+                break;
+            }
+            note_ons += append_baroque_seed_section(
+                ref eventlist, *seeds.at(i), ref section_base, step_us, ornament_rate,
+            );
+            i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+        note_ons
+    }
+
+    /// Seeded Baroque cadential improvisation: schema melody, Romanesca, cadenza doppia, and
+    /// French long-five closure rendered through the same NoteEvent -> MIDI path as the canons.
+    ///
+    /// Export: `scarb test -- --filter baroque_cadential_improvisation_midi_test`
+    #[test]
+    #[available_gas(3000000000000)]
+    fn baroque_cadential_improvisation_midi_test() {
+        let n = render_baroque_seed_midi(2, 260000); // modular etude family
+        assert!(n > 20, "baroque full etude");
+    }
+
+    /// Compact French/brise realization of the 3-4-5-1 cadence family.
+    ///
+    /// Export: `scarb test -- --filter baroque_cadence_3451_brise_midi_test`
+    #[test]
+    #[available_gas(3000000000000)]
+    fn baroque_cadence_3451_brise_midi_test() {
+        let real = generate_baroque_cadential_improvisation(32); // family 0, French long-five
+        assert!(*real.plan.modules.at(0) == MODULE_CADENCE_FRENCH_LONG5, "french module");
+        let n = render_baroque_seed_midi(32, 280000);
+        assert!(n > real.bass.len(), "brise additions");
+    }
+
+    /// Fauxbourdon 7-6 suspension chain into a French long-five close.
+    ///
+    /// Export: `scarb test -- --filter baroque_fauxbourdon_76_long5_midi_test`
+    #[test]
+    #[available_gas(3000000000000)]
+    fn baroque_fauxbourdon_76_long5_midi_test() {
+        let real = generate_baroque_cadential_improvisation(1); // family 1, fauxbourdon
+        assert!(*real.plan.modules.at(0) == MODULE_FAUXBOURDON_76, "fauxbourdon module");
+        assert!(*real.plan.modules.at(1) == MODULE_CADENCE_FRENCH_LONG5, "long five close");
+        let n = render_baroque_seed_midi(1, 260000);
+        assert!(n > 20, "fauxbourdon events");
+    }
+
+    /// Romanesca chain, cadenza doppia modulation to V, transposed repeat, and closing cadence.
+    ///
+    /// Export: `scarb test -- --filter baroque_romanesca_cadenza_doppia_midi_test`
+    #[test]
+    #[available_gas(3000000000000)]
+    fn baroque_romanesca_cadenza_doppia_midi_test() {
+        let real = generate_baroque_cadential_improvisation(2); // modular etude
+        assert!(*real.plan.modules.at(0) == MODULE_ROMANESCA, "romanesca module");
+        assert!(*real.plan.modules.at(1) == MODULE_CADENZA_DOPPIA, "doppia module");
+        let n = render_baroque_seed_midi(2, 260000);
+        assert!(n > 40, "romanesca doppia events");
+    }
+
+    /// Natural-minor and harmonic-minor scalar closures over the descending 3-4-5-1 cadence.
+    ///
+    /// Export: `scarb test -- --filter baroque_descending_scales_minor_midi_test`
+    #[test]
+    #[available_gas(3000000000000)]
+    fn baroque_descending_scales_minor_midi_test() {
+        let natural = generate_baroque_cadential_improvisation(48); // natural minor, desc 3451
+        let harmonic = generate_baroque_cadential_improvisation(1072); // harmonic minor, desc 3451
+        assert!(*natural.plan.modules.at(0) == MODULE_CADENCE_DESC_3451, "natural desc");
+        assert!(*harmonic.plan.modules.at(0) == MODULE_CADENCE_DESC_3451, "harmonic desc");
+        let n1 = render_baroque_seed_midi(48, 300000);
+        let n2 = render_baroque_seed_midi(1072, 300000);
+        assert!(n1 > 0 && n2 > 0, "minor scalar events");
+    }
+
+    /// Mixed module tour with transform-developed scaffold passing tones + moderate ornaments.
+    /// Cadence modules unchanged; upper voice gets stepwise filler from `develop_scaffold_melody`.
+    ///
+    /// Export: `scarb test -- --filter baroque_melody_transform_cadence_tour_midi_test`
+    #[test]
+    #[available_gas(9000000000000)]
+    fn baroque_melody_transform_cadence_tour_midi_test() {
+        let seeds = array![32, 1, 17, 49, 48, 1072, 2, 33, 64, 16, 1, 2];
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut note_ons: u32 = 0;
+        let mut section_base: Time = 0;
+        let mut i: u32 = 0;
+        loop {
+            if i >= seeds.len() {
+                break;
+            }
+            note_ons += append_baroque_seed_section_with_transforms(
+                ref eventlist, *seeds.at(i), ref section_base, 240000, 3,
+            );
+            i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+        assert!(note_ons > 280, "melody transform tour");
+    }
+
+    /// Long mixed Baroque module tour, moderately ornamented:
+    /// French/brise cadence, fauxbourdon 7-6, circle/ascending fifths, scalar minor cadences,
+    /// Romanesca, and cadenza doppia. Around a minute at 120 BPM.
+    ///
+    /// Export: `scarb test -- --filter baroque_long_moderate_ornament_showcase_midi_test`
+    #[test]
+    #[available_gas(9000000000000)]
+    fn baroque_long_moderate_ornament_showcase_midi_test() {
+        let seeds = array![32, 1, 17, 49, 48, 1072, 2, 33, 64, 16, 1, 2];
+        let n = render_long_baroque_suite(seeds.span(), 240000, 3);
+        assert!(n > 260, "long baroque showcase");
+    }
+
+    /// Long sequence/modulation study: chains fauxbourdon, circle-of-fifths, ascending fifths,
+    /// Romanesca, and multiple cadenza doppia phrases to feature the new local-key handling.
+    ///
+    /// Export: `scarb test -- --filter baroque_long_sequence_modulation_midi_test`
+    #[test]
+    #[available_gas(9000000000000)]
+    fn baroque_long_sequence_modulation_midi_test() {
+        let seeds = array![1, 17, 33, 49, 2, 33, 2, 49, 17, 1, 2, 32];
+        let n = render_long_baroque_suite(seeds.span(), 230000, 4);
+        assert!(n > 300, "long sequence modulation");
+    }
+
+    /// Long minor scalar cadence suite: alternates natural/harmonic minor and 3-4-5-1 /
+    /// 4-2-5-1 scalar descents with moderate upper-line diminutions (~2 min @ 120 BPM).
+    ///
+    /// Export: `scarb test -- --filter baroque_long_minor_scalar_cadences_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn baroque_long_minor_scalar_cadences_midi_test() {
+        let seeds = array![
+            48, 1072, 64, 1088, 16, 1040, 48, 1072, 64, 1088, 32, 0, 48, 1072, 64, 1088, 16,
+            1040, 48, 1072, 64, 1088, 32, 0, 48, 1072, 64, 1088, 16, 1040, 48, 1072, 64, 1088,
+            32, 0,
+        ];
+        let n = render_long_baroque_suite(seeds.span(), 240000, 3);
+        assert!(n > 500, "long minor scalar cadences");
+    }
+
+    /// Long cadential study: 4-3, 3-4-5-1 brise, French long-five, and scalar descents
+    /// with moderate neighbor-tone diminutions on the upper voice.
+    ///
+    /// Export: `scarb test -- --filter baroque_long_cadential_brise_midi_test`
+    #[test]
+    #[available_gas(9000000000000)]
+    fn baroque_long_cadential_brise_midi_test() {
+        let seeds = array![
+            0, 16, 32, 48, 64, 0, 16, 32, 48, 64, 32, 16, 0, 32, 0, 16, 32, 48, 64, 32, 16, 0,
+            16, 32, 48, 64, 0, 16, 32,
+        ];
+        let n = render_long_baroque_suite(seeds.span(), 240000, 3);
+        assert!(n > 300, "long cadential brise");
+    }
+
     /// Long two-voice canon at the fifth below with passing-tone / division ornamentation.
     /// 40 structural notes × 2 loops ≈ 80 s @ 120 BPM.
     ///
@@ -3845,6 +4478,151 @@ mod tests {
         assert_valid_demo_midi(@midiobj, note_ons);
     }
 
+    /// Same structural canon as `renaissance_canon_long_3voice_ornamented_midi_test` (seed 4343,
+    /// config 4 = three-voice 5th-below + octave stack, length 36, 2 loops) but surface
+    /// elaboration uses the v2 typed-ornament engine (passing, neighbors, suspensions, turns,
+    /// etc.) with common-practice weighting instead of Montanos subdivision plans.
+    ///
+    /// Export: `scarb test -f renaissance_canon_long_3voice_v2_ornamented_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn renaissance_canon_long_3voice_v2_ornamented_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_v2_ornamented_canon(
+            ref eventlist, 4343, 4, 36, 250000, 2,
+        );
+        assert!(note_ons >= 180, "long 3-voice v2 ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Same canon as `renaissance_canon_long_3voice_ornamented_midi_test` with offset-sine tempo
+    /// rubato at **4 cycles** over the structural span (leader scale propagated to followers).
+    ///
+    /// Export: `scarb test -f renaissance_canon_long_3voice_ornamented_sine_tempo_midi_test`
+    #[test]
+    #[available_gas(5000000000000)]
+    fn renaissance_canon_long_3voice_ornamented_sine_tempo_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_ornamented_canon_with_sine_tempo(
+            ref eventlist, 4343, 4, 36, 250000, 2, 4,
+        );
+        assert!(note_ons >= 180, "long 3-voice ornamented sine tempo");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Long three-voice canon (5th below + octave stack) with two-note entry spacing between
+    /// voices and Montanos-style ornamentation, 2 loops.
+    ///
+    /// Export: `scarb test -- --filter renaissance_canon_long_3voice_lag2_ornamented_midi_test`
+    #[test]
+    #[available_gas(4000000000000)]
+    fn renaissance_canon_long_3voice_lag2_ornamented_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_entry_lag_ornamented_canon(
+            ref eventlist,
+            4343,
+            config_three_voice_5b_8va_lag2(),
+            36,
+            250000,
+            2,
+        );
+        assert!(note_ons >= 180, "long 3-voice lag2 ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Sin modal run — single voice. Pitch follows offset sin; timing is symmetric at extrema.
+    ///
+    /// Export: `scarb test -f modal_run_sine_contour_midi_test`
+    #[test]
+    #[available_gas(2000000000000)]
+    fn modal_run_sine_contour_midi_test() {
+        let contour = modal_contour_wave();
+        let tonic = PitchClass { note: 0_u8, octave: 4_u8 };
+        let steps = dorian_steps();
+        let min_us: u64 = 150_000;
+        let max_us: u64 = 450_000;
+        let schedule = build_modal_run_schedule(contour.span(), min_us, max_us, MODAL_CONTOUR_LEN);
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let n = append_modal_run_voice(
+            ref eventlist,
+            0,
+            contour.span(),
+            schedule.span(),
+            0,
+            tonic,
+            steps,
+            0,
+            min_us,
+            max_us,
+        );
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, n);
+    }
+
+    /// Three-voice canon of the sin modal run: same contour on every voice, staggered entries.
+    ///
+    /// Export: `scarb test -f renaissance_canon_modal_run_sine_contour_midi_test`
+    #[test]
+    #[available_gas(4000000000000)]
+    fn renaissance_canon_modal_run_sine_contour_midi_test() {
+        let contour = modal_contour_wave();
+        let n = contour.len();
+        let entry_gap: u32 = 10;
+        let num_voices: u32 = 3;
+        let total_slots = (num_voices - 1) * entry_gap + n;
+        let tonic = PitchClass { note: 0_u8, octave: 4_u8 };
+        let steps = dorian_steps();
+        let min_us: u64 = 150_000;
+        let max_us: u64 = 450_000;
+        let schedule = build_modal_run_schedule(contour.span(), min_us, max_us, total_slots);
+
+        let mut offsets: Array<i32> = ArrayTrait::new();
+        offsets.append(0);
+        offsets.append(-4);
+        offsets.append(3);
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut vi: u32 = 0;
+        let mut note_ons: u32 = 0;
+        loop {
+            if vi >= num_voices {
+                break;
+            }
+            let start_slot = vi * entry_gap;
+            note_ons += append_modal_run_voice(
+                ref eventlist,
+                vi.try_into().unwrap(),
+                contour.span(),
+                schedule.span(),
+                start_slot,
+                tonic,
+                steps,
+                *offsets.at(vi),
+                min_us,
+                max_us,
+            );
+            vi += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
     /// Long four-voice stacked-fifth-below canon with ornamentation, 2 loops.
     ///
     /// Export: `scarb test -- --filter renaissance_canon_long_4voice_ornamented_midi_test`
@@ -3860,6 +4638,475 @@ mod tests {
         let midiobj = Midi { events: eventlist.span() };
         generate_parser_format(@midiobj);
         assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // Extended-harmony aesthetic profiles — long, heavily-ornamented 4-voice canons.
+    // See docs/extended_harmony_canon_spec.md. Each is correct (clash-free) by construction under
+    // its profile; renders to MIDI exactly like the Renaissance long-canon demos.
+    // ──────────────────────────────────────────────────────────
+
+    /// Append a long ornamented canon under any *profiled* config (jazz / quartal / planing /
+    /// Hindemith). Mirrors `append_long_ornamented_canon` but routes through the profile-aware
+    /// generator so chromatic (mod-12) realization and per-profile alphabets are used.
+    fn append_long_profiled_canon(
+        ref eventlist: Array<Message>,
+        seed: felt252,
+        config_id: u32,
+        length: u32,
+        step_us: u64,
+        num_loops: u32,
+    ) -> u32 {
+        let (canon, subs) = generate_profiled_ornamented_canon(seed, config_id, length);
+        let events = canon_to_ornamented_note_events(@canon, subs.span());
+        let n = events.len();
+        assert!(n > 0, "profiled canon events");
+        let len = canon.leader_degrees.len();
+        let nv = canon.voices.len();
+        let unit = canon.time_unit;
+        let cycle_ticks = (len + nv - 1) * unit;
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        n * num_loops
+    }
+
+    /// Quantize MIDI pitch to nearest pitch in a 7-note mode (pc set), preferring downward ties.
+    fn quantize_to_mode_pitch(pitch: u8, mode_pcs: Span<u8>) -> u8 {
+        let p: i32 = pitch.into();
+        let pc: i32 = (p % 12 + 12) % 12;
+        let mut best: i32 = p;
+        let mut best_dist: i32 = 127;
+        let mut i: u32 = 0;
+        loop {
+            if i >= mode_pcs.len() {
+                break;
+            }
+            let tgt: i32 = (*mode_pcs.at(i)).into();
+            let mut diff = tgt - pc;
+            if diff > 6 {
+                diff -= 12;
+            } else if diff < -6 {
+                diff += 12;
+            }
+            let adiff = if diff < 0 { -diff } else { diff };
+            if adiff < best_dist || (adiff == best_dist && diff <= 0) {
+                best_dist = adiff;
+                best = p + diff;
+            }
+            i += 1;
+        };
+        if best < 0 {
+            0
+        } else if best > 127 {
+            127
+        } else {
+            best.try_into().unwrap()
+        }
+    }
+
+    /// Append a long ornamented profiled canon, then modal-quantize pitches so the melody is less
+    /// chromatic while preserving the dense subdivision rhythm and voice layout.
+    fn append_long_profiled_canon_modal(
+        ref eventlist: Array<Message>,
+        seed: felt252,
+        config_id: u32,
+        length: u32,
+        step_us: u64,
+        num_loops: u32,
+        mode_pcs: Span<u8>,
+    ) -> u32 {
+        let (canon, subs) = generate_profiled_ornamented_canon(seed, config_id, length);
+        let events = canon_to_ornamented_note_events(@canon, subs.span());
+        let n = events.len();
+        assert!(n > 0, "profiled modal canon events");
+        let len = canon.leader_degrees.len();
+        let nv = canon.voices.len();
+        let unit = canon.time_unit;
+        let cycle_ticks = (len + nv - 1) * unit;
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                let qp = quantize_to_mode_pitch(e.pitch, mode_pcs);
+                append_legato_note(ref eventlist, channel, qp, e.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        n * num_loops
+    }
+
+    /// JAZZ — four-voice stacked real canon spelling a moving **major-seventh chord** ([0,4,7,11]
+    /// semitones), heavily ornamented. Major 7ths sound as color; no m2/m9 clash by construction.
+    ///
+    /// Export: `scarb test -- --filter extended_canon_jazz_maj7_long_midi_test`
+    #[test]
+    #[available_gas(6000000000000)]
+    fn extended_canon_jazz_maj7_long_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_profiled_canon(ref eventlist, 70077, 7, 32, 250000, 2);
+        assert!(note_ons >= 200, "long jazz maj7 ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// QUARTAL (Persichetti) — four-voice stacked-fourths canon ([0,5,10,15] semitones), heavily
+    /// ornamented. P4/P5 are the stable intervals; parallels are idiomatic.
+    ///
+    /// Export: `scarb test -- --filter extended_canon_quartal_long_midi_test`
+    #[test]
+    #[available_gas(6000000000000)]
+    fn extended_canon_quartal_long_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_profiled_canon(ref eventlist, 110011, 11, 32, 250000, 2);
+        assert!(note_ons >= 200, "long quartal ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// QUARTAL MODAL — another four-voice quartal canon with dense ornamentation, but pitches are
+    /// snapped to Dorian pcs (0,2,3,5,7,9,10) to reduce chromatic surface motion.
+    ///
+    /// Export: `scarb test -- --filter extended_canon_quartal_modal_long_midi_test`
+    #[test]
+    #[available_gas(7000000000000)]
+    fn extended_canon_quartal_modal_long_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let dorian_pcs = array![0_u8, 2, 3, 5, 7, 9, 10];
+        let note_ons = append_long_profiled_canon_modal(
+            ref eventlist, 220221, 11, 36, 250000, 2, dorian_pcs.span(),
+        );
+        assert!(note_ons >= 220, "long quartal modal ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// PLANING (Debussy / Ravel) — four-voice **dominant-seventh** shape moved in parallel
+    /// ([0,4,7,10] semitones), heavily ornamented. Parallel perfects are the idiom here.
+    ///
+    /// Export: `scarb test -- --filter extended_canon_planing_long_midi_test`
+    #[test]
+    #[available_gas(6000000000000)]
+    fn extended_canon_planing_long_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_profiled_canon(ref eventlist, 90099, 9, 32, 250000, 2);
+        assert!(note_ons >= 200, "long planing ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// HINDEMITH — four-voice mixed-interval tension stack ([0,5,7,11] semitones: P4 + P5 + M7),
+    /// heavily ornamented. Dissonance is graded (Series 2) but the half-step collision is gated.
+    ///
+    /// Export: `scarb test -- --filter extended_canon_hindemith_long_midi_test`
+    #[test]
+    #[available_gas(6000000000000)]
+    fn extended_canon_hindemith_long_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_profiled_canon(ref eventlist, 120012, 12, 32, 250000, 2);
+        assert!(note_ons >= 200, "long hindemith ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// PARSIMONIOUS (Neo-Riemannian) — a long four-voice **seventh-chord progression** in which
+    /// every voice moves by at most a whole step. Not a stretto canon (the progression engine), so
+    /// the "ornamentation" here is the dense chord-to-chord parsimonious motion itself.
+    ///
+    /// Export: `scarb test -- --filter extended_parsimonious_long_midi_test`
+    #[test]
+    #[available_gas(6000000000000)]
+    fn extended_parsimonious_long_midi_test() {
+        let nchords: u32 = 48;
+        let events = generate_parsimonious_progression(303033, nchords);
+        assert!(voice_leading_smooth(events.span(), 2), "every voice moves <= 2 semitones");
+        assert!(no_minor_ninth_in_chords(events.span()), "no m2/m9 within any chord");
+        let n = events.len();
+        assert!(n == nchords * 4, "four voices per chord");
+
+        let step_us: u64 = 500000;
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let mut i: u32 = 0;
+        loop {
+            if i >= n {
+                break;
+            }
+            let e = *events.at(i);
+            let on: Time = e.time.into() * step_us;
+            let off: Time = on + e.duration.into() * step_us;
+            let channel: u8 = e.voice_id.try_into().unwrap();
+            append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+            i += 1;
+        };
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, n);
+    }
+
+    // ── LCG parsimonious chord-progression showcase (`generate_parsimonious_progression`) ──
+
+    /// Export raw LCG-walked seventh-chord progression to MIDI (block voicings, 4 parts).
+    fn export_lcg_parsimonious_chord_passage_midi(
+        seed: felt252,
+        nchords: u32,
+        num_loops: u32,
+        step_us: u64,
+        ornamented: bool,
+    ) -> u32 {
+        let events = if ornamented {
+            generate_ornamented_parsimonious_progression(seed, nchords)
+        } else {
+            generate_parsimonious_progression(seed, nchords)
+        };
+        if !ornamented {
+            assert(voice_leading_smooth(events.span(), 2), 'lcg voice smooth');
+            assert(no_minor_ninth_in_chords(events.span()), 'lcg no m9');
+            assert(events.len() == nchords * 4, 'lcg four voices');
+        }
+        let n = events.len();
+        assert(n > 0, 'lcg chord events');
+        let cycle_ticks: u64 = (nchords * 4).into() * step_us;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut total: u32 = 0;
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                total += 1;
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, total);
+        total
+    }
+
+    /// Single uninterrupted LCG chord walk — 256 parsimonious seventh chords (~14 min).
+    ///
+    /// Export: `scarb test -- --filter lcg_parsimonious_chord_passage_raw_epic_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn lcg_parsimonious_chord_passage_raw_epic_midi_test() {
+        let n = export_lcg_parsimonious_chord_passage_midi(20260209, 256, 1, 650000, false);
+        assert(n == 256 * 4, 'lcg epic raw notes');
+    }
+
+    /// Two full cycles of the same seed — hear the deterministic LCG period return.
+    ///
+    /// Export: `scarb test -- --filter lcg_parsimonious_chord_passage_raw_double_cycle_midi_test`
+    #[test]
+    #[available_gas(10000000000000)]
+    fn lcg_parsimonious_chord_passage_raw_double_cycle_midi_test() {
+        let n = export_lcg_parsimonious_chord_passage_midi(424242, 128, 2, 600000, false);
+        assert(n == 128 * 4 * 2, 'lcg double cycle');
+    }
+
+    /// Five consecutive LCG streams (different seeds) — raw capability tour.
+    ///
+    /// Export: `scarb test -- --filter lcg_parsimonious_chord_showcase_multi_seed_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn lcg_parsimonious_chord_showcase_multi_seed_midi_test() {
+        let nchords: u32 = 72;
+        let step_us: u64 = 550000;
+        let section_gap_us: u64 = 800000;
+        let cycle_ticks: u64 = (nchords * 4).into() * step_us;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut cursor: Time = 0;
+        let mut total: u32 = 0;
+        let mut section: u32 = 0;
+        loop {
+            if section >= 5 {
+                break;
+            }
+            let seed: felt252 = if section == 0 {
+                42
+            } else if section == 1 {
+                137
+            } else if section == 2 {
+                2026
+            } else if section == 3 {
+                90909
+            } else {
+                420420
+            };
+            let events = generate_parsimonious_progression(seed, nchords);
+            assert(voice_leading_smooth(events.span(), 2), 'suite smooth');
+            let n = events.len();
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = cursor + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                total += 1;
+                i += 1;
+            };
+            cursor = cursor + cycle_ticks + section_gap_us;
+            section += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, total);
+        assert(total == 5 * nchords * 4, 'lcg suite notes');
+    }
+
+    /// Ornamented LCG chord walk — structural progression unchanged, dense passing/neighbor motion.
+    ///
+    /// Export: `scarb test -- --filter lcg_parsimonious_chord_passage_ornate_epic_midi_test`
+    #[test]
+    #[available_gas(14000000000000)]
+    fn lcg_parsimonious_chord_passage_ornate_epic_midi_test() {
+        let n = export_lcg_parsimonious_chord_passage_midi(717171, 160, 2, 480000, true);
+        assert(n > 160 * 4 * 2, 'lcg ornate epic');
+    }
+
+    /// MIN-MOTION PLR, ORNAMENTED — seeded PLR random-walk harmony + conjunct pinned soprano,
+    /// minimal-motion inner voices, stepwise ornaments and variable beat lengths (3–5 ticks).
+    ///
+    /// Export: `scarb test -- --filter min_motion_plr_ornamented_long_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn min_motion_plr_ornamented_long_midi_test() {
+        let seed: felt252 = 808080;
+        let nbeats: u32 = 56;
+        let num_loops: u32 = 2;
+        let events = generate_ornamented_min_motion_progression(seed, nbeats);
+        let n = events.len();
+        assert!(n > nbeats * 2, "ornamented adds subdivisions");
+
+        let step_us: u64 = 500000;
+        let cycle_ticks: u64 = ornamented_min_motion_cycle_ticks(seed, nbeats).into() * step_us;
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut total_notes: u32 = 0;
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                total_notes += 1;
+                i += 1;
+            };
+            loop_i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, total_notes);
+    }
+
+    /// PARSIMONIOUS, ORNAMENTED — same parsimonious seventh-chord engine as
+    /// `extended_parsimonious_long`, but a different seed and each chord tone **subdivided** into
+    /// 2–4 decorated notes per voice (neighbor / passing ornamentation). Dense, lots of motion;
+    /// the strong-beat reduction is still the smooth ≤2-semitone progression.
+    ///
+    /// Export: `scarb test -- --filter extended_parsimonious_ornamented_long_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn extended_parsimonious_ornamented_long_midi_test() {
+        let nchords: u32 = 48;
+        let events = generate_ornamented_parsimonious_progression(717171, nchords);
+        let n = events.len();
+        assert!(n > nchords * 4, "ornamented adds subdivisions");
+
+        let step_us: u64 = 500000;
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let mut i: u32 = 0;
+        loop {
+            if i >= n {
+                break;
+            }
+            let e = *events.at(i);
+            let on: Time = e.time.into() * step_us;
+            let off: Time = on + e.duration.into() * step_us;
+            let channel: u8 = e.voice_id.try_into().unwrap();
+            append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+            i += 1;
+        };
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, n);
     }
 
     /// Same cantus as the contrary demo but with parallel motion bias (for A/B comparison).
@@ -3981,5 +5228,1220 @@ mod tests {
         let midiobj = Midi { events: eventlist.span() };
         generate_parser_format(@midiobj);
         assert_valid_demo_midi(@midiobj, 32);
+    }
+
+    /// Long Ligeti-style banded canon MIDI export.
+    ///
+    /// Export: `scarb test -- --filter ligeti_banded_long_midi_test`
+    #[test]
+    #[available_gas(7000000000000)]
+    fn ligeti_banded_long_midi_test() {
+        let step_us: u64 = 150000;
+        let num_loops: u32 = 10;
+        let canon = generate_ligeti_banded_canon(20260602, 36);
+        let events = canon_to_note_events(@canon);
+        let n = events.len();
+        assert!(n >= 120, "ligeti canon has enough events");
+
+        let len = canon.leader_degrees.len();
+        let nv = canon.voices.len();
+        let unit = canon.time_unit;
+        let cycle_ticks = (len + nv - 1) * unit;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, n * num_loops);
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // Complementary aesthetic profiles — long ornamented 3- and 4-voice canons.
+    // Export each with:
+    //   SCARB_UI_VERBOSITY=quiet scarb test -- --filter <test_name> 2>&1 \
+    //     | grep -v "running\|test\|gas usage\|test result" > <name>_parser.cairo
+    //   npx ts-node typescript/src/simpleMidiConverter.ts <name>_parser.cairo <name>.mid
+    // ──────────────────────────────────────────────────────────
+
+    fn export_long_profiled_canon_midi(
+        seed: felt252,
+        config_id: u32,
+        length: u32,
+        num_voices: u32,
+        num_loops: u32,
+        step_us: u64,
+    ) -> u32 {
+        let (canon, _) = generate_profiled_ornamented_canon(seed, config_id, length);
+        assert(canon.voices.len() == num_voices, 'voices');
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_profiled_canon(
+            ref eventlist, seed, config_id, length, step_us, num_loops,
+        );
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+        note_ons
+    }
+
+    /// Default long demo: 48 structural degrees, 4 looped cycles, ornamented leader.
+    fn export_long_profiled_canon_midi_default(
+        seed: felt252, config_id: u32, num_voices: u32,
+    ) -> u32 {
+        export_long_profiled_canon_midi(seed, config_id, 48, num_voices, 4, 220000)
+    }
+
+    /// Export: `scarb test -- --filter complementary_impr_add6_long_4v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_impr_add6_long_4v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(270617, 27, 4);
+        assert!(n >= 400, "long impr add6 4v");
+    }
+
+    /// Export: `scarb test -- --filter complementary_impr_add6_long_3v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_impr_add6_long_3v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(270618, 32, 3);
+        assert!(n >= 360, "long impr add6 3v");
+    }
+
+    /// Export: `scarb test -- --filter complementary_bitonal_long_4v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_bitonal_long_4v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(280628, 28, 4);
+        assert!(n >= 400, "long bitonal 4v");
+    }
+
+    /// Export: `scarb test -- --filter complementary_bitonal_long_3v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_bitonal_long_3v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(280629, 33, 3);
+        assert!(n >= 360, "long bitonal 3v");
+    }
+
+    /// Export: `scarb test -- --filter complementary_phrygian_long_4v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_phrygian_long_4v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(290639, 29, 4);
+        assert!(n >= 400, "long phrygian 4v");
+    }
+
+    /// Export: `scarb test -- --filter complementary_phrygian_long_3v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_phrygian_long_3v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(290640, 34, 3);
+        assert!(n >= 360, "long phrygian 3v");
+    }
+
+    /// Export: `scarb test -- --filter complementary_pentatonic_long_4v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_pentatonic_long_4v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(300640, 30, 4);
+        assert!(n >= 400, "long pentatonic 4v");
+    }
+
+    /// Export: `scarb test -- --filter complementary_pentatonic_long_3v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_pentatonic_long_3v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(300641, 35, 3);
+        assert!(n >= 360, "long pentatonic 3v");
+    }
+
+    /// Export: `scarb test -- --filter complementary_neo_riem_long_3v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_neo_riem_long_3v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(310631, 31, 3);
+        assert!(n >= 360, "long neo riem 3v");
+    }
+
+    /// Export: `scarb test -- --filter complementary_neo_riem_long_4v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_neo_riem_long_4v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(310632, 36, 4);
+        assert!(n >= 400, "long neo riem 4v");
+    }
+
+    /// Export: `scarb test -- --filter complementary_impr_smooth_long_4v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_impr_smooth_long_4v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(370637, 37, 4);
+        assert!(n >= 200, "long impr smooth 4v");
+    }
+
+    /// Export: `scarb test -- --filter complementary_impr_smooth_long_3v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_impr_smooth_long_3v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(370638, 38, 3);
+        assert!(n >= 180, "long impr smooth 3v");
+    }
+
+    /// Export: `scarb test -- --filter complementary_penta_smooth_long_4v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_penta_smooth_long_4v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(390639, 39, 4);
+        assert!(n >= 200, "long penta smooth 4v");
+    }
+
+    /// Export: `scarb test -- --filter complementary_penta_smooth_long_3v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn complementary_penta_smooth_long_3v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(390640, 40, 3);
+        assert!(n >= 180, "long penta smooth 3v");
+    }
+
+    /// Export: `scarb test -- --filter jazz_improv_long_4v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn jazz_improv_long_4v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(410641, 41, 4);
+        assert!(n >= 200, "long jazz improv 4v");
+    }
+
+    /// Export: `scarb test -- --filter jazz_improv_long_3v_midi_test`
+    #[test]
+    #[available_gas(8000000000000)]
+    fn jazz_improv_long_3v_midi_test() {
+        let n = export_long_profiled_canon_midi_default(410642, 42, 3);
+        assert!(n >= 180, "long jazz improv 3v");
+    }
+
+    // ── Alternate seeds (second demo per profile family) — 6 loops, denser ornament rhythm ──
+
+    /// Export: `scarb test -- --filter profile_demo_impr_add6_alt_midi_test`
+    #[test]
+    #[available_gas(10000000000000)]
+    fn profile_demo_impr_add6_alt_midi_test() {
+        let n = export_long_profiled_canon_midi(171717, 27, 48, 4, 6, 180000);
+        assert!(n >= 500, "impr add6 alt");
+    }
+
+    /// Export: `scarb test -- --filter profile_demo_bitonal_alt_midi_test`
+    #[test]
+    #[available_gas(10000000000000)]
+    fn profile_demo_bitonal_alt_midi_test() {
+        let n = export_long_profiled_canon_midi(181818, 28, 48, 4, 6, 180000);
+        assert!(n >= 500, "bitonal alt");
+    }
+
+    /// Export: `scarb test -- --filter profile_demo_phrygian_alt_midi_test`
+    #[test]
+    #[available_gas(10000000000000)]
+    fn profile_demo_phrygian_alt_midi_test() {
+        let n = export_long_profiled_canon_midi(191919, 29, 48, 4, 6, 180000);
+        assert!(n >= 500, "phrygian alt");
+    }
+
+    /// Export: `scarb test -- --filter profile_demo_pentatonic_alt_midi_test`
+    #[test]
+    #[available_gas(10000000000000)]
+    fn profile_demo_pentatonic_alt_midi_test() {
+        let n = export_long_profiled_canon_midi(202020, 30, 48, 4, 6, 180000);
+        assert!(n >= 500, "pentatonic alt");
+    }
+
+    /// Export: `scarb test -- --filter profile_demo_neo_riem_alt_midi_test`
+    #[test]
+    #[available_gas(10000000000000)]
+    fn profile_demo_neo_riem_alt_midi_test() {
+        let n = export_long_profiled_canon_midi(212121, 31, 48, 3, 6, 180000);
+        assert!(n >= 450, "neo riem alt 3v");
+    }
+
+    /// Export: `scarb test -- --filter profile_demo_impr_smooth_alt_midi_test`
+    #[test]
+    #[available_gas(10000000000000)]
+    fn profile_demo_impr_smooth_alt_midi_test() {
+        let n = export_long_profiled_canon_midi(232323, 37, 48, 4, 6, 200000);
+        assert!(n >= 250, "impr smooth alt");
+    }
+
+    /// Export: `scarb test -- --filter profile_demo_penta_smooth_alt_midi_test`
+    #[test]
+    #[available_gas(10000000000000)]
+    fn profile_demo_penta_smooth_alt_midi_test() {
+        let n = export_long_profiled_canon_midi(242424, 39, 48, 4, 6, 200000);
+        assert!(n >= 250, "penta smooth alt");
+    }
+
+    /// Export: `scarb test -- --filter profile_demo_jazz_improv_alt_midi_test`
+    #[test]
+    #[available_gas(10000000000000)]
+    fn profile_demo_jazz_improv_alt_midi_test() {
+        let n = export_long_profiled_canon_midi(252525, 41, 48, 4, 6, 200000);
+        assert!(n >= 250, "jazz improv alt");
+    }
+
+    // ── Dense subdivision showcase (32 steps, fast pulse, 8 loops) ──
+
+    /// Export: `scarb test -- --filter profile_demo_ornament_dense_impr_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn profile_demo_ornament_dense_impr_midi_test() {
+        let n = export_long_profiled_canon_midi(333333, 27, 32, 4, 8, 120000);
+        assert!(n >= 600, "dense impr");
+    }
+
+    /// Export: `scarb test -- --filter profile_demo_ornament_dense_phrygian_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn profile_demo_ornament_dense_phrygian_midi_test() {
+        let n = export_long_profiled_canon_midi(444444, 29, 32, 4, 8, 120000);
+        assert!(n >= 600, "dense phrygian");
+    }
+
+    /// Export: `scarb test -- --filter profile_demo_ornament_dense_bitonal_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn profile_demo_ornament_dense_bitonal_midi_test() {
+        let n = export_long_profiled_canon_midi(555555, 28, 32, 4, 8, 120000);
+        assert!(n >= 600, "dense bitonal");
+    }
+
+    /// Export: `scarb test -- --filter profile_demo_ornament_dense_jazz_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn profile_demo_ornament_dense_jazz_midi_test() {
+        let n = export_long_profiled_canon_midi(666666, 41, 32, 4, 8, 120000);
+        assert!(n >= 300, "dense jazz");
+    }
+
+    /// Long jazz-improv canon: turnaround harmony, no semitone structural steps, dense
+    /// subdivisions with min-step ornament fill (not chromatic ±1 chains).
+    ///
+    /// Export: `scarb test -- --filter jazz_improv_ornamented_long_midi_test`
+    fn export_jazz_improv_ornamented_long_midi(
+        seed: felt252, config_id: u32, length: u32, num_voices: u32, num_loops: u32, step_us: u64,
+    ) -> u32 {
+        let (canon, subs) = generate_jazz_improv_ornamented_canon(seed, config_id, length);
+        assert(canon.voices.len() == num_voices, 'voices');
+        let events = canon_to_ornamented_note_events_with_fill(@canon, subs.span(), ORN_FILL_MIN_STEP);
+        let n = events.len();
+        assert(n > 0, 'jazz improv events');
+        let len = canon.leader_degrees.len();
+        let nv = canon.voices.len();
+        let unit = canon.time_unit;
+        let cycle_ticks = (len + nv - 1) * unit;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, n * num_loops);
+        n * num_loops
+    }
+
+    #[test]
+    #[available_gas(12000000000000)]
+    fn jazz_improv_ornamented_long_midi_test() {
+        let n = export_jazz_improv_ornamented_long_midi(770707, 41, 48, 4, 6, 180000);
+        assert(n >= 500, 'long jazz improv orn 4v');
+    }
+
+    /// Long jazz-improv with tritone-sub turnaround (harmony bits 27..30 ≡ 0 mod 5), light
+    /// ornament subdivisions, min-step fill. Seed 770707 → Db7 region 3.
+    ///
+    /// Export: `scarb cairo-test -f jazz_improv_tritone_sub_light_long_midi_test`
+    fn export_jazz_improv_tritone_sub_light_long_midi(
+        seed: felt252, config_id: u32, length: u32, num_voices: u32, num_loops: u32, step_us: u64,
+    ) -> u32 {
+        let plan = turnaround_plan_from_canon_seed(seed);
+        assert(turnaround_has_tritone_sub(plan), 'tritone sub plan');
+        let (canon, subs) = generate_jazz_improv_ornamented_canon_light(seed, config_id, length);
+        assert(canon.voices.len() == num_voices, 'voices');
+        let events = canon_to_ornamented_note_events_with_fill(@canon, subs.span(), ORN_FILL_MIN_STEP);
+        let n = events.len();
+        assert(n > 0, 'jazz tritone events');
+        let len = canon.leader_degrees.len();
+        let nv = canon.voices.len();
+        let unit = canon.time_unit;
+        let cycle_ticks = (len + nv - 1) * unit;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, n * num_loops);
+        n * num_loops
+    }
+
+    #[test]
+    #[available_gas(12000000000000)]
+    fn jazz_improv_tritone_sub_light_long_midi_test() {
+        // harmony_seed = extract_bits(770707, 27, 4) == 0 → Db7 tritone sub on region 3
+        let n = export_jazz_improv_tritone_sub_light_long_midi(770707, 41, 48, 4, 6, 200000);
+        assert(n >= 350, 'jazz tritone sub light long');
+    }
+
+    /// Harmonic-walk block harmony: minimal-motion allocation + dense beat ornaments, 3 loops.
+    ///
+    /// Export: `scarb test -- --filter harmonic_walk_min_motion_ornate_long_midi_test`
+    fn export_harmonic_walk_min_motion_ornate_long_midi(
+        seed: felt252, num_loops: u32, step_us: u64,
+    ) -> u32 {
+        let events = generate_ornamented_harmonic_walk_progression(seed);
+        let n = events.len();
+        assert(n > 0, 'hw events');
+        let cycle_ticks = harmonic_walk_progression_cycle_ticks(seed);
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let mut total: u32 = 0;
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                total += 1;
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, total);
+        total
+    }
+
+    #[test]
+    #[available_gas(12000000000000)]
+    fn harmonic_walk_min_motion_ornate_long_midi_test() {
+        // sk=1 blues @16, rewrite_budget=6 @20, continuation_depth=2 @24, tag 4242 @0
+        let seed: felt252 = 39915666;
+        let n = export_harmonic_walk_min_motion_ornate_long_midi(seed, 12, 400000);
+        assert(n >= 850, 'hw min motion ornate');
+    }
+
+    /// Blues-12 skeleton with rewrite budget 8 — substitution chain demo.
+    ///
+    /// Export: `scarb test -- --filter harmonic_walk_blues_rewrite_long_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn harmonic_walk_blues_rewrite_long_midi_test() {
+        // sk=1 blues @16, rewrite_budget=8 @20, tag 5555 @0
+        let seed: felt252 = 8459699;
+        let n = export_harmonic_walk_min_motion_ornate_long_midi(seed, 12, 450000);
+        assert(n >= 1000, 'hw blues rewrite');
+    }
+
+    /// Rhythm-changes skeleton + high surprise bias continuation overlay.
+    ///
+    /// Export: `scarb test -- --filter harmonic_walk_surprise_continuation_long_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn harmonic_walk_surprise_continuation_long_midi_test() {
+        // sk=2 rhythm changes @16, depth=2 @24, surprise_bias=255 @28, tag 6666 @0
+        let seed: felt252 = 68484733450;
+        let n = export_harmonic_walk_min_motion_ornate_long_midi(seed, 18, 420000);
+        assert(n >= 700, 'hw surprise cont');
+    }
+
+    /// Profile-24 jazz canon with harmonic-walk material gates, dense subdivisions, min-step fill.
+    ///
+    /// Export: `scarb test -- --filter jazz_improv_harmonic_walk_ornate_long_4v_midi_test`
+    fn export_jazz_improv_harmonic_walk_ornamented_long_midi(
+        seed: felt252, config_id: u32, length: u32, num_voices: u32, num_loops: u32, step_us: u64,
+    ) -> u32 {
+        let (canon, subs) = generate_jazz_improv_harmonic_walk_ornamented_canon(
+            seed, config_id, length,
+        );
+        assert(canon.voices.len() == num_voices, 'voices');
+        let events = canon_to_ornamented_note_events_with_fill(@canon, subs.span(), ORN_FILL_MIN_STEP);
+        let n = events.len();
+        assert(n > 0, 'jazz walk events');
+        let len = canon.leader_degrees.len();
+        let nv = canon.voices.len();
+        let unit = canon.time_unit;
+        let cycle_ticks = (len + nv - 1) * unit;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, n * num_loops);
+        n * num_loops
+    }
+
+    #[test]
+    #[available_gas(16000000000000)]
+    fn jazz_improv_harmonic_walk_ornate_long_4v_midi_test() {
+        let n = export_jazz_improv_harmonic_walk_ornamented_long_midi(
+            881881, 41, 64, 4, 8, 160000,
+        );
+        assert(n >= 1200, 'jazz walk 4v ornate long');
+    }
+
+    #[test]
+    #[available_gas(14000000000000)]
+    fn jazz_improv_harmonic_walk_ornate_long_3v_midi_test() {
+        let n = export_jazz_improv_harmonic_walk_ornamented_long_midi(
+            882882, 42, 64, 3, 8, 160000,
+        );
+        assert(n >= 900, 'jazz walk 3v ornate long');
+    }
+
+    #[test]
+    #[available_gas(16000000000000)]
+    fn jazz_improv_harmonic_walk_dense_ornate_midi_test() {
+        let n = export_jazz_improv_harmonic_walk_ornamented_long_midi(
+            883883, 41, 48, 4, 10, 120000,
+        );
+        assert(n >= 1500, 'jazz walk dense ornate');
+    }
+
+    // ── Batch 2 — curated harmonic / melodic showcases (improved listening set) ──
+
+    /// Export: `scarb test -- --filter hw_batch2_two_five_one_rewrite_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn hw_batch2_two_five_one_rewrite_midi_test() {
+        let seed = harmonic_walk_demo_seed(3, 5, 1, 0, 2101);
+        let n = export_harmonic_walk_min_motion_ornate_long_midi(seed, 32, 580000);
+        assert(n >= 600, 'batch2 251 rewrite');
+    }
+
+    /// Export: `scarb test -- --filter hw_batch2_rhythm_changes_reharm_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn hw_batch2_rhythm_changes_reharm_midi_test() {
+        let seed = harmonic_walk_demo_seed(2, 8, 0, 0, 2202);
+        let n = export_harmonic_walk_min_motion_ornate_long_midi(seed, 14, 520000);
+        assert(n >= 600, 'batch2 rc reharm');
+    }
+
+    /// Export: `scarb test -- --filter hw_batch2_turnaround_surprise_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn hw_batch2_turnaround_surprise_midi_test() {
+        let seed = harmonic_walk_demo_seed(0, 2, 3, 200, 2303);
+        let n = export_harmonic_walk_min_motion_ornate_long_midi(seed, 40, 560000);
+        assert(n >= 700, 'batch2 turn surprise');
+    }
+
+    /// Export: `scarb test -- --filter hw_batch2_blues_surprise_colors_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn hw_batch2_blues_surprise_colors_midi_test() {
+        let seed = harmonic_walk_demo_seed(1, 6, 2, 128, 2404);
+        let n = export_harmonic_walk_min_motion_ornate_long_midi(seed, 14, 500000);
+        assert(n >= 1000, 'batch2 blues surprise');
+    }
+
+    /// Export: `scarb test -- --filter hw_batch2_two_five_one_max_surprise_midi_test`
+    #[test]
+    #[available_gas(12000000000000)]
+    fn hw_batch2_two_five_one_max_surprise_midi_test() {
+        let seed = harmonic_walk_demo_seed(3, 1, 3, 255, 2505);
+        let n = export_harmonic_walk_min_motion_ornate_long_midi(seed, 36, 540000);
+        assert(n >= 800, 'batch2 251 max S');
+    }
+
+    /// Export: `scarb test -- --filter hw_batch2_jazz_canon_251_long_midi_test`
+    #[test]
+    #[available_gas(16000000000000)]
+    fn hw_batch2_jazz_canon_251_long_midi_test() {
+        // Short 251 timeline (3 slots): keep structural length moderate so the walk gate stays satisfiable.
+        let seed = jazz_canon_walk_demo_seed(3, 3, 0, 20, 771001);
+        let n = export_jazz_improv_harmonic_walk_ornamented_long_midi(
+            seed, 41, 40, 4, 16, 150000,
+        );
+        assert(n >= 1400, 'batch2 canon 251');
+    }
+
+    /// Export: `scarb test -- --filter hw_batch2_jazz_canon_rhythm_changes_midi_test`
+    #[test]
+    #[available_gas(18000000000000)]
+    fn hw_batch2_jazz_canon_rhythm_changes_midi_test() {
+        let seed = jazz_canon_walk_demo_seed(2, 5, 1, 60, 772002);
+        let n = export_jazz_improv_harmonic_walk_ornamented_long_midi(
+            seed, 41, 72, 4, 10, 150000,
+        );
+        assert(n >= 1800, 'batch2 canon rc');
+    }
+
+    /// Export: `scarb test -- --filter hw_batch2_jazz_canon_blues_gospel_midi_test`
+    #[test]
+    #[available_gas(20000000000000)]
+    fn hw_batch2_jazz_canon_blues_gospel_midi_test() {
+        let seed = jazz_canon_walk_demo_seed(1, 5, 2, 90, 773003);
+        let n = export_jazz_improv_harmonic_walk_ornamented_long_midi(
+            seed, 42, 80, 3, 10, 140000,
+        );
+        assert(n >= 2000, 'batch2 canon blues');
+    }
+
+    /// Export: `scarb test -- --filter hw_batch2_jazz_canon_turnaround_surprise_midi_test`
+    #[test]
+    #[available_gas(18000000000000)]
+    fn hw_batch2_jazz_canon_turnaround_surprise_midi_test() {
+        // Rhythm-changes timeline + surprise continuations (turnaround axiom is too coarse for long canon gates).
+        let seed = jazz_canon_walk_demo_seed(2, 4, 2, 180, 774004);
+        let n = export_jazz_improv_harmonic_walk_ornamented_long_midi(
+            seed, 41, 56, 4, 12, 130000,
+        );
+        assert(n >= 1800, 'batch2 canon rc surprise');
+    }
+
+    /// Export: `scarb test -- --filter hw_batch2_jazz_canon_hybrid_epic_midi_test`
+    #[test]
+    #[available_gas(22000000000000)]
+    fn hw_batch2_jazz_canon_hybrid_epic_midi_test() {
+        let seed = jazz_canon_walk_demo_seed(2, 6, 2, 100, 775005);
+        let n = export_jazz_improv_harmonic_walk_ornamented_long_midi(
+            seed, 41, 96, 4, 8, 135000,
+        );
+        assert(n >= 2400, 'batch2 canon epic');
+    }
+
+    /// Long pentatonic-smooth 4-voice canon: dense subdivisions + pentatonic material fill (not
+    /// chromatic). Same stack as `penta_smooth_4v_long` (config 39) but rhythmically active.
+    ///
+    /// Export: `scarb test -f penta_smooth_ornamented_long_4v_midi_test`
+    fn export_penta_smooth_ornamented_long_midi(
+        seed: felt252, config_id: u32, length: u32, num_voices: u32, num_loops: u32, step_us: u64,
+    ) -> u32 {
+        let (canon, subs) = generate_pentatonic_smooth_ornamented_canon(seed, config_id, length);
+        assert(canon.voices.len() == num_voices, 'voices');
+        let events = canon_to_ornamented_note_events_with_fill(
+            @canon, subs.span(), ORN_FILL_MATERIAL,
+        );
+        let n = events.len();
+        assert(n > 0, 'penta smooth orn events');
+        let len = canon.leader_degrees.len();
+        let nv = canon.voices.len();
+        let unit = canon.time_unit;
+        let cycle_ticks = (len + nv - 1) * unit;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, n * num_loops);
+        n * num_loops
+    }
+
+    #[test]
+    #[available_gas(2000000000000)]
+    fn transform_pipeline_midi_test() {
+        let mut pitch_ops = ArrayTrait::<PlaneOp>::new();
+        pitch_ops.append(PlaneOp::Invert(4));
+        pitch_ops.append(PlaneOp::Rotate(2));
+        pitch_ops.append(PlaneOp::Repeat(2));
+        let pitch_pipe = Pipeline { ops: pitch_ops };
+
+        let mut len_ops = ArrayTrait::<PlaneOp>::new();
+        len_ops.append(PlaneOp::Rotate(1));
+        len_ops.append(PlaneOp::Augment(2));
+        let len_pipe = Pipeline { ops: len_ops };
+
+        let mut vel_table = ArrayTrait::<i32>::new();
+        vel_table.append(110);
+        vel_table.append(70);
+        vel_table.append(70);
+        vel_table.append(90);
+        let mut vel_ops = ArrayTrait::<PlaneOp>::new();
+        vel_ops.append(PlaneOp::MapByPosition(vel_table));
+        let vel_pipe = Pipeline { ops: vel_ops };
+
+        let obj = MusicalObject {
+            pitches: array![0_i32, 2, 4, 5, 7],
+            lengths: array![4_u32, 4, 2, 2, 4],
+            velocities: array![100_u8, 80],
+            articulations: array![0_u8],
+            octave: 7,
+        };
+
+        let mut transformed = apply_to_object(obj, PlaneId::Pitch, @pitch_pipe);
+        transformed = apply_to_object(transformed, PlaneId::Length, @len_pipe);
+        transformed = apply_to_object(transformed, PlaneId::Velocity, @vel_pipe);
+        let events = assemble(@transformed, 0, 60, 0);
+        let n = events.len();
+        assert!(n > 0, "transform pipeline events");
+
+        let step_us: u64 = 400000;
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let mut i: u32 = 0;
+        loop {
+            if i >= n {
+                break;
+            }
+            let e = *events.at(i);
+            let on: Time = e.time.into() * step_us;
+            let off: Time = on + e.duration.into() * step_us;
+            let channel: u8 = e.voice_id.try_into().unwrap();
+            append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+            i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, n);
+    }
+
+    #[test]
+    #[available_gas(12000000000000)]
+    fn penta_smooth_ornamented_long_4v_midi_test() {
+        let n = export_penta_smooth_ornamented_long_midi(482639, 39, 48, 4, 6, 180000);
+        assert(n >= 500, 'penta smooth orn 4v long');
+    }
+
+    /// Neutral percussion pitch per reference preset (verification artifact, not cultural claim).
+    fn pitch_for_timeline_preset(preset_id: u8) -> u8 {
+        48 + preset_id
+    }
+
+    fn append_timeline_section(
+        ref eventlist: Array<Message>,
+        rhythm: @TimelineRhythm,
+        cycles: u32,
+        channel: u8,
+        pitch: u8,
+        step_us: u64,
+        ref cursor: Time,
+    ) {
+        let events = timeline_to_events(rhythm, cycles, channel.into(), 100);
+        let mut i: u32 = 0;
+        loop {
+            if i >= events.len() {
+                break;
+            }
+            let e = *events.at(i);
+            let on: Time = cursor + e.time.into() * step_us;
+            let off: Time = on + e.duration.into() * step_us;
+            append_legato_note(ref eventlist, channel, pitch, e.velocity, on, off);
+            i += 1;
+        };
+        cursor = cursor + (cycles * (*rhythm.n)).into() * step_us;
+    }
+
+    fn append_phrasing_accent_grid(
+        ref eventlist: Array<Message>,
+        rhythm: @TimelineRhythm,
+        cycles: u32,
+        channel: u8,
+        pitch: u8,
+        step_us: u64,
+        ref cursor: Time,
+    ) {
+        let total_steps = cycles * (*rhythm.n);
+        let mut t: u32 = 0;
+        loop {
+            if t >= total_steps {
+                break;
+            }
+            let vel = timeline_accent(rhythm, t, 100, 38);
+            let on: Time = cursor + t.into() * step_us;
+            let off: Time = on + step_us - 1000;
+            append_legato_note(ref eventlist, channel, pitch, vel, on, off);
+            t += 1;
+        };
+        cursor = cursor + total_steps.into() * step_us;
+    }
+
+    fn count_note_ons(midiobj: @Midi) -> u32 {
+        let mut ev = midiobj.clone().events;
+        let mut count: u32 = 0;
+        loop {
+            match ev.pop_front() {
+                Option::Some(event) => {
+                    match event {
+                        Message::NOTE_ON(_) => { count += 1; },
+                        _ => {},
+                    }
+                },
+                Option::None(_) => { break; },
+            }
+        };
+        count
+    }
+
+    /// Six Toussaint reference presets, four cycles each on distinct channels.
+    #[test]
+    #[available_gas(1000000000000)]
+    fn timeline_rhythm_reference_presets_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 125000;
+        let section_gap: u64 = 500000;
+        let cycles: u32 = 4;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let mut cursor: Time = 0;
+        let ids = all_preset_ids();
+        let mut i: u32 = 0;
+        loop {
+            if i >= ids.len() {
+                break;
+            }
+            let preset_id = *ids.at(i);
+            let rhythm = known_timeline(preset_id).unwrap();
+            let channel: u8 = i.try_into().unwrap();
+            let pitch = pitch_for_timeline_preset(preset_id);
+            append_timeline_section(
+                ref eventlist, @rhythm, cycles, channel, pitch, step_us, ref cursor,
+            );
+            cursor = cursor + section_gap;
+            i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert(count_note_ons(@midiobj) == 120, 'preset120');
+        let binary = output_midi_object(@midiobj);
+        assert(binary.len() >= 22, 'midishort');
+    }
+
+    /// Seeded displacement-one morph walk starting from Son (four cycles per section).
+    #[test]
+    #[available_gas(1000000000000)]
+    fn timeline_rhythm_morph_walk_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 125000;
+        let section_gap: u64 = 500000;
+        let cycles: u32 = 4;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let mut cursor: Time = 0;
+        let mut current = known_timeline(PRESET_SON).unwrap();
+        let mut seed: felt252 = 9001;
+        let mut sections: u32 = 0;
+
+        loop {
+            if sections >= 8 {
+                break;
+            }
+            let channel: u8 = 0;
+            let pitch = pitch_for_timeline_preset(current.preset_id);
+            append_timeline_section(
+                ref eventlist, @current, cycles, channel, pitch, step_us, ref cursor,
+            );
+            cursor = cursor + section_gap;
+            sections += 1;
+
+            match next_known_morph(seed, current.preset_id, 1) {
+                Option::Some(next) => {
+                    current = next;
+                    seed += 1;
+                },
+                Option::None => { break; },
+            };
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert(sections >= 2, 'morphsect');
+        assert(count_note_ons(@midiobj) == sections * cycles * 5, 'morphnotes');
+        let binary = output_midi_object(@midiobj);
+        assert(binary.len() >= 22, 'midishort');
+    }
+
+    /// Son phase orbit: static voice 0 + rotating voice 1 shifting one step per phase (full orbit).
+    #[test]
+    #[available_gas(1000000000000)]
+    fn timeline_rhythm_son_phase_orbit_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 125000;
+        let son = known_timeline(PRESET_SON).unwrap();
+        let plan = PhaseRhythmPlan {
+            base: son,
+            repeats_per_shift: 2,
+            shift_step: 1,
+            phase_count: 0,
+            static_voice_id: 0,
+            rotating_voice_id: 1,
+            static_velocity: 100,
+            rotating_velocity: 80,
+        };
+        let orbit = phase_orbit_length(16, 1).unwrap();
+        let onset_events = render_phase_plan(@plan);
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let mut i: u32 = 0;
+        loop {
+            if i >= onset_events.len() {
+                break;
+            }
+            let e = *onset_events.at(i);
+            let on: Time = e.time.into() * step_us;
+            let off: Time = on + e.duration.into() * step_us;
+            let channel: u8 = e.voice_id.try_into().unwrap();
+            let pitch = if e.voice_id == 0 {
+                60_u8
+            } else {
+                72_u8
+            };
+            append_legato_note(ref eventlist, channel, pitch, e.velocity, on, off);
+            i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert(count_note_ons(@midiobj) == orbit * 2 * 5 * 2, 'phase120');
+        let binary = output_midi_object(@midiobj);
+        assert(binary.len() >= 22, 'midishort');
+    }
+
+    /// Six canonical Son-family interval-class variants at rotation 0 (four cycles each).
+    #[test]
+    #[available_gas(1000000000000)]
+    fn timeline_rhythm_son_family_variants_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 125000;
+        let section_gap: u64 = 500000;
+        let cycles: u32 = 4;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let mut cursor: Time = 0;
+        let mut v: u32 = 0;
+        loop {
+            if v >= 6 {
+                break;
+            }
+            let index = v * 16;
+            let rhythm = son_family_candidate_at_index(index);
+            let channel: u8 = v.try_into().unwrap();
+            let pitch: u8 = (48 + v).try_into().unwrap();
+            append_timeline_section(
+                ref eventlist, @rhythm, cycles, channel, pitch, step_us, ref cursor,
+            );
+            cursor = cursor + section_gap;
+            v += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert(count_note_ons(@midiobj) == 120, 'variants120');
+        let binary = output_midi_object(@midiobj);
+        assert(binary.len() >= 22, 'midishort');
+    }
+
+    /// Eight seeded Son-family generations (variant + rotation from seed bits).
+    #[test]
+    #[available_gas(1000000000000)]
+    fn timeline_rhythm_son_family_seed_tour_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 125000;
+        let section_gap: u64 = 400000;
+        let cycles: u32 = 4;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let mut cursor: Time = 0;
+        let mut i: u32 = 0;
+        loop {
+            if i >= 8 {
+                break;
+            }
+            let seed: felt252 = (101 + i * 111).into();
+            let rhythm = generate_son_family_timeline(seed);
+            let channel: u8 = 0;
+            let pitch: u8 = (48 + i).try_into().unwrap();
+            append_timeline_section(
+                ref eventlist, @rhythm, cycles, channel, pitch, step_us, ref cursor,
+            );
+            cursor = cursor + section_gap;
+            i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert(count_note_ons(@midiobj) == 160, 'seedtour160');
+        let binary = output_midi_object(@midiobj);
+        assert(binary.len() >= 22, 'midishort');
+    }
+
+    /// Three profile-guided Son-family selections (metric, distance, symmetry targets).
+    #[test]
+    #[available_gas(1000000000000)]
+    fn timeline_rhythm_profiled_selection_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 125000;
+        let section_gap: u64 = 600000;
+        let cycles: u32 = 4;
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let mut cursor: Time = 0;
+
+        let low_metric = TimelineSelectionProfile {
+            target_metric_complexity: 4,
+            metric_weight: 3,
+            target_son_distance_sq: 0,
+            distance_weight: 1,
+            preferred_symmetry: SYMMETRY_ANY,
+            symmetry_penalty: 0,
+        };
+        let far_from_son = TimelineSelectionProfile {
+            target_metric_complexity: 8,
+            metric_weight: 1,
+            target_son_distance_sq: 12,
+            distance_weight: 4,
+            preferred_symmetry: SYMMETRY_ANY,
+            symmetry_penalty: 0,
+        };
+        let weak_symmetry = TimelineSelectionProfile {
+            target_metric_complexity: 6,
+            metric_weight: 1,
+            target_son_distance_sq: 4,
+            distance_weight: 1,
+            preferred_symmetry: SYMMETRY_WEAK,
+            symmetry_penalty: 80,
+        };
+
+        let rhythm0 = generate_profiled_son_family_timeline(11, low_metric);
+        append_timeline_section(
+            ref eventlist, @rhythm0, cycles, 0, 48, step_us, ref cursor,
+        );
+        cursor = cursor + section_gap;
+
+        let rhythm1 = generate_profiled_son_family_timeline(22, far_from_son);
+        append_timeline_section(
+            ref eventlist, @rhythm1, cycles, 1, 52, step_us, ref cursor,
+        );
+        cursor = cursor + section_gap;
+
+        let rhythm2 = generate_profiled_son_family_timeline(33, weak_symmetry);
+        append_timeline_section(
+            ref eventlist, @rhythm2, cycles, 2, 56, step_us, ref cursor,
+        );
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert(count_note_ons(@midiobj) == 60, 'profiled60');
+        let binary = output_midi_object(@midiobj);
+        assert(binary.len() >= 22, 'midishort');
+    }
+
+    /// Continuous 16th grid with timeline_accent velocities on Son (onsets loud, rests soft).
+    #[test]
+    #[available_gas(1000000000000)]
+    fn timeline_rhythm_phrasing_accent_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 125000;
+        let son = known_timeline(PRESET_SON).unwrap();
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let mut cursor: Time = 0;
+        append_phrasing_accent_grid(ref eventlist, @son, 8, 0, 60, step_us, ref cursor);
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert(count_note_ons(@midiobj) == 128, 'accent128');
+        let binary = output_midi_object(@midiobj);
+        assert(binary.len() >= 22, 'midishort');
+    }
+
+    /// Phase orbit with shift_step=2 (8 phases): clave vs rotated counter-line.
+    #[test]
+    #[available_gas(1000000000000)]
+    fn timeline_rhythm_phase_shift2_midi_test() {
+        let tempo_us: u32 = 500000;
+        let step_us: u64 = 125000;
+        let son = known_timeline(PRESET_SON).unwrap();
+        let plan = PhaseRhythmPlan {
+            base: son,
+            repeats_per_shift: 2,
+            shift_step: 2,
+            phase_count: 0,
+            static_voice_id: 0,
+            rotating_voice_id: 1,
+            static_velocity: 100,
+            rotating_velocity: 72,
+        };
+        let orbit = phase_orbit_length(16, 2).unwrap();
+        let onset_events = render_phase_plan(@plan);
+
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist
+            .append(
+                Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }),
+            );
+
+        let mut i: u32 = 0;
+        loop {
+            if i >= onset_events.len() {
+                break;
+            }
+            let e = *onset_events.at(i);
+            let on: Time = e.time.into() * step_us;
+            let off: Time = on + e.duration.into() * step_us;
+            let channel: u8 = e.voice_id.try_into().unwrap();
+            let pitch = if e.voice_id == 0 {
+                60_u8
+            } else {
+                67_u8
+            };
+            append_legato_note(ref eventlist, channel, pitch, e.velocity, on, off);
+            i += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert(count_note_ons(@midiobj) == orbit * 2 * 5 * 2, 'phase2orb');
+        let binary = output_midi_object(@midiobj);
+        assert(binary.len() >= 22, 'midishort');
     }
 }

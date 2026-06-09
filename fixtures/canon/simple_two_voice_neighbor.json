@@ -1,0 +1,8 @@
+{
+  "selection": { "kind": "seeded", "seed": 100 },
+  "canonWorkflow": "canonFirst",
+  "configId": "fifth_above",
+  "voices": 2,
+  "ornament": "NeighborUpper",
+  "deterministic": true
+}

@@ -1,0 +1,1283 @@
+[
+  {
+    "id": 1,
+    "mask": 65,
+    "pitch_count": 2,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 5,
+    "name": "Tritone Pair",
+    "pitch_classes": [
+      0,
+      6
+    ]
+  },
+  {
+    "id": 2,
+    "mask": 130,
+    "pitch_count": 2,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 2",
+    "pitch_classes": [
+      1,
+      7
+    ]
+  },
+  {
+    "id": 3,
+    "mask": 195,
+    "pitch_count": 4,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 5,
+    "name": "Tritone-Expanded",
+    "pitch_classes": [
+      0,
+      1,
+      6,
+      7
+    ]
+  },
+  {
+    "id": 4,
+    "mask": 260,
+    "pitch_count": 2,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 4",
+    "pitch_classes": [
+      2,
+      8
+    ]
+  },
+  {
+    "id": 5,
+    "mask": 273,
+    "pitch_count": 3,
+    "symmetry_step": 4,
+    "unique_transpositions": 4,
+    "family_id": 3,
+    "name": "Augmented Triad",
+    "pitch_classes": [
+      0,
+      4,
+      8
+    ]
+  },
+  {
+    "id": 6,
+    "mask": 325,
+    "pitch_count": 4,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 6",
+    "pitch_classes": [
+      0,
+      2,
+      6,
+      8
+    ]
+  },
+  {
+    "id": 7,
+    "mask": 390,
+    "pitch_count": 4,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 7",
+    "pitch_classes": [
+      1,
+      2,
+      7,
+      8
+    ]
+  },
+  {
+    "id": 8,
+    "mask": 455,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 8",
+    "pitch_classes": [
+      0,
+      1,
+      2,
+      6,
+      7,
+      8
+    ]
+  },
+  {
+    "id": 9,
+    "mask": 520,
+    "pitch_count": 2,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 9",
+    "pitch_classes": [
+      3,
+      9
+    ]
+  },
+  {
+    "id": 10,
+    "mask": 546,
+    "pitch_count": 3,
+    "symmetry_step": 4,
+    "unique_transpositions": 4,
+    "family_id": 7,
+    "name": "Symmetric Set 10",
+    "pitch_classes": [
+      1,
+      5,
+      9
+    ]
+  },
+  {
+    "id": 11,
+    "mask": 585,
+    "pitch_count": 4,
+    "symmetry_step": 3,
+    "unique_transpositions": 3,
+    "family_id": 2,
+    "name": "Diminished Seventh",
+    "pitch_classes": [
+      0,
+      3,
+      6,
+      9
+    ]
+  },
+  {
+    "id": 12,
+    "mask": 650,
+    "pitch_count": 4,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 12",
+    "pitch_classes": [
+      1,
+      3,
+      7,
+      9
+    ]
+  },
+  {
+    "id": 13,
+    "mask": 715,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 13",
+    "pitch_classes": [
+      0,
+      1,
+      3,
+      6,
+      7,
+      9
+    ]
+  },
+  {
+    "id": 14,
+    "mask": 780,
+    "pitch_count": 4,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 14",
+    "pitch_classes": [
+      2,
+      3,
+      8,
+      9
+    ]
+  },
+  {
+    "id": 15,
+    "mask": 819,
+    "pitch_count": 6,
+    "symmetry_step": 4,
+    "unique_transpositions": 4,
+    "family_id": 3,
+    "name": "Hexatonic Augmented",
+    "pitch_classes": [
+      0,
+      1,
+      4,
+      5,
+      8,
+      9
+    ]
+  },
+  {
+    "id": 16,
+    "mask": 845,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 16",
+    "pitch_classes": [
+      0,
+      2,
+      3,
+      6,
+      8,
+      9
+    ]
+  },
+  {
+    "id": 17,
+    "mask": 910,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 17",
+    "pitch_classes": [
+      1,
+      2,
+      3,
+      7,
+      8,
+      9
+    ]
+  },
+  {
+    "id": 18,
+    "mask": 975,
+    "pitch_count": 8,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 18",
+    "pitch_classes": [
+      0,
+      1,
+      2,
+      3,
+      6,
+      7,
+      8,
+      9
+    ]
+  },
+  {
+    "id": 19,
+    "mask": 1040,
+    "pitch_count": 2,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 19",
+    "pitch_classes": [
+      4,
+      10
+    ]
+  },
+  {
+    "id": 20,
+    "mask": 1092,
+    "pitch_count": 3,
+    "symmetry_step": 4,
+    "unique_transpositions": 4,
+    "family_id": 7,
+    "name": "Symmetric Set 20",
+    "pitch_classes": [
+      2,
+      6,
+      10
+    ]
+  },
+  {
+    "id": 21,
+    "mask": 1105,
+    "pitch_count": 4,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 21",
+    "pitch_classes": [
+      0,
+      4,
+      6,
+      10
+    ]
+  },
+  {
+    "id": 22,
+    "mask": 1170,
+    "pitch_count": 4,
+    "symmetry_step": 3,
+    "unique_transpositions": 3,
+    "family_id": 7,
+    "name": "Symmetric Set 22",
+    "pitch_classes": [
+      1,
+      4,
+      7,
+      10
+    ]
+  },
+  {
+    "id": 23,
+    "mask": 1235,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 23",
+    "pitch_classes": [
+      0,
+      1,
+      4,
+      6,
+      7,
+      10
+    ]
+  },
+  {
+    "id": 24,
+    "mask": 1300,
+    "pitch_count": 4,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 24",
+    "pitch_classes": [
+      2,
+      4,
+      8,
+      10
+    ]
+  },
+  {
+    "id": 25,
+    "mask": 1365,
+    "pitch_count": 6,
+    "symmetry_step": 2,
+    "unique_transpositions": 2,
+    "family_id": 4,
+    "name": "Whole Tone",
+    "pitch_classes": [
+      0,
+      2,
+      4,
+      6,
+      8,
+      10
+    ]
+  },
+  {
+    "id": 26,
+    "mask": 1430,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 26",
+    "pitch_classes": [
+      1,
+      2,
+      4,
+      7,
+      8,
+      10
+    ]
+  },
+  {
+    "id": 27,
+    "mask": 1495,
+    "pitch_count": 8,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 27",
+    "pitch_classes": [
+      0,
+      1,
+      2,
+      4,
+      6,
+      7,
+      8,
+      10
+    ]
+  },
+  {
+    "id": 28,
+    "mask": 1560,
+    "pitch_count": 4,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 28",
+    "pitch_classes": [
+      3,
+      4,
+      9,
+      10
+    ]
+  },
+  {
+    "id": 29,
+    "mask": 1625,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 29",
+    "pitch_classes": [
+      0,
+      3,
+      4,
+      6,
+      9,
+      10
+    ]
+  },
+  {
+    "id": 30,
+    "mask": 1638,
+    "pitch_count": 6,
+    "symmetry_step": 4,
+    "unique_transpositions": 4,
+    "family_id": 7,
+    "name": "Symmetric Set 30",
+    "pitch_classes": [
+      1,
+      2,
+      5,
+      6,
+      9,
+      10
+    ]
+  },
+  {
+    "id": 31,
+    "mask": 1690,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 31",
+    "pitch_classes": [
+      1,
+      3,
+      4,
+      7,
+      9,
+      10
+    ]
+  },
+  {
+    "id": 32,
+    "mask": 1755,
+    "pitch_count": 8,
+    "symmetry_step": 3,
+    "unique_transpositions": 3,
+    "family_id": 1,
+    "name": "Messiaen Mode 2 / Octatonic C",
+    "pitch_classes": [
+      0,
+      1,
+      3,
+      4,
+      6,
+      7,
+      9,
+      10
+    ]
+  },
+  {
+    "id": 33,
+    "mask": 1820,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 33",
+    "pitch_classes": [
+      2,
+      3,
+      4,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "id": 34,
+    "mask": 1885,
+    "pitch_count": 8,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 34",
+    "pitch_classes": [
+      0,
+      2,
+      3,
+      4,
+      6,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "id": 35,
+    "mask": 1911,
+    "pitch_count": 9,
+    "symmetry_step": 4,
+    "unique_transpositions": 4,
+    "family_id": 7,
+    "name": "Symmetric Set 35",
+    "pitch_classes": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "id": 36,
+    "mask": 1950,
+    "pitch_count": 8,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 36",
+    "pitch_classes": [
+      1,
+      2,
+      3,
+      4,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "id": 37,
+    "mask": 2015,
+    "pitch_count": 10,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 37",
+    "pitch_classes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      6,
+      7,
+      8,
+      9,
+      10
+    ]
+  },
+  {
+    "id": 38,
+    "mask": 2080,
+    "pitch_count": 2,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 38",
+    "pitch_classes": [
+      5,
+      11
+    ]
+  },
+  {
+    "id": 39,
+    "mask": 2145,
+    "pitch_count": 4,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 39",
+    "pitch_classes": [
+      0,
+      5,
+      6,
+      11
+    ]
+  },
+  {
+    "id": 40,
+    "mask": 2184,
+    "pitch_count": 3,
+    "symmetry_step": 4,
+    "unique_transpositions": 4,
+    "family_id": 7,
+    "name": "Symmetric Set 40",
+    "pitch_classes": [
+      3,
+      7,
+      11
+    ]
+  },
+  {
+    "id": 41,
+    "mask": 2210,
+    "pitch_count": 4,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 41",
+    "pitch_classes": [
+      1,
+      5,
+      7,
+      11
+    ]
+  },
+  {
+    "id": 42,
+    "mask": 2275,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 1,
+    "name": "Messiaen Mode 5",
+    "pitch_classes": [
+      0,
+      1,
+      5,
+      6,
+      7,
+      11
+    ]
+  },
+  {
+    "id": 43,
+    "mask": 2340,
+    "pitch_count": 4,
+    "symmetry_step": 3,
+    "unique_transpositions": 3,
+    "family_id": 7,
+    "name": "Symmetric Set 43",
+    "pitch_classes": [
+      2,
+      5,
+      8,
+      11
+    ]
+  },
+  {
+    "id": 44,
+    "mask": 2405,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 44",
+    "pitch_classes": [
+      0,
+      2,
+      5,
+      6,
+      8,
+      11
+    ]
+  },
+  {
+    "id": 45,
+    "mask": 2457,
+    "pitch_count": 6,
+    "symmetry_step": 4,
+    "unique_transpositions": 4,
+    "family_id": 7,
+    "name": "Symmetric Set 45",
+    "pitch_classes": [
+      0,
+      3,
+      4,
+      7,
+      8,
+      11
+    ]
+  },
+  {
+    "id": 46,
+    "mask": 2470,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 46",
+    "pitch_classes": [
+      1,
+      2,
+      5,
+      7,
+      8,
+      11
+    ]
+  },
+  {
+    "id": 47,
+    "mask": 2535,
+    "pitch_count": 8,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 1,
+    "name": "Messiaen Mode 4",
+    "pitch_classes": [
+      0,
+      1,
+      2,
+      5,
+      6,
+      7,
+      8,
+      11
+    ]
+  },
+  {
+    "id": 48,
+    "mask": 2600,
+    "pitch_count": 4,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 48",
+    "pitch_classes": [
+      3,
+      5,
+      9,
+      11
+    ]
+  },
+  {
+    "id": 49,
+    "mask": 2665,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 49",
+    "pitch_classes": [
+      0,
+      3,
+      5,
+      6,
+      9,
+      11
+    ]
+  },
+  {
+    "id": 50,
+    "mask": 2730,
+    "pitch_count": 6,
+    "symmetry_step": 2,
+    "unique_transpositions": 2,
+    "family_id": 7,
+    "name": "Symmetric Set 50",
+    "pitch_classes": [
+      1,
+      3,
+      5,
+      7,
+      9,
+      11
+    ]
+  },
+  {
+    "id": 51,
+    "mask": 2795,
+    "pitch_count": 8,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 51",
+    "pitch_classes": [
+      0,
+      1,
+      3,
+      5,
+      6,
+      7,
+      9,
+      11
+    ]
+  },
+  {
+    "id": 52,
+    "mask": 2860,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 52",
+    "pitch_classes": [
+      2,
+      3,
+      5,
+      8,
+      9,
+      11
+    ]
+  },
+  {
+    "id": 53,
+    "mask": 2925,
+    "pitch_count": 8,
+    "symmetry_step": 3,
+    "unique_transpositions": 3,
+    "family_id": 7,
+    "name": "Octatonic Variant B",
+    "pitch_classes": [
+      0,
+      2,
+      3,
+      5,
+      6,
+      8,
+      9,
+      11
+    ]
+  },
+  {
+    "id": 54,
+    "mask": 2990,
+    "pitch_count": 8,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 54",
+    "pitch_classes": [
+      1,
+      2,
+      3,
+      5,
+      7,
+      8,
+      9,
+      11
+    ]
+  },
+  {
+    "id": 55,
+    "mask": 3003,
+    "pitch_count": 9,
+    "symmetry_step": 4,
+    "unique_transpositions": 4,
+    "family_id": 7,
+    "name": "Symmetric Set 55",
+    "pitch_classes": [
+      0,
+      1,
+      3,
+      4,
+      5,
+      7,
+      8,
+      9,
+      11
+    ]
+  },
+  {
+    "id": 56,
+    "mask": 3055,
+    "pitch_count": 10,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 1,
+    "name": "Messiaen Mode 7",
+    "pitch_classes": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      6,
+      7,
+      8,
+      9,
+      11
+    ]
+  },
+  {
+    "id": 57,
+    "mask": 3120,
+    "pitch_count": 4,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 57",
+    "pitch_classes": [
+      4,
+      5,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 58,
+    "mask": 3185,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 58",
+    "pitch_classes": [
+      0,
+      4,
+      5,
+      6,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 59,
+    "mask": 3250,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 59",
+    "pitch_classes": [
+      1,
+      4,
+      5,
+      7,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 60,
+    "mask": 3276,
+    "pitch_count": 6,
+    "symmetry_step": 4,
+    "unique_transpositions": 4,
+    "family_id": 7,
+    "name": "Symmetric Set 60",
+    "pitch_classes": [
+      2,
+      3,
+      6,
+      7,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 61,
+    "mask": 3315,
+    "pitch_count": 8,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 61",
+    "pitch_classes": [
+      0,
+      1,
+      4,
+      5,
+      6,
+      7,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 62,
+    "mask": 3380,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 62",
+    "pitch_classes": [
+      2,
+      4,
+      5,
+      8,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 63,
+    "mask": 3445,
+    "pitch_count": 8,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 1,
+    "name": "Messiaen Mode 6",
+    "pitch_classes": [
+      0,
+      2,
+      4,
+      5,
+      6,
+      8,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 64,
+    "mask": 3510,
+    "pitch_count": 8,
+    "symmetry_step": 3,
+    "unique_transpositions": 3,
+    "family_id": 7,
+    "name": "Symmetric Set 64",
+    "pitch_classes": [
+      1,
+      2,
+      4,
+      5,
+      7,
+      8,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 65,
+    "mask": 3549,
+    "pitch_count": 9,
+    "symmetry_step": 4,
+    "unique_transpositions": 4,
+    "family_id": 1,
+    "name": "Messiaen Mode 3",
+    "pitch_classes": [
+      0,
+      2,
+      3,
+      4,
+      6,
+      7,
+      8,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 66,
+    "mask": 3575,
+    "pitch_count": 10,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 66",
+    "pitch_classes": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      8,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 67,
+    "mask": 3640,
+    "pitch_count": 6,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 67",
+    "pitch_classes": [
+      3,
+      4,
+      5,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 68,
+    "mask": 3705,
+    "pitch_count": 8,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 68",
+    "pitch_classes": [
+      0,
+      3,
+      4,
+      5,
+      6,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 69,
+    "mask": 3770,
+    "pitch_count": 8,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 69",
+    "pitch_classes": [
+      1,
+      3,
+      4,
+      5,
+      7,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 70,
+    "mask": 3822,
+    "pitch_count": 9,
+    "symmetry_step": 4,
+    "unique_transpositions": 4,
+    "family_id": 7,
+    "name": "Symmetric Set 70",
+    "pitch_classes": [
+      1,
+      2,
+      3,
+      5,
+      6,
+      7,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 71,
+    "mask": 3835,
+    "pitch_count": 10,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 71",
+    "pitch_classes": [
+      0,
+      1,
+      3,
+      4,
+      5,
+      6,
+      7,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 72,
+    "mask": 3900,
+    "pitch_count": 8,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 72",
+    "pitch_classes": [
+      2,
+      3,
+      4,
+      5,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 73,
+    "mask": 3965,
+    "pitch_count": 10,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 73",
+    "pitch_classes": [
+      0,
+      2,
+      3,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 74,
+    "mask": 4030,
+    "pitch_count": 10,
+    "symmetry_step": 6,
+    "unique_transpositions": 6,
+    "family_id": 7,
+    "name": "Symmetric Set 74",
+    "pitch_classes": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  },
+  {
+    "id": 75,
+    "mask": 4095,
+    "pitch_count": 12,
+    "symmetry_step": 1,
+    "unique_transpositions": 1,
+    "family_id": 6,
+    "name": "Symmetric Set 75",
+    "pitch_classes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ]
+  }
+]

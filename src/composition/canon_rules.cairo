@@ -294,51 +294,473 @@ pub fn step_satisfies_constraints(
 // Canon configurations
 // ──────────────────────────────────────────────────────────
 
-/// A canon configuration: the voice offsets (signed diatonic; `offsets[0] == 0` for the leader)
-/// in entry order. Voice `j` enters `j` structural notes after the leader.
-#[derive(Drop)]
+/// A canon configuration: the voice offsets (signed; `offsets[0] == 0` for the leader) in entry
+/// order. Voice `j` enters `j` structural notes after the leader. `octave` selects the lattice the
+/// offsets/steps live on (7 = diatonic / tonal answer; 12 = chromatic / real answer), and
+/// `profile_id` selects the default [`AestheticProfile`] (0 = Renaissance, 1 = jazz, …) under which
+/// the canon's verticals are judged.
+#[derive(Drop, Copy)]
 pub struct CanonConfig {
     pub config_id: u32,
     pub offsets: Span<i32>,
     pub name: felt252,
+    /// Lattice octave size: 7 (diatonic) or 12 (chromatic). Defaults to 7 for legacy configs.
+    pub octave: u32,
+    /// Default aesthetic profile id. 0 (Renaissance) for the legacy diatonic configs.
+    pub profile_id: u32,
 }
 
 pub fn config_fifth_above() -> CanonConfig {
-    CanonConfig { config_id: 0, offsets: array![0_i32, 4].span(), name: 'fifth_above' }
+    CanonConfig {
+        config_id: 0, offsets: array![0_i32, 4].span(), name: 'fifth_above', octave: 7, profile_id: 0,
+    }
 }
 
 pub fn config_fifth_below() -> CanonConfig {
-    CanonConfig { config_id: 1, offsets: array![0_i32, -4].span(), name: 'fifth_below' }
+    CanonConfig {
+        config_id: 1, offsets: array![0_i32, -4].span(), name: 'fifth_below', octave: 7,
+        profile_id: 0,
+    }
 }
 
 pub fn config_octave_above() -> CanonConfig {
-    CanonConfig { config_id: 2, offsets: array![0_i32, 7].span(), name: 'octave_above' }
+    CanonConfig {
+        config_id: 2, offsets: array![0_i32, 7].span(), name: 'octave_above', octave: 7,
+        profile_id: 0,
+    }
 }
 
 pub fn config_unison() -> CanonConfig {
-    CanonConfig { config_id: 3, offsets: array![0_i32, 0].span(), name: 'unison' }
+    CanonConfig {
+        config_id: 3, offsets: array![0_i32, 0].span(), name: 'unison', octave: 7, profile_id: 0,
+    }
 }
 
 /// Three voices: leader, a fifth below, then an octave above that (a fourth above the leader).
 /// Entry order offsets: [0, −4, +3]. Derives the conversation's "no up-a-step" rule.
 pub fn config_three_voice_5b_8va() -> CanonConfig {
-    CanonConfig { config_id: 4, offsets: array![0_i32, -4, 3].span(), name: 'three_5b_8va' }
+    CanonConfig {
+        config_id: 4, offsets: array![0_i32, -4, 3].span(), name: 'three_5b_8va', octave: 7,
+        profile_id: 0,
+    }
 }
 
 /// Three voices middle→high→low: leader, a fifth above, then an octave below that.
 /// Offsets: [0, +4, −3].
 pub fn config_three_voice_5a_8vb() -> CanonConfig {
-    CanonConfig { config_id: 5, offsets: array![0_i32, 4, -3].span(), name: 'three_5a_8vb' }
+    CanonConfig {
+        config_id: 5, offsets: array![0_i32, 4, -3].span(), name: 'three_5a_8vb', octave: 7,
+        profile_id: 0,
+    }
 }
 
 /// Four voices: stacked imitation at the fifth below (Cumming & Schubert four-voice points).
 /// Offsets: [0, −4, −8, −12].
 pub fn config_four_voice_5b_stack() -> CanonConfig {
-    CanonConfig { config_id: 6, offsets: array![0_i32, -4, -8, -12].span(), name: 'four_5b_stack' }
+    CanonConfig {
+        config_id: 6, offsets: array![0_i32, -4, -8, -12].span(), name: 'four_5b_stack', octave: 7,
+        profile_id: 0,
+    }
 }
 
 pub fn num_configs() -> u32 {
     7
+}
+
+// ──────────────────────────────────────────────────────────
+// Chromatic (mod-12) configurations — extended-harmony aesthetics
+// ──────────────────────────────────────────────────────────
+// Offsets are in SEMITONES. These are accessed by explicit id via `profiled_config_by_id`; they
+// are intentionally NOT part of `config_by_index` / `num_configs`, so the seed-driven Renaissance
+// generator's behavior is unchanged.
+
+/// Four-voice stacked real canon spelling a major-seventh chord (root, M3, P5, M7). Jazz profile.
+pub fn config_maj7_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 7, offsets: array![0_i32, 4, 7, 11].span(), name: 'maj7_stack', octave: 12,
+        profile_id: 1,
+    }
+}
+
+/// Four-voice stacked real canon spelling a minor-seventh chord (root, m3, P5, m7). Jazz profile.
+pub fn config_min7_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 8, offsets: array![0_i32, 3, 7, 10].span(), name: 'min7_stack', octave: 12,
+        profile_id: 1,
+    }
+}
+
+/// Four-voice dominant-seventh shape for impressionist planing (root, M3, P5, m7). Planing profile.
+pub fn config_dom7_planing() -> CanonConfig {
+    CanonConfig {
+        config_id: 9, offsets: array![0_i32, 4, 7, 10].span(), name: 'dom7_planing', octave: 12,
+        profile_id: 3,
+    }
+}
+
+/// Three-voice quartal stack (two perfect fourths). Quartal profile.
+pub fn config_quartal_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 10, offsets: array![0_i32, 5, 10].span(), name: 'quartal_stack', octave: 12,
+        profile_id: 2,
+    }
+}
+
+/// Four-voice quartal stack (three perfect fourths). Quartal profile.
+pub fn config_quartal4_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 11, offsets: array![0_i32, 5, 10, 15].span(), name: 'quartal4_stack', octave: 12,
+        profile_id: 2,
+    }
+}
+
+/// Four-voice mixed-interval tension stack (P4, P5, M7 over the root). Hindemith graded-tension
+/// profile — a rich sonority that is permitted (no half-step collision) but high on Series 2.
+pub fn config_hindemith4_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 12, offsets: array![0_i32, 5, 7, 11].span(), name: 'hindemith4', octave: 12,
+        profile_id: 4,
+    }
+}
+
+/// Four-voice dominant-ninth planing shape (root, M3, m7, M9). A larger color block than the
+/// original dom7 planing config while staying within the four-voice strict-canon ceiling.
+pub fn config_dom9_planing() -> CanonConfig {
+    CanonConfig {
+        config_id: 16, offsets: array![0_i32, 4, 10, 14].span(), name: 'dom9_planing',
+        octave: 12, profile_id: 3,
+    }
+}
+
+/// Lydian Imaj9/#11 color without the fifth (root, M3, M7, M9). Lydian profile.
+pub fn config_lydian_maj9_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 17, offsets: array![0_i32, 4, 11, 14].span(), name: 'lydian_maj9',
+        octave: 12, profile_id: 7,
+    }
+}
+
+/// Dominant altered shell with b9 (root, M3, m7, b9). Dominant-altered profile admits class 1.
+pub fn config_dominant_altered_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 18, offsets: array![0_i32, 4, 10, 13].span(), name: 'dom_alt_b9',
+        octave: 12, profile_id: 8,
+    }
+}
+
+/// Whole-tone augmented dominant color (root, M3, aug5, m7). Whole-tone planing profile.
+pub fn config_whole_tone_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 19, offsets: array![0_i32, 4, 8, 10].span(), name: 'whole_tone',
+        octave: 12, profile_id: 9,
+    }
+}
+
+/// Octatonic diminished-axis stack (minor-third cycle). Octatonic profile.
+pub fn config_octatonic_axis_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 20, offsets: array![0_i32, 3, 6, 9].span(), name: 'oct_axis',
+        octave: 12, profile_id: 10,
+    }
+}
+
+/// Suspended/quartal shell (root, M2, P4, m7). Sus-quartal profile.
+pub fn config_sus_quartal_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 21, offsets: array![0_i32, 2, 5, 10].span(), name: 'sus_quartal',
+        octave: 12, profile_id: 11,
+    }
+}
+
+/// Pandiatonic white-key cluster/sixth sonority on the diatonic lattice.
+pub fn config_pandiatonic_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 22, offsets: array![0_i32, 1, 4, 6].span(), name: 'pandiatonic',
+        octave: 7, profile_id: 12,
+    }
+}
+
+/// Spectral-ish dominant-series shell (root, M3, P5, m7). Spectral profile.
+pub fn config_spectral_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 23, offsets: array![0_i32, 4, 7, 10].span(), name: 'spectral',
+        octave: 12, profile_id: 13,
+    }
+}
+
+/// Bartok axis stack (minor-third/tritone cycle). Bartok-axis profile.
+pub fn config_bartok_axis_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 24, offsets: array![0_i32, 3, 6, 9].span(), name: 'bartok_axis',
+        octave: 12, profile_id: 14,
+    }
+}
+
+/// Softer chromatic cluster (root, m2, m3). Cluster-soft profile.
+pub fn config_cluster_soft_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 25, offsets: array![0_i32, 1, 3].span(), name: 'cluster_soft',
+        octave: 12, profile_id: 15,
+    }
+}
+
+/// Major-seventh real answer for intentionally modulating canon-per-tonos behavior.
+pub fn config_canon_per_tonos_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 26, offsets: array![0_i32, 4, 7, 11].span(), name: 'per_tonos',
+        octave: 12, profile_id: 16,
+    }
+}
+
+/// Four-voice impressionist added-6/9 sonority (root, M3, M6, M9). Warm tertian color without
+/// stacked altered tensions; the fifth is left to the walk. Impressionist added-6/9 profile (17).
+pub fn config_impressionist_added6_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 27, offsets: array![0_i32, 4, 9, 14].span(), name: 'impr_add6',
+        octave: 12, profile_id: 17,
+    }
+}
+
+/// Four-voice bitonal split: two major-third dyads a tritone apart (C/E over F#/A#). The tritone
+/// poles read as color, not collision. Bitonal split-field profile (18).
+pub fn config_bitonal_split_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 28, offsets: array![0_i32, 4, 6, 10].span(), name: 'bitonal',
+        octave: 12, profile_id: 18,
+    }
+}
+
+/// Four-voice Phrygian cadential shell (root, b2, P4, m6) — the b2 semitone gravity is the idiom.
+/// Phrygian-cadential profile (19) admits class 1 as color.
+pub fn config_phrygian_cadential_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 29, offsets: array![0_i32, 1, 5, 8].span(), name: 'phrygian',
+        octave: 12, profile_id: 19,
+    }
+}
+
+/// Four-voice stacked perfect fifths (C–G–D–A) — the open-fifth pentatonic field. Pentatonic
+/// open-fifths profile (20) suppresses semitone, tritone and major-seventh friction.
+pub fn config_pentatonic_open_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 30, offsets: array![0_i32, 7, 14, 21].span(), name: 'penta_open',
+        octave: 12, profile_id: 20,
+    }
+}
+
+/// Three-voice major triad (root, M3, P5) — the parsimonious triad PLR transforms pivot around.
+/// Neo-Riemannian triadic profile (21).
+pub fn config_neo_riemannian_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 31, offsets: array![0_i32, 4, 7].span(), name: 'neo_riem',
+        octave: 12, profile_id: 21,
+    }
+}
+
+/// Three-voice impressionist add-6/9 (root, M3, M6). Profile 17.
+pub fn config_impressionist_added6_3v() -> CanonConfig {
+    CanonConfig {
+        config_id: 32, offsets: array![0_i32, 4, 9].span(), name: 'impr_add6_3',
+        octave: 12, profile_id: 17,
+    }
+}
+
+/// Three-voice bitonal split (C/E + F# dyad). Profile 18.
+pub fn config_bitonal_split_3v() -> CanonConfig {
+    CanonConfig {
+        config_id: 33, offsets: array![0_i32, 4, 6].span(), name: 'bitonal_3',
+        octave: 12, profile_id: 18,
+    }
+}
+
+/// Three-voice Phrygian cadential shell (root, b2, P4). Profile 19.
+pub fn config_phrygian_cadential_3v() -> CanonConfig {
+    CanonConfig {
+        config_id: 34, offsets: array![0_i32, 1, 5].span(), name: 'phrygian_3',
+        octave: 12, profile_id: 19,
+    }
+}
+
+/// Three-voice pentatonic open fifths (root, P5, P5+P5). Profile 20.
+pub fn config_pentatonic_open_3v() -> CanonConfig {
+    CanonConfig {
+        config_id: 35, offsets: array![0_i32, 7, 14].span(), name: 'penta_open_3',
+        octave: 12, profile_id: 20,
+    }
+}
+
+/// Four-voice neo-Riemannian triad + M7 (root, M3, P5, M7). Profile 21.
+pub fn config_neo_riemannian_4v() -> CanonConfig {
+    CanonConfig {
+        config_id: 36, offsets: array![0_i32, 4, 7, 11].span(), name: 'neo_riem_4',
+        octave: 12, profile_id: 21,
+    }
+}
+
+/// Four-voice impressionist add-6/9 (smooth: no semitone melody / ornament fill). Profile 23.
+pub fn config_impressionist_added6_smooth_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 37, offsets: array![0_i32, 4, 9, 14].span(), name: 'impr_smooth',
+        octave: 12, profile_id: 23,
+    }
+}
+
+/// Three-voice impressionist add-6/9 smooth. Profile 23.
+pub fn config_impressionist_added6_smooth_3v() -> CanonConfig {
+    CanonConfig {
+        config_id: 38, offsets: array![0_i32, 4, 9].span(), name: 'impr_smooth_3',
+        octave: 12, profile_id: 23,
+    }
+}
+
+/// Four-voice pentatonic open-fifths smooth. Profile 22.
+pub fn config_pentatonic_open_smooth_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 39, offsets: array![0_i32, 7, 14, 21].span(), name: 'penta_smooth',
+        octave: 12, profile_id: 22,
+    }
+}
+
+/// Three-voice pentatonic open-fifths smooth. Profile 22.
+pub fn config_pentatonic_open_smooth_3v() -> CanonConfig {
+    CanonConfig {
+        config_id: 40, offsets: array![0_i32, 7, 14].span(), name: 'penta_smooth_3',
+        octave: 12, profile_id: 22,
+    }
+}
+
+/// Four-voice jazz improvised canon (maj7 stack, turnaround harmony). Profile 24.
+pub fn config_jazz_improv_stack() -> CanonConfig {
+    CanonConfig {
+        config_id: 41, offsets: array![0_i32, 4, 7, 11].span(), name: 'jazz_improv',
+        octave: 12, profile_id: 24,
+    }
+}
+
+/// Three-voice jazz improvised canon (root, M3, P5). Profile 24.
+pub fn config_jazz_improv_3v() -> CanonConfig {
+    CanonConfig {
+        config_id: 42, offsets: array![0_i32, 4, 7].span(), name: 'jazz_improv_3',
+        octave: 12, profile_id: 24,
+    }
+}
+
+// ──────────────────────────────────────────────────────────
+// Ligeti micropolyphony configs — diatonic clusters + chromatic cluster band
+// ──────────────────────────────────────────────────────────
+
+/// Two-voice octave canon on the white-key (diatonic) lattice — the opening of Ligeti's Étude
+/// No. 15 "White on White." Slow, tender, strictly diatonic. Ligeti-white profile.
+pub fn config_white_on_white() -> CanonConfig {
+    CanonConfig {
+        config_id: 13, offsets: array![0_i32, 7].span(), name: 'white_on_white', octave: 7,
+        profile_id: 5,
+    }
+}
+
+/// Four-voice stacked-*second* diatonic canon: a moving white-key cluster band (micropolyphony in
+/// miniature). Every vertical is a diatonic 2nd/3rd — all CLASH under Renaissance, all color under
+/// the Ligeti-white profile, so the walker produces the cluster by construction. Ligeti-white.
+pub fn config_ligeti_cluster() -> CanonConfig {
+    CanonConfig {
+        config_id: 14, offsets: array![0_i32, 1, 2, 3].span(), name: 'ligeti_cluster', octave: 7,
+        profile_id: 5,
+    }
+}
+
+/// Three-voice stacked-semitone canon on the chromatic lattice: a dense chromatic cluster band
+/// (Lux Aeterna texture). The half-step is the idiom here, so it uses the chromatic-micropolyphony
+/// profile that un-gates class 1.
+pub fn config_ligeti_micro() -> CanonConfig {
+    CanonConfig {
+        config_id: 15, offsets: array![0_i32, 1, 2].span(), name: 'ligeti_micro', octave: 12,
+        profile_id: 6,
+    }
+}
+
+/// Number of profiled configs reachable by `profiled_config_by_id` (diatonic 0..6, chromatic 7..12,
+/// Ligeti 13..15, extended catalogue 16..26, complementary catalogue 27..40, jazz improv 41..42).
+pub fn num_profiled_configs() -> u32 {
+    43
+}
+
+/// Lookup any config (diatonic or chromatic) by stable id. Used by the profile-aware generator.
+pub fn profiled_config_by_id(id: u32) -> CanonConfig {
+    if id == 7 {
+        config_maj7_stack()
+    } else if id == 8 {
+        config_min7_stack()
+    } else if id == 9 {
+        config_dom7_planing()
+    } else if id == 10 {
+        config_quartal_stack()
+    } else if id == 11 {
+        config_quartal4_stack()
+    } else if id == 12 {
+        config_hindemith4_stack()
+    } else if id == 13 {
+        config_white_on_white()
+    } else if id == 14 {
+        config_ligeti_cluster()
+    } else if id == 15 {
+        config_ligeti_micro()
+    } else if id == 16 {
+        config_dom9_planing()
+    } else if id == 17 {
+        config_lydian_maj9_stack()
+    } else if id == 18 {
+        config_dominant_altered_stack()
+    } else if id == 19 {
+        config_whole_tone_stack()
+    } else if id == 20 {
+        config_octatonic_axis_stack()
+    } else if id == 21 {
+        config_sus_quartal_stack()
+    } else if id == 22 {
+        config_pandiatonic_stack()
+    } else if id == 23 {
+        config_spectral_stack()
+    } else if id == 24 {
+        config_bartok_axis_stack()
+    } else if id == 25 {
+        config_cluster_soft_stack()
+    } else if id == 26 {
+        config_canon_per_tonos_stack()
+    } else if id == 27 {
+        config_impressionist_added6_stack()
+    } else if id == 28 {
+        config_bitonal_split_stack()
+    } else if id == 29 {
+        config_phrygian_cadential_stack()
+    } else if id == 30 {
+        config_pentatonic_open_stack()
+    } else if id == 31 {
+        config_neo_riemannian_stack()
+    } else if id == 32 {
+        config_impressionist_added6_3v()
+    } else if id == 33 {
+        config_bitonal_split_3v()
+    } else if id == 34 {
+        config_phrygian_cadential_3v()
+    } else if id == 35 {
+        config_pentatonic_open_3v()
+    } else if id == 36 {
+        config_neo_riemannian_4v()
+    } else if id == 37 {
+        config_impressionist_added6_smooth_stack()
+    } else if id == 38 {
+        config_impressionist_added6_smooth_3v()
+    } else if id == 39 {
+        config_pentatonic_open_smooth_stack()
+    } else if id == 40 {
+        config_pentatonic_open_smooth_3v()
+    } else if id == 41 {
+        config_jazz_improv_stack()
+    } else if id == 42 {
+        config_jazz_improv_3v()
+    } else {
+        config_by_id(id)
+    }
 }
 
 pub fn config_by_index(i: u32) -> CanonConfig {

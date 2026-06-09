@@ -1,0 +1,12 @@
+{
+  "version": "barry_harris_v1",
+  "seed": 12345,
+  "tonic_pc": 0,
+  "family": "Major6Dim",
+  "profile": "BebopLine",
+  "length_steps": 8,
+  "register_min": 48,
+  "register_max": 72,
+  "expected_first_tonics": [0, 0, 0, 0, 0, 0, 0, 0],
+  "note": "Golden snapshot for offline regression; tonic walk may vary once transition rules evolve."
+}

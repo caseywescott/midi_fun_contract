@@ -1,0 +1,7 @@
+{
+  "selection": { "kind": "seeded", "seed": 88 },
+  "enabledOrnaments": ["Suspension43"],
+  "intervalAboveBass": 4,
+  "resolution": "step_down",
+  "deterministic": true
+}

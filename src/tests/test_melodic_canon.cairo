@@ -1,12 +1,17 @@
 //! Tests for the melodic-canon generator: realization, the leader walk, validators, end-to-end
 //! determinism, ornamentation, and the lag-difference identity under fuzzing.
 
-use koji::composition::canon_rules::{config_fifth_above, allowed_leader_steps, contains_i32};
+use koji::composition::canon_rules::{
+    config_fifth_above, allowed_leader_steps, contains_i32, abs_i32,
+};
 use koji::composition::melodic_canon::{
     mode_scale, degree_to_keynum, walk_leader, all_pairs_consonant, exact_imitation,
-    canon_to_note_events, generate_melodic_canon, canon_traits, subdivide, ornament_tone_is_legal,
+    canon_to_note_events, generate_melodic_canon, canon_traits, subdivide, subdivide_for_profile,
+    subdivide_min_step, ornament_tone_is_legal,
     build_canon_for_test, cadence_formula, cadence_lands_on_final,
+    generate_ornamented_canon, canon_to_ornamented_note_events, remap_events_with_timing_wave,
 };
+use koji::sine_wave::long_sequence_timing_wave_freq;
 use koji::composition::canon_rules::step_set_eq;
 
 // ──────────────────────────────────────────────────────────
@@ -228,6 +233,35 @@ fn test_subdivide_single() {
     assert(*got.at(0) == 3, 'is structural');
 }
 
+#[test]
+#[available_gas(1000000000000)]
+fn test_subdivide_min_step_skips_semitones() {
+    let got = subdivide_min_step(0, 4, 3, 2);
+    assert(got.len() == 3, 'three notes');
+    assert(*got.at(0) == 0, 'start');
+    assert(*got.at(1) == 2, 'whole step fill');
+    assert(*got.at(2) == 4, 'target');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_subdivide_pentatonic_material_no_semitone_fill() {
+    let got = subdivide_for_profile(0, 7, 4, 20);
+    assert(got.len() == 4, 'four notes');
+    assert(*got.at(0) == 0, 'start');
+    assert(*got.at(3) == 7, 'target');
+    let mut i: u32 = 0;
+    loop {
+        if i + 1 >= got.len() {
+            break;
+        }
+        let a = *got.at(i);
+        let b = *got.at(i + 1);
+        assert(abs_i32(b - a) != 1, 'no semitone ornament steps');
+        i += 1;
+    };
+}
+
 // ──────────────────────────────────────────────────────────
 // Cadence
 // ──────────────────────────────────────────────────────────
@@ -279,4 +313,46 @@ fn test_ornament_legality() {
     assert(ornament_tone_is_legal(1, 0, true, true), 'weak passing ok');
     assert(!ornament_tone_is_legal(1, 0, false, true), 'strong dissonance bad');
     assert(!ornament_tone_is_legal(1, 0, true, false), 'leapt dissonance bad');
+}
+
+/// No same-voice overlap after sine-tempo remap (seed/config from long ornamented MIDI export).
+#[test]
+#[available_gas(4000000000000)]
+fn test_sine_tempo_remap_monophonic_per_voice() {
+    let (canon, subs) = generate_ornamented_canon(4343, 4, 36);
+    let events = canon_to_ornamented_note_events(@canon, subs.span());
+    let len = canon.leader_degrees.len();
+    let nv = canon.voices.len();
+    let span = len + nv - 1;
+    let wave = long_sequence_timing_wave_freq(span, 4);
+    let scaled = remap_events_with_timing_wave(
+        events.span(), wave.span(), canon.time_unit, canon.voices,
+    );
+    let n = scaled.len();
+    let mut i: u32 = 0;
+    loop {
+        if i >= n {
+            break;
+        }
+        let a = *scaled.at(i);
+        let mut j: u32 = i + 1;
+        loop {
+            if j >= n {
+                break;
+            }
+            let b = *scaled.at(j);
+            if a.voice_id == b.voice_id {
+                if a.time == b.time {
+                    assert(false, 'same onset same voice');
+                }
+                if a.time < b.time {
+                    assert(a.time + a.duration <= b.time, 'voice overlap');
+                } else if b.time < a.time {
+                    assert(b.time + b.duration <= a.time, 'voice overlap');
+                }
+            }
+            j += 1;
+        };
+        i += 1;
+    };
 }

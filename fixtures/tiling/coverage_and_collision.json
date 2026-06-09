@@ -1,0 +1,7 @@
+{
+  "selection": { "kind": "seeded", "seed": 88 },
+  "boundaryPolicy": "preserveCell",
+  "collisionPolicy": "perfect",
+  "checks": ["coverage", "no_collision"],
+  "deterministic": true
+}

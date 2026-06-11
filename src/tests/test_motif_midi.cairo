@@ -11,8 +11,10 @@ use koji::composition::melodic_motion::ORN_FILL_MIN_STEP;
 use koji::composition::motif_algebra::{
     apply_program, developed_to_note_events, developed_to_ornamented_note_events,
     generate_developed_line, generate_ornamented_canon_from_developed, grundgestalt_theme,
-    long_demo_developed_motif, program_from_seed, DevelopedMotif, MotifProgram,
+    long_demo_developed_motif, motif_from_degrees, program_from_seed, DevelopedMotif, Motif,
+    MotifProgram,
 };
+use koji::composition::period_assembly::{develop_period_grouped, period_section_lengths};
 use koji::math::Time;
 use koji::midi::output::output_midi_object;
 use koji::midi::types::{Message, Midi, NoteOff, NoteOn, SetTempo};
@@ -31,6 +33,8 @@ const LONG_CANON_CONFIG: u32 = 0;
 const LONG_CANON_LOOPS: u32 = 2;
 const LONG_DEMO_SEED: felt252 = 880808;
 const LONG_ORNAMENT_SEED: u32 = 42;
+const GROUPED_STEP_US: u64 = 180000;
+const GROUPED_PASSES: u32 = 8;
 
 fn append_legato_note(
     ref eventlist: Array<Message>,
@@ -212,6 +216,103 @@ fn append_note_events(
     note_ons
 }
 
+fn append_note_events_on_channel(
+    ref eventlist: Array<Message>,
+    events: @Array<NoteEvent>,
+    time_offset_us: u64,
+    step_us: u64,
+    channel: u8,
+) -> u32 {
+    let mut note_ons: u32 = 0;
+    let mut i: u32 = 0;
+    loop {
+        if i >= events.len() {
+            break;
+        }
+        let e = events.at(i);
+        let on: Time = time_offset_us + (*e.time).into() * step_us;
+        let off: Time = on + (*e.duration).into() * step_us;
+        append_legato_note(ref eventlist, channel, *e.pitch, *e.velocity, on, off);
+        note_ons += 1;
+        i += 1;
+    };
+    note_ons
+}
+
+fn note_events_end_tick(events: @Array<NoteEvent>) -> u32 {
+    let mut end_tick: u32 = 0;
+    let mut i: u32 = 0;
+    loop {
+        if i >= events.len() {
+            break;
+        }
+        let e = events.at(i);
+        let end = *e.time + *e.duration;
+        if end > end_tick {
+            end_tick = end;
+        }
+        i += 1;
+    };
+    end_tick
+}
+
+fn run_grouped_motif_long_ornamented_midi(
+    theme: @Motif,
+    durations: @Array<u32>,
+    seed: felt252,
+    mode_id: u8,
+    ornament_seed: u32,
+) {
+    let period = develop_period_grouped(theme, durations, seed, 2);
+    let (a_len, b_len) = period_section_lengths(theme, durations, seed, 2);
+    assert(period.degrees.len() == a_len * 3 + b_len, 'grouped AABA length');
+    assert(period.degrees.len() >= 8, 'grouped melody len');
+
+    let mut eventlist: Array<Message> = ArrayTrait::new();
+    eventlist.append(
+        Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }),
+    );
+
+    let mut offset_us: u64 = 0;
+    let mut total_note_ons: u32 = 0;
+
+    // Plain statement makes the contour-derived AABA structure audible first.
+    let plain = developed_to_note_events(@period, 65, mode_id);
+    total_note_ons += append_note_events_on_channel(
+        ref eventlist, @plain, offset_us, GROUPED_STEP_US, 0,
+    );
+    offset_us += note_events_end_tick(@plain).into() * GROUPED_STEP_US;
+    append_marker(ref eventlist, offset_us);
+    offset_us += LONG_SECTION_GAP_US;
+
+    // Eight increasingly reseeded ornamented passes keep the same grouped form.
+    let mut pass: u32 = 0;
+    let mut ornamented_note_ons: u32 = 0;
+    loop {
+        if pass >= GROUPED_PASSES {
+            break;
+        }
+        let events = developed_to_ornamented_note_events(
+            @period, ornament_seed + pass * 37, mode_id, ORN_FILL_MIN_STEP,
+        );
+        let channel: u8 = (pass % 4 + 1).try_into().unwrap();
+        ornamented_note_ons += append_note_events_on_channel(
+            ref eventlist, @events, offset_us, GROUPED_STEP_US, channel,
+        );
+        offset_us += note_events_end_tick(@events).into() * GROUPED_STEP_US;
+        append_marker(ref eventlist, offset_us);
+        offset_us += LONG_SECTION_GAP_US / 2;
+        pass += 1;
+    };
+    total_note_ons += ornamented_note_ons;
+
+    assert(ornamented_note_ons > period.degrees.len() * GROUPED_PASSES, 'ornaments expand');
+    let midi = Midi { events: eventlist.span() };
+    generate_parser_format(@midi);
+    assert_valid_demo_midi(@midi, 100);
+    assert(total_note_ons >= 100, 'grouped long note ons');
+}
+
 fn append_looped_canon(
     ref eventlist: Array<Message>,
     events: @Array<NoteEvent>,
@@ -372,4 +473,37 @@ fn motif_development_long_ornamented_midi_test() {
     generate_parser_format(@midi);
     assert_valid_demo_midi(@midi, 120);
     assert(total_note_ons >= 120, 'long ornamented note ons');
+}
+
+/// Grouped AABA showcase: sequence statement answered by inversion.
+/// Export: `./scripts/generate_midi_from_test.sh grouped_motif_sequence_inversion_long_ornamented_midi_test demos/motif/03_grouped_sequence_inversion_long_ornamented.mid`
+#[ignore]
+#[test]
+#[available_gas(8000000000000)]
+fn grouped_motif_sequence_inversion_long_ornamented_midi_test() {
+    let theme = motif_from_degrees(array![0_i32, 2, 4, 3, 7, 5, 9, 7], 7, 0);
+    let durations = array![2_u32, 1, 1, 1, 4, 1, 1, 2];
+    run_grouped_motif_long_ornamented_midi(@theme, @durations, 50470912, 3, 41);
+}
+
+/// Grouped AABA showcase: stuttered statement answered by retrograde.
+/// Export: `./scripts/generate_midi_from_test.sh grouped_motif_stutter_retrograde_long_ornamented_midi_test demos/motif/04_grouped_stutter_retrograde_long_ornamented.mid`
+#[ignore]
+#[test]
+#[available_gas(8000000000000)]
+fn grouped_motif_stutter_retrograde_long_ornamented_midi_test() {
+    let theme = motif_from_degrees(array![0_i32, 2, 1, 4, 3, 6, 4, 7, 5, 2], 7, 0);
+    let durations = array![1_u32, 1, 3, 1, 1, 4, 1, 1, 2, 1];
+    run_grouped_motif_long_ornamented_midi(@theme, @durations, 117510144, 1, 83);
+}
+
+/// Grouped AABA showcase: interpolated leaps answered by retrograde-inversion.
+/// Export: `./scripts/generate_midi_from_test.sh grouped_motif_interpolate_retroinvert_long_ornamented_midi_test demos/motif/05_grouped_interpolate_retroinvert_long_ornamented.mid`
+#[ignore]
+#[test]
+#[available_gas(8000000000000)]
+fn grouped_motif_interpolate_retroinvert_long_ornamented_midi_test() {
+    let theme = motif_from_degrees(array![0_i32, 4, 1, 7, 3, 8, 2, 6, 1, 5], 7, 0);
+    let durations = array![1_u32, 1, 1, 4, 1, 1, 1, 3, 1, 2];
+    run_grouped_motif_long_ornamented_midi(@theme, @durations, 167779072, 5, 127);
 }

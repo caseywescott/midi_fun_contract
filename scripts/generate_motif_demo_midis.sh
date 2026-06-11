@@ -1,5 +1,5 @@
 #!/bin/bash
-# Motif development algebra MIDI demos (theme, variations, long ornamented canon).
+# Motif development MIDI demos (weighted development, grouping, and ornamented AABA form).
 # Run from midi_fun_contract/: ./scripts/generate_motif_demo_midis.sh
 
 set -euo pipefail
@@ -30,11 +30,15 @@ echo ""
 echo "Listen guide:"
 echo "  Channel 0  = solo developed theme / ornamented line"
 echo "  Channel 0–1 = canon voices (long demo, section C)"
+echo "  Channels 1–4 = ornamented grouped-period passes"
 echo "  Channel 9  = section marker pings"
 echo ""
 
 generate_one motif_development_midi_test demos/motif/01_short_showcase
 generate_one motif_development_long_ornamented_midi_test demos/motif/02_long_ornamented
+generate_one grouped_motif_sequence_inversion_long_ornamented_midi_test demos/motif/03_grouped_sequence_inversion_long_ornamented
+generate_one grouped_motif_stutter_retrograde_long_ornamented_midi_test demos/motif/04_grouped_stutter_retrograde_long_ornamented
+generate_one grouped_motif_interpolate_retroinvert_long_ornamented_midi_test demos/motif/05_grouped_interpolate_retroinvert_long_ornamented
 
 echo ""
 echo "Done. Files in $(pwd)/demos/motif/"

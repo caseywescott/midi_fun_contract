@@ -31,5 +31,6 @@ pub mod test_harmonic_walk;
 pub mod test_barry_harris;
 pub mod test_barry_voiceleading;
 pub mod test_barry_midi;
+pub mod test_barry_labyrinth;
 pub mod test_ornamentation_v2;
 pub mod test_ornamentation_v2_midi;

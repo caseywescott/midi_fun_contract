@@ -31,6 +31,7 @@ echo "Listen guide:"
 echo "  Channel 0  = solo developed theme / ornamented line"
 echo "  Channel 0–1 = canon voices (long demo, section C)"
 echo "  Channels 1–4 = ornamented grouped-period passes"
+echo "  Channels 0–2 = ornamentation-v2 three-part motif canon"
 echo "  Channel 9  = section marker pings"
 echo ""
 
@@ -39,6 +40,7 @@ generate_one motif_development_long_ornamented_midi_test demos/motif/02_long_orn
 generate_one grouped_motif_sequence_inversion_long_ornamented_midi_test demos/motif/03_grouped_sequence_inversion_long_ornamented
 generate_one grouped_motif_stutter_retrograde_long_ornamented_midi_test demos/motif/04_grouped_stutter_retrograde_long_ornamented
 generate_one grouped_motif_interpolate_retroinvert_long_ornamented_midi_test demos/motif/05_grouped_interpolate_retroinvert_long_ornamented
+generate_one motif_v2_three_part_canon_long_midi_test demos/motif/06_v2_three_part_canon_long
 
 echo ""
 echo "Done. Files in $(pwd)/demos/motif/"

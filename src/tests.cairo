@@ -33,5 +33,6 @@ pub mod test_barry_voiceleading;
 pub mod test_barry_midi;
 pub mod test_barry_labyrinth;
 pub mod test_barry_limitations;
+pub mod test_barry_elevators;
 pub mod test_ornamentation_v2;
 pub mod test_ornamentation_v2_midi;

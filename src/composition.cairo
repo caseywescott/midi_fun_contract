@@ -35,4 +35,5 @@ pub mod barry_profiles;
 pub mod barry_rules;
 pub mod barry_labyrinth;
 pub mod barry_limitations;
+pub mod barry_elevators;
 pub mod ornamentation_v2;

@@ -178,6 +178,7 @@ fn test_interval_scale_and_interpolate() {
     assert(scaled.degrees.len() == 3, 'scale len');
     let interp = apply_op(@theme, @durs, MotifOp::Interpolate(2));
     assert(interp.degrees.len() >= 3, 'interp len');
+    assert(interp.degrees.len() == interp.durations.len(), 'interp durations');
 }
 
 #[test]

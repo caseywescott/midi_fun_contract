@@ -595,9 +595,11 @@ pub fn apply_op_to_developed(m: @DevelopedMotif, op: MotifOp) -> DevelopedMotif 
 
     let snapped = maybe_snap(new_degrees, mask, octave, snap && needs_snap);
 
+    let normalized_durations = normalize_durations(snapped.len(), new_durations.span());
+
     DevelopedMotif {
         degrees: snapped,
-        durations: new_durations,
+        durations: normalized_durations,
         octave,
         world_mask: mask,
     }

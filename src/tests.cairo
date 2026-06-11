@@ -41,5 +41,6 @@ pub mod test_barry_voicing_styles;
 pub mod test_barry_turnarounds;
 pub mod test_barry_motif_integration;
 pub mod test_barry_labyrinth_midi;
+pub mod test_barry_showcase_midi;
 pub mod test_ornamentation_v2;
 pub mod test_ornamentation_v2_midi;

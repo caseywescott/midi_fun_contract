@@ -20,6 +20,7 @@ pub mod test_symmetry_engine;
 pub mod test_tendency_mask;
 pub mod test_motif_algebra;
 pub mod test_motif_form;
+pub mod test_grouping_boundaries;
 pub mod test_motif_midi;
 pub mod test_transform;
 pub mod test_transform_midi;

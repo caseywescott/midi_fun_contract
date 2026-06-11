@@ -11,7 +11,7 @@
 | Task | Status | Commit |
 |------|--------|--------|
 | Weighted motif form and flat AABA | Complete | this commit |
-| GTTM grouping boundaries | Not started | pending |
+| GTTM grouping boundaries | Complete | this commit |
 | Grouped period assembly and acceptance coverage | Not started | pending |
 
 Implementation note: this crate names the authoritative base module

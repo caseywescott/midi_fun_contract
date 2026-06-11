@@ -1,0 +1,22 @@
+{
+  "version": "barry_labyrinth_v2",
+  "seed": "0xB20000000A0000AA",
+  "tonic_pc": 0,
+  "family": "Major6Dim",
+  "length_steps": 32,
+  "profile": "BebopLine",
+  "register_min": 48,
+  "register_max": 72,
+  "demos": [
+    "demos/barry_labyrinth/01_elevator_up.mid",
+    "demos/barry_labyrinth/02_elevator_down.mid",
+    "demos/barry_labyrinth/03_contrary_motion.mid",
+    "demos/barry_labyrinth/04_enclosure_line.mid",
+    "demos/barry_labyrinth/05_neighbor_borrowing.mid",
+    "demos/barry_labyrinth/06_drop_two_block.mid",
+    "demos/barry_labyrinth/07_barry_turnaround.mid",
+    "demos/barry_labyrinth/08_limitations_only_elevators.mid",
+    "demos/barry_labyrinth/09_limitations_no_leaps.mid",
+    "demos/barry_labyrinth/10_mixed_labyrinth_phrase.mid"
+  ]
+}

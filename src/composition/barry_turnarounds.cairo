@@ -34,6 +34,16 @@ pub fn generate_barry_turnaround(
     }
 }
 
+/// Saturating remainder used for the final functional step before the
+/// duration-0 tonic marker. Never underflows and never returns 0.
+fn remaining_dur(total: u8, used: u8) -> u8 {
+    if total > used {
+        total - used
+    } else {
+        1
+    }
+}
+
 fn single_step_path(tonic_pc: u8, steps: u8) -> Array<BarryTurnaroundStep> {
     array![
         BarryTurnaroundStep {
@@ -66,7 +76,7 @@ fn six_to_two_five(tonic_pc: u8, steps: u8) -> Array<BarryTurnaroundStep> {
         BarryTurnaroundStep {
             tonic_pc: pc_add(tonic_pc, 7),
             family: ChordFamily::Dominant7Dim,
-            duration_steps: steps - 3 * dur,
+            duration_steps: remaining_dur(steps, 3 * dur),
             function_label: 5,
         },
         BarryTurnaroundStep {
@@ -94,7 +104,7 @@ fn tritone_dominant_chain(tonic_pc: u8, steps: u8) -> Array<BarryTurnaroundStep>
         BarryTurnaroundStep {
             tonic_pc: pc_add(tonic_pc, 7),
             family: ChordFamily::Dominant7Dim,
-            duration_steps: steps - 2 * dur,
+            duration_steps: remaining_dur(steps, 2 * dur),
             function_label: 5,
         },
         BarryTurnaroundStep {
@@ -124,7 +134,7 @@ fn diminished_passing_turnaround(tonic_pc: u8, steps: u8) -> Array<BarryTurnarou
         BarryTurnaroundStep {
             tonic_pc: pc_add(tonic_pc, 1),
             family: ChordFamily::Diminished,
-            duration_steps: steps - 3 * dur,
+            duration_steps: remaining_dur(steps, 3 * dur),
             function_label: 0,
         },
         BarryTurnaroundStep {
@@ -148,7 +158,7 @@ fn backdoor_six_dim(tonic_pc: u8, steps: u8) -> Array<BarryTurnaroundStep> {
         BarryTurnaroundStep {
             tonic_pc: pc_add(tonic_pc, 10),
             family: ChordFamily::Dominant7Dim,
-            duration_steps: steps - 2 * dur,
+            duration_steps: remaining_dur(steps, 2 * dur),
             function_label: 7,
         },
         BarryTurnaroundStep {

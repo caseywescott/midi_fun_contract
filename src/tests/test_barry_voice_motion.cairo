@@ -59,6 +59,19 @@ fn test_oblique_bass_preserves_bass() {
 }
 
 #[test]
+fn test_voicelead_policy_high_register_downshift() {
+    // Regression: a downward octave shift that stays in register must not panic
+    // on the negative-shift tie-break path.
+    let prev = array![60_i16, 64, 67, 71].span();
+    let target = array![0_u8, 4, 7, 11].span();
+    let out = voicelead_with_policy(
+        prev, target, 48, 72, VoiceMotionPolicy::Parallel, 5,
+    );
+    assert(out.len() == 4, 'four voices');
+    assert(voices_do_not_cross(out.span()), 'no cross');
+}
+
+#[test]
 fn test_voicelead_no_crossing() {
     let prev = array![48_i16, 55, 60, 67].span();
     let target = array![0_u8, 7, 4, 11].span();

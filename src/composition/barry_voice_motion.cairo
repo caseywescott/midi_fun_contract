@@ -49,7 +49,7 @@ pub fn score_voice_motion(
     previous: Span<i16>, candidate: Span<i16>, policy: VoiceMotionPolicy,
 ) -> u32 {
     let base = total_abs_motion(previous, candidate);
-    if previous.len() == 0 || candidate.len() == 0 {
+    if previous.len() == 0 || candidate.len() == 0 || previous.len() != candidate.len() {
         return base;
     }
     let penalty: u32 = match policy {
@@ -179,7 +179,9 @@ pub fn voicelead_with_policy(
         let in_range = voicing_in_register(candidate.span(), register_min, register_max);
         if in_range {
             let score = score_voice_motion(previous_voicing, candidate.span(), policy);
-            let rank = bounded(tie_break + shift.try_into().unwrap() + 100, 1000000);
+            // `shift` ranges -2..=2; offset is always non-negative.
+            let shift_off: u32 = (shift + 2).try_into().unwrap();
+            let rank = bounded(tie_break + shift_off + 100, 1000000);
             if score < best_score
                 || (score == best_score && rank < bounded(tie_break, 1000000)) {
                 best_score = score;

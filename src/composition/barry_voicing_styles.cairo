@@ -184,7 +184,7 @@ fn sort_asc(arr: Array<i16>) -> Array<i16> {
             break;
         }
         let mut best_idx: usize = 0;
-        let mut best_val: i16 = 127;
+        let mut best_val: i16 = 32000;
         let mut j: usize = 0;
         loop {
             if j >= n {

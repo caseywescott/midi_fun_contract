@@ -41,32 +41,46 @@ pub fn line_cell_allowed_on_beat(cell: BarryLineCell, role: BeatRole) -> bool {
     }
 }
 
+/// Nearest scale tone strictly above `target_pc` on the pitch-class circle.
+/// Works for transposed (unsorted) scales and wraps past the octave.
 fn scale_neighbor_above(target_pc: u8, state: @HarmonicState) -> u8 {
     let scale = scale_for_family(*state.tonic_pc, *state.family);
+    let t: u32 = target_pc.into();
+    let mut best: u8 = target_pc;
+    let mut best_dist: u32 = 13;
     let mut i: usize = 0;
     loop {
         if i >= scale.len() {
             break;
         }
         let pc = *scale.at(i);
-        if pc > target_pc {
-            return pc;
+        let p: u32 = pc.into();
+        let dist = (p + 12 - t) % 12;
+        if dist != 0 && dist < best_dist {
+            best_dist = dist;
+            best = pc;
         }
         i += 1;
     };
-    *scale.at(0)
+    best
 }
 
+/// Nearest scale tone strictly below `target_pc` on the pitch-class circle.
 fn scale_neighbor_below(target_pc: u8, state: @HarmonicState) -> u8 {
     let scale = scale_for_family(*state.tonic_pc, *state.family);
-    let mut best: u8 = *scale.at(0);
+    let t: u32 = target_pc.into();
+    let mut best: u8 = target_pc;
+    let mut best_dist: u32 = 13;
     let mut i: usize = 0;
     loop {
         if i >= scale.len() {
             break;
         }
         let pc = *scale.at(i);
-        if pc < target_pc {
+        let p: u32 = pc.into();
+        let dist = (t + 12 - p) % 12;
+        if dist != 0 && dist < best_dist {
+            best_dist = dist;
             best = pc;
         }
         i += 1;

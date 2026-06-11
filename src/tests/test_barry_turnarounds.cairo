@@ -41,6 +41,30 @@ fn test_six_to_two_five_functions() {
 }
 
 #[test]
+fn test_turnaround_small_length_no_underflow() {
+    // Regression: tiny length_steps must not underflow u8 durations.
+    let mut len: u8 = 1;
+    loop {
+        if len > 4 {
+            break;
+        }
+        let a = generate_barry_turnaround(0, BarryTurnaroundKind::SixToTwoFive, len);
+        assert(a.len() == 5, '625 steps');
+        let b = generate_barry_turnaround(0, BarryTurnaroundKind::TritoneDominantChain, len);
+        assert(b.len() == 4, 'tritone steps');
+        let c = generate_barry_turnaround(0, BarryTurnaroundKind::DiminishedPassingTurnaround, len);
+        assert(c.len() == 5, 'dim steps');
+        let d = generate_barry_turnaround(0, BarryTurnaroundKind::BackdoorSixDim, len);
+        assert(d.len() == 4, 'backdoor steps');
+        assert(
+            turnaround_starts_and_ends_on_tonic(0, BarryTurnaroundKind::SixToTwoFive, len),
+            'starts ends',
+        );
+        len += 1;
+    };
+}
+
+#[test]
 fn test_turnaround_deterministic() {
     let a = generate_barry_turnaround(0, BarryTurnaroundKind::TritoneDominantChain, 12);
     let b = generate_barry_turnaround(0, BarryTurnaroundKind::TritoneDominantChain, 12);

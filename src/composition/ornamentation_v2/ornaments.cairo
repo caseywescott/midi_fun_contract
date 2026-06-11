@@ -2,10 +2,10 @@
 
 use core::array::ArrayTrait;
 use koji::composition::ornamentation_v2::pitch::{
-    chord_contains_pc, chromatic_approach_pc, degree_to_midi, interval_above_bass,
-    midi_to_pitch, pc_in_scale, scale_step_distance, step_degree, subdivide_duration,
+    chord_contains_pc, chromatic_approach_midi, common_tone_pcs, degree_sentinel_pitch,
+    degree_to_midi, interval_above_bass, midi_from_pc_in_tonic_octave, midi_to_pitch,
+    pc_in_scale, scale_degree_for_pc, scale_step_distance, step_degree, subdivide_duration,
 };
-use koji::composition::ornamentation_v2::selection::{deterministic_choice_u8, advance_seed};
 use koji::composition::ornamentation_v2::types::{
     OrnamentContext, ROLE_ANTICIPATION, ROLE_APPOGGIATURA, ROLE_CAMBIATA, ROLE_CHROMATIC_APPROACH,
     ROLE_DOUBLE_NEIGHBOR, ROLE_ECHAPPEE, ROLE_ENCLOSURE, ROLE_ESCAPE, ROLE_GRACE, ROLE_MORDENT,
@@ -917,20 +917,11 @@ fn emit_chromatic_approach(
 ) -> Array<V2NoteEvent> {
     let mut out: Array<V2NoteEvent> = ArrayTrait::new();
     let anchor_midi = degree_to_midi(anchor_deg, tonic, mode_id, 7);
-    let anchor_u: u32 = anchor_midi.into();
-    let approach_midi: u8 = if from_above {
-        (anchor_u - 1).try_into().unwrap()
-    } else {
-        (anchor_u + 1).try_into().unwrap()
-    };
+    let approach_midi = chromatic_approach_midi(anchor_midi, from_above);
     let d = subdivide_duration(dur, 2);
     out.append(
         surface_event(
-            midi_to_pitch(approach_midi, anchor_deg - if from_above {
-                0
-            } else {
-                0
-            }),
+            degree_sentinel_pitch(approach_midi),
             start,
             d,
             ROLE_CHROMATIC_APPROACH,
@@ -1036,8 +1027,9 @@ fn emit_arpeggiation(
             n - 1 - i
         };
         let pc = *chord_pcs.at(idx);
-        let deg = anchor_deg + idx.try_into().unwrap();
-        let midi = tonic + pc;
+        let key_pc = tonic % 12;
+        let deg = scale_degree_for_pc(pc, key_pc, mode_id);
+        let midi = midi_from_pc_in_tonic_octave(tonic, pc);
         out.append(
             surface_event(
                 midi_to_pitch(midi, deg),
@@ -1070,12 +1062,8 @@ fn emit_pedal(
     ornament_id: u32,
 ) -> Array<V2NoteEvent> {
     let mut out: Array<V2NoteEvent> = ArrayTrait::new();
-    let pc = if prev_chord.len() > 0 {
-        *prev_chord.at(0)
-    } else {
-        0_u8
-    };
-    let midi = tonic + pc;
+    let pc = common_tone_pcs(prev_chord, curr_chord, next_chord);
+    let midi = midi_from_pc_in_tonic_octave(tonic, pc);
     out.append(
         surface_event(
             midi_to_pitch(midi, anchor_deg),

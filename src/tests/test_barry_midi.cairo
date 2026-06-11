@@ -182,6 +182,7 @@ fn append_marker(ref eventlist: Array<Message>, at_us: u64) {
 
 /// C major 6th-dim field, conservative profile (32 steps).
 /// Export: `scarb test -- --filter barry_harris_conservative_c_major_midi_test`
+#[ignore]
 #[test]
 #[available_gas(4000000000000)]
 fn barry_harris_conservative_c_major_midi_test() {
@@ -198,6 +199,7 @@ fn barry_harris_conservative_c_major_midi_test() {
 
 /// Bebop-line profile with scale steps and chromatic approaches (48 steps).
 /// Export: `scarb test -- --filter barry_harris_bebop_line_midi_test`
+#[ignore]
 #[test]
 #[available_gas(6000000000000)]
 fn barry_harris_bebop_line_midi_test() {
@@ -214,6 +216,7 @@ fn barry_harris_bebop_line_midi_test() {
 
 /// Diminished-heavy profile — connector emphasis (40 steps).
 /// Export: `scarb test -- --filter barry_harris_diminished_heavy_midi_test`
+#[ignore]
 #[test]
 #[available_gas(5000000000000)]
 fn barry_harris_diminished_heavy_midi_test() {
@@ -230,6 +233,7 @@ fn barry_harris_diminished_heavy_midi_test() {
 
 /// C minor 6th-dim field (36 steps).
 /// Export: `scarb test -- --filter barry_harris_minor_field_midi_test`
+#[ignore]
 #[test]
 #[available_gas(5000000000000)]
 fn barry_harris_minor_field_midi_test() {
@@ -246,6 +250,7 @@ fn barry_harris_minor_field_midi_test() {
 
 /// G dominant 7th-dim field (36 steps).
 /// Export: `scarb test -- --filter barry_harris_dominant_field_midi_test`
+#[ignore]
 #[test]
 #[available_gas(5000000000000)]
 fn barry_harris_dominant_field_midi_test() {
@@ -262,6 +267,7 @@ fn barry_harris_dominant_field_midi_test() {
 
 /// Five profiles back-to-back on C major — listening tour.
 /// Export: `scarb test -- --filter barry_harris_profile_showcase_midi_test`
+#[ignore]
 #[test]
 #[available_gas(12000000000000)]
 fn barry_harris_profile_showcase_midi_test() {

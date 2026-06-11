@@ -4,6 +4,24 @@ use core::array::ArrayTrait;
 use koji::composition::melodic_canon::{mode_scale, realize_degree};
 use koji::composition::ornamentation_v2::types::{DEGREE_SENTINEL, V2NoteEvent, V2Pitch};
 
+/// Replace one slot in a bool array (Cairo arrays are otherwise immutable).
+pub fn set_bool_at(arr: Array<bool>, idx: u32, val: bool) -> Array<bool> {
+    let mut out: Array<bool> = ArrayTrait::new();
+    let mut i: u32 = 0;
+    loop {
+        if i >= arr.len() {
+            break;
+        }
+        if i == idx {
+            out.append(val);
+        } else {
+            out.append(*arr.at(i));
+        }
+        i += 1;
+    };
+    out
+}
+
 pub fn pc_mod12(x: i32) -> u8 {
     let bias: i32 = 120;
     let d = x + bias;
@@ -46,6 +64,63 @@ pub fn midi_to_pitch(midi: u8, degree: i32) -> V2Pitch {
 
 pub fn step_degree(degree: i32, steps: i32) -> i32 {
     degree + steps
+}
+
+/// Map chord-tone pitch class to MIDI in the same octave region as `tonic_keynum`.
+pub fn midi_from_pc_in_tonic_octave(tonic_keynum: u8, pc: u8) -> u8 {
+    let key_pc = tonic_keynum % 12;
+    let base = tonic_keynum - key_pc;
+    let semis = if pc >= key_pc {
+        pc - key_pc
+    } else {
+        pc + 12 - key_pc
+    };
+    base + semis
+}
+
+/// Nearest MIDI note to `reference_midi` with pitch class `pc`.
+pub fn midi_from_pc_near_reference(reference_midi: u8, pc: u8) -> u8 {
+    let ref_pc = reference_midi % 12;
+    let diff: i32 = pc.into() - ref_pc.into();
+    let candidate: i32 = reference_midi.into() + diff;
+    if candidate < 0 {
+        0_u8
+    } else if candidate > 127 {
+        127_u8
+    } else {
+        candidate.try_into().unwrap()
+    }
+}
+
+pub fn chromatic_approach_midi(anchor_midi: u8, from_above: bool) -> u8 {
+    if from_above {
+        if anchor_midi == 0 {
+            0_u8
+        } else {
+            anchor_midi - 1
+        }
+    } else if anchor_midi >= 127 {
+        127_u8
+    } else {
+        anchor_midi + 1
+    }
+}
+
+pub fn scale_degree_for_pc(pc: u8, key_pc: u8, mode_id: u8) -> i32 {
+    let scale = mode_scale(mode_id);
+    let mut i: u32 = 0;
+    loop {
+        if i >= scale.len() {
+            break;
+        }
+        let semis: u32 = (*scale.at(i)).into();
+        let degree_pc = (key_pc.into() + semis) % 12;
+        if degree_pc == pc.into() {
+            return i.try_into().unwrap();
+        }
+        i += 1;
+    };
+    DEGREE_SENTINEL
 }
 
 pub fn chromatic_approach_pc(target_pc: u8, from_above: bool) -> u8 {

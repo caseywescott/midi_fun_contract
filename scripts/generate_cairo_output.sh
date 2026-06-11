@@ -9,7 +9,7 @@ echo "Generating Cairo code output..."
 echo "Output will be saved to: $OUTPUT_FILE"
 
 # Run the test and capture clean output
-SCARB_UI_VERBOSITY=quiet scarb test -- --filter midi_to_cairo_file_output_test 2>&1 | \
+SCARB_UI_VERBOSITY=quiet scarb test -- --include-ignored --filter midi_to_cairo_file_output_test 2>&1 | \
 grep -v "running\|test\|gas usage\|test result" > "$OUTPUT_FILE"
 
 echo "✅ Cairo code generated successfully!"

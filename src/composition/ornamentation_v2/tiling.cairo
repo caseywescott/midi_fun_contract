@@ -1,6 +1,7 @@
 //! Rhythmic tiling validation (§10).
 
 use core::array::ArrayTrait;
+use koji::composition::ornamentation_v2::pitch::set_bool_at;
 use koji::composition::ornamentation_v2::types::{MusicalTile, TilingContext, V2NoteEvent};
 use koji::composition::ornamentation_v2::validation::{
     preserves_coverage, preserves_no_collision,
@@ -79,8 +80,7 @@ pub fn structural_voices_tile(
                     return false;
                 }
             }
-            let mut slot = *covered.at(t);
-            slot = true;
+            covered = set_bool_at(covered, t, true);
             j += 1;
         };
         vi += 1;

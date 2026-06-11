@@ -222,8 +222,13 @@ pub fn validate_boundary_policy(
         return first.start == anchor_start
             && last.start + last.duration <= anchor_start + anchor_dur;
     }
-    if kind_boundary == BOUNDARY_ALLOW_PICKUP || kind_boundary == BOUNDARY_ALLOW_SUSPENSION {
-        return first.start >= anchor_start;
+    if kind_boundary == BOUNDARY_ALLOW_PICKUP {
+        return first.start >= anchor_start
+            && last.start + last.duration <= anchor_start + anchor_dur;
+    }
+    if kind_boundary == BOUNDARY_ALLOW_SUSPENSION {
+        return first.start >= anchor_start
+            && last.start + last.duration <= anchor_start + anchor_dur;
     }
     true
 }

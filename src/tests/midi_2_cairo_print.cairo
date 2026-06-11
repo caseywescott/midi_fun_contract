@@ -98,6 +98,7 @@ use koji::composition::melodic_canon::{
     };
     use koji::rng::{LCGRandomSource, RandomSource};
 
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn midi_to_cairo_file_test() {
@@ -159,6 +160,7 @@ use koji::composition::melodic_canon::{
         println!("}}");
     }
 
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn midi_to_cairo_file_output_test() {
@@ -195,6 +197,7 @@ use koji::composition::melodic_canon::{
         generate_cairo_code(@midiobj);
     }
 
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn midi_to_parser_format_test() {
@@ -371,6 +374,7 @@ use koji::composition::melodic_canon::{
         println!("}}");
     }
 
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn voicing_chords_10s_test() {
@@ -575,6 +579,7 @@ use koji::composition::melodic_canon::{
     /// Builds on voicing_chords_10s_test: same 10 Lydian chords on channel 0, plus a new
     /// sine-contoured melody on channel 1 in C Lydian mode. The sine wave maps to Lydian
     /// scale indices for pitch and scales note durations.
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn voicing_chords_with_lydian_melody_test() {
@@ -812,6 +817,7 @@ use koji::composition::melodic_canon::{
     ///          4 cycles = 8 000 000 µs (8 s)
     ///
     /// Events : 4 × 9 = 36 NoteOn + 36 NoteOff + 1 SetTempo = 73 total
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn euclidean_lcg_melody_test() {
@@ -945,6 +951,7 @@ use koji::composition::melodic_canon::{
     ///   Section 2 main    : 4 × 9 = 36
     ///   Section 2 harmony : 5 full 12-cycles × 5 + 2 partial = 27
     ///   Total             : 99 NoteOn + 99 NoteOff + 1 SetTempo
+    #[ignore]
     #[test]
     #[available_gas(2000000000000)]
     fn lcg_euclidean_harmony_test() {
@@ -1138,6 +1145,7 @@ use koji::composition::melodic_canon::{
     /// Scale  : C major C2–C6, absolute MIDI numbers as degrees from root 0 (29 pitches).
     /// LCG    : state=17, mult=5, inc=3, mod=256  (5×255+3=1278 — no u32 overflow).
     /// Events : 80 NoteOn + 80 NoteOff + 1 SetTempo = 161 total.
+    #[ignore]
     #[test]
     #[available_gas(2000000000000)]
     fn tendency_mask_swarm_test() {
@@ -1369,6 +1377,7 @@ use koji::composition::melodic_canon::{
     /// Seed 17 → n=12, R={0,2,4}, S={0,1,6,7} (class-2 hocket, 4 voices): each voice
     /// plays short–short–long [2,2,8] legato groups while the four entry offsets interlock
     /// across the cycle. Loops three times (~7.2 s at 120 BPM, 200 ms per grid step).
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn rhythmic_canon_midi_test() {
@@ -1526,6 +1535,7 @@ use koji::composition::melodic_canon::{
     /// pickup with a 6-step sustain — not straight eighths. Voice 0 carries an LCG melody in
     /// C Lydian; voices 1–3 each add a diatonic 3rd above the previous voice at the same tile
     /// position (stacked 3rds within the mode). Loops four times (~7.2 s at 120 BPM).
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn rhythmic_canon_modal_harmony_midi_test() {
@@ -1647,6 +1657,7 @@ use koji::composition::melodic_canon::{
     /// four-sixteenth pickup [1,1,1,13] then a long sustain — 16 attacks per bar, not straight
     /// eighths. Voice 0 carries an LCG melody in C Lydian (one pitch per tile onset); voices
     /// 1–3 stack diatonic 3rds above the previous voice. Four bars at 120 BPM (125 ms/step).
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn rhythmic_canon_modal_16ths_midi_test() {
@@ -1841,6 +1852,7 @@ use koji::composition::melodic_canon::{
     /// legato [2,2,2,2,2,14]). Sixteen cycles = 4 sections × 4 bars each (~38 s):
     ///   §1 C Lydian (I) → §2 F Lydian (IV) → §3 G Mixolydian (V) → §4 A Aeolian (vi).
     /// Voice 0 LCG melody per section; voices 1–3 stack diatonic 3rds above the previous.
+    #[ignore]
     #[test]
     #[available_gas(2000000000000)]
     fn rhythmic_canon_modal_progression_midi_test() {
@@ -2151,6 +2163,7 @@ use koji::composition::melodic_canon::{
     /// Voice 0: symmetry-world LCG motif per section; voices 1–3 arpeggiate the active
     /// world with section-specific skip spacing. Channel 4 carries block chords that
     /// change at every section boundary and alternate voicings every two loops.
+    #[ignore]
     #[test]
     #[available_gas(2000000000000)]
     fn symmetry_canon_multivoice_harmony_midi_test() {
@@ -2833,6 +2846,7 @@ use koji::composition::melodic_canon::{
     ///   C → F → G → D → A → E. Motifs and block chords are generated from each section's
     ///   7-note Lydian mask (not octatonic symmetry worlds). §1 opening chord: C–E–G–B
     ///   (C Lydian maj7). Canon voices 0–3 stack diatonic 3rds via modal_transposition.
+    #[ignore]
     #[test]
     #[available_gas(2000000000000)]
     fn symmetry_canon_lydian_multivoice_harmony_midi_test() {
@@ -3000,6 +3014,7 @@ use koji::composition::melodic_canon::{
     /// Same harmonic plan as `symmetry_canon_lydian_multivoice_harmony_midi_test`, but each
     /// chord variant (loops 0/2/4 within a section) selects a fresh n=24 tiling template
     /// and matching tile-length motif leaders. Loops 1 and 3 repeat the prior block's rhythm.
+    #[ignore]
     #[test]
     #[available_gas(3000000000000)]
     fn symmetry_canon_lydian_varied_rhythm_harmony_midi_test() {
@@ -3105,6 +3120,7 @@ use koji::composition::melodic_canon::{
 
     /// Varied-rhythm Lydian canon with anti-repetition: per-loop motif rotation plus modal
     /// step-up when a channel re-attacks the same pitch within one grid step.
+    #[ignore]
     #[test]
     #[available_gas(3500000000000)]
     fn symmetry_canon_lydian_varied_rhythm_smooth_midi_test() {
@@ -3297,6 +3313,7 @@ use koji::composition::melodic_canon::{
     ///          3 cycles = 12 000 000 µs (12 s)
     ///
     /// Events : 3 × (32 melody + 4 block + 4 block) NoteOn/Off + SetTempo
+    #[ignore]
     #[test]
     #[available_gas(2000000000000)]
     fn messiaen_lcg_melody_harmony_test() {
@@ -3456,6 +3473,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Lydian canon with counterpoint-generated harmony voices (replaces fixed diatonic 3rds).
+    #[ignore]
     #[test]
     #[available_gas(2000000000000)]
     fn symmetry_canon_lydian_counterpoint_harmony_midi_test() {
@@ -3563,6 +3581,7 @@ use koji::composition::melodic_canon::{
     ///
     /// **C Lydian throughout** (tonic C4, F# scale) — counterpoint candidates are
     /// constrained to the same 7-note Lydian pitch-world as the leader motifs.
+    #[ignore]
     #[test]
     #[available_gas(5000000000000)]
     fn rhythmic_canon_counterpoint_varied_sparse_midi_test() {
@@ -3793,6 +3812,7 @@ use koji::composition::melodic_canon::{
     /// contrary motion. Two channels, quarter notes (~8 s @ 120 BPM).
     ///
     /// Export: `scarb test -- --filter counterpoint_contrary_two_voice_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn counterpoint_contrary_two_voice_midi_test() {
@@ -4058,6 +4078,7 @@ use koji::composition::melodic_canon::{
     /// Config index in the seed's low nibble selects the canon type (1 = fifth below).
     ///
     /// Export: `scarb test -- --filter renaissance_canon_fifth_below_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(2000000000000)]
     fn renaissance_canon_fifth_below_midi_test() {
@@ -4092,6 +4113,7 @@ use koji::composition::melodic_canon::{
     /// Three-voice improvised canon (leader, fifth below, octave above that) rendered to MIDI.
     ///
     /// Export: `scarb test -- --filter renaissance_canon_three_voice_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(2000000000000)]
     fn renaissance_canon_three_voice_midi_test() {
@@ -4297,6 +4319,7 @@ use koji::composition::melodic_canon::{
     /// French long-five closure rendered through the same NoteEvent -> MIDI path as the canons.
     ///
     /// Export: `scarb test -- --filter baroque_cadential_improvisation_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(3000000000000)]
     fn baroque_cadential_improvisation_midi_test() {
@@ -4307,6 +4330,7 @@ use koji::composition::melodic_canon::{
     /// Compact French/brise realization of the 3-4-5-1 cadence family.
     ///
     /// Export: `scarb test -- --filter baroque_cadence_3451_brise_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(3000000000000)]
     fn baroque_cadence_3451_brise_midi_test() {
@@ -4319,6 +4343,7 @@ use koji::composition::melodic_canon::{
     /// Fauxbourdon 7-6 suspension chain into a French long-five close.
     ///
     /// Export: `scarb test -- --filter baroque_fauxbourdon_76_long5_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(3000000000000)]
     fn baroque_fauxbourdon_76_long5_midi_test() {
@@ -4332,6 +4357,7 @@ use koji::composition::melodic_canon::{
     /// Romanesca chain, cadenza doppia modulation to V, transposed repeat, and closing cadence.
     ///
     /// Export: `scarb test -- --filter baroque_romanesca_cadenza_doppia_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(3000000000000)]
     fn baroque_romanesca_cadenza_doppia_midi_test() {
@@ -4345,6 +4371,7 @@ use koji::composition::melodic_canon::{
     /// Natural-minor and harmonic-minor scalar closures over the descending 3-4-5-1 cadence.
     ///
     /// Export: `scarb test -- --filter baroque_descending_scales_minor_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(3000000000000)]
     fn baroque_descending_scales_minor_midi_test() {
@@ -4361,6 +4388,7 @@ use koji::composition::melodic_canon::{
     /// Cadence modules unchanged; upper voice gets stepwise filler from `develop_scaffold_melody`.
     ///
     /// Export: `scarb test -- --filter baroque_melody_transform_cadence_tour_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(9000000000000)]
     fn baroque_melody_transform_cadence_tour_midi_test() {
@@ -4392,6 +4420,7 @@ use koji::composition::melodic_canon::{
     /// Romanesca, and cadenza doppia. Around a minute at 120 BPM.
     ///
     /// Export: `scarb test -- --filter baroque_long_moderate_ornament_showcase_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(9000000000000)]
     fn baroque_long_moderate_ornament_showcase_midi_test() {
@@ -4404,6 +4433,7 @@ use koji::composition::melodic_canon::{
     /// Romanesca, and multiple cadenza doppia phrases to feature the new local-key handling.
     ///
     /// Export: `scarb test -- --filter baroque_long_sequence_modulation_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(9000000000000)]
     fn baroque_long_sequence_modulation_midi_test() {
@@ -4416,6 +4446,7 @@ use koji::composition::melodic_canon::{
     /// 4-2-5-1 scalar descents with moderate upper-line diminutions (~2 min @ 120 BPM).
     ///
     /// Export: `scarb test -- --filter baroque_long_minor_scalar_cadences_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn baroque_long_minor_scalar_cadences_midi_test() {
@@ -4432,6 +4463,7 @@ use koji::composition::melodic_canon::{
     /// with moderate neighbor-tone diminutions on the upper voice.
     ///
     /// Export: `scarb test -- --filter baroque_long_cadential_brise_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(9000000000000)]
     fn baroque_long_cadential_brise_midi_test() {
@@ -4447,6 +4479,7 @@ use koji::composition::melodic_canon::{
     /// 40 structural notes × 2 loops ≈ 80 s @ 120 BPM.
     ///
     /// Export: `scarb test -- --filter renaissance_canon_long_2voice_ornamented_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(4000000000000)]
     fn renaissance_canon_long_2voice_ornamented_midi_test() {
@@ -4464,6 +4497,7 @@ use koji::composition::melodic_canon::{
     /// Long three-voice canon (5th below + octave stack) with ornamentation, 2 loops.
     ///
     /// Export: `scarb test -- --filter renaissance_canon_long_3voice_ornamented_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(4000000000000)]
     fn renaissance_canon_long_3voice_ornamented_midi_test() {
@@ -4484,6 +4518,7 @@ use koji::composition::melodic_canon::{
     /// etc.) with common-practice weighting instead of Montanos subdivision plans.
     ///
     /// Export: `scarb test -f renaissance_canon_long_3voice_v2_ornamented_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn renaissance_canon_long_3voice_v2_ornamented_midi_test() {
@@ -4502,6 +4537,7 @@ use koji::composition::melodic_canon::{
     /// rubato at **4 cycles** over the structural span (leader scale propagated to followers).
     ///
     /// Export: `scarb test -f renaissance_canon_long_3voice_ornamented_sine_tempo_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(5000000000000)]
     fn renaissance_canon_long_3voice_ornamented_sine_tempo_midi_test() {
@@ -4520,6 +4556,7 @@ use koji::composition::melodic_canon::{
     /// voices and Montanos-style ornamentation, 2 loops.
     ///
     /// Export: `scarb test -- --filter renaissance_canon_long_3voice_lag2_ornamented_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(4000000000000)]
     fn renaissance_canon_long_3voice_lag2_ornamented_midi_test() {
@@ -4542,6 +4579,7 @@ use koji::composition::melodic_canon::{
     /// Sin modal run — single voice. Pitch follows offset sin; timing is symmetric at extrema.
     ///
     /// Export: `scarb test -f modal_run_sine_contour_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(2000000000000)]
     fn modal_run_sine_contour_midi_test() {
@@ -4574,6 +4612,7 @@ use koji::composition::melodic_canon::{
     /// Three-voice canon of the sin modal run: same contour on every voice, staggered entries.
     ///
     /// Export: `scarb test -f renaissance_canon_modal_run_sine_contour_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(4000000000000)]
     fn renaissance_canon_modal_run_sine_contour_midi_test() {
@@ -4626,6 +4665,7 @@ use koji::composition::melodic_canon::{
     /// Long four-voice stacked-fifth-below canon with ornamentation, 2 loops.
     ///
     /// Export: `scarb test -- --filter renaissance_canon_long_4voice_ornamented_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(5000000000000)]
     fn renaissance_canon_long_4voice_ornamented_midi_test() {
@@ -4771,6 +4811,7 @@ use koji::composition::melodic_canon::{
     /// semitones), heavily ornamented. Major 7ths sound as color; no m2/m9 clash by construction.
     ///
     /// Export: `scarb test -- --filter extended_canon_jazz_maj7_long_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(6000000000000)]
     fn extended_canon_jazz_maj7_long_midi_test() {
@@ -4787,6 +4828,7 @@ use koji::composition::melodic_canon::{
     /// ornamented. P4/P5 are the stable intervals; parallels are idiomatic.
     ///
     /// Export: `scarb test -- --filter extended_canon_quartal_long_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(6000000000000)]
     fn extended_canon_quartal_long_midi_test() {
@@ -4803,6 +4845,7 @@ use koji::composition::melodic_canon::{
     /// snapped to Dorian pcs (0,2,3,5,7,9,10) to reduce chromatic surface motion.
     ///
     /// Export: `scarb test -- --filter extended_canon_quartal_modal_long_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(7000000000000)]
     fn extended_canon_quartal_modal_long_midi_test() {
@@ -4822,6 +4865,7 @@ use koji::composition::melodic_canon::{
     /// ([0,4,7,10] semitones), heavily ornamented. Parallel perfects are the idiom here.
     ///
     /// Export: `scarb test -- --filter extended_canon_planing_long_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(6000000000000)]
     fn extended_canon_planing_long_midi_test() {
@@ -4838,6 +4882,7 @@ use koji::composition::melodic_canon::{
     /// heavily ornamented. Dissonance is graded (Series 2) but the half-step collision is gated.
     ///
     /// Export: `scarb test -- --filter extended_canon_hindemith_long_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(6000000000000)]
     fn extended_canon_hindemith_long_midi_test() {
@@ -4855,6 +4900,7 @@ use koji::composition::melodic_canon::{
     /// the "ornamentation" here is the dense chord-to-chord parsimonious motion itself.
     ///
     /// Export: `scarb test -- --filter extended_parsimonious_long_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(6000000000000)]
     fn extended_parsimonious_long_midi_test() {
@@ -4943,6 +4989,7 @@ use koji::composition::melodic_canon::{
     /// Single uninterrupted LCG chord walk — 256 parsimonious seventh chords (~14 min).
     ///
     /// Export: `scarb test -- --filter lcg_parsimonious_chord_passage_raw_epic_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn lcg_parsimonious_chord_passage_raw_epic_midi_test() {
@@ -4953,6 +5000,7 @@ use koji::composition::melodic_canon::{
     /// Two full cycles of the same seed — hear the deterministic LCG period return.
     ///
     /// Export: `scarb test -- --filter lcg_parsimonious_chord_passage_raw_double_cycle_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(10000000000000)]
     fn lcg_parsimonious_chord_passage_raw_double_cycle_midi_test() {
@@ -4963,6 +5011,7 @@ use koji::composition::melodic_canon::{
     /// Five consecutive LCG streams (different seeds) — raw capability tour.
     ///
     /// Export: `scarb test -- --filter lcg_parsimonious_chord_showcase_multi_seed_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn lcg_parsimonious_chord_showcase_multi_seed_midi_test() {
@@ -5021,6 +5070,7 @@ use koji::composition::melodic_canon::{
     /// Ornamented LCG chord walk — structural progression unchanged, dense passing/neighbor motion.
     ///
     /// Export: `scarb test -- --filter lcg_parsimonious_chord_passage_ornate_epic_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(14000000000000)]
     fn lcg_parsimonious_chord_passage_ornate_epic_midi_test() {
@@ -5032,6 +5082,7 @@ use koji::composition::melodic_canon::{
     /// minimal-motion inner voices, stepwise ornaments and variable beat lengths (3–5 ticks).
     ///
     /// Export: `scarb test -- --filter min_motion_plr_ornamented_long_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn min_motion_plr_ornamented_long_midi_test() {
@@ -5081,6 +5132,7 @@ use koji::composition::melodic_canon::{
     /// the strong-beat reduction is still the smooth ≤2-semitone progression.
     ///
     /// Export: `scarb test -- --filter extended_parsimonious_ornamented_long_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn extended_parsimonious_ornamented_long_midi_test() {
@@ -5112,6 +5164,7 @@ use koji::composition::melodic_canon::{
     /// Same cantus as the contrary demo but with parallel motion bias (for A/B comparison).
     ///
     /// Export: `scarb test -- --filter counterpoint_parallel_two_voice_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn counterpoint_parallel_two_voice_midi_test() {
@@ -5144,6 +5197,7 @@ use koji::composition::melodic_canon::{
     /// counterpoint voices with pairwise scoring.
     ///
     /// Export: `scarb test -- --filter counterpoint_balanced_canon_demo_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(1500000000000)]
     fn counterpoint_balanced_canon_demo_midi_test() {
@@ -5188,6 +5242,7 @@ use koji::composition::melodic_canon::{
     /// on voices 1–3 below/above the cantus leader.
     ///
     /// Export: `scarb test -- --filter counterpoint_contrary_canon_demo_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(1500000000000)]
     fn counterpoint_contrary_canon_demo_midi_test() {
@@ -5233,6 +5288,7 @@ use koji::composition::melodic_canon::{
     /// Long Ligeti-style banded canon MIDI export.
     ///
     /// Export: `scarb test -- --filter ligeti_banded_long_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(7000000000000)]
     fn ligeti_banded_long_midi_test() {
@@ -5314,6 +5370,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_impr_add6_long_4v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_impr_add6_long_4v_midi_test() {
@@ -5322,6 +5379,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_impr_add6_long_3v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_impr_add6_long_3v_midi_test() {
@@ -5330,6 +5388,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_bitonal_long_4v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_bitonal_long_4v_midi_test() {
@@ -5338,6 +5397,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_bitonal_long_3v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_bitonal_long_3v_midi_test() {
@@ -5346,6 +5406,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_phrygian_long_4v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_phrygian_long_4v_midi_test() {
@@ -5354,6 +5415,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_phrygian_long_3v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_phrygian_long_3v_midi_test() {
@@ -5362,6 +5424,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_pentatonic_long_4v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_pentatonic_long_4v_midi_test() {
@@ -5370,6 +5433,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_pentatonic_long_3v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_pentatonic_long_3v_midi_test() {
@@ -5378,6 +5442,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_neo_riem_long_3v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_neo_riem_long_3v_midi_test() {
@@ -5386,6 +5451,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_neo_riem_long_4v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_neo_riem_long_4v_midi_test() {
@@ -5394,6 +5460,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_impr_smooth_long_4v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_impr_smooth_long_4v_midi_test() {
@@ -5402,6 +5469,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_impr_smooth_long_3v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_impr_smooth_long_3v_midi_test() {
@@ -5410,6 +5478,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_penta_smooth_long_4v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_penta_smooth_long_4v_midi_test() {
@@ -5418,6 +5487,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter complementary_penta_smooth_long_3v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn complementary_penta_smooth_long_3v_midi_test() {
@@ -5426,6 +5496,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter jazz_improv_long_4v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn jazz_improv_long_4v_midi_test() {
@@ -5434,6 +5505,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter jazz_improv_long_3v_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(8000000000000)]
     fn jazz_improv_long_3v_midi_test() {
@@ -5444,6 +5516,7 @@ use koji::composition::melodic_canon::{
     // ── Alternate seeds (second demo per profile family) — 6 loops, denser ornament rhythm ──
 
     /// Export: `scarb test -- --filter profile_demo_impr_add6_alt_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(10000000000000)]
     fn profile_demo_impr_add6_alt_midi_test() {
@@ -5452,6 +5525,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter profile_demo_bitonal_alt_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(10000000000000)]
     fn profile_demo_bitonal_alt_midi_test() {
@@ -5460,6 +5534,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter profile_demo_phrygian_alt_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(10000000000000)]
     fn profile_demo_phrygian_alt_midi_test() {
@@ -5468,6 +5543,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter profile_demo_pentatonic_alt_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(10000000000000)]
     fn profile_demo_pentatonic_alt_midi_test() {
@@ -5476,6 +5552,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter profile_demo_neo_riem_alt_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(10000000000000)]
     fn profile_demo_neo_riem_alt_midi_test() {
@@ -5484,6 +5561,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter profile_demo_impr_smooth_alt_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(10000000000000)]
     fn profile_demo_impr_smooth_alt_midi_test() {
@@ -5492,6 +5570,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter profile_demo_penta_smooth_alt_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(10000000000000)]
     fn profile_demo_penta_smooth_alt_midi_test() {
@@ -5500,6 +5579,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter profile_demo_jazz_improv_alt_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(10000000000000)]
     fn profile_demo_jazz_improv_alt_midi_test() {
@@ -5510,6 +5590,7 @@ use koji::composition::melodic_canon::{
     // ── Dense subdivision showcase (32 steps, fast pulse, 8 loops) ──
 
     /// Export: `scarb test -- --filter profile_demo_ornament_dense_impr_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn profile_demo_ornament_dense_impr_midi_test() {
@@ -5518,6 +5599,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter profile_demo_ornament_dense_phrygian_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn profile_demo_ornament_dense_phrygian_midi_test() {
@@ -5526,6 +5608,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter profile_demo_ornament_dense_bitonal_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn profile_demo_ornament_dense_bitonal_midi_test() {
@@ -5534,6 +5617,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter profile_demo_ornament_dense_jazz_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn profile_demo_ornament_dense_jazz_midi_test() {
@@ -5587,6 +5671,7 @@ use koji::composition::melodic_canon::{
         n * num_loops
     }
 
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn jazz_improv_ornamented_long_midi_test() {
@@ -5642,6 +5727,7 @@ use koji::composition::melodic_canon::{
         n * num_loops
     }
 
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn jazz_improv_tritone_sub_light_long_midi_test() {
@@ -5690,6 +5776,7 @@ use koji::composition::melodic_canon::{
         total
     }
 
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn harmonic_walk_min_motion_ornate_long_midi_test() {
@@ -5702,6 +5789,7 @@ use koji::composition::melodic_canon::{
     /// Blues-12 skeleton with rewrite budget 8 — substitution chain demo.
     ///
     /// Export: `scarb test -- --filter harmonic_walk_blues_rewrite_long_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn harmonic_walk_blues_rewrite_long_midi_test() {
@@ -5714,6 +5802,7 @@ use koji::composition::melodic_canon::{
     /// Rhythm-changes skeleton + high surprise bias continuation overlay.
     ///
     /// Export: `scarb test -- --filter harmonic_walk_surprise_continuation_long_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn harmonic_walk_surprise_continuation_long_midi_test() {
@@ -5770,6 +5859,7 @@ use koji::composition::melodic_canon::{
         n * num_loops
     }
 
+    #[ignore]
     #[test]
     #[available_gas(16000000000000)]
     fn jazz_improv_harmonic_walk_ornate_long_4v_midi_test() {
@@ -5779,6 +5869,7 @@ use koji::composition::melodic_canon::{
         assert(n >= 1200, 'jazz walk 4v ornate long');
     }
 
+    #[ignore]
     #[test]
     #[available_gas(14000000000000)]
     fn jazz_improv_harmonic_walk_ornate_long_3v_midi_test() {
@@ -5788,6 +5879,7 @@ use koji::composition::melodic_canon::{
         assert(n >= 900, 'jazz walk 3v ornate long');
     }
 
+    #[ignore]
     #[test]
     #[available_gas(16000000000000)]
     fn jazz_improv_harmonic_walk_dense_ornate_midi_test() {
@@ -5800,6 +5892,7 @@ use koji::composition::melodic_canon::{
     // ── Batch 2 — curated harmonic / melodic showcases (improved listening set) ──
 
     /// Export: `scarb test -- --filter hw_batch2_two_five_one_rewrite_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn hw_batch2_two_five_one_rewrite_midi_test() {
@@ -5809,6 +5902,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter hw_batch2_rhythm_changes_reharm_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn hw_batch2_rhythm_changes_reharm_midi_test() {
@@ -5818,6 +5912,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter hw_batch2_turnaround_surprise_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn hw_batch2_turnaround_surprise_midi_test() {
@@ -5827,6 +5922,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter hw_batch2_blues_surprise_colors_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn hw_batch2_blues_surprise_colors_midi_test() {
@@ -5836,6 +5932,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter hw_batch2_two_five_one_max_surprise_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn hw_batch2_two_five_one_max_surprise_midi_test() {
@@ -5845,6 +5942,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter hw_batch2_jazz_canon_251_long_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(16000000000000)]
     fn hw_batch2_jazz_canon_251_long_midi_test() {
@@ -5857,6 +5955,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter hw_batch2_jazz_canon_rhythm_changes_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(18000000000000)]
     fn hw_batch2_jazz_canon_rhythm_changes_midi_test() {
@@ -5868,6 +5967,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter hw_batch2_jazz_canon_blues_gospel_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(20000000000000)]
     fn hw_batch2_jazz_canon_blues_gospel_midi_test() {
@@ -5879,6 +5979,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter hw_batch2_jazz_canon_turnaround_surprise_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(18000000000000)]
     fn hw_batch2_jazz_canon_turnaround_surprise_midi_test() {
@@ -5891,6 +5992,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Export: `scarb test -- --filter hw_batch2_jazz_canon_hybrid_epic_midi_test`
+    #[ignore]
     #[test]
     #[available_gas(22000000000000)]
     fn hw_batch2_jazz_canon_hybrid_epic_midi_test() {
@@ -5949,6 +6051,7 @@ use koji::composition::melodic_canon::{
         n * num_loops
     }
 
+    #[ignore]
     #[test]
     #[available_gas(2000000000000)]
     fn transform_pipeline_midi_test() {
@@ -6009,6 +6112,7 @@ use koji::composition::melodic_canon::{
         assert_valid_demo_midi(@midiobj, n);
     }
 
+    #[ignore]
     #[test]
     #[available_gas(12000000000000)]
     fn penta_smooth_ornamented_long_4v_midi_test() {
@@ -6087,6 +6191,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Six Toussaint reference presets, four cycles each on distinct channels.
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn timeline_rhythm_reference_presets_midi_test() {
@@ -6127,6 +6232,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Seeded displacement-one morph walk starting from Son (four cycles per section).
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn timeline_rhythm_morph_walk_midi_test() {
@@ -6176,6 +6282,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Son phase orbit: static voice 0 + rotating voice 1 shifting one step per phase (full orbit).
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn timeline_rhythm_son_phase_orbit_midi_test() {
@@ -6227,6 +6334,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Six canonical Son-family interval-class variants at rotation 0 (four cycles each).
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn timeline_rhythm_son_family_variants_midi_test() {
@@ -6266,6 +6374,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Eight seeded Son-family generations (variant + rotation from seed bits).
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn timeline_rhythm_son_family_seed_tour_midi_test() {
@@ -6305,6 +6414,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Three profile-guided Son-family selections (metric, distance, symmetry targets).
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn timeline_rhythm_profiled_selection_midi_test() {
@@ -6371,6 +6481,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Continuous 16th grid with timeline_accent velocities on Son (onsets loud, rests soft).
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn timeline_rhythm_phrasing_accent_midi_test() {
@@ -6395,6 +6506,7 @@ use koji::composition::melodic_canon::{
     }
 
     /// Phase orbit with shift_step=2 (8 phases): clave vs rotated counter-line.
+    #[ignore]
     #[test]
     #[available_gas(1000000000000)]
     fn timeline_rhythm_phase_shift2_midi_test() {

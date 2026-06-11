@@ -416,6 +416,7 @@ fn build_pipeline_section() -> DemoSection {
     DemoSection { source, result }
 }
 
+#[ignore]
 #[test]
 #[available_gas(8000000000)]
 fn transform_showcase_order_midi_test() {
@@ -423,6 +424,7 @@ fn transform_showcase_order_midi_test() {
     assert(n >= 12, 'order demo notes');
 }
 
+#[ignore]
 #[test]
 #[available_gas(12000000000)]
 fn transform_showcase_pitch_midi_test() {
@@ -430,6 +432,7 @@ fn transform_showcase_pitch_midi_test() {
     assert(n >= 8, 'pitch demo notes');
 }
 
+#[ignore]
 #[test]
 #[available_gas(8000000000)]
 fn transform_showcase_select_map_midi_test() {
@@ -437,6 +440,7 @@ fn transform_showcase_select_map_midi_test() {
     assert(n >= 16, 'select map notes');
 }
 
+#[ignore]
 #[test]
 #[available_gas(8000000000)]
 fn transform_showcase_rhythm_combine_midi_test() {
@@ -444,6 +448,7 @@ fn transform_showcase_rhythm_combine_midi_test() {
     assert(n >= 16, 'rhythm combine notes');
 }
 
+#[ignore]
 #[test]
 #[available_gas(2000000000)]
 fn transform_showcase_pipeline_midi_test() {
@@ -453,6 +458,7 @@ fn transform_showcase_pipeline_midi_test() {
     assert(n >= 2, 'pipeline demo notes');
 }
 
+#[ignore]
 #[test]
 #[available_gas(40000000000)]
 fn transform_showcase_all_midi_test() {

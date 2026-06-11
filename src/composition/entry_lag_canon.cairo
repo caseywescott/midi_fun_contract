@@ -6,7 +6,7 @@
 //! See `docs/entry_lag_canon_spec.md`.
 
 use core::array::ArrayTrait;
-use koji::composition::canon_rules::CanonConfig;
+use koji::composition::canon_rules::{CanonConfig, profiled_config_by_id};
 use koji::composition::canon_entry_rules::{
     EntryLagCanonConfig, entries_are_stacked, entries_stacked, pair_constraints_from_entries,
     entry_lag_config_from_canon, validate_entries, ENTRY_LAG_CONFIG_ID_BASE,
@@ -164,6 +164,36 @@ pub fn assemble_entry_lag_canon(
         octave: config.octave,
         profile_id: config.profile_id,
     }
+}
+
+/// Offline fitter ingress: validated entry-lag canon from external leader degrees + entries.
+pub fn assemble_entry_lag_canon_from_leader(
+    base_config_id: u32,
+    entries: Span<u32>,
+    mode_id: u8,
+    tonic_keynum: u8,
+    leader_degrees: Span<i32>,
+) -> MelodicCanon {
+    let base = profiled_config_by_id(base_config_id);
+    let el = entry_lag_config_from_canon(
+        base.config_id, base.name, base.offsets, entries, base.octave, base.profile_id,
+    );
+    let mut steps: Array<i32> = ArrayTrait::new();
+    let mut i: u32 = 1;
+    loop {
+        if i >= leader_degrees.len() {
+            break;
+        }
+        steps.append(*leader_degrees.at(i) - *leader_degrees.at(i - 1));
+        i += 1;
+    };
+    let canon = assemble_entry_lag_canon(
+        el, leader_degrees, steps.span(), mode_id, tonic_keynum, 4,
+    );
+    let profile = profile_by_id(base.profile_id);
+    assert(exact_imitation(@canon), 'imitation broken');
+    assert(all_pairs_clash_free(@canon, @profile), 'canon not consonant');
+    canon
 }
 
 /// Generate a contrapuntally correct entry-lag canon. Cadence steering is enabled only for

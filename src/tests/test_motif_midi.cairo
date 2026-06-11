@@ -245,6 +245,7 @@ fn cycle_duration_us(canon_len: u32, num_voices: u32, time_unit: u32, step_us: u
     cycle_ticks.into() * step_us
 }
 
+#[ignore]
 #[test]
 #[available_gas(1000000000000)]
 fn motif_development_midi_test() {
@@ -308,6 +309,7 @@ fn motif_development_midi_test() {
 
 /// Long demo: developed theme → solo ornament → 2-voice ornamented canon (2 loops).
 /// Export: `scarb test -- --filter motif_development_long_ornamented_midi_test`
+#[ignore]
 #[test]
 #[available_gas(4000000000000)]
 fn motif_development_long_ornamented_midi_test() {

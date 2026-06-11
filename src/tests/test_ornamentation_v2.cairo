@@ -14,14 +14,17 @@ use koji::composition::ornamentation_v2::ornaments::{
     ornament_can_apply, ornament_generate,
 };
 use koji::composition::ornamentation_v2::pitch::{
-    interval_above_bass, scale_step_distance,
+    chromatic_approach_midi, interval_above_bass, midi_from_pc_in_tonic_octave,
+    scale_degree_for_pc, scale_step_distance, sum_durations,
 };
+use koji::composition::ornamentation_v2::tiling::structural_voices_tile;
 use koji::composition::ornamentation_v2::profiles::profile_modal_canon;
 use koji::composition::ornamentation_v2::selection::{advance_seed, deterministic_choice_u8};
 use koji::composition::ornamentation_v2::types::{
     all_enabled_ornaments, default_constraints, HarmonyEvent, minimal_viable_ornaments,
     OrnamentConfig, OrnamentContext, OUTPUT_ONCHAIN_COMPACT, OUTPUT_SYMBOLIC, ORN_NEIGHBOR_UPPER,
-    ORN_PASSING_ASC, ORN_SUSPENSION_43, ORN_TRILL_UPPER, ROLE_NEIGHBOR, ROLE_STRUCTURAL,
+    ORN_ARPEGGIATION_UP, ORN_PASSING_ASC, ORN_SUSPENSION_43,
+    ORN_TRILL_UPPER, ROLE_NEIGHBOR, ROLE_STRUCTURAL,
     ROLE_SUSPENSION, SELECTION_SEEDED, structural_event, V2NoteEvent, WORKFLOW_CANON_FIRST,
 };
 use koji::composition::ornamentation_v2::validation::{
@@ -129,8 +132,8 @@ fn test_neighbor_first_last_equals_anchor() {
 #[test]
 #[available_gas(1000000000000)]
 fn test_suspension_43_interval_above_bass() {
-    assert(interval_above_bass(5, 0) == 5, 'ivl 5'); // F above C — not 4-3 test
-    assert(interval_above_bass(5, 1) == 4, 'ivl 4-3');
+    assert(interval_above_bass(5, 0) == 5, 'ivl F above C');
+    assert(interval_above_bass(4, 0) == 4, 'ivl 4-3 above C');
     let chord = array![0_u8, 4, 7];
     let mut events: Array<V2NoteEvent> = ArrayTrait::new();
     events.append(
@@ -324,4 +327,53 @@ fn test_all_durations_positive() {
         validate_melodic_local(result.events.span(), 4, false, scale.span(), false, 24),
         'durations positive',
     );
+}
+
+#[test]
+fn test_chromatic_approach_midi_semitone() {
+    assert(chromatic_approach_midi(67, true) == 66, 'chrom above');
+    assert(chromatic_approach_midi(67, false) == 68, 'chrom below');
+}
+
+#[test]
+fn test_arpeggiation_preserves_duration() {
+    let ctx = OrnamentContext {
+        anchor_index: 0,
+        metric_position: 0,
+        beat_strength: 80,
+        available_duration: 12,
+        subdivision: 3,
+        scale_len: 7,
+        voice_index: 0,
+        canon_voice_index: 0,
+        seed_state: 1,
+        mode_id: 0,
+        key_pc: 0,
+        has_prev_anchor: false,
+        has_next_anchor: true,
+        has_current_harmony: true,
+        has_prev_harmony: false,
+        has_next_harmony: false,
+        has_applied_transform: false,
+        has_tile: false,
+        sounding_voice_count: 0,
+    };
+    let chord = array![0_u8, 4, 7];
+    let events = ornament_generate(
+        ORN_ARPEGGIATION_UP, ctx, 4, 0, 7, 0, 12, 60, chord.span(), 0, chord.span(), chord.span(), 1,
+    );
+    assert(events.len() == 3, 'arp 3 notes');
+    assert(sum_durations(events.span()) == 12, 'arp dur sum');
+    assert(scale_degree_for_pc(0, 0, 0) == 0, 'C deg');
+    assert(scale_degree_for_pc(4, 0, 0) == 2, 'E deg');
+    assert(midi_from_pc_in_tonic_octave(60, 7) == 67, 'G midi');
+}
+
+#[test]
+fn test_structural_voices_tile_detects_collision() {
+    let v0 = array![0_u32, 2_u32];
+    let v1 = array![2_u32];
+    let voices = array![v0.span(), v1.span()];
+    assert(structural_voices_tile(voices.span(), 4, 0) == false, 'tile collision');
+    assert(structural_voices_tile(voices.span(), 4, 1) == true, 'tile permissive');
 }

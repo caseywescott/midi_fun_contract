@@ -10,3 +10,4 @@ pub mod tiling;
 pub mod canon;
 pub mod encoding;
 pub mod engine;
+pub mod showcase;

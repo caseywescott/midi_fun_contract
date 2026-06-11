@@ -18,7 +18,7 @@ generate_one() {
   local test_name="$1"
   local base_name="$2"
   echo "=== ${base_name} (${test_name}) ==="
-  SCARB_UI_VERBOSITY=quiet scarb test -- --filter "${test_name}" 2>&1 \
+  SCARB_UI_VERBOSITY=quiet scarb test -- --include-ignored --filter "${test_name}" 2>&1 \
     | eval "${GREP_FILTER}" > "${base_name}_parser.cairo"
   npx ts-node typescript/src/simpleMidiConverter.ts \
     "${base_name}_parser.cairo" "${base_name}.mid"

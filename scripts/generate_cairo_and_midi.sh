@@ -78,7 +78,7 @@ if [ "$GENERATE_MIDI_ONLY" = false ]; then
     echo "Output will be saved to: $CAIRO_OUTPUT_FILE"
     
     # Run the Scarb test and capture clean output
-    SCARB_UI_VERBOSITY=quiet scarb test -- --filter midi_to_cairo_file_output_test 2>&1 | \
+    SCARB_UI_VERBOSITY=quiet scarb test -- --include-ignored --filter midi_to_cairo_file_output_test 2>&1 | \
     grep -v "running\|test\|gas usage\|test result" > "$CAIRO_OUTPUT_FILE"
     
     if [ $? -eq 0 ] && [ -f "$CAIRO_OUTPUT_FILE" ]; then
@@ -126,7 +126,7 @@ if [ "$GENERATE_CAIRO_ONLY" = false ]; then
         # Generate parser format for TypeScript conversion
         echo "Generating parser format..."
         PARSER_OUTPUT_FILE="${CAIRO_OUTPUT_FILE%.cairo}_parser.cairo"
-        SCARB_UI_VERBOSITY=quiet scarb test -- --filter midi_to_parser_format_test 2>&1 | \
+        SCARB_UI_VERBOSITY=quiet scarb test -- --include-ignored --filter midi_to_parser_format_test 2>&1 | \
         grep -v "running\|test\|gas usage\|test result" > "$PARSER_OUTPUT_FILE"
         
         if [ $? -eq 0 ] && [ -f "$PARSER_OUTPUT_FILE" ]; then

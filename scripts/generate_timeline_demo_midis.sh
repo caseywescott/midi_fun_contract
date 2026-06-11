@@ -17,7 +17,7 @@ generate_one() {
   local out_path="$2"
   local parser_path="${out_path%.mid}_parser.cairo"
   echo "=== ${out_path} (${test_name}) ==="
-  SCARB_UI_VERBOSITY=quiet scarb test -- --filter "${test_name}" 2>&1 \
+  SCARB_UI_VERBOSITY=quiet scarb test -- --include-ignored --filter "${test_name}" 2>&1 \
     | eval "${GREP_FILTER}" > "${parser_path}"
   npx ts-node typescript/src/simpleMidiConverter.ts "${parser_path}" "${out_path}"
   echo "Wrote ${out_path}"

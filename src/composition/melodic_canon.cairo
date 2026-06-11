@@ -2480,6 +2480,38 @@ pub fn chord_quality_name(config_id: u32) -> felt252 {
     }
 }
 
+/// Build a validated canon from an external leader degree sequence (offline fitter ingress).
+/// Uses `profiled_config_by_id` (all profiled configs). Asserts imitation + profile-aware consonance.
+pub fn assemble_canon_from_leader(
+    config_id: u32,
+    mode_id: u8,
+    tonic_keynum: u8,
+    octave: u32,
+    leader_degrees: Span<i32>,
+) -> MelodicCanon {
+    let config = profiled_config_by_id(config_id);
+    let base = build_canon_for_test(
+        config.config_id, config.name, config.offsets, leader_degrees, mode_id,
+    );
+    let profile = profile_by_id(config.profile_id);
+    let canon = MelodicCanon {
+        config_id: base.config_id,
+        config_name: base.config_name,
+        offsets: base.offsets,
+        leader_degrees: base.leader_degrees,
+        leader_steps: base.leader_steps,
+        mode_id: base.mode_id,
+        tonic_keynum,
+        time_unit: base.time_unit,
+        voices: base.voices,
+        octave,
+        profile_id: config.profile_id,
+    };
+    assert(exact_imitation(@canon), 'imitation broken');
+    assert(all_pairs_clash_free(@canon, @profile), 'canon not consonant');
+    canon
+}
+
 /// Build a `MelodicCanon` directly from explicit leader degrees and voice offsets — for tests
 /// and for callers that supply their own cantus. Does not assert correctness (callers validate).
 pub fn build_canon_for_test(

@@ -25,6 +25,7 @@ pub mod tendency_mask;
 pub mod motif_algebra;
 pub mod motif_form;
 pub mod grouping_boundaries;
+pub mod period_assembly;
 pub mod transform;
 pub mod known_timeline_rhythms;
 pub mod timeline_rhythm;

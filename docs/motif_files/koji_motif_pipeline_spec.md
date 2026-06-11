@@ -1,6 +1,6 @@
 # Motif Development, Form & Grouping — Consolidated Implementation Spec
 
-**Status:** In progress
+**Status:** Complete
 **Target repo:** Koji generative music library (Cairo / Starknet)
 **Scope:** `koji::composition` — extensions above the existing motif development algebra
 **Base doc:** `docs/motif_development_algebra_spec.md`
@@ -10,13 +10,15 @@
 
 | Task | Status | Commit |
 |------|--------|--------|
-| Weighted motif form and flat AABA | Complete | this commit |
-| GTTM grouping boundaries | Complete | this commit |
-| Grouped period assembly and acceptance coverage | Not started | pending |
+| Weighted motif form and flat AABA | Complete | `ca1ae4b` |
+| GTTM grouping boundaries | Complete | `27aca84` |
+| Grouped period assembly and acceptance coverage | Complete | this commit |
 
 Implementation note: this crate names the authoritative base module
 `motif_algebra.cairo`; references below to `motif_development.cairo` describe
 that same module.
+
+Verification: `scarb test` completed with 421 passed, 0 failed, and 162 ignored.
 
 ---
 
@@ -241,7 +243,7 @@ A·A·B·A concatenation: A from `weighted_program_from_seed(seed)`, B from
 
 ### 3.6 Tests
 
-- `period_length_consistent(seed)` — period length == 4 × single-A length.
+- `period_length_consistent(seed)` — period length == `3*|A| + |B|`.
 
 ---
 
@@ -395,19 +397,19 @@ if no boundary found. Returns an owned clone (see §2.3 — no `Copy`).
 
 ## 8. Acceptance criteria
 
-- [ ] All new tests pass deterministically (run twice → identical results).
-- [ ] `groups_partition_exact` holds for `grundgestalt_theme(0..3)` developed at
+- [x] All new tests pass deterministically (run twice → identical results).
+- [x] `groups_partition_exact` holds for `grundgestalt_theme(0..3)` developed at
       several seeds.
-- [ ] `grouped_period_length_consistent` holds across ≥ 8 distinct seeds.
-- [ ] Totality test (analogous to `motif_ops_total()`): no panics on empty /
+- [x] `grouped_period_length_consistent` holds across ≥ 8 distinct seeds.
+- [x] Totality test (analogous to `motif_ops_total()`): no panics on empty /
       single-note / flat / out-of-range inputs.
-- [ ] Op-distribution audit: over ≥ 256 seeds, phase-0 op frequencies match the
+- [x] Op-distribution audit: over ≥ 256 seeds, phase-0 op frequencies match the
       §3.3 weight table within tolerance (confirms weighting is applied).
-- [ ] **Regression:** existing `op_laws_hold()` and `motif_ops_total()` still
+- [x] **Regression:** existing `op_laws_hold()` and `motif_ops_total()` still
       pass (base algebra intact).
-- [ ] **Length-invariant check:** `degrees.len() == durations.len()` on every
+- [x] **Length-invariant check:** `degrees.len() == durations.len()` on every
       `develop_period_grouped` output.
-- [ ] **World check:** `motif_in_world` holds on output when inputs are in-world.
+- [x] **World check:** `motif_in_world` holds on output when inputs are in-world.
 
 ---
 

@@ -21,6 +21,7 @@ pub mod test_tendency_mask;
 pub mod test_motif_algebra;
 pub mod test_motif_form;
 pub mod test_grouping_boundaries;
+pub mod test_period_assembly;
 pub mod test_motif_midi;
 pub mod test_transform;
 pub mod test_transform_midi;

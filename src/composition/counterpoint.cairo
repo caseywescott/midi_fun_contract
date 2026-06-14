@@ -144,6 +144,25 @@ pub fn mode_to_id(mode: Modes) -> u8 {
         Modes::NaturalMinor(()) => 9,
         Modes::Chromatic(()) => 10,
         Modes::Pentatonic(()) => 11,
+        Modes::MelodicMinor(()) => 12,
+        Modes::DorianFlat2(()) => 13,
+        Modes::LydianAugmented(()) => 14,
+        Modes::LydianDominant(()) => 15,
+        Modes::MixolydianFlat13(()) => 16,
+        Modes::LocrianNatural2(()) => 17,
+        Modes::Altered(()) => 18,
+        Modes::HarmonicMajor(()) => 19,
+        Modes::DorianFlat5(()) => 20,
+        Modes::PhrygianFlat4(()) => 21,
+        Modes::LydianFlat3(()) => 22,
+        Modes::MixolydianFlat2(()) => 23,
+        Modes::LydianAugmentedSharp2(()) => 24,
+        Modes::LocrianDoubleFlat7(()) => 25,
+        Modes::DorianSharp4(()) => 26,
+        Modes::LocrianNatural6(()) => 27,
+        Modes::WholeTone(()) => 28,
+        Modes::HalfWholeDiminished(()) => 29,
+        Modes::WholeHalfDiminished(()) => 30,
     }
 }
 
@@ -170,6 +189,46 @@ pub fn mode_from_id(id: u8) -> Modes {
         Modes::NaturalMinor(())
     } else if id == 10 {
         Modes::Chromatic(())
+    } else if id == 11 {
+        Modes::Pentatonic(())
+    } else if id == 12 {
+        Modes::MelodicMinor(())
+    } else if id == 13 {
+        Modes::DorianFlat2(())
+    } else if id == 14 {
+        Modes::LydianAugmented(())
+    } else if id == 15 {
+        Modes::LydianDominant(())
+    } else if id == 16 {
+        Modes::MixolydianFlat13(())
+    } else if id == 17 {
+        Modes::LocrianNatural2(())
+    } else if id == 18 {
+        Modes::Altered(())
+    } else if id == 19 {
+        Modes::HarmonicMajor(())
+    } else if id == 20 {
+        Modes::DorianFlat5(())
+    } else if id == 21 {
+        Modes::PhrygianFlat4(())
+    } else if id == 22 {
+        Modes::LydianFlat3(())
+    } else if id == 23 {
+        Modes::MixolydianFlat2(())
+    } else if id == 24 {
+        Modes::LydianAugmentedSharp2(())
+    } else if id == 25 {
+        Modes::LocrianDoubleFlat7(())
+    } else if id == 26 {
+        Modes::DorianSharp4(())
+    } else if id == 27 {
+        Modes::LocrianNatural6(())
+    } else if id == 28 {
+        Modes::WholeTone(())
+    } else if id == 29 {
+        Modes::HalfWholeDiminished(())
+    } else if id == 30 {
+        Modes::WholeHalfDiminished(())
     } else {
         Modes::Pentatonic(())
     }

@@ -5,7 +5,7 @@
 use core::array::ArrayTrait;
 use core::traits::TryInto;
 use koji::composition::barry_harris::BarryRule;
-use koji::composition::barry_labyrinth::{
+use koji::composition::barry_v2_types::{
     BarryLimitation, BarryLabyrinthPlan, BarryLineCell, BarryLineCellProfile, BarryTextureMode,
     BarryVoicingStyle, VoiceMotionPolicy,
 };

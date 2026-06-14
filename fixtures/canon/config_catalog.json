@@ -1,0 +1,628 @@
+{
+  "version": 1,
+  "config_count": 43,
+  "configs": [
+    {
+      "config_id": 0,
+      "name": "fifth_above",
+      "offsets": [
+        0,
+        4
+      ],
+      "octave": 7,
+      "profile_id": 0,
+      "profile_name": "renaissance",
+      "lattice": "diatonic",
+      "voice_count": 2
+    },
+    {
+      "config_id": 1,
+      "name": "fifth_below",
+      "offsets": [
+        0,
+        -4
+      ],
+      "octave": 7,
+      "profile_id": 0,
+      "profile_name": "renaissance",
+      "lattice": "diatonic",
+      "voice_count": 2
+    },
+    {
+      "config_id": 2,
+      "name": "octave_above",
+      "offsets": [
+        0,
+        7
+      ],
+      "octave": 7,
+      "profile_id": 0,
+      "profile_name": "renaissance",
+      "lattice": "diatonic",
+      "voice_count": 2
+    },
+    {
+      "config_id": 3,
+      "name": "unison",
+      "offsets": [
+        0,
+        0
+      ],
+      "octave": 7,
+      "profile_id": 0,
+      "profile_name": "renaissance",
+      "lattice": "diatonic",
+      "voice_count": 2
+    },
+    {
+      "config_id": 4,
+      "name": "three_5b_8va",
+      "offsets": [
+        0,
+        -4,
+        3
+      ],
+      "octave": 7,
+      "profile_id": 0,
+      "profile_name": "renaissance",
+      "lattice": "diatonic",
+      "voice_count": 3
+    },
+    {
+      "config_id": 5,
+      "name": "three_5a_8vb",
+      "offsets": [
+        0,
+        4,
+        -3
+      ],
+      "octave": 7,
+      "profile_id": 0,
+      "profile_name": "renaissance",
+      "lattice": "diatonic",
+      "voice_count": 3
+    },
+    {
+      "config_id": 6,
+      "name": "four_5b_stack",
+      "offsets": [
+        0,
+        -4,
+        -8,
+        -12
+      ],
+      "octave": 7,
+      "profile_id": 0,
+      "profile_name": "renaissance",
+      "lattice": "diatonic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 7,
+      "name": "maj7_stack",
+      "offsets": [
+        0,
+        4,
+        7,
+        11
+      ],
+      "octave": 12,
+      "profile_id": 1,
+      "profile_name": "jazz",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 8,
+      "name": "min7_stack",
+      "offsets": [
+        0,
+        3,
+        7,
+        10
+      ],
+      "octave": 12,
+      "profile_id": 1,
+      "profile_name": "jazz",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 9,
+      "name": "dom7_planing",
+      "offsets": [
+        0,
+        4,
+        7,
+        10
+      ],
+      "octave": 12,
+      "profile_id": 3,
+      "profile_name": "planing",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 10,
+      "name": "quartal_stack",
+      "offsets": [
+        0,
+        5,
+        10
+      ],
+      "octave": 12,
+      "profile_id": 2,
+      "profile_name": "quartal",
+      "lattice": "chromatic",
+      "voice_count": 3
+    },
+    {
+      "config_id": 11,
+      "name": "quartal4_stack",
+      "offsets": [
+        0,
+        5,
+        10,
+        15
+      ],
+      "octave": 12,
+      "profile_id": 2,
+      "profile_name": "quartal",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 12,
+      "name": "hindemith4",
+      "offsets": [
+        0,
+        5,
+        7,
+        11
+      ],
+      "octave": 12,
+      "profile_id": 4,
+      "profile_name": "hindemith",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 13,
+      "name": "white_on_white",
+      "offsets": [
+        0,
+        7
+      ],
+      "octave": 7,
+      "profile_id": 5,
+      "profile_name": "ligeti_white",
+      "lattice": "diatonic",
+      "voice_count": 2
+    },
+    {
+      "config_id": 14,
+      "name": "ligeti_cluster",
+      "offsets": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "octave": 7,
+      "profile_id": 5,
+      "profile_name": "ligeti_white",
+      "lattice": "diatonic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 15,
+      "name": "ligeti_micro",
+      "offsets": [
+        0,
+        1,
+        2
+      ],
+      "octave": 12,
+      "profile_id": 6,
+      "profile_name": "ligeti_micro",
+      "lattice": "chromatic",
+      "voice_count": 3
+    },
+    {
+      "config_id": 16,
+      "name": "dom9_planing",
+      "offsets": [
+        0,
+        4,
+        10,
+        14
+      ],
+      "octave": 12,
+      "profile_id": 3,
+      "profile_name": "planing",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 17,
+      "name": "lydian_maj9",
+      "offsets": [
+        0,
+        4,
+        11,
+        14
+      ],
+      "octave": 12,
+      "profile_id": 7,
+      "profile_name": "profile_7",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 18,
+      "name": "dom_alt_b9",
+      "offsets": [
+        0,
+        4,
+        10,
+        13
+      ],
+      "octave": 12,
+      "profile_id": 8,
+      "profile_name": "profile_8",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 19,
+      "name": "whole_tone",
+      "offsets": [
+        0,
+        4,
+        8,
+        10
+      ],
+      "octave": 12,
+      "profile_id": 9,
+      "profile_name": "profile_9",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 20,
+      "name": "oct_axis",
+      "offsets": [
+        0,
+        3,
+        6,
+        9
+      ],
+      "octave": 12,
+      "profile_id": 10,
+      "profile_name": "profile_10",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 21,
+      "name": "sus_quartal",
+      "offsets": [
+        0,
+        2,
+        5,
+        10
+      ],
+      "octave": 12,
+      "profile_id": 11,
+      "profile_name": "profile_11",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 22,
+      "name": "pandiatonic",
+      "offsets": [
+        0,
+        1,
+        4,
+        6
+      ],
+      "octave": 7,
+      "profile_id": 12,
+      "profile_name": "profile_12",
+      "lattice": "diatonic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 23,
+      "name": "spectral",
+      "offsets": [
+        0,
+        4,
+        7,
+        10
+      ],
+      "octave": 12,
+      "profile_id": 13,
+      "profile_name": "profile_13",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 24,
+      "name": "bartok_axis",
+      "offsets": [
+        0,
+        3,
+        6,
+        9
+      ],
+      "octave": 12,
+      "profile_id": 14,
+      "profile_name": "profile_14",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 25,
+      "name": "cluster_soft",
+      "offsets": [
+        0,
+        1,
+        3
+      ],
+      "octave": 12,
+      "profile_id": 15,
+      "profile_name": "profile_15",
+      "lattice": "chromatic",
+      "voice_count": 3
+    },
+    {
+      "config_id": 26,
+      "name": "per_tonos",
+      "offsets": [
+        0,
+        4,
+        7,
+        11
+      ],
+      "octave": 12,
+      "profile_id": 16,
+      "profile_name": "profile_16",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 27,
+      "name": "impr_add6",
+      "offsets": [
+        0,
+        4,
+        9,
+        14
+      ],
+      "octave": 12,
+      "profile_id": 17,
+      "profile_name": "profile_17",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 28,
+      "name": "bitonal",
+      "offsets": [
+        0,
+        4,
+        6,
+        10
+      ],
+      "octave": 12,
+      "profile_id": 18,
+      "profile_name": "profile_18",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 29,
+      "name": "phrygian",
+      "offsets": [
+        0,
+        1,
+        5,
+        8
+      ],
+      "octave": 12,
+      "profile_id": 19,
+      "profile_name": "profile_19",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 30,
+      "name": "penta_open",
+      "offsets": [
+        0,
+        7,
+        14,
+        21
+      ],
+      "octave": 12,
+      "profile_id": 20,
+      "profile_name": "profile_20",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 31,
+      "name": "neo_riem",
+      "offsets": [
+        0,
+        4,
+        7
+      ],
+      "octave": 12,
+      "profile_id": 21,
+      "profile_name": "profile_21",
+      "lattice": "chromatic",
+      "voice_count": 3
+    },
+    {
+      "config_id": 32,
+      "name": "impr_add6_3",
+      "offsets": [
+        0,
+        4,
+        9
+      ],
+      "octave": 12,
+      "profile_id": 17,
+      "profile_name": "profile_17",
+      "lattice": "chromatic",
+      "voice_count": 3
+    },
+    {
+      "config_id": 33,
+      "name": "bitonal_3",
+      "offsets": [
+        0,
+        4,
+        6
+      ],
+      "octave": 12,
+      "profile_id": 18,
+      "profile_name": "profile_18",
+      "lattice": "chromatic",
+      "voice_count": 3
+    },
+    {
+      "config_id": 34,
+      "name": "phrygian_3",
+      "offsets": [
+        0,
+        1,
+        5
+      ],
+      "octave": 12,
+      "profile_id": 19,
+      "profile_name": "profile_19",
+      "lattice": "chromatic",
+      "voice_count": 3
+    },
+    {
+      "config_id": 35,
+      "name": "penta_open_3",
+      "offsets": [
+        0,
+        7,
+        14
+      ],
+      "octave": 12,
+      "profile_id": 20,
+      "profile_name": "profile_20",
+      "lattice": "chromatic",
+      "voice_count": 3
+    },
+    {
+      "config_id": 36,
+      "name": "neo_riem_4",
+      "offsets": [
+        0,
+        4,
+        7,
+        11
+      ],
+      "octave": 12,
+      "profile_id": 21,
+      "profile_name": "profile_21",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 37,
+      "name": "impr_smooth",
+      "offsets": [
+        0,
+        4,
+        9,
+        14
+      ],
+      "octave": 12,
+      "profile_id": 23,
+      "profile_name": "profile_23",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 38,
+      "name": "impr_smooth_3",
+      "offsets": [
+        0,
+        4,
+        9
+      ],
+      "octave": 12,
+      "profile_id": 23,
+      "profile_name": "profile_23",
+      "lattice": "chromatic",
+      "voice_count": 3
+    },
+    {
+      "config_id": 39,
+      "name": "penta_smooth",
+      "offsets": [
+        0,
+        7,
+        14,
+        21
+      ],
+      "octave": 12,
+      "profile_id": 22,
+      "profile_name": "profile_22",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 40,
+      "name": "penta_smooth_3",
+      "offsets": [
+        0,
+        7,
+        14
+      ],
+      "octave": 12,
+      "profile_id": 22,
+      "profile_name": "profile_22",
+      "lattice": "chromatic",
+      "voice_count": 3
+    },
+    {
+      "config_id": 41,
+      "name": "jazz_improv",
+      "offsets": [
+        0,
+        4,
+        7,
+        11
+      ],
+      "octave": 12,
+      "profile_id": 24,
+      "profile_name": "profile_24",
+      "lattice": "chromatic",
+      "voice_count": 4
+    },
+    {
+      "config_id": 42,
+      "name": "jazz_improv_3",
+      "offsets": [
+        0,
+        4,
+        7
+      ],
+      "octave": 12,
+      "profile_id": 24,
+      "profile_name": "profile_24",
+      "lattice": "chromatic",
+      "voice_count": 3
+    }
+  ]
+}

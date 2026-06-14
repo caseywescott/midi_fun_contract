@@ -57,6 +57,39 @@ fn test_mode_id_roundtrip() {
     assert(mode_to_id(Modes::Mixolydian(())) == 3, 'mixo id');
     assert(mode_to_id(mode_from_id(2)) == 2, 'lydian back');
     assert(mode_to_id(mode_from_id(3)) == 3, 'mixo back');
+    assert(mode_to_id(Modes::MelodicMinor(())) == 12, 'mel minor id');
+    assert(mode_to_id(Modes::DorianFlat2(())) == 13, 'dorian b2 id');
+    assert(mode_to_id(Modes::LydianAugmented(())) == 14, 'lyd aug id');
+    assert(mode_to_id(Modes::LydianDominant(())) == 15, 'lyd dom id');
+    assert(mode_to_id(Modes::MixolydianFlat13(())) == 16, 'mixo b13 id');
+    assert(mode_to_id(Modes::LocrianNatural2(())) == 17, 'locrian nat2 id');
+    assert(mode_to_id(Modes::Altered(())) == 18, 'altered id');
+    assert(mode_to_id(mode_from_id(12)) == 12, 'mel minor back');
+    assert(mode_to_id(mode_from_id(13)) == 13, 'dorian b2 back');
+    assert(mode_to_id(mode_from_id(14)) == 14, 'lyd aug back');
+    assert(mode_to_id(mode_from_id(15)) == 15, 'lyd dom back');
+    assert(mode_to_id(mode_from_id(16)) == 16, 'mixo b13 back');
+    assert(mode_to_id(mode_from_id(17)) == 17, 'locrian nat2 back');
+    assert(mode_to_id(mode_from_id(18)) == 18, 'altered back');
+    assert(mode_to_id(Modes::HarmonicMajor(())) == 19, 'harm major id');
+    assert(mode_to_id(Modes::DorianFlat5(())) == 20, 'dorian b5 id');
+    assert(mode_to_id(Modes::PhrygianFlat4(())) == 21, 'phrygian b4 id');
+    assert(mode_to_id(Modes::LydianFlat3(())) == 22, 'lydian b3 id');
+    assert(mode_to_id(Modes::MixolydianFlat2(())) == 23, 'mixo b2 id');
+    assert(mode_to_id(Modes::LydianAugmentedSharp2(())) == 24, 'lyd aug s2 id');
+    assert(mode_to_id(Modes::LocrianDoubleFlat7(())) == 25, 'locrian bb7 id');
+    assert(mode_to_id(Modes::DorianSharp4(())) == 26, 'dorian s4 id');
+    assert(mode_to_id(Modes::LocrianNatural6(())) == 27, 'locrian nat6 id');
+    assert(mode_to_id(Modes::WholeTone(())) == 28, 'whole tone id');
+    assert(mode_to_id(Modes::HalfWholeDiminished(())) == 29, 'half whole id');
+    assert(mode_to_id(Modes::WholeHalfDiminished(())) == 30, 'whole half id');
+    assert(mode_to_id(mode_from_id(19)) == 19, 'harm major back');
+    assert(mode_to_id(mode_from_id(25)) == 25, 'harm major m7 back');
+    assert(mode_to_id(mode_from_id(26)) == 26, 'dorian s4 back');
+    assert(mode_to_id(mode_from_id(27)) == 27, 'locrian nat6 back');
+    assert(mode_to_id(mode_from_id(28)) == 28, 'whole tone back');
+    assert(mode_to_id(mode_from_id(29)) == 29, 'half whole back');
+    assert(mode_to_id(mode_from_id(30)) == 30, 'whole half back');
 }
 
 #[test]

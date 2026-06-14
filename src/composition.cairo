@@ -44,3 +44,4 @@ pub mod barry_voicing_styles;
 pub mod barry_turnarounds;
 pub mod barry_harmonization;
 pub mod ornamentation_v2;
+pub mod beast_trait_map;

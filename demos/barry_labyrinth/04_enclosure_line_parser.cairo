@@ -1,0 +1,7 @@
+Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) })
+Message::NOTE_ON(NoteOn { channel: 0, note: 61, velocity: 80, time: 0 })
+Message::NOTE_OFF(NoteOff { channel: 0, note: 61, velocity: 64, time: 480000 })
+Message::NOTE_ON(NoteOn { channel: 0, note: 59, velocity: 80, time: 480000 })
+Message::NOTE_OFF(NoteOff { channel: 0, note: 59, velocity: 64, time: 960000 })
+Message::NOTE_ON(NoteOn { channel: 0, note: 60, velocity: 80, time: 960000 })
+Message::NOTE_OFF(NoteOff { channel: 0, note: 60, velocity: 64, time: 1440000 })

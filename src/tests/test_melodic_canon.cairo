@@ -9,7 +9,9 @@ use koji::composition::melodic_canon::{
     canon_to_note_events, generate_melodic_canon, canon_traits, subdivide, subdivide_for_profile,
     subdivide_min_step, ornament_tone_is_legal,
     build_canon_for_test, cadence_formula, cadence_lands_on_final,
-    generate_ornamented_canon, canon_to_ornamented_note_events, remap_events_with_timing_wave,
+    generate_ornamented_canon, generate_ornamented_canon_with_mode,
+    canon_to_ornamented_note_events, remap_events_with_timing_wave,
+    MODE_AEOLIAN, MODE_DORIAN, white_key_tonic,
 };
 use koji::sine_wave::long_sequence_timing_wave_freq;
 use koji::composition::canon_rules::step_set_eq;
@@ -313,6 +315,33 @@ fn test_ornament_legality() {
     assert(ornament_tone_is_legal(1, 0, true, true), 'weak passing ok');
     assert(!ornament_tone_is_legal(1, 0, false, true), 'strong dissonance bad');
     assert(!ornament_tone_is_legal(1, 0, true, false), 'leapt dissonance bad');
+}
+
+/// Minor-mode ornamented canon keeps the same leader degrees as the seed-driven export.
+#[test]
+#[available_gas(4000000000000)]
+fn test_ornamented_canon_minor_modes_match_structure() {
+    let (base, _) = generate_ornamented_canon(4343, 4, 36);
+    let (aeolian, subs_a) = generate_ornamented_canon_with_mode(
+        4343, 4, 36, MODE_AEOLIAN, white_key_tonic(MODE_AEOLIAN),
+    );
+    let (dorian, subs_d) = generate_ornamented_canon_with_mode(
+        4343, 4, 36, MODE_DORIAN, white_key_tonic(MODE_DORIAN),
+    );
+    assert(aeolian.mode_id == MODE_AEOLIAN, 'aeolian mode');
+    assert(dorian.mode_id == MODE_DORIAN, 'dorian mode');
+    assert(aeolian.tonic_keynum == 69, 'A aeolian tonic');
+    assert(dorian.tonic_keynum == 62, 'D dorian tonic');
+    assert(exact_imitation(@aeolian), 'aeolian imitation');
+    assert(exact_imitation(@dorian), 'dorian imitation');
+    assert(all_pairs_consonant(@aeolian), 'aeolian consonant');
+    assert(all_pairs_consonant(@dorian), 'dorian consonant');
+    assert(aeolian.leader_degrees.len() == base.leader_degrees.len(), 'same length');
+    assert(subs_a.len() == subs_d.len(), 'same ornament plan');
+    let events_a = canon_to_ornamented_note_events(@aeolian, subs_a.span());
+    let events_d = canon_to_ornamented_note_events(@dorian, subs_d.span());
+    assert(events_a.len() > 0, 'aeolian events');
+    assert(events_d.len() > 0, 'dorian events');
 }
 
 /// No same-voice overlap after sine-tempo remap (seed/config from long ornamented MIDI export).

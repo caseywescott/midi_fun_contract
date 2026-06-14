@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "slug": "exact_fifth_above",
+  "source": "fixtures/canon/fit_input/exact_fifth_above.json",
+  "fit_phase": "viterbi",
+  "config_id": 2,
+  "config_name": "octave_above",
+  "profile_id": 0,
+  "mode_id": 0,
+  "tonic_keynum": 60,
+  "octave": 7,
+  "leader_degrees": [
+    0,
+    2,
+    4,
+    2,
+    0,
+    2,
+    4,
+    0
+  ],
+  "input_degrees": [
+    0,
+    2,
+    4,
+    3,
+    0,
+    2,
+    4,
+    0
+  ],
+  "edit_cost": 1,
+  "positions_edited": [
+    3
+  ],
+  "require_cadence": true,
+  "report": {
+    "configs_tried": 7,
+    "exact_fit_count": 0,
+    "runner_up": [
+      {
+        "config_id": 2,
+        "edit_cost": 1,
+        "config_name": "octave_above"
+      },
+      {
+        "config_id": 3,
+        "edit_cost": 1,
+        "config_name": "unison"
+      },
+      {
+        "config_id": 0,
+        "edit_cost": 3,
+        "config_name": "fifth_above"
+      },
+      {
+        "config_id": 1,
+        "edit_cost": 3,
+        "config_name": "fifth_below"
+      },
+      {
+        "config_id": 6,
+        "edit_cost": 3,
+        "config_name": "four_5b_stack"
+      }
+    ]
+  }
+}

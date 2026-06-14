@@ -1,0 +1,9 @@
+{
+  "tonic_keynum": 60,
+  "mode_id": 0,
+  "octave": 7,
+  "degrees": [0, 1, 2, 3, 2, 1, 0, -1],
+  "require_cadence": true,
+  "max_edit_cost": 16,
+  "anchor_start": true
+}

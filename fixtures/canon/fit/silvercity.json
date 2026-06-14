@@ -1,0 +1,187 @@
+{
+  "version": 2,
+  "slug": "silvercity",
+  "source": "/Users/caseywescott/Desktop/silvercity.mid",
+  "fit_phase": "viterbi",
+  "config_id": 0,
+  "config_name": "fifth_above",
+  "profile_id": 0,
+  "mode_id": 3,
+  "tonic_keynum": 62,
+  "octave": 7,
+  "leader_degrees": [
+    4,
+    3,
+    4,
+    3,
+    1,
+    2,
+    6,
+    5,
+    3,
+    4,
+    5,
+    5,
+    2,
+    4,
+    5,
+    4,
+    4,
+    3,
+    2,
+    3,
+    1,
+    2,
+    1,
+    0
+  ],
+  "input_degrees": [
+    4,
+    3,
+    4,
+    3,
+    1,
+    2,
+    6,
+    5,
+    3,
+    4,
+    5,
+    6,
+    2,
+    5,
+    4,
+    5,
+    4,
+    3,
+    2,
+    3,
+    1,
+    2,
+    1,
+    2
+  ],
+  "edit_cost": 6,
+  "positions_edited": [
+    11,
+    13,
+    14,
+    15,
+    23
+  ],
+  "require_cadence": true,
+  "entries": [
+    0,
+    4
+  ],
+  "entry_mode": "search",
+  "report": {
+    "configs_tried": 40,
+    "exact_fit_count": 0,
+    "runner_up": [
+      {
+        "config_id": 5,
+        "edit_cost": 7,
+        "config_name": "three_5a_8vb",
+        "profile_id": 0,
+        "entries": [
+          0,
+          4,
+          4
+        ]
+      },
+      {
+        "config_id": 3,
+        "edit_cost": 8,
+        "config_name": "unison",
+        "profile_id": 0,
+        "entries": [
+          0,
+          3
+        ]
+      },
+      {
+        "config_id": 0,
+        "edit_cost": 9,
+        "config_name": "fifth_above",
+        "profile_id": 0,
+        "entries": [
+          0,
+          2
+        ]
+      },
+      {
+        "config_id": 0,
+        "edit_cost": 9,
+        "config_name": "fifth_above",
+        "profile_id": 0,
+        "entries": [
+          0,
+          3
+        ]
+      },
+      {
+        "config_id": 1,
+        "edit_cost": 9,
+        "config_name": "fifth_below",
+        "profile_id": 0,
+        "entries": [
+          0,
+          1
+        ]
+      }
+    ]
+  },
+  "source_ticks": [
+    13440,
+    13920,
+    14160,
+    14400,
+    14880,
+    15360,
+    16320,
+    16800,
+    17280,
+    18000,
+    18240,
+    18720,
+    19200,
+    21120,
+    21600,
+    21840,
+    22080,
+    22560,
+    23040,
+    23520,
+    24000,
+    25440,
+    26640,
+    26880
+  ],
+  "source_pitches": [
+    69,
+    68,
+    69,
+    68,
+    64,
+    66,
+    73,
+    71,
+    68,
+    69,
+    71,
+    73,
+    66,
+    71,
+    69,
+    71,
+    69,
+    68,
+    66,
+    68,
+    64,
+    66,
+    64,
+    66
+  ]
+}

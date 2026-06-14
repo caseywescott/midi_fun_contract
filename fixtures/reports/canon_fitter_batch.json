@@ -1,0 +1,22 @@
+{
+  "results": [
+    {
+      "input": "fixtures/canon/fit_input/dissonant_steps.json",
+      "output": "fixtures/canon/fit/dissonant_steps.json",
+      "fit_phase": "viterbi",
+      "edit_cost": 3
+    },
+    {
+      "input": "fixtures/canon/fit_input/exact_fifth_above.json",
+      "output": "fixtures/canon/fit/exact_fifth_above.json",
+      "fit_phase": "viterbi",
+      "edit_cost": 4
+    },
+    {
+      "input": "fixtures/canon/fit_input/grundgestalt_0.json",
+      "output": "fixtures/canon/fit/grundgestalt_0.json",
+      "fit_phase": "viterbi",
+      "edit_cost": 3
+    }
+  ]
+}

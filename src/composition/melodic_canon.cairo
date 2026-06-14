@@ -149,6 +149,14 @@ fn extract_bits(s: u256, shift: u32, width: u32) -> u32 {
 
 /// Semitone offsets from the final for the 7 diatonic degrees of a mode.
 pub fn mode_scale(mode_id: u8) -> Span<u8> {
+    if mode_id == MODE_MELODIC_MINOR {
+        // Jazz melodic minor ascending: 1 2 b3 4 5 6 7
+        return array![0_u8, 2, 3, 5, 7, 9, 11].span();
+    }
+    if mode_id == MODE_WHOLE_TONE {
+        // Whole tone: 1 2 3 #4 #5 b7 — six degrees per octave
+        return array![0_u8, 2, 4, 6, 8, 10].span();
+    }
     let m = mode_id % 6;
     if m == 0 {
         array![0_u8, 2, 4, 5, 7, 9, 11].span() // Ionian / major
@@ -169,19 +177,45 @@ pub fn num_modes() -> u32 {
     6
 }
 
+/// Ionian (major).
+pub const MODE_IONIAN: u8 = 0;
+/// Dorian — minor with raised 6th.
+pub const MODE_DORIAN: u8 = 1;
+/// Phrygian — minor with lowered 2nd.
+pub const MODE_PHRYGIAN: u8 = 2;
+/// Lydian (major with raised 4th).
+pub const MODE_LYDIAN: u8 = 3;
+/// Mixolydian — major with lowered 7th.
+pub const MODE_MIXOLYDIAN: u8 = 4;
+/// Aeolian / natural minor.
+pub const MODE_AEOLIAN: u8 = 5;
+/// Melodic minor ascending (outside the legacy `% 6` diatonic set).
+pub const MODE_MELODIC_MINOR: u8 = 6;
+/// Whole tone — six scale degrees per octave (outside the legacy `% 6` diatonic set).
+pub const MODE_WHOLE_TONE: u8 = 7;
+
+/// Realize a signed diatonic degree to a MIDI keynum. Degree 0 maps to `tonic_keynum`.
+/// Uses an octave bias so all arithmetic stays unsigned (no signed division).
+/// `degrees_per_octave` is 7 for diatonic modes, 6 for whole tone.
+pub fn degree_to_keynum_sized(
+    degree: i32, tonic_keynum: u8, scale: Span<u8>, degrees_per_octave: u32,
+) -> u8 {
+    let bias: i32 = (10 * degrees_per_octave).try_into().unwrap();
+    let d: i32 = degree + bias;
+    let du: u32 = d.try_into().unwrap();
+    let oct: u32 = du / degrees_per_octave;
+    let idx: u32 = du % degrees_per_octave;
+    let semis: u32 = (*scale.at(idx)).into();
+    let base: u32 = tonic_keynum.into();
+    let oct_bias: u32 = 12 * 10;
+    let total: u32 = base + 12 * oct + semis - oct_bias;
+    total.try_into().unwrap()
+}
+
 /// Realize a signed diatonic degree to a MIDI keynum. Degree 0 maps to `tonic_keynum`.
 /// Uses an octave bias so all arithmetic stays unsigned (no signed division).
 pub fn degree_to_keynum(degree: i32, tonic_keynum: u8, scale: Span<u8>) -> u8 {
-    let bias: i32 = 70; // 10 octaves of diatonic degrees
-    let d: i32 = degree + bias;
-    let du: u32 = d.try_into().unwrap();
-    let oct: u32 = du / 7;
-    let idx: u32 = du % 7;
-    let semis: u32 = (*scale.at(idx)).into();
-    let base: u32 = tonic_keynum.into();
-    // keynum = tonic + 12*(oct − 10) + semis
-    let total: u32 = base + 12 * oct + semis - 120;
-    total.try_into().unwrap()
+    degree_to_keynum_sized(degree, tonic_keynum, scale, 7)
 }
 
 /// Realize a chromatic (semitone-lattice) degree: the degree *is* the signed semitone offset from
@@ -199,6 +233,8 @@ pub fn chromatic_degree_to_keynum(degree: i32, tonic_keynum: u8) -> u8 {
 pub fn realize_degree(octave: u32, degree: i32, tonic_keynum: u8, mode_id: u8) -> u8 {
     if octave == 12 {
         chromatic_degree_to_keynum(degree, tonic_keynum)
+    } else if mode_id == MODE_WHOLE_TONE {
+        degree_to_keynum_sized(degree, tonic_keynum, mode_scale(mode_id), 6)
     } else {
         degree_to_keynum(degree, tonic_keynum, mode_scale(mode_id))
     }
@@ -1716,8 +1752,18 @@ pub fn generate_melodic_canon_with_params(
     seed: felt252, config_id: u32, length: u32,
 ) -> MelodicCanon {
     let s: u256 = seed.into();
-    let config = config_by_id(config_id);
     let mode_id: u8 = (extract_bits(s, 7, 3) % num_modes()).try_into().unwrap();
+    generate_melodic_canon_with_params_mode(seed, config_id, length, mode_id, 65)
+}
+
+/// Like [`generate_melodic_canon_with_params`], but forces a modal realization. Use
+/// [`white_key_tonic`] for `tonic_keynum` when the mode should sit on its matching white-key
+/// final (e.g. Aeolian → A, Dorian → D).
+pub fn generate_melodic_canon_with_params_mode(
+    seed: felt252, config_id: u32, length: u32, mode_id: u8, tonic_keynum: u8,
+) -> MelodicCanon {
+    let s: u256 = seed.into();
+    let config = config_by_id(config_id);
     let len = if length >= MIN_LEN {
         length
     } else {
@@ -1740,7 +1786,7 @@ pub fn generate_melodic_canon_with_params(
         leader_degrees: degrees.span(),
         leader_steps: steps.span(),
         mode_id,
-        tonic_keynum: 65,
+        tonic_keynum,
         time_unit,
         voices: voices.span(),
         octave: 7,
@@ -1760,6 +1806,21 @@ pub fn generate_ornamented_canon(
     seed: felt252, config_id: u32, length: u32,
 ) -> (MelodicCanon, Array<u32>) {
     let canon = generate_melodic_canon_with_params(seed, config_id, length);
+    let mut orn_seed = extract_bits(seed.into(), 51, 8) % 256;
+    if orn_seed == 0 {
+        orn_seed = 19;
+    }
+    let subs = plan_ornament_subdivisions(orn_seed, canon.leader_steps, CADENCE_LEN);
+    (canon, subs)
+}
+
+/// Like [`generate_ornamented_canon`], but realized in an explicit mode and tonic.
+pub fn generate_ornamented_canon_with_mode(
+    seed: felt252, config_id: u32, length: u32, mode_id: u8, tonic_keynum: u8,
+) -> (MelodicCanon, Array<u32>) {
+    let canon = generate_melodic_canon_with_params_mode(
+        seed, config_id, length, mode_id, tonic_keynum,
+    );
     let mut orn_seed = extract_bits(seed.into(), 51, 8) % 256;
     if orn_seed == 0 {
         orn_seed = 19;
@@ -2209,7 +2270,23 @@ pub fn generate_jazz_improv_3v_canon(seed: felt252) -> MelodicCanon {
 /// its matching white key, reproduce exactly {C,D,E,F,G,A,B}. (The generic diatonic path roots on
 /// F for every mode, so F Ionian/Dorian/… introduce B♭ and other accidentals — not what a white-key
 /// étude wants.)
+/// Default tonic for melodic-minor demos: C4 (C melodic minor).
+pub fn melodic_minor_tonic() -> u8 {
+    60
+}
+
+/// Default tonic for whole-tone demos: C4 (C whole tone).
+pub fn whole_tone_tonic() -> u8 {
+    60
+}
+
 pub fn white_key_tonic(mode_id: u8) -> u8 {
+    if mode_id == MODE_MELODIC_MINOR {
+        return melodic_minor_tonic();
+    }
+    if mode_id == MODE_WHOLE_TONE {
+        return whole_tone_tonic();
+    }
     let m = mode_id % 6;
     if m == 0 {
         60 // C Ionian

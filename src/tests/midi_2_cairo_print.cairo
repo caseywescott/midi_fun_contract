@@ -55,6 +55,8 @@ mod tests {
     };
 use koji::composition::melodic_canon::{
     generate_melodic_canon, generate_melodic_canon_with_params, generate_ornamented_canon,
+    generate_ornamented_canon_with_mode, MODE_AEOLIAN, MODE_DORIAN, MODE_MELODIC_MINOR,
+    MODE_WHOLE_TONE, white_key_tonic, melodic_minor_tonic, whole_tone_tonic,
     generate_profiled_ornamented_canon,
     generate_jazz_improv_ornamented_canon, generate_jazz_improv_ornamented_canon_light,
     generate_jazz_improv_harmonic_walk_ornamented_canon,
@@ -3944,6 +3946,50 @@ use koji::composition::melodic_canon::{
         n * num_loops
     }
 
+    fn append_long_ornamented_canon_with_mode(
+        ref eventlist: Array<Message>,
+        seed: felt252,
+        config_id: u32,
+        length: u32,
+        step_us: u64,
+        num_loops: u32,
+        mode_id: u8,
+        tonic_keynum: u8,
+    ) -> u32 {
+        let (canon, subs) = generate_ornamented_canon_with_mode(
+            seed, config_id, length, mode_id, tonic_keynum,
+        );
+        let events = canon_to_ornamented_note_events(@canon, subs.span());
+        let n = events.len();
+        assert!(n > 0, "ornamented canon events");
+        let len = canon.leader_degrees.len();
+        let nv = canon.voices.len();
+        let unit = canon.time_unit;
+        let cycle_ticks = (len + nv - 1) * unit;
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let e = *events.at(i);
+                let on: Time = base + e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                let channel: u8 = e.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        n * num_loops
+    }
+
     fn append_long_ornamented_canon(
         ref eventlist: Array<Message>,
         seed: felt252,
@@ -4507,6 +4553,110 @@ use koji::composition::melodic_canon::{
             ref eventlist, 4343, 4, 36, 250000, 2,
         );
         assert!(note_ons >= 180, "long 3-voice ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Same structural canon as `renaissance_canon_long_3voice_ornamented_midi_test` (seed 4343,
+    /// config 4, length 36, 2 loops) but realized in **Aeolian** on its white-key final (A minor).
+    ///
+    /// Export: `scarb test -f renaissance_canon_long_3voice_ornamented_aeolian_midi_test`
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn renaissance_canon_long_3voice_ornamented_aeolian_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_ornamented_canon_with_mode(
+            ref eventlist,
+            4343,
+            4,
+            36,
+            250000,
+            2,
+            MODE_AEOLIAN,
+            white_key_tonic(MODE_AEOLIAN),
+        );
+        assert!(note_ons >= 180, "long 3-voice aeolian ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Same canon frame as the ornamented three-voice export, realized in **Dorian** (D Dorian,
+    /// white keys).
+    ///
+    /// Export: `scarb test -f renaissance_canon_long_3voice_ornamented_dorian_midi_test`
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn renaissance_canon_long_3voice_ornamented_dorian_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_ornamented_canon_with_mode(
+            ref eventlist,
+            4343,
+            4,
+            36,
+            250000,
+            2,
+            MODE_DORIAN,
+            white_key_tonic(MODE_DORIAN),
+        );
+        assert!(note_ons >= 180, "long 3-voice dorian ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Same structural canon as `renaissance_canon_long_3voice_ornamented_midi_test` (seed 4343,
+    /// config 4, length 36, 2 loops) but realized in **melodic minor** (C melodic minor, C4 final).
+    ///
+    /// Export: `scarb test -f renaissance_canon_long_3voice_ornamented_melodic_minor_midi_test`
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn renaissance_canon_long_3voice_ornamented_melodic_minor_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_ornamented_canon_with_mode(
+            ref eventlist,
+            4343,
+            4,
+            36,
+            250000,
+            2,
+            MODE_MELODIC_MINOR,
+            melodic_minor_tonic(),
+        );
+        assert!(note_ons >= 180, "long 3-voice melodic minor ornamented");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Same structural canon as `renaissance_canon_long_3voice_ornamented_midi_test` (seed 4343,
+    /// config 4, length 36, 2 loops) but realized in **whole tone** (C whole tone, C4 final).
+    ///
+    /// Export: `scarb test -f renaissance_canon_long_3voice_ornamented_whole_tone_midi_test`
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn renaissance_canon_long_3voice_ornamented_whole_tone_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_ornamented_canon_with_mode(
+            ref eventlist,
+            4343,
+            4,
+            36,
+            250000,
+            2,
+            MODE_WHOLE_TONE,
+            whole_tone_tonic(),
+        );
+        assert!(note_ons >= 180, "long 3-voice whole tone ornamented");
         let midiobj = Midi { events: eventlist.span() };
         generate_parser_format(@midiobj);
         assert_valid_demo_midi(@midiobj, note_ons);

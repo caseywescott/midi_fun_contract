@@ -1,8 +1,9 @@
 use core::array::ArrayTrait;
 use koji::composition::barry_harris::BarryRule;
 use koji::composition::barry_labyrinth::{
-    barry_labyrinth_plan_from_seed, BarryLimitation, BarryTextureMode, VoiceMotionPolicy,
+    barry_labyrinth_plan_from_seed, BarryLimitation, BarryTextureMode,
 };
+use koji::composition::barry_voice_motion::VoiceMotionPolicy;
 use koji::composition::barry_limitations::{
     all_v2_rules, allowed_v2_rules_for_limitation, apply_limitation_to_plan, is_elevator_rule,
     is_family_rotation_rule, limitation_allows_rule, limitation_forces_resolution,

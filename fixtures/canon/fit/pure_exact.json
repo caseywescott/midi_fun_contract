@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "slug": "pure_exact",
+  "source": "fixtures/canon/fit_input/pure_exact.json",
+  "fit_phase": "exact",
+  "config_id": 0,
+  "config_name": "fifth_above",
+  "profile_id": 0,
+  "mode_id": 0,
+  "tonic_keynum": 60,
+  "octave": 7,
+  "leader_degrees": [
+    0,
+    2,
+    4,
+    3,
+    0,
+    2,
+    4,
+    3
+  ],
+  "input_degrees": [
+    0,
+    2,
+    4,
+    3,
+    0,
+    2,
+    4,
+    3
+  ],
+  "edit_cost": 0,
+  "positions_edited": [],
+  "require_cadence": false,
+  "report": {
+    "configs_tried": 1,
+    "exact_fit_count": 1,
+    "runner_up": []
+  }
+}

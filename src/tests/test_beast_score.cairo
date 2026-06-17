@@ -1,6 +1,7 @@
 use koji::composition::beast_score::{
     BEAST_SCORE_VERSION, build_beast_form, build_beast_form_from_traits, build_beast_theme,
-    derive_beast_sound_seeds, first_two_voices_invertible, note_events_valid, walk_leader_hashed,
+    derive_beast_sound_seeds, first_two_voices_invertible, get_composition_params,
+    get_music_state, get_music_state_hash, get_score_hash, note_events_valid, walk_leader_hashed,
 };
 use koji::composition::beast_trait_map::{
     VISUAL_ANIMATED, VISUAL_COMMON, BeastCompositionParams, BeastLiveStats,
@@ -130,4 +131,31 @@ fn tier_one_crown_uses_invertible_front_pair_when_possible() {
 fn params_version_matches_score_version() {
     let params = params_for(74, 0, VISUAL_COMMON, baseline_stats());
     assert(params.score_version == BEAST_SCORE_VERSION, 'version');
+}
+
+#[test]
+fn canonical_music_state_is_stable_for_same_inputs() {
+    let a = get_music_state(12, 20, VISUAL_COMMON, 7777, baseline_stats());
+    let b = get_music_state(12, 20, VISUAL_COMMON, 7777, baseline_stats());
+    assert(a.params_hash == b.params_hash, 'params hash stable');
+    assert(a.score_hash == b.score_hash, 'score hash stable');
+    assert(get_music_state_hash(a) == get_music_state_hash(b), 'state hash stable');
+}
+
+#[test]
+fn live_stats_change_state_hash_without_changing_identity() {
+    let calm = get_music_state(12, 20, VISUAL_COMMON, 7777, baseline_stats());
+    let evolved = get_music_state(12, 20, VISUAL_COMMON, 7777, high_history_stats());
+    assert(calm.species_id == evolved.species_id, 'species identity');
+    assert(calm.name_variant_id == evolved.name_variant_id, 'name identity');
+    assert(calm.sound_seed == evolved.sound_seed, 'sound seed identity');
+    assert(calm.score_hash != evolved.score_hash, 'score changes');
+    assert(get_music_state_hash(calm) != get_music_state_hash(evolved), 'state changes');
+}
+
+#[test]
+fn score_hash_api_matches_form_hash() {
+    let params = get_composition_params(0, 1242, VISUAL_ANIMATED, 9090, high_history_stats());
+    let form = build_beast_form(params, 9090);
+    assert(get_score_hash(params, 9090) == form.score_hash, 'score hash api');
 }

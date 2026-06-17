@@ -52,6 +52,17 @@ pub struct BeastForm {
     pub section_count: u8,
 }
 
+#[derive(Copy, Drop, Serde)]
+pub struct BeastMusicState {
+    pub species_id: u8,
+    pub name_variant_id: u32,
+    pub visual_rarity: u8,
+    pub sound_seed: felt252,
+    pub params_hash: felt252,
+    pub score_hash: felt252,
+    pub engine_version: u32,
+}
+
 pub fn derive_beast_sound_seeds(sound_seed: felt252) -> BeastSoundSeeds {
     BeastSoundSeeds {
         motif_seed: hash2(sound_seed, 'MOTIF'),
@@ -426,6 +437,56 @@ pub fn build_beast_form_from_traits(
         species_id, name_variant_id, visual_rarity, sound_seed, stats,
     );
     build_beast_form(params, sound_seed)
+}
+
+pub fn get_composition_params(
+    species_id: u8,
+    name_variant_id: u32,
+    visual_rarity: u8,
+    sound_seed: felt252,
+    stats: BeastLiveStats,
+) -> BeastCompositionParams {
+    map_beast_traits_to_composition_params(
+        species_id, name_variant_id, visual_rarity, sound_seed, stats,
+    )
+}
+
+pub fn get_score_hash(params: BeastCompositionParams, sound_seed: felt252) -> felt252 {
+    let form = build_beast_form(params, sound_seed);
+    form.score_hash
+}
+
+pub fn get_music_state(
+    species_id: u8,
+    name_variant_id: u32,
+    visual_rarity: u8,
+    sound_seed: felt252,
+    stats: BeastLiveStats,
+) -> BeastMusicState {
+    let params = get_composition_params(
+        species_id, name_variant_id, visual_rarity, sound_seed, stats,
+    );
+    BeastMusicState {
+        species_id,
+        name_variant_id,
+        visual_rarity,
+        sound_seed,
+        params_hash: beast_params_hash(params),
+        score_hash: get_score_hash(params, sound_seed),
+        engine_version: BEAST_SCORE_VERSION,
+    }
+}
+
+pub fn get_music_state_hash(state: BeastMusicState) -> felt252 {
+    let mut h = PoseidonTrait::new();
+    h = h.update(state.species_id.into());
+    h = h.update(state.name_variant_id.into());
+    h = h.update(state.visual_rarity.into());
+    h = h.update(state.sound_seed);
+    h = h.update(state.params_hash);
+    h = h.update(state.score_hash);
+    h = h.update(state.engine_version.into());
+    h.finalize()
 }
 
 pub fn note_events_valid(events: Span<NoteEvent>) -> bool {

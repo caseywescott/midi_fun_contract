@@ -30,6 +30,6 @@ fi
 scarb_build_once
 
 echo "=== ${TEST_FILTER} -> ${OUTPUT_MID} ==="
-scarb_test_filtered "${TEST_FILTER}" 1 2>&1 | grep "^Message::" > "${PARSER}"
+scarb test -- --include-ignored --filter "${TEST_FILTER}" 2>&1 | grep "^Message::" > "${PARSER}"
 npx ts-node typescript/src/simpleMidiConverter.ts "${PARSER}" "${OUTPUT_MID}"
 echo "Wrote ${OUTPUT_MID}"

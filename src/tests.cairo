@@ -47,3 +47,7 @@ pub mod test_barry_showcase_midi;
 pub mod test_ornamentation_v2;
 pub mod test_ornamentation_v2_midi;
 pub mod test_beast_trait_map;
+pub mod test_beast_score;
+pub mod test_beast_midi;
+pub mod test_articulation;
+pub mod test_contrapuntal;

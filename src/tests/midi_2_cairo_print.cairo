@@ -117,6 +117,11 @@ use koji::composition::melodic_canon::{
         apply_to_object, assemble, MusicalObject, Pipeline, PlaneId, PlaneOp, U32Pair,
     };
     use koji::rng::{LCGRandomSource, RandomSource};
+    use koji::composition::countersubject::{
+        generate_countersubject, countersubject_to_note_events,
+        countersubject_consonant, countersubject_invertible,
+        default_countersubject_config,
+    };
 
     #[ignore]
     #[test]
@@ -5699,6 +5704,165 @@ use koji::composition::melodic_canon::{
         generate_parser_format(@midiobj);
         let note_ons = count_note_ons(@midiobj);
         assert!(note_ons >= 30, "ic inversion demo note ons");
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Invertible-counterpoint canon with countersubject — D Dorian, three sections.
+    ///
+    /// Musical architecture:
+    ///   Voices 0–2: Three-voice IC melodic canon (config 4: leader / fifth-below / octave-above
+    ///     stretto) in D Dorian. Generated under profile 25 (Renaissance Invertible) — guarantees
+    ///     no Perfect Fifth verticals in any simultaneous pair, so all three voices can freely
+    ///     exchange octave positions without producing dissonance.
+    ///   Voice 3: Countersubject — an independent conjunct melody IC-safe against the leader.
+    ///     Starts a third above, moves by step, and holds the same IC guarantee at every beat.
+    ///   § A (loops 1–2): Full four-voice texture, baroque-ornamented (trills, mordents, turns,
+    ///     suspensions).  The two passes let the ear absorb the contrapuntal texture before
+    ///     the structure is revealed.
+    ///   § B (loop 3): Octave inversion — the fifth-below follower (voice 1) is raised by one
+    ///     octave so it now crosses above the leader.  All verticals remain consonant, proving the
+    ///     IC property holds in both the original and inverted arrangements.
+    ///
+    /// Export: `scarb test -f ic_canon_with_countersubject_dorian_midi_test`
+    #[ignore]
+    #[test]
+    #[available_gas(12000000000000)]
+    fn ic_canon_with_countersubject_dorian_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        // 60 bpm structural tempo (stately Renaissance walking pace)
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        // ── Generation parameters ────────────────────────────────────
+        let seed: felt252 = 2718;            // Euler's number — well-distributed seed
+        let cs_seed: felt252 = 1414;         // √2 seed — distinct melodic character for CS
+        let mode_id: u8 = MODE_DORIAN;
+        let tonic: u8 = white_key_tonic(MODE_DORIAN);   // D4 = MIDI 62
+        let config_id: u32 = 4;              // three_5b_8va: offsets [0, −4, +3]
+        let length: u32 = 36;                // 36-beat subject — long enough for a full phrase arc
+        let step_us: u64 = 250000;           // μs per tick (time_unit=4 → 1s per structural beat)
+
+        // ── § 1  IC melodic canon ────────────────────────────────────
+        let canon = generate_invertible_melodic_canon_mode(seed, config_id, length, mode_id, tonic);
+        assert(all_pairs_octave_invertible(@canon), 'ic: no fifths');
+
+        let len = canon.leader_degrees.len();    // == length == 36
+        let nv = canon.voices.len();             // == 3 for config 4
+        let unit = canon.time_unit;              // == 4 ticks per structural beat
+        let cycle_ticks: u32 = (len + nv - 1) * unit;  // full canon cycle in ticks
+
+        // ── § 2  Countersubject — fourth independent voice ──────────
+        // Conjunct motion, starts a diatonic third above the leader, IC-safe at every beat.
+        let cs_config = default_countersubject_config();
+        let leader_degs = canon.leader_degrees;   // Span<i32> — already a span, use directly
+        let cs = generate_countersubject(
+            leader_degs,
+            @cs_config,
+            cs_seed,
+            7,         // diatonic lattice (octave = 7 steps)
+            mode_id,
+            tonic,
+            unit,
+        );
+        assert(countersubject_consonant(leader_degs, @cs), 'cs: consonant');
+        assert(countersubject_invertible(leader_degs, @cs), 'cs: ic safe');
+
+        // ── § 3  Baroque ornamentation of the three-voice IC canon ──
+        let mut harmony: Array<HarmonyEvent> = ArrayTrait::new();
+        let tonic_pc = tonic % 12;
+        harmony.append(
+            HarmonyEvent {
+                root_pc: tonic_pc,
+                bass_pc: tonic_pc,
+                start: 0,
+                duration: cycle_ticks * 3 * unit,  // covers all three loops
+                function_label: 0,
+            },
+        );
+        let mut orn_cfg = default_config(v2_ornament_seed_from_canon_seed(seed));
+        orn_cfg.style = profile_baroque_ornament();
+        orn_cfg.canon_workflow = WORKFLOW_CANON_FIRST;
+        let enabled = all_enabled_ornaments();
+        let orn_result = ornament_canon(@canon, harmony.span(), orn_cfg, enabled.span());
+        let orn_span = orn_result.events.span();
+        let orn_n = orn_span.len();
+        assert!(orn_n > 0, "ornamented events exist");
+
+        // ── § 4  Loops 1–2: ornamented IC canon + CS ────────────────
+        // Both passes sound the four-voice texture in original voice arrangement.
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= 2 {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            // Ornamented IC canon voices 0–2
+            let mut i: u32 = 0;
+            loop {
+                if i >= orn_n {
+                    break;
+                }
+                let legacy = v2_note_to_legacy(*orn_span.at(i));
+                let on: Time = base + legacy.time.into() * step_us;
+                let off: Time = on + legacy.duration.into() * step_us;
+                let channel: u8 = legacy.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, legacy.pitch, legacy.velocity, on, off);
+                i += 1;
+            };
+            // CS voice 3 — ticks start at loop_i * cycle_ticks
+            let cs_events = countersubject_to_note_events(@cs, loop_i * cycle_ticks, 3);
+            let mut j: u32 = 0;
+            loop {
+                if j >= cs_events.len() {
+                    break;
+                }
+                let e = *cs_events.at(j);
+                let on: Time = e.time.into() * step_us;
+                let off: Time = on + e.duration.into() * step_us;
+                append_legato_note(ref eventlist, 3, e.pitch, e.velocity, on, off);
+                j += 1;
+            };
+            loop_i += 1;
+        };
+
+        // ── § 5  Loop 3: octave inversion (IC demonstration) ────────
+        // Voice 1 (the fifth-below follower) is raised by twelve semitones so it now sounds
+        // above the leader.  The IC property guarantees no dissonance in either arrangement.
+        let base3: Time = 2_u64 * cycle_ticks.into() * step_us;
+        let mut i: u32 = 0;
+        loop {
+            if i >= orn_n {
+                break;
+            }
+            let legacy = v2_note_to_legacy(*orn_span.at(i));
+            let pitch: u8 = if legacy.voice_id == 1 && legacy.pitch <= 115 {
+                legacy.pitch + 12
+            } else {
+                legacy.pitch
+            };
+            let on: Time = base3 + legacy.time.into() * step_us;
+            let off: Time = on + legacy.duration.into() * step_us;
+            let channel: u8 = legacy.voice_id.try_into().unwrap();
+            append_legato_note(ref eventlist, channel, pitch, legacy.velocity, on, off);
+            i += 1;
+        };
+        // CS in loop 3 — still above the now-inverted texture
+        let cs_events_3 = countersubject_to_note_events(@cs, 2 * cycle_ticks, 3);
+        let mut j: u32 = 0;
+        loop {
+            if j >= cs_events_3.len() {
+                break;
+            }
+            let e = *cs_events_3.at(j);
+            let on: Time = e.time.into() * step_us;
+            let off: Time = on + e.duration.into() * step_us;
+            append_legato_note(ref eventlist, 3, e.pitch, e.velocity, on, off);
+            j += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        let note_ons = count_note_ons(@midiobj);
+        assert!(note_ons >= 150, "ic cs dorian: note count");
         assert_valid_demo_midi(@midiobj, note_ons);
     }
 

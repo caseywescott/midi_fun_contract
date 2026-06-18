@@ -199,7 +199,7 @@ pub fn ornament_phrase(
         if s == 0 {
             7_u32
         } else {
-            s % 256
+            s
         }
     } else {
         19_u32
@@ -259,6 +259,8 @@ pub fn ornament_phrase(
             has_applied_transform: false,
             has_tile: false,
             sounding_voice_count: 0,
+            trill_subdivisions: config.style.trill_subdivisions,
+            trill_count: config.style.trill_count,
         };
         let candidates = filter_candidates(
             enabled,
@@ -343,7 +345,7 @@ pub fn ornament_canon(
         if s == 0 {
             7_u32
         } else {
-            s % 256
+            s
         }
     } else {
         19_u32

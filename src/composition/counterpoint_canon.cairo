@@ -91,6 +91,7 @@ pub fn canon_counterpoint_params(
         voice_placement: VoicePlacement::BelowCantus(()),
         forbid_parallel_perfects: true,
         forbid_similar_perfects: true,
+        require_invertible_at_octave: false,
     }
 }
 

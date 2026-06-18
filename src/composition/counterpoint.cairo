@@ -98,6 +98,8 @@ pub struct CounterpointParams {
     pub voice_placement: VoicePlacement,
     pub forbid_parallel_perfects: bool,
     pub forbid_similar_perfects: bool,
+    /// When true, reject vertical perfect fifths so the pair remains invertible at the octave.
+    pub require_invertible_at_octave: bool,
 }
 
 #[derive(Drop, Serde)]
@@ -657,6 +659,17 @@ fn is_perfect_class(class: u8) -> bool {
     class == 0 || class == 5 || class == 7
 }
 
+/// True when a vertical perfect fifth would become a dissonant fourth after octave inversion.
+pub fn violates_octave_inversion_fifth(a: u8, b: u8) -> bool {
+    harmonic_interval_class(a, b) == 7
+}
+
+fn violates_invertible_requirement(
+    a: u8, b: u8, params: @CounterpointParams,
+) -> bool {
+    *params.require_invertible_at_octave && violates_octave_inversion_fifth(a, b)
+}
+
 fn in_register(keynum: u8, lo: u8, hi: u8) -> bool {
     keynum >= lo && keynum <= hi
 }
@@ -962,6 +975,9 @@ pub fn score_counter_candidate(
     if violates_forbidden_interval(cand, cantus_now) {
         return 0;
     }
+    if violates_invertible_requirement(cand, cantus_now, params) {
+        return 0;
+    }
     if *params.forbid_parallel_perfects
         && would_create_parallel_perfect(prev_counter, prev_cantus, cand, cantus_now) {
         return 0;
@@ -995,6 +1011,9 @@ pub fn score_counter_candidate(
             return 0;
         }
         if violates_forbidden_interval(cand, ref_now) {
+            return 0;
+        }
+        if violates_invertible_requirement(cand, ref_now, params) {
             return 0;
         }
         j += 1;
@@ -1295,6 +1314,26 @@ fn pick_initial_counter(
             i += 1;
             continue;
         }
+        if violates_invertible_requirement(cand, cantus_first, params) {
+            i += 1;
+            continue;
+        }
+        let mut unsafe_lower = false;
+        let mut li: usize = 0;
+        loop {
+            if li >= lower_at_first.len() {
+                break;
+            }
+            if violates_invertible_requirement(cand, *lower_at_first.at(li), params) {
+                unsafe_lower = true;
+                break;
+            }
+            li += 1;
+        };
+        if unsafe_lower {
+            i += 1;
+            continue;
+        }
         let mut score = interval_score(cand, cantus_first);
         score += melodic_score(cantus_first, cand, *params.max_melodic_leap);
         let tie_key = bounded(step_hash(*params.seed, 0) + cand.into(), 1000000);
@@ -1305,6 +1344,9 @@ fn pick_initial_counter(
         }
         i += 1;
     };
+    if *params.require_invertible_at_octave {
+        assert(best_score > 0, 'no ic initial');
+    }
     best
 }
 
@@ -1369,11 +1411,34 @@ fn pick_best_candidate(
             && !violates_lower_voices(
                 cand, cantus_now, lower_voices_at_index, *params.voice_placement,
             )
-            && !violates_forbidden_interval(cand, cantus_now) {
+            && !violates_forbidden_interval(cand, cantus_now)
+            && !violates_invertible_requirement(cand, cantus_now, params) {
+            let mut unsafe_lower = false;
+            let mut li: usize = 0;
+            loop {
+                if li >= lower_voices_at_index.len() {
+                    break;
+                }
+                if violates_invertible_requirement(
+                    cand, *lower_voices_at_index.at(li), params,
+                ) {
+                    unsafe_lower = true;
+                    break;
+                }
+                li += 1;
+            };
+            if unsafe_lower {
+                j += 1;
+                continue;
+            }
             return cand;
         }
         j += 1;
     };
+
+    if *params.require_invertible_at_octave {
+        assert(false, 'no ic candidate');
+    }
 
     if in_register(prev_counter, *params.register_lo, *params.register_hi) {
         prev_counter
@@ -1451,6 +1516,7 @@ fn voice_params_for_index(
         voice_placement: placement,
         forbid_parallel_perfects: *base_params.forbid_parallel_perfects,
         forbid_similar_perfects: *base_params.forbid_similar_perfects,
+        require_invertible_at_octave: *base_params.require_invertible_at_octave,
     }
 }
 
@@ -1573,6 +1639,7 @@ pub fn generate_counterpoint_sparse(
         voice_placement: params.voice_placement,
         forbid_parallel_perfects: params.forbid_parallel_perfects,
         forbid_similar_perfects: params.forbid_similar_perfects,
+        require_invertible_at_octave: params.require_invertible_at_octave,
     };
     let sparse_result = generate_counterpoint(sparse_cantus.span(), sparse_params);
     let tile_counter = expand_onset_pitches(sparse_result.counter.span(), onset_mask);
@@ -1662,6 +1729,7 @@ pub fn generate_n_voice_counterpoint_sparse(
             voice_placement: base_voice.voice_placement,
             forbid_parallel_perfects: base_voice.forbid_parallel_perfects,
             forbid_similar_perfects: base_voice.forbid_similar_perfects,
+            require_invertible_at_octave: base_voice.require_invertible_at_octave,
         };
         let result = generate_counterpoint_with_lowers(
             sparse_cantus.span(), voice_params, @lowers_sparse,
@@ -1694,6 +1762,7 @@ pub fn generate_canon_counterpoint(
         voice_placement: VoicePlacement::BelowCantus(()),
         forbid_parallel_perfects: true,
         forbid_similar_perfects: true,
+        require_invertible_at_octave: false,
     };
     generate_counterpoint(cantus, params).counter
 }

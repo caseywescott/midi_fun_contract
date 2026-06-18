@@ -22,20 +22,48 @@ use koji::composition::melodic_canon::{NoteEvent, realize_degree, DEFAULT_VELOCI
 // ─────────────────────────────────────────────────────────────
 
 /// How a follower voice imitates the leader.
+///
+/// `Transposition` and `Inversion` are fully implemented — degree computation is O(1).
+/// `Retrograde`, `Augmentation`, and `Diminution` require the full leader sequence or change the
+/// temporal grid; `follower_degree_for_spec` panics for those variants.  Use
+/// `follower_degree_retrograde`, `realize_augmented_follower`, and `realize_diminuted_follower`
+/// (to be added alongside the event emitters) once the time-aware paths are built.
 #[derive(Copy, Drop)]
 pub enum FollowerSpec {
     /// Classic canon: follower degree = leader_degree + transposition.
     Transposition: i32,
     /// Mirror canon: follower degree = pivot − leader_degree.  Intervals are inverted.
     Inversion: i32,
+    /// Retrograde canon: follower plays the leader's sequence in reverse order.
+    /// Requires the full `leader_degrees` array — use `follower_degree_retrograde` instead.
+    Retrograde,
+    /// Mensuration (augmentation) canon: each leader note is held for `factor` time units.
+    /// Overlap windows shift non-trivially — use `realize_augmented_follower` instead.
+    Augmentation: u32,
+    /// Diminution canon: each leader note is compressed to `1/factor` time units.
+    /// Overlap windows shift non-trivially — use `realize_diminuted_follower` instead.
+    Diminution: u32,
 }
 
-/// Compute the follower's diatonic degree given the leader's degree and the follower type.
+/// Compute the follower's diatonic degree given the leader's degree and the follower spec.
+/// Only valid for `Transposition` and `Inversion` — the other variants require sequence-level
+/// context (full array + position) and panic at runtime with a descriptive message.
 pub fn follower_degree_for_spec(spec: FollowerSpec, leader_deg: i32) -> i32 {
     match spec {
         FollowerSpec::Transposition(t) => leader_deg + t,
         FollowerSpec::Inversion(pivot) => pivot - leader_deg,
+        FollowerSpec::Retrograde => panic!("Retrograde requires full array; use follower_degree_retrograde"),
+        FollowerSpec::Augmentation(_) => panic!("Augmentation requires time-aware emitter; use realize_augmented_follower"),
+        FollowerSpec::Diminution(_) => panic!("Diminution requires time-aware emitter; use realize_diminuted_follower"),
     }
+}
+
+/// Compute the follower degree for a Retrograde canon at position `pos` in a sequence of `len`.
+/// `leader_degrees[len - 1 - pos]` gives the reversed index.
+pub fn follower_degree_retrograde(leader_degrees: Span<i32>, pos: u32) -> i32 {
+    let len = leader_degrees.len();
+    assert(pos < len, 'retrograde pos out of bounds');
+    *leader_degrees.at(len - 1 - pos)
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -335,4 +363,274 @@ pub fn pivot_at_third() -> i32 {
 /// follower both start at degree 0, mirroring symmetrically).
 pub fn pivot_at_unison() -> i32 {
     0_i32
+}
+
+// ─────────────────────────────────────────────────────────────
+// Time-aware follower event emitters
+// ─────────────────────────────────────────────────────────────
+
+/// Emit NoteEvents for a retrograde follower: plays the leader sequence in reverse order.
+/// The follower enters at `entry_time` and moves at the same rate as the leader.
+/// `transposition` offsets all follower diatonic degrees (0 = exact retrograde).
+pub fn realize_retrograde_follower(
+    leader_degrees: Span<i32>,
+    transposition: i32,
+    entry_time: u32,
+    octave: u32,
+    mode_id: u8,
+    tonic_keynum: u8,
+    time_unit: u32,
+    voice_id: u32,
+) -> Array<NoteEvent> {
+    let len = leader_degrees.len();
+    let mut out: Array<NoteEvent> = ArrayTrait::new();
+    let mut j: u32 = 0;
+    loop {
+        if j >= len {
+            break;
+        }
+        let deg = *leader_degrees.at(len - 1 - j) + transposition;
+        out.append(
+            NoteEvent {
+                time: entry_time + j * time_unit,
+                duration: time_unit,
+                pitch: realize_degree(octave, deg, tonic_keynum, mode_id),
+                velocity: DEFAULT_VELOCITY,
+                voice_id,
+            },
+        );
+        j += 1;
+    };
+    out
+}
+
+/// Emit NoteEvents for an augmented (slowed) follower: each leader note is stretched by `factor`.
+/// Each note lasts `factor * time_unit`; total follower duration = `len * factor * time_unit`.
+/// `transposition` shifts follower diatonic degrees. `entry_time` is absolute start time.
+pub fn realize_augmented_follower(
+    leader_degrees: Span<i32>,
+    transposition: i32,
+    factor: u32,
+    entry_time: u32,
+    octave: u32,
+    mode_id: u8,
+    tonic_keynum: u8,
+    time_unit: u32,
+    voice_id: u32,
+) -> Array<NoteEvent> {
+    assert(factor >= 1, 'factor must be >= 1');
+    let len = leader_degrees.len();
+    let aug_unit = time_unit * factor;
+    let mut out: Array<NoteEvent> = ArrayTrait::new();
+    let mut j: u32 = 0;
+    loop {
+        if j >= len {
+            break;
+        }
+        let deg = *leader_degrees.at(j) + transposition;
+        out.append(
+            NoteEvent {
+                time: entry_time + j * aug_unit,
+                duration: aug_unit,
+                pitch: realize_degree(octave, deg, tonic_keynum, mode_id),
+                velocity: DEFAULT_VELOCITY,
+                voice_id,
+            },
+        );
+        j += 1;
+    };
+    out
+}
+
+/// Emit NoteEvents for a diminuted (sped-up) follower: each leader note is compressed by `factor`.
+/// Each note lasts `time_unit / factor`; total follower duration = `len * time_unit / factor`.
+/// `time_unit` must be divisible by `factor`.
+pub fn realize_diminuted_follower(
+    leader_degrees: Span<i32>,
+    transposition: i32,
+    factor: u32,
+    entry_time: u32,
+    octave: u32,
+    mode_id: u8,
+    tonic_keynum: u8,
+    time_unit: u32,
+    voice_id: u32,
+) -> Array<NoteEvent> {
+    assert(factor >= 1, 'factor must be >= 1');
+    assert(time_unit % factor == 0, 'time_unit not divisible');
+    let len = leader_degrees.len();
+    let dim_unit = time_unit / factor;
+    let mut out: Array<NoteEvent> = ArrayTrait::new();
+    let mut j: u32 = 0;
+    loop {
+        if j >= len {
+            break;
+        }
+        let deg = *leader_degrees.at(j) + transposition;
+        out.append(
+            NoteEvent {
+                time: entry_time + j * dim_unit,
+                duration: dim_unit,
+                pitch: realize_degree(octave, deg, tonic_keynum, mode_id),
+                velocity: DEFAULT_VELOCITY,
+                voice_id,
+            },
+        );
+        j += 1;
+    };
+    out
+}
+
+// ─────────────────────────────────────────────────────────────
+// Pairwise clash validators for non-uniform-speed followers
+// ─────────────────────────────────────────────────────────────
+
+/// True iff every simultaneous vertical between the leader and a retrograde follower is consonant.
+/// The follower enters `lag` structural beats after the leader and plays degrees in reverse.
+/// Overlap spans beats [lag, len−1] (both voices sounding).
+pub fn retrograde_follower_clash_free(
+    leader_degrees: Span<i32>, transposition: i32, lag: u32,
+) -> bool {
+    let len = leader_degrees.len();
+    if lag >= len {
+        return true;
+    }
+    let mut t: u32 = lag;
+    let mut ok = true;
+    loop {
+        if t >= len || !ok {
+            break;
+        }
+        // Leader at beat t plays degrees[t].
+        // Follower (entered at lag) is at position j = t − lag, playing degrees[len−1−j].
+        let j = t - lag;
+        let rev_idx = len - 1 - j;
+        let leader_deg = *leader_degrees.at(t);
+        let follower_deg = *leader_degrees.at(rev_idx) + transposition;
+        let vertical = leader_deg - follower_deg;
+        if !is_consonant_class(abs_i32(vertical) % 7) {
+            ok = false;
+        }
+        t += 1;
+    };
+    ok
+}
+
+/// True iff every leader beat that overlaps an augmented follower produces a consonant vertical.
+/// `entry_beat` = follower entry in structural beats (= entry_time / time_unit).
+/// `factor` = augmentation factor; follower note j is sounding during leader beats
+///   [entry_beat + j*factor, entry_beat + (j+1)*factor − 1].
+pub fn augmented_follower_clash_free(
+    leader_degrees: Span<i32>, transposition: i32, factor: u32, entry_beat: u32,
+) -> bool {
+    assert(factor >= 1, 'factor must be >= 1');
+    let len = leader_degrees.len();
+    let mut p: u32 = 0;
+    let mut ok = true;
+    loop {
+        if p >= len || !ok {
+            break;
+        }
+        if p >= entry_beat {
+            let follower_j = (p - entry_beat) / factor;
+            if follower_j < len {
+                let leader_deg = *leader_degrees.at(p);
+                let follower_deg = *leader_degrees.at(follower_j) + transposition;
+                let vertical = leader_deg - follower_deg;
+                if !is_consonant_class(abs_i32(vertical) % 7) {
+                    ok = false;
+                }
+            }
+        }
+        p += 1;
+    };
+    ok
+}
+
+// ─────────────────────────────────────────────────────────────
+// Unified follower spec dispatcher
+// ─────────────────────────────────────────────────────────────
+
+/// Emit NoteEvents for any `FollowerSpec` transform of `leader_degrees`.
+///
+/// - `Transposition(t)`: classic delayed canon; follower plays leader + t at same speed.
+/// - `Inversion(pivot)`: mirror canon; follower plays pivot − leader at same speed.
+/// - `Retrograde`: follower plays leader in reverse order at same speed (transposition = 0).
+/// - `Augmentation(f)`: follower plays at 1/f speed (each note lasts f × time_unit).
+/// - `Diminution(f)`: follower plays at f× speed (each note lasts time_unit / f).
+///   Requires time_unit divisible by f.
+///
+/// `entry_time` is the absolute start time for the follower (typically lag × time_unit).
+pub fn apply_follower_spec_events(
+    leader_degrees: Span<i32>,
+    spec: FollowerSpec,
+    entry_time: u32,
+    octave: u32,
+    mode_id: u8,
+    tonic_keynum: u8,
+    time_unit: u32,
+    voice_id: u32,
+) -> Array<NoteEvent> {
+    let len = leader_degrees.len();
+    match spec {
+        FollowerSpec::Transposition(t) => {
+            let mut out: Array<NoteEvent> = ArrayTrait::new();
+            let mut j: u32 = 0;
+            loop {
+                if j >= len {
+                    break;
+                }
+                let deg = *leader_degrees.at(j) + t;
+                out.append(
+                    NoteEvent {
+                        time: entry_time + j * time_unit,
+                        duration: time_unit,
+                        pitch: realize_degree(octave, deg, tonic_keynum, mode_id),
+                        velocity: DEFAULT_VELOCITY,
+                        voice_id,
+                    },
+                );
+                j += 1;
+            };
+            out
+        },
+        FollowerSpec::Inversion(pivot) => {
+            let mut out: Array<NoteEvent> = ArrayTrait::new();
+            let mut j: u32 = 0;
+            loop {
+                if j >= len {
+                    break;
+                }
+                let deg = pivot - *leader_degrees.at(j);
+                out.append(
+                    NoteEvent {
+                        time: entry_time + j * time_unit,
+                        duration: time_unit,
+                        pitch: realize_degree(octave, deg, tonic_keynum, mode_id),
+                        velocity: DEFAULT_VELOCITY,
+                        voice_id,
+                    },
+                );
+                j += 1;
+            };
+            out
+        },
+        FollowerSpec::Retrograde => {
+            realize_retrograde_follower(
+                leader_degrees, 0, entry_time, octave, mode_id, tonic_keynum, time_unit, voice_id,
+            )
+        },
+        FollowerSpec::Augmentation(factor) => {
+            realize_augmented_follower(
+                leader_degrees, 0, factor, entry_time, octave, mode_id, tonic_keynum, time_unit,
+                voice_id,
+            )
+        },
+        FollowerSpec::Diminution(factor) => {
+            realize_diminuted_follower(
+                leader_degrees, 0, factor, entry_time, octave, mode_id, tonic_keynum, time_unit,
+                voice_id,
+            )
+        },
+    }
 }

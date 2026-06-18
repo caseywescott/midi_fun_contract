@@ -228,6 +228,12 @@ pub struct OrnamentStyleProfile {
     pub pedal_bias: u8,
     pub max_ornaments_per_bar: u8,
     pub max_surface_notes_per_anchor: u8,
+    /// Number of alternating anchor/aux note pairs in a trill (2 = one pair, 4 = two pairs, etc.).
+    /// Must be even and >= 2.  Default 4. Values 6-12 produce faster trills.
+    pub trill_subdivisions: u8,
+    /// How many individual trill notes to emit before holding the anchor for the rest of the beat.
+    /// 0 = fill the entire duration (current behaviour). 2 = one flick then hold. 4 = two flicks.
+    pub trill_count: u8,
 }
 
 #[derive(Copy, Drop)]
@@ -251,6 +257,10 @@ pub struct OrnamentContext {
     pub has_applied_transform: bool,
     pub has_tile: bool,
     pub sounding_voice_count: u32,
+    /// Trill subdivision count sourced from OrnamentStyleProfile.trill_subdivisions.
+    pub trill_subdivisions: u8,
+    /// Active trill note count before the anchor hold tail. 0 = fill all (same as trill_subdivisions).
+    pub trill_count: u8,
 }
 
 #[derive(Copy, Drop)]

@@ -22,6 +22,8 @@ pub fn profile_common_practice() -> OrnamentStyleProfile {
         pedal_bias: 30,
         max_ornaments_per_bar: 4,
         max_surface_notes_per_anchor: 6,
+        trill_subdivisions: 4,
+        trill_count: 0,
     }
 }
 
@@ -45,6 +47,8 @@ pub fn profile_baroque_ornament() -> OrnamentStyleProfile {
         pedal_bias: 30,
         max_ornaments_per_bar: 8,
         max_surface_notes_per_anchor: 8,
+        trill_subdivisions: 4,
+        trill_count: 0,
     }
 }
 
@@ -68,6 +72,8 @@ pub fn profile_bebop_movement() -> OrnamentStyleProfile {
         pedal_bias: 10,
         max_ornaments_per_bar: 10,
         max_surface_notes_per_anchor: 8,
+        trill_subdivisions: 4,
+        trill_count: 0,
     }
 }
 
@@ -91,6 +97,8 @@ pub fn profile_modal_canon() -> OrnamentStyleProfile {
         pedal_bias: 60,
         max_ornaments_per_bar: 5,
         max_surface_notes_per_anchor: 5,
+        trill_subdivisions: 4,
+        trill_count: 0,
     }
 }
 

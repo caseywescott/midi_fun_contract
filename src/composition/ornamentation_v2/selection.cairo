@@ -16,7 +16,7 @@ pub fn lcg_from_seed_state(state: u32) -> LCG {
         },
         multiplier: 5,
         increment: 3,
-        modulus: 256,
+        modulus: 65536,
     }
 }
 

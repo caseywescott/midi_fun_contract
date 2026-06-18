@@ -54,9 +54,11 @@ mod tests {
         turnaround_has_tritone_sub, turnaround_plan_from_canon_seed,
     };
 use koji::composition::melodic_canon::{
-    generate_melodic_canon, generate_melodic_canon_with_params, generate_ornamented_canon,
-    generate_ornamented_canon_with_mode, MODE_AEOLIAN, MODE_DORIAN, MODE_MELODIC_MINOR,
-    MODE_WHOLE_TONE, white_key_tonic, melodic_minor_tonic, whole_tone_tonic,
+    generate_melodic_canon, generate_melodic_canon_with_params,
+    generate_melodic_canon_with_params_mode, generate_melodic_canon_with_params_mode_tu,
+    generate_ornamented_canon,
+    generate_ornamented_canon_with_mode, MODE_AEOLIAN, MODE_DORIAN, MODE_IONIAN, MODE_MELODIC_MINOR,
+    MODE_PHRYGIAN, MODE_WHOLE_TONE, white_key_tonic, melodic_minor_tonic, whole_tone_tonic,
     generate_profiled_ornamented_canon,
     generate_jazz_improv_ornamented_canon, generate_jazz_improv_ornamented_canon_light,
     generate_jazz_improv_harmonic_walk_ornamented_canon,
@@ -65,11 +67,27 @@ use koji::composition::melodic_canon::{
         canon_to_ornamented_note_events, canon_to_ornamented_note_events_with_fill,
         remap_events_with_timing_wave, NoteEvent,
     };
+    use koji::composition::invertible_counterpoint::{
+        generate_invertible_melodic_canon, generate_invertible_melodic_canon_mode,
+        all_pairs_octave_invertible,
+    };
     use koji::composition::ornamentation_v2::canon::v2_note_to_legacy;
     use koji::composition::ornamentation_v2::engine::{default_config, ornament_canon};
-    use koji::composition::ornamentation_v2::profiles::profile_common_practice;
+    use koji::composition::ornamentation_v2::profiles::{
+        profile_common_practice, profile_baroque_ornament, profile_bebop_movement,
+        profile_modal_canon,
+    };
     use koji::composition::ornamentation_v2::types::{
-        all_enabled_ornaments, HarmonyEvent, WORKFLOW_CANON_FIRST,
+        all_enabled_ornaments, HarmonyEvent, OrnamentStyleProfile, WORKFLOW_CANON_FIRST,
+        ORN_PASSING_ASC, ORN_PASSING_DESC, ORN_NEIGHBOR_UPPER, ORN_NEIGHBOR_LOWER,
+        ORN_DOUBLE_NEIGHBOR_UF, ORN_DOUBLE_NEIGHBOR_LF, ORN_ANTICIPATION,
+        ORN_SUSPENSION_43, ORN_SUSPENSION_76, ORN_SUSPENSION_98, ORN_SUSPENSION_65,
+        ORN_SUSPENSION_23_BASS, ORN_RETARDATION, ORN_APPOGGIATURA_UPPER,
+        ORN_APPOGGIATURA_LOWER, ORN_ESCAPE_UPPER, ORN_ESCAPE_LOWER,
+        ORN_ECHAPPEE_UPPER, ORN_ECHAPPEE_LOWER, ORN_CAMBIATA, ORN_MORDENT_UPPER,
+        ORN_MORDENT_LOWER, ORN_TURN_UPPER, ORN_TURN_LOWER, ORN_TRILL_UPPER, ORN_TRILL_LOWER,
+        ORN_ACCIACCATURA_UPPER, ORN_ACCIACCATURA_LOWER, ORN_CHROMATIC_APPROACH_UPPER,
+        ORN_CHROMATIC_APPROACH_LOWER, ORN_ARPEGGIATION_UP, ORN_ARPEGGIATION_DOWN, ORN_PEDAL_HOLD,
     };
     use koji::composition::canon_entry_rules::{
         EntryLagCanonConfig, config_three_voice_5b_8va_lag2,
@@ -3760,6 +3778,7 @@ use koji::composition::melodic_canon::{
             voice_placement: placement,
             forbid_parallel_perfects: true,
             forbid_similar_perfects: true,
+            require_invertible_at_octave: false,
         }
     }
 
@@ -3922,6 +3941,77 @@ use koji::composition::melodic_canon::{
         let events = result.events;
         let n = events.len();
         assert!(n > 0, "v2 ornamented canon events");
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let legacy = v2_note_to_legacy(*events.at(i));
+                let on: Time = base + legacy.time.into() * step_us;
+                let off: Time = on + legacy.duration.into() * step_us;
+                let channel: u8 = legacy.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, legacy.pitch, legacy.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        n * num_loops
+    }
+
+    /// V2 typed-ornament canon with explicit mode, tonic, style profile, and enabled kind set.
+    /// Each archetype canon calls this with a distinct profile + enabled list to produce maximally
+    /// differentiated surface textures on the same underlying counterpoint skeleton.
+    /// `time_unit` controls tick resolution for V2 ornamentation; must be >= 4.
+    /// For trill archetype: time_unit = trill_subdivisions, step_us = base_step_us * 4 / time_unit
+    /// so the structural tempo stays constant while trill sub-notes get finer resolution.
+    fn append_v2_archetype_canon(
+        ref eventlist: Array<Message>,
+        seed: felt252,
+        config_id: u32,
+        length: u32,
+        step_us: u64,
+        num_loops: u32,
+        mode_id: u8,
+        tonic_keynum: u8,
+        style: OrnamentStyleProfile,
+        enabled: Array<u8>,
+        time_unit: u32,
+    ) -> u32 {
+        let canon = generate_melodic_canon_with_params_mode_tu(
+            seed, config_id, length, mode_id, tonic_keynum, time_unit,
+        );
+        let len = canon.leader_degrees.len();
+        let nv = canon.voices.len();
+        let unit = canon.time_unit;
+        let cycle_ticks = (len + nv - 1) * unit;
+
+        let mut harmony: Array<HarmonyEvent> = ArrayTrait::new();
+        let tonic_pc = canon.tonic_keynum % 12;
+        harmony
+            .append(
+                HarmonyEvent {
+                    root_pc: tonic_pc,
+                    bass_pc: tonic_pc,
+                    start: 0,
+                    duration: cycle_ticks * num_loops * unit,
+                    function_label: 0,
+                },
+            );
+
+        let mut cfg = default_config(v2_ornament_seed_from_canon_seed(seed));
+        cfg.style = style;
+        cfg.canon_workflow = WORKFLOW_CANON_FIRST;
+        let result = ornament_canon(@canon, harmony.span(), cfg, enabled.span());
+        let events = result.events;
+        let n = events.len();
+        assert!(n > 0, "v2 archetype canon events");
 
         let mut loop_i: u32 = 0;
         loop {
@@ -4702,6 +4792,560 @@ use koji::composition::melodic_canon::{
         assert_valid_demo_midi(@midiobj, note_ons);
     }
 
+    // ── Dark-minor V2 ornament archetype canons ─────────────────────────────────────────────────
+    // Each canon uses a distinct ornament archetype (enabled kind set + style bias) so the surface
+    // texture differs radically even though all share the same 4-move diatonic step alphabet.
+    // Seeds encode independent melody walks (bits 19-26 = prime * 2^19).
+
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn dark_minor_canon_01_aeolian_midi_test() {
+        // Archetype: Suspension canon — 4-3, 7-6, 9-8, 6-5, 2-3 bass, retardation.
+        // Dense dissonance-resolution pairs; strict counterpoint feel.
+        let mut ev = ArrayTrait::<Message>::new();
+        ev.append(Message::SET_TEMPO(SetTempo { tempo: 600000, time: Option::Some(0) }));
+        let style = OrnamentStyleProfile {
+            name: 'suspension',
+            density: 20,
+            chromaticism: 5,
+            syncopation: 10,
+            strict_counterpoint: 95,
+            jazz_enclosure_bias: 0,
+            baroque_ornament_bias: 30,
+            suspension_bias: 100,
+            neighbor_bias: 0,
+            passing_bias: 0,
+            grace_note_bias: 0,
+            trill_bias: 0,
+            turn_bias: 0,
+            chromatic_approach_bias: 0,
+            arpeggiation_bias: 0,
+            pedal_bias: 0,
+            max_ornaments_per_bar: 3,
+            max_surface_notes_per_anchor: 4,
+            trill_subdivisions: 4,
+            trill_count: 0,
+        };
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_SUSPENSION_43);
+        enabled.append(ORN_SUSPENSION_76);
+        enabled.append(ORN_SUSPENSION_98);
+        enabled.append(ORN_SUSPENSION_65);
+        enabled.append(ORN_SUSPENSION_23_BASS);
+        enabled.append(ORN_RETARDATION);
+        let n = append_v2_archetype_canon(
+            ref ev, 524288, 4, 16, 300000, 2, MODE_AEOLIAN, white_key_tonic(MODE_AEOLIAN),
+            style, enabled, 4,
+        );
+        assert!(n >= 10, "dark_minor_01");
+        let m = Midi { events: ev.span() };
+        generate_parser_format(@m);
+        assert_valid_demo_midi(@m, n);
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn dark_minor_canon_02_phrygian_midi_test() {
+        // Archetype: Passing-tone stream — ascending and descending scalar passing notes only.
+        // Produces continuous stepwise motion; linear and flowing.
+        let mut ev = ArrayTrait::<Message>::new();
+        ev.append(Message::SET_TEMPO(SetTempo { tempo: 360000, time: Option::Some(0) }));
+        let style = OrnamentStyleProfile {
+            name: 'passing_stream',
+            density: 10,
+            chromaticism: 5,
+            syncopation: 10,
+            strict_counterpoint: 90,
+            jazz_enclosure_bias: 0,
+            baroque_ornament_bias: 10,
+            suspension_bias: 0,
+            neighbor_bias: 0,
+            passing_bias: 100,
+            grace_note_bias: 0,
+            trill_bias: 0,
+            turn_bias: 0,
+            chromatic_approach_bias: 0,
+            arpeggiation_bias: 0,
+            pedal_bias: 0,
+            max_ornaments_per_bar: 8,
+            max_surface_notes_per_anchor: 6,
+            trill_subdivisions: 4,
+            trill_count: 0,
+        };
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_PASSING_ASC);
+        enabled.append(ORN_PASSING_DESC);
+        let n = append_v2_archetype_canon(
+            ref ev, 1572864, 4, 24, 180000, 2, MODE_PHRYGIAN, white_key_tonic(MODE_PHRYGIAN),
+            style, enabled, 4,
+        );
+        assert!(n >= 10, "dark_minor_02");
+        let m = Midi { events: ev.span() };
+        generate_parser_format(@m);
+        assert_valid_demo_midi(@m, n);
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn dark_minor_canon_03_dorian_midi_test() {
+        // Archetype: Neighbor weave — upper/lower neighbors plus double-neighbor and cambiata.
+        // Oscillatory surface; each anchor note sprouts a local flutter.
+        let mut ev = ArrayTrait::<Message>::new();
+        ev.append(Message::SET_TEMPO(SetTempo { tempo: 480000, time: Option::Some(0) }));
+        let style = OrnamentStyleProfile {
+            name: 'neighbor_weave',
+            density: 70,
+            chromaticism: 5,
+            syncopation: 20,
+            strict_counterpoint: 80,
+            jazz_enclosure_bias: 0,
+            baroque_ornament_bias: 20,
+            suspension_bias: 0,
+            neighbor_bias: 100,
+            passing_bias: 0,
+            grace_note_bias: 0,
+            trill_bias: 0,
+            turn_bias: 0,
+            chromatic_approach_bias: 0,
+            arpeggiation_bias: 0,
+            pedal_bias: 0,
+            max_ornaments_per_bar: 8,
+            max_surface_notes_per_anchor: 5,
+            trill_subdivisions: 4,
+            trill_count: 0,
+        };
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_NEIGHBOR_UPPER);
+        enabled.append(ORN_NEIGHBOR_LOWER);
+        enabled.append(ORN_DOUBLE_NEIGHBOR_UF);
+        enabled.append(ORN_DOUBLE_NEIGHBOR_LF);
+        enabled.append(ORN_CAMBIATA);
+        let n = append_v2_archetype_canon(
+            ref ev, 3670016, 4, 12, 240000, 2, MODE_DORIAN, white_key_tonic(MODE_DORIAN),
+            style, enabled, 4,
+        );
+        assert!(n >= 10, "dark_minor_03");
+        let m = Midi { events: ev.span() };
+        generate_parser_format(@m);
+        assert_valid_demo_midi(@m, n);
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn dark_minor_canon_04_aeolian_midi_test() {
+        // Archetype: Baroque trill — mordents, turns, upper/lower trills at high density.
+        // Rapid ornamental figures; bejewelled Baroque surface.
+        let mut ev = ArrayTrait::<Message>::new();
+        ev.append(Message::SET_TEMPO(SetTempo { tempo: 420000, time: Option::Some(0) }));
+        let style = OrnamentStyleProfile {
+            name: 'baroque_trill',
+            density: 50,
+            chromaticism: 10,
+            syncopation: 20,
+            strict_counterpoint: 80,
+            jazz_enclosure_bias: 0,
+            baroque_ornament_bias: 80,
+            suspension_bias: 0,
+            neighbor_bias: 0,
+            passing_bias: 0,
+            grace_note_bias: 0,
+            trill_bias: 100,
+            turn_bias: 100,
+            chromatic_approach_bias: 0,
+            arpeggiation_bias: 0,
+            pedal_bias: 0,
+            max_ornaments_per_bar: 8,
+            max_surface_notes_per_anchor: 8,
+            trill_subdivisions: 4,
+            trill_count: 0,
+        };
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_MORDENT_UPPER);
+        enabled.append(ORN_MORDENT_LOWER);
+        enabled.append(ORN_TURN_UPPER);
+        enabled.append(ORN_TURN_LOWER);
+        enabled.append(ORN_TRILL_UPPER);
+        enabled.append(ORN_TRILL_LOWER);
+        let n = append_v2_archetype_canon(
+            ref ev, 6815744, 4, 20, 210000, 2, MODE_AEOLIAN, white_key_tonic(MODE_AEOLIAN),
+            style, enabled, 4,
+        );
+        assert!(n >= 10, "dark_minor_04");
+        let m = Midi { events: ev.span() };
+        generate_parser_format(@m);
+        assert_valid_demo_midi(@m, n);
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn dark_minor_canon_05_phrygian_midi_test() {
+        // Archetype: Appoggiatura-accent — anticipations, retardations, upper/lower appoggiaturas.
+        // Expressive accent figures; forward-leaning harmonic tension.
+        let mut ev = ArrayTrait::<Message>::new();
+        ev.append(Message::SET_TEMPO(SetTempo { tempo: 800000, time: Option::Some(0) }));
+        let style = OrnamentStyleProfile {
+            name: 'appog_accent',
+            density: 100,
+            chromaticism: 10,
+            syncopation: 30,
+            strict_counterpoint: 75,
+            jazz_enclosure_bias: 0,
+            baroque_ornament_bias: 40,
+            suspension_bias: 0,
+            neighbor_bias: 0,
+            passing_bias: 0,
+            grace_note_bias: 0,
+            trill_bias: 0,
+            turn_bias: 0,
+            chromatic_approach_bias: 0,
+            arpeggiation_bias: 0,
+            pedal_bias: 0,
+            max_ornaments_per_bar: 5,
+            max_surface_notes_per_anchor: 4,
+            trill_subdivisions: 4,
+            trill_count: 0,
+        };
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_ANTICIPATION);
+        enabled.append(ORN_RETARDATION);
+        enabled.append(ORN_APPOGGIATURA_UPPER);
+        enabled.append(ORN_APPOGGIATURA_LOWER);
+        let n = append_v2_archetype_canon(
+            ref ev, 12058624, 4, 10, 400000, 2, MODE_PHRYGIAN, white_key_tonic(MODE_PHRYGIAN),
+            style, enabled, 4,
+        );
+        assert!(n >= 10, "dark_minor_05");
+        let m = Midi { events: ev.span() };
+        generate_parser_format(@m);
+        assert_valid_demo_midi(@m, n);
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn dark_minor_canon_06_dorian_midi_test() {
+        // Archetype: Pedal-drone — sustained pedal hold with sparse passing notes.
+        // Static, drone-like; long notes anchored by pedal, minimal surface motion.
+        let mut ev = ArrayTrait::<Message>::new();
+        ev.append(Message::SET_TEMPO(SetTempo { tempo: 900000, time: Option::Some(0) }));
+        let style = OrnamentStyleProfile {
+            name: 'pedal_drone',
+            density: 10,
+            chromaticism: 5,
+            syncopation: 5,
+            strict_counterpoint: 85,
+            jazz_enclosure_bias: 0,
+            baroque_ornament_bias: 20,
+            suspension_bias: 0,
+            neighbor_bias: 0,
+            passing_bias: 40,
+            grace_note_bias: 0,
+            trill_bias: 0,
+            turn_bias: 0,
+            chromatic_approach_bias: 0,
+            arpeggiation_bias: 0,
+            pedal_bias: 100,
+            max_ornaments_per_bar: 2,
+            max_surface_notes_per_anchor: 3,
+            trill_subdivisions: 4,
+            trill_count: 0,
+        };
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_PASSING_ASC);
+        enabled.append(ORN_PASSING_DESC);
+        enabled.append(ORN_PEDAL_HOLD);
+        let n = append_v2_archetype_canon(
+            ref ev, 21495808, 4, 32, 450000, 2, MODE_DORIAN, white_key_tonic(MODE_DORIAN),
+            style, enabled, 4,
+        );
+        assert!(n >= 10, "dark_minor_06");
+        let m = Midi { events: ev.span() };
+        generate_parser_format(@m);
+        assert_valid_demo_midi(@m, n);
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn dark_minor_canon_07_aeolian_midi_test() {
+        // Archetype: Escape/échappée — escape tones and échappées only.
+        // Angular leaps away from and back to resolution; restless, unresolved surface.
+        let mut ev = ArrayTrait::<Message>::new();
+        ev.append(Message::SET_TEMPO(SetTempo { tempo: 340000, time: Option::Some(0) }));
+        let style = OrnamentStyleProfile {
+            name: 'escape',
+            density: 100,
+            chromaticism: 10,
+            syncopation: 40,
+            strict_counterpoint: 70,
+            jazz_enclosure_bias: 0,
+            baroque_ornament_bias: 20,
+            suspension_bias: 0,
+            neighbor_bias: 0,
+            passing_bias: 0,
+            grace_note_bias: 0,
+            trill_bias: 0,
+            turn_bias: 0,
+            chromatic_approach_bias: 0,
+            arpeggiation_bias: 0,
+            pedal_bias: 0,
+            max_ornaments_per_bar: 6,
+            max_surface_notes_per_anchor: 5,
+            trill_subdivisions: 4,
+            trill_count: 0,
+        };
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_ESCAPE_UPPER);
+        enabled.append(ORN_ESCAPE_LOWER);
+        enabled.append(ORN_ECHAPPEE_UPPER);
+        enabled.append(ORN_ECHAPPEE_LOWER);
+        let n = append_v2_archetype_canon(
+            ref ev, 35127296, 4, 8, 170000, 2, MODE_AEOLIAN, white_key_tonic(MODE_AEOLIAN),
+            style, enabled, 4,
+        );
+        assert!(n >= 10, "dark_minor_07");
+        let m = Midi { events: ev.span() };
+        generate_parser_format(@m);
+        assert_valid_demo_midi(@m, n);
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn dark_minor_canon_08_dorian_midi_test() {
+        // Archetype: Cambiata/double-neighbor — double-neighbor figures and cambiata turns.
+        // Four-note melodic cells looping around the anchor; Renaissance idiomatic.
+        let mut ev = ArrayTrait::<Message>::new();
+        ev.append(Message::SET_TEMPO(SetTempo { tempo: 520000, time: Option::Some(0) }));
+        let style = OrnamentStyleProfile {
+            name: 'cambiata',
+            density: 100,
+            chromaticism: 5,
+            syncopation: 25,
+            strict_counterpoint: 80,
+            jazz_enclosure_bias: 0,
+            baroque_ornament_bias: 20,
+            suspension_bias: 0,
+            neighbor_bias: 0,
+            passing_bias: 0,
+            grace_note_bias: 0,
+            trill_bias: 0,
+            turn_bias: 0,
+            chromatic_approach_bias: 0,
+            arpeggiation_bias: 0,
+            pedal_bias: 0,
+            max_ornaments_per_bar: 6,
+            max_surface_notes_per_anchor: 6,
+            trill_subdivisions: 4,
+            trill_count: 0,
+        };
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_DOUBLE_NEIGHBOR_UF);
+        enabled.append(ORN_DOUBLE_NEIGHBOR_LF);
+        enabled.append(ORN_CAMBIATA);
+        let n = append_v2_archetype_canon(
+            ref ev, 50855936, 4, 18, 260000, 2, MODE_DORIAN, white_key_tonic(MODE_DORIAN),
+            style, enabled, 4,
+        );
+        assert!(n >= 10, "dark_minor_08");
+        let m = Midi { events: ev.span() };
+        generate_parser_format(@m);
+        assert_valid_demo_midi(@m, n);
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn dark_minor_canon_09_phrygian_midi_test() {
+        // Archetype: Arpeggiation — ascending and descending chord spreads only.
+        // Harp-like broken chords; vertical harmony made explicit in time.
+        let mut ev = ArrayTrait::<Message>::new();
+        ev.append(Message::SET_TEMPO(SetTempo { tempo: 960000, time: Option::Some(0) }));
+        let style = OrnamentStyleProfile {
+            name: 'arpeggiation',
+            density: 10,
+            chromaticism: 10,
+            syncopation: 15,
+            strict_counterpoint: 85,
+            jazz_enclosure_bias: 0,
+            baroque_ornament_bias: 20,
+            suspension_bias: 0,
+            neighbor_bias: 0,
+            passing_bias: 0,
+            grace_note_bias: 0,
+            trill_bias: 0,
+            turn_bias: 0,
+            chromatic_approach_bias: 0,
+            arpeggiation_bias: 100,
+            pedal_bias: 0,
+            max_ornaments_per_bar: 4,
+            max_surface_notes_per_anchor: 6,
+            trill_subdivisions: 4,
+            trill_count: 0,
+        };
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_ARPEGGIATION_UP);
+        enabled.append(ORN_ARPEGGIATION_DOWN);
+        let n = append_v2_archetype_canon(
+            ref ev, 68681728, 4, 36, 480000, 2, MODE_PHRYGIAN, white_key_tonic(MODE_PHRYGIAN),
+            style, enabled, 4,
+        );
+        assert!(n >= 10, "dark_minor_09");
+        let m = Midi { events: ev.span() };
+        generate_parser_format(@m);
+        assert_valid_demo_midi(@m, n);
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn dark_minor_canon_10_aeolian_midi_test() {
+        // Archetype: Chromatic approach — acciaccatura grace notes + chromatic upper/lower approaches.
+        // Half-step slides into anchor notes; chromatic inflection of modal melody.
+        let mut ev = ArrayTrait::<Message>::new();
+        ev.append(Message::SET_TEMPO(SetTempo { tempo: 640000, time: Option::Some(0) }));
+        let style = OrnamentStyleProfile {
+            name: 'chromatic_appr',
+            density: 10,
+            chromaticism: 80,
+            syncopation: 30,
+            strict_counterpoint: 60,
+            jazz_enclosure_bias: 0,
+            baroque_ornament_bias: 10,
+            suspension_bias: 0,
+            neighbor_bias: 0,
+            passing_bias: 0,
+            grace_note_bias: 80,
+            trill_bias: 0,
+            turn_bias: 0,
+            chromatic_approach_bias: 100,
+            arpeggiation_bias: 0,
+            pedal_bias: 0,
+            max_ornaments_per_bar: 6,
+            max_surface_notes_per_anchor: 5,
+            trill_subdivisions: 4,
+            trill_count: 0,
+        };
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_ACCIACCATURA_UPPER);
+        enabled.append(ORN_ACCIACCATURA_LOWER);
+        enabled.append(ORN_CHROMATIC_APPROACH_UPPER);
+        enabled.append(ORN_CHROMATIC_APPROACH_LOWER);
+        let n = append_v2_archetype_canon(
+            ref ev, 94895872, 4, 14, 320000, 2, MODE_AEOLIAN, white_key_tonic(MODE_AEOLIAN),
+            style, enabled, 4,
+        );
+        assert!(n >= 10, "dark_minor_10");
+        let m = Midi { events: ev.span() };
+        generate_parser_format(@m);
+        assert_valid_demo_midi(@m, n);
+    }
+
+    // ── Baroque trill subdivision variants ───────────────────────────────────────────────────────
+    // Same trill archetype (mordents + turns + trills) with 8 and 12 subdivisions per trill note.
+    // Compare against canon 04 (4-subdivision baseline) to hear the tempo effect on the ornament.
+
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn dark_minor_baroque_trill_8sub_midi_test() {
+        // 8-subdivision trill: twice as dense as the default — fast flutter in Aeolian.
+        let mut ev = ArrayTrait::<Message>::new();
+        ev.append(Message::SET_TEMPO(SetTempo { tempo: 420000, time: Option::Some(0) }));
+        let style = OrnamentStyleProfile {
+            name: 'trill_8sub',
+            density: 50,
+            chromaticism: 10,
+            syncopation: 20,
+            strict_counterpoint: 80,
+            jazz_enclosure_bias: 0,
+            baroque_ornament_bias: 80,
+            suspension_bias: 0,
+            neighbor_bias: 0,
+            passing_bias: 0,
+            grace_note_bias: 0,
+            trill_bias: 100,
+            turn_bias: 100,
+            chromatic_approach_bias: 0,
+            arpeggiation_bias: 0,
+            pedal_bias: 0,
+            max_ornaments_per_bar: 8,
+            max_surface_notes_per_anchor: 8,
+            trill_subdivisions: 8,
+            trill_count: 4,
+        };
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_MORDENT_UPPER);
+        enabled.append(ORN_MORDENT_LOWER);
+        enabled.append(ORN_TURN_UPPER);
+        enabled.append(ORN_TURN_LOWER);
+        enabled.append(ORN_TRILL_UPPER);
+        enabled.append(ORN_TRILL_LOWER);
+        // time_unit=8, step_us=105000: structural note = 8*105000 = 840000 μs (same as 4-sub).
+        // Each 8-sub trill note = 1 tick = 105000 μs → 9.5 Hz (fast flutter).
+        let n = append_v2_archetype_canon(
+            ref ev, 6815744, 4, 20, 105000, 2, MODE_AEOLIAN, white_key_tonic(MODE_AEOLIAN),
+            style, enabled, 8,
+        );
+        assert!(n >= 10, "baroque_trill_8sub");
+        let m = Midi { events: ev.span() };
+        generate_parser_format(@m);
+        assert_valid_demo_midi(@m, n);
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn dark_minor_baroque_trill_12sub_midi_test() {
+        // 12-subdivision trill: three rapid pairs — shimmering tremolo in Dorian, slower tempo.
+        let mut ev = ArrayTrait::<Message>::new();
+        ev.append(Message::SET_TEMPO(SetTempo { tempo: 560000, time: Option::Some(0) }));
+        let style = OrnamentStyleProfile {
+            name: 'trill_12sub',
+            density: 50,
+            chromaticism: 10,
+            syncopation: 20,
+            strict_counterpoint: 80,
+            jazz_enclosure_bias: 0,
+            baroque_ornament_bias: 80,
+            suspension_bias: 0,
+            neighbor_bias: 0,
+            passing_bias: 0,
+            grace_note_bias: 0,
+            trill_bias: 100,
+            turn_bias: 80,
+            chromatic_approach_bias: 0,
+            arpeggiation_bias: 0,
+            pedal_bias: 0,
+            max_ornaments_per_bar: 8,
+            max_surface_notes_per_anchor: 12,
+            trill_subdivisions: 12,
+            trill_count: 6,
+        };
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_MORDENT_UPPER);
+        enabled.append(ORN_MORDENT_LOWER);
+        enabled.append(ORN_TURN_UPPER);
+        enabled.append(ORN_TURN_LOWER);
+        enabled.append(ORN_TRILL_UPPER);
+        enabled.append(ORN_TRILL_LOWER);
+        // time_unit=12, step_us=93333: structural note = 12*93333 ≈ 1120000 μs (same as 4*280000).
+        // Each 12-sub trill note = 1 tick = 93333 μs → 10.7 Hz (shimmering tremolo).
+        let n = append_v2_archetype_canon(
+            ref ev, 136314880, 4, 24, 93333, 2, MODE_DORIAN, white_key_tonic(MODE_DORIAN),
+            style, enabled, 12,
+        );
+        assert!(n >= 10, "baroque_trill_12sub");
+        let m = Midi { events: ev.span() };
+        generate_parser_format(@m);
+        assert_valid_demo_midi(@m, n);
+    }
+
     /// Long three-voice canon (5th below + octave stack) with two-note entry spacing between
     /// voices and Montanos-style ornamentation, 2 loops.
     ///
@@ -4827,6 +5471,234 @@ use koji::composition::melodic_canon::{
         assert!(note_ons >= 200, "long 4-voice ornamented");
         let midiobj = Midi { events: eventlist.span() };
         generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // Invertible-counterpoint canons (IC-safe at the octave)
+    //
+    // Generated via `generate_invertible_melodic_canon[_mode]` which uses profile 25
+    // (PROFILE_RENAISSANCE_INVERTIBLE_ID): the walk forbids Perfect Fifth verticals by
+    // construction, so BOTH voice arrangements (original and octave-inverted) are consonant.
+    // Surface elaboration via the V2 typed-ornament engine.
+    // ──────────────────────────────────────────────────────────
+
+    /// Append a long IC-safe canon with V2 ornamentation in an explicit mode and tonic.
+    /// Uses `generate_invertible_melodic_canon_mode` so the IC property is asserted inside
+    /// the generator — no post-hoc validation needed.
+    fn append_long_ic_v2_ornamented_canon(
+        ref eventlist: Array<Message>,
+        seed: felt252,
+        config_id: u32,
+        length: u32,
+        step_us: u64,
+        num_loops: u32,
+        mode_id: u8,
+        tonic_keynum: u8,
+        style: OrnamentStyleProfile,
+    ) -> u32 {
+        let canon = generate_invertible_melodic_canon_mode(
+            seed, config_id, length, mode_id, tonic_keynum,
+        );
+        assert(all_pairs_octave_invertible(@canon), 'ic canon not invertible');
+        let len = canon.leader_degrees.len();
+        let nv = canon.voices.len();
+        let unit = canon.time_unit;
+        let cycle_ticks = (len + nv - 1) * unit;
+
+        let mut harmony: Array<HarmonyEvent> = ArrayTrait::new();
+        let tonic_pc = canon.tonic_keynum % 12;
+        harmony
+            .append(
+                HarmonyEvent {
+                    root_pc: tonic_pc,
+                    bass_pc: tonic_pc,
+                    start: 0,
+                    duration: cycle_ticks * num_loops * unit,
+                    function_label: 0,
+                },
+            );
+
+        let mut cfg = default_config(v2_ornament_seed_from_canon_seed(seed));
+        cfg.style = style;
+        cfg.canon_workflow = WORKFLOW_CANON_FIRST;
+        let enabled = all_enabled_ornaments();
+        let result = ornament_canon(@canon, harmony.span(), cfg, enabled.span());
+        let events = result.events;
+        let n = events.len();
+        assert!(n > 0, "ic v2 ornamented canon events");
+
+        let mut loop_i: u32 = 0;
+        loop {
+            if loop_i >= num_loops {
+                break;
+            }
+            let base: Time = loop_i.into() * cycle_ticks.into() * step_us;
+            let mut i: u32 = 0;
+            loop {
+                if i >= n {
+                    break;
+                }
+                let legacy = v2_note_to_legacy(*events.at(i));
+                let on: Time = base + legacy.time.into() * step_us;
+                let off: Time = on + legacy.duration.into() * step_us;
+                let channel: u8 = legacy.voice_id.try_into().unwrap();
+                append_legato_note(ref eventlist, channel, legacy.pitch, legacy.velocity, on, off);
+                i += 1;
+            };
+            loop_i += 1;
+        };
+        n * num_loops
+    }
+
+    /// Three-voice IC canon in D Dorian with baroque ornamentation (trills, mordents, turns).
+    /// Generated under profile 25 (Renaissance Invertible): no Perfect Fifth verticals, so
+    /// the canon is equally consonant with the lower voice raised an octave.
+    ///
+    /// Export: `scarb test -f ic_canon_3voice_dorian_baroque_midi_test`
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn ic_canon_3voice_dorian_baroque_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 480000, time: Option::Some(0) }));
+        let note_ons = append_long_ic_v2_ornamented_canon(
+            ref eventlist,
+            5050,
+            4,
+            24,
+            240000,
+            2,
+            MODE_DORIAN,
+            white_key_tonic(MODE_DORIAN),
+            profile_baroque_ornament(),
+        );
+        assert!(note_ons >= 100, "ic dorian baroque");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Three-voice IC canon in A Aeolian with common-practice ornamentation.
+    /// The IC guarantee means the soprano and alto voices can be inverted without producing
+    /// dissonances — demonstrating Renaissance invertible counterpoint by construction.
+    ///
+    /// Export: `scarb test -f ic_canon_3voice_aeolian_common_practice_midi_test`
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn ic_canon_3voice_aeolian_common_practice_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_long_ic_v2_ornamented_canon(
+            ref eventlist,
+            6161,
+            4,
+            28,
+            250000,
+            2,
+            MODE_AEOLIAN,
+            white_key_tonic(MODE_AEOLIAN),
+            profile_common_practice(),
+        );
+        assert!(note_ons >= 100, "ic aeolian common practice");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Three-voice IC canon in C Ionian with baroque ornamentation, 3 loops.
+    /// Longer length (32 notes) gives the leader more room to develop before cadencing.
+    ///
+    /// Export: `scarb test -f ic_canon_3voice_ionian_baroque_midi_test`
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn ic_canon_3voice_ionian_baroque_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 450000, time: Option::Some(0) }));
+        let note_ons = append_long_ic_v2_ornamented_canon(
+            ref eventlist,
+            7272,
+            4,
+            32,
+            225000,
+            3,
+            MODE_IONIAN,
+            white_key_tonic(MODE_IONIAN),
+            profile_baroque_ornament(),
+        );
+        assert!(note_ons >= 150, "ic ionian baroque");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    /// Two-voice IC canon (fifth-below) demonstrating octave inversion in two passes.
+    /// Loop 1 = original voice arrangement; loop 2 = lower voice raised an octave so
+    /// it crosses above the other — both consonant, proving IC at the octave.
+    ///
+    /// Uses plain (un-ornamented) note events for clarity of the voice crossing.
+    ///
+    /// Export: `scarb test -f ic_canon_2voice_ionian_octave_inversion_demo_midi_test`
+    #[ignore]
+    #[test]
+    #[available_gas(4000000000000)]
+    fn ic_canon_2voice_ionian_octave_inversion_demo_midi_test() {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+
+        let canon = generate_invertible_melodic_canon_mode(
+            8383, 0, 20, MODE_IONIAN, white_key_tonic(MODE_IONIAN),
+        );
+        assert(all_pairs_octave_invertible(@canon), 'demo: ic assert');
+
+        let unit: u32 = canon.time_unit;
+        let len: u32 = canon.leader_degrees.len();
+        let nv: u32 = canon.voices.len();
+        let step_us: u64 = 250000;
+        let cycle_ticks: u32 = (len + nv - 1) * unit;
+        let cycle_us: Time = cycle_ticks.into() * step_us;
+
+        // Loop 1 — original arrangement
+        let original_events = canon_to_note_events(@canon);
+        let mut i: u32 = 0;
+        loop {
+            if i >= original_events.len() {
+                break;
+            }
+            let e = *original_events.at(i);
+            let on: Time = e.time.into() * step_us;
+            let off: Time = on + e.duration.into() * step_us;
+            let channel: u8 = e.voice_id.try_into().unwrap();
+            append_legato_note(ref eventlist, channel, e.pitch, e.velocity, on, off);
+            i += 1;
+        };
+
+        // Loop 2 — octave inverted: voice 1 (lower, voice_id=1) raised by 12 semitones.
+        // Voice 0 (leader) stays in place; voice 1 now crosses above it.
+        let mut j: u32 = 0;
+        loop {
+            if j >= original_events.len() {
+                break;
+            }
+            let e = *original_events.at(j);
+            let on: Time = cycle_us + e.time.into() * step_us;
+            let off: Time = on + e.duration.into() * step_us;
+            let channel: u8 = e.voice_id.try_into().unwrap();
+            let pitch: u8 = if e.voice_id == 1 && e.pitch <= 115 {
+                e.pitch + 12
+            } else {
+                e.pitch
+            };
+            append_legato_note(ref eventlist, channel, pitch, e.velocity, on, off);
+            j += 1;
+        };
+
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        let note_ons = count_note_ons(@midiobj);
+        assert!(note_ons >= 30, "ic inversion demo note ons");
         assert_valid_demo_midi(@midiobj, note_ons);
     }
 

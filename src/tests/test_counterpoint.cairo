@@ -6,13 +6,15 @@ use koji::composition::counterpoint::{
     generate_counterpoint_sparse, generate_n_voice_counterpoint, count_onsets, is_mode_boundary,
     is_forbidden_vertical_interval_class, is_rest_pitch, mode_from_id, mode_to_id,
     motion_bias_contrary, motion_contour, resolve_mode_at, score_counter_candidate,
-    tonic_at_timeline, violates_forbidden_interval, violates_voice_placement,
+    tonic_at_timeline, violates_forbidden_interval, violates_octave_inversion_fifth,
+    violates_voice_placement,
     would_create_parallel_perfect, would_create_similar_motion_perfect,
 };
 use koji::composition::counterpoint_canon::{
     harmony_plan_is_rest, lydian_pitch_world_mask, pitch_from_harmony_plan,
     plan_lydian_canon_harmony, plan_lydian_canon_harmony_sparse, uniform_mode_timeline,
 };
+use koji::composition::invertible_counterpoint::plan_ic_canon_harmony;
 use koji::composition::symmetry_engine::has_pitch;
 use koji::midi::types::{Modes, PitchClass};
 
@@ -28,6 +30,7 @@ fn lydian_params(seed: felt252, lo: u8, hi: u8, bias: koji::composition::counter
         voice_placement: VoicePlacement::Free(()),
         forbid_parallel_perfects: true,
         forbid_similar_perfects: true,
+        require_invertible_at_octave: false,
     }
 }
 
@@ -308,6 +311,16 @@ fn test_canon_harmony_plan() {
 
 #[test]
 #[available_gas(1000000000000)]
+fn test_ic_canon_harmony_plan_avoids_fifths() {
+    let cantus = array![60_u8, 62_u8, 64_u8, 65_u8, 67_u8, 69_u8];
+    let params = lydian_params(909, 48, 84, motion_bias_contrary());
+    let result = plan_ic_canon_harmony(cantus.span(), @params, 2);
+    assert(result.is_invertible, 'IC plan invertible');
+    assert(result.fifth_count == 0, 'IC plan no fifths');
+}
+
+#[test]
+#[available_gas(1000000000000)]
 fn test_uniform_mode_timeline_len() {
     let spec = uniform_mode_timeline(6, Modes::Lydian(()), 0, PitchClass { note: 0, octave: 4 });
     let cantus = array![60_u8, 62_u8, 64_u8, 65_u8, 67_u8, 69_u8];
@@ -322,6 +335,7 @@ fn test_uniform_mode_timeline_len() {
         voice_placement: VoicePlacement::Free(()),
         forbid_parallel_perfects: true,
         forbid_similar_perfects: true,
+        require_invertible_at_octave: false,
     };
     let result = generate_counterpoint(cantus.span(), params);
     assert(result.counter.len() == 6, 'uniform timeline ok');
@@ -341,6 +355,7 @@ fn timeline_params_6(seed: felt252) -> CounterpointParams {
         voice_placement: VoicePlacement::Free(()),
         forbid_parallel_perfects: true,
         forbid_similar_perfects: true,
+        require_invertible_at_octave: false,
     }
 }
 
@@ -358,6 +373,7 @@ fn timeline_params(seed: felt252) -> CounterpointParams {
         voice_placement: VoicePlacement::Free(()),
         forbid_parallel_perfects: true,
         forbid_similar_perfects: true,
+        require_invertible_at_octave: false,
     }
 }
 
@@ -471,6 +487,7 @@ fn test_timeline_with_world_ids() {
         voice_placement: VoicePlacement::Free(()),
         forbid_parallel_perfects: true,
         forbid_similar_perfects: true,
+        require_invertible_at_octave: false,
     };
     let result = generate_counterpoint(cantus.span(), params);
     assert(result.counter.len() == 4, 'world timeline len');
@@ -490,6 +507,39 @@ fn test_forbidden_vertical_interval_classes() {
     assert(!is_forbidden_vertical_interval_class(9), 'major sixth ok');
     assert(violates_forbidden_interval(66, 64), 'E-F# second');
     assert(!violates_forbidden_interval(67, 64), 'E-G third');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_octave_inversion_fifth_class() {
+    assert(violates_octave_inversion_fifth(60, 67), 'C-G P5');
+    assert(violates_octave_inversion_fifth(60, 79), 'compound fifth');
+    assert(!violates_octave_inversion_fifth(60, 64), 'third ok');
+    assert(!violates_octave_inversion_fifth(60, 65), 'fourth not P5');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_require_invertible_blocks_fifth_candidate() {
+    let params = CounterpointParams {
+        seed: 4242,
+        tonic: PitchClass { note: 0, octave: 4 },
+        mode_spec: fixed_mode_spec(Modes::Lydian(()), 0),
+        register_lo: 48,
+        register_hi: 84,
+        max_melodic_leap: 12,
+        motion_bias: motion_bias_contrary(),
+        voice_placement: VoicePlacement::Free(()),
+        forbid_parallel_perfects: true,
+        forbid_similar_perfects: true,
+        require_invertible_at_octave: true,
+    };
+    let empty: Array<u8> = array![];
+    let bad = score_counter_candidate(
+        67, 64, 62, 60, Contour::Down(()), @params, 1, false, false,
+        empty.span(), empty.span(),
+    );
+    assert(bad == 0, 'IC P5 blocked');
 }
 
 #[test]
@@ -517,6 +567,7 @@ fn test_contrary_demo_cantus_has_no_seconds() {
         voice_placement: VoicePlacement::AboveCantus(()),
         forbid_parallel_perfects: true,
         forbid_similar_perfects: true,
+        require_invertible_at_octave: false,
     };
     let result = generate_counterpoint(cantus.span(), params);
     let mut i: usize = 0;

@@ -62,6 +62,8 @@ fn base_ctx(
         has_applied_transform: false,
         has_tile: false,
         sounding_voice_count: 0,
+        trill_subdivisions: 4,
+        trill_count: 0,
     }
 }
 

@@ -1,20 +1,33 @@
 use core::array::ArrayTrait;
 use koji::composition::canon_rules::is_consonant_class;
-use koji::composition::melodic_canon::NoteEvent;
+use koji::composition::aesthetic_profile::{
+    PROFILE_RENAISSANCE_INVERTIBLE_ID, profile_by_id, profile_renaissance,
+};
+use koji::composition::melodic_canon::{
+    NoteEvent, BandEnvelope, constant_band, walk_leader_banded_ic,
+};
+use koji::composition::jazz_harmony::turnaround_plan_default;
 
 // ── canon_inversion ───────────────────────────────────────────
 use koji::composition::canon_inversion::{
-    FollowerSpec, follower_degree_for_spec, inversion_vertical_class,
-    inversion_step_consonant, generate_inversion_canon, inversion_canon_to_note_events,
+    FollowerSpec, follower_degree_for_spec, follower_degree_retrograde,
+    inversion_vertical_class, inversion_step_consonant,
+    generate_inversion_canon, inversion_canon_to_note_events,
     inversion_canon_clash_free, strict_melodic_inversion, pivot_at_fifth, pivot_at_third,
     pivot_at_unison, walk_leader_for_inversion,
+    realize_retrograde_follower, realize_augmented_follower, realize_diminuted_follower,
+    retrograde_follower_clash_free, augmented_follower_clash_free,
+    apply_follower_spec_events,
 };
 
 // ── invertible_counterpoint ───────────────────────────────────
 use koji::composition::invertible_counterpoint::{
     semitone_class, is_perfect_fifth_class, ic_pair_safe, is_invertible_at_octave, count_fifths,
     raise_octave, lower_octave, octave_invert_pair, is_diatonic_fifth,
-    diatonic_ic_safe,
+    diatonic_ic_safe, lattice_interval_class, lattice_fifth_class, lattice_ic_safe,
+    vertical_ok_invertible, all_pairs_octave_invertible, all_pairs_convertible_counterpoint,
+    generate_invertible_melodic_canon,
+    InvertibleVerticalPolicy, vertical_ok_with_policy, renaissance_ic_policy, ic_policy_from_id,
 };
 
 // ── stretto ───────────────────────────────────────────────────
@@ -28,7 +41,7 @@ use koji::composition::stretto::{
 use koji::composition::countersubject::{
     CountersubjectConfig, default_countersubject_config, below_countersubject_config,
     generate_countersubject, countersubject_to_note_events, countersubject_consonant,
-    countersubject_invertible, countersubject_conjunct,
+    countersubject_invertible, countersubject_conjunct, canon_with_countersubject,
 };
 
 // ── compound_melody ───────────────────────────────────────────
@@ -338,6 +351,36 @@ fn test_diatonic_ic_safe() {
     assert(diatonic_ic_safe(0, 5), 'sixth is safe');
     assert(!diatonic_ic_safe(0, 4), 'fifth is not safe');
     assert(!diatonic_ic_safe(4, 0), 'fifth down is not safe');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_lattice_ic_safe_supports_diatonic_and_chromatic() {
+    assert(lattice_interval_class(7, 0, 4) == 4, 'dia fifth class');
+    assert(lattice_fifth_class(7) == 4, 'dia fifth');
+    assert(lattice_fifth_class(12) == 7, 'chrom fifth');
+    assert(!lattice_ic_safe(7, 0, 4), 'dia P5 unsafe');
+    assert(!lattice_ic_safe(12, 0, 7), 'chrom P5 unsafe');
+    assert(lattice_ic_safe(7, 0, 2), 'dia third safe');
+    assert(lattice_ic_safe(12, 0, 4), 'chrom third safe');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_invertible_profile_rejects_fifth_but_keeps_thirds() {
+    let profile = profile_by_id(PROFILE_RENAISSANCE_INVERTIBLE_ID);
+    assert(vertical_ok_invertible(@profile, 0, 2), 'third accepted');
+    assert(vertical_ok_invertible(@profile, 0, 5), 'sixth accepted');
+    assert(!vertical_ok_invertible(@profile, 0, 4), 'fifth rejected');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_generate_invertible_melodic_canon() {
+    let canon = generate_invertible_melodic_canon(2026, 0, 12);
+    let profile = profile_by_id(PROFILE_RENAISSANCE_INVERTIBLE_ID);
+    assert(all_pairs_octave_invertible(@canon), 'generated IC');
+    assert(all_pairs_convertible_counterpoint(@canon, @profile), 'generated convertible');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -759,4 +802,364 @@ fn test_compound_voice_id_passthrough() {
         assert((*events.at(i)).voice_id == 5, 'voice_id = 5');
         i += 1;
     };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// § 6 — IC Walk, InvertibleVerticalPolicy, Time-Aware Followers
+// ═══════════════════════════════════════════════════════════════
+
+// ── follower_degree_retrograde ────────────────────────────────
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_follower_degree_retrograde_basic() {
+    let degs = array![10_i32, 20, 30, 40];
+    // pos=0 → degs[3]=40; pos=1 → degs[2]=30; pos=3 → degs[0]=10
+    assert(follower_degree_retrograde(degs.span(), 0) == 40, 'retro pos 0');
+    assert(follower_degree_retrograde(degs.span(), 1) == 30, 'retro pos 1');
+    assert(follower_degree_retrograde(degs.span(), 3) == 10, 'retro pos 3');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_follower_degree_retrograde_single() {
+    let degs = array![7_i32];
+    assert(follower_degree_retrograde(degs.span(), 0) == 7, 'single = itself');
+}
+
+// ── realize_retrograde_follower ───────────────────────────────
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_retrograde_follower_event_count() {
+    let degs = array![0_i32, 2, 4, 5];
+    let events = realize_retrograde_follower(degs.span(), 0, 0, 7, 5, 60, 480, 3);
+    assert(events.len() == 4, 'retro: same count as leader');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_retrograde_follower_first_is_last_leader() {
+    // Follower starts by playing the last leader degree reversed.
+    let degs = array![0_i32, 2, 4];
+    let events = realize_retrograde_follower(degs.span(), 0, 0, 7, 5, 60, 480, 1);
+    // pos=0 → degs[2]=4, pos=2 → degs[0]=0
+    let first_pitch = (*events.at(0)).pitch;
+    let last_pitch = (*events.at(2)).pitch;
+    // degs[2]=4 (5th above final in diatonic), degs[0]=0 (final)
+    // just verify they differ (first = high, last = low for ascending leader)
+    assert(first_pitch != last_pitch, 'retro first != last');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_retrograde_follower_timing() {
+    let degs = array![0_i32, 2, 4];
+    let events = realize_retrograde_follower(degs.span(), 0, 960, 7, 5, 60, 480, 1);
+    // entry_time=960, each note is 480 long
+    assert((*events.at(0)).time == 960, 'retro t0 = entry');
+    assert((*events.at(1)).time == 1440, 'retro t1 = entry+480');
+    assert((*events.at(0)).duration == 480, 'retro dur = time_unit');
+}
+
+// ── realize_augmented_follower ────────────────────────────────
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_augmented_follower_event_count() {
+    let degs = array![0_i32, 2, 4];
+    let events = realize_augmented_follower(degs.span(), 0, 2, 0, 7, 5, 60, 480, 2);
+    assert(events.len() == 3, 'aug: same count as leader');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_augmented_follower_duration_doubled() {
+    let degs = array![0_i32, 2];
+    // factor=2 → each note lasts 2 * 480 = 960
+    let events = realize_augmented_follower(degs.span(), 0, 2, 0, 7, 5, 60, 480, 2);
+    assert((*events.at(0)).duration == 960, 'aug dur = 2*480');
+    assert((*events.at(1)).time == 960, 'aug second note at 960');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_augmented_follower_entry_time_respected() {
+    let degs = array![0_i32, 2];
+    let events = realize_augmented_follower(degs.span(), 0, 3, 1440, 7, 5, 60, 480, 2);
+    // entry_time=1440, factor=3, aug_unit=1440; first note at 1440, second at 1440+1440=2880
+    assert((*events.at(0)).time == 1440, 'aug entry respected');
+    assert((*events.at(1)).time == 2880, 'aug second note offset');
+}
+
+// ── realize_diminuted_follower ────────────────────────────────
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_diminuted_follower_event_count() {
+    let degs = array![0_i32, 2, 4];
+    let events = realize_diminuted_follower(degs.span(), 0, 2, 0, 7, 5, 60, 480, 3);
+    assert(events.len() == 3, 'dim: same count as leader');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_diminuted_follower_duration_halved() {
+    let degs = array![0_i32, 2];
+    // factor=2 → each note lasts 480/2 = 240
+    let events = realize_diminuted_follower(degs.span(), 0, 2, 0, 7, 5, 60, 480, 3);
+    assert((*events.at(0)).duration == 240, 'dim dur = 480/2');
+    assert((*events.at(1)).time == 240, 'dim second note at 240');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_diminuted_follower_entry_time_respected() {
+    let degs = array![0_i32, 2, 4];
+    let events = realize_diminuted_follower(degs.span(), 0, 2, 480, 7, 5, 60, 480, 3);
+    // entry_time=480, dim_unit=240; notes at 480, 720, 960
+    assert((*events.at(0)).time == 480, 'dim entry respected');
+    assert((*events.at(2)).time == 960, 'dim third note at 960');
+}
+
+// ── retrograde_follower_clash_free ────────────────────────────
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_retrograde_clash_free_palindrome() {
+    // A palindromic sequence is trivially clash-free at lag=0 (each deg pairs with itself).
+    let degs = array![0_i32, 2, 0];
+    // At lag=1: leader[1]=2 vs retro[0]=degs[2]=0; vertical = 2-0 = 2 (third, consonant).
+    //           leader[2]=0 vs retro[1]=degs[1]=2; vertical = 0-2 = -2, class=2 (consonant).
+    assert(retrograde_follower_clash_free(degs.span(), 0, 1), 'palindrome lag=1 safe');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_retrograde_clash_free_no_overlap() {
+    // lag >= len → no overlap → always safe
+    let degs = array![0_i32, 3, 1];
+    assert(retrograde_follower_clash_free(degs.span(), 0, 3), 'no overlap = safe');
+    assert(retrograde_follower_clash_free(degs.span(), 0, 10), 'far lag = safe');
+}
+
+// ── augmented_follower_clash_free ─────────────────────────────
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_augmented_clash_free_unison_transposition() {
+    // Follower is augmented unison (same degrees, factor=2, entry_beat=0).
+    // At leader beat 0: follower plays degs[0]+0 = 0, vertical = 0 (unison, consonant).
+    // At leader beat 1: follower plays degs[0]+0 = 0 (still on first note), vertical = 2-0=2 (third).
+    // At leader beat 2: follower plays degs[1]+0 = 2, vertical = 4-2=2 (third).
+    let degs = array![0_i32, 2, 4];
+    assert(augmented_follower_clash_free(degs.span(), 0, 2, 0), 'aug unison safe');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_augmented_clash_free_entry_after_start() {
+    // Follower (factor=1) enters at beat 2. Overlap beats 2,3,4 check:
+    //   beat 2: leader[2]=2 vs follower[0]=degs[0]=0 → vertical=2 (third) ✓
+    //   beat 3: leader[3]=2 vs follower[1]=degs[1]=2 → vertical=0 (unison) ✓
+    //   beat 4: leader[4]=0 vs follower[2]=degs[2]=2 → vertical=-2, class=2 (third) ✓
+    let degs = array![0_i32, 2, 2, 2, 0];
+    assert(augmented_follower_clash_free(degs.span(), 0, 1, 2), 'delayed entry safe');
+}
+
+// ── apply_follower_spec_events ────────────────────────────────
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_apply_spec_transposition_matches_direct() {
+    let degs = array![0_i32, 2, 4];
+    // Spec: Transposition(2), entry at 480
+    let spec_events = apply_follower_spec_events(degs.span(), FollowerSpec::Transposition(2), 480, 7, 5, 60, 480, 1);
+    // All events should be at time 480, 960, 1440 with duration 480
+    assert(spec_events.len() == 3, 'transpo: 3 events');
+    assert((*spec_events.at(0)).time == 480, 'transpo t0');
+    assert((*spec_events.at(0)).duration == 480, 'transpo dur');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_apply_spec_retrograde_reversal() {
+    let degs = array![0_i32, 2, 5];
+    let retro_events = apply_follower_spec_events(degs.span(), FollowerSpec::Retrograde, 0, 7, 5, 60, 480, 2);
+    let direct_events = realize_retrograde_follower(degs.span(), 0, 0, 7, 5, 60, 480, 2);
+    // Pitches should match
+    assert((*retro_events.at(0)).pitch == (*direct_events.at(0)).pitch, 'retro spec matches direct');
+    assert((*retro_events.at(2)).pitch == (*direct_events.at(2)).pitch, 'retro spec last matches');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_apply_spec_augmentation_duration() {
+    let degs = array![0_i32, 2];
+    let aug_events = apply_follower_spec_events(degs.span(), FollowerSpec::Augmentation(3), 0, 7, 5, 60, 480, 2);
+    // factor=3 → duration = 3*480 = 1440
+    assert((*aug_events.at(0)).duration == 1440, 'aug spec dur = 1440');
+    assert((*aug_events.at(1)).time == 1440, 'aug spec t1 = 1440');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_apply_spec_diminution_duration() {
+    let degs = array![0_i32, 2, 4];
+    let dim_events = apply_follower_spec_events(degs.span(), FollowerSpec::Diminution(2), 0, 7, 5, 60, 480, 2);
+    // factor=2 → duration = 480/2 = 240
+    assert((*dim_events.at(0)).duration == 240, 'dim spec dur = 240');
+    assert((*dim_events.at(1)).time == 240, 'dim spec t1 = 240');
+}
+
+// ── InvertibleVerticalPolicy ──────────────────────────────────
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_vertical_ok_with_policy_renaissance_ic_rejects_fifth() {
+    let policy = renaissance_ic_policy(); // profile 25 + require_ic_safe=true
+    // Third (2) is consonant and IC-safe
+    assert(vertical_ok_with_policy(@policy, 0, 2), 'third accepted');
+    // Sixth (5) is consonant and IC-safe
+    assert(vertical_ok_with_policy(@policy, 0, 5), 'sixth accepted');
+    // Diatonic fifth (4) is IC-unsafe → rejected regardless of style
+    assert(!vertical_ok_with_policy(@policy, 0, 4), 'fifth rejected');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_vertical_ok_with_policy_no_ic_passes_fifth() {
+    // Profile 0 (Renaissance) is consonance-aware but does NOT bake in IC.
+    // With require_ic_safe=false, a diatonic fifth should pass the policy.
+    let policy = ic_policy_from_id(0, false);
+    assert(vertical_ok_with_policy(@policy, 0, 2), 'third: no-ic pass');
+    assert(vertical_ok_with_policy(@policy, 0, 4), 'fifth: no-ic passes');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_vertical_ok_with_policy_ic_flag_rejects_fifth_any_profile() {
+    // Even with a non-IC profile, require_ic_safe=true should reject diatonic fifths.
+    let policy = ic_policy_from_id(0, true);
+    assert(vertical_ok_with_policy(@policy, 0, 2), 'third ok with ic flag');
+    assert(!vertical_ok_with_policy(@policy, 0, 4), 'fifth rejected by ic flag');
+}
+
+// ── walk_leader_banded_ic ─────────────────────────────────────
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_walk_leader_banded_ic_length_and_start() {
+    let profile = profile_renaissance();
+    let offsets = array![0_i32, 2_i32];
+    let env = constant_band(@profile);
+    let (degs, steps) = walk_leader_banded_ic(
+        0, 1, offsets.span(), @profile, 10, false, env, turnaround_plan_default(),
+    );
+    assert(degs.len() == 10, 'ic walk: len 10');
+    assert(steps.len() == 9, 'ic walk: 9 steps');
+    assert(*degs.at(0) == 0, 'ic walk: starts at 0');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_walk_leader_banded_ic_no_diatonic_fifths() {
+    // For offsets [0, 2] with lag=1: constraint {w:1, d:2}.
+    // IC check: at each step m, abs(m − 2) % 7 must not equal 4.
+    // Steps violating this: m=6 (6−2=4) or m=−2 (|−2−2|=4). These should be absent.
+    let profile = profile_renaissance();
+    let offsets = array![0_i32, 2_i32];
+    let env = constant_band(@profile);
+    let (_, steps) = walk_leader_banded_ic(
+        0, 1, offsets.span(), @profile, 12, false, env, turnaround_plan_default(),
+    );
+    let mut i: u32 = 0;
+    loop {
+        if i >= steps.len() {
+            break;
+        }
+        let m = *steps.at(i);
+        let diff = m - 2_i32;
+        let abs_diff: u32 = if diff < 0 {
+            (-diff).try_into().unwrap()
+        } else {
+            diff.try_into().unwrap()
+        };
+        assert(abs_diff % 7 != 4, 'no diatonic fifth step');
+        i += 1;
+    };
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_walk_leader_banded_ic_deterministic() {
+    let profile = profile_renaissance();
+    let offsets = array![0_i32, 2_i32];
+    let env = constant_band(@profile);
+    let (d1, _) = walk_leader_banded_ic(
+        42, 7, offsets.span(), @profile, 8, false, env, turnaround_plan_default(),
+    );
+    let (d2, _) = walk_leader_banded_ic(
+        42, 7, offsets.span(), @profile, 8, false, env, turnaround_plan_default(),
+    );
+    let mut i: u32 = 0;
+    loop {
+        if i >= 8 {
+            break;
+        }
+        assert(*d1.at(i) == *d2.at(i), 'ic walk deterministic');
+        i += 1;
+    };
+}
+
+// ── canon_with_countersubject ─────────────────────────────────
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_canon_with_countersubject_event_count() {
+    let leader = array![0_i32, 2, 4, 5, 4, 2, 0];
+    let cfg = default_countersubject_config();
+    let events = canon_with_countersubject(
+        leader.span(), @cfg, 42, 0, 7, 5, 60, 480, 0, 1,
+    );
+    // leader emits 7 events, CS emits 7 events → 14 total
+    assert(events.len() == 14, 'leader + cs = 2*len');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_canon_with_countersubject_voice_ids() {
+    let leader = array![0_i32, 2, 4, 5];
+    let cfg = default_countersubject_config();
+    let events = canon_with_countersubject(
+        leader.span(), @cfg, 1, 0, 7, 5, 60, 480, 0, 1,
+    );
+    let mut has_leader = false;
+    let mut has_cs = false;
+    let mut i: u32 = 0;
+    loop {
+        if i >= events.len() {
+            break;
+        }
+        if (*events.at(i)).voice_id == 0 {
+            has_leader = true;
+        }
+        if (*events.at(i)).voice_id == 1 {
+            has_cs = true;
+        }
+        i += 1;
+    };
+    assert(has_leader, 'has leader events');
+    assert(has_cs, 'has cs events');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_canon_with_countersubject_ic_property() {
+    // CS generated with enforce_invertible=true should have no diatonic fifths.
+    let leader = array![0_i32, 2, 4, 5, 4, 2, 0];
+    let cfg = default_countersubject_config(); // enforce_invertible=true
+    let cs = generate_countersubject(leader.span(), @cfg, 99, 7, 5, 60, 480);
+    assert(countersubject_invertible(leader.span(), @cs), 'cs is IC-safe');
+    assert(countersubject_consonant(leader.span(), @cs), 'cs is consonant');
 }

@@ -341,6 +341,61 @@ pub fn countersubject_invertible(subject: Span<i32>, cs: @Countersubject) -> boo
     ok
 }
 
+// ─────────────────────────────────────────────────────────────
+// Combined output
+// ─────────────────────────────────────────────────────────────
+
+/// Emit NoteEvents for the leader voice and a generated countersubject together.
+/// Both voices start at `start_time`; the CS sounds simultaneously with the leader.
+/// The `Countersubject` is generated from `leader_degrees` and rendered on `cs_voice_id`.
+/// Connects the countersubject to the `FollowerSpec` dispatch model: the CS is an independently
+/// generated voice, not a mathematical transform of the leader, but this function gives callers
+/// a single call to get the combined two-voice output.
+pub fn canon_with_countersubject(
+    leader_degrees: Span<i32>,
+    cs_config: @CountersubjectConfig,
+    seed: felt252,
+    start_time: u32,
+    octave: u32,
+    mode_id: u8,
+    tonic_keynum: u8,
+    time_unit: u32,
+    leader_voice_id: u32,
+    cs_voice_id: u32,
+) -> Array<NoteEvent> {
+    let len = leader_degrees.len();
+    let mut out: Array<NoteEvent> = ArrayTrait::new();
+    let mut p: u32 = 0;
+    loop {
+        if p >= len {
+            break;
+        }
+        out.append(
+            NoteEvent {
+                time: start_time + p * time_unit,
+                duration: time_unit,
+                pitch: realize_degree(octave, *leader_degrees.at(p), tonic_keynum, mode_id),
+                velocity: DEFAULT_VELOCITY,
+                voice_id: leader_voice_id,
+            },
+        );
+        p += 1;
+    };
+    let cs = generate_countersubject(
+        leader_degrees, cs_config, seed, octave, mode_id, tonic_keynum, time_unit,
+    );
+    let cs_events = countersubject_to_note_events(@cs, start_time, cs_voice_id);
+    let mut i: u32 = 0;
+    loop {
+        if i >= cs_events.len() {
+            break;
+        }
+        out.append(*cs_events.at(i));
+        i += 1;
+    };
+    out
+}
+
 /// True iff every CS melodic step stays within `max_step` diatonic degrees.
 pub fn countersubject_conjunct(cs: @Countersubject, max_step: u32) -> bool {
     let degs = cs.degrees;

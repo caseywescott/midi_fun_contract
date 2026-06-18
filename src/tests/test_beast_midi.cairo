@@ -3,7 +3,10 @@
 //! Export one demo at a time:
 //!   ./scripts/generate_midi_from_test.sh beast_tier5_low_history_midi_test demos/beasts/01_tier5_low_history.mid
 
-use koji::composition::beast_score::{beast_form_to_midi, build_beast_form_from_traits};
+use koji::composition::beast_score::{
+    beast_form_to_midi, build_beast_form_from_traits, build_beast_ornamented_midi,
+    get_composition_params,
+};
 use koji::composition::beast_trait_map::{
     VISUAL_ANIMATED, VISUAL_COMMON, VISUAL_SHINY, BeastLiveStats,
 };
@@ -199,6 +202,79 @@ fn beast_magic_weakness_midi_test() {
 #[test]
 fn beast_bludgeon_weakness_midi_test() {
     let midi = build_demo_midi(1, 54, VISUAL_COMMON, 10108, high_kills());
+    assert_valid_demo_midi(@midi, 80);
+    generate_parser_format(@midi);
+}
+
+// --- 3-voice ornamented canon path ---
+
+fn build_ornamented_3v_midi(
+    species_id: u8, name_variant_id: u32, visual: u8, seed: felt252, stats: BeastLiveStats,
+) -> Midi {
+    let params = get_composition_params(species_id, name_variant_id, visual, seed, stats);
+    build_beast_ornamented_midi(params, seed)
+}
+
+#[ignore]
+#[test]
+fn beast_3v_orn_tier5_low_midi_test() {
+    let midi = build_ornamented_3v_midi(74, 0, VISUAL_COMMON, 20101, low_history());
+    assert_valid_demo_midi(@midi, 12);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_3v_orn_tier5_crown_midi_test() {
+    let midi = build_ornamented_3v_midi(74, 1242, VISUAL_ANIMATED, 20102, high_crown());
+    assert_valid_demo_midi(@midi, 60);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_3v_orn_tier3_scarred_midi_test() {
+    let midi = build_ornamented_3v_midi(30, 19, VISUAL_COMMON, 20103, scarred());
+    assert_valid_demo_midi(@midi, 40);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_3v_orn_tier3_high_kills_midi_test() {
+    let midi = build_ornamented_3v_midi(30, 400, VISUAL_SHINY, 20104, high_kills());
+    assert_valid_demo_midi(@midi, 80);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_3v_orn_tier1_bare_dragon_midi_test() {
+    let midi = build_ornamented_3v_midi(0, 0, VISUAL_COMMON, 20105, low_history());
+    assert_valid_demo_midi(@midi, 16);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_3v_orn_tier1_crown_midi_test() {
+    let midi = build_ornamented_3v_midi(0, 1242, VISUAL_ANIMATED, 20106, high_crown());
+    assert_valid_demo_midi(@midi, 120);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_3v_orn_magic_weakness_midi_test() {
+    let midi = build_ornamented_3v_midi(2, 36, VISUAL_SHINY, 20107, high_kills());
+    assert_valid_demo_midi(@midi, 80);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_3v_orn_bludgeon_weakness_midi_test() {
+    let midi = build_ornamented_3v_midi(1, 54, VISUAL_COMMON, 20108, high_kills());
     assert_valid_demo_midi(@midi, 80);
     generate_parser_format(@midi);
 }

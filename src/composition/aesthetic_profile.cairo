@@ -45,6 +45,9 @@ pub const AVOID_ALWAYS: u8 = 2;
 pub const OCT_DIATONIC: u32 = 7;
 pub const OCT_CHROMATIC: u32 = 12;
 
+/// Profile id for Renaissance counterpoint that must remain valid under octave inversion.
+pub const PROFILE_RENAISSANCE_INVERTIBLE_ID: u32 = 25;
+
 // ──────────────────────────────────────────────────────────
 // The profile
 // ──────────────────────────────────────────────────────────
@@ -77,6 +80,21 @@ pub fn profile_renaissance() -> AestheticProfile {
         octave: OCT_DIATONIC,
         //         0      1      2          3      4       5          6
         table: array![STABLE, CLASH, CONSONANT, CLASH, STABLE, CONSONANT, CLASH].span(),
+        max_tier: CONSONANT,
+        par_policy: PAR_FORBID,
+        avoid_policy: AVOID_NONE,
+    }
+}
+
+/// Profile 25 — Renaissance, invertible at the octave. Same consonance budget as Profile 0,
+/// except the perfect fifth is a hard clash because it inverts to a dissonant fourth.
+pub fn profile_renaissance_invertible() -> AestheticProfile {
+    AestheticProfile {
+        id: PROFILE_RENAISSANCE_INVERTIBLE_ID,
+        name: 'ren_ic_oct',
+        octave: OCT_DIATONIC,
+        //         0      1      2          3      4      5          6
+        table: array![STABLE, CLASH, CONSONANT, CLASH, CLASH, CONSONANT, CLASH].span(),
         max_tier: CONSONANT,
         par_policy: PAR_FORBID,
         avoid_policy: AVOID_NONE,
@@ -533,7 +551,7 @@ pub fn profile_impressionist_added6_smooth() -> AestheticProfile {
 }
 
 pub fn num_profiles() -> u32 {
-    25
+    26
 }
 
 pub fn profile_by_id(id: u32) -> AestheticProfile {
@@ -585,6 +603,8 @@ pub fn profile_by_id(id: u32) -> AestheticProfile {
         profile_impressionist_added6_smooth()
     } else if id == 24 {
         profile_jazz_improv()
+    } else if id == PROFILE_RENAISSANCE_INVERTIBLE_ID {
+        profile_renaissance_invertible()
     } else {
         profile_renaissance()
     }

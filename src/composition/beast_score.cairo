@@ -22,11 +22,17 @@ use koji::composition::countersubject::{
     countersubject_to_note_events,
 };
 use koji::composition::invertible_counterpoint::ic_pair_safe;
-use koji::composition::melodic_canon::{NoteEvent, realize_degree, DEFAULT_VELOCITY};
-use koji::midi::types::{Message, Midi, SetTempo};
+use koji::composition::melodic_canon::{
+    MelodicCanon, NoteEvent, build_mensuration_voices, canon_to_ornamented_note_events,
+    plan_ornament_subdivisions, realize_degree, CADENCE_LEN, DEFAULT_VELOCITY,
+};
+use koji::midi::types::{Message, Midi, NoteOff, NoteOn, SetTempo};
 
 pub const BEAST_SCORE_VERSION: u32 = 1;
 pub const BEAST_THEME_LEN: u32 = 12;
+/// Sub-ticks per structural note for the 3-voice ornamented path.
+/// Must divide evenly by 2 and 4 for Montanos subdivisions.
+pub const BEAST_CANON_TIME_UNIT: u32 = 4;
 pub const BEAST_TIME_UNIT: u32 = 480;
 pub const BEAST_REST_PITCH: u8 = 255;
 
@@ -248,11 +254,11 @@ fn voice_offset(voice_id: u32) -> i32 {
     if voice_id == 0 {
         0
     } else if voice_id == 1 {
-        4
+        -4 // canon at the 5th below (renaissance imitation style)
     } else if voice_id == 2 {
-        -3
+        3 // 4th above leader (= octave above voice 1, as in config_three_voice_5b_8va)
     } else {
-        7
+        -8 // bass: two 5ths below leader, deep foundation
     }
 }
 
@@ -314,20 +320,7 @@ pub fn build_beast_section(
     section_offset: u32,
 ) -> Array<NoteEvent> {
     let mut out: Array<NoteEvent> = ArrayTrait::new();
-    let shift = if section_id == 1 {
-        weakness_section_b_shift(params.weakness)
-    } else if section_id == 2 {
-        if params.use_inversion {
-            -3
-        } else {
-            3
-        }
-    } else if section_id >= 4 {
-        2
-    } else {
-        0
-    };
-    let tonic = transposed_tonic(params.tonic_keynum, shift);
+    let tonic = transposed_tonic(params.tonic_keynum, section_tonic_shift(params, section_id));
     let mode = canonical_to_melodic_mode(params.mode_id);
     let len = theme.degrees.len();
     let unit = BEAST_TIME_UNIT;
@@ -555,6 +548,10 @@ pub fn first_two_voices_invertible(events: Span<NoteEvent>) -> bool {
 }
 
 pub fn beast_form_to_midi(form: @BeastForm, tempo_us: u32) -> Midi {
+    // NoteOn/NoteOff.time is in microseconds; NoteEvent.time is in BEAST_TIME_UNIT ticks.
+    // Convert: time_us = ticks * tempo_us / BEAST_TIME_UNIT
+    let tempo: u64 = tempo_us.into();
+    let unit: u64 = BEAST_TIME_UNIT.into();
     let mut messages: Array<Message> = ArrayTrait::new();
     messages.append(Message::SET_TEMPO(SetTempo { tempo: tempo_us, time: Option::Some(0) }));
     let mut i: u32 = 0;
@@ -563,13 +560,15 @@ pub fn beast_form_to_midi(form: @BeastForm, tempo_us: u32) -> Midi {
             break;
         }
         let e = *form.events.at(i);
+        let on_us: u64 = e.time.into() * tempo / unit;
+        let off_us: u64 = (e.time + e.duration).into() * tempo / unit;
         messages.append(
             Message::NOTE_ON(
                 koji::midi::types::NoteOn {
                     channel: e.voice_id.try_into().unwrap(),
                     note: e.pitch,
                     velocity: e.velocity,
-                    time: e.time.into(),
+                    time: on_us,
                 },
             ),
         );
@@ -579,11 +578,128 @@ pub fn beast_form_to_midi(form: @BeastForm, tempo_us: u32) -> Midi {
                     channel: e.voice_id.try_into().unwrap(),
                     note: e.pitch,
                     velocity: 64,
-                    time: (e.time + e.duration).into(),
+                    time: off_us,
                 },
             ),
         );
         i += 1;
+    };
+    Midi { events: messages.span() }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Three-voice ornamented beast canon (renaissance-style architecture)
+// ─────────────────────────────────────────────────────────────
+
+/// Per-section tonic shift in semitones. Shared by both render paths.
+pub fn section_tonic_shift(params: BeastCompositionParams, section_id: u8) -> i32 {
+    if section_id == 1 {
+        weakness_section_b_shift(params.weakness)
+    } else if section_id == 2 {
+        if params.use_inversion {
+            -3
+        } else {
+            3
+        }
+    } else if section_id >= 4 {
+        2
+    } else {
+        0
+    }
+}
+
+/// Extract an 8-bit LCG seed from a Poseidon felt252, matching the renaissance ornament seed
+/// extraction pattern used in `generate_ornamented_canon`.
+fn beast_orn_seed(ornament_seed: felt252) -> u32 {
+    let s: u256 = ornament_seed.into();
+    let s32: u32 = (s % 256).try_into().unwrap();
+    if s32 == 0 {
+        19
+    } else {
+        s32
+    }
+}
+
+/// Build a `MelodicCanon` from the beast theme with three-voice renaissance offsets
+/// [0, −4, +3] (leader → 5th below → 4th above) and stretto entry delays.
+/// `time_unit = BEAST_CANON_TIME_UNIT = 4` so Montanos 2× and 4× subdivisions divide evenly.
+pub fn beast_theme_to_melodic_canon(
+    theme: @BeastTheme, mode_id: u8, tonic_keynum: u8, stretto_lag: u32,
+) -> MelodicCanon {
+    let offsets_span: Span<i32> = array![0_i32, -4, 3].span();
+    let entries_span: Span<u32> = array![0_u32, stretto_lag, 2 * stretto_lag].span();
+    let dilations_span: Span<u32> = array![1_u32, 1, 1].span();
+    let voices = build_mensuration_voices(offsets_span, entries_span, dilations_span);
+    MelodicCanon {
+        config_id: 4,
+        config_name: 'beast_3v_5b_8va',
+        offsets: offsets_span,
+        leader_degrees: theme.degrees.span(),
+        leader_steps: theme.steps.span(),
+        mode_id,
+        tonic_keynum,
+        time_unit: BEAST_CANON_TIME_UNIT,
+        voices: voices.span(),
+        octave: 7,
+        profile_id: 0,
+    }
+}
+
+/// Render the full beast multi-section form as a three-voice ornamented canon.
+///
+/// Each section uses the same hashed theme but a different tonic (shifted by weakness/scar/etc.).
+/// Ornamentation uses Montanos "divided" passing tones, identical to
+/// `renaissance_canon_long_3voice_ornamented_midi_test`.
+///
+/// `step_us = tempo_us / BEAST_CANON_TIME_UNIT`; each structural note = one quarter beat.
+pub fn build_beast_ornamented_midi(
+    params: BeastCompositionParams, sound_seed: felt252,
+) -> Midi {
+    let seeds = derive_beast_sound_seeds(sound_seed);
+    let theme = build_beast_theme(params, seeds.motif_seed);
+    let mode = canonical_to_melodic_mode(params.mode_id);
+    let orn_seed = beast_orn_seed(seeds.ornament_seed);
+
+    // step_us: microseconds per sub-tick (4 sub-ticks per structural note = quarter note)
+    let step_us: u64 = params.tempo_us.into() / BEAST_CANON_TIME_UNIT.into();
+
+    // section length in sub-ticks: theme_len notes + 2 stretto-lag tails for voices 1 and 2
+    let theme_len = theme.degrees.len();
+    let cycle_ticks: u32 = (theme_len + 2 * params.stretto_lag) * BEAST_CANON_TIME_UNIT;
+    let cycle_us: u64 = cycle_ticks.into() * step_us;
+
+    let mut messages: Array<Message> = ArrayTrait::new();
+    messages.append(Message::SET_TEMPO(SetTempo { tempo: params.tempo_us, time: Option::Some(0) }));
+
+    let mut section_us: u64 = 0;
+    let mut s: u8 = 0;
+    loop {
+        if s >= params.section_count {
+            break;
+        }
+        let shift = section_tonic_shift(params, s);
+        let tonic = transposed_tonic(params.tonic_keynum, shift);
+        let canon = beast_theme_to_melodic_canon(@theme, mode, tonic, params.stretto_lag);
+        let subs = plan_ornament_subdivisions(orn_seed, canon.leader_steps, CADENCE_LEN);
+        let events = canon_to_ornamented_note_events(@canon, subs.span());
+
+        let n = events.len();
+        let mut i: u32 = 0;
+        loop {
+            if i >= n {
+                break;
+            }
+            let e = *events.at(i);
+            let on_us: u64 = section_us + e.time.into() * step_us;
+            let off_us: u64 = on_us + e.duration.into() * step_us;
+            let ch: u8 = e.voice_id.try_into().unwrap();
+            messages.append(Message::NOTE_ON(NoteOn { channel: ch, note: e.pitch, velocity: e.velocity, time: on_us }));
+            messages.append(Message::NOTE_OFF(NoteOff { channel: ch, note: e.pitch, velocity: 64, time: off_us }));
+            i += 1;
+        };
+
+        section_us += cycle_us;
+        s += 1;
     };
     Midi { events: messages.span() }
 }

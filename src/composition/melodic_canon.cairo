@@ -409,6 +409,7 @@ fn candidates_at(
     turnaround_plan: TurnaroundPlan,
     canon_seed: felt252,
     use_harmonic_walk: bool,
+    enforce_ic: bool,
 ) -> Array<i32> {
     let cur = *degrees.at(degrees.len() - 1);
     let mut prim: Array<i32> = ArrayTrait::new(); // in-band + stylistic
@@ -428,6 +429,44 @@ fn candidates_at(
         // (a) pairwise constraints (all windows that close here)
         if !step_satisfies_constraints_p(profile, constraints, steps, m) {
             continue;
+        }
+        // (a.1) IC: reject any step that creates a diatonic fifth with a follower voice.
+        // Mirrors the window computation in step_satisfies_constraints_p, but checks
+        // abs(windowsum - pc.d) % 7 == 4 (the diatonic fifth class) instead of tension budget.
+        if enforce_ic {
+            let wpos = steps.len() + 1;
+            let mut ic_ok = true;
+            let mut ci: u32 = 0;
+            loop {
+                if ci >= constraints.len() || !ic_ok {
+                    break;
+                }
+                let pc = *constraints.at(ci);
+                if wpos >= pc.w {
+                    let mut windowsum: i32 = m;
+                    let mut wt: u32 = 0;
+                    loop {
+                        if wt + 1 >= pc.w {
+                            break;
+                        }
+                        windowsum += *steps.at(steps.len() - 1 - wt);
+                        wt += 1;
+                    };
+                    let diff = windowsum - pc.d;
+                    let abs_diff: u32 = if diff < 0 {
+                        (-diff).try_into().unwrap()
+                    } else {
+                        diff.try_into().unwrap()
+                    };
+                    if abs_diff % 7 == 4 {
+                        ic_ok = false;
+                    }
+                }
+                ci += 1;
+            };
+            if !ic_ok {
+                continue;
+            }
         }
         // (b) parallel-perfect policy: Renaissance forbids immediate repeats into perfects;
         //     jazz/Hindemith-style limit profiles allow a short echo but block longer chains.
@@ -800,6 +839,7 @@ pub fn walk_leader_banded(
             turnaround_plan,
             canon_seed,
             use_harmonic_walk,
+            false,
         );
         assert(cands.len() > 0, 'no valid leader step');
         let cur = *degrees.at(degrees.len() - 1);
@@ -882,8 +922,93 @@ pub fn walk_leader_banded_with_constraints(
             turnaround_plan,
             canon_seed,
             use_harmonic_walk,
+            false,
         );
         assert(cands.len() > 0, 'no valid leader step');
+        let cur = *degrees.at(degrees.len() - 1);
+        let (raw, next) = rng.draw();
+        rng = next;
+        let m = if cadence {
+            match cadence_target(p, len, primary_d, has_unit_step) {
+                Option::Some(t) => pick_toward(cands.span(), cur, t),
+                Option::None => {
+                    pick_leader_step_random(
+                        profile, cands.span(), degrees.span(), raw, primary_d, p, len,
+                    )
+                },
+            }
+        } else {
+            pick_leader_step_random(
+                profile, cands.span(), degrees.span(), raw, primary_d, p, len,
+            )
+        };
+        degrees.append(cur + m);
+        steps.append(m);
+        p += 1;
+    };
+    (degrees, steps)
+}
+
+/// IC-aware variant of `walk_leader_banded`: rejects any step that creates a diatonic fifth with
+/// any follower voice (the interval that breaks invertibility at the octave). Use this instead of
+/// `walk_leader_banded` when the canon must be invertible counterpoint at the octave.
+pub fn walk_leader_banded_ic(
+    canon_seed: felt252,
+    seed_state: u32,
+    offsets: Span<i32>,
+    profile: @AestheticProfile,
+    len: u32,
+    cadence: bool,
+    env: BandEnvelope,
+    turnaround_plan: TurnaroundPlan,
+) -> (Array<i32>, Array<i32>) {
+    let use_harmonic_walk = harmonic_walk_enabled_from_seed(canon_seed);
+    let constraints = pair_constraints(offsets);
+    let prefer = keep_within_skip(
+        allowed_steps_multivoice_p(profile, offsets).span(),
+        prefer_skip_for_profile(*profile.id, *profile.octave),
+    );
+    let primary_d = if offsets.len() > 1 {
+        *offsets.at(1)
+    } else {
+        0
+    };
+    let has_unit_step = contains_i32(prefer.span(), 1) || contains_i32(prefer.span(), -1);
+
+    let mut degrees: Array<i32> = ArrayTrait::new();
+    degrees.append(0);
+    let mut steps: Array<i32> = ArrayTrait::new();
+
+    let mut rng = LCG { state: seed_state, multiplier: 5, increment: 3, modulus: 256 };
+
+    let mut p: u32 = 1;
+    loop {
+        if p >= len {
+            break;
+        }
+        let (lo, hi) = band_at(@env, p, len);
+        let timeline_len = if *profile.id == 24 || *profile.id == 21 {
+            len
+        } else {
+            0
+        };
+        let cands = candidates_at(
+            profile,
+            constraints.span(),
+            primary_d,
+            p,
+            degrees.span(),
+            steps.span(),
+            prefer.span(),
+            lo,
+            hi,
+            timeline_len,
+            turnaround_plan,
+            canon_seed,
+            use_harmonic_walk,
+            true,
+        );
+        assert(cands.len() > 0, 'no valid ic leader step');
         let cur = *degrees.at(degrees.len() - 1);
         let (raw, next) = rng.draw();
         rng = next;
@@ -1762,6 +1887,21 @@ pub fn generate_melodic_canon_with_params(
 pub fn generate_melodic_canon_with_params_mode(
     seed: felt252, config_id: u32, length: u32, mode_id: u8, tonic_keynum: u8,
 ) -> MelodicCanon {
+    generate_melodic_canon_with_params_mode_tu(seed, config_id, length, mode_id, tonic_keynum, 4)
+}
+
+/// Like `generate_melodic_canon_with_params_mode` but with an explicit tick granularity.
+/// Use `time_unit > 4` when you need fine V2 ornament subdivisions (e.g., 8-sub or 12-sub trills).
+/// Pair with a proportionally smaller `step_us` so structural note durations stay the same:
+///   step_us_adjusted = original_step_us * 4 / time_unit
+pub fn generate_melodic_canon_with_params_mode_tu(
+    seed: felt252,
+    config_id: u32,
+    length: u32,
+    mode_id: u8,
+    tonic_keynum: u8,
+    time_unit: u32,
+) -> MelodicCanon {
     let s: u256 = seed.into();
     let config = config_by_id(config_id);
     let len = if length >= MIN_LEN {
@@ -1769,7 +1909,11 @@ pub fn generate_melodic_canon_with_params_mode(
     } else {
         MIN_LEN
     };
-    let time_unit: u32 = 4;
+    let time_unit: u32 = if time_unit < 4 {
+        4
+    } else {
+        time_unit
+    };
     let mut seed_state = extract_bits(s, 19, 8) % 256;
     if seed_state == 0 {
         seed_state = 7;

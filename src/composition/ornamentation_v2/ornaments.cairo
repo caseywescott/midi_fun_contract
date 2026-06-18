@@ -822,6 +822,8 @@ fn emit_trill(
     mode_id: u8,
     voice_index: u32,
     ornament_id: u32,
+    subdivisions: u32,
+    count: u32,
 ) -> Array<V2NoteEvent> {
     let mut out: Array<V2NoteEvent> = ArrayTrait::new();
     let aux_dir = if upper {
@@ -830,10 +832,27 @@ fn emit_trill(
         -1_i32
     };
     let aux = step_degree(anchor_deg, aux_dir);
-    let d = subdivide_duration(dur, 4);
+    // Clamp subdivisions so each trill note is at least 1 tick; minimum 2.
+    let n = if subdivisions < 2 {
+        2_u32
+    } else if subdivisions > dur {
+        dur
+    } else {
+        subdivisions
+    };
+    let d = subdivide_duration(dur, n);
+    // active = number of rapid alternating notes to emit before an anchor hold.
+    // count == 0 → fill the entire duration (classic behaviour).
+    let active = if count == 0 || count >= n {
+        n
+    } else if count < 2 {
+        2_u32
+    } else {
+        count
+    };
     let mut i: u32 = 0;
     loop {
-        if i >= 4 {
+        if i >= active {
             break;
         }
         let deg = if i % 2 == 0 {
@@ -841,15 +860,17 @@ fn emit_trill(
         } else {
             aux
         };
+        // In fill mode (active == n) the last note absorbs any rounding remainder.
+        let this_dur = if active == n && i == active - 1 {
+            dur - (n - 1) * d
+        } else {
+            d
+        };
         out.append(
             surface_event(
                 midi_to_pitch(degree_to_midi(deg, tonic, mode_id, 7), deg),
                 start + i * d,
-                if i == 3 {
-                    dur - 3 * d
-                } else {
-                    d
-                },
+                this_dur,
                 ROLE_TRILL,
                 ornament_id,
                 voice_index,
@@ -857,6 +878,19 @@ fn emit_trill(
         );
         i += 1;
     };
+    // Partial-fill: append anchor hold tail so sum_durations == anchor_dur.
+    if active < n {
+        out.append(
+            surface_event(
+                midi_to_pitch(degree_to_midi(anchor_deg, tonic, mode_id, 7), anchor_deg),
+                start + active * d,
+                dur - active * d,
+                ROLE_STRUCTURAL,
+                ornament_id,
+                voice_index,
+            ),
+        );
+    }
     out
 }
 
@@ -1197,11 +1231,13 @@ pub fn ornament_generate(
     if kind == ORN_TRILL_UPPER {
         return emit_trill(
             true, anchor_deg, start, anchor_dur, tonic, ctx.mode_id, ctx.voice_index, ornament_id,
+            ctx.trill_subdivisions.into(), ctx.trill_count.into(),
         );
     }
     if kind == ORN_TRILL_LOWER {
         return emit_trill(
             false, anchor_deg, start, anchor_dur, tonic, ctx.mode_id, ctx.voice_index, ornament_id,
+            ctx.trill_subdivisions.into(), ctx.trill_count.into(),
         );
     }
     if kind == ORN_ACCIACCATURA_UPPER {

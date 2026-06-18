@@ -5,7 +5,8 @@
 use koji::composition::aesthetic_profile::{
     profile_renaissance, profile_jazz, profile_quartal, profile_by_id, vertical_class,
     unfolded_distance_class, vertical_ok, vertical_tier, allowed_leader_steps_p, is_avoid_note,
-    CLASH, COLOR, SOFT, num_profiles, PAR_FORBID, PAR_LIMIT, PAR_ALLOW,
+    CLASH, COLOR, SOFT, num_profiles, PROFILE_RENAISSANCE_INVERTIBLE_ID, PAR_FORBID, PAR_LIMIT,
+    PAR_ALLOW,
 };
 use koji::composition::canon_rules::{
     is_consonant_class, contains_i32, num_profiled_configs, abs_i32,
@@ -82,7 +83,7 @@ fn test_renaissance_profile_matches_legacy() {
 #[test]
 #[available_gas(1000000000000)]
 fn test_num_profiles() {
-    assert(num_profiles() == 25, 'twenty-five profiles');
+    assert(num_profiles() == 26, 'twenty-six profiles');
     assert(num_profiled_configs() == 43, 'forty-three configs');
     assert(profile_by_id(0).id == 0, 'renaissance id');
     assert(profile_by_id(1).name == 'jazz', 'jazz name');
@@ -93,6 +94,10 @@ fn test_num_profiles() {
     assert(profile_by_id(16).name == 'per_tonos', 'per tonos name');
     assert(profile_by_id(21).name == 'neo_riem', 'neo-riemannian name');
     assert(profile_by_id(24).name == 'jazz_improv', 'jazz improv name');
+    let ren_ic = profile_by_id(PROFILE_RENAISSANCE_INVERTIBLE_ID);
+    assert(ren_ic.name == 'ren_ic_oct', 'invertible profile name');
+    assert(!vertical_ok(@ren_ic, 0, 4), 'ic profile rejects fifth');
+    assert(vertical_ok(@ren_ic, 0, 2), 'ic profile keeps third');
 }
 
 #[test]

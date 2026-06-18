@@ -88,6 +88,8 @@ fn test_passing_can_apply_third_fill() {
         has_applied_transform: false,
         has_tile: false,
         sounding_voice_count: 0,
+        trill_subdivisions: 4,
+        trill_count: 0,
     };
     let chord = array![0_u8, 4, 7];
     assert(scale_step_distance(0, 2) == 2, 'distance 2');
@@ -120,6 +122,8 @@ fn test_neighbor_first_last_equals_anchor() {
         has_applied_transform: false,
         has_tile: false,
         sounding_voice_count: 0,
+        trill_subdivisions: 4,
+        trill_count: 0,
     };
     let chord = array![0_u8, 4, 7];
     let events = ornament_generate(
@@ -236,6 +240,8 @@ fn test_trill_upper_has_alternation() {
         has_applied_transform: false,
         has_tile: false,
         sounding_voice_count: 0,
+        trill_subdivisions: 4,
+        trill_count: 0,
     };
     let chord = array![0_u8, 4, 7];
     let events = ornament_generate(
@@ -284,6 +290,8 @@ fn test_rule_mode_expand_equivalence() {
         has_applied_transform: false,
         has_tile: false,
         sounding_voice_count: 0,
+        trill_subdivisions: 4,
+        trill_count: 0,
     };
     let chord = array![0_u8, 4, 7];
     let expanded = ornament_generate(
@@ -357,6 +365,8 @@ fn test_arpeggiation_preserves_duration() {
         has_applied_transform: false,
         has_tile: false,
         sounding_voice_count: 0,
+        trill_subdivisions: 4,
+        trill_count: 0,
     };
     let chord = array![0_u8, 4, 7];
     let events = ornament_generate(

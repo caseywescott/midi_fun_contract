@@ -52,3 +52,4 @@ pub mod invertible_counterpoint;
 pub mod stretto;
 pub mod countersubject;
 pub mod compound_melody;
+pub mod transformational_counterpoint;

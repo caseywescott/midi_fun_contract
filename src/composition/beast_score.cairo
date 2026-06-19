@@ -21,7 +21,17 @@ use koji::composition::countersubject::{
     default_countersubject_config, generate_countersubject, countersubject_invertible,
     countersubject_to_note_events,
 };
-use koji::composition::invertible_counterpoint::ic_pair_safe;
+use koji::composition::invertible_counterpoint::{
+    ic_pair_safe, generate_invertible_melodic_canon_mode,
+};
+use koji::composition::ornamentation_v2::canon::v2_note_to_legacy;
+use koji::composition::ornamentation_v2::engine::{default_config, ornament_canon};
+use koji::composition::ornamentation_v2::profiles::{
+    profile_baroque_ornament, profile_common_practice, profile_modal_canon,
+};
+use koji::composition::ornamentation_v2::types::{
+    HarmonyEvent, OrnamentStyleProfile, WORKFLOW_CANON_FIRST, all_enabled_ornaments,
+};
 use koji::composition::melodic_canon::{
     MelodicCanon, NoteEvent, build_mensuration_voices, canon_to_ornamented_note_events,
     plan_ornament_subdivisions, realize_degree, CADENCE_LEN, DEFAULT_VELOCITY,
@@ -701,5 +711,202 @@ pub fn build_beast_ornamented_midi(
         section_us += cycle_us;
         s += 1;
     };
+    Midi { events: messages.span() }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Beast IC canon with V2 baroque ornamentation
+// ─────────────────────────────────────────────────────────────
+
+/// Number of leader notes for the IC canon walk, scaled by beast tier.
+/// Tier 1-2 (high-tier / formidable) get the longest phrase for maximum imitative complexity.
+fn ic_canon_length_for_tier(tier: u8) -> u32 {
+    if tier <= 2 {
+        36
+    } else if tier == 3 {
+        28
+    } else if tier == 4 {
+        20
+    } else {
+        16
+    }
+}
+
+/// Extract a non-zero 8-bit seed from the ornament sub-seed, per section.
+fn beast_ic_orn_seed(ornament_seed: felt252, section_id: u8) -> felt252 {
+    let base = hash2(ornament_seed, section_id.into());
+    let s: u256 = base.into();
+    let bits: u32 = (s % 256).try_into().unwrap();
+    if bits == 0 {
+        19_u32.into()
+    } else {
+        bits.into()
+    }
+}
+
+/// Select V2 ornament style from beast ornament density.
+/// High-density beasts get baroque surface; mid-density get modal canon; sparse get common practice.
+fn ornament_style_for_density(density: u8) -> OrnamentStyleProfile {
+    if density >= 5 {
+        profile_baroque_ornament()
+    } else if density >= 3 {
+        profile_modal_canon()
+    } else {
+        profile_common_practice()
+    }
+}
+
+/// Generate a fully-ornamented IC three-voice canon MIDI for a beast, mapping all beast qualities
+/// to the IC canon parameters:
+///
+/// - `tier`            → phrase length (longer = more complex imitative structure)
+/// - `mode_id`         → diatonic mode (Dorian, Phrygian, Aeolian, etc.)
+/// - `tonic_keynum`    → root pitch, shifted per section by `weakness`/`use_inversion`
+/// - `ornament_density`→ V2 style: ≥5=baroque, ≥3=modal_canon, else=common_practice
+/// - `tempo_us`        → MIDI tempo (fast for ANIMATED, slow for COMMON)
+/// - `use_countersubject` → adds IC-safe CS melody on channel 3 (above leader)
+/// - `use_inversion`   → appends an extra IC octave-inversion section after normal sections
+/// - `section_count`   → how many repetitions (with tonic shifts from weakness/scar)
+/// - `velocity_ceiling`→ applied to ornament engine velocity cap
+pub fn build_beast_ic_canon_midi(params: BeastCompositionParams, sound_seed: felt252) -> Midi {
+    let seeds = derive_beast_sound_seeds(sound_seed);
+    let mode = canonical_to_melodic_mode(params.mode_id);
+    let step_us: u64 = params.tempo_us.into() / BEAST_CANON_TIME_UNIT.into();
+
+    let length = ic_canon_length_for_tier(params.tier);
+    // three_5b_8va: 3 voices entering at ticks 0, 1, 2 → tail = nv - 1 = 2
+    let nv: u32 = 3;
+    let unit = BEAST_CANON_TIME_UNIT;
+    let cycle_ticks: u32 = (length + nv - 1) * unit;
+    let cycle_us: u64 = cycle_ticks.into() * step_us;
+
+    let mut messages: Array<Message> = ArrayTrait::new();
+    messages
+        .append(Message::SET_TEMPO(SetTempo { tempo: params.tempo_us, time: Option::Some(0) }));
+
+    // Optional extra inversion pass appended after all normal sections.
+    let total_sections: u8 = params.section_count + if params.use_inversion {
+        1
+    } else {
+        0
+    };
+
+    let mut section_us: u64 = 0;
+    let mut s: u8 = 0;
+    loop {
+        if s >= total_sections {
+            break;
+        }
+        // The extra inversion section mirrors the final normal section's tonic.
+        let is_inversion_pass = params.use_inversion && s == params.section_count;
+        let base_section: u8 = if is_inversion_pass {
+            params.section_count - 1
+        } else {
+            s
+        };
+
+        let shift = section_tonic_shift(params, base_section);
+        let tonic = transposed_tonic(params.tonic_keynum, shift);
+
+        let canon_seed = hash2(seeds.canon_seed, base_section.into());
+        let canon = generate_invertible_melodic_canon_mode(canon_seed, 4, length, mode, tonic);
+
+        // Single harmony event spanning the cycle for the V2 engine consonance checks.
+        let tonic_pc = tonic % 12;
+        let mut harmony: Array<HarmonyEvent> = ArrayTrait::new();
+        harmony
+            .append(
+                HarmonyEvent {
+                    root_pc: tonic_pc,
+                    bass_pc: tonic_pc,
+                    start: 0,
+                    duration: cycle_ticks,
+                    function_label: 0,
+                },
+            );
+
+        let orn_seed_val = beast_ic_orn_seed(seeds.ornament_seed, base_section);
+        let mut orn_cfg = default_config(orn_seed_val);
+        orn_cfg.style = ornament_style_for_density(params.ornament_density);
+        orn_cfg.canon_workflow = WORKFLOW_CANON_FIRST;
+        let enabled = all_enabled_ornaments();
+        let orn_result = ornament_canon(@canon, harmony.span(), orn_cfg, enabled.span());
+        let orn_span = orn_result.events.span();
+        let orn_n = orn_span.len();
+
+        // Emit ornamented canon voices (channels 0-2).
+        // Inversion pass: raise voice 1 by an octave to demonstrate IC invertibility.
+        let mut i: u32 = 0;
+        loop {
+            if i >= orn_n {
+                break;
+            }
+            let legacy = v2_note_to_legacy(*orn_span.at(i));
+            let pitch: u8 = if is_inversion_pass
+                && legacy.voice_id == 1
+                && legacy.pitch <= 115 {
+                legacy.pitch + 12
+            } else {
+                legacy.pitch
+            };
+            let on_us: u64 = section_us + legacy.time.into() * step_us;
+            let off_us: u64 = on_us + legacy.duration.into() * step_us;
+            let ch: u8 = legacy.voice_id.try_into().unwrap();
+            messages
+                .append(
+                    Message::NOTE_ON(
+                        NoteOn { channel: ch, note: pitch, velocity: legacy.velocity, time: on_us },
+                    ),
+                );
+            messages
+                .append(
+                    Message::NOTE_OFF(NoteOff { channel: ch, note: pitch, velocity: 64, time: off_us }),
+                );
+            i += 1;
+        };
+
+        // Countersubject on channel 3 (one above the 3 IC canon voices).
+        // Skipped during the inversion pass to keep the texture clean.
+        if params.use_countersubject && !is_inversion_pass {
+            let cs_config = default_countersubject_config();
+            let cs_seed = hash2(seeds.motif_seed, base_section.into());
+            let cs = generate_countersubject(
+                canon.leader_degrees,
+                @cs_config,
+                cs_seed,
+                7,
+                mode,
+                tonic,
+                unit,
+            );
+            let cs_events = countersubject_to_note_events(@cs, 0, 3);
+            let mut j: u32 = 0;
+            loop {
+                if j >= cs_events.len() {
+                    break;
+                }
+                let e = *cs_events.at(j);
+                let on_us: u64 = section_us + e.time.into() * step_us;
+                let off_us: u64 = on_us + e.duration.into() * step_us;
+                messages
+                    .append(
+                        Message::NOTE_ON(
+                            NoteOn { channel: 3, note: e.pitch, velocity: e.velocity, time: on_us },
+                        ),
+                    );
+                messages
+                    .append(
+                        Message::NOTE_OFF(
+                            NoteOff { channel: 3, note: e.pitch, velocity: 64, time: off_us },
+                        ),
+                    );
+                j += 1;
+            };
+        }
+
+        section_us += cycle_us;
+        s += 1;
+    };
+
     Midi { events: messages.span() }
 }

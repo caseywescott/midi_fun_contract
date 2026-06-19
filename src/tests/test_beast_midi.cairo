@@ -4,8 +4,8 @@
 //!   ./scripts/generate_midi_from_test.sh beast_tier5_low_history_midi_test demos/beasts/01_tier5_low_history.mid
 
 use koji::composition::beast_score::{
-    beast_form_to_midi, build_beast_form_from_traits, build_beast_ornamented_midi,
-    get_composition_params,
+    beast_form_to_midi, build_beast_form_from_traits, build_beast_ic_canon_midi,
+    build_beast_ornamented_midi, get_composition_params,
 };
 use koji::composition::beast_trait_map::{
     VISUAL_ANIMATED, VISUAL_COMMON, VISUAL_SHINY, BeastLiveStats,
@@ -276,5 +276,91 @@ fn beast_3v_orn_magic_weakness_midi_test() {
 fn beast_3v_orn_bludgeon_weakness_midi_test() {
     let midi = build_ornamented_3v_midi(1, 54, VISUAL_COMMON, 20108, high_kills());
     assert_valid_demo_midi(@midi, 80);
+    generate_parser_format(@midi);
+}
+
+// --- IC canon with V2 baroque ornamentation + countersubject ---
+// Each test maps beast qualities → IC canon parameters via build_beast_ic_canon_midi.
+// Tier 1-2 → 36-note phrase, baroque ornament density, CS voice.
+// Tier 3   → 28-note phrase, modal ornament density.
+// Tier 5   → 16-note phrase, sparse common-practice surface.
+// use_inversion → extra IC octave-inversion section appended.
+
+fn build_ic_canon_midi(
+    species_id: u8, name_variant_id: u32, visual: u8, seed: felt252, stats: BeastLiveStats,
+) -> Midi {
+    let params = get_composition_params(species_id, name_variant_id, visual, seed, stats);
+    build_beast_ic_canon_midi(params, seed)
+}
+
+#[ignore]
+#[test]
+fn beast_ic_tier1_crown_baroque_midi_test() {
+    // Tier 1 crown: 36-note baroque IC canon + CS + inversion, ANIMATED tempo
+    let midi = build_ic_canon_midi(0, 1242, VISUAL_ANIMATED, 30101, high_crown());
+    assert_valid_demo_midi(@midi, 120);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_ic_tier1_low_history_midi_test() {
+    // Tier 1 bare: 36-note IC canon, no history → minimal ornament density
+    let midi = build_ic_canon_midi(0, 0, VISUAL_COMMON, 30102, low_history());
+    assert_valid_demo_midi(@midi, 40);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_ic_tier3_scarred_inversion_midi_test() {
+    // Tier 3 scarred: use_inversion triggered by defeat_bucket >= 3
+    let midi = build_ic_canon_midi(30, 19, VISUAL_COMMON, 30103, scarred());
+    assert_valid_demo_midi(@midi, 40);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_ic_tier3_high_kills_modal_midi_test() {
+    // Tier 3 high-kills: modal canon ornament style (density 3-4), SHINY tempo
+    let midi = build_ic_canon_midi(30, 400, VISUAL_SHINY, 30104, high_kills());
+    assert_valid_demo_midi(@midi, 80);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_ic_tier5_low_history_midi_test() {
+    // Tier 5 sparse: 16-note phrase, common-practice ornament surface
+    let midi = build_ic_canon_midi(74, 0, VISUAL_COMMON, 30105, low_history());
+    assert_valid_demo_midi(@midi, 16);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_ic_tier5_crown_animated_midi_test() {
+    // Tier 5 crown ANIMATED: fast tempo, baroque density from crown bonus
+    let midi = build_ic_canon_midi(74, 1242, VISUAL_ANIMATED, 30106, high_crown());
+    assert_valid_demo_midi(@midi, 60);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_ic_magic_weakness_midi_test() {
+    // Magic weakness: +6 semitone shift on section B
+    let midi = build_ic_canon_midi(2, 36, VISUAL_SHINY, 30107, high_kills());
+    assert_valid_demo_midi(@midi, 60);
+    generate_parser_format(@midi);
+}
+
+#[ignore]
+#[test]
+fn beast_ic_bludgeon_weakness_midi_test() {
+    // Bludgeon weakness: -5 semitone shift on section B
+    let midi = build_ic_canon_midi(1, 54, VISUAL_COMMON, 30108, high_kills());
+    assert_valid_demo_midi(@midi, 60);
     generate_parser_format(@midi);
 }

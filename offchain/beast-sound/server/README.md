@@ -11,7 +11,7 @@ nothing is added onchain.
 
 `{token}`: a current mainnet token number (e.g. `52918`) or a Beasts V3 token ID (decimal or `0x`).
 Query: `?engine=1|2` (default 1), `?network=sepolia|mainnet` (V3 IDs, default sepolia until V3 is
-on mainnet), `?patch=chip_tri_lead`, `?drums=1`.
+on mainnet), `?patch=chip_tri_lead`, `?drums=0` (the player has chiptune drums on by default).
 
 Live stats (kills, Summit deaths and hours, rank) are read on request and cached for 5 minutes.
 

@@ -7,7 +7,7 @@
 //
 // {token} is a current mainnet token number (e.g. 52918) or a Beasts V3 116-bit token ID (decimal
 // or 0x). Query: ?engine=1|2 (default 1), ?network=sepolia|mainnet for V3 IDs (default sepolia
-// until V3 ships on mainnet), ?patch=<patch id> and ?drums=1 for the player.
+// until V3 ships on mainnet), ?patch=<patch id> and ?drums=0 (drums off) for the player.
 //
 // Everything is computed from data Provable Games already publishes; nothing is stored. The score
 // is deterministic: anyone can recompute it with @koji/beast-sound and compare score_hash.
@@ -108,7 +108,7 @@ export async function handleRequest(request) {
   const url = new URL(request.url);
   if (request.method === 'OPTIONS') return new Response(null, { headers: { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET' } });
   if (url.pathname === '/' || url.pathname === '') {
-    return new Response('Beast Sound\n\nGET /beasts/{token}.json | .mid | /player\n{token}: mainnet token number or Beasts V3 token ID\n?engine=1|2  ?network=sepolia|mainnet  ?patch=chip_tri_lead  ?drums=1\n', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
+    return new Response('Beast Sound\n\nGET /beasts/{token}.json | .mid | /player\n{token}: mainnet token number or Beasts V3 token ID\n?engine=1|2  ?network=sepolia|mainnet  ?patch=chip_tri_lead  ?drums=0\n', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
   }
   const m = url.pathname.match(/^\/beasts\/(0x[0-9a-fA-F]+|\d+)(\.json|\.mid|\/player)?\/?$/);
   if (!m) return json({ error: 'Use /beasts/{token}.json, /beasts/{token}.mid or /beasts/{token}/player' }, 404);
@@ -128,7 +128,8 @@ export async function handleRequest(request) {
     return new Response(composed.song.midi, { headers: { ...headers, 'content-type': 'audio/midi', 'content-disposition': `inline; filename="beast-${token}.mid"` } });
   }
   if (kind === '/player') {
-    const opts = { patch: url.searchParams.get('patch') || 'chip_tri_lead', drums: url.searchParams.get('drums') === '1' };
+    // Drums are on by default; ?drums=0 turns them off.
+    const opts = { patch: url.searchParams.get('patch') || 'chip_tri_lead', drums: url.searchParams.get('drums') !== '0' };
     return new Response(playerHtml(token, composed, opts), { headers: { ...headers, 'content-type': 'text/html; charset=utf-8' } });
   }
   return json(summary(url, token, composed));

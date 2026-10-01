@@ -1,3 +1,4 @@
 .vercel
 server/dist/player.js
 onchain/cairo/target
+onchain/.gallery-cache.json

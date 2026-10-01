@@ -1,0 +1,644 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beast Sound Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+<style>
+:root{--g:#4af626;--dim:rgba(74,246,38,.62);--line:rgba(74,246,38,.22);--bg:#000;--card:#070a07}
+*{box-sizing:border-box}
+code{font:inherit;color:var(--g)}
+html,body{margin:0;background:var(--bg);color:var(--g);font-family:"VT323",ui-monospace,monospace}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,transparent 0 2px,rgba(0,0,0,.2) 2px 3px)}
+header,main{width:min(100% - 32px,920px);margin:0 auto}
+header{padding:40px 0 18px}
+h1{margin:0;font-weight:400;font-size:clamp(36px,8vw,58px);line-height:1;text-transform:uppercase;text-shadow:0 0 14px rgba(74,246,38,.55)}
+p{margin:10px 0 0;font-size:21px;color:var(--dim);max-width:62ch}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 6px}
+nav button{font:inherit;font-size:19px;padding:4px 14px;background:transparent;color:var(--g);border:1px solid var(--line);cursor:pointer}
+nav button[aria-pressed="true"]{background:var(--g);color:#000}
+ol{list-style:none;margin:0 0 48px;padding:0;display:grid;gap:6px}
+li a{display:grid;grid-template-columns:34px 50px minmax(0,1fr) minmax(0,1fr) 84px;gap:14px;align-items:center;padding:8px 12px;background:var(--card);border:1px solid var(--line);color:inherit;text-decoration:none}
+li a:hover,li a:focus-visible{border-color:var(--g);outline:none;box-shadow:0 0 14px -4px var(--g)}
+.n{color:var(--dim);font-size:18px}
+img{display:block;width:50px;height:70px;object-fit:contain;image-rendering:pixelated}
+.who,.music{display:grid;gap:3px;min-width:0}
+b{font-weight:400;font-size:23px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+small{font-size:17px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:8px;border:1px solid var(--line)}.bar i{display:block;height:100%;background:var(--g)}
+.tag{justify-self:end;font-size:18px;padding:1px 8px;border:1px solid var(--line)}
+li[hidden]{display:none}
+@media (max-width:640px){li a{grid-template-columns:50px minmax(0,1fr);row-gap:6px}.n,.tag{display:none}img{grid-row:span 2}}
+</style></head><body>
+<header>
+<h1>Beast Sound Gallery</h1>
+<p>100 mainnet Beasts, from the sparest theme to the densest. Each page is exactly what its onchain <code>animation_url</code> would hold: the Beast's own art plus a composer that writes its theme from its traits and history. Open one and tap ♪.</p>
+<nav aria-label="Filter by complexity"><button type="button" data-f="All" aria-pressed="true">All</button><button type="button" data-f="Sparse" aria-pressed="false">Sparse</button><button type="button" data-f="Moderate" aria-pressed="false">Moderate</button><button type="button" data-f="Rich" aria-pressed="false">Rich</button><button type="button" data-f="Dense" aria-pressed="false">Dense</button></nav>
+</header>
+<main><ol>
+<li data-level="Sparse"><a href="beasts/1022.html">
+<span class="n">001</span>
+<img src="beasts/1022.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Pandemonium Grasp Skeleton</b><small>#1022 · tier 5 · lvl 24 · 0 kills · rank 898/1241</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/3570.html">
+<span class="n">002</span>
+<img src="beasts/3570.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Glyph Bane Pixie</b><small>#3570 · tier 5 · lvl 25 · 0 kills · rank 872/1241</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 126 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/5746.html">
+<span class="n">003</span>
+<img src="beasts/5746.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Loath Tear Spider</b><small>#5746 · tier 5 · lvl 32 · 0 kills · rank 566/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/6406.html">
+<span class="n">004</span>
+<img src="beasts/6406.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Loath Glow Jaguar</b><small>#6406 · tier 4 · lvl 21 · 0 kills · rank 1065/1235</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/8065.html">
+<span class="n">005</span>
+<img src="beasts/8065.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Dragon Root Fairy</b><small>#8065 · tier 5 · lvl 21 · 0 kills · rank 1087/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/9868.html">
+<span class="n">006</span>
+<img src="beasts/9868.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Armageddon Instrument Spider</b><small>#9868 · tier 5 · lvl 42 · 0 kills · rank 378/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/11839.html">
+<span class="n">007</span>
+<img src="beasts/11839.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Mind Moon Orc</b><small>#11839 · tier 5 · lvl 77 · 0 kills · rank 78/1241</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/12494.html">
+<span class="n">008</span>
+<img src="beasts/12494.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Dire Growl Rat</b><small>#12494 · tier 5 · lvl 20 · 0 kills · rank 1109/1241</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/16615.html">
+<span class="n">009</span>
+<img src="beasts/16615.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Mind Shadow Berserker</b><small>#16615 · tier 4 · lvl 40 · 0 kills · rank 382/1236</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 128 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/18810.html">
+<span class="n">010</span>
+<img src="beasts/18810.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Fate Bane Bear</b><small>#18810 · tier 5 · lvl 45 · 0 kills · rank 298/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/19958.html">
+<span class="n">011</span>
+<img src="beasts/19958.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Viper Bane Troll</b><small>#19958 · tier 5 · lvl 21 · 0 kills · rank 1068/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/23032.html">
+<span class="n">012</span>
+<img src="beasts/23032.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Tempest Roar Satori</b><small>#23032 · tier 4 · lvl 21 · 0 kills · rank 1045/1234</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/25042.html">
+<span class="n">013</span>
+<img src="beasts/25042.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Grim Root Sprite</b><small>#25042 · tier 4 · lvl 20 · 0 kills · rank 1142/1234</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/28630.html">
+<span class="n">014</span>
+<img src="beasts/28630.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Ghoul Instrument Skeleton</b><small>#28630 · tier 5 · lvl 19 · 0 kills · rank 1212/1241</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 126 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/31891.html">
+<span class="n">015</span>
+<img src="beasts/31891.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Horror Peak Mantis</b><small>#31891 · tier 5 · lvl 36 · 0 kills · rank 452/1241</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/33711.html">
+<span class="n">016</span>
+<img src="beasts/33711.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Torment Moon Bear</b><small>#33711 · tier 5 · lvl 23 · 0 kills · rank 913/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/38429.html">
+<span class="n">017</span>
+<img src="beasts/38429.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Pandemonium Grasp Bear</b><small>#38429 · tier 5 · lvl 71 · 0 kills · rank 97/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/40122.html">
+<span class="n">018</span>
+<img src="beasts/40122.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Beast Shadow Direwolf</b><small>#40122 · tier 4 · lvl 44 · 0 kills · rank 349/1234</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/40832.html">
+<span class="n">019</span>
+<img src="beasts/40832.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Storm Roar Hippogriff</b><small>#40832 · tier 4 · lvl 24 · 0 kills · rank 928/1240</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/44131.html">
+<span class="n">020</span>
+<img src="beasts/44131.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Blight Roar Fenrir</b><small>#44131 · tier 4 · lvl 28 · 0 kills · rank 735/1233</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/45644.html">
+<span class="n">021</span>
+<img src="beasts/45644.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Phoenix Shout Kelpie</b><small>#45644 · tier 5 · lvl 25 · 0 kills · rank 812/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/47545.html">
+<span class="n">022</span>
+<img src="beasts/47545.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Demon Form Ogre</b><small>#47545 · tier 5 · lvl 19 · 0 kills · rank 1214/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/49049.html">
+<span class="n">023</span>
+<img src="beasts/49049.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Ghoul Bender Ogre</b><small>#49049 · tier 5 · lvl 29 · 0 kills · rank 682/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/51431.html">
+<span class="n">024</span>
+<img src="beasts/51431.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Death Roar Troll</b><small>#51431 · tier 5 · lvl 29 · 0 kills · rank 685/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/58396.html">
+<span class="n">025</span>
+<img src="beasts/58396.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Doom Bender Ogre</b><small>#58396 · tier 5 · lvl 21 · 0 kills · rank 1075/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/63912.html">
+<span class="n">026</span>
+<img src="beasts/63912.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Shimmering Sun Spider</b><small>#63912 · tier 5 · lvl 31 · 0 kills · rank 612/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/73724.html">
+<span class="n">027</span>
+<img src="beasts/73724.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Loath Grasp Bear</b><small>#73724 · tier 5 · lvl 46 · 0 kills · rank 284/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 126 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/86122.html">
+<span class="n">028</span>
+<img src="beasts/86122.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Sorrow Whisper Kelpie</b><small>#86122 · tier 5 · lvl 28 · 0 kills · rank 680/1242</small></span>
+<span class="music"><span class="bar"><i style="width:5.0%"></i></span><small>12 notes · 1 voice · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/7012.html">
+<span class="n">029</span>
+<img src="beasts/7012.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Tempest Shout Goblin</b><small>#7012 · tier 4 · lvl 56 · 1 kills · rank 182/1239</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 1 voice · 2 sections · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/8303.html">
+<span class="n">030</span>
+<img src="beasts/8303.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Gloom Glow Spider</b><small>#8303 · tier 5 · lvl 30 · 1 kills · rank 626/1242</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 1 voice · 2 sections · 128 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/11296.html">
+<span class="n">031</span>
+<img src="beasts/11296.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Kraken Bender Ent</b><small>#11296 · tier 4 · lvl 121 · 0 kills · rank 12/1241</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 2 voices · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/15386.html">
+<span class="n">032</span>
+<img src="beasts/15386.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Woe Song Troll</b><small>#15386 · tier 5 · lvl 61 · 1 kills · rank 144/1242</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 1 voice · 2 sections · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/22323.html">
+<span class="n">033</span>
+<img src="beasts/22323.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Eagle Tear Ent</b><small>#22323 · tier 4 · lvl 28 · 1 kills · rank 694/1241</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 1 voice · 2 sections · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/23959.html">
+<span class="n">034</span>
+<img src="beasts/23959.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Dire Glow Vampire</b><small>#23959 · tier 3 · lvl 34 · 0 kills · rank 536/1198</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 2 voices · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/29756.html">
+<span class="n">035</span>
+<img src="beasts/29756.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Pain Roar Wolf</b><small>#29756 · tier 5 · lvl 28 · 1 kills · rank 697/1241</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 1 voice · 2 sections · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/36286.html">
+<span class="n">036</span>
+<img src="beasts/36286.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Wrath Instrument Satori</b><small>#36286 · tier 4 · lvl 51 · 1 kills · rank 240/1234</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 1 voice · 2 sections · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/38402.html">
+<span class="n">037</span>
+<img src="beasts/38402.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Plague Bite Satori</b><small>#38402 · tier 4 · lvl 30 · 1 kills · rank 659/1234</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 1 voice · 2 sections · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/42201.html">
+<span class="n">038</span>
+<img src="beasts/42201.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Honour Bite Orc</b><small>#42201 · tier 5 · lvl 68 · 1 kills · rank 128/1241</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 1 voice · 2 sections · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/46024.html">
+<span class="n">039</span>
+<img src="beasts/46024.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Eagle Grasp Hippogriff</b><small>#46024 · tier 4 · lvl 53 · 1 kills · rank 242/1240</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 1 voice · 2 sections · 126 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/54798.html">
+<span class="n">040</span>
+<img src="beasts/54798.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Victory Tear Yeti</b><small>#54798 · tier 4 · lvl 63 · 1 kills · rank 130/1241</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 1 voice · 2 sections · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/61241.html">
+<span class="n">041</span>
+<img src="beasts/61241.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Miracle Bane Hippogriff</b><small>#61241 · tier 4 · lvl 28 · 2 kills · rank 763/1240</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 1 voice · 2 sections · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/73322.html">
+<span class="n">042</span>
+<img src="beasts/73322.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Vortex Moon Pixie</b><small>#73322 · tier 5 · lvl 37 · 2 kills · rank 427/1241</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 1 voice · 2 sections · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/80712.html">
+<span class="n">043</span>
+<img src="beasts/80712.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Phoenix Instrument Harpy</b><small>#80712 · tier 3 · lvl 35 · 0 kills · rank 508/1187</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 2 voices · 1 section · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/82278.html">
+<span class="n">044</span>
+<img src="beasts/82278.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Doom Root Wraith</b><small>#82278 · tier 4 · lvl 22 · 1 kills · rank 1042/1239</small></span>
+<span class="music"><span class="bar"><i style="width:10.0%"></i></span><small>24 notes · 1 voice · 2 sections · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Sparse"><a href="beasts/22227.html">
+<span class="n">045</span>
+<img src="beasts/22227.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Honour Bane Golem</b><small>#22227 · tier 4 · lvl 21 · 3 kills · rank 1077/1241</small></span>
+<span class="music"><span class="bar"><i style="width:15.0%"></i></span><small>36 notes · 1 voice · 3 sections · 120 bpm</small></span>
+<span class="tag">Sparse</span></a></li>
+<li data-level="Moderate"><a href="beasts/4154.html">
+<span class="n">046</span>
+<img src="beasts/4154.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Behemoth Grasp Weretiger</b><small>#4154 · tier 3 · lvl 54 · 2 kills · rank 204/1196</small></span>
+<span class="music"><span class="bar"><i style="width:20.0%"></i></span><small>48 notes · 2 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/12688.html">
+<span class="n">047</span>
+<img src="beasts/12688.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Vortex Sun Rakshasa</b><small>#12688 · tier 3 · lvl 32 · 2 kills · rank 595/1200</small></span>
+<span class="music"><span class="bar"><i style="width:20.0%"></i></span><small>48 notes · 2 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/17712.html">
+<span class="n">048</span>
+<img src="beasts/17712.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Skull Grasp Harpy</b><small>#17712 · tier 3 · lvl 24 · 1 kills · rank 884/1187</small></span>
+<span class="music"><span class="bar"><i style="width:20.0%"></i></span><small>48 notes · 2 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/28470.html">
+<span class="n">049</span>
+<img src="beasts/28470.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Dread Bite Oni</b><small>#28470 · tier 3 · lvl 19 · 2 kills · rank 1161/1228</small></span>
+<span class="music"><span class="bar"><i style="width:20.0%"></i></span><small>48 notes · 2 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/38447.html">
+<span class="n">050</span>
+<img src="beasts/38447.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Empyrean Bane Weretiger</b><small>#38447 · tier 3 · lvl 30 · 2 kills · rank 630/1196</small></span>
+<span class="music"><span class="bar"><i style="width:20.0%"></i></span><small>48 notes · 2 voices · 2 sections · 126 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/45869.html">
+<span class="n">051</span>
+<img src="beasts/45869.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Wrath Root Golem</b><small>#45869 · tier 4 · lvl 114 · 2 kills · rank 17/1241</small></span>
+<span class="music"><span class="bar"><i style="width:20.0%"></i></span><small>48 notes · 2 voices · 2 sections · 126 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/51686.html">
+<span class="n">052</span>
+<img src="beasts/51686.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Soul Shout Harpy</b><small>#51686 · tier 3 · lvl 21 · 1 kills · rank 1040/1187</small></span>
+<span class="music"><span class="bar"><i style="width:20.0%"></i></span><small>48 notes · 2 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/58886.html">
+<span class="n">053</span>
+<img src="beasts/58886.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Eagle Peak Giant</b><small>#58886 · tier 3 · lvl 32 · 2 kills · rank 651/1225</small></span>
+<span class="music"><span class="bar"><i style="width:20.0%"></i></span><small>48 notes · 2 voices · 2 sections · 128 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/67012.html">
+<span class="n">054</span>
+<img src="beasts/67012.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Carrion Bender Harpy</b><small>#67012 · tier 3 · lvl 43 · 2 kills · rank 336/1187</small></span>
+<span class="music"><span class="bar"><i style="width:20.0%"></i></span><small>48 notes · 2 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/71287.html">
+<span class="n">055</span>
+<img src="beasts/71287.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Bramble Sun Harpy</b><small>#71287 · tier 3 · lvl 23 · 2 kills · rank 956/1187</small></span>
+<span class="music"><span class="bar"><i style="width:20.0%"></i></span><small>48 notes · 2 voices · 2 sections · 126 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/81207.html">
+<span class="n">056</span>
+<img src="beasts/81207.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Armageddon Shadow Werewolf</b><small>#81207 · tier 3 · lvl 31 · 1 kills · rank 619/1221</small></span>
+<span class="music"><span class="bar"><i style="width:20.0%"></i></span><small>48 notes · 2 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/73089.html">
+<span class="n">057</span>
+<img src="beasts/73089.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Apocalypse Roar Chimera</b><small>#73089 · tier 2 · lvl 24 · 0 kills · rank 772/1088</small></span>
+<span class="music"><span class="bar"><i style="width:26.7%"></i></span><small>64 notes · 3 voices · 1 section · 120 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/11542.html">
+<span class="n">058</span>
+<img src="beasts/11542.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Corruption Instrument Vampire</b><small>#11542 · tier 3 · lvl 22 · 3 kills · rank 964/1198</small></span>
+<span class="music"><span class="bar"><i style="width:30.0%"></i></span><small>72 notes · 2 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/28287.html">
+<span class="n">059</span>
+<img src="beasts/28287.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Pain Bane Yeti</b><small>#28287 · tier 4 · lvl 69 · 3 kills · rank 104/1241</small></span>
+<span class="music"><span class="bar"><i style="width:30.0%"></i></span><small>72 notes · 2 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/48293.html">
+<span class="n">060</span>
+<img src="beasts/48293.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Spirit Bender Oni</b><small>#48293 · tier 3 · lvl 23 · 5 kills · rank 981/1228</small></span>
+<span class="music"><span class="bar"><i style="width:30.0%"></i></span><small>72 notes · 2 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/60309.html">
+<span class="n">061</span>
+<img src="beasts/60309.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Golem Growl Ettin</b><small>#60309 · tier 3 · lvl 25 · 3 kills · rank 866/1223</small></span>
+<span class="music"><span class="bar"><i style="width:30.0%"></i></span><small>72 notes · 2 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Moderate"><a href="beasts/83369.html">
+<span class="n">062</span>
+<img src="beasts/83369.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Loath Instrument Oni</b><small>#83369 · tier 3 · lvl 27 · 4 kills · rank 818/1228</small></span>
+<span class="music"><span class="bar"><i style="width:30.0%"></i></span><small>72 notes · 2 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Moderate</span></a></li>
+<li data-level="Rich"><a href="beasts/69544.html">
+<span class="n">063</span>
+<img src="beasts/69544.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Miracle Song Draugr</b><small>#69544 · tier 3 · lvl 64 · 3 kills · rank 130/1195</small></span>
+<span class="music"><span class="bar"><i style="width:45.0%"></i></span><small>108 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/16289.html">
+<span class="n">064</span>
+<img src="beasts/16289.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Apocalypse Growl Juggernaut</b><small>#16289 · tier 2 · lvl 61 · 1 kills · rank 121/1162</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/27701.html">
+<span class="n">065</span>
+<img src="beasts/27701.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Empyrean Moon Nephilim</b><small>#27701 · tier 2 · lvl 19 · 1 kills · rank 1114/1154</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/35197.html">
+<span class="n">066</span>
+<img src="beasts/35197.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Victory Whisper Warlock</b><small>#35197 · tier 1 · lvl 29 · 2 kills · rank 480/954</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/36995.html">
+<span class="n">067</span>
+<img src="beasts/36995.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Dread Tear Chimera</b><small>#36995 · tier 2 · lvl 55 · 1 kills · rank 142/1088</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/43749.html">
+<span class="n">068</span>
+<img src="beasts/43749.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Hate Peak Titan</b><small>#43749 · tier 2 · lvl 48 · 1 kills · rank 245/1153</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/46599.html">
+<span class="n">069</span>
+<img src="beasts/46599.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Corruption Instrument Qilin</b><small>#46599 · tier 2 · lvl 19 · 1 kills · rank 1018/1056</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/56702.html">
+<span class="n">070</span>
+<img src="beasts/56702.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Spirit Tear Anansi</b><small>#56702 · tier 1 · lvl 26 · 2 kills · rank 553/930</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/59586.html">
+<span class="n">071</span>
+<img src="beasts/59586.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Horror Glow Kitsune</b><small>#59586 · tier 2 · lvl 61 · 1 kills · rank 94/1108</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/61601.html">
+<span class="n">072</span>
+<img src="beasts/61601.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Maelstrom Instrument Ammit</b><small>#61601 · tier 2 · lvl 30 · 2 kills · rank 561/1082</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/63776.html">
+<span class="n">073</span>
+<img src="beasts/63776.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Dread Root Griffin</b><small>#63776 · tier 1 · lvl 30 · 2 kills · rank 454/892</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/65979.html">
+<span class="n">074</span>
+<img src="beasts/65979.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Torment Whisper Titan</b><small>#65979 · tier 2 · lvl 23 · 1 kills · rank 883/1153</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/67600.html">
+<span class="n">075</span>
+<img src="beasts/67600.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Golem Bender Wendigo</b><small>#67600 · tier 2 · lvl 36 · 2 kills · rank 435/1085</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/70838.html">
+<span class="n">076</span>
+<img src="beasts/70838.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Tempest Growl Gorgon</b><small>#70838 · tier 2 · lvl 39 · 1 kills · rank 345/1098</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/74654.html">
+<span class="n">077</span>
+<img src="beasts/74654.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Oblivion Bite Warlock</b><small>#74654 · tier 1 · lvl 30 · 1 kills · rank 460/954</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/80947.html">
+<span class="n">078</span>
+<img src="beasts/80947.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Onslaught Bite Gorgon</b><small>#80947 · tier 2 · lvl 38 · 2 kills · rank 378/1098</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/83166.html">
+<span class="n">079</span>
+<img src="beasts/83166.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Viper Glow Qilin</b><small>#83166 · tier 2 · lvl 26 · 2 kills · rank 678/1056</small></span>
+<span class="music"><span class="bar"><i style="width:53.3%"></i></span><small>128 notes · 3 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Rich"><a href="beasts/52918.html">
+<span class="n">080</span>
+<img src="beasts/52918.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Sorrow Peak Warlock</b><small>#52918 · tier 1 · lvl 126 · 2 kills · rank 1/954</small></span>
+<span class="music"><span class="bar"><i style="width:66.7%"></i></span><small>160 notes · 4 voices · 2 sections · 120 bpm</small></span>
+<span class="tag">Rich</span></a></li>
+<li data-level="Dense"><a href="beasts/1949.html">
+<span class="n">081</span>
+<img src="beasts/1949.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Kraken Bender Jiangshi</b><small>#1949 · tier 1 · lvl 19 · 5 kills · rank 880/924</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 132 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/16221.html">
+<span class="n">082</span>
+<img src="beasts/16221.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Gale Song Colossus</b><small>#16221 · tier 1 · lvl 56 · 3 kills · rank 100/999</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 126 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/22209.html">
+<span class="n">083</span>
+<img src="beasts/22209.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Woe Sun Dragon</b><small>#22209 · tier 1 · lvl 21 · 3 kills · rank 753/891</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 126 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/33299.html">
+<span class="n">084</span>
+<img src="beasts/33299.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Havoc Form Nephilim</b><small>#33299 · tier 2 · lvl 25 · 4 kills · rank 797/1154</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/41638.html">
+<span class="n">085</span>
+<img src="beasts/41638.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Dusk Bender Kraken</b><small>#41638 · tier 1 · lvl 39 · 4 kills · rank 253/992</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/47184.html">
+<span class="n">086</span>
+<img src="beasts/47184.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Armageddon Root Juggernaut</b><small>#47184 · tier 2 · lvl 63 · 3 kills · rank 113/1162</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/52156.html">
+<span class="n">087</span>
+<img src="beasts/52156.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Miracle Root Kitsune</b><small>#52156 · tier 2 · lvl 29 · 4 kills · rank 593/1108</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/55139.html">
+<span class="n">088</span>
+<img src="beasts/55139.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Miracle Form Jiangshi</b><small>#55139 · tier 1 · lvl 42 · 5 kills · rank 202/924</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 126 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/56071.html">
+<span class="n">089</span>
+<img src="beasts/56071.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Blight Peak Minotaur</b><small>#56071 · tier 1 · lvl 50 · 6 kills · rank 145/936</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/57962.html">
+<span class="n">090</span>
+<img src="beasts/57962.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Doom Form Qilin</b><small>#57962 · tier 2 · lvl 29 · 3 kills · rank 579/1056</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/61628.html">
+<span class="n">091</span>
+<img src="beasts/61628.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Damnation Moon Wendigo</b><small>#61628 · tier 2 · lvl 36 · 3 kills · rank 431/1085</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/63128.html">
+<span class="n">092</span>
+<img src="beasts/63128.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Carrion Whisper Juggernaut</b><small>#63128 · tier 2 · lvl 46 · 4 kills · rank 255/1162</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/67657.html">
+<span class="n">093</span>
+<img src="beasts/67657.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Brimstone Bite Gorgon</b><small>#67657 · tier 2 · lvl 24 · 5 kills · rank 789/1098</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/75473.html">
+<span class="n">094</span>
+<img src="beasts/75473.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Torment Moon Colossus</b><small>#75473 · tier 1 · lvl 23 · 4 kills · rank 767/999</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/76403.html">
+<span class="n">095</span>
+<img src="beasts/76403.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Eagle Bite Kitsune</b><small>#76403 · tier 2 · lvl 47 · 3 kills · rank 196/1108</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/78713.html">
+<span class="n">096</span>
+<img src="beasts/78713.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Cataclysm Root Dragon</b><small>#78713 · tier 1 · lvl 34 · 5 kills · rank 331/891</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/82472.html">
+<span class="n">097</span>
+<img src="beasts/82472.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Damnation Whisper Typhon</b><small>#82472 · tier 1 · lvl 30 · 6 kills · rank 432/927</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/85134.html">
+<span class="n">098</span>
+<img src="beasts/85134.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Blight Growl Hydra</b><small>#85134 · tier 2 · lvl 45 · 4 kills · rank 258/1147</small></span>
+<span class="music"><span class="bar"><i style="width:80.0%"></i></span><small>192 notes · 3 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/3553.html">
+<span class="n">099</span>
+<img src="beasts/3553.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Agony Instrument Basilisk</b><small>#3553 · tier 1 · lvl 66 · 6 kills · rank 42/927</small></span>
+<span class="music"><span class="bar"><i style="width:100.0%"></i></span><small>240 notes · 4 voices · 3 sections · 128 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+<li data-level="Dense"><a href="beasts/84438.html">
+<span class="n">100</span>
+<img src="beasts/84438.svg" alt="" loading="lazy" width="50" height="70">
+<span class="who"><b>Oblivion Shout Anansi</b><small>#84438 · tier 1 · lvl 64 · 3 kills · rank 59/930</small></span>
+<span class="music"><span class="bar"><i style="width:100.0%"></i></span><small>240 notes · 4 voices · 3 sections · 120 bpm</small></span>
+<span class="tag">Dense</span></a></li>
+</ol></main>
+<script>
+document.querySelector('nav').addEventListener('click', (e) => {
+  const f = e.target.dataset.f; if (!f) return;
+  document.querySelectorAll('nav button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.f === f));
+  document.querySelectorAll('li').forEach((li) => { li.hidden = f !== 'All' && li.dataset.level !== f; });
+});
+</script>
+</body></html>

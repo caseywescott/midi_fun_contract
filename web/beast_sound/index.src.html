@@ -253,7 +253,11 @@ pre.code { margin: 0; overflow-x: auto; background: var(--sunk); border: 1px sol
             <div class="field" id="customFollowersF" hidden><label for="patchFollowers">Followers</label><select id="patchFollowers"></select></div>
             <div class="field" id="customCsF" hidden><label for="patchCs">Countersubject</label><select id="patchCs"></select></div>
           </div>
-          <label class="check"><input type="checkbox" id="drums"> Chiptune drums: kick on beat 1, snare on beat 3</label>
+          <label class="check"><input type="checkbox" id="drums"> Chiptune drums: kick on beat 1, snare on beat 3, hi-hat on every eighth</label>
+          <div class="field" style="max-width:420px">
+            <label for="tempo">Tempo: <span class="mono" id="tempoOut"></span></label>
+            <input type="range" id="tempo" min="50" max="200" step="5" value="100">
+          </div>
           <p class="hint" id="instrumentHint">The score is the same whatever you pick; the instrument is a playback choice, not part of the Beast.</p>
         </div>
 
@@ -711,6 +715,7 @@ const SNAP = /*SNAPSHOT*/;
     $('dur').textContent = `${ev.length} notes · ${secs.toFixed(1)} s · ${Math.round(60e6 / p.tempo_us)} bpm`;
 
     drawLegend(result);
+    syncTempoLabel();
 
     drawRoll($('roll'), result, true);
     drawParams(result);
@@ -896,14 +901,33 @@ const SNAP = /*SNAPSHOT*/;
       sel.value = saved.instrument;
       ['patchLeader', 'patchFollowers', 'patchCs'].forEach((id) => { if (saved[id]) $(id).value = saved[id]; });
       $('drums').checked = !!saved.drums;
+      if (saved.tempo) $('tempo').value = saved.tempo;
     }
     syncCustom();
     ['instrument', 'patchLeader', 'patchFollowers', 'patchCs', 'drums'].forEach((id) => $(id).addEventListener('change', () => {
       syncCustom();
-      try { localStorage.setItem('beastSoundInstrument.v2', JSON.stringify({ instrument: sel.value, patchLeader: $('patchLeader').value, patchFollowers: $('patchFollowers').value, patchCs: $('patchCs').value, drums: $('drums').checked })); } catch { /* storage unavailable */ }
+      try { localStorage.setItem('beastSoundInstrument.v2', JSON.stringify({ instrument: sel.value, patchLeader: $('patchLeader').value, patchFollowers: $('patchFollowers').value, patchCs: $('patchCs').value, drums: $('drums').checked, tempo: $('tempo').value })); } catch { /* storage unavailable */ }
       if (playing) play(playing.res, playing.full ? null : playing.canvas);
     }));
   })();
+  const tempoScale = () => Number($('tempo').value) / 100;
+  function syncTempoLabel() {
+    if (!result) return;
+    const bpm = 60e6 / result.params.tempo_us, pct = Number($('tempo').value);
+    $('tempoOut').textContent = `${Math.round(bpm * pct / 100)} bpm` + (pct === 100 ? ` (the Beast's tempo)` : ` (${pct}% of the Beast's ${Math.round(bpm)})`);
+  }
+  $('tempo').addEventListener('input', () => {
+    syncTempoLabel();
+    if (playing && playing.started) {
+      // Keep the current position and continue at the new speed (no restart).
+      const now = ctx.currentTime, pos = (now - playing.t0) / playing.tick;
+      playing.tick = playing.res.params.tempo_us / 1e6 / 480 / tempoScale();
+      playing.t0 = now - pos * playing.tick;
+    }
+  });
+  $('tempo').addEventListener('change', () => {
+    try { const v = JSON.parse(localStorage.getItem('beastSoundInstrument.v2') || '{}'); v.tempo = $('tempo').value; localStorage.setItem('beastSoundInstrument.v2', JSON.stringify(v)); } catch { /* storage unavailable */ }
+  });
   function syncCustom() {
     const custom = $('instrument').value === 'custom';
     ['customLeaderF', 'customFollowersF', 'customCsF'].forEach((id) => { $(id).hidden = !custom; });
@@ -1019,14 +1043,19 @@ const SNAP = /*SNAPSHOT*/;
     const order = events.map((_, i) => i).sort((i, j) => events[i].time - events[j].time || i - j);
     const p = {
       res: r, out, buses, voiceGains, roles: rolePatches(), events, order, next: 0, t0: 0, started: false,
-      tick: r.params.tempo_us / 1e6 / 480, ticks: Math.max(...events.map((e) => e.time + e.duration)),
+      tick: r.params.tempo_us / 1e6 / 480 / tempoScale(), ticks: Math.max(...events.map((e) => e.time + e.duration)),
       canvas: canvas || $('roll'), full: !canvas, raf: 0, timer: 0,
       drums: [], nextDrum: 0,
     };
     if ($('drums').checked) {
-      for (let beat = 0; beat * 480 < p.ticks; beat++) {
-        if (beat % 4 === 0) p.drums.push({ time: beat * 480, kind: 'kick' });
-        else if (beat % 4 === 2) p.drums.push({ time: beat * 480, kind: 'snare' });
+      for (let time = 0; time < p.ticks; time += 240) {
+        const onBeat = time % 480 === 0, beat = time / 480;
+        if (onBeat && beat % 4 === 0) p.drums.push({ time, kind: 'kick', level: 0.32 });
+        if (onBeat && beat % 4 === 2) p.drums.push({ time, kind: 'snare', level: 0.16 });
+        // hi-hat on every eighth: accented on the beat, random level, ~1 in 8 off-beats opens up
+        const open = !onBeat && Math.random() < 0.125;
+        const level = (onBeat ? 0.075 : 0.05) * (0.7 + Math.random() * 0.6);
+        p.drums.push({ time, kind: open ? 'openhat' : 'hat', level });
       }
     }
     playing = p;
@@ -1050,7 +1079,7 @@ const SNAP = /*SNAPSHOT*/;
         const d = p.drums[p.nextDrum];
         const t = p.t0 + d.time * p.tick;
         if (t > horizon) break;
-        BS.chipDrum(kit, p.out, t, d.kind, d.kind === 'kick' ? 0.32 : 0.16);
+        BS.chipDrum(kit, p.out, t, d.kind, d.level);
         p.nextDrum++;
       }
     };

@@ -426,7 +426,8 @@ ENSEMBLES.push(
 export const PATCH_BY_ID = Object.fromEntries(PATCHES.map((p) => [p.id, p]));
 
 // ── chiptune drums ────────────────────────────────────────────────
-// kind: 'kick' (triangle pitch dive, NES style) or 'snare' (long-mode LFSR noise + pulse body).
+// kind: 'kick' (triangle pitch dive, NES style), 'snare' (long-mode LFSR noise + pulse body),
+// 'hat' / 'openhat' (metallic short-mode noise, short or long stepped decay).
 export function chipDrum(kit, dest, t, kind, level) {
   const ac = kit.ac, w = chipWaves(kit), sr = ac.sampleRate;
   const DECLICK = 0.003;
@@ -448,6 +449,21 @@ export function chipDrum(kit, dest, t, kind, level) {
     ng.gain.setValueAtTime(0, t); ng.gain.linearRampToValueAtTime(level * 0.25, t + 0.002); ng.gain.linearRampToValueAtTime(0, t + 0.012);
     n.connect(ng); ng.connect(dest);
     n.start(t, Math.random()); n.stop(t + 0.02);
+    return;
+  }
+  if (kind === 'hat' || kind === 'openhat') {
+    // Metallic short-mode noise pitched high (~6-7 kHz cycle), stepped decay; open hats ring longer.
+    const n = ac.createBufferSource(), ng = ac.createGain();
+    n.buffer = w.noise; n.loop = true;
+    const base = sr / w.len.noise;
+    n.playbackRate.value = (6200 + Math.random() * 900) / base;
+    const steps = kind === 'openhat' ? 12 : 3;
+    ng.gain.setValueAtTime(0, t);
+    ng.gain.linearRampToValueAtTime(level, t + 0.002);
+    for (let k = 1; k <= steps; k++) ng.gain.setValueAtTime(level * Math.round(15 * (1 - k / steps)) / 15, t + k * FRAME);
+    const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3000;
+    n.connect(ng); ng.connect(hp); hp.connect(dest);
+    n.start(t); n.stop(t + (steps + 1) * FRAME);
     return;
   }
   // snare: noise with a stepped (per-frame) decay

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/beasts/:rest*",
+      "destination": "/api/beasts?__path=:rest*"
+    }
+  ],
+  "functions": {
+    "api/beasts.js": {
+      "maxDuration": 30
+    }
+  },
+  "outputDirectory": "public",
+  "buildCommand": ""
+}

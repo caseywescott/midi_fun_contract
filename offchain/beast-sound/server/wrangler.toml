@@ -1,0 +1,4 @@
+# Cloudflare Workers deploy:  npx wrangler deploy   (run `node server/build.mjs` first)
+name = "beast-sound"
+main = "handler.js"
+compatibility_date = "2026-09-01"

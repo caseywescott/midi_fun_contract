@@ -6,14 +6,32 @@
   "main": "./src/index.js",
   "types": "./index.d.ts",
   "exports": {
-    ".": { "types": "./index.d.ts", "default": "./src/index.js" },
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./src/index.js"
+    },
     "./engine": "./src/engine.js",
     "./chain": "./src/chain.js"
   },
-  "bin": { "beast-sound": "./bin/beast-sound.mjs" },
-  "files": ["src", "bin", "index.d.ts", "README.md"],
-  "scripts": { "test": "node --test test/" },
-  "dependencies": { "@scure/starknet": "^2.4.0" },
-  "engines": { "node": ">=20" },
+  "bin": {
+    "beast-sound": "./bin/beast-sound.mjs"
+  },
+  "files": [
+    "README.md",
+    "bin",
+    "index.d.ts",
+    "server",
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test test/",
+    "serve": "node server/build.mjs && node server/node.mjs"
+  },
+  "dependencies": {
+    "@scure/starknet": "^2.4.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "license": "MIT"
 }

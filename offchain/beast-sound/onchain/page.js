@@ -18,7 +18,7 @@
 // trailing '=' is legal; every other run is a whole number of 3-byte groups.
 
 export const PAGE_HEAD = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Beast</title>'
-  + '<style>html,body{margin:0;height:100%;background:#000}body{display:grid;place-items:center;overflow:hidden}body>img{width:100%;height:100%;object-fit:contain}</style></head><body>';
+  + '<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}body>img{position:fixed;inset:0;width:100%;height:100%;object-fit:contain}</style></head><body>';
 export const URL_KEY = '"animation_url":"data:text/html;base64,';
 export const IMAGE_KEY = '"image":"data:image/svg+xml;base64,';
 

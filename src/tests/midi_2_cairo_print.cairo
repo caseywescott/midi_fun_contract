@@ -87,7 +87,8 @@ use koji::composition::melodic_canon::{
         ORN_ECHAPPEE_UPPER, ORN_ECHAPPEE_LOWER, ORN_CAMBIATA, ORN_MORDENT_UPPER,
         ORN_MORDENT_LOWER, ORN_TURN_UPPER, ORN_TURN_LOWER, ORN_TRILL_UPPER, ORN_TRILL_LOWER,
         ORN_ACCIACCATURA_UPPER, ORN_ACCIACCATURA_LOWER, ORN_CHROMATIC_APPROACH_UPPER,
-        ORN_CHROMATIC_APPROACH_LOWER, ORN_ARPEGGIATION_UP, ORN_ARPEGGIATION_DOWN, ORN_PEDAL_HOLD,
+        ORN_CHROMATIC_APPROACH_LOWER, ORN_ENCLOSURE_UF, ORN_ENCLOSURE_LF,
+        ORN_ARPEGGIATION_UP, ORN_ARPEGGIATION_DOWN, ORN_PEDAL_HOLD,
     };
     use koji::composition::canon_entry_rules::{
         EntryLagCanonConfig, config_three_voice_5b_8va_lag2,
@@ -4041,6 +4042,50 @@ use koji::composition::melodic_canon::{
         n * num_loops
     }
 
+    /// Renaissance showcase frame with one deliberately restricted V2 ornament family.
+    ///
+    /// It preserves the reference canon's three voices, configuration (4), 36-note length,
+    /// Ionian final, two loops, and one-second structural pulse.  V2 runs at eight ticks per
+    /// structural note so every catalog family, including cambiata, has sufficient rhythmic room.
+    fn append_renaissance_v2_ornament_family(
+        ref eventlist: Array<Message>,
+        seed: felt252,
+        style: OrnamentStyleProfile,
+        enabled: Array<u8>,
+    ) -> u32 {
+        append_v2_archetype_canon(
+            ref eventlist,
+            seed,
+            4,
+            36,
+            125000,
+            2,
+            MODE_IONIAN,
+            white_key_tonic(MODE_IONIAN),
+            style,
+            enabled,
+            8,
+        )
+    }
+
+    /// Export one reproducible Renaissance/V2 family variation for the MIDI demo batch.
+    fn export_renaissance_v2_ornament_family(
+        seed: felt252,
+        style: OrnamentStyleProfile,
+        enabled: Array<u8>,
+    ) -> u32 {
+        let mut eventlist = ArrayTrait::<Message>::new();
+        eventlist.append(Message::SET_TEMPO(SetTempo { tempo: 500000, time: Option::Some(0) }));
+        let note_ons = append_renaissance_v2_ornament_family(
+            ref eventlist, seed, style, enabled,
+        );
+        assert!(note_ons >= 180, "renaissance v2 family events");
+        let midiobj = Midi { events: eventlist.span() };
+        generate_parser_format(@midiobj);
+        assert_valid_demo_midi(@midiobj, note_ons);
+        note_ons
+    }
+
     fn append_long_ornamented_canon_with_mode(
         ref eventlist: Array<Message>,
         seed: felt252,
@@ -4776,6 +4821,178 @@ use koji::composition::melodic_canon::{
         let midiobj = Midi { events: eventlist.span() };
         generate_parser_format(@midiobj);
         assert_valid_demo_midi(@midiobj, note_ons);
+    }
+
+    // ── Renaissance V2 ornament-family variations ────────────────────────────────────────────────
+    // The 12 variations retain the long three-voice Renaissance canon frame and partition the
+    // complete V2 catalog: every ornament kind (1–35) appears in exactly one enabled family.
+    // Each seed has distinct structural bits and a distinct V2 ornament sub-seed in bits 51–58.
+
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn renaissance_v2_family_01_passing_midi_test() {
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_PASSING_ASC);
+        enabled.append(ORN_PASSING_DESC);
+        let n = export_renaissance_v2_ornament_family(
+            2251799815258112, profile_common_practice(), enabled,
+        );
+        assert!(n >= 180, "renaissance passing");
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn renaissance_v2_family_02_neighbors_midi_test() {
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_NEIGHBOR_UPPER);
+        enabled.append(ORN_NEIGHBOR_LOWER);
+        enabled.append(ORN_DOUBLE_NEIGHBOR_UF);
+        enabled.append(ORN_DOUBLE_NEIGHBOR_LF);
+        let n = export_renaissance_v2_ornament_family(
+            4503599631040512, profile_modal_canon(), enabled,
+        );
+        assert!(n >= 180, "renaissance neighbors");
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn renaissance_v2_family_03_anticipation_midi_test() {
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_ANTICIPATION);
+        let n = export_renaissance_v2_ornament_family(
+            6755399447871488, profile_common_practice(), enabled,
+        );
+        assert!(n >= 180, "renaissance anticipation");
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn renaissance_v2_family_04_suspensions_midi_test() {
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_SUSPENSION_43);
+        enabled.append(ORN_SUSPENSION_76);
+        enabled.append(ORN_SUSPENSION_98);
+        enabled.append(ORN_SUSPENSION_65);
+        enabled.append(ORN_SUSPENSION_23_BASS);
+        enabled.append(ORN_RETARDATION);
+        let n = export_renaissance_v2_ornament_family(
+            9007199264702464, profile_common_practice(), enabled,
+        );
+        assert!(n >= 180, "renaissance suspensions");
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn renaissance_v2_family_05_appoggiaturas_midi_test() {
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_APPOGGIATURA_UPPER);
+        enabled.append(ORN_APPOGGIATURA_LOWER);
+        let n = export_renaissance_v2_ornament_family(
+            11258999083630592, profile_common_practice(), enabled,
+        );
+        assert!(n >= 180, "renaissance appoggiaturas");
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn renaissance_v2_family_06_escape_echappee_midi_test() {
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_ESCAPE_UPPER);
+        enabled.append(ORN_ESCAPE_LOWER);
+        enabled.append(ORN_ECHAPPEE_UPPER);
+        enabled.append(ORN_ECHAPPEE_LOWER);
+        let n = export_renaissance_v2_ornament_family(
+            13510798901510144, profile_modal_canon(), enabled,
+        );
+        assert!(n >= 180, "renaissance escape echappee");
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn renaissance_v2_family_07_cambiata_midi_test() {
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_CAMBIATA);
+        let n = export_renaissance_v2_ornament_family(
+            15762598723584000, profile_modal_canon(), enabled,
+        );
+        assert!(n >= 180, "renaissance cambiata");
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn renaissance_v2_family_08_baroque_rapid_midi_test() {
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_MORDENT_UPPER);
+        enabled.append(ORN_MORDENT_LOWER);
+        enabled.append(ORN_TURN_UPPER);
+        enabled.append(ORN_TURN_LOWER);
+        enabled.append(ORN_TRILL_UPPER);
+        enabled.append(ORN_TRILL_LOWER);
+        let n = export_renaissance_v2_ornament_family(
+            18014398544609280, profile_baroque_ornament(), enabled,
+        );
+        assert!(n >= 180, "renaissance baroque rapid");
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn renaissance_v2_family_09_acciaccaturas_midi_test() {
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_ACCIACCATURA_UPPER);
+        enabled.append(ORN_ACCIACCATURA_LOWER);
+        let n = export_renaissance_v2_ornament_family(
+            20266198364585984, profile_baroque_ornament(), enabled,
+        );
+        assert!(n >= 180, "renaissance acciaccaturas");
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn renaissance_v2_family_10_chromatic_enclosures_midi_test() {
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_CHROMATIC_APPROACH_UPPER);
+        enabled.append(ORN_CHROMATIC_APPROACH_LOWER);
+        enabled.append(ORN_ENCLOSURE_UF);
+        enabled.append(ORN_ENCLOSURE_LF);
+        let n = export_renaissance_v2_ornament_family(
+            22517998187708416, profile_bebop_movement(), enabled,
+        );
+        assert!(n >= 180, "renaissance chromatic enclosures");
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn renaissance_v2_family_11_arpeggiation_midi_test() {
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_ARPEGGIATION_UP);
+        enabled.append(ORN_ARPEGGIATION_DOWN);
+        let n = export_renaissance_v2_ornament_family(
+            24769798019219456, profile_modal_canon(), enabled,
+        );
+        assert!(n >= 180, "renaissance arpeggiation");
+    }
+
+    #[ignore]
+    #[test]
+    #[available_gas(8000000000000)]
+    fn renaissance_v2_family_12_pedal_hold_midi_test() {
+        let mut enabled: Array<u8> = ArrayTrait::new();
+        enabled.append(ORN_PEDAL_HOLD);
+        let n = export_renaissance_v2_ornament_family(
+            27021597843390464, profile_modal_canon(), enabled,
+        );
+        assert!(n >= 180, "renaissance pedal hold");
     }
 
     /// Same canon as `renaissance_canon_long_3voice_ornamented_midi_test` with offset-sine tempo

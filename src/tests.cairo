@@ -52,3 +52,4 @@ pub mod test_beast_midi;
 pub mod test_articulation;
 pub mod test_contrapuntal;
 pub mod test_transformational_counterpoint;
+pub mod test_transformational_counterpoint_midi;

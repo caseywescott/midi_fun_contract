@@ -1,7 +1,7 @@
 use koji::composition::aesthetic_profile::profile_renaissance;
 use koji::composition::transformational_counterpoint::{
     CanonTransformKind, CanonTransformPlan, TransformFailure, TransformRole, TimeRatio,
-    axis_invert_line, augment_line, crab_identity_holds, degree_events_to_note_events,
+    axis_invert_line, augment_line, concat_degree_lines, crab_identity_holds, degree_events_to_note_events,
     degree_line_from_degrees, delay_line, diminish_line, events_overlap, exact_identity_holds,
     hocket_partition, hocket_part, hocket_reconstructs, invert_line, isorhythm_line,
     isorhythm_period, no_same_voice_overlaps, overlaps_consonant, retrograde_inversion_line,
@@ -133,6 +133,39 @@ fn test_exact_augmented_diminished_followers() {
     let dim = transformed_follower(leader.span(), dim_plan);
     assert((*dim.at(1)).time == 6, 'dim follower time');
     assert((*dim.at(1)).duration == 6, 'dim follower dur');
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn test_diminution_demo_cycle_is_renaissance_consonant() {
+    // One 40-tick leader statement overlaps two 20-tick diminished statements.  The previous
+    // shared arch motif created seconds in the second half of this cycle, which a single-phrase
+    // overlap check could not see.
+    let leader = degree_line_from_degrees(
+        array![0_i32, -1, -2, -1, 0, 0, -1, -2, 0, 0, 0, -1, 1, -1, 0, 0, 2, 0, 0, 0].span(),
+        2,
+        0,
+    );
+    let follower = transformed_follower(
+        leader.span(),
+        CanonTransformPlan {
+            kind: CanonTransformKind::Diminution(()),
+            entry_time: 0,
+            // In this subject, four diatonic degrees below realizes as a fifth; -3 is a fourth.
+            transposition: -4,
+            pivot: 0,
+            factor: 2,
+            follower_voice_id: 1,
+        },
+    );
+    let follower_twice = concat_degree_lines(
+        follower.span(), delay_line(follower.span(), 20).span(),
+    );
+    let texture = concat_degree_lines(leader.span(), follower_twice.span());
+    let profile = profile_renaissance();
+
+    assert((*follower.at(1)).time == 1, 'follower doubled');
+    assert(texture_profile_ok(texture.span(), @profile), 'dim cycle consonant');
 }
 
 #[test]

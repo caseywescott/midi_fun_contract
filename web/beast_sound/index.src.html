@@ -241,14 +241,8 @@ pre.code { margin: 0; overflow-x: auto; background: var(--sunk); border: 1px sol
           </div>
         </div>
 
-        <div class="roll" id="rollWrap"><canvas id="roll" height="300"></canvas></div>
-        <div class="row" style="justify-content:space-between">
-          <div class="legend" id="legend"></div>
-          <span class="time" id="dur"></span>
-        </div>
-
         <div class="group">
-          <span class="label">Instruments · synthesized in your browser</span>
+          <span class="label">Sound · synthesized in your browser</span>
           <div class="instruments">
             <div class="field"><label for="instrument">Sound</label><select id="instrument"></select></div>
             <div class="field" id="customLeaderF" hidden><label for="patchLeader">Leader</label><select id="patchLeader"></select></div>
@@ -256,6 +250,12 @@ pre.code { margin: 0; overflow-x: auto; background: var(--sunk); border: 1px sol
             <div class="field" id="customCsF" hidden><label for="patchCs">Countersubject</label><select id="patchCs"></select></div>
           </div>
           <p class="hint" id="instrumentHint">The score is the same whatever you pick; the instrument is a playback choice, not part of the Beast.</p>
+        </div>
+
+        <div class="roll" id="rollWrap"><canvas id="roll" height="300"></canvas></div>
+        <div class="row" style="justify-content:space-between">
+          <div class="legend" id="legend"></div>
+          <span class="time" id="dur"></span>
         </div>
 
         <div class="group">
@@ -856,6 +856,7 @@ const SNAP = /*SNAPSHOT*/;
     [['patchLeader', 'flute'], ['patchFollowers', 'harp'], ['patchCs', 'cello']].forEach(([id, def]) => { fillPatchSelect($(id), true); $(id).value = def; });
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem('beastSoundInstrument') || 'null'); } catch { saved = null; }
+    sel.value = 'patch:chip_tri_lead'; // default: Triangle lead (vibrato)
     if (saved && [...sel.options].some((o) => o.value === saved.instrument)) {
       sel.value = saved.instrument;
       ['patchLeader', 'patchFollowers', 'patchCs'].forEach((id) => { if (saved[id]) $(id).value = saved[id]; });

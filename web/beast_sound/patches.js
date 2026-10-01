@@ -5,7 +5,7 @@
 // play() schedules one note at time t for dur seconds into `dest` and returns nothing. Patches keep
 // node counts small (1-4 oscillators) because ornamented scores can hold 2,000+ notes.
 
-export const PATCH_FAMILIES = { acoustic: 'Acoustic', keys: 'Keys & mallets', synth: 'Synthetic' };
+export const PATCH_FAMILIES = { acoustic: 'Acoustic', keys: 'Keys & mallets', synth: 'Synthetic', chip: 'Chiptune (8-bit)' };
 
 // ── shared resources ──────────────────────────────────────────────
 export function createKit(ac) {
@@ -243,7 +243,7 @@ export const PATCHES = [
     },
   },
   {
-    id: 'chiptune', name: 'Chiptune', family: 'synth', gain: 1.0,
+    id: 'chiptune', name: 'Pulse (smooth)', family: 'chip', gain: 1.0,
     play(kit, dest, t, dur, f, vel) {
       const ac = kit.ac, g = ac.createGain();
       g.gain.setValueAtTime(vel, t); g.gain.setValueAtTime(vel * 0.7, t + Math.min(dur, 0.05)); g.gain.setValueAtTime(0, t + dur);
@@ -307,8 +307,6 @@ export const PATCHES = [
   },
 ];
 
-export const PATCH_BY_ID = Object.fromEntries(PATCHES.map((p) => [p.id, p]));
-
 /** Ensembles: one patch per role (leader, followers, countersubject). */
 export const ENSEMBLES = [
   { id: 'consort', name: 'Renaissance consort', leader: 'flute', followers: 'harp', countersubject: 'cello' },
@@ -318,3 +316,103 @@ export const ENSEMBLES = [
   { id: 'nightclub', name: 'Night synth', leader: 'supersaw', followers: 'glasspad', countersubject: 'wobble' },
   { id: 'mallets', name: 'Mallets', leader: 'marimba', followers: 'musicbox', countersubject: 'epiano' },
 ];
+
+// ── chiptune voices ───────────────────────────────────────────────
+// Single-cycle looped buffers (no band-limiting, like sound-chip channels), volume stepped at
+// 60 frames/s in 16 levels, and per-frame pitch effects (vibrato, arpeggio, blips, drops).
+const FRAME = 1 / 60;
+const CYCLE = 64; // samples per single-cycle waveform
+
+function chipWaves(kit) {
+  if (kit.chip) return kit.chip;
+  const ac = kit.ac, sr = ac.sampleRate;
+  const make = (values) => { const b = ac.createBuffer(1, values.length, sr); b.getChannelData(0).set(values); return b; };
+  const pulse = (duty) => make(Array.from({ length: CYCLE }, (_, i) => (i < CYCLE * duty ? 0.5 : -0.5)));
+  // NES triangle: 32 four-bit steps (15..0, 0..15), two samples each.
+  const triSteps = [...Array.from({ length: 16 }, (_, i) => 15 - i), ...Array.from({ length: 16 }, (_, i) => i)];
+  const tri = make(triSteps.flatMap((v) => [v / 7.5 - 1, v / 7.5 - 1]).map((v) => v * 0.6));
+  // Game Boy-style wave channel: 4-bit sawtooth.
+  const saw = make(Array.from({ length: CYCLE }, (_, i) => (Math.floor((i / CYCLE) * 16) / 7.5 - 1) * 0.45));
+  // NES noise, short mode: 93-step periodic LFSR (bit 6 tap) gives a pitched metallic tone.
+  const bits = []; let reg = 1;
+  for (let i = 0; i < 93; i++) { const fb = (reg & 1) ^ ((reg >> 6) & 1); reg = (reg >> 1) | (fb << 14); bits.push(reg & 1 ? 0.4 : -0.4); }
+  const noise = make(bits);
+  kit.chip = { p12: pulse(0.125), p25: pulse(0.25), p50: pulse(0.5), tri, saw, noise, len: { p12: CYCLE, p25: CYCLE, p50: CYCLE, tri: CYCLE, saw: CYCLE, noise: 93 } };
+  return kit.chip;
+}
+
+// Stepped 16-level envelope: attack frames up to `peak`, decay frames to `sustain` (0..1 of peak),
+// hold until note-off, then release frames.
+function chipEnvelope(param, t, dur, peak, { attack = 0, decay = 0, sustain = 1, release = 2 }) {
+  const q = (v) => Math.round(v * 15) / 15;
+  let frame = 0;
+  param.setValueAtTime(0, t);
+  const at = (n) => t + n * FRAME;
+  const end = t + Math.max(dur, FRAME);
+  for (let i = 1; i <= attack && at(frame + 1) < end; i++) param.setValueAtTime(peak * q(i / attack), at(frame++));
+  let level = 1;
+  if (!attack) { param.setValueAtTime(peak, t); }
+  for (let i = 1; i <= decay && at(frame + 1) < end; i++) { level = 1 - (1 - sustain) * (i / decay); param.setValueAtTime(peak * q(level), at(++frame)); }
+  for (let i = 1; i <= release; i++) param.setValueAtTime(peak * q(level * (1 - i / release)), end + (i - 1) * FRAME);
+  return end + release * FRAME;
+}
+
+function chipVoice(kit, dest, t, dur, f, vel, o) {
+  const ac = kit.ac, w = chipWaves(kit);
+  const src = ac.createBufferSource(), g = ac.createGain();
+  src.buffer = w[o.wave];
+  src.loop = true;
+  const base = ac.sampleRate / w.len[o.wave];
+  src.playbackRate.value = (f * (o.octave ? 2 ** o.octave : 1)) / base;
+  const stopAt = chipEnvelope(g.gain, t, dur, vel, o.env || {});
+  const det = src.detune;
+  if (o.arp) {
+    // Arpeggio: cycle chord offsets (in cents) every `rate` frames for the whole note.
+    const rate = o.arp.frames || 2;
+    for (let k = 0, at = t; at < stopAt; k++, at += rate * FRAME) det.setValueAtTime(o.arp.cents[k % o.arp.cents.length], at);
+  } else if (o.blip) {
+    // Pitch blip: start `cents` away and step back to the note over a few frames.
+    for (let k = 0; k <= o.blip.frames; k++) det.setValueAtTime(o.blip.cents * (1 - k / o.blip.frames), t + k * FRAME);
+  } else if (o.drop) {
+    // Bass drop: fall `cents` over the note's first frames and stay there.
+    for (let k = 0; k <= o.drop.frames; k++) det.setValueAtTime(-o.drop.cents * (k / o.drop.frames), t + k * FRAME);
+  }
+  if (o.vib && dur > o.vib.delay) {
+    const lfo = ac.createOscillator(), depth = ac.createGain();
+    lfo.type = 'triangle'; lfo.frequency.value = o.vib.rate;
+    depth.gain.setValueAtTime(0, t);
+    depth.gain.setValueAtTime(o.vib.cents, t + o.vib.delay);
+    lfo.connect(depth); depth.connect(det);
+    lfo.start(t); lfo.stop(stopAt + 0.05);
+  }
+  src.connect(g); g.connect(dest);
+  src.start(t); src.stop(stopAt + 0.05);
+}
+
+const chip = (id, name, gain, opts) => ({ id, name, family: 'chip', gain, play: (kit, dest, t, dur, f, vel) => chipVoice(kit, dest, t, dur, f, vel, opts) });
+const MINOR_ARP = { cents: [0, 300, 700], frames: 2 };
+
+PATCHES.push(
+  chip('chip_p12_lead', 'Pulse 12.5% lead (vibrato)', 1.2, { wave: 'p12', env: { attack: 0, decay: 6, sustain: 0.8, release: 3 }, vib: { rate: 6, cents: 25, delay: 0.18 } }),
+  chip('chip_p25_lead', 'Pulse 25% lead (vibrato)', 1.2, { wave: 'p25', env: { decay: 4, sustain: 0.85, release: 3 }, vib: { rate: 5.5, cents: 20, delay: 0.15 } }),
+  chip('chip_square', 'Square 50% (plain)', 1.0, { wave: 'p50', env: { sustain: 1, release: 2 } }),
+  chip('chip_p25_pluck', 'Pulse 25% pluck', 1.6, { wave: 'p25', env: { decay: 12, sustain: 0, release: 1 } }),
+  chip('chip_p12_blip', 'Pulse 12.5% blip', 1.4, { wave: 'p12', env: { decay: 8, sustain: 0.4, release: 2 }, blip: { cents: 1200, frames: 3 } }),
+  chip('chip_tri_bass', 'Triangle bass (NES)', 1.3, { wave: 'tri', octave: -1, env: { sustain: 1, release: 1 } }),
+  chip('chip_tri_lead', 'Triangle lead (vibrato)', 1.3, { wave: 'tri', env: { sustain: 1, release: 2 }, vib: { rate: 6, cents: 30, delay: 0.2 } }),
+  chip('chip_saw_lead', '4-bit saw lead (vibrato)', 1.8, { wave: 'saw', env: { attack: 2, decay: 6, sustain: 0.75, release: 4 }, vib: { rate: 5, cents: 18, delay: 0.2 } }),
+  chip('chip_saw_bass', '4-bit saw bass (drop)', 2.0, { wave: 'saw', octave: -1, env: { decay: 10, sustain: 0.5, release: 2 }, drop: { cents: 100, frames: 6 } }),
+  chip('chip_arp', 'Minor arpeggio (pulse 25%)', 1.2, { wave: 'p25', env: { decay: 10, sustain: 0.6, release: 3 }, arp: MINOR_ARP }),
+  chip('chip_swell', 'Pulse swell pad', 1.0, { wave: 'p50', env: { attack: 12, decay: 0, sustain: 1, release: 10 }, vib: { rate: 4, cents: 12, delay: 0.3 } }),
+  chip('chip_noise', 'Metallic noise (LFSR)', 1.8, { wave: 'noise', env: { decay: 8, sustain: 0.3, release: 2 } }),
+);
+
+ENSEMBLES.push(
+  { id: 'nes', name: 'NES band', leader: 'chip_p25_lead', followers: 'chip_p12_lead', countersubject: 'chip_tri_bass' },
+  { id: 'gameboy', name: 'Game Boy', leader: 'chip_saw_lead', followers: 'chip_p12_blip', countersubject: 'chip_tri_bass' },
+  { id: 'arcade', name: 'Arcade arps', leader: 'chip_square', followers: 'chip_arp', countersubject: 'chip_saw_bass' },
+  { id: 'dungeoncrawl', name: 'Dungeon crawler', leader: 'chip_p12_lead', followers: 'chip_p25_pluck', countersubject: 'chip_noise' },
+);
+
+export const PATCH_BY_ID = Object.fromEntries(PATCHES.map((p) => [p.id, p]));
+

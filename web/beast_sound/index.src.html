@@ -1,0 +1,905 @@
+<title>Beast Sound</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #e8eaee;
+  --surface: #f7f8fa;
+  --sunk: #dfe2e7;
+  --ink: #15181e;
+  --muted: #586070;
+  --line: #c9ced6;
+  --accent: #8a2c37;
+  --accent-soft: #8a2c3714;
+  --on-accent: #ffffff;
+  --gold: #8f6516;
+  --ok: #2d6a4a;
+  --v0: #8a2c37;
+  --v1: #23638a;
+  --v2: #5d6e1f;
+  --v3: #6d4594;
+  --v4: #a8741d;
+  --grid: #15181e12;
+  --display: "IM Fell English SC", "Iowan Old Style", Georgia, serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1115; --surface: #171a20; --sunk: #0b0d10; --ink: #e6e8ec; --muted: #99a0ad;
+    --line: #2b303a; --accent: #e07a84; --accent-soft: #e07a841c; --on-accent: #16090b;
+    --gold: #e0b45c; --ok: #6cc596; --v0: #e07a84; --v1: #6fb6e0; --v2: #b5c96a;
+    --v3: #b997e6; --v4: #e7b25c; --grid: #e6e8ec10; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1115; --surface: #171a20; --sunk: #0b0d10; --ink: #e6e8ec; --muted: #99a0ad;
+  --line: #2b303a; --accent: #e07a84; --accent-soft: #e07a841c; --on-accent: #16090b;
+  --gold: #e0b45c; --ok: #6cc596; --v0: #e07a84; --v1: #6fb6e0; --v2: #b5c96a;
+  --v3: #b997e6; --v4: #e7b25c; --grid: #e6e8ec10; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--sans); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 64px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 400; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+h1 { font-size: clamp(34px, 5vw, 52px); line-height: 1.02; }
+h2 { font-size: 28px; line-height: 1.15; }
+h3 { font-size: 20px; }
+p { margin: 0; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.label { font: 500 11px/1.2 var(--sans); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+a { color: var(--accent); }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: grid; gap: 14px; margin-bottom: 22px; }
+.top .lede { max-width: 68ch; color: var(--muted); font-size: 16px; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 22px; flex-wrap: wrap; }
+.tabs button { background: none; border: 0; padding: 10px 14px; border-bottom: 2px solid transparent; cursor: pointer; color: var(--muted); font-weight: 500; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+.app { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 900px) { .app { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: grid; gap: 16px; min-width: 0; }
+.panel > .group { display: grid; gap: 10px; }
+.panel > .group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.field { display: grid; gap: 4px; min-width: 0; flex: 1 1 120px; }
+.field label { font-size: 12px; color: var(--muted); }
+select, input[type="text"], input[type="number"] { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 7px 9px; min-width: 0; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; cursor: pointer; }
+.check input { accent-color: var(--accent); }
+.btn { border: 1px solid var(--line); background: var(--bg); border-radius: 4px; padding: 7px 12px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .5; cursor: default; }
+.hint { font-size: 12px; color: var(--muted); }
+.err { font-size: 12px; color: var(--accent); }
+
+.roster { max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); }
+.roster button { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 7px 10px; cursor: pointer; }
+.roster button:last-child { border-bottom: 0; }
+.roster button:hover, .roster button[aria-current="true"] { background: var(--accent-soft); }
+.roster .nm { font-weight: 500; font-size: 14px; }
+.roster .meta { grid-column: 1 / -1; font: 12px var(--mono); color: var(--muted); }
+.roster .rk { font: 12px var(--mono); color: var(--muted); }
+.crown { color: var(--gold); }
+
+.card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 18px; align-items: start; }
+.card .name { font-family: var(--display); font-size: clamp(28px, 4vw, 40px); line-height: 1.05; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font: 500 12px/1 var(--sans); padding: 5px 8px; border-radius: 3px; border: 1px solid var(--line); background: var(--bg); white-space: nowrap; }
+.chip.on { border-color: var(--ok); color: var(--ok); }
+.chip.off { color: var(--muted); }
+.chip.gold { border-color: var(--gold); color: var(--gold); }
+.playbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.play { width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--accent); color: var(--on-accent); cursor: pointer; display: grid; place-items: center; }
+.play svg { width: 22px; height: 22px; fill: currentColor; }
+.time { font: 13px var(--mono); color: var(--muted); }
+
+.roll { position: relative; width: 100%; background: var(--sunk); border-radius: 4px; border: 1px solid var(--line); overflow: hidden; }
+.roll canvas { display: block; width: 100%; height: 300px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+.kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px 18px; }
+.kv div { display: grid; gap: 1px; min-width: 0; }
+.kv b { font-weight: 500; font-size: 14px; overflow-wrap: anywhere; }
+.kv .why { font-size: 12px; color: var(--muted); }
+.hashes { display: grid; gap: 6px; font: 12px var(--mono); }
+.hashes div { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 8px; }
+.hashes span:last-child { overflow-wrap: anywhere; color: var(--muted); }
+
+.history { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 700px) { .history { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hcell { display: grid; gap: 6px; }
+.hcell canvas { width: 100%; height: 70px; background: var(--sunk); border-radius: 3px; border: 1px solid var(--line); display: block; }
+.hcell .btn { justify-self: start; padding: 4px 10px; font-size: 13px; }
+
+/* proposal */
+.doc { display: grid; gap: 34px; max-width: 880px; }
+.doc section { display: grid; gap: 12px; }
+.doc p, .doc li { max-width: 72ch; }
+.doc ul, .doc ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 500 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--surface); }
+tr:last-child td { border-bottom: 0; }
+td code, p code, li code { font: 13px var(--mono); background: var(--sunk); padding: 1px 4px; border-radius: 3px; }
+pre.code { margin: 0; overflow-x: auto; background: var(--sunk); border: 1px solid var(--line); border-radius: 4px; padding: 14px; font: 12.5px/1.55 var(--mono); }
+.status { display: inline-block; font: 500 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; padding: 3px 6px; border-radius: 3px; border: 1px solid currentColor; white-space: nowrap; }
+.status.done { color: var(--ok); }
+.status.todo { color: var(--muted); }
+.status.ask { color: var(--gold); }
+.callout { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; }
+.mermaid { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 12px; overflow-x: auto; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="label">Loot Survivor · Beasts V3 · Onchain sound</span>
+    <h1>Every Beast has a theme.<br>Its history arranges it.</h1>
+    <p class="lede">Pick any of the 93,225 original Beasts, a real one from mainnet, or a community species from the Beasts V3 Sepolia deployment. The composer reads only what the V3 token ID, the dungeon and Summit already store, and returns a deterministic canon. The browser runs the same algorithm as the Cairo contract and produces the same notes and the same score hash.</p>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-sim" aria-selected="true" aria-controls="view-sim">Simulator</button>
+    <button role="tab" id="tab-plan" aria-selected="false" aria-controls="view-plan">How it ships with V3</button>
+  </nav>
+
+  <main id="view-sim" role="tabpanel" aria-labelledby="tab-sim">
+    <div class="app">
+      <aside class="panel" aria-label="Choose a Beast">
+        <div class="group">
+          <span class="label">Real Beasts · mainnet + V3 Sepolia</span>
+          <input type="text" id="search" placeholder="Search: Warlock, Sorrow, crown…" aria-label="Search snapshot">
+          <div class="roster" id="roster"></div>
+          <p class="hint" id="snapmeta"></p>
+        </div>
+
+        <div class="group">
+          <span class="label">Any of the 93,225 · or a community species</span>
+          <div class="field"><label for="species">Species</label><select id="species"></select></div>
+          <div class="row" id="communityRow" hidden>
+            <div class="field"><label for="ctype">Type</label><select id="ctype"><option value="0">Magic</option><option value="1">Hunter</option><option value="2">Brute</option></select></div>
+            <div class="field"><label for="ctier">Tier</label><select id="ctier"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>
+          </div>
+          <div class="row">
+            <div class="field"><label for="prefix">Prefix</label><select id="prefix"></select></div>
+            <div class="field"><label for="suffix">Suffix</label><select id="suffix"></select></div>
+          </div>
+          <div class="row">
+            <div class="field"><label for="level">Level</label><input type="number" id="level" min="1" max="65535"></div>
+            <div class="field"><label for="health">Health</label><input type="number" id="health" min="1" max="65535"></div>
+          </div>
+          <div class="row">
+            <label class="check"><input type="checkbox" id="shiny"> Shiny</label>
+            <label class="check"><input type="checkbox" id="animated"> Animated</label>
+          </div>
+        </div>
+
+        <div class="group">
+          <span class="label">Living state · from the dungeon</span>
+          <div class="field">
+            <label for="kills">Adventurers killed: <span class="mono" id="killsOut"></span></label>
+            <input type="range" id="kills" min="0" max="128" step="1">
+          </div>
+          <div class="field">
+            <label for="deaths">Summit deaths (scars): <span class="mono" id="deathsOut"></span></label>
+            <input type="range" id="deaths" min="0" max="64" step="1">
+          </div>
+          <div class="field">
+            <label for="summit">Hours held on the Summit: <span class="mono" id="summitOut"></span></label>
+            <input type="range" id="summit" min="0" max="500" step="1">
+          </div>
+          <div class="row">
+            <div class="field"><label for="rank">Species rank</label><input type="number" id="rank" min="0" max="1243"></div>
+            <div class="field"><label for="count">Of</label><input type="number" id="count" min="1" max="1243"></div>
+          </div>
+          <p class="hint">Kills come from Death Mountain. Deaths and hours come from Summit. Rank 1 wears the crown; rank 0 is the Genesis (creator) token.</p>
+        </div>
+
+        <div class="group">
+          <span class="label">Token ID</span>
+          <div class="field">
+            <label for="tokenIn">Paste a Beasts V3 token ID (decimal or 0x) or a current mainnet token number</label>
+            <input type="text" id="tokenIn" class="mono" placeholder="e.g. 52918 or 0x…">
+          </div>
+          <div class="row"><button class="btn" id="tokenGo">Summon</button><span class="err" id="tokenErr"></span></div>
+        </div>
+      </aside>
+
+      <section class="panel" aria-label="Score">
+        <div class="card">
+          <div style="display:grid;gap:8px;min-width:0">
+            <span class="label" id="eyebrow"></span>
+            <div class="name" id="bname"></div>
+            <div class="chips" id="chips"></div>
+          </div>
+          <div class="playbar">
+            <button class="play" id="play" aria-label="Play theme"><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4.5v15l13-7.5z"/></svg></button>
+          </div>
+        </div>
+
+        <div class="roll" id="rollWrap"><canvas id="roll" height="300"></canvas></div>
+        <div class="row" style="justify-content:space-between">
+          <div class="legend" id="legend"></div>
+          <span class="time" id="dur"></span>
+        </div>
+
+        <div class="group">
+          <span class="label">What the contract derived · and why</span>
+          <div class="kv" id="params"></div>
+        </div>
+
+        <div class="group">
+          <span class="label">Canonical hashes · identical in Cairo and here</span>
+          <div class="hashes" id="hashes"></div>
+          <div class="row">
+            <button class="btn" id="dlMidi">Download MIDI (.zip)</button>
+            <button class="btn" id="copyCall">Copy contract inputs</button>
+            <span class="hint" id="dlMsg"></span>
+          </div>
+        </div>
+
+        <div class="group">
+          <span class="label">Same Beast, four lifetimes</span>
+          <p class="hint">Only the kill count changes. The motif fingerprint stays fixed; form, stretto and density grow.</p>
+          <div class="history" id="history"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <main id="view-plan" role="tabpanel" aria-labelledby="tab-plan" hidden>
+    <div class="doc">
+      <section>
+        <span class="label">Recommendation</span>
+        <h2>Ship Sound beside V3, not inside it</h2>
+        <p>Sound launches as one small, separate Starknet contract that reads Beasts V3. It needs no changes to <code>beasts_nft</code>, the registry, or the token ID layout, so it can't slow the V3 launch. Everything the composer needs already exists onchain:</p>
+        <ul>
+          <li><b>Identity</b> from the 116-bit token ID: species, prefix, suffix, level, health, shiny, animated, tier, type.</li>
+          <li><b>Kills and rank</b> from the Beasts NFT: <code>get_adventurers_killed</code>, <code>get_beast_rank</code>, <code>get_species_count</code>. These are live Death Mountain reads for species 1–75 and the <code>refresh_stats</code> cache for community species.</li>
+          <li><b>Scars and glory</b> from Summit: <code>get_live_stats</code> gives <code>revival_count</code> (deaths) and <code>summit_held_seconds</code>.</li>
+          <li><b>Seed</b> = <code>poseidon('BEAST_SOUND_V1', id, prefix, suffix)</code>, the same inputs as the entity hash. A V2 Beast keeps its melody through <code>burn_and_mint</code>, because the seed contains no contract address, chain id or owner.</li>
+          <li><b>Creator authority</b> = holder of the species' Genesis Beast, the same rule V3 now uses for art.</li>
+        </ul>
+        <p class="callout">MVP: a Sound rarity drop across the original 93,225, every Genesis Beast singing, and an opt-in for community species. Creators can use the Koji composer or their own provider.</p>
+      </section>
+
+      <section>
+        <span class="label">If a new contract isn't wanted</span>
+        <h3>The whole thing also runs offchain</h3>
+        <p>Sound doesn't have to be a contract at all. <code>@koji/beast-sound</code> composes any Beast's theme from data Provable Games already publishes: the token's traits, the NFT's kills and rank, and Summit's deaths and hours held. Nothing needs to be deployed, stored or changed on their side.</p>
+        <div class="tbl"><table>
+          <thead><tr><th>Concern</th><th>Onchain contract</th><th>Offchain package</th></tr></thead>
+          <tbody>
+            <tr><td>What V3 must do</td><td>Nothing (separate contract)</td><td>Nothing</td></tr>
+            <tr><td>Who can compute a Beast's music</td><td>Anyone, via a view call</td><td>Anyone, via <code>npm</code> or the browser</td></tr>
+            <tr><td>Can the output be verified?</td><td>It is the source</td><td>Yes: byte-identical to the Cairo reference, checked by golden tests anyone can run</td></tr>
+            <tr><td>Sound rarity drop</td><td>Salt stored in the contract</td><td>Salt from the hash of an announced future block; <code>hasSound()</code> is a pure function</td></tr>
+            <tr><td>Creator opt-in for community species</td><td><code>set_sound_provider</code>, Genesis holder only</td><td>A signed message from the Genesis holder, or a curated list in the player</td></tr>
+            <tr><td>Composability for other onchain games</td><td>Yes</td><td>No; games read the package instead</td></tr>
+            <tr><td>Cost</td><td>About 30 STRK to declare, free views</td><td>None</td></tr>
+          </tbody>
+        </table></div>
+        <p>The tradeoff is composability, not trust: the music is the same either way, and the Cairo reference stays available if an onchain version is wanted later.</p>
+      </section>
+
+      <section>
+        <span class="label">Upstream, checked 1 Oct 2026</span>
+        <h3>Where Beasts V3 stands</h3>
+        <div class="tbl"><table>
+          <thead><tr><th>Piece</th><th>State</th><th>What it means for Sound</th></tr></thead>
+          <tbody>
+            <tr><td>116-bit token IDs, Votes/terminal removal, owner enumeration</td><td>Merged to <code>main</code> (#16, #18, #14)</td><td>The patch decodes this exact layout</td></tr>
+            <tr><td>BeastRegistry, NFT wiring, SDK/app</td><td>On branches. PRs #19–21 closed unmerged on 1 Aug</td><td>Deployed to Sepolia 31 Jul. Sound depends only on the token ID, so it works either way</td></tr>
+            <tr><td>Artist role</td><td>Holder of the Genesis Beast <code>(id, 0, 0)</code>, with no stored role</td><td>BeastSound authorizes with one <code>owner_of</code> call</td></tr>
+            <tr><td>Migration</td><td>Player-initiated <code>burn_and_mint</code>, deferred. Genesis minting paused until it's done</td><td>Seed survives. Time the drop reveal to V3 mainnet launch</td></tr>
+            <tr><td>Registry backfill of 1–75</td><td>Dropped</td><td>Sound reads tier/type from the token, never the registry</td></tr>
+            <tr><td>Community stats</td><td>Opt-in cache: kills, last killed by, timestamp</td><td>Kills work for community Beasts. Scars come from Summit</td></tr>
+            <tr><td>Standalone collections</td><td>Tiddy Mun on mainnet. Black Shuck on a branch and as species #77–78 on Sepolia</td><td>Use V3 species when possible; otherwise a collection-scoped seed</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section>
+        <span class="label">Architecture</span>
+        <h3>Where each piece lives</h3>
+<pre class="mermaid">
+flowchart LR
+  NFT["beasts_nft (V3)<br/>token ID · kills · rank"]
+  SUM["Summit<br/>deaths · hours held"]
+  SND["BeastSound<br/>drop salt · per-species provider"]
+  KOJI["Koji composer (Cairo)<br/>pure: token + live → score"]
+  WEB["Renderer<br/>WebAudio · game engine"]
+  NFT -->|"owner_of(Genesis) = creator"| SND
+  NFT --> SND
+  SUM --> SND
+  SND --> KOJI
+  KOJI -->|"params · state hash · score hash"| WEB
+  WEB -->|"recompute + verify score hash"| WEB
+</pre>
+        <p>The contract is the source of truth for identity, params and hashes. Renderers recompute the notes offchain and check them against the score hash. That's what this page does, with the same engine.</p>
+      </section>
+
+      <section>
+        <span class="label">The contract surface</span>
+        <h3>BeastSound: one interface, mirrors IBeastArtProvider</h3>
+<pre class="code">#[starknet::interface]
+trait IBeastSound&lt;T&gt; {
+    // rarity + opt-in
+    fn has_sound(self: @T, token_id: u256) -&gt; bool;
+    fn get_sound_provider(self: @T, species_id: u64) -&gt; ContractAddress;   // 0 = Koji default
+    fn set_sound_provider(ref self: T, species_id: u64, provider: ContractAddress);
+        // caller == beasts_nft.owner_of(genesis_token_id(species_id)) — same rule as V3 art
+    fn lock_sound(ref self: T, species_id: u64);                            // one-way, like lock_art
+
+    // canonical state (cheap views)
+    fn get_composition_params(self: @T, token_id: u256) -&gt; BeastCompositionParams;
+    fn get_music_state_hash(self: @T, token_id: u256) -&gt; felt252;
+
+    // canonical score
+    fn get_score_hash(self: @T, token_id: u256) -&gt; felt252;
+    fn get_score_notes(self: @T, token_id: u256) -&gt; Array&lt;felt252&gt;;  // BSN1: 7 bits per note
+    fn get_score_midi(self: @T, token_id: u256) -&gt; Array&lt;felt252&gt;;   // full MIDI file (7× larger)
+}
+
+#[starknet::interface]
+trait IBeastSoundProvider&lt;T&gt; {   // Koji canonical class, or a creator's own
+    fn get_score(self: @T, beast: PackableBeast, live: BeastV3LiveState) -&gt; Span&lt;felt252&gt;;
+}
+
+struct BeastV3LiveState {
+    adventurers_killed: u64,   // beasts_nft.get_adventurers_killed
+    scars: u64,                // Summit revival_count + (collect count − 1)
+    summit_held_seconds: u64,  // Summit summit_held_seconds
+    rank: u16,                 // beasts_nft.get_beast_rank (0 = Genesis)
+    species_count: u16,        // beasts_nft.get_species_count
+}</pre>
+        <p><b>BSN1</b> is the client payload. Every note in a Beast score sits on the beat grid, all notes share one duration, voices play runs of consecutive beats, and velocity follows the articulation rule. So the stream is an 81-bit header, 24 bits per run, and 7 bits per note (the MIDI key). The heaviest Beast's 400 notes fit in 436 bytes (17 felts), against 3.7 KB (122 felts) as MIDI. The client's <code>bsnToMidi</code> rebuilds the exact MIDI file, so it still verifies against the score hash.</p>
+        <p>A custom sound provider that reverts only breaks its own species, as with art. <code>token_uri</code> never calls a sound provider, as with kill stats. Metadata gets at most a pure <code>Sound</code> trait and an <code>animation_url</code> pointing at a player.</p>
+      </section>
+
+      <section>
+        <span class="label">The rarity drop</span>
+        <h3>How 93,225 Beasts learn whether they sing</h3>
+        <ol>
+          <li>Before V3 mainnet, commit to a salt (for example the hash of a future block), so nobody can pre-compute winners.</li>
+          <li>Reveal it at launch. <code>has_sound = genesis || poseidon('BEAST_SOUND_DROP', salt, id, prefix, suffix) % 10000 &lt; drop_bps</code>.</li>
+          <li>The result depends only on <code>(id, prefix, suffix)</code>. A V2 holder can check their Beast before they <code>burn_and_mint</code>, and the result carries across. It needs no storage, no migration step and no change to the token ID.</li>
+        </ol>
+        <p>This page uses a demo salt and 5% (500 bps), the same scale as Shiny and Animated. Genesis Beasts always have Sound and act as each species' signature theme.</p>
+      </section>
+
+      <section>
+        <span class="label">Small asks of the V3 team</span>
+        <h3>Five items, none blocking</h3>
+        <div class="tbl"><table>
+          <thead><tr><th>Ask</th><th>Why</th><th>Cost to V3</th></tr></thead>
+          <tbody>
+            <tr><td>Keep the entity hash <code>poseidon(id, prefix, suffix)</code> unchanged through <code>burn_and_mint</code></td><td>The sound seed uses the same inputs</td><td>None (already the design)</td></tr>
+            <tr><td>Keep Sound out of the 116-bit token ID</td><td>The drop is derivable from the hash</td><td>None</td></tr>
+            <tr><td>When Summit moves to V3 token IDs, keep <code>revival_count</code> and <code>summit_held_seconds</code> readable per Beast</td><td>They're the only defeat signal that moves. Summit keys Beasts by 32-bit V2 IDs today</td><td>Part of Summit's own V3 update</td></tr>
+            <tr><td>Bring new species (Black Shuck, Tiddy Mun) in as V3 community species rather than standalone collections</td><td>One seed space and one sound path. Standalone ones need a collection-scoped seed</td><td>Already trialled on Sepolia (#77, #78)</td></tr>
+            <tr><td>Optional <code>Sound</code> trait plus an <code>animation_url</code> player link in metadata</td><td>Marketplaces surface it. A pure function, so no external call in <code>token_uri</code></td><td>A few lines in <code>metadata_generator</code></td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section>
+        <span class="label">What mainnet data says</span>
+        <h3>Calibrating the living mapping</h3>
+        <p id="dataNote"></p>
+        <ul>
+          <li><b>Kills are sparse.</b> On log₂ buckets, today's Beasts reach at most section C. The form has room to grow as they rack up kills.</li>
+          <li><b>Death Mountain can't supply scars, but Summit can.</b> Summit deaths drive the scar layer: 7+ deaths invert the follower and drop section C a third. Summit time adds to the Beast's history, and 16+ hours adds ornament density.</li>
+          <li><b>Level and health vary widely</b> (level 19–207, health 11–1023). They feed voice count (level ≥ 64) and register weight (health ≥ 250 sits a band lower).</li>
+          <li><b>Species sizes differ</b> (882 to 1,242 minted). Rank tiers are percentiles of the species.</li>
+        </ul>
+      </section>
+
+      <section>
+        <span class="label">Changes made to the Koji spec and code</span>
+        <h3>What this patch changes</h3>
+        <div class="tbl"><table>
+          <thead><tr><th>Before</th><th>Now (branch <code>beasts-v3-sound</code>)</th></tr></thead>
+          <tbody>
+            <tr><td>Species ids 0–74 with formula tiers. The vault's 75-row table disagrees with the live contract (Dragon is 29 / Hunter / T1, not 8 / Magic)</td><td>Real ids 1–75 and 76+. Tier and type are read from the token ID</td></tr>
+            <tr><td>75 hand-assigned canon families</td><td>A type × tier family table that works for any community species</td></tr>
+            <tr><td><code>name_variant_id</code> 0–1242</td><td>Prefix 1–69 and suffix 1–18 straight from the token. Genesis is (0, 0)</td></tr>
+            <tr><td>Visual rarity as a 4-value enum</td><td>Two independent flags. Animated + Shiny stacks both layers</td></tr>
+            <tr><td>Seed may include chain id and contract address</td><td>Seed = entity-hash inputs only, so it survives <code>burn_and_mint</code></td></tr>
+            <tr><td>Times defeated from Death Mountain (always 1)</td><td>Scars = Summit deaths. New Summit-hours layer</td></tr>
+            <tr><td>Stored creator / registry artist</td><td><code>genesis_token_id(id, tier, type)</code>, whose holder is the authority</td></tr>
+            <tr><td>"75 × 1,243 × 4 = 93,225"</td><td>75 × 1,243 = 93,225. Shiny and Animated aren't part of uniqueness</td></tr>
+            <tr><td>Absolute rank tiers</td><td>Percentile of <code>get_species_count</code></td></tr>
+            <tr><td>Score hash ignored inversion, countersubject, register, velocity and tempo, so two different scores could share a hash</td><td>The hash commits to every input that changes the notes or their timing</td></tr>
+            <tr><td>No story for standalone collections</td><td><code>standalone_sound_seed(collection, id, prefix, suffix)</code></td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section>
+        <span class="label">Status</span>
+        <h3>What's real today and what remains</h3>
+        <div class="tbl"><table>
+          <thead><tr><th>Piece</th><th>State</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr><td>V3 token decode + mapper (<code>beast_v3_sound.cairo</code>)</td><td><span class="status done">Done</span></td><td>12 Cairo tests. The Warlock Genesis and "Agony Bane Gloomfang" token IDs match the Sepolia deployment exactly</td></tr>
+            <tr><td>Browser engine = Cairo engine</td><td><span class="status done">Done</span></td><td>Seed, params, state and score hashes plus a per-note checksum match on 5 fixture Beasts</td></tr>
+            <tr><td>Offchain package <code>@koji/beast-sound</code> (engine, chain readers, CLI, types)</td><td><span class="status done">Done</span></td><td>13 tests against Cairo-generated fixtures. The CLI reads mainnet, Summit and the V3 Sepolia registry, and writes MIDI. This page runs the same engine</td></tr>
+            <tr><td>Simulator with real Beasts</td><td><span class="status done">Done</span></td><td>4 V3 Sepolia Beasts and 300 mainnet Beasts with Death Mountain and Summit stats. A hosted copy reads mainnet live</td></tr>
+            <tr><td>BeastSound contract + provider class</td><td><span class="status todo">Next</span></td><td>Interface above. About 1 week with tests, then deploy beside the Sepolia V3 stack</td></tr>
+            <tr><td>Composer as a deployable contract (<code>BeastSoundComposer</code>)</td><td><span class="status done">Done</span></td><td>Builds to 25,139 CASM felts (limit 81,920). <code>get_score_notes</code> returns BSN1; <code>get_score_midi</code> returns a real MIDI file. Both are byte-identical to the browser engine, and BSN1 decodes to the identical MIDI file</td></tr>
+            <tr><td>Execution cost per view, measured on starknet-devnet</td><td><span class="status done">Done</span></td><td>Params and state hash: about 1.3M L2 gas. Heaviest possible Beast: score hash 63M, BSN1 notes 119M (17 felts), full MIDI 350M (122 felts). Every call succeeded</td></tr>
+            <tr><td>Run <code>get_score_notes</code> and <code>get_score_midi</code> for the heaviest Beast on Sepolia and confirm public RPC nodes return them</td><td><span class="status todo">Next</span></td><td>View calls are free, but each node operator caps the work per call. Will test on Cartridge, dRPC and PublicNode</td></tr>
+            <tr><td>Instrument packs (sound design)</td><td><span class="status todo">Next</span></td><td>This page uses a placeholder WebAudio pack per Beast type</td></tr>
+            <tr><td>Drop salt commitment + reveal</td><td><span class="status ask">Decide</span></td><td>Tie to V3 mainnet launch</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section>
+        <span class="label">Questions for the call</span>
+        <h3>Decisions only the V3 team can make</h3>
+        <ol>
+          <li>Drop rate for the 93,225, and should Genesis Beasts always sing?</li>
+          <li>For species 1–75, should the holders of the original Genesis Beasts control their species' sound (the V3 art rule), or should the protocol?</li>
+          <li>Separate BeastSound contract (recommended), or a <code>sound_provider</code> field on <code>BeastDefinition</code>?</li>
+          <li>Is Summit the right source for scars once it moves to V3 IDs? Should Summit time count?</li>
+          <li>Will Black Shuck and the next 75+ arrive as V3 community species or as standalone collections?</li>
+          <li>Metadata: is a <code>Sound</code> trait plus <code>animation_url</code> welcome in <code>token_uri</code>?</li>
+        </ol>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>/*BUNDLE*/</script>
+<script>
+const SNAP = /*SNAPSHOT*/;
+(function () {
+  const BS = window.BeastSound, E = BS.engine, T = BS.TABLES;
+  const DROP_SALT = 'LS_V3_DEMO_SALT', DROP_BPS = 500;
+  const $ = (id) => document.getElementById(id);
+  const fmtHex = (x) => '0x' + BigInt(x).toString(16);
+  const short = (x) => { const h = fmtHex(x); return h.slice(0, 10) + '…' + h.slice(-6); };
+  const SECTION = ['A', 'B', 'C', 'D', 'E'];
+  const TIER_WORD = ['', 'Apex', 'Elite', 'Dangerous', 'Feral', 'Common'];
+
+  // ── snapshot rows → beasts ─────────────────────────────────────
+  // cols: token,id,prefix,suffix,level,health,shiny,animated,rank,count,kills,collects,summit_revivals,summit_held_s
+  const snap = SNAP.rows.map((r) => ({
+    token: r[0], net: 'mainnet', beast: { id: r[1], prefix: r[2], suffix: r[3], level: r[4], health: r[5], shiny: r[6], animated: r[7], tier: BS.genesisTier(r[1]), beast_type: BS.genesisType(r[1]) },
+    live: { rank: r[8], species_count: r[9], adventurers_killed: r[10], scars: r[12] + Math.max(0, r[11] - 1), summit_held_seconds: r[13] },
+  }));
+  // Community species registered on the Beasts V3 Sepolia stack (registry 0x06d46c98…30045).
+  const COMMUNITY = { 76: { name: 'Gloomfang', beast_type: 1, tier: 3 }, 77: { name: 'Black Shuck', beast_type: 1, tier: 1 }, 78: { name: 'Black Shuck 2', beast_type: 1, tier: 4 } };
+  const NO_LIVE = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0 };
+  const sepolia = [
+    { token: '0x2e0064000a081000000000000004c', net: 'sepolia', beast: { id: 76, prefix: 1, suffix: 1, level: 10, health: 100, shiny: 0, animated: 1, tier: 3, beast_type: 1 }, live: { ...NO_LIVE, rank: 1, species_count: 1 } },
+    ...Object.entries(COMMUNITY).map(([id, c]) => {
+      const b = { id: Number(id), prefix: 0, suffix: 0, level: 1, health: 100, shiny: 1, animated: 1, tier: c.tier, beast_type: c.beast_type };
+      return { token: '0x' + E.encodeTokenId(b).toString(16), net: 'sepolia', beast: b, live: { ...NO_LIVE, rank: 0, species_count: Number(id) === 76 ? 1 : 0 } };
+    }),
+  ];
+  const roster = [...sepolia, ...snap];
+  const speciesName = (id) => (id <= 75 ? T.species[id - 1] : COMMUNITY[id]?.name || 'Community Beast #' + id);
+  const nameOf = (b) => {
+    const sp = speciesName(b.id);
+    return b.prefix === 0 ? sp : `${T.prefixes[b.prefix - 1]} ${T.suffixes[b.suffix - 1]} ${sp}`;
+  };
+  const tokenLabel = (s) => (s.net === 'sepolia' ? `V3 Sepolia ${s.token.slice(0, 8)}…${s.token.slice(-4)}` : `mainnet #${s.token}`);
+
+  // ── state ──────────────────────────────────────────────────────
+  const first = snap.find((s) => s.token === 52918) || snap[0];
+  let state = { beast: { ...first.beast }, live: { ...first.live }, token: first.token, net: 'mainnet' };
+  let result = null;
+
+  // ── controls ───────────────────────────────────────────────────
+  const sel = $('species');
+  T.species.forEach((n, i) => sel.add(new Option(`${i + 1} · ${n} (${T.types[BS.genesisType(i + 1)]} T${BS.genesisTier(i + 1)})`, i + 1)));
+  Object.entries(COMMUNITY).forEach(([id, c]) => sel.add(new Option(`${id} · ${c.name} (${T.types[c.beast_type]} T${c.tier}) · V3 Sepolia`, id)));
+  sel.add(new Option('79 · Your community species', 79));
+  $('prefix').add(new Option('None (Genesis)', 0));
+  T.prefixes.forEach((n, i) => $('prefix').add(new Option(n, i + 1)));
+  $('suffix').add(new Option('None (Genesis)', 0));
+  T.suffixes.forEach((n, i) => $('suffix').add(new Option(n, i + 1)));
+
+  function syncControls() {
+    const b = state.beast, l = state.live;
+    sel.value = String(Math.min(b.id, 79));
+    $('communityRow').hidden = b.id < 79;
+    $('ctype').value = String(b.beast_type); $('ctier').value = String(b.tier);
+    $('prefix').value = String(b.prefix); $('suffix').value = String(b.suffix);
+    $('level').value = b.level; $('health').value = b.health;
+    $('shiny').checked = !!b.shiny; $('animated').checked = !!b.animated;
+    const hours = Math.floor(l.summit_held_seconds / 3600);
+    $('kills').value = Math.min(l.adventurers_killed, 128); $('deaths').value = Math.min(l.scars, 64); $('summit').value = Math.min(hours, 500);
+    $('killsOut').textContent = l.adventurers_killed; $('deathsOut').textContent = l.scars; $('summitOut').textContent = hours;
+    $('rank').value = l.rank; $('count').value = l.species_count;
+  }
+  function readControls() {
+    const id = Number(sel.value);
+    let prefix = Number($('prefix').value), suffix = Number($('suffix').value);
+    if ((prefix === 0) !== (suffix === 0)) { if (prefix === 0) prefix = 1; else suffix = 1; }
+    const b = {
+      id, prefix, suffix,
+      level: clampInt($('level').value, 1, 65535, 1), health: clampInt($('health').value, 1, 65535, 100),
+      shiny: $('shiny').checked ? 1 : 0, animated: $('animated').checked ? 1 : 0,
+      tier: id <= 75 ? BS.genesisTier(id) : COMMUNITY[id] ? COMMUNITY[id].tier : Number($('ctier').value),
+      beast_type: id <= 75 ? BS.genesisType(id) : COMMUNITY[id] ? COMMUNITY[id].beast_type : Number($('ctype').value),
+    };
+    const count = clampInt($('count').value, 1, 1243, 1);
+    const live = {
+      adventurers_killed: Number($('kills').value), scars: Number($('deaths').value),
+      summit_held_seconds: Number($('summit').value) * 3600,
+      rank: b.prefix === 0 ? 0 : clampInt($('rank').value, 1, count, 1), species_count: count,
+    };
+    state = { beast: b, live, token: null, net: null };
+  }
+  function clampInt(v, lo, hi, d) { const n = parseInt(v, 10); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : d; }
+
+  ['species', 'ctype', 'ctier', 'prefix', 'suffix', 'level', 'health', 'shiny', 'animated', 'rank', 'count'].forEach((id) =>
+    $(id).addEventListener('change', () => { readControls(); syncControls(); update(); }));
+  ['kills', 'deaths', 'summit'].forEach((id) => $(id).addEventListener('input', () => { readControls(); syncControls(); update(); }));
+
+  // ── roster ─────────────────────────────────────────────────────
+  function drawRoster() {
+    const q = $('search').value.trim().toLowerCase();
+    const list = roster.filter((s) => {
+      if (!q) return true;
+      const txt = (nameOf(s.beast) + ' ' + T.types[s.beast.beast_type] + (s.live.rank === 1 ? ' crown' : '') + ' ' + s.net + ' v3 #' + s.token + (s.live.summit_held_seconds > 0 ? ' summit' : '')).toLowerCase();
+      return q.split(/\s+/).every((w) => txt.includes(w));
+    });
+    const root = $('roster');
+    root.textContent = '';
+    list.slice(0, 120).forEach((s) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      if (state.token === s.token) b.setAttribute('aria-current', 'true');
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = nameOf(s.beast);
+      const rk = document.createElement('span'); rk.className = 'rk' + (s.live.rank === 1 ? ' crown' : '');
+      rk.textContent = s.beast.prefix === 0 ? 'Genesis' : s.live.rank === 1 ? '♛ rank 1' : `rank ${s.live.rank}`;
+      const meta = document.createElement('span'); meta.className = 'meta';
+      const sh = Math.floor(s.live.summit_held_seconds / 3600);
+      meta.textContent = `${tokenLabel(s)} · lvl ${s.beast.level} · ${s.live.adventurers_killed} kills` + (s.live.scars ? ` · ${s.live.scars} summit deaths` : '') + (sh ? ` · ${sh} h on summit` : '');
+      b.append(nm, rk, meta);
+      b.addEventListener('click', () => { state = { beast: { ...s.beast }, live: { ...s.live }, token: s.token, net: s.net }; syncControls(); update(); drawRoster(); });
+      root.append(b);
+    });
+    if (!list.length) { const p = document.createElement('p'); p.className = 'hint'; p.style.padding = '10px'; p.textContent = 'No snapshot Beast matches. Build one with the selectors below.'; root.append(p); }
+  }
+  $('search').addEventListener('input', drawRoster);
+  $('snapmeta').textContent = `${sepolia.length} Beasts from the V3 Sepolia stack, then ${snap.length} mainnet Beasts (rank 1, 2, median and last of each species) with Death Mountain and Summit stats, read ${SNAP.at}. Total minted on mainnet: ${SNAP.supply.toLocaleString()}.`;
+
+  // ── token lookup ───────────────────────────────────────────────
+  $('tokenGo').addEventListener('click', summonToken);
+  $('tokenIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') summonToken(); });
+  async function summonToken() {
+    const raw = $('tokenIn').value.trim();
+    $('tokenErr').textContent = '';
+    if (!raw) return;
+    let n;
+    try { n = BigInt(raw); } catch { $('tokenErr').textContent = 'Enter a decimal number or a 0x hex value.'; return; }
+    if (n > 0xffffffffn) {
+      try {
+        const b = E.decodeTokenId(n);
+        const known = sepolia.find((s) => BigInt(s.token) === n);
+        state = known ? { beast: { ...known.beast }, live: { ...known.live }, token: known.token, net: 'sepolia' }
+          : { beast: b, live: { ...NO_LIVE, rank: b.prefix === 0 ? 0 : 1, species_count: 1000 }, token: null, net: null };
+        syncControls(); update(); return;
+      } catch (e) { $('tokenErr').textContent = 'Not a valid V3 token ID: ' + e.message + '.'; return; }
+    }
+    const hit = snap.find((s) => BigInt(s.token) === n);
+    if (hit) { state = { beast: { ...hit.beast }, live: { ...hit.live }, token: hit.token, net: 'mainnet' }; syncControls(); update(); drawRoster(); return; }
+    $('tokenErr').textContent = 'Reading mainnet…';
+    try {
+      const got = await liveLookup(n);
+      state = got; syncControls(); update(); $('tokenErr').textContent = '';
+    } catch (e) {
+      $('tokenErr').textContent = `Token #${n} isn't in the snapshot, and this preview blocks live RPC calls. A hosted copy of this page reads it live.`;
+    }
+  }
+  const RPC = 'https://api.cartridge.gg/x/starknet/mainnet';
+  const NFT = '0x046da8955829adf2bda310099a0063451923f02e648cf25a1203aac6335cf0e4';
+  const DM = '0x79938ca37e3510a6a8b073243c8f30f5c687eff81d63e66197c56f7b85b558b';
+  const DG = '0x539d24dfdaa2866d975fa93db501b971c08786f2c88e719800be39903e43bbc';
+  const SUMMIT = '0x01aa95ea66e7e01acf7dc3fda8be0d8661230c4c36b0169e2bab8ab4d6700dfc';
+  const selector = BS.selector;
+  async function call(addr, fn, args) {
+    const res = await fetch(RPC, { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'starknet_call', params: { request: { contract_address: addr, entry_point_selector: selector(fn), calldata: args.map((a) => '0x' + BigInt(a).toString(16)) }, block_id: 'latest' } }) });
+    const j = await res.json();
+    if (!j.result) throw new Error(j.error?.message || 'rpc error');
+    return j.result.map(BigInt);
+  }
+  async function liveLookup(token) {
+    const g = (await call(NFT, 'get_beast', [token, 0])).map(Number);
+    const b = { id: g[0], prefix: g[1], suffix: g[2], level: g[3], health: g[4], shiny: g[5], animated: g[6], tier: BS.genesisTier(g[0]), beast_type: BS.genesisType(g[0]) };
+    const [rank, count, kills, collects, summit] = await Promise.all([
+      call(NFT, 'get_beast_rank', [token, 0]), call(NFT, 'get_species_count', [b.id]),
+      call(NFT, 'get_adventurers_killed', [token, 0]),
+      call(DM, 'get_collectable_count', [DG, BS.poseidonHashMany([BigInt(b.id), BigInt(b.prefix), BigInt(b.suffix)])]),
+      call(SUMMIT, 'get_live_stats', [1, token]), // LiveBeastStats: [len, token_id, …, revival_count @6, extra_lives, summit_held_seconds @8, …]
+    ]);
+    const live = summit.slice(1).map(Number);
+    return { beast: b, live: { rank: Number(rank[0]), species_count: Number(count[0]), adventurers_killed: Number(kills[0]),
+      scars: (live[0] === Number(token) ? live[6] : 0) + Math.max(0, Number(collects[0]) - 1),
+      summit_held_seconds: live[0] === Number(token) ? live[8] : 0 }, token: Number(token), net: 'mainnet' };
+  }
+
+  // ── render ─────────────────────────────────────────────────────
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  const voiceColors = () => [cssVar('--v0'), cssVar('--v1'), cssVar('--v2'), cssVar('--v3'), cssVar('--v4')];
+
+  function update() {
+    stop();
+    try { result = E.render(state.beast, state.live); }
+    catch (e) { $('bname').textContent = 'Invalid Beast: ' + e.message; return; }
+    const b = state.beast, p = result.params, st = p._state;
+    const has = E.hasSound(DROP_SALT, DROP_BPS, b);
+    const roll = b.prefix === 0 ? null : E.soundDropRoll(DROP_SALT, b.id, b.prefix, b.suffix);
+    $('eyebrow').textContent = `${T.types[b.beast_type]} · Tier ${b.tier} ${TIER_WORD[b.tier]}` + (state.token ? ' · ' + tokenLabel(state) : '') + (b.id > 75 ? ' · community species' : '');
+    $('bname').textContent = nameOf(b);
+    const chips = $('chips'); chips.textContent = '';
+    const chip = (t, cls) => { const s = document.createElement('span'); s.className = 'chip ' + (cls || ''); s.textContent = t; chips.append(s); };
+    chip(has ? (b.prefix === 0 ? 'Sound · Genesis' : `Sound drop won · roll ${String(roll).padStart(4, '0')}`) : `No drop · roll ${String(roll).padStart(4, '0')} ≥ ${DROP_BPS}`, has ? 'on' : 'off');
+    if (st.is_crown) chip('♛ Crown', 'gold');
+    chip(`lvl ${b.level}`); chip(`hp ${b.health}`);
+    if (st.summit_bucket >= 4) chip(`⛰ ${Math.floor(state.live.summit_held_seconds / 3600)} h on the Summit`, 'gold');
+    if (b.shiny) chip('Shiny'); if (b.animated) chip('Animated');
+    chip(b.prefix === 0 ? 'Genesis' : `rank ${state.live.rank} / ${state.live.species_count}`);
+
+    const ev = result.form.events;
+    const ticks = Math.max(...ev.map((e) => e.time + e.duration));
+    const secs = ticks / 480 * p.tempo_us / 1e6;
+    $('dur').textContent = `${ev.length} notes · ${secs.toFixed(1)} s · ${Math.round(60e6 / p.tempo_us)} bpm`;
+
+    const vc = voiceColors();
+    const legend = $('legend'); legend.textContent = '';
+    const voices = [...new Set(ev.map((e) => e.voice_id))].sort();
+    voices.forEach((v) => {
+      const isCs = ev.find((e) => e.voice_id === v).role === 'countersubject';
+      const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = vc[v % vc.length];
+      s.append(i, document.createTextNode(isCs ? 'Countersubject' : v === 0 ? 'Leader (theme)' : `Follower ${v}`)); legend.append(s);
+    });
+
+    drawRoll($('roll'), result, true);
+    drawParams(result);
+    drawHashes(result);
+    drawHistory();
+  }
+
+  function drawRoll(canvas, r, full, playT) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth || 600, h = canvas.clientHeight || (full ? 300 : 70);
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    const g = canvas.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+    const ev = r.form.events, vc = voiceColors();
+    const ticks = Math.max(...ev.map((e) => e.time + e.duration));
+    const lo = Math.min(...ev.map((e) => e.pitch)) - 2, hi = Math.max(...ev.map((e) => e.pitch)) + 2;
+    const top = full ? 22 : 4, H = h - top - 4;
+    const x = (t) => (t / ticks) * w, y = (pch) => top + (hi - pch) / (hi - lo) * H;
+    if (full) {
+      r.form.sections.forEach((s, i) => {
+        const x0 = x(s.start), x1 = i + 1 < r.form.sections.length ? x(r.form.sections[i + 1].start) : w;
+        if (i % 2 === 1) { g.fillStyle = cssVar('--grid'); g.fillRect(x0, 0, x1 - x0, h); }
+        g.fillStyle = cssVar('--muted'); g.font = '11px "IBM Plex Mono", monospace';
+        const shift = s.shift === 0 ? 'home' : (s.shift > 0 ? '+' : '') + s.shift;
+        g.fillText(`${SECTION[i]} · ${shift}`, x0 + 6, 14);
+      });
+      g.strokeStyle = cssVar('--grid');
+      for (let pch = Math.ceil(lo / 12) * 12; pch <= hi; pch += 12) { g.beginPath(); g.moveTo(0, y(pch)); g.lineTo(w, y(pch)); g.stroke(); }
+    }
+    const nh = Math.max(2, Math.min(full ? 7 : 3, H / (hi - lo) * 0.9));
+    ev.forEach((e) => {
+      g.globalAlpha = 0.45 + 0.55 * (e.velocity / 127);
+      g.fillStyle = vc[e.voice_id % vc.length];
+      g.fillRect(x(e.time) + 0.5, y(e.pitch) - nh / 2, Math.max(1.5, x(e.duration) - 1), nh);
+    });
+    g.globalAlpha = 1;
+    if (playT != null) { g.fillStyle = cssVar('--ink'); g.fillRect(x(playT), 0, 1.5, h); }
+  }
+
+  function drawParams(r) {
+    const p = r.params, b = r.beast, st = p._state, o = p._ornament;
+    const fam = BS.FAMILY_NAMES[`${p.canon_config_id}/${p.profile_id}`] || `config ${p.canon_config_id}`;
+    const tonic = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'][p.tonic_keynum % 12] + (Math.floor(p.tonic_keynum / 12) - 1);
+    const items = [
+      ['Key', `${tonic} ${BS.MODE_NAMES[p.mode_id] || 'mode ' + p.mode_id}`, b.prefix === 0 ? 'Genesis: Phrygian on the species pitch' : `Prefix “${T.prefixes[b.prefix - 1]}”` + (b.health >= 250 ? ' · heavy (hp ≥ 250), a band lower' : '')],
+      ['Canon family', fam, `${T.types[b.beast_type]} × Tier ${b.tier}`],
+      ['Voices', String(p.voice_count) + (p.use_countersubject ? ' + countersubject' : ''), `tier base` + (b.level >= 64 && b.tier <= 4 ? ' · level ≥ 64 adds one' : '') + (st.kill_bucket >= 4 && b.tier <= 3 ? ' · kills add one' : '') + (st.rank_tier <= 1 && b.tier <= 2 ? ' · rank adds one' : '')],
+      ['Form', `${p.section_count} section${p.section_count > 1 ? 's' : ''} (${SECTION.slice(0, p.section_count).join(' ')})`, `kill bucket ${st.kill_bucket} of 7`],
+      ['Stretto', `entries every ${p.stretto_lag} beat${p.stretto_lag > 1 ? 's' : ''}`, st.is_crown ? 'crown tightens one step' : 'tightens with kills'],
+      ['Section B', p.weakness === 2 ? 'tritone (+6)' : p.weakness === 0 ? 'up a fifth (+7)' : 'down a fourth (−5)', `${T.types[b.beast_type]} type`],
+      ['Scars', p.use_inversion ? 'follower inverted' + (p.section_count >= 3 ? ' · C falls a third' : '') : 'none yet', `${r.live.scars} Summit deaths · bucket ${st.defeat_bucket} (inverts at 3)`],
+      ['Summit', `${Math.floor(r.live.summit_held_seconds / 3600)} h held` + (st.summit_bucket >= 4 ? ' · glory' : ''), `bucket ${st.summit_bucket} · ≥ 16 h adds ornament · history ${st.encounter_bucket}`],
+      ['Ornament', `density ${p.ornament_density} / 7 · ${BS.ORNAMENT_FAMILIES[o.profile_id % 6] || 'structural'}`, (b.prefix === 0 ? 'Genesis policy' : `Suffix “${T.suffixes[b.suffix - 1]}”`) + ' + kills' + (st.is_crown ? ' + crown' : '') + (st.summit_bucket >= 4 ? ' + summit' : '')],
+      ['Performance', `${Math.round(60e6 / p.tempo_us)} bpm · ${BS.ARTICULATION_NAMES[p.articulation_profile]}`, (b.shiny || b.animated) ? [b.shiny && 'shiny', b.animated && 'animated'].filter(Boolean).join(' + ') : 'standard'],
+      ['Rank tier', ['Crown', 'Top 1%', 'Top 5%', 'Top 20%', 'Field'][st.rank_tier] + (b.prefix === 0 ? ' (Genesis)' : ''), b.prefix === 0 ? 'creator token, unranked' : `rank ${r.live.rank} of ${r.live.species_count}`],
+    ];
+    const root = $('params'); root.textContent = '';
+    items.forEach(([k, v, why]) => {
+      const d = document.createElement('div');
+      const l = document.createElement('span'); l.className = 'label'; l.textContent = k;
+      const val = document.createElement('b'); val.textContent = v;
+      const wy = document.createElement('span'); wy.className = 'why'; wy.textContent = why;
+      d.append(l, val, wy); root.append(d);
+    });
+  }
+
+  function drawHashes(r) {
+    const tid = E.encodeTokenId(r.beast);
+    const rows = [
+      ['V3 token ID', '0x' + tid.toString(16)],
+      ['creator', 'holder of Genesis 0x' + E.genesisTokenId(r.beast.id, r.beast.tier, r.beast.beast_type).toString(16)],
+      ['sound_seed', fmtHex(r.seed)],
+      ['motif', fmtHex(r.form.theme.theme_hash)],
+      ['state_hash', fmtHex(r.state_hash)],
+      ['params_hash', fmtHex(r.params_hash)],
+      ['score_hash', fmtHex(r.form.score_hash)],
+    ];
+    const bsn = E.bytesToFelts(E.encodeBsn(r)), midi = E.bytesToFelts(E.toMidiFile(r));
+    rows.push(['onchain notes', `BSN1 · ${bsn[0]} bytes in ${bsn.length} felts (MIDI would be ${midi.length} felts) · 7 bits per note`]);
+    const root = $('hashes'); root.textContent = '';
+    rows.forEach(([k, v]) => { const d = document.createElement('div'); const a = document.createElement('span'); a.textContent = k; const b = document.createElement('span'); b.textContent = v; d.append(a, b); root.append(d); });
+  }
+
+  const LIFETIMES = [[0, 'Freshly minted'], [3, '3 kills'], [15, '15 kills'], [100, '100 kills']];
+  let historyResults = [];
+  function drawHistory() {
+    const root = $('history'); root.textContent = '';
+    historyResults = LIFETIMES.map(([k]) => E.render(state.beast, { ...state.live, adventurers_killed: k }));
+    historyResults.forEach((r, i) => {
+      const cell = document.createElement('div'); cell.className = 'hcell';
+      const lab = document.createElement('span'); lab.className = 'label'; lab.textContent = LIFETIMES[i][1];
+      const cv = document.createElement('canvas');
+      const meta = document.createElement('span'); meta.className = 'hint mono';
+      meta.textContent = `${r.params.section_count} sec · lag ${r.params.stretto_lag} · motif ${fmtHex(r.form.theme.theme_hash).slice(0, 8)}`;
+      const btn = document.createElement('button'); btn.className = 'btn'; btn.type = 'button'; btn.textContent = 'Play';
+      btn.addEventListener('click', () => { if (playing && playing.res === r) stop(); else play(r, cv); });
+      cell.append(lab, cv, meta, btn); root.append(cell);
+      requestAnimationFrame(() => drawRoll(cv, r, false));
+    });
+  }
+
+  // ── audio: placeholder instrument packs by type (offchain, swappable) ──
+  let ctx = null, bus = null, playing = null;
+  function ensureAudio() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3;
+    comp.connect(ctx.destination);
+    const rev = ctx.createConvolver();
+    const len = Math.floor(ctx.sampleRate * 2.6), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4); }
+    rev.buffer = ir;
+    const wet = ctx.createGain(); wet.gain.value = 0.32; rev.connect(wet); wet.connect(comp);
+    bus = { comp, rev };
+  }
+  const freq = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  function voiceNote(out, t, dur, m, vel, v, role, b) {
+    const type = b.beast_type, f = freq(m), amp = 0.11 * (vel / 127);
+    const g = ctx.createGain(); g.connect(out);
+    const filt = ctx.createBiquadFilter(); filt.type = 'lowpass'; filt.connect(g);
+    const oscs = [];
+    const osc = (wave, mult, gain, detune) => { const o = ctx.createOscillator(); o.type = wave; o.frequency.value = f * mult; if (detune) o.detune.value = detune; const og = ctx.createGain(); og.gain.value = gain; o.connect(og); og.connect(filt); oscs.push(o); return o; };
+    let a = 0.02, rel = 0.25, peak = amp;
+    if (role === 'countersubject') { osc('sine', 1, 1); osc('sine', 2, 0.15); filt.frequency.value = 2400; a = 0.06; }
+    else if (type === 0) { // Magic: glass + choir
+      osc('triangle', 1, 0.8, -6); osc('triangle', 1, 0.8, 6); if (v === 0) { osc('sine', 3.01, 0.18); osc('sine', 4.2, 0.08); }
+      filt.frequency.value = 2600; a = v === 0 ? 0.01 : 0.09; rel = 0.5;
+    } else if (type === 1) { // Hunter: plucked leader, horn followers
+      if (v === 0) { osc('sawtooth', 1, 0.7); filt.frequency.setValueAtTime(4200, t); filt.frequency.exponentialRampToValueAtTime(500, t + Math.min(dur, 0.4) + 0.05); a = 0.005; }
+      else { osc('square', 1, 0.35); osc('sine', 1, 0.6); filt.frequency.value = 1300; a = 0.05; }
+    } else { // Brute: low brass + sub
+      osc('sawtooth', 1, 0.6, -4); osc('sawtooth', 1, 0.6, 4); osc('sine', 0.5, 0.5);
+      filt.frequency.value = 900 + (v === 0 ? 500 : 0); a = 0.04; rel = 0.35; peak = amp * 1.15;
+    }
+    if (b.shiny) osc('sine', 2, 0.12);
+    if (b.animated) { const lfo = ctx.createOscillator(); lfo.frequency.value = 5.2; const lg = ctx.createGain(); lg.gain.value = 7; lfo.connect(lg); oscs.forEach((o) => lg.connect(o.detune)); oscs.push(lfo); }
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(peak, t + a);
+    g.gain.setTargetAtTime(peak * 0.7, t + a, 0.15);
+    g.gain.setTargetAtTime(0, t + dur, rel / 3);
+    oscs.forEach((o) => { o.start(t); o.stop(t + dur + rel + 0.3); });
+    return oscs;
+  }
+  function play(r, canvas) {
+    ensureAudio(); stop(); ctx.resume();
+    const out = ctx.createGain(); out.connect(bus.comp); out.connect(bus.rev);
+    const tick = r.params.tempo_us / 1e6 / 480, t0 = ctx.currentTime + 0.12;
+    const ticks = Math.max(...r.form.events.map((e) => e.time + e.duration));
+    r.form.events.forEach((e) => voiceNote(out, t0 + e.time * tick, e.duration * tick, e.pitch, e.velocity, e.voice_id, e.role, r.beast));
+    playing = { res: r, out, t0, tick, ticks, canvas: canvas || $('roll'), full: !canvas, raf: 0 };
+    setIcon(true);
+    const step = () => {
+      if (!playing) return;
+      const pt = (ctx.currentTime - playing.t0) / playing.tick;
+      if (pt > playing.ticks + 480) { stop(); return; }
+      drawRoll(playing.canvas, playing.res, playing.full, Math.max(0, pt));
+      playing.raf = requestAnimationFrame(step);
+    };
+    step();
+  }
+  function stop() {
+    if (!playing) return;
+    const p = playing; playing = null;
+    cancelAnimationFrame(p.raf);
+    p.out.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
+    setTimeout(() => p.out.disconnect(), 400);
+    drawRoll(p.canvas, p.res, p.full);
+    setIcon(false);
+  }
+  function setIcon(on) {
+    $('playIcon').innerHTML = on ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>' : '<path d="M7 4.5v15l13-7.5z"/>';
+    $('play').setAttribute('aria-label', on ? 'Stop' : 'Play theme');
+  }
+  $('play').addEventListener('click', () => { if (playing && playing.res === result) stop(); else play(result); });
+
+  // ── downloads ──────────────────────────────────────────────────
+  function crc32(bytes) { let c, crc = 0xffffffff; for (let n = 0; n < bytes.length; n++) { c = (crc ^ bytes[n]) & 0xff; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; crc = (crc >>> 8) ^ c; } return (crc ^ 0xffffffff) >>> 0; }
+  function zipOne(name, data) {
+    const nm = new TextEncoder().encode(name), crc = crc32(data);
+    const le = (n, b) => Array.from({ length: b }, (_, i) => (n >>> (8 * i)) & 255);
+    const local = [...le(0x04034b50, 4), 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...le(crc, 4), ...le(data.length, 4), ...le(data.length, 4), ...le(nm.length, 2), 0, 0, ...nm];
+    const central = [...le(0x02014b50, 4), 20, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...le(crc, 4), ...le(data.length, 4), ...le(data.length, 4), ...le(nm.length, 2), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...nm];
+    const off = local.length + data.length;
+    const end = [...le(0x06054b50, 4), 0, 0, 0, 0, 1, 0, 1, 0, ...le(central.length, 4), ...le(off, 4), 0, 0];
+    const outArr = new Uint8Array(off + central.length + end.length);
+    outArr.set(local, 0); outArr.set(data, local.length); outArr.set(central, off); outArr.set(end, off + central.length);
+    return outArr;
+  }
+  const slug = () => nameOf(state.beast).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  $('dlMidi').addEventListener('click', async () => {
+    $('dlMsg').textContent = '';
+    // Same path a client takes with get_score_notes: compact BSN1 felts -> decoder -> MIDI file.
+    const midi = E.bsnToMidi(E.bytesToFelts(E.encodeBsn(result)));
+    const zip = zipOne(`${slug()}.mid`, midi);
+    const dl = await window.claude?.use?.('downloads');
+    if (dl) {
+      try { await dl.save({ filename: `${slug()}-midi.zip`, data: zip }); $('dlMsg').textContent = 'Saved.'; }
+      catch (e) { $('dlMsg').textContent = e.code === 'declined' ? '' : 'Download unavailable here.'; }
+      return;
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([midi], { type: 'audio/midi' })); a.download = `${slug()}.mid`; a.click();
+  });
+  $('copyCall').addEventListener('click', async () => {
+    const b = result.beast, l = result.live;
+    const txt = `token_id: 0x${E.encodeTokenId(b).toString(16)}\nbeast: ${JSON.stringify(b)}\nlive: ${JSON.stringify(l)}\nscore_hash: ${fmtHex(result.form.score_hash)}`;
+    try { await navigator.clipboard.writeText(txt); $('dlMsg').textContent = 'Copied.'; }
+    catch { $('dlMsg').textContent = txt; }
+  });
+
+  // ── tabs ───────────────────────────────────────────────────────
+  function showTab(which) {
+    const plan = which === 'plan';
+    $('view-sim').hidden = plan; $('view-plan').hidden = !plan;
+    $('tab-sim').setAttribute('aria-selected', String(!plan)); $('tab-plan').setAttribute('aria-selected', String(plan));
+    if (!plan) requestAnimationFrame(update);
+  }
+  $('tab-sim').addEventListener('click', () => showTab('sim'));
+  $('tab-plan').addEventListener('click', () => { stop(); showTab('plan'); });
+  if (location.hash === '#plan') showTab('plan');
+
+  // data note on plan tab
+  const ks = snap.map((s) => s.live.adventurers_killed), sc = snap.map((s) => s.live.scars), hs = snap.map((s) => s.live.summit_held_seconds / 3600);
+  const pct = (xs, f) => Math.round(100 * xs.filter(f).length / xs.length);
+  $('dataNote').textContent = `From the ${snap.length}-Beast mainnet snapshot: ${pct(ks, (k) => k === 0)}% have 0 kills and the most is ${Math.max(...ks)}. Every Beast has a Death Mountain collect count of exactly 1. On Summit, ${pct(sc, (k) => k > 0)}% have died at least once (most: ${Math.max(...sc)}), ${pct(sc, (k) => k >= 7)}% have died 7+ times, and ${pct(hs, (h) => h > 0)}% have held the summit (most: ${Math.round(Math.max(...hs))} hours).`;
+
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (!playing) { drawRoll($('roll'), result, true); historyResults.forEach((r, i) => drawRoll($('history').children[i].querySelector('canvas'), r, false)); } }, 150); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => update());
+
+  syncControls(); drawRoster(); update();
+})();
+</script>

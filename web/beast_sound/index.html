@@ -1,0 +1,920 @@
+<title>Beast Sound</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #e8eaee;
+  --surface: #f7f8fa;
+  --sunk: #dfe2e7;
+  --ink: #15181e;
+  --muted: #586070;
+  --line: #c9ced6;
+  --accent: #8a2c37;
+  --accent-soft: #8a2c3714;
+  --on-accent: #ffffff;
+  --gold: #8f6516;
+  --ok: #2d6a4a;
+  --v0: #8a2c37;
+  --v1: #23638a;
+  --v2: #5d6e1f;
+  --v3: #6d4594;
+  --v4: #a8741d;
+  --grid: #15181e12;
+  --display: "IM Fell English SC", "Iowan Old Style", Georgia, serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1115; --surface: #171a20; --sunk: #0b0d10; --ink: #e6e8ec; --muted: #99a0ad;
+    --line: #2b303a; --accent: #e07a84; --accent-soft: #e07a841c; --on-accent: #16090b;
+    --gold: #e0b45c; --ok: #6cc596; --v0: #e07a84; --v1: #6fb6e0; --v2: #b5c96a;
+    --v3: #b997e6; --v4: #e7b25c; --grid: #e6e8ec10; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1115; --surface: #171a20; --sunk: #0b0d10; --ink: #e6e8ec; --muted: #99a0ad;
+  --line: #2b303a; --accent: #e07a84; --accent-soft: #e07a841c; --on-accent: #16090b;
+  --gold: #e0b45c; --ok: #6cc596; --v0: #e07a84; --v1: #6fb6e0; --v2: #b5c96a;
+  --v3: #b997e6; --v4: #e7b25c; --grid: #e6e8ec10; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--sans); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 64px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 400; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+h1 { font-size: clamp(34px, 5vw, 52px); line-height: 1.02; }
+h2 { font-size: 28px; line-height: 1.15; }
+h3 { font-size: 20px; }
+p { margin: 0; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.label { font: 500 11px/1.2 var(--sans); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+a { color: var(--accent); }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.top { display: grid; gap: 14px; margin-bottom: 22px; }
+.top .lede { max-width: 68ch; color: var(--muted); font-size: 16px; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 22px; flex-wrap: wrap; }
+.tabs button { background: none; border: 0; padding: 10px 14px; border-bottom: 2px solid transparent; cursor: pointer; color: var(--muted); font-weight: 500; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+.app { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 900px) { .app { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: grid; gap: 16px; min-width: 0; }
+.panel > .group { display: grid; gap: 10px; }
+.panel > .group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.field { display: grid; gap: 4px; min-width: 0; flex: 1 1 120px; }
+.field label { font-size: 12px; color: var(--muted); }
+select, input[type="text"], input[type="number"] { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 7px 9px; min-width: 0; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; cursor: pointer; }
+.check input { accent-color: var(--accent); }
+.btn { border: 1px solid var(--line); background: var(--bg); border-radius: 4px; padding: 7px 12px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .5; cursor: default; }
+.hint { font-size: 12px; color: var(--muted); }
+.err { font-size: 12px; color: var(--accent); }
+
+.roster { max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); }
+.roster button { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 7px 10px; cursor: pointer; }
+.roster button:last-child { border-bottom: 0; }
+.roster button:hover, .roster button[aria-current="true"] { background: var(--accent-soft); }
+.roster .nm { font-weight: 500; font-size: 14px; }
+.roster .meta { grid-column: 1 / -1; font: 12px var(--mono); color: var(--muted); }
+.roster .rk { font: 12px var(--mono); color: var(--muted); }
+.crown { color: var(--gold); }
+
+.card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 18px; align-items: start; }
+.card .name { font-family: var(--display); font-size: clamp(28px, 4vw, 40px); line-height: 1.05; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font: 500 12px/1 var(--sans); padding: 5px 8px; border-radius: 3px; border: 1px solid var(--line); background: var(--bg); white-space: nowrap; }
+.chip.on { border-color: var(--ok); color: var(--ok); }
+.chip.off { color: var(--muted); }
+.chip.gold { border-color: var(--gold); color: var(--gold); }
+.playbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.play { width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--accent); color: var(--on-accent); cursor: pointer; display: grid; place-items: center; }
+.play svg { width: 22px; height: 22px; fill: currentColor; }
+.time { font: 13px var(--mono); color: var(--muted); }
+
+.roll { position: relative; width: 100%; background: var(--sunk); border-radius: 4px; border: 1px solid var(--line); overflow: hidden; }
+.roll canvas { display: block; width: 100%; height: 300px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+.kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px 18px; }
+.kv div { display: grid; gap: 1px; min-width: 0; }
+.kv b { font-weight: 500; font-size: 14px; overflow-wrap: anywhere; }
+.kv .why { font-size: 12px; color: var(--muted); }
+.hashes { display: grid; gap: 6px; font: 12px var(--mono); }
+.hashes div { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 8px; }
+.hashes span:last-child { overflow-wrap: anywhere; color: var(--muted); }
+
+.history { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 700px) { .history { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hcell { display: grid; gap: 6px; }
+.hcell canvas { width: 100%; height: 70px; background: var(--sunk); border-radius: 3px; border: 1px solid var(--line); display: block; }
+.hcell .btn { justify-self: start; padding: 4px 10px; font-size: 13px; }
+
+/* proposal */
+.doc { display: grid; gap: 34px; max-width: 880px; }
+.doc section { display: grid; gap: 12px; }
+.doc p, .doc li { max-width: 72ch; }
+.doc ul, .doc ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 500 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--surface); }
+tr:last-child td { border-bottom: 0; }
+td code, p code, li code { font: 13px var(--mono); background: var(--sunk); padding: 1px 4px; border-radius: 3px; }
+pre.code { margin: 0; overflow-x: auto; background: var(--sunk); border: 1px solid var(--line); border-radius: 4px; padding: 14px; font: 12.5px/1.55 var(--mono); }
+.status { display: inline-block; font: 500 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; padding: 3px 6px; border-radius: 3px; border: 1px solid currentColor; white-space: nowrap; }
+.status.done { color: var(--ok); }
+.status.todo { color: var(--muted); }
+.status.ask { color: var(--gold); }
+.callout { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; }
+.mermaid { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 12px; overflow-x: auto; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="label">Loot Survivor · Beasts V3 · Onchain sound</span>
+    <h1>Every Beast has a theme.<br>Its history arranges it.</h1>
+    <p class="lede">Pick any of the 93,225 original Beasts, a real one from mainnet, or a community species from the Beasts V3 Sepolia deployment. The composer reads only what the V3 token ID, the dungeon and Summit already store, and returns a deterministic canon. The browser runs the same algorithm as the Cairo contract and produces the same notes and the same score hash.</p>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-sim" aria-selected="true" aria-controls="view-sim">Simulator</button>
+    <button role="tab" id="tab-plan" aria-selected="false" aria-controls="view-plan">How it ships with V3</button>
+  </nav>
+
+  <main id="view-sim" role="tabpanel" aria-labelledby="tab-sim">
+    <div class="app">
+      <aside class="panel" aria-label="Choose a Beast">
+        <div class="group">
+          <span class="label">Real Beasts · mainnet + V3 Sepolia</span>
+          <input type="text" id="search" placeholder="Search: Warlock, Sorrow, crown…" aria-label="Search snapshot">
+          <div class="roster" id="roster"></div>
+          <p class="hint" id="snapmeta"></p>
+        </div>
+
+        <div class="group">
+          <span class="label">Any of the 93,225 · or a community species</span>
+          <div class="field"><label for="species">Species</label><select id="species"></select></div>
+          <div class="row" id="communityRow" hidden>
+            <div class="field"><label for="ctype">Type</label><select id="ctype"><option value="0">Magic</option><option value="1">Hunter</option><option value="2">Brute</option></select></div>
+            <div class="field"><label for="ctier">Tier</label><select id="ctier"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>
+          </div>
+          <div class="row">
+            <div class="field"><label for="prefix">Prefix</label><select id="prefix"></select></div>
+            <div class="field"><label for="suffix">Suffix</label><select id="suffix"></select></div>
+          </div>
+          <div class="row">
+            <div class="field"><label for="level">Level</label><input type="number" id="level" min="1" max="65535"></div>
+            <div class="field"><label for="health">Health</label><input type="number" id="health" min="1" max="65535"></div>
+          </div>
+          <div class="row">
+            <label class="check"><input type="checkbox" id="shiny"> Shiny</label>
+            <label class="check"><input type="checkbox" id="animated"> Animated</label>
+          </div>
+        </div>
+
+        <div class="group">
+          <span class="label">Living state · from the dungeon</span>
+          <div class="field">
+            <label for="kills">Adventurers killed: <span class="mono" id="killsOut"></span></label>
+            <input type="range" id="kills" min="0" max="128" step="1">
+          </div>
+          <div class="field">
+            <label for="deaths">Summit deaths (scars): <span class="mono" id="deathsOut"></span></label>
+            <input type="range" id="deaths" min="0" max="64" step="1">
+          </div>
+          <div class="field">
+            <label for="summit">Hours held on the Summit: <span class="mono" id="summitOut"></span></label>
+            <input type="range" id="summit" min="0" max="500" step="1">
+          </div>
+          <div class="row">
+            <div class="field"><label for="rank">Species rank</label><input type="number" id="rank" min="0" max="1243"></div>
+            <div class="field"><label for="count">Of</label><input type="number" id="count" min="1" max="1243"></div>
+          </div>
+          <p class="hint">Kills come from Death Mountain. Deaths and hours come from Summit. Rank 1 wears the crown; rank 0 is the Genesis (creator) token.</p>
+        </div>
+
+        <div class="group">
+          <span class="label">Token ID</span>
+          <div class="field">
+            <label for="tokenIn">Paste a Beasts V3 token ID (decimal or 0x) or a current mainnet token number</label>
+            <input type="text" id="tokenIn" class="mono" placeholder="e.g. 52918 or 0x…">
+          </div>
+          <div class="row"><button class="btn" id="tokenGo">Summon</button><span class="err" id="tokenErr"></span></div>
+        </div>
+      </aside>
+
+      <section class="panel" aria-label="Score">
+        <div class="card">
+          <div style="display:grid;gap:8px;min-width:0">
+            <span class="label" id="eyebrow"></span>
+            <div class="name" id="bname"></div>
+            <div class="chips" id="chips"></div>
+          </div>
+          <div class="playbar">
+            <button class="play" id="play" aria-label="Play theme"><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4.5v15l13-7.5z"/></svg></button>
+          </div>
+        </div>
+
+        <div class="roll" id="rollWrap"><canvas id="roll" height="300"></canvas></div>
+        <div class="row" style="justify-content:space-between">
+          <div class="legend" id="legend"></div>
+          <span class="time" id="dur"></span>
+        </div>
+
+        <div class="group">
+          <span class="label">What the contract derived · and why</span>
+          <div class="kv" id="params"></div>
+        </div>
+
+        <div class="group">
+          <span class="label">Canonical hashes · identical in Cairo and here</span>
+          <div class="hashes" id="hashes"></div>
+          <div class="row">
+            <button class="btn" id="dlMidi">Download MIDI (.zip)</button>
+            <button class="btn" id="copyCall">Copy contract inputs</button>
+            <span class="hint" id="dlMsg"></span>
+          </div>
+        </div>
+
+        <div class="group">
+          <span class="label">Same Beast, four lifetimes</span>
+          <p class="hint">Only the kill count changes. The motif fingerprint stays fixed; form, stretto and density grow.</p>
+          <div class="history" id="history"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <main id="view-plan" role="tabpanel" aria-labelledby="tab-plan" hidden>
+    <div class="doc">
+      <section>
+        <span class="label">Recommendation</span>
+        <h2>Ship Sound beside V3, not inside it</h2>
+        <p>Sound launches as one small, separate Starknet contract that reads Beasts V3. It needs no changes to <code>beasts_nft</code>, the registry, or the token ID layout, so it can't slow the V3 launch. Everything the composer needs already exists onchain:</p>
+        <ul>
+          <li><b>Identity</b> from the 116-bit token ID: species, prefix, suffix, level, health, shiny, animated, tier, type.</li>
+          <li><b>Kills and rank</b> from the Beasts NFT: <code>get_adventurers_killed</code>, <code>get_beast_rank</code>, <code>get_species_count</code>. These are live Death Mountain reads for species 1–75 and the <code>refresh_stats</code> cache for community species.</li>
+          <li><b>Scars and glory</b> from Summit: <code>get_live_stats</code> gives <code>revival_count</code> (deaths) and <code>summit_held_seconds</code>.</li>
+          <li><b>Seed</b> = <code>poseidon('BEAST_SOUND_V1', id, prefix, suffix)</code>, the same inputs as the entity hash. A V2 Beast keeps its melody through <code>burn_and_mint</code>, because the seed contains no contract address, chain id or owner.</li>
+          <li><b>Creator authority</b> = holder of the species' Genesis Beast, the same rule V3 now uses for art.</li>
+        </ul>
+        <p class="callout">MVP: a Sound rarity drop across the original 93,225, every Genesis Beast singing, and an opt-in for community species. Creators can use the Koji composer or their own provider.</p>
+      </section>
+
+      <section>
+        <span class="label">If a new contract isn't wanted</span>
+        <h3>The whole thing also runs offchain</h3>
+        <p>Sound doesn't have to be a contract at all. <code>@koji/beast-sound</code> composes any Beast's theme from data Provable Games already publishes: the token's traits, the NFT's kills and rank, and Summit's deaths and hours held. Nothing needs to be deployed, stored or changed on their side.</p>
+        <div class="tbl"><table>
+          <thead><tr><th>Concern</th><th>Onchain contract</th><th>Offchain package</th></tr></thead>
+          <tbody>
+            <tr><td>What V3 must do</td><td>Nothing (separate contract)</td><td>Nothing</td></tr>
+            <tr><td>Who can compute a Beast's music</td><td>Anyone, via a view call</td><td>Anyone, via <code>npm</code> or the browser</td></tr>
+            <tr><td>Can the output be verified?</td><td>It is the source</td><td>Yes: byte-identical to the Cairo reference, checked by golden tests anyone can run</td></tr>
+            <tr><td>Sound rarity drop</td><td>Salt stored in the contract</td><td>Salt from the hash of an announced future block; <code>hasSound()</code> is a pure function</td></tr>
+            <tr><td>Creator opt-in for community species</td><td><code>set_sound_provider</code>, Genesis holder only</td><td>A signed message from the Genesis holder, or a curated list in the player</td></tr>
+            <tr><td>Composability for other onchain games</td><td>Yes</td><td>No; games read the package instead</td></tr>
+            <tr><td>Cost</td><td>About 30 STRK to declare, free views</td><td>None</td></tr>
+          </tbody>
+        </table></div>
+        <p>The tradeoff is composability, not trust: the music is the same either way, and the Cairo reference stays available if an onchain version is wanted later.</p>
+      </section>
+
+      <section>
+        <span class="label">Upstream, checked 1 Oct 2026</span>
+        <h3>Where Beasts V3 stands</h3>
+        <div class="tbl"><table>
+          <thead><tr><th>Piece</th><th>State</th><th>What it means for Sound</th></tr></thead>
+          <tbody>
+            <tr><td>116-bit token IDs, Votes/terminal removal, owner enumeration</td><td>Merged to <code>main</code> (#16, #18, #14)</td><td>The patch decodes this exact layout</td></tr>
+            <tr><td>BeastRegistry, NFT wiring, SDK/app</td><td>On branches. PRs #19–21 closed unmerged on 1 Aug</td><td>Deployed to Sepolia 31 Jul. Sound depends only on the token ID, so it works either way</td></tr>
+            <tr><td>Artist role</td><td>Holder of the Genesis Beast <code>(id, 0, 0)</code>, with no stored role</td><td>BeastSound authorizes with one <code>owner_of</code> call</td></tr>
+            <tr><td>Migration</td><td>Player-initiated <code>burn_and_mint</code>, deferred. Genesis minting paused until it's done</td><td>Seed survives. Time the drop reveal to V3 mainnet launch</td></tr>
+            <tr><td>Registry backfill of 1–75</td><td>Dropped</td><td>Sound reads tier/type from the token, never the registry</td></tr>
+            <tr><td>Community stats</td><td>Opt-in cache: kills, last killed by, timestamp</td><td>Kills work for community Beasts. Scars come from Summit</td></tr>
+            <tr><td>Standalone collections</td><td>Tiddy Mun on mainnet. Black Shuck on a branch and as species #77–78 on Sepolia</td><td>Use V3 species when possible; otherwise a collection-scoped seed</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section>
+        <span class="label">Architecture</span>
+        <h3>Where each piece lives</h3>
+<pre class="mermaid">
+flowchart LR
+  NFT["beasts_nft (V3)<br/>token ID · kills · rank"]
+  SUM["Summit<br/>deaths · hours held"]
+  SND["BeastSound<br/>drop salt · per-species provider"]
+  KOJI["Koji composer (Cairo)<br/>pure: token + live → score"]
+  WEB["Renderer<br/>WebAudio · game engine"]
+  NFT -->|"owner_of(Genesis) = creator"| SND
+  NFT --> SND
+  SUM --> SND
+  SND --> KOJI
+  KOJI -->|"params · state hash · score hash"| WEB
+  WEB -->|"recompute + verify score hash"| WEB
+</pre>
+        <p>The contract is the source of truth for identity, params and hashes. Renderers recompute the notes offchain and check them against the score hash. That's what this page does, with the same engine.</p>
+      </section>
+
+      <section>
+        <span class="label">The contract surface</span>
+        <h3>BeastSound: one interface, mirrors IBeastArtProvider</h3>
+<pre class="code">#[starknet::interface]
+trait IBeastSound&lt;T&gt; {
+    // rarity + opt-in
+    fn has_sound(self: @T, token_id: u256) -&gt; bool;
+    fn get_sound_provider(self: @T, species_id: u64) -&gt; ContractAddress;   // 0 = Koji default
+    fn set_sound_provider(ref self: T, species_id: u64, provider: ContractAddress);
+        // caller == beasts_nft.owner_of(genesis_token_id(species_id)) — same rule as V3 art
+    fn lock_sound(ref self: T, species_id: u64);                            // one-way, like lock_art
+
+    // canonical state (cheap views)
+    fn get_composition_params(self: @T, token_id: u256) -&gt; BeastCompositionParams;
+    fn get_music_state_hash(self: @T, token_id: u256) -&gt; felt252;
+
+    // canonical score
+    fn get_score_hash(self: @T, token_id: u256) -&gt; felt252;
+    fn get_score_notes(self: @T, token_id: u256) -&gt; Array&lt;felt252&gt;;  // BSN1: 7 bits per note
+    fn get_score_midi(self: @T, token_id: u256) -&gt; Array&lt;felt252&gt;;   // full MIDI file (7× larger)
+}
+
+#[starknet::interface]
+trait IBeastSoundProvider&lt;T&gt; {   // Koji canonical class, or a creator's own
+    fn get_score(self: @T, beast: PackableBeast, live: BeastV3LiveState) -&gt; Span&lt;felt252&gt;;
+}
+
+struct BeastV3LiveState {
+    adventurers_killed: u64,   // beasts_nft.get_adventurers_killed
+    scars: u64,                // Summit revival_count + (collect count − 1)
+    summit_held_seconds: u64,  // Summit summit_held_seconds
+    rank: u16,                 // beasts_nft.get_beast_rank (0 = Genesis)
+    species_count: u16,        // beasts_nft.get_species_count
+}</pre>
+        <p><b>BSN1</b> is the client payload. Every note in a Beast score sits on the beat grid, all notes share one duration, voices play runs of consecutive beats, and velocity follows the articulation rule. So the stream is an 81-bit header, 24 bits per run, and 7 bits per note (the MIDI key). The heaviest Beast's 400 notes fit in 436 bytes (17 felts), against 3.7 KB (122 felts) as MIDI. The client's <code>bsnToMidi</code> rebuilds the exact MIDI file, so it still verifies against the score hash.</p>
+        <p>A custom sound provider that reverts only breaks its own species, as with art. <code>token_uri</code> never calls a sound provider, as with kill stats. Metadata gets at most a pure <code>Sound</code> trait and an <code>animation_url</code> pointing at a player.</p>
+      </section>
+
+      <section>
+        <span class="label">The rarity drop</span>
+        <h3>How 93,225 Beasts learn whether they sing</h3>
+        <ol>
+          <li>Before V3 mainnet, commit to a salt (for example the hash of a future block), so nobody can pre-compute winners.</li>
+          <li>Reveal it at launch. <code>has_sound = genesis || poseidon('BEAST_SOUND_DROP', salt, id, prefix, suffix) % 10000 &lt; drop_bps</code>.</li>
+          <li>The result depends only on <code>(id, prefix, suffix)</code>. A V2 holder can check their Beast before they <code>burn_and_mint</code>, and the result carries across. It needs no storage, no migration step and no change to the token ID.</li>
+        </ol>
+        <p>This page uses a demo salt and 5% (500 bps), the same scale as Shiny and Animated. Genesis Beasts always have Sound and act as each species' signature theme.</p>
+      </section>
+
+      <section>
+        <span class="label">Small asks of the V3 team</span>
+        <h3>Five items, none blocking</h3>
+        <div class="tbl"><table>
+          <thead><tr><th>Ask</th><th>Why</th><th>Cost to V3</th></tr></thead>
+          <tbody>
+            <tr><td>Keep the entity hash <code>poseidon(id, prefix, suffix)</code> unchanged through <code>burn_and_mint</code></td><td>The sound seed uses the same inputs</td><td>None (already the design)</td></tr>
+            <tr><td>Keep Sound out of the 116-bit token ID</td><td>The drop is derivable from the hash</td><td>None</td></tr>
+            <tr><td>When Summit moves to V3 token IDs, keep <code>revival_count</code> and <code>summit_held_seconds</code> readable per Beast</td><td>They're the only defeat signal that moves. Summit keys Beasts by 32-bit V2 IDs today</td><td>Part of Summit's own V3 update</td></tr>
+            <tr><td>Bring new species (Black Shuck, Tiddy Mun) in as V3 community species rather than standalone collections</td><td>One seed space and one sound path. Standalone ones need a collection-scoped seed</td><td>Already trialled on Sepolia (#77, #78)</td></tr>
+            <tr><td>Optional <code>Sound</code> trait plus an <code>animation_url</code> player link in metadata</td><td>Marketplaces surface it. A pure function, so no external call in <code>token_uri</code></td><td>A few lines in <code>metadata_generator</code></td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section>
+        <span class="label">What mainnet data says</span>
+        <h3>Calibrating the living mapping</h3>
+        <p id="dataNote"></p>
+        <ul>
+          <li><b>Kills are sparse.</b> On log₂ buckets, today's Beasts reach at most section C. The form has room to grow as they rack up kills.</li>
+          <li><b>Death Mountain can't supply scars, but Summit can.</b> Summit deaths drive the scar layer: 7+ deaths invert the follower and drop section C a third. Summit time adds to the Beast's history, and 16+ hours adds ornament density.</li>
+          <li><b>Level and health vary widely</b> (level 19–207, health 11–1023). They feed voice count (level ≥ 64) and register weight (health ≥ 250 sits a band lower).</li>
+          <li><b>Species sizes differ</b> (882 to 1,242 minted). Rank tiers are percentiles of the species.</li>
+        </ul>
+      </section>
+
+      <section>
+        <span class="label">Changes made to the Koji spec and code</span>
+        <h3>What this patch changes</h3>
+        <div class="tbl"><table>
+          <thead><tr><th>Before</th><th>Now (branch <code>beasts-v3-sound</code>)</th></tr></thead>
+          <tbody>
+            <tr><td>Species ids 0–74 with formula tiers. The vault's 75-row table disagrees with the live contract (Dragon is 29 / Hunter / T1, not 8 / Magic)</td><td>Real ids 1–75 and 76+. Tier and type are read from the token ID</td></tr>
+            <tr><td>75 hand-assigned canon families</td><td>A type × tier family table that works for any community species</td></tr>
+            <tr><td><code>name_variant_id</code> 0–1242</td><td>Prefix 1–69 and suffix 1–18 straight from the token. Genesis is (0, 0)</td></tr>
+            <tr><td>Visual rarity as a 4-value enum</td><td>Two independent flags. Animated + Shiny stacks both layers</td></tr>
+            <tr><td>Seed may include chain id and contract address</td><td>Seed = entity-hash inputs only, so it survives <code>burn_and_mint</code></td></tr>
+            <tr><td>Times defeated from Death Mountain (always 1)</td><td>Scars = Summit deaths. New Summit-hours layer</td></tr>
+            <tr><td>Stored creator / registry artist</td><td><code>genesis_token_id(id, tier, type)</code>, whose holder is the authority</td></tr>
+            <tr><td>"75 × 1,243 × 4 = 93,225"</td><td>75 × 1,243 = 93,225. Shiny and Animated aren't part of uniqueness</td></tr>
+            <tr><td>Absolute rank tiers</td><td>Percentile of <code>get_species_count</code></td></tr>
+            <tr><td>Score hash ignored inversion, countersubject, register, velocity and tempo, so two different scores could share a hash</td><td>The hash commits to every input that changes the notes or their timing</td></tr>
+            <tr><td>No story for standalone collections</td><td><code>standalone_sound_seed(collection, id, prefix, suffix)</code></td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section>
+        <span class="label">Status</span>
+        <h3>What's real today and what remains</h3>
+        <div class="tbl"><table>
+          <thead><tr><th>Piece</th><th>State</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr><td>V3 token decode + mapper (<code>beast_v3_sound.cairo</code>)</td><td><span class="status done">Done</span></td><td>12 Cairo tests. The Warlock Genesis and "Agony Bane Gloomfang" token IDs match the Sepolia deployment exactly</td></tr>
+            <tr><td>Browser engine = Cairo engine</td><td><span class="status done">Done</span></td><td>Seed, params, state and score hashes plus a per-note checksum match on 5 fixture Beasts</td></tr>
+            <tr><td>Offchain package <code>@koji/beast-sound</code> (engine, chain readers, CLI, types)</td><td><span class="status done">Done</span></td><td>13 tests against Cairo-generated fixtures. The CLI reads mainnet, Summit and the V3 Sepolia registry, and writes MIDI. This page runs the same engine</td></tr>
+            <tr><td>Simulator with real Beasts</td><td><span class="status done">Done</span></td><td>4 V3 Sepolia Beasts and 300 mainnet Beasts with Death Mountain and Summit stats. A hosted copy reads mainnet live</td></tr>
+            <tr><td>BeastSound contract + provider class</td><td><span class="status todo">Next</span></td><td>Interface above. About 1 week with tests, then deploy beside the Sepolia V3 stack</td></tr>
+            <tr><td>Composer as a deployable contract (<code>BeastSoundComposer</code>)</td><td><span class="status done">Done</span></td><td>Builds to 25,139 CASM felts (limit 81,920). <code>get_score_notes</code> returns BSN1; <code>get_score_midi</code> returns a real MIDI file. Both are byte-identical to the browser engine, and BSN1 decodes to the identical MIDI file</td></tr>
+            <tr><td>Execution cost per view, measured on starknet-devnet</td><td><span class="status done">Done</span></td><td>Params and state hash: about 1.3M L2 gas. Heaviest possible Beast: score hash 63M, BSN1 notes 119M (17 felts), full MIDI 350M (122 felts). Every call succeeded</td></tr>
+            <tr><td>Run <code>get_score_notes</code> and <code>get_score_midi</code> for the heaviest Beast on Sepolia and confirm public RPC nodes return them</td><td><span class="status todo">Next</span></td><td>View calls are free, but each node operator caps the work per call. Will test on Cartridge, dRPC and PublicNode</td></tr>
+            <tr><td>Instrument packs (sound design)</td><td><span class="status todo">Next</span></td><td>This page uses a placeholder WebAudio pack per Beast type</td></tr>
+            <tr><td>Drop salt commitment + reveal</td><td><span class="status ask">Decide</span></td><td>Tie to V3 mainnet launch</td></tr>
+          </tbody>
+        </table></div>
+      </section>
+
+      <section>
+        <span class="label">Questions for the call</span>
+        <h3>Decisions only the V3 team can make</h3>
+        <ol>
+          <li>Drop rate for the 93,225, and should Genesis Beasts always sing?</li>
+          <li>For species 1–75, should the holders of the original Genesis Beasts control their species' sound (the V3 art rule), or should the protocol?</li>
+          <li>Separate BeastSound contract (recommended), or a <code>sound_provider</code> field on <code>BeastDefinition</code>?</li>
+          <li>Is Summit the right source for scars once it moves to V3 IDs? Should Summit time count?</li>
+          <li>Will Black Shuck and the next 75+ arrive as V3 community species or as standalone collections?</li>
+          <li>Metadata: is a <code>Sound</code> trait plus <code>animation_url</code> welcome in <code>token_uri</code>?</li>
+        </ol>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>(()=>{var Bn=Object.defineProperty;var Tn=(t,e)=>{for(var n in e)Bn(t,n,{get:e[n],enumerable:!0})};var Ut={};Tn(Ut,{ARTICULATION_NAMES:()=>ye,FAMILY_NAMES:()=>ge,MODE_NAMES:()=>xe,ORNAMENT_FAMILIES:()=>be,TABLES:()=>Mt,createEngine:()=>Ct,genesisTier:()=>at,genesisType:()=>ft,shortString:()=>Dt});var Mt={species:["Warlock","Typhon","Jiangshi","Anansi","Basilisk","Gorgon","Kitsune","Lich","Chimera","Wendigo","Rakshasa","Werewolf","Banshee","Draugr","Vampire","Goblin","Ghoul","Wraith","Sprite","Kappa","Fairy","Leprechaun","Kelpie","Pixie","Gnome","Griffin","Manticore","Phoenix","Dragon","Minotaur","Qilin","Ammit","Nue","Skinwalker","Chupacabra","Weretiger","Wyvern","Roc","Harpy","Pegasus","Hippogriff","Fenrir","Jaguar","Satori","Direwolf","Bear","Wolf","Mantis","Spider","Rat","Kraken","Colossus","Balrog","Leviathan","Tarrasque","Titan","Nephilim","Behemoth","Hydra","Juggernaut","Oni","Jotunn","Ettin","Cyclops","Giant","Nemean Lion","Berserker","Yeti","Golem","Ent","Troll","Bigfoot","Ogre","Orc","Skeleton"],prefixes:["Agony","Apocalypse","Armageddon","Beast","Behemoth","Blight","Blood","Bramble","Brimstone","Brood","Carrion","Cataclysm","Chimeric","Corpse","Corruption","Damnation","Death","Demon","Dire","Dragon","Dread","Doom","Dusk","Eagle","Empyrean","Fate","Foe","Gale","Ghoul","Gloom","Glyph","Golem","Grim","Hate","Havoc","Honour","Horror","Hypnotic","Kraken","Loath","Maelstrom","Mind","Miracle","Morbid","Oblivion","Onslaught","Pain","Pandemonium","Phoenix","Plague","Rage","Rapture","Rune","Skull","Sol","Soul","Sorrow","Spirit","Storm","Tempest","Torment","Vengeance","Victory","Viper","Vortex","Woe","Wrath","Lights","Shimmering"],suffixes:["Bane","Root","Bite","Song","Roar","Grasp","Instrument","Glow","Bender","Shadow","Whisper","Shout","Growl","Tear","Peak","Form","Sun","Moon"],types:["Magic","Hunter","Brute"]};function at(t){let e=(t-1)%25;return Math.floor(e/5)+1}function ft(t){return t<=25?0:t<=50?1:2}var xe={4:"Dorian",5:"Phrygian",6:"Locrian",7:"Aeolian",8:"Harmonic minor",26:"Dorian \u266F4"},ge={"18/8":"Altered-dominant \u266D9 canon","25/15":"Soft chromatic cluster","34/19":"Phrygian 3-voice canon","40/0":"Smooth pentatonic canon","3/0":"Unison canon","24/14":"Bart\xF3k axis canon","29/19":"Phrygian 4-voice canon","30/0":"Open pentatonic canon","1/0":"Canon at the fifth below","20/10":"Octatonic axis canon","11/2":"Quartal 4-stack canon","12/4":"Hindemith 4-voice canon","10/2":"Quartal stack canon","4/0":"Three-voice 5th-below/8va canon"},be=["structural","pedal","suspension","neighbor","trill","turn"],tt=0,Ft=1,Lt=2,W=3,ct=5,ye={0:"normal",1:"staccato",2:"tenuto",3:"accent",5:"portato"},z=480,Nt=90,Ht=1,Sn=2n**251n+17n*2n**192n+1n;function Dt(t){let e=0n;for(let n of t)e=e<<8n|BigInt(n.charCodeAt(0));return e}function Ct({poseidonHashMany:t}){let e=(...r)=>t(r.map(a=>typeof a=="string"?Dt(a):BigInt(a))),n=r=>r<0?1e3+r:r;function i(r){let a=BigInt(r),u=L=>{let N=1n<<BigInt(L),P=a%N;return a/=N,Number(P)},d=u(64),b=u(7),_=u(5),E=u(16),p=u(16),y=u(1),x=u(1),g=u(3),O=u(3);if(a!==0n)throw new Error("invalid token id");let B={id:d,prefix:b,suffix:_,level:E,health:p,shiny:y,animated:x,tier:g,beast_type:O};return o(B),B}function s(r){return BigInt(r.id)+(BigInt(r.prefix)<<64n)+(BigInt(r.suffix)<<71n)+(BigInt(r.level)<<76n)+(BigInt(r.health)<<92n)+(BigInt(r.shiny)<<108n)+(BigInt(r.animated)<<109n)+(BigInt(r.tier)<<110n)+(BigInt(r.beast_type)<<113n)}function o(r){if(r.id===0)throw new Error("invalid beast id");if(r.tier<1||r.tier>5)throw new Error("invalid tier");if(r.beast_type>2)throw new Error("invalid type");if(r.prefix>69||r.suffix>18)throw new Error("invalid affix");if(r.prefix===0!=(r.suffix===0))throw new Error("invalid affix combo")}let f=(r,a,u)=>s({id:r,prefix:0,suffix:0,level:1,health:100,shiny:1,animated:1,tier:a,beast_type:u}),c=(r,a,u)=>e("BEAST_SOUND_V1",r,a,u),l=(r,a,u,d)=>Number(e("BEAST_SOUND_DROP",r,a,u,d)%10000n),h=(r,a,u)=>u.prefix===0||l(r,u.id,u.prefix,u.suffix)<a,w=(r,a)=>r===0?0:1+(r-1)*18+(a-1);function m(r,a){let d=[7,5,4,8][r%4];if(a<=2){let b=r%12;b===10&&(d=6),b===11&&(d=26)}return{mode_id:d,tonic_pc:r%12,register_band:Math.floor(r/12)%3}}function I(r,a){return{mode_id:5,tonic_pc:r%12,register_band:a<=2?0:a<=4?1:2}}function v(r){let a=r%6;return{profile_id:a,density_cap:1+r%5,allow_chromatic_approach:r>=6,allow_suspension:a===2||a===3||r>=12,allow_trill:a===4||a===5}}function S(r){let a=r+1,u=0;for(;!(a<=1||u>=7);)a=Math.floor(a/2),u+=1;return u}let T=r=>r===0?1:r===1?2:r<=3?3:r<=5?4:5,A=r=>[48,60,72][r.register_band]+r.tonic_pc,k=r=>{let b=Math.floor(3*r/7);return b>=3?1:4-b};function H(r,a){let u=a<=2?3:a===3?2:1,d=[[[18,8],[25,15],[34,19],[40,0],[3,0]],[[24,14],[29,19],[30,0],[1,0],[1,0]],[[20,10],[11,2],[12,4],[10,2],[4,0]]][r][a-1];return{canon_config_id:d[0],profile_id:d[1],base_voice_count:u}}let Et=r=>r===0?2:r===1?0:1;function Bt(r,a){return r&&a?[45e3,127,W]:a?[3e4,120,ct]:r?[25e3,124,Lt]:[0,112,tt]}function ne(r,a){if(r===0)return 1;if(r===1)return 0;let u=a===0?1:a,d=Math.floor(r*1e3/u);return d<=10?1:d<=50?2:d<=200?3:4}let Tt=r=>Math.min(Number(r),4294967295),re=(r,a)=>Math.min(r+a,4294967295);function St(r){let a=Tt(r.adventurers_killed),u=Tt(r.scars),d=Tt(Math.floor(Number(r.summit_held_seconds||0)/3600));return{kill_bucket:S(a),defeat_bucket:S(u),summit_bucket:S(d),encounter_bucket:S(re(re(a,u),d)),rank_tier:ne(r.rank,r.species_count),is_crown:r.rank===1}}function oe(r,a){o(r);let u=r.tier,d=H(r.beast_type,u),b=r.prefix===0,_=b?I(r.id,u):m(r.prefix-1,u);r.health>=250&&_.register_band>0&&(_.register_band-=1);let E=b?{profile_id:d.profile_id,density_cap:1,allow_chromatic_approach:!1,allow_suspension:u<=3,allow_trill:!1}:v(r.suffix-1),[p,y,x]=Bt(r.shiny,r.animated),g=St(a),O=g.is_crown&&g.kill_bucket<7?1:0,B=g.kill_bucket+O,L=g.kill_bucket>=4&&u<=3?1:0,N=g.rank_tier<=1&&u<=2?1:0,P=r.level>=64&&u<=4?1:0,Z=u<=2?4:u===3?3:2,K=Math.min(d.base_voice_count+L+N+P,Z),$=E.density_cap+g.kill_bucket+(g.is_crown?1:0)+(g.summit_bucket>=4?1:0);return{species_id:r.id,name_variant_id:w(r.prefix,r.suffix),mode_id:_.mode_id,tonic_keynum:A(_),register_band:_.register_band,tier:u,weakness:Et(r.beast_type),canon_config_id:d.canon_config_id,profile_id:d.profile_id,voice_count:K,section_count:T(g.kill_bucket),stretto_bucket:B,stretto_lag:k(B),use_inversion:g.defeat_bucket>=3||u<=2&&g.encounter_bucket>=4,use_countersubject:u<=2||u===3&&g.rank_tier<=1,use_compound_melody:u>=4,ornament_density:Math.min($,7),articulation_profile:g.is_crown?W:x,velocity_ceiling:y,tempo_us:5e5-p,score_version:Ht,_ornament:E,_state:g}}function ie(r,a){let u=St(a);return e("BEAST_MUSIC_STATE_V3",c(r.id,r.prefix,r.suffix),Ht,r.level,r.health,r.shiny,r.animated,r.tier,r.beast_type,u.kill_bucket,u.defeat_bucket,u.summit_bucket,u.encounter_bucket,u.rank_tier,u.is_crown?1:0)}let At=r=>e(r.species_id,r.name_variant_id,r.mode_id,r.tonic_keynum,r.tier,r.weakness,r.canon_config_id,r.profile_id,r.voice_count,r.section_count,r.stretto_bucket,r.stretto_lag,r.ornament_density,r.articulation_profile,r.register_band,r.use_inversion?1:0,r.use_countersubject?1:0,r.velocity_ceiling,r.tempo_us),an=r=>({motif_seed:e(r,"MOTIF"),canon_seed:e(r,"CANON"),orchestration_seed:e(r,"ORCHESTRATION"),ornament_seed:e(r,"ORNAMENT")});function fn(r,a,u){let d=[0],b=[],_=e(r,"BEAST_PRIOR"),E=[-2,-1,1,2];for(let p=1;p<a;p++){let y=d[d.length-1],x=Number(e(r,"LEADER_WALK_V2",p,n(y),_)%0x100000000n),g=0,O=!1;for(let B=0;B<4&&!O;B++){let L=E[(x+B)%4],N=y+L;N>=-u&&N<=u&&(g=L,O=!0)}O||(g=y>0?-1:y<0?1:0),d.push(y+g),b.push(g),_=e(_,n(g))}return{degrees:d,steps:b}}function un(r,a){let u=12+(r.tier<=2?4:0),d=r.register_band===0?5:7,{degrees:b,steps:_}=fn(a,u,d);return{degrees:b,steps:_,theme_hash:e("BEAST_THEME_V1",...b.map(n))}}let ln=r=>r===4?1:r===5?2:r===7||r===8?5:r===6?2:r===26?1:5,dn=[[0,2,4,5,7,9,11],[0,2,3,5,7,9,10],[0,1,3,5,7,8,10],[0,2,4,6,7,9,11],[0,2,4,5,7,9,10],[0,2,3,5,7,8,10]];function Q(r,a,u){let d=r+70;return a+12*Math.floor(d/7)+dn[u%6][d%7]-120}let se=(r,a)=>Math.abs(r-a)%12!==7,ce=(r,a)=>Math.max(24,Math.min(96,r+a)),hn=r=>[0,-4,3][r]??-8;function vt(r,a){return a===1?r.weakness===0?7:r.weakness===1?-5:6:a===2?r.use_inversion?-3:3:a>=4?2:0}let ae=(r,a)=>Math.abs(r-a)%7,fe=r=>[0,2,4,5].includes(r%7),ue=(r,a)=>Math.abs(r-a)%7!==4;function le(r,a,u,d,b,_){let E=[];for(let p=-u;p<=u;p++){let y=r+p;y<b||y>_||fe(ae(y,a))&&(d&&!ue(y,a)||E.push(p))}return E}function It(r,a,u,d){return r>=u&&r<=d&&fe(ae(r,a))&&ue(r,a)}function pn(r,a){let d=Number(BigInt(a)%256n),b=2;if(!It(b,r[0],-7,7)){let E=null;for(let p=1;p<=14&&E===null;p++)It(2+p,r[0],-7,7)?E=2+p:It(2-p,r[0],-7,7)&&(E=2-p);if(E===null)throw new Error("no safe cs start");b=E}let _=[b];for(let E=1;E<r.length;E++){let p=_[_.length-1],y=le(p,r[E],3,!0,-7,7);if(y.length===0&&(y=le(p,r[E],14,!0,-7,7)),y.length===0)throw new Error("no ic cs candidate");let x=(5*d+3)%256;d=x,_.push(p+y[x%y.length])}return _}function xn(r,a,u){let d=a===Ft?[Ft]:a===Lt?[Lt]:a===W?[W,tt,tt,tt]:a===ct?[ct]:[tt],b=u===0?127:u;return r.map((_,E)=>{let p=d[E%d.length],y=p===Ft?_.duration<2?_.duration:Math.floor(_.duration/2):p===ct&&Math.floor(_.duration*3/4)||_.duration;y<60&&(y=60);let x=p===W?Math.min(_.velocity+20,b):_.velocity;return x===0?x=1:x>b&&(x=b),{..._,duration:y,velocity:x,art:p}})}function gn(r,a,u,d,b){let _=[],E=ce(r.tonic_keynum,vt(r,u)),p=ln(r.mode_id),y=a.degrees.length;for(let x=0;x<r.voice_count;x++){let g=x===0?0:x*r.stretto_lag,O=hn(x);for(let B=0;B<y;B++){let L=a.degrees[B],N=r.use_inversion&&x===1?4-L:L+O;if(x===1&&B+g<y){let P=Q(a.degrees[B+g],E,p);se(P,Q(N,E,p))||(N+=1,se(P,Q(N,E,p))||(N-=2))}_.push({time:d+(g+B)*z,duration:z,pitch:Q(N,E,p),velocity:Nt,voice_id:x,section:u,role:"canon"})}}return r.use_countersubject&&pn(a.degrees,b).forEach((g,O)=>_.push({time:d+O*z,duration:z,pitch:Q(g,E,p),velocity:Nt,voice_id:r.voice_count,section:u,role:"countersubject"})),xn(_,r.articulation_profile,r.velocity_ceiling)}function de(r,a){let u=an(a),d=un(r,u.motif_seed),b=(d.degrees.length+r.stretto_lag*(r.voice_count+1))*z,_=e(r.name_variant_id,r.species_id),E=[],p=[];for(let x=0;x<r.section_count;x++)p.push({id:x,start:x*b,tonic:ce(r.tonic_keynum,vt(r,x)),shift:vt(r,x)}),E.push(...gn(r,d,x,x*b,_));let y=e(At(r),d.theme_hash,r.section_count,r.stretto_bucket,Ht);return{events:E,score_hash:y,theme:d,sections:p,section_ticks:b,seeds:u}}function bn(r,a){let u=oe(r,a),d=c(r.id,r.prefix,r.suffix),b=de(u,d);return{beast:r,live:a,params:u,seed:d,form:b,params_hash:At(u),state_hash:ie(r,a)}}function yn(r){let a=0n;return r.forEach((u,d)=>{let b=(BigInt(u.time)*31n+BigInt(u.duration)*7n+BigInt(u.pitch)*131n+BigInt(u.velocity)*17n+BigInt(u.voice_id)+1n)*BigInt(d+1);a=(a+b)%1000000007n}),a}let mn=r=>Ot(r.form.events,r.params.tempo_us);function Ot(r,a){let u={events:r},d=y=>{let x=[y&127];for(;y>>=7;)x.unshift(y&127|128);return x},b=(y,x)=>[...y].map(g=>g.charCodeAt(0)).concat([x.length>>>24&255,x.length>>>16&255,x.length>>>8&255,x.length&255],x),_=[[0,255,81,3,a>>16&255,a>>8&255,a&255,0,255,47,0]],E=[...new Set(u.events.map(y=>y.voice_id))].sort((y,x)=>y-x);for(let y of E){let x=[];for(let B of u.events.filter(L=>L.voice_id===y))x.push([B.time,144|y,B.pitch,B.velocity]),x.push([B.time+B.duration,128|y,B.pitch,64]);x.sort((B,L)=>B[0]-L[0]||(B[1]&240)-(L[1]&240));let g=[],O=0;for(let B of x)g.push(...d(B[0]-O),B[1],B[2],B[3]),O=B[0];g.push(0,255,47,0),_.push(g)}let p=b("MThd",[0,1,0,_.length,1,224]);return new Uint8Array(p.concat(..._.map(y=>b("MTrk",y))))}function wn(r){let{form:a,params:u}=r,d=a.events,b=z,_=d[0].duration,E=[],p=(g,O)=>{for(let B=O-1;B>=0;B--)E.push(g>>B&1)},y=[];d.forEach((g,O)=>{let B=d[O-1];(!B||B.voice_id!==g.voice_id||B.time+b!==g.time)&&y.push([]),y[y.length-1].push(g)}),p(1,8),p(u.tempo_us,24),p(b,12),p(_,12),p(u.articulation_profile,3),p(Nt,7),p(u.velocity_ceiling,7),p(y.length,8);for(let g of y)p(g[0].voice_id,4),p(g[0].time/b,12),p(g.length,8),g.forEach(O=>p(O.pitch,7));for(;E.length%8;)E.push(0);let x=new Uint8Array(E.length/8);for(let g=0;g<x.length;g++)for(let O=0;O<8;O++)x[g]=x[g]<<1|E[g*8+O];return x}function _n(r){let a=[BigInt(r.length)];for(let u=0;u<r.length;u+=31)a.push(r.slice(u,u+31).reduce((d,b)=>d*256n+BigInt(b),0n));return a}function he(r){let a=Number(BigInt(r[0])),u=new Uint8Array(a);for(let d=1,b=0;b<a;d++){let _=Math.min(31,a-b),E=BigInt(r[d]);for(let p=_-1;p>=0;p--)u[b+p]=Number(E&255n),E>>=8n;b+=_}return u}function pe(r){let a=r instanceof Uint8Array?r:he(r),u=0,d=K=>{let $=0;for(let st=0;st<K;st++,u++)$=$*2+(a[u>>3]>>7-(u&7)&1);return $},b=d(8);if(b!==1)throw new Error("unsupported BSN version "+b);let _=d(24),E=d(12),p=d(12),y=d(3),x=d(7),g=d(7),O=d(8),B=g===0?127:g,L=[],N=1/0,P=-1,Z=0;for(let K=0;K<O;K++){let $=d(4),st=d(12),En=d(8);$<=N&&(P+=1,Z=0),N=$;for(let Rt=0;Rt<En;Rt++,Z++){let kt=y===W&&Z%4===0?Math.min(x+20,B):x;kt>B&&(kt=B),L.push({time:(st+Rt)*E,duration:p,pitch:d(7),velocity:kt,voice_id:$,section:P})}}return{tempo_us:_,events:L}}return{encodeBsn:wn,decodeBsn:pe,bsnToMidi:r=>{let a=pe(r);return Ot(a.events,a.tempo_us)},eventsToMidi:Ot,bytesToFelts:_n,feltsToBytes:he,decodeTokenId:i,encodeTokenId:s,genesisTokenId:f,soundSeed:c,soundDropRoll:l,hasSound:h,nameVariantId:w,mapV3:oe,musicState:St,musicStateHash:ie,paramsHash:At,buildForm:de,render:bn,eventChecksum:yn,toMidiFile:mn,typeTierFamily:H,rankTier:ne,FIELD_P:Sn}}function Pt(t){return t instanceof Uint8Array||ArrayBuffer.isView(t)&&t.constructor.name==="Uint8Array"&&"BYTES_PER_ELEMENT"in t&&t.BYTES_PER_ELEMENT===1}var ut=t=>t?`"${t}" `:"";function M(t,e=""){if(typeof t!="number")throw new TypeError(ut(e)+"expected number, got "+typeof t);if(!Number.isSafeInteger(t)||t<0)throw new RangeError(ut(e)+"expected integer >= 0, got "+t);return t}function _e(t,e=""){if(typeof t!="boolean")throw new TypeError(ut(e)+"expected boolean, got type="+typeof t);return t}function U(t,e,n=""){if(Pt(t)&&(e===void 0||t.length===e))return t;e!==void 0&&M(e,"length");let i=Pt(t),s=e!==void 0?` of length ${e}`:"",o=i?`length=${t.length}`:`type=${typeof t}`,f=ut(n)+"expected Uint8Array"+s+", got "+o;throw i?new RangeError(f):new TypeError(f)}var An=(t,e)=>{if(t===null||typeof t!="object"||Array.isArray(t))throw new TypeError((e==="object"?"":`"${e}" `)+"expected object, got type="+typeof t)},me=(t,e)=>{An(t,e);let n=Object.getPrototypeOf(t);if(n!==Object.prototype&&n!==null)throw new TypeError(`"${e}" expected plain object`);if(Object.hasOwn(t,"__proto__"))throw new TypeError(`"${e}.__proto__" is not allowed`)};function Y(t,e=!0){if(t.destroyed)throw new Error("hash was destroyed");if(e&&t.finished)throw new Error("digest() was already called")}function lt(t,e){U(t,void 0,"output");let n=e.outputLen;if(!(t.length>=n))throw new RangeError('"output" expected length >= '+n)}function $t(t){return new Uint32Array(t.buffer,t.byteOffset,Math.floor(t.byteLength/4))}function j(...t){for(let e=0;e<t.length;e++)t[e].fill(0)}function dt(t){return new DataView(t.buffer,t.byteOffset,t.byteLength)}function D(t,e){return t<<32-e|t>>>e}var vn=new Uint8Array(new Uint32Array([287454020]).buffer)[0]===68;function In(t){return t<<24&4278190080|t<<8&16711680|t>>>8&65280|t>>>24&255}function On(t){for(let e=0;e<t.length;e++)t[e]=In(t[e]);return t}var qt=vn?t=>t:On,Ee=typeof Uint8Array.from([]).toHex=="function"&&typeof Uint8Array.fromHex=="function",Rn=Array.from({length:256},(t,e)=>e.toString(16).padStart(2,"0"));function jt(t){if(U(t),Ee)return t.toHex();let e="";for(let n=0;n<t.length;n++)e+=Rn[t[n]];return e}function we(t){return t>=48&&t<=57?t-48:t>=65&&t<=70?t-55:t>=97&&t<=102?t-87:void 0}function Be(t){if(typeof t!="string")throw new TypeError("hex string expected, got "+typeof t);if(Ee)try{return Uint8Array.fromHex(t)}catch(s){throw s instanceof SyntaxError?new RangeError(s.message):s}let e=t.length,n=e/2;if(e%2)throw new RangeError("hex string expected, got unpadded hex of length "+e);let i=new Uint8Array(n);for(let s=0,o=0;s<n;s++,o+=2){let f=we(t.charCodeAt(o)),c=we(t.charCodeAt(o+1));if(f===void 0||c===void 0){let l=t[o]+t[o+1];throw new RangeError('hex string expected, got non-hex character "'+l+'" at index '+o)}i[s]=f*16+c}return i}function Te(t){if(typeof t!="string")throw new TypeError("string expected");let e=new TextEncoder().encode(t);try{return new Uint8Array(e)}finally{j(e)}}function Se(t,e,n="opts"){return me(t,"defaults"),e!==void 0&&me(e,n),Object.assign(Object.create(null),t,e)}function ht(t,e={}){if(typeof t!="function")throw new TypeError('"hashCons" expected function, got type='+typeof t);e=Se({},e,"info");let n=(s,o)=>t(o).update(s).digest(),i=t(void 0);return n.outputLen=i.outputLen,n.blockLen=i.blockLen,n.canXOF=i.canXOF,n.create=s=>t(s),Object.assign(n,e),Object.freeze(n)}var Gt=t=>({oid:Uint8Array.from([6,9,96,134,72,1,101,3,4,2,t])});function nt(t,e,n=()=>{}){if(!Array.isArray(t))throw new TypeError(`"${e}" expected array, got type=${typeof t}`);for(let i=0;i<t.length;i++)n(t[i],`${e}[${i}]`);return t}var xt=(t,e,n)=>U(t,e,n),Vt=M;function et(t,e="object"){if(t===null||typeof t!="object"||Array.isArray(t))throw new TypeError(e==="object"?"expected valid options object":`"${e}" expected object, got type=${typeof t}`);return t}function ve(t,e){if(typeof t!="function")throw new TypeError(`"${e}" is invalid: expected function, got ${typeof t}`);return t}var pt=BigInt(0),Ae=BigInt(1),kn=t=>t?`"${t}" `:"";function Kt(t,e=""){if(typeof t!="boolean")throw new TypeError(kn(e)+"expected boolean, got type="+typeof t);return t}function Fn(t){if(typeof t=="bigint"){if(!Nn(t))throw new RangeError("positive bigint expected, got "+t)}else Vt(t);return t}function X(t,e=""){if(typeof t!="number"){let n=e&&`"${e}" `;throw new TypeError(n+"expected number, got type="+typeof t)}if(!Number.isSafeInteger(t)){let n=e&&`"${e}" `;throw new RangeError(n+"expected safe integer, got "+t)}}function Wt(t){if(typeof t!="string")throw new TypeError("hex string expected, got "+typeof t);return t===""?pt:BigInt("0x"+t)}function gt(t){return Wt(jt(t))}function Ie(t){return Wt(jt(Ln(U(t)).reverse()))}function zt(t,e){if(M(e),e===0)throw new Error("zero output length is invalid");t=Fn(t);let n=e*2,i=t.toString(16);if(i.length>n)throw new RangeError("number is too large");return Be(i.padStart(n,"0"))}function Oe(t,e){return zt(t,e).reverse()}function Ln(t){return Uint8Array.from(xt(t))}function Nn(t){return typeof t=="bigint"&&pt<=t}function Re(t){if(t<pt)throw new Error("expected non-negative bigint, got "+t);return t===pt?0:t.toString(2).length}var ke=t=>(X(t,"n"),(Ae<<BigInt(t))-Ae);function rt(t,e={},n={},i="object"){et(t,i),et(e,"fields"),et(n,"optFields");function s(f,c,l){let h=i==="object"?`param "${String(f)}"`:`"${i}.${String(f)}"`,w=t[f];if(!Object.hasOwn(t,f)&&(l?w!==void 0:c!=="function"))throw new TypeError(`${h} is invalid: expected own property`);if(l&&w===void 0)return;let m=typeof w;if(m!==c||w===null)throw new TypeError(`${h} is invalid: expected ${c}, got ${m}`)}let o=(f,c)=>Object.entries(f).forEach(([l,h])=>s(l,h,c));o(e,!1),o(n,!0)}var F=BigInt(0),R=BigInt(1),G=BigInt(2),Ne=BigInt(3),yt=BigInt(4),He=BigInt(5),Mn=BigInt(7),Me=BigInt(8),Dn=BigInt(9),De=BigInt(15),Ce=BigInt(16),Ue=BigInt("0x10000000000000000");function C(t,e){if(e<=F)throw new Error("mod: expected positive modulus, got "+e);let n=t%e;return n>=F?n:e+n}function Cn(t,e,n){if(n<=R)throw new Error("pow: expected modulus > 1, got "+n);if(typeof e!="bigint")throw new TypeError("invalid exponent: expected bigint, got "+typeof e);if(e<F)throw new Error("invalid exponent, negatives unsupported");if(e===F)return R;if(e===R)return t;let i=t%n;if(i<F&&(i+=n),e<Ue){let c=R;for(;e>F;)e&R&&(c=c*i%n),i=i*i%n,e>>=R;return c}let s=[];for(;e>F;)s.push(Number(e&De)),e>>=yt;let o=new Array(16);o[0]=R,o[1]=i;for(let c=2;c<16;c++)o[c]=o[c-1]*i%n;let f=o[s[s.length-1]];for(let c=s.length-2;c>=0;c--){f=f*f%n,f=f*f%n,f=f*f%n,f=f*f%n;let l=s[c];l!==0&&(f=f*o[l]%n)}return f}function Yt(t,e){if(t===F)throw new Error("invert: expected non-zero number");if(e<=R)throw new Error("invert: expected modulus > 1, got "+e);let n=C(t,e),i=e,s=F,o=R;for(;n!==F;){let c=i/n,l=i-n*c,h=s-o*c;i=n,n=l,s=o,o=h}if(i!==R)throw new Error("invert: does not exist");return C(s,e)}function Xt(t,e,n){let i=t;if(!i.eql(i.sqr(e),n))throw new Error("Cannot find square root")}function Jt(t,e){if((t&R)===F)throw new Error(e+": expected odd modulus, got "+t)}function Pe(t,e){let n=t,i=(n.ORDER+R)/yt,s=n.pow(e,i);return Xt(n,s,e),s}function Un(t,e){let n=t,i=(n.ORDER-He)/Me,s=n.mul(e,G),o=n.pow(s,i),f=n.mul(e,o),c=n.mul(n.mul(f,G),o),l=n.mul(f,n.sub(c,n.ONE));return Xt(n,l,e),l}function Pn(t){let e=mt(t),n=$e(t),i=n(e,e.neg(e.ONE)),s=n(e,i),o=n(e,e.neg(i)),f=(t+Mn)/Ce;return(c,l)=>{let h=c,w=h.pow(l,f),m=h.mul(w,i),I=h.mul(w,s),v=h.mul(w,o),S=h.eql(h.sqr(m),l),T=h.eql(h.sqr(I),l);w=h.cmov(w,m,S),m=h.cmov(v,I,T);let A=h.eql(h.sqr(m),l),k=h.cmov(w,m,A);return Xt(h,k,l),k}}function $e(t){if(t<Ne)throw new Error("sqrt is not defined for small field");Jt(t,"tonelliShanks");let e=t-R,n=0;for(;e%G===F;)e/=G,n++;let i=G,s=mt(t);for(;Fe(s,i)===1;)if(i++>1e3)throw new Error("Cannot find square root: probably non-prime P");if(n===1)return Pe;let o=s.pow(i,e),f=(e+R)/G;return function(l,h){let w=l;if(w.is0(h))return h;if(Fe(w,h)!==1)throw new Error("Cannot find square root");let m=n,I=w.mul(w.ONE,o),v=w.pow(h,e),S=w.pow(h,f);for(;!w.eql(v,w.ONE);){if(w.is0(v))throw new Error("Cannot find square root: probably non-prime P");let T=1,A=w.sqr(v);for(;!w.eql(A,w.ONE);)if(T++,A=w.sqr(A),T===m)throw new Error("Cannot find square root");let k=R<<BigInt(m-T-1),H=w.pow(I,k);m=T,I=w.sqr(H),v=w.mul(v,I),S=w.mul(S,H)}return S}}function $n(t){return Jt(t,"Fp.sqrt"),t%yt===Ne?Pe:t%Me===He?Un:t%Ce===Dn?Pn(t):$e(t)}var qn=["create","isValid","is0","neg","inv","sqrt","sqr","eql","add","sub","mul","pow","div","addN","subN","mulN","sqrN"];function V(t){if(et(t,"field"),typeof t.ORDER!="bigint")throw new TypeError('param "ORDER" is invalid: expected bigint, got '+typeof t.ORDER);X(t.BYTES,"BYTES"),X(t.BITS,"BITS");for(let e of qn)ve(t[e],"field."+e);if(t.BYTES<1||t.BITS<1)throw new Error("invalid field: expected BYTES/BITS > 0");if(t.ORDER<=R)throw new Error("invalid field: expected ORDER > 1, got "+t.ORDER);return t}function qe(t,e,n){V(t);let i=t;if(typeof n!="bigint")throw new TypeError("invalid exponent: expected bigint, got "+typeof n);if(n<F)throw new Error("invalid exponent, negatives unsupported");if(n===F)return i.ONE;if(n===R)return e;if(n<Ue){let c=i.ONE,l=e;for(;n>F;)n&R&&(c=i.mul(c,l)),l=i.sqr(l),n>>=R;return c}let s=[];for(;n>F;)s.push(Number(n&De)),n>>=yt;let o=new Array(16);o[0]=i.ONE,o[1]=e;for(let c=2;c<16;c++)o[c]=i.mul(o[c-1],e);let f=o[s[s.length-1]];for(let c=s.length-2;c>=0;c--){f=i.sqr(i.sqr(i.sqr(i.sqr(f))));let l=s[c];l!==0&&(f=i.mul(f,o[l]))}return f}function je(t,e,n=!1){V(t),nt(e,"nums"),Kt(n,"passZero");let i=t,s=new Array(e.length).fill(n?i.ZERO:void 0),o=e.reduce((c,l,h)=>i.is0(l)?c:(s[h]=c,i.mul(c,l)),i.ONE),f=i.inv(o);return e.reduceRight((c,l,h)=>i.is0(l)?c:(s[h]=i.mul(c,s[h]),i.mul(c,l)),f),s}function Fe(t,e){V(t);let n=t;Jt(n.ORDER,"FpLegendre");let i=(n.ORDER-R)/G,s=n.pow(e,i),o=n.eql(s,n.ONE),f=n.eql(s,n.ZERO),c=n.eql(s,n.neg(n.ONE));if(!o&&!f&&!c)throw new Error("invalid Legendre symbol result");return o?1:f?0:-1}function jn(t,e){if(e!==void 0&&Vt(e),t<=F)throw new Error("invalid n length: expected positive n, got "+t);if(e!==void 0&&e<1)throw new Error("invalid n length: expected positive bit length, got "+e);let n=Re(t);if(e!==void 0&&e<n)throw new Error(`invalid n length: expected nBitLength (${e}) >= bitLen(n) (${n})`);let i=e!==void 0?e:n,s=Math.ceil(i/8);return{nBitLength:i,nByteLength:s}}var Le=new WeakMap,bt=class{ORDER;BITS;BYTES;isLE;ZERO=F;ONE=R;_lengths;_mod;constructor(e,n={}){if(e<=R)throw new Error("invalid field: expected ORDER > 1, got "+e);let i;this.isLE=!1,n!=null&&typeof n=="object"&&(typeof n.BITS=="number"&&(i=n.BITS),typeof n.sqrt=="function"&&Object.defineProperty(this,"sqrt",{value:n.sqrt,enumerable:!0}),typeof n.isLE=="boolean"&&(this.isLE=n.isLE),n.allowedLengths&&(this._lengths=Object.freeze(n.allowedLengths.slice())),typeof n.modFromBytes=="boolean"&&(this._mod=n.modFromBytes));let{nBitLength:s,nByteLength:o}=jn(e,i);if(o>2048)throw new Error("invalid field: expected ORDER of <= 2048 bytes");this.ORDER=e,this.BITS=s,this.BYTES=o,Object.freeze(this)}create(e){return C(e,this.ORDER)}isValid(e){if(typeof e!="bigint")throw new TypeError("invalid field element: expected bigint, got "+typeof e);return F<=e&&e<this.ORDER}is0(e){return e===F}isValidNot0(e){return!this.is0(e)&&this.isValid(e)}isOdd(e){return(e&R)===R}neg(e){return C(-e,this.ORDER)}eql(e,n){return e===n}sqr(e){return C(e*e,this.ORDER)}add(e,n){return C(e+n,this.ORDER)}sub(e,n){return C(e-n,this.ORDER)}mul(e,n){return C(e*n,this.ORDER)}pow(e,n){return Cn(e,n,this.ORDER)}div(e,n){return C(e*Yt(n,this.ORDER),this.ORDER)}sqrN(e){return e*e}addN(e,n){return e+n}subN(e,n){return e-n}mulN(e,n){return e*n}inv(e){return Yt(e,this.ORDER)}sqrt(e){let n=Le.get(this);return n||Le.set(this,n=$n(this.ORDER)),n(this,e)}toBytes(e){return this.isLE?Oe(e,this.BYTES):zt(e,this.BYTES)}fromBytes(e,n=!1){xt(e);let{_lengths:i,BYTES:s,isLE:o,ORDER:f,_mod:c}=this;if(i){if(e.length<1||!i.includes(e.length)||e.length>s)throw new Error("Field.fromBytes: expected "+i+" bytes, got "+e.length);let h=new Uint8Array(s);h.set(e,o?0:h.length-e.length),e=h}if(e.length!==s)throw new Error("Field.fromBytes: expected "+s+" bytes, got "+e.length);let l=o?Ie(e):gt(e);if(c&&(l=C(l,f)),!n&&!this.isValid(l))throw new Error("invalid field element: outside of range 0..ORDER");return l}invertBatch(e){return je(this,e,!0)}cmov(e,n,i){return Kt(i,"condition"),i?n:e}};function mt(t,e={}){return Object.freeze(bt.prototype),new bt(t,e)}function Gn(t){rt(t,{},{},"opts");let{Fp:e,roundsFull:n}=t;V(e),rt(t,{t:"number",roundsFull:"number",roundsPartial:"number"},{isSboxInverse:"boolean"});for(let i of["t","roundsFull","roundsPartial"])if(X(t[i],i),t[i]<1)throw new Error("invalid number "+i);if(n&1)throw new Error("roundsFull is not even"+n)}function Vn(t){Gn(t);let{Fp:e,mds:n,reversePartialPowIdx:i,roundConstants:s}=t,{roundsFull:o,roundsPartial:f,sboxPower:c,t:l}=t;if(nt(n,"opts.mds"),n.length!==l)throw new Error("Poseidon: invalid MDS matrix");let h=n.map((T,A)=>{if(nt(T,"opts.mds["+A+"]"),T.length!==l)throw new Error('"opts.mds['+A+']" expected length '+l+", got "+T.length);return T.map((k,H)=>{if(typeof k!="bigint")throw new Error('"opts.mds['+A+"]["+H+']" expected bigint, got type='+typeof k);return e.create(k)})});if(i!==void 0&&typeof i!="boolean")throw new Error("invalid param reversePartialPowIdx="+i);if(o&1)throw new Error("roundsFull is not even"+o);let w=o+f;if(!Array.isArray(s)||s.length!==w)throw new Error("Poseidon: invalid round constants");let m=s.map(T=>{if(!Array.isArray(T)||T.length!==l)throw new Error("invalid round constants");return T.map(A=>{if(typeof A!="bigint"||!e.isValid(A))throw new Error("invalid round constant");return e.create(A)})}),I=T=>Object.freeze(T.map(A=>Object.freeze(A)));if(!c||![3,5,7,17].includes(c))throw new Error("invalid sboxPower");let v=BigInt(c),S=T=>qe(e,T,v);return c===3?S=T=>e.mul(e.sqrN(T),T):c===5&&(S=T=>e.mul(e.sqrN(e.sqrN(T)),T)),Object.freeze({...t,rounds:w,sboxFn:S,roundConstants:I(m),mds:I(h)})}function Ge(t){let e=Vn(t),{Fp:n,mds:i,roundConstants:s,rounds:o,roundsPartial:f,sboxFn:c,t:l}=e,h=e.roundsFull/2,w=e.reversePartialPowIdx?l-1:0,m=(v,S,T)=>{let A=s[T];return S?v=v.map((k,H)=>c(n.add(k,A[H]))):(v=v.map((k,H)=>n.add(k,A[H])),v[w]=c(v[w])),v=i.map(k=>n.create(k.reduce((H,Et,Bt)=>n.addN(H,n.mulN(Et,v[Bt])),n.ZERO))),v},I=function(S){if(!Array.isArray(S)||S.length!==l)throw new Error("invalid values, expected array of bigints with length "+l);S=S.slice();for(let A=0;A<S.length;A++){let k=S[A];if(typeof k!="bigint")throw new Error("invalid bigint="+k);S[A]=n.create(k)}let T=0;for(let A=0;A<h;A++)S=m(S,!0,T++);for(let A=0;A<f;A++)S=m(S,!1,T++);for(let A=0;A<h;A++)S=m(S,!0,T++);if(T!==o)throw new Error("invalid number of rounds");return S};return Object.defineProperty(I,"roundConstants",{value:s,enumerable:!0}),I}var wt=BigInt(4294967295),Ve=BigInt(32);function Kn(t,e=!1){return e?{h:Number(t&wt),l:Number(t>>Ve&wt)}:{h:Number(t>>Ve&wt)|0,l:Number(t&wt)|0}}function Ke(t,e=!1){let n=t.length,i=new Uint32Array(n),s=new Uint32Array(n);for(let o=0;o<n;o++){let{h:f,l:c}=Kn(t[o],e);[i[o],s[o]]=[f,c]}return[i,s]}var Wn=t=>t/2**32|0,zn=t=>t>>>0;function We(t,e,n,i){let s=Wn(n),o=zn(n);t.setUint32(e,i?o:s,i),t.setUint32(e+4,i?s:o,i)}function ze(t,e,n){return t&e^~t&n}function Ye(t,e,n){return t&e^t&n^e&n}var _t=class{blockLen;outputLen;canXOF=!1;padOffset;isLE;buffer;view;finished=!1;length=0;pos=0;destroyed=!1;constructor(e,n,i,s){this.blockLen=e,this.outputLen=n,this.padOffset=i,this.isLE=s,this.buffer=new Uint8Array(e),this.view=dt(this.buffer)}update(e){Y(this),U(e);let{view:n,buffer:i,blockLen:s}=this,o=e.length,f=!1;for(let c=0;c<o;){let l=Math.min(s-this.pos,o-c);if(l===s){let h=dt(e);for(;s<=o-c;c+=s)this.process(h,c);f=!0;continue}i.set(c===0&&l===o?e:e.subarray(c,c+l),this.pos),this.pos+=l,c+=l,this.pos===s&&(this.process(n,0),this.pos=0,f=!0)}return this.length+=e.length,f&&this.roundClean(),this}digestInto(e){Y(this),lt(e,this),this.finished=!0;let{buffer:n,view:i,blockLen:s,isLE:o}=this,{pos:f}=this;n[f++]=128,n.fill(0,f),this.padOffset>s-f&&(this.process(i,0),n.fill(0)),We(i,s-8,this.length*8,o),this.process(i,0),this.roundClean();let c=e===n?i:dt(e),l=this.outputLen,h=l/4,w=this.get();if(l%4||h>w.length)throw new Error("invalid outputLen");for(let m=0;m<h;m++)c.setUint32(4*m,w[m],o)}digest(){let{buffer:e,outputLen:n}=this;this.digestInto(e);let i=e.slice(0,n);return this.destroy(),i}_cloneIntoMeta(e){let{buffer:n,length:i,finished:s,destroyed:o,pos:f}=this;return e.destroyed=o,e.finished=s,e.length=i,e.pos=f,f&&e.buffer.set(n),e}clone(){return this._cloneInto()}},Xe=Uint32Array.from([1779033703,3144134277,1013904242,2773480762,1359893119,2600822924,528734635,1541459225]);var Yn=Uint32Array.from([1116352408,1899447441,3049323471,3921009573,961987163,1508970993,2453635748,2870763221,3624381080,310598401,607225278,1426881987,1925078388,2162078206,2614888103,3248222580,3835390401,4022224774,264347078,604807628,770255983,1249150122,1555081692,1996064986,2554220882,2821834349,2952996808,3210313671,3336571891,3584528711,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,2177026350,2456956037,2730485921,2820302411,3259730800,3345764771,3516065817,3600352804,4094571909,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,2227730452,2361852424,2428436474,2756734187,3204031479,3329325298]),q=new Uint32Array(64),Qt=class extends _t{A=0;B=0;C=0;D=0;E=0;F=0;G=0;H=0;constructor(e,n){super(64,e,8,!1),this.A=n[0]|0,this.B=n[1]|0,this.C=n[2]|0,this.D=n[3]|0,this.E=n[4]|0,this.F=n[5]|0,this.G=n[6]|0,this.H=n[7]|0}get(){let{A:e,B:n,C:i,D:s,E:o,F:f,G:c,H:l}=this;return[e,n,i,s,o,f,c,l]}set(e,n,i,s,o,f,c,l){this.A=e|0,this.B=n|0,this.C=i|0,this.D=s|0,this.E=o|0,this.F=f|0,this.G=c|0,this.H=l|0}_cloneInto(e){return(e||=new this.constructor).set(...this.get()),this._cloneIntoMeta(e)}process(e,n){for(let m=0;m<16;m++,n+=4)q[m]=e.getUint32(n,!1);for(let m=16;m<64;m++){let I=q[m-15],v=q[m-2],S=D(I,7)^D(I,18)^I>>>3,T=D(v,17)^D(v,19)^v>>>10;q[m]=T+q[m-7]+S+q[m-16]|0}let{A:i,B:s,C:o,D:f,E:c,F:l,G:h,H:w}=this;for(let m=0;m<64;m++){let I=D(c,6)^D(c,11)^D(c,25),v=w+I+ze(c,l,h)+Yn[m]+q[m]|0,T=(D(i,2)^D(i,13)^D(i,22))+Ye(i,s,o)|0;w=h,h=l,l=c,c=f+v|0,f=o,o=s,s=i,i=v+T|0}i=i+this.A|0,s=s+this.B|0,o=o+this.C|0,f=f+this.D|0,c=c+this.E|0,l=l+this.F|0,h=h+this.G|0,w=w+this.H|0,this.set(i,s,o,f,c,l,h,w)}roundClean(){j(q)}destroy(){this.destroyed=!0,this.set(0,0,0,0,0,0,0,0),j(this.buffer)}},Zt=class extends Qt{constructor(){super(32,Xe)}};var Je=ht(()=>new Zt,Gt(1));var Xn=BigInt(0),ot=BigInt(1),Jn=BigInt(2),Qn=BigInt(7),Zn=BigInt(256),tr=BigInt(113),tn=[],en=[],nn=[];for(let t=0,e=ot,n=1,i=0;t<24;t++){[n,i]=[i,(2*n+3*i)%5],tn.push(2*(5*i+n)),en.push((t+1)*(t+2)/2%64);let s=Xn;for(let o=0;o<7;o++)e=(e<<ot^(e>>Qn)*tr)%Zn,e&Jn&&(s^=ot<<(ot<<BigInt(o))-ot);nn.push(s)}var rn=Ke(nn,!0),er=rn[0],nr=rn[1],rr=(t,e,n)=>t<<n|e>>>32-n,or=(t,e,n)=>e<<n|t>>>32-n,ir=(t,e,n)=>e<<n-32|t>>>64-n,sr=(t,e,n)=>t<<n-32|e>>>64-n,Qe=(t,e,n)=>n>32?ir(t,e,n):rr(t,e,n),Ze=(t,e,n)=>n>32?sr(t,e,n):or(t,e,n),J=new Uint32Array(5*2);function cr(t,e=24){if(!(t instanceof Uint32Array))throw new TypeError('"s" expected Uint32Array(50), got type='+typeof t);if(t.length!==50)throw new RangeError('"s" expected Uint32Array(50), got length='+t.length);if(M(e,"rounds"),e<1||e>24)throw new Error('"rounds" expected integer 1..24');for(let n=24-e;n<24;n++){for(let o=0;o<10;o++)J[o]=t[o]^t[o+10]^t[o+20]^t[o+30]^t[o+40];for(let o=0;o<10;o+=2){let f=(o+8)%10,c=(o+2)%10,l=J[c],h=J[c+1],w=Qe(l,h,1)^J[f],m=Ze(l,h,1)^J[f+1];for(let I=0;I<50;I+=10)t[o+I]^=w,t[o+I+1]^=m}let i=t[2],s=t[3];for(let o=0;o<24;o++){let f=en[o],c=Qe(i,s,f),l=Ze(i,s,f),h=tn[o];i=t[h],s=t[h+1],t[h]=c,t[h+1]=l}for(let o=0;o<50;o+=10){let f=t[o],c=t[o+1],l=t[o+2],h=t[o+3];t[o]^=~t[o+2]&t[o+4],t[o+1]^=~t[o+3]&t[o+5],t[o+2]^=~t[o+4]&t[o+6],t[o+3]^=~t[o+5]&t[o+7],t[o+4]^=~t[o+6]&t[o+8],t[o+5]^=~t[o+7]&t[o+9],t[o+6]^=~t[o+8]&f,t[o+7]^=~t[o+9]&c,t[o+8]^=~f&l,t[o+9]^=~c&h}t[0]^=er[n],t[1]^=nr[n]}j(J)}var te=class t{state;pos=0;posOut=0;finished=!1;state32;destroyed=!1;blockLen;suffix;outputLen;canXOF;enableXOF=!1;rounds;constructor(e,n,i,s=!1,o=24){if(M(e,"blockLen"),M(n,"suffix"),M(o,"rounds"),_e(s,"enableXOF"),this.blockLen=e,this.suffix=n,this.outputLen=i,this.enableXOF=s,this.canXOF=s,this.rounds=o,M(i,"outputLen"),!(0<e&&e<200))throw new Error('"blockLen" must be 1..199');this.state=new Uint8Array(200),this.state32=$t(this.state)}clone(){return this._cloneInto()}keccak(){qt(this.state32),cr(this.state32,this.rounds),qt(this.state32),this.posOut=0,this.pos=0}update(e){Y(this),U(e);let{blockLen:n,state:i,state32:s}=this,o=e.length,f=n%4===0&&e.byteOffset%4===0,c=n/4,l=f&&o>=n?$t(e):void 0;for(let h=0;h<o;){if(l!==void 0&&this.pos===0&&h%4===0&&o-h>=n){for(let m=0,I=h/4;m<c;m++)s[m]^=l[I+m];h+=n,this.pos=n,this.keccak();continue}let w=Math.min(n-this.pos,o-h);for(let m=0;m<w;m++)i[this.pos++]^=e[h++];this.pos===n&&this.keccak()}return this}finish(){if(this.finished)return;this.finished=!0;let{state:e,suffix:n,pos:i,blockLen:s}=this;e[i]^=n,n&128&&i===s-1&&this.keccak(),e[s-1]^=128,this.keccak()}writeInto(e){Y(this,!1),U(e),this.finish();let n=this.state,{blockLen:i}=this;for(let s=0,o=e.length;s<o;){this.posOut>=i&&this.keccak();let f=Math.min(i-this.posOut,o-s);e.set(n.subarray(this.posOut,this.posOut+f),s),this.posOut+=f,s+=f}return e}xofInto(e){if(!this.enableXOF)throw new Error("XOF is not enabled");return this.writeInto(e)}xof(e){return M(e),this.xofInto(new Uint8Array(e))}digestInto(e){if(lt(e,this),this.finished)throw new Error("digest() was already called");this.writeInto(e.length===this.outputLen?e:e.subarray(0,this.outputLen)),this.destroy()}digest(){let e=new Uint8Array(this.outputLen);return this.digestInto(e),e}destroy(){this.destroyed=!0,j(this.state)}_cloneInto(e){let{blockLen:n,suffix:i,outputLen:s,rounds:o,enableXOF:f}=this;return e||=new t(n,i,s,f,o),e.blockLen=n,e.state32.set(this.state32),e.pos=this.pos,e.posOut=this.posOut,e.finished=this.finished,e.rounds=o,e.suffix=i,e.outputLen=s,e.enableXOF=f,e.canXOF=this.canXOF,e.destroyed=this.destroyed,e}},ar=(t,e,n,i={})=>ht(()=>new te(e,t,n),i);var on=ar(1,136,32);function fr(t){if(typeof t!="function")throw new TypeError('"fn" expected function, got type='+typeof t)}var ur=ke(250),sn=t=>gt(on(t))&ur;var lr=mt(BigInt("3618502788666131213697322783095070105623107215331596699973092056135872020481"));function dr(t,e,n){let i=t.fromBytes(Je(Te(`${e}${n}`)),!0);return t.create(i)}var hr=t=>{if(rt(t,{Fp:"object"}),Array.isArray(t.Fp))throw new TypeError('"opts.Fp" expected object, got type=object');if(typeof t.rate!="number")throw new TypeError('"opts.rate" expected number, got type='+typeof t.rate);if(typeof t.capacity!="number")throw new TypeError('"opts.capacity" expected number, got type='+typeof t.capacity);if(typeof t.roundsFull!="number")throw new TypeError('"opts.roundsFull" expected number, got type='+typeof t.roundsFull);if(typeof t.roundsPartial!="number")throw new TypeError('"opts.roundsPartial" expected number, got type='+typeof t.roundsPartial);if(!Number.isSafeInteger(t.rate)||t.rate<=0)throw new RangeError(`"opts.rate" expected positive safe integer, got ${t.rate}`);if(!Number.isSafeInteger(t.capacity)||t.capacity<=0)throw new RangeError(`"opts.capacity" expected positive safe integer, got ${t.capacity}`);if(!Number.isSafeInteger(t.roundsFull)||t.roundsFull<0)throw new RangeError(`"opts.roundsFull" expected integer >= 0, got ${t.roundsFull}`);if(t.roundsFull&1)throw new RangeError(`"opts.roundsFull" expected even integer, got ${t.roundsFull}`);if(!Number.isSafeInteger(t.roundsPartial)||t.roundsPartial<0)throw new RangeError(`"opts.roundsPartial" expected integer >= 0, got ${t.roundsPartial}`)};var pr=[[3,1,1],[1,-1,1],[1,1,-2]].map(t=>t.map(BigInt));function xr(t,e){V(t.Fp),hr(t);let n=t.rate+t.capacity;if(!Array.isArray(e))throw new TypeError('"mds" expected array, got type='+typeof e);if(e.length!==n)throw new RangeError('"mds" expected length '+n+", got "+e.length);for(let f=0;f<e.length;f++){let c=e[f];if(!Array.isArray(c))throw new TypeError('"mds['+f+']" expected array, got type='+typeof c);if(c.length!==n)throw new RangeError('"mds['+f+']" expected length '+n+", got "+c.length);for(let l=0;l<c.length;l++)if(typeof c[l]!="bigint")throw new TypeError('"mds['+f+"]["+l+']" expected bigint, got type='+typeof c[l])}let i=t.roundsFull+t.roundsPartial,s=[];for(let f=0;f<i;f++){let c=[];for(let l=0;l<n;l++)c.push(dr(t.Fp,"Hades",n*f+l));s.push(c)}let o=Ge({...t,t:n,sboxPower:3,reversePartialPowIdx:!0,mds:e,roundConstants:s});return o.m=n,o.rate=t.rate,o.capacity=t.capacity,o}var gr=xr({Fp:lr,rate:2,capacity:1,roundsFull:8,roundsPartial:83},pr);function it(t,e=gr){if(!Array.isArray(t))throw new TypeError('"values" expected array, got type='+typeof t);fr(e);let{m:n,rate:i}=e,s=Array.from(t);for(s.push(1n);s.length%i!==0;)s.push(0n);let o=new Array(n).fill(0n);for(let f=0;f<s.length;f+=i){for(let c=0;c<i;c++){let l=s[f+c];if(typeof l>"u")throw new Error("invalid index");if(typeof o[c]>"u")throw new Error("state[j] is undefined");o[c]=o[c]+l}o=e(o)}return o[0]}var ee=Ct({poseidonHashMany:it}),{decodeTokenId:eo,encodeTokenId:no,genesisTokenId:ro,decodeBsn:oo,bsnToMidi:io,eventsToMidi:so}=ee;var br=new TextEncoder,cn=t=>"0x"+sn(br.encode(t)).toString(16);window.BeastSound={...Ut,engine:ee,poseidonHashMany:it,selector:cn};})();
+/*! Bundled license information:
+
+@noble/curves/utils.js:
+  (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
+
+@noble/curves/abstract/modular.js:
+  (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
+
+@noble/curves/abstract/poseidon.js:
+  (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
+
+@scure/starknet/index.js:
+  (*! scure-starknet - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
+*/
+</script>
+<script>
+const SNAP = {"supply":86157,"at":"2026-10-01","rows":[[52918,1,57,15,126,229,0,0,1,954,2,1,12,365,1],[45555,1,30,10,116,507,0,0,2,954,1,1,63,4545,1],[82640,1,24,12,29,434,0,0,477,954,3,1,0,0,1],[84437,1,4,11,19,15,1,0,954,954,3,1,0,0,0],[62692,2,17,6,111,260,0,0,1,927,9,1,63,8082,1],[83296,2,62,14,108,493,0,0,2,927,3,1,63,1544,1],[34235,2,35,8,29,225,0,0,464,927,3,1,12,235,1],[81003,2,3,3,19,11,0,0,927,927,3,1,14,25,1],[68683,3,30,6,103,922,0,0,1,924,0,1,2,583,1],[83285,3,28,14,101,562,0,0,2,924,6,1,6,474,1],[60016,3,4,3,30,29,0,0,462,924,1,1,19,13,1],[80978,3,17,4,19,12,0,0,924,924,4,1,0,0,1],[72914,4,63,16,120,475,0,0,1,930,1,1,30,6710,1],[26532,4,39,13,112,642,0,0,2,930,3,1,36,1847,1],[50894,4,18,6,29,228,0,0,465,930,2,1,13,46,1],[82917,4,45,17,19,11,1,0,930,930,2,1,0,0,1],[66921,5,24,2,130,245,0,0,1,927,3,1,63,24261,1],[66082,5,69,1,123,1023,0,1,2,927,1,1,63,1642434,1],[77830,5,12,8,29,663,0,0,464,927,5,1,6,43,1],[4371,5,4,8,19,14,0,0,927,927,4,1,0,0,0],[65419,6,23,10,120,540,1,0,1,1098,2,1,5,265,1],[79331,6,3,6,107,328,0,0,2,1098,2,1,57,499,1],[50834,6,20,6,30,206,0,0,549,1098,1,1,10,10,1],[33739,6,25,17,19,11,0,0,1098,1098,2,1,0,0,0],[63476,7,42,1,136,802,0,0,1,1108,4,1,63,1440,1],[58036,7,47,10,130,427,0,0,2,1108,3,1,63,8951,1],[58719,7,23,11,30,317,0,0,554,1108,0,1,11,21,1],[4895,7,56,4,19,12,0,0,1108,1108,1,1,0,10,1],[71518,8,56,18,112,246,0,0,1,1084,2,1,0,45,1],[75565,8,1,9,103,463,1,0,2,1084,6,1,63,16278,1],[83520,8,31,14,30,217,0,0,542,1084,5,1,0,0,0],[6716,8,38,8,19,15,0,0,1084,1084,2,1,4,0,1],[71595,9,67,1,132,953,0,0,1,1088,3,1,63,26252,1],[70725,9,24,15,121,494,0,0,2,1088,2,1,0,0,0],[43699,9,68,18,30,195,0,0,544,1088,2,1,11,102,1],[81772,9,43,8,19,16,0,0,1088,1088,3,1,0,0,1],[60365,10,24,2,129,643,1,0,1,1085,2,1,63,4584,1],[62876,10,37,16,119,426,0,0,2,1085,4,1,11,444,1],[47034,10,32,15,31,197,0,0,543,1085,2,1,18,15,1],[2737,10,36,3,19,11,0,0,1085,1085,0,1,1,0,1],[58543,11,15,4,135,1023,0,0,1,1200,2,1,63,472,1],[57379,11,56,15,128,453,0,0,2,1200,0,1,34,1589,1],[58639,11,67,10,32,98,0,0,600,1200,2,1,12,10,1],[57551,11,15,15,19,18,0,0,1200,1200,0,1,3,10,1],[79524,12,36,9,133,856,0,0,1,1221,1,1,3,33,1],[68661,12,17,13,131,447,0,0,2,1221,1,1,12,81,1],[16446,12,38,5,31,198,0,0,611,1221,3,1,0,0,1],[62502,12,1,8,19,11,0,0,1221,1221,1,1,4,10,1],[74096,13,25,17,149,911,0,0,1,1203,3,1,63,11428,1],[64144,13,69,14,135,780,0,0,2,1203,0,1,42,428,1],[51529,13,25,12,31,348,0,0,602,1203,0,1,9,11,1],[62611,13,22,2,19,11,0,0,1203,1203,2,1,1,0,1],[33904,14,27,15,150,683,0,0,1,1195,1,1,18,1202,1],[1854,14,17,5,139,511,0,0,2,1195,0,1,0,0,0],[62126,14,1,8,31,199,0,0,598,1195,3,1,5,10,1],[35002,14,8,18,19,11,0,0,1195,1195,1,1,0,0,1],[28711,15,55,18,129,246,0,0,1,1198,1,1,63,232,1],[74092,15,33,4,126,397,0,0,2,1198,2,1,63,1711,1],[60255,15,54,5,32,15,0,0,599,1198,1,1,3,35,1],[24427,15,41,4,19,11,0,0,1198,1198,0,1,0,0,0],[73700,16,51,17,131,491,0,0,1,1239,1,1,32,259,1],[54506,16,30,4,126,904,0,0,2,1239,2,1,1,24,1],[28798,16,27,4,32,32,0,0,620,1239,2,1,0,0,0],[32743,16,1,5,19,11,0,0,1239,1239,0,1,5,12,1],[24156,17,6,5,136,963,0,0,1,1239,1,1,3,121,1],[76337,17,68,15,126,912,0,0,2,1239,2,1,28,251,1],[10809,17,37,6,32,37,0,0,620,1239,0,1,0,0,1],[60759,17,35,9,19,11,0,0,1239,1239,0,1,0,0,0],[1040,18,18,12,146,511,0,0,1,1239,0,1,25,377,1],[48405,18,30,18,141,771,0,0,2,1239,1,1,0,0,0],[13278,18,16,13,32,138,0,0,620,1239,0,1,0,0,0],[22162,18,8,6,19,17,0,0,1239,1239,1,1,0,0,0],[32478,19,65,13,158,1014,0,0,1,1234,1,1,6,244,1],[18174,19,56,5,148,887,0,0,2,1234,0,1,18,868,1],[78323,19,68,7,33,21,0,1,617,1234,0,1,21,13,1],[36150,19,63,15,19,12,0,0,1234,1234,0,1,9,13,1],[51461,20,64,10,154,871,0,0,1,1239,1,1,4,99,1],[10247,20,43,6,143,976,0,0,2,1239,1,1,0,0,1],[34942,20,4,17,31,247,0,0,620,1239,0,1,0,0,1],[22992,20,65,12,19,11,0,1,1239,1239,0,1,0,0,0],[65512,21,31,2,160,933,0,0,1,1242,0,1,10,228,1],[24594,21,49,11,159,1023,0,0,2,1242,0,1,0,0,1],[7708,21,47,6,30,463,0,0,621,1242,0,1,5,5,1],[35055,21,40,14,19,11,0,0,1242,1242,0,1,0,0,0],[65762,22,36,18,150,1015,0,0,1,1242,1,1,63,67,1],[14043,22,58,2,147,1023,0,0,2,1242,0,1,0,0,0],[53485,22,68,3,30,127,0,0,621,1242,0,1,1,0,1],[51259,22,36,5,19,13,0,0,1242,1242,0,1,1,0,1],[24952,23,31,12,165,1023,0,0,1,1242,0,1,63,89,1],[1482,23,44,17,153,511,1,0,2,1242,0,1,2,15,1],[20591,23,25,4,30,54,0,0,621,1242,1,1,0,0,1],[57412,23,50,10,19,11,0,0,1242,1242,0,1,0,0,1],[29858,24,42,5,148,1023,0,0,1,1241,0,1,0,0,0],[65680,24,5,5,146,436,0,0,2,1241,0,1,48,54,1],[32348,24,26,12,31,18,0,0,621,1241,0,1,2,0,1],[22319,24,16,8,19,11,0,0,1241,1241,2,1,0,0,0],[1495,25,22,10,166,511,1,0,1,1241,0,1,0,0,0],[36672,25,15,15,154,1023,0,0,2,1241,0,1,4,53,1],[17637,25,46,2,31,81,0,0,621,1241,0,1,0,8,1],[49962,25,31,3,19,12,0,0,1241,1241,0,1,0,0,1],[26487,26,17,1,113,299,0,0,1,892,0,1,63,5265,1],[80093,26,67,17,112,267,0,0,2,892,4,1,63,8388,1],[60773,26,42,18,30,437,1,0,446,892,4,1,25,10,1],[64226,26,42,15,19,11,0,0,892,892,3,1,5,11,1],[74095,27,60,5,125,405,0,0,1,890,7,1,63,279606,1],[78270,27,53,1,118,397,0,0,2,890,1,1,63,28028,1],[17560,27,21,10,30,212,0,0,445,890,4,1,6,16,1],[85288,27,30,18,19,11,0,0,890,890,4,1,0,0,0],[64021,28,45,11,132,710,0,0,1,882,1,1,63,47604,1],[85589,28,4,7,109,335,0,0,2,882,4,1,0,0,0],[42985,28,68,17,30,117,0,0,441,882,4,1,25,23,1],[85238,28,42,12,19,16,0,0,882,882,2,1,0,0,0],[76429,29,12,13,112,1023,1,0,1,891,5,1,19,3861,1],[58638,29,57,4,111,774,0,0,2,891,1,1,63,7376,1],[45610,29,7,3,29,338,0,0,446,891,3,1,8,58,1],[84217,29,53,10,19,14,0,0,891,891,1,1,0,0,0],[67996,30,23,17,133,246,0,0,1,936,3,1,63,96544,1],[67999,30,15,2,132,744,0,0,2,936,4,1,63,292060,1],[35938,30,67,5,31,265,0,1,468,936,5,1,12,111,1],[85645,30,27,4,19,14,0,0,936,936,2,1,0,0,0],[81719,31,46,12,161,493,0,1,1,1056,0,1,63,9568,1],[51859,31,41,10,132,460,0,0,2,1056,2,1,6,84,1],[9555,31,10,2,31,146,0,0,528,1056,1,1,0,0,0],[86036,31,38,11,19,11,0,0,1056,1056,1,1,0,0,0],[86126,32,7,1,129,269,0,0,1,1082,5,1,0,0,0],[82579,32,42,8,126,360,0,0,2,1082,3,1,0,0,0],[12504,32,34,13,31,105,0,0,541,1082,1,1,11,14,1],[81476,32,56,7,19,13,0,0,1082,1082,0,1,12,221,1],[63883,33,30,1,132,460,0,0,1,1079,3,1,63,23105,1],[57499,33,65,10,130,531,0,0,2,1079,2,1,63,11597,1],[59252,33,2,3,32,133,0,0,540,1079,2,1,0,0,1],[67400,33,39,18,19,14,0,0,1079,1079,4,1,1,0,1],[73403,34,62,15,132,522,0,0,1,1080,2,1,63,27379,1],[3913,34,15,9,117,755,0,0,2,1080,4,1,0,47,1],[60851,34,4,7,31,304,0,0,540,1080,1,1,11,31,1],[9595,34,44,4,19,17,0,0,1080,1080,1,1,0,7,1],[3168,35,18,16,144,529,0,0,1,1063,0,1,0,0,0],[78837,35,47,2,119,464,0,0,2,1063,3,1,63,1584,1],[27658,35,4,2,32,60,0,0,532,1063,4,1,22,23,1],[30604,35,44,18,19,11,0,0,1063,1063,2,1,19,25,1],[63359,36,27,11,130,549,0,0,1,1196,1,1,37,464,1],[25601,36,56,9,128,325,0,0,2,1196,1,1,3,129,1],[39945,36,2,18,31,121,0,0,598,1196,2,1,5,18,1],[6940,36,13,11,19,11,0,0,1196,1196,2,1,2,0,1],[78307,37,37,10,153,1023,0,0,1,1193,0,1,8,111,1],[51858,37,2,12,139,1023,0,0,2,1193,0,1,20,2759,1],[41484,37,59,15,32,257,0,0,597,1193,0,1,17,8,1],[75045,37,39,13,19,11,0,0,1193,1193,2,1,9,19,1],[71523,38,66,2,128,360,0,0,1,1188,3,1,0,0,0],[59946,38,41,4,127,625,0,0,2,1188,1,1,7,57,1],[49661,38,15,12,31,391,0,0,594,1188,2,1,13,56,1],[71296,38,8,18,19,15,0,0,1188,1188,2,1,0,0,0],[66260,39,16,9,135,439,0,0,1,1187,1,1,9,556,1],[55824,39,33,18,129,800,0,0,2,1187,2,1,9,121,1],[47522,39,55,10,32,164,0,0,594,1187,0,1,5,8,1],[32471,39,16,16,19,15,0,0,1187,1187,6,1,13,0,1],[74498,40,30,7,141,684,0,0,1,1181,2,1,0,0,0],[81113,40,31,1,138,666,0,0,2,1181,4,1,45,2213,1],[83512,40,21,18,32,481,0,0,591,1181,0,1,0,0,1],[70987,40,59,6,19,11,0,0,1181,1181,2,1,0,0,1],[79094,41,41,9,147,751,0,0,1,1240,0,1,0,0,0],[17512,41,38,10,134,1023,0,0,2,1240,1,1,1,69,1],[15095,41,55,14,32,65,0,0,620,1240,0,1,0,0,1],[4926,41,40,1,19,11,0,0,1240,1240,2,1,13,0,1],[57836,42,23,8,137,869,0,0,1,1233,0,1,12,280,1],[43652,42,10,8,131,968,0,0,2,1233,1,1,0,0,0],[54598,42,34,1,31,610,0,0,617,1233,1,1,0,0,1],[54664,42,68,12,19,13,0,1,1233,1233,2,1,9,4,1],[1234,43,25,16,182,511,0,0,1,1235,0,1,3,165,1],[65774,43,69,5,153,1007,0,0,2,1235,0,1,5,135,1],[72350,43,12,13,31,136,0,0,618,1235,1,1,3,18,1],[16298,43,62,15,19,13,0,0,1235,1235,0,1,0,0,0],[67998,44,51,5,165,782,0,0,1,1234,1,1,2,95,1],[65795,44,62,5,137,1023,0,0,2,1234,2,1,63,0,1],[68477,44,30,7,31,840,0,0,617,1234,2,1,4,26,1],[10699,44,55,12,19,12,0,0,1234,1234,1,1,0,0,0],[1899,45,51,9,191,511,0,0,1,1234,0,1,39,532,1],[1901,45,3,9,191,511,0,0,2,1234,1,1,34,650,1],[10520,45,7,11,31,294,0,0,617,1234,2,1,0,0,1],[5287,45,16,2,19,14,0,0,1234,1234,0,1,0,0,1],[27322,46,38,6,129,381,0,0,1,1242,1,1,2,0,1],[24923,46,50,14,128,419,0,0,2,1242,0,1,0,0,1],[76627,46,55,6,30,208,0,0,621,1242,0,1,0,0,1],[16619,46,42,8,19,13,0,0,1242,1242,0,1,0,0,0],[1322,47,32,2,202,511,0,0,1,1241,0,1,0,0,0],[18189,47,57,2,162,464,0,0,2,1241,0,1,15,76,1],[41251,47,60,6,30,90,0,1,621,1241,0,1,0,0,0],[2014,47,68,5,19,12,0,0,1241,1241,0,1,0,0,0],[3826,48,37,1,158,1023,0,0,1,1241,0,1,9,58,1],[26321,48,41,10,132,722,0,0,2,1241,0,1,5,19,1],[33979,48,57,7,31,16,0,0,621,1241,0,1,12,0,1],[40463,48,29,1,19,12,0,0,1241,1241,0,1,0,0,1],[1905,49,40,13,207,511,0,0,1,1242,0,1,17,158,1],[1399,49,55,1,171,511,0,0,2,1242,0,1,0,0,0],[7940,49,30,17,30,224,0,0,621,1242,1,1,12,0,1],[25629,49,32,18,19,11,0,0,1242,1242,1,1,9,0,1],[1235,50,29,11,185,511,0,0,1,1241,1,1,2,117,1],[3620,50,40,5,138,1023,0,0,2,1241,0,1,0,0,0],[37041,50,22,13,29,584,0,1,621,1241,1,1,4,5,1],[39722,50,61,4,19,12,0,0,1241,1241,0,1,3,0,1],[20301,51,6,7,158,589,0,0,1,992,3,1,63,109296,1],[4178,51,25,15,123,482,0,0,2,992,1,1,63,26534,1],[79547,51,17,5,29,370,0,0,496,992,2,1,63,313,1],[56029,51,68,15,19,11,0,0,992,992,2,1,0,0,0],[78661,52,5,14,126,894,0,0,1,999,4,1,6,2231,1],[77224,52,55,9,117,230,0,0,2,999,7,1,10,1123,1],[48447,52,19,14,30,390,0,0,500,999,1,1,4,5,1],[79454,52,63,4,19,11,0,0,999,999,2,1,1,10,1],[85986,53,17,11,109,570,0,0,1,1021,3,1,0,0,0],[77574,53,19,5,100,739,0,0,2,1021,1,1,63,72750,1],[10888,53,8,6,30,468,0,0,511,1021,3,1,1,0,1],[75846,53,58,10,19,13,1,0,1021,1021,1,1,13,49,1],[71192,54,52,1,123,222,0,0,1,1007,2,1,3,90,1],[64898,54,23,4,121,461,0,0,2,1007,7,1,63,36644,1],[72776,54,49,6,30,410,0,0,504,1007,5,1,12,58,1],[83389,54,21,14,19,15,0,0,1007,1007,6,1,0,0,0],[79028,55,62,18,141,838,0,0,1,1031,4,1,63,124272,1],[43662,55,14,18,126,616,0,0,2,1031,3,1,63,8684,1],[83994,55,65,16,30,232,0,0,516,1031,3,1,0,0,0],[41870,55,15,4,19,15,0,0,1031,1031,3,1,9,615,1],[82465,56,38,11,158,840,0,0,1,1153,1,1,63,28646,1],[55802,56,41,16,112,779,0,0,2,1153,5,1,63,3744,1],[38623,56,11,2,32,42,0,0,577,1153,4,1,4,0,1],[83446,56,2,9,19,11,0,0,1153,1153,0,1,0,0,0],[85738,57,58,12,147,830,0,0,1,1154,2,1,0,0,0],[75825,57,68,13,140,826,0,0,2,1154,1,1,63,15702,1],[38571,57,15,2,31,305,0,0,577,1154,2,1,0,0,0],[16114,57,51,12,19,11,0,0,1154,1154,3,1,15,28,1],[85964,58,63,4,129,258,0,0,1,1162,4,1,0,0,0],[68441,58,45,9,117,756,0,0,2,1162,3,1,63,7457,1],[64683,58,20,12,31,166,0,0,581,1162,4,1,11,104,1],[54298,58,13,2,19,11,0,0,1162,1162,3,1,0,0,0],[76135,59,38,4,171,614,0,0,1,1147,1,1,63,678593,1],[14004,59,19,11,122,503,0,0,2,1147,5,1,0,0,0],[25751,59,21,13,32,51,0,0,574,1147,2,1,0,0,0],[26232,59,14,6,19,19,0,0,1147,1147,5,1,9,7,1],[80518,60,57,13,133,681,0,0,1,1162,0,1,63,14412,1],[2768,60,2,18,120,212,0,0,2,1162,2,1,36,13140,1],[22087,60,14,14,30,409,0,0,581,1162,2,1,6,11,1],[13266,60,45,12,19,12,0,0,1162,1162,1,1,18,7,1],[32487,61,42,1,144,1023,0,0,1,1228,1,1,57,1678,1],[1717,61,52,10,126,511,1,0,2,1228,4,1,40,683,1],[44679,61,5,12,32,69,0,0,614,1228,3,1,4,7,1],[74848,61,27,9,19,11,0,0,1228,1228,0,1,0,0,0],[70752,62,38,15,157,805,0,0,1,1227,2,1,63,8318,1],[3142,62,7,2,142,1023,1,0,2,1227,1,1,0,0,0],[24403,62,42,13,32,41,0,0,614,1227,3,1,0,0,0],[61109,62,45,17,19,11,0,0,1227,1227,2,1,4,0,1],[25282,63,69,3,136,249,0,0,1,1223,4,1,2,673,1],[42638,63,62,7,118,871,0,1,2,1223,2,1,5,193,1],[41459,63,68,8,31,571,0,0,612,1223,0,1,3,15,1],[32838,63,48,10,19,11,0,0,1223,1223,1,1,0,0,1],[1877,64,16,10,144,511,0,0,1,1226,4,1,0,0,0],[61122,64,9,3,136,393,0,0,2,1226,0,1,63,883,1],[25643,64,31,15,31,549,0,0,613,1226,4,1,0,0,0],[10832,64,60,7,19,11,1,0,1226,1226,0,1,13,10,1],[59137,65,60,4,142,1023,0,0,1,1225,2,1,63,584,1],[48279,65,18,9,142,539,1,0,2,1225,1,1,7,327,1],[6800,65,29,13,33,90,0,0,613,1225,0,1,1,5,1],[66870,65,21,9,19,13,1,0,1225,1225,1,1,7,15,1],[12332,66,53,17,149,763,0,0,1,1239,0,1,0,0,0],[24137,66,1,16,147,672,0,0,2,1239,1,1,0,5,1],[53477,66,16,8,30,191,0,0,620,1239,0,1,1,0,1],[18884,66,27,14,19,13,0,0,1239,1239,1,1,7,7,1],[29865,67,50,11,160,1023,0,0,1,1236,1,1,63,489,1],[65832,67,55,3,140,789,0,0,2,1236,1,1,37,395,1],[33923,67,21,2,31,107,0,0,618,1236,1,1,0,0,0],[45830,67,31,1,19,12,0,0,1236,1236,3,1,0,0,0],[14265,68,52,16,132,768,0,0,1,1241,0,1,5,81,1],[15666,68,18,9,131,871,0,0,2,1241,1,1,0,0,0],[32209,68,43,11,32,25,0,1,621,1241,0,1,2,3,1],[41231,68,42,5,19,11,0,0,1241,1241,0,1,2,0,1],[15672,69,38,10,153,927,0,0,1,1241,1,1,0,0,0],[68677,69,65,17,151,853,0,0,2,1241,2,1,56,1038,1],[10814,69,16,16,32,179,0,0,621,1241,0,1,1,12,1],[33462,69,19,13,19,12,0,0,1241,1241,0,1,1,8,1],[82103,70,23,7,162,1023,0,0,1,1241,1,1,31,158,1],[3202,70,18,8,150,528,0,0,2,1241,0,1,0,0,0],[45200,70,37,5,31,19,0,0,621,1241,1,1,0,0,0],[23447,70,54,3,19,12,0,0,1241,1241,0,1,0,0,0],[37420,71,22,2,154,455,0,0,1,1242,0,1,0,0,1],[24998,71,3,13,149,1023,0,0,2,1242,1,1,63,68,1],[32131,71,64,8,30,480,0,0,621,1242,0,1,0,0,1],[44032,71,11,6,19,18,0,0,1242,1242,0,1,0,0,1],[65469,72,32,9,171,616,0,0,1,1242,0,1,3,25,1],[24155,72,54,17,170,1023,0,0,2,1242,0,1,13,411,1],[20998,72,30,13,30,104,0,0,621,1242,1,1,1,5,1],[53973,72,61,9,19,12,0,0,1242,1242,0,1,11,0,1],[14262,73,11,6,166,510,0,0,1,1242,0,1,5,165,1],[41827,73,4,11,163,402,0,0,2,1242,0,1,1,18,1],[61809,73,47,7,30,234,0,0,621,1242,0,1,6,10,1],[8829,73,18,4,19,21,0,0,1242,1242,1,1,0,0,1],[65516,74,22,11,165,956,0,0,1,1241,0,1,63,39,1],[1852,74,20,14,154,511,0,0,2,1241,0,1,0,0,0],[13839,74,21,11,31,77,0,0,621,1241,0,1,0,0,0],[54994,74,8,8,19,11,0,0,1241,1241,0,1,6,34,1],[2067,75,60,3,155,511,0,0,1,1241,0,1,2,17,1],[1162,75,48,3,151,511,0,0,2,1241,0,1,1,23,1],[33646,75,58,8,31,19,0,0,621,1241,0,1,0,0,1],[55449,75,19,3,19,12,0,0,1241,1241,3,1,26,8,1]],"cols":"token,id,prefix,suffix,level,health,shiny,animated,rank,count,kills,collects,summit_revivals,summit_held_s,summit_died"};
+(function () {
+  const BS = window.BeastSound, E = BS.engine, T = BS.TABLES;
+  const DROP_SALT = 'LS_V3_DEMO_SALT', DROP_BPS = 500;
+  const $ = (id) => document.getElementById(id);
+  const fmtHex = (x) => '0x' + BigInt(x).toString(16);
+  const short = (x) => { const h = fmtHex(x); return h.slice(0, 10) + '…' + h.slice(-6); };
+  const SECTION = ['A', 'B', 'C', 'D', 'E'];
+  const TIER_WORD = ['', 'Apex', 'Elite', 'Dangerous', 'Feral', 'Common'];
+
+  // ── snapshot rows → beasts ─────────────────────────────────────
+  // cols: token,id,prefix,suffix,level,health,shiny,animated,rank,count,kills,collects,summit_revivals,summit_held_s
+  const snap = SNAP.rows.map((r) => ({
+    token: r[0], net: 'mainnet', beast: { id: r[1], prefix: r[2], suffix: r[3], level: r[4], health: r[5], shiny: r[6], animated: r[7], tier: BS.genesisTier(r[1]), beast_type: BS.genesisType(r[1]) },
+    live: { rank: r[8], species_count: r[9], adventurers_killed: r[10], scars: r[12] + Math.max(0, r[11] - 1), summit_held_seconds: r[13] },
+  }));
+  // Community species registered on the Beasts V3 Sepolia stack (registry 0x06d46c98…30045).
+  const COMMUNITY = { 76: { name: 'Gloomfang', beast_type: 1, tier: 3 }, 77: { name: 'Black Shuck', beast_type: 1, tier: 1 }, 78: { name: 'Black Shuck 2', beast_type: 1, tier: 4 } };
+  const NO_LIVE = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0 };
+  const sepolia = [
+    { token: '0x2e0064000a081000000000000004c', net: 'sepolia', beast: { id: 76, prefix: 1, suffix: 1, level: 10, health: 100, shiny: 0, animated: 1, tier: 3, beast_type: 1 }, live: { ...NO_LIVE, rank: 1, species_count: 1 } },
+    ...Object.entries(COMMUNITY).map(([id, c]) => {
+      const b = { id: Number(id), prefix: 0, suffix: 0, level: 1, health: 100, shiny: 1, animated: 1, tier: c.tier, beast_type: c.beast_type };
+      return { token: '0x' + E.encodeTokenId(b).toString(16), net: 'sepolia', beast: b, live: { ...NO_LIVE, rank: 0, species_count: Number(id) === 76 ? 1 : 0 } };
+    }),
+  ];
+  const roster = [...sepolia, ...snap];
+  const speciesName = (id) => (id <= 75 ? T.species[id - 1] : COMMUNITY[id]?.name || 'Community Beast #' + id);
+  const nameOf = (b) => {
+    const sp = speciesName(b.id);
+    return b.prefix === 0 ? sp : `${T.prefixes[b.prefix - 1]} ${T.suffixes[b.suffix - 1]} ${sp}`;
+  };
+  const tokenLabel = (s) => (s.net === 'sepolia' ? `V3 Sepolia ${s.token.slice(0, 8)}…${s.token.slice(-4)}` : `mainnet #${s.token}`);
+
+  // ── state ──────────────────────────────────────────────────────
+  const first = snap.find((s) => s.token === 52918) || snap[0];
+  let state = { beast: { ...first.beast }, live: { ...first.live }, token: first.token, net: 'mainnet' };
+  let result = null;
+
+  // ── controls ───────────────────────────────────────────────────
+  const sel = $('species');
+  T.species.forEach((n, i) => sel.add(new Option(`${i + 1} · ${n} (${T.types[BS.genesisType(i + 1)]} T${BS.genesisTier(i + 1)})`, i + 1)));
+  Object.entries(COMMUNITY).forEach(([id, c]) => sel.add(new Option(`${id} · ${c.name} (${T.types[c.beast_type]} T${c.tier}) · V3 Sepolia`, id)));
+  sel.add(new Option('79 · Your community species', 79));
+  $('prefix').add(new Option('None (Genesis)', 0));
+  T.prefixes.forEach((n, i) => $('prefix').add(new Option(n, i + 1)));
+  $('suffix').add(new Option('None (Genesis)', 0));
+  T.suffixes.forEach((n, i) => $('suffix').add(new Option(n, i + 1)));
+
+  function syncControls() {
+    const b = state.beast, l = state.live;
+    sel.value = String(Math.min(b.id, 79));
+    $('communityRow').hidden = b.id < 79;
+    $('ctype').value = String(b.beast_type); $('ctier').value = String(b.tier);
+    $('prefix').value = String(b.prefix); $('suffix').value = String(b.suffix);
+    $('level').value = b.level; $('health').value = b.health;
+    $('shiny').checked = !!b.shiny; $('animated').checked = !!b.animated;
+    const hours = Math.floor(l.summit_held_seconds / 3600);
+    $('kills').value = Math.min(l.adventurers_killed, 128); $('deaths').value = Math.min(l.scars, 64); $('summit').value = Math.min(hours, 500);
+    $('killsOut').textContent = l.adventurers_killed; $('deathsOut').textContent = l.scars; $('summitOut').textContent = hours;
+    $('rank').value = l.rank; $('count').value = l.species_count;
+  }
+  function readControls() {
+    const id = Number(sel.value);
+    let prefix = Number($('prefix').value), suffix = Number($('suffix').value);
+    if ((prefix === 0) !== (suffix === 0)) { if (prefix === 0) prefix = 1; else suffix = 1; }
+    const b = {
+      id, prefix, suffix,
+      level: clampInt($('level').value, 1, 65535, 1), health: clampInt($('health').value, 1, 65535, 100),
+      shiny: $('shiny').checked ? 1 : 0, animated: $('animated').checked ? 1 : 0,
+      tier: id <= 75 ? BS.genesisTier(id) : COMMUNITY[id] ? COMMUNITY[id].tier : Number($('ctier').value),
+      beast_type: id <= 75 ? BS.genesisType(id) : COMMUNITY[id] ? COMMUNITY[id].beast_type : Number($('ctype').value),
+    };
+    const count = clampInt($('count').value, 1, 1243, 1);
+    const live = {
+      adventurers_killed: Number($('kills').value), scars: Number($('deaths').value),
+      summit_held_seconds: Number($('summit').value) * 3600,
+      rank: b.prefix === 0 ? 0 : clampInt($('rank').value, 1, count, 1), species_count: count,
+    };
+    state = { beast: b, live, token: null, net: null };
+  }
+  function clampInt(v, lo, hi, d) { const n = parseInt(v, 10); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : d; }
+
+  ['species', 'ctype', 'ctier', 'prefix', 'suffix', 'level', 'health', 'shiny', 'animated', 'rank', 'count'].forEach((id) =>
+    $(id).addEventListener('change', () => { readControls(); syncControls(); update(); }));
+  ['kills', 'deaths', 'summit'].forEach((id) => $(id).addEventListener('input', () => { readControls(); syncControls(); update(); }));
+
+  // ── roster ─────────────────────────────────────────────────────
+  function drawRoster() {
+    const q = $('search').value.trim().toLowerCase();
+    const list = roster.filter((s) => {
+      if (!q) return true;
+      const txt = (nameOf(s.beast) + ' ' + T.types[s.beast.beast_type] + (s.live.rank === 1 ? ' crown' : '') + ' ' + s.net + ' v3 #' + s.token + (s.live.summit_held_seconds > 0 ? ' summit' : '')).toLowerCase();
+      return q.split(/\s+/).every((w) => txt.includes(w));
+    });
+    const root = $('roster');
+    root.textContent = '';
+    list.slice(0, 120).forEach((s) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      if (state.token === s.token) b.setAttribute('aria-current', 'true');
+      const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = nameOf(s.beast);
+      const rk = document.createElement('span'); rk.className = 'rk' + (s.live.rank === 1 ? ' crown' : '');
+      rk.textContent = s.beast.prefix === 0 ? 'Genesis' : s.live.rank === 1 ? '♛ rank 1' : `rank ${s.live.rank}`;
+      const meta = document.createElement('span'); meta.className = 'meta';
+      const sh = Math.floor(s.live.summit_held_seconds / 3600);
+      meta.textContent = `${tokenLabel(s)} · lvl ${s.beast.level} · ${s.live.adventurers_killed} kills` + (s.live.scars ? ` · ${s.live.scars} summit deaths` : '') + (sh ? ` · ${sh} h on summit` : '');
+      b.append(nm, rk, meta);
+      b.addEventListener('click', () => { state = { beast: { ...s.beast }, live: { ...s.live }, token: s.token, net: s.net }; syncControls(); update(); drawRoster(); });
+      root.append(b);
+    });
+    if (!list.length) { const p = document.createElement('p'); p.className = 'hint'; p.style.padding = '10px'; p.textContent = 'No snapshot Beast matches. Build one with the selectors below.'; root.append(p); }
+  }
+  $('search').addEventListener('input', drawRoster);
+  $('snapmeta').textContent = `${sepolia.length} Beasts from the V3 Sepolia stack, then ${snap.length} mainnet Beasts (rank 1, 2, median and last of each species) with Death Mountain and Summit stats, read ${SNAP.at}. Total minted on mainnet: ${SNAP.supply.toLocaleString()}.`;
+
+  // ── token lookup ───────────────────────────────────────────────
+  $('tokenGo').addEventListener('click', summonToken);
+  $('tokenIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') summonToken(); });
+  async function summonToken() {
+    const raw = $('tokenIn').value.trim();
+    $('tokenErr').textContent = '';
+    if (!raw) return;
+    let n;
+    try { n = BigInt(raw); } catch { $('tokenErr').textContent = 'Enter a decimal number or a 0x hex value.'; return; }
+    if (n > 0xffffffffn) {
+      try {
+        const b = E.decodeTokenId(n);
+        const known = sepolia.find((s) => BigInt(s.token) === n);
+        state = known ? { beast: { ...known.beast }, live: { ...known.live }, token: known.token, net: 'sepolia' }
+          : { beast: b, live: { ...NO_LIVE, rank: b.prefix === 0 ? 0 : 1, species_count: 1000 }, token: null, net: null };
+        syncControls(); update(); return;
+      } catch (e) { $('tokenErr').textContent = 'Not a valid V3 token ID: ' + e.message + '.'; return; }
+    }
+    const hit = snap.find((s) => BigInt(s.token) === n);
+    if (hit) { state = { beast: { ...hit.beast }, live: { ...hit.live }, token: hit.token, net: 'mainnet' }; syncControls(); update(); drawRoster(); return; }
+    $('tokenErr').textContent = 'Reading mainnet…';
+    try {
+      const got = await liveLookup(n);
+      state = got; syncControls(); update(); $('tokenErr').textContent = '';
+    } catch (e) {
+      $('tokenErr').textContent = `Token #${n} isn't in the snapshot, and this preview blocks live RPC calls. A hosted copy of this page reads it live.`;
+    }
+  }
+  const RPC = 'https://api.cartridge.gg/x/starknet/mainnet';
+  const NFT = '0x046da8955829adf2bda310099a0063451923f02e648cf25a1203aac6335cf0e4';
+  const DM = '0x79938ca37e3510a6a8b073243c8f30f5c687eff81d63e66197c56f7b85b558b';
+  const DG = '0x539d24dfdaa2866d975fa93db501b971c08786f2c88e719800be39903e43bbc';
+  const SUMMIT = '0x01aa95ea66e7e01acf7dc3fda8be0d8661230c4c36b0169e2bab8ab4d6700dfc';
+  const selector = BS.selector;
+  async function call(addr, fn, args) {
+    const res = await fetch(RPC, { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'starknet_call', params: { request: { contract_address: addr, entry_point_selector: selector(fn), calldata: args.map((a) => '0x' + BigInt(a).toString(16)) }, block_id: 'latest' } }) });
+    const j = await res.json();
+    if (!j.result) throw new Error(j.error?.message || 'rpc error');
+    return j.result.map(BigInt);
+  }
+  async function liveLookup(token) {
+    const g = (await call(NFT, 'get_beast', [token, 0])).map(Number);
+    const b = { id: g[0], prefix: g[1], suffix: g[2], level: g[3], health: g[4], shiny: g[5], animated: g[6], tier: BS.genesisTier(g[0]), beast_type: BS.genesisType(g[0]) };
+    const [rank, count, kills, collects, summit] = await Promise.all([
+      call(NFT, 'get_beast_rank', [token, 0]), call(NFT, 'get_species_count', [b.id]),
+      call(NFT, 'get_adventurers_killed', [token, 0]),
+      call(DM, 'get_collectable_count', [DG, BS.poseidonHashMany([BigInt(b.id), BigInt(b.prefix), BigInt(b.suffix)])]),
+      call(SUMMIT, 'get_live_stats', [1, token]), // LiveBeastStats: [len, token_id, …, revival_count @6, extra_lives, summit_held_seconds @8, …]
+    ]);
+    const live = summit.slice(1).map(Number);
+    return { beast: b, live: { rank: Number(rank[0]), species_count: Number(count[0]), adventurers_killed: Number(kills[0]),
+      scars: (live[0] === Number(token) ? live[6] : 0) + Math.max(0, Number(collects[0]) - 1),
+      summit_held_seconds: live[0] === Number(token) ? live[8] : 0 }, token: Number(token), net: 'mainnet' };
+  }
+
+  // ── render ─────────────────────────────────────────────────────
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  const voiceColors = () => [cssVar('--v0'), cssVar('--v1'), cssVar('--v2'), cssVar('--v3'), cssVar('--v4')];
+
+  function update() {
+    stop();
+    try { result = E.render(state.beast, state.live); }
+    catch (e) { $('bname').textContent = 'Invalid Beast: ' + e.message; return; }
+    const b = state.beast, p = result.params, st = p._state;
+    const has = E.hasSound(DROP_SALT, DROP_BPS, b);
+    const roll = b.prefix === 0 ? null : E.soundDropRoll(DROP_SALT, b.id, b.prefix, b.suffix);
+    $('eyebrow').textContent = `${T.types[b.beast_type]} · Tier ${b.tier} ${TIER_WORD[b.tier]}` + (state.token ? ' · ' + tokenLabel(state) : '') + (b.id > 75 ? ' · community species' : '');
+    $('bname').textContent = nameOf(b);
+    const chips = $('chips'); chips.textContent = '';
+    const chip = (t, cls) => { const s = document.createElement('span'); s.className = 'chip ' + (cls || ''); s.textContent = t; chips.append(s); };
+    chip(has ? (b.prefix === 0 ? 'Sound · Genesis' : `Sound drop won · roll ${String(roll).padStart(4, '0')}`) : `No drop · roll ${String(roll).padStart(4, '0')} ≥ ${DROP_BPS}`, has ? 'on' : 'off');
+    if (st.is_crown) chip('♛ Crown', 'gold');
+    chip(`lvl ${b.level}`); chip(`hp ${b.health}`);
+    if (st.summit_bucket >= 4) chip(`⛰ ${Math.floor(state.live.summit_held_seconds / 3600)} h on the Summit`, 'gold');
+    if (b.shiny) chip('Shiny'); if (b.animated) chip('Animated');
+    chip(b.prefix === 0 ? 'Genesis' : `rank ${state.live.rank} / ${state.live.species_count}`);
+
+    const ev = result.form.events;
+    const ticks = Math.max(...ev.map((e) => e.time + e.duration));
+    const secs = ticks / 480 * p.tempo_us / 1e6;
+    $('dur').textContent = `${ev.length} notes · ${secs.toFixed(1)} s · ${Math.round(60e6 / p.tempo_us)} bpm`;
+
+    const vc = voiceColors();
+    const legend = $('legend'); legend.textContent = '';
+    const voices = [...new Set(ev.map((e) => e.voice_id))].sort();
+    voices.forEach((v) => {
+      const isCs = ev.find((e) => e.voice_id === v).role === 'countersubject';
+      const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = vc[v % vc.length];
+      s.append(i, document.createTextNode(isCs ? 'Countersubject' : v === 0 ? 'Leader (theme)' : `Follower ${v}`)); legend.append(s);
+    });
+
+    drawRoll($('roll'), result, true);
+    drawParams(result);
+    drawHashes(result);
+    drawHistory();
+  }
+
+  function drawRoll(canvas, r, full, playT) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth || 600, h = canvas.clientHeight || (full ? 300 : 70);
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    const g = canvas.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+    const ev = r.form.events, vc = voiceColors();
+    const ticks = Math.max(...ev.map((e) => e.time + e.duration));
+    const lo = Math.min(...ev.map((e) => e.pitch)) - 2, hi = Math.max(...ev.map((e) => e.pitch)) + 2;
+    const top = full ? 22 : 4, H = h - top - 4;
+    const x = (t) => (t / ticks) * w, y = (pch) => top + (hi - pch) / (hi - lo) * H;
+    if (full) {
+      r.form.sections.forEach((s, i) => {
+        const x0 = x(s.start), x1 = i + 1 < r.form.sections.length ? x(r.form.sections[i + 1].start) : w;
+        if (i % 2 === 1) { g.fillStyle = cssVar('--grid'); g.fillRect(x0, 0, x1 - x0, h); }
+        g.fillStyle = cssVar('--muted'); g.font = '11px "IBM Plex Mono", monospace';
+        const shift = s.shift === 0 ? 'home' : (s.shift > 0 ? '+' : '') + s.shift;
+        g.fillText(`${SECTION[i]} · ${shift}`, x0 + 6, 14);
+      });
+      g.strokeStyle = cssVar('--grid');
+      for (let pch = Math.ceil(lo / 12) * 12; pch <= hi; pch += 12) { g.beginPath(); g.moveTo(0, y(pch)); g.lineTo(w, y(pch)); g.stroke(); }
+    }
+    const nh = Math.max(2, Math.min(full ? 7 : 3, H / (hi - lo) * 0.9));
+    ev.forEach((e) => {
+      g.globalAlpha = 0.45 + 0.55 * (e.velocity / 127);
+      g.fillStyle = vc[e.voice_id % vc.length];
+      g.fillRect(x(e.time) + 0.5, y(e.pitch) - nh / 2, Math.max(1.5, x(e.duration) - 1), nh);
+    });
+    g.globalAlpha = 1;
+    if (playT != null) { g.fillStyle = cssVar('--ink'); g.fillRect(x(playT), 0, 1.5, h); }
+  }
+
+  function drawParams(r) {
+    const p = r.params, b = r.beast, st = p._state, o = p._ornament;
+    const fam = BS.FAMILY_NAMES[`${p.canon_config_id}/${p.profile_id}`] || `config ${p.canon_config_id}`;
+    const tonic = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'][p.tonic_keynum % 12] + (Math.floor(p.tonic_keynum / 12) - 1);
+    const items = [
+      ['Key', `${tonic} ${BS.MODE_NAMES[p.mode_id] || 'mode ' + p.mode_id}`, b.prefix === 0 ? 'Genesis: Phrygian on the species pitch' : `Prefix “${T.prefixes[b.prefix - 1]}”` + (b.health >= 250 ? ' · heavy (hp ≥ 250), a band lower' : '')],
+      ['Canon family', fam, `${T.types[b.beast_type]} × Tier ${b.tier}`],
+      ['Voices', String(p.voice_count) + (p.use_countersubject ? ' + countersubject' : ''), `tier base` + (b.level >= 64 && b.tier <= 4 ? ' · level ≥ 64 adds one' : '') + (st.kill_bucket >= 4 && b.tier <= 3 ? ' · kills add one' : '') + (st.rank_tier <= 1 && b.tier <= 2 ? ' · rank adds one' : '')],
+      ['Form', `${p.section_count} section${p.section_count > 1 ? 's' : ''} (${SECTION.slice(0, p.section_count).join(' ')})`, `kill bucket ${st.kill_bucket} of 7`],
+      ['Stretto', `entries every ${p.stretto_lag} beat${p.stretto_lag > 1 ? 's' : ''}`, st.is_crown ? 'crown tightens one step' : 'tightens with kills'],
+      ['Section B', p.weakness === 2 ? 'tritone (+6)' : p.weakness === 0 ? 'up a fifth (+7)' : 'down a fourth (−5)', `${T.types[b.beast_type]} type`],
+      ['Scars', p.use_inversion ? 'follower inverted' + (p.section_count >= 3 ? ' · C falls a third' : '') : 'none yet', `${r.live.scars} Summit deaths · bucket ${st.defeat_bucket} (inverts at 3)`],
+      ['Summit', `${Math.floor(r.live.summit_held_seconds / 3600)} h held` + (st.summit_bucket >= 4 ? ' · glory' : ''), `bucket ${st.summit_bucket} · ≥ 16 h adds ornament · history ${st.encounter_bucket}`],
+      ['Ornament', `density ${p.ornament_density} / 7 · ${BS.ORNAMENT_FAMILIES[o.profile_id % 6] || 'structural'}`, (b.prefix === 0 ? 'Genesis policy' : `Suffix “${T.suffixes[b.suffix - 1]}”`) + ' + kills' + (st.is_crown ? ' + crown' : '') + (st.summit_bucket >= 4 ? ' + summit' : '')],
+      ['Performance', `${Math.round(60e6 / p.tempo_us)} bpm · ${BS.ARTICULATION_NAMES[p.articulation_profile]}`, (b.shiny || b.animated) ? [b.shiny && 'shiny', b.animated && 'animated'].filter(Boolean).join(' + ') : 'standard'],
+      ['Rank tier', ['Crown', 'Top 1%', 'Top 5%', 'Top 20%', 'Field'][st.rank_tier] + (b.prefix === 0 ? ' (Genesis)' : ''), b.prefix === 0 ? 'creator token, unranked' : `rank ${r.live.rank} of ${r.live.species_count}`],
+    ];
+    const root = $('params'); root.textContent = '';
+    items.forEach(([k, v, why]) => {
+      const d = document.createElement('div');
+      const l = document.createElement('span'); l.className = 'label'; l.textContent = k;
+      const val = document.createElement('b'); val.textContent = v;
+      const wy = document.createElement('span'); wy.className = 'why'; wy.textContent = why;
+      d.append(l, val, wy); root.append(d);
+    });
+  }
+
+  function drawHashes(r) {
+    const tid = E.encodeTokenId(r.beast);
+    const rows = [
+      ['V3 token ID', '0x' + tid.toString(16)],
+      ['creator', 'holder of Genesis 0x' + E.genesisTokenId(r.beast.id, r.beast.tier, r.beast.beast_type).toString(16)],
+      ['sound_seed', fmtHex(r.seed)],
+      ['motif', fmtHex(r.form.theme.theme_hash)],
+      ['state_hash', fmtHex(r.state_hash)],
+      ['params_hash', fmtHex(r.params_hash)],
+      ['score_hash', fmtHex(r.form.score_hash)],
+    ];
+    const bsn = E.bytesToFelts(E.encodeBsn(r)), midi = E.bytesToFelts(E.toMidiFile(r));
+    rows.push(['onchain notes', `BSN1 · ${bsn[0]} bytes in ${bsn.length} felts (MIDI would be ${midi.length} felts) · 7 bits per note`]);
+    const root = $('hashes'); root.textContent = '';
+    rows.forEach(([k, v]) => { const d = document.createElement('div'); const a = document.createElement('span'); a.textContent = k; const b = document.createElement('span'); b.textContent = v; d.append(a, b); root.append(d); });
+  }
+
+  const LIFETIMES = [[0, 'Freshly minted'], [3, '3 kills'], [15, '15 kills'], [100, '100 kills']];
+  let historyResults = [];
+  function drawHistory() {
+    const root = $('history'); root.textContent = '';
+    historyResults = LIFETIMES.map(([k]) => E.render(state.beast, { ...state.live, adventurers_killed: k }));
+    historyResults.forEach((r, i) => {
+      const cell = document.createElement('div'); cell.className = 'hcell';
+      const lab = document.createElement('span'); lab.className = 'label'; lab.textContent = LIFETIMES[i][1];
+      const cv = document.createElement('canvas');
+      const meta = document.createElement('span'); meta.className = 'hint mono';
+      meta.textContent = `${r.params.section_count} sec · lag ${r.params.stretto_lag} · motif ${fmtHex(r.form.theme.theme_hash).slice(0, 8)}`;
+      const btn = document.createElement('button'); btn.className = 'btn'; btn.type = 'button'; btn.textContent = 'Play';
+      btn.addEventListener('click', () => { if (playing && playing.res === r) stop(); else play(r, cv); });
+      cell.append(lab, cv, meta, btn); root.append(cell);
+      requestAnimationFrame(() => drawRoll(cv, r, false));
+    });
+  }
+
+  // ── audio: placeholder instrument packs by type (offchain, swappable) ──
+  let ctx = null, bus = null, playing = null;
+  function ensureAudio() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3;
+    comp.connect(ctx.destination);
+    const rev = ctx.createConvolver();
+    const len = Math.floor(ctx.sampleRate * 2.6), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4); }
+    rev.buffer = ir;
+    const wet = ctx.createGain(); wet.gain.value = 0.32; rev.connect(wet); wet.connect(comp);
+    bus = { comp, rev };
+  }
+  const freq = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  function voiceNote(out, t, dur, m, vel, v, role, b) {
+    const type = b.beast_type, f = freq(m), amp = 0.11 * (vel / 127);
+    const g = ctx.createGain(); g.connect(out);
+    const filt = ctx.createBiquadFilter(); filt.type = 'lowpass'; filt.connect(g);
+    const oscs = [];
+    const osc = (wave, mult, gain, detune) => { const o = ctx.createOscillator(); o.type = wave; o.frequency.value = f * mult; if (detune) o.detune.value = detune; const og = ctx.createGain(); og.gain.value = gain; o.connect(og); og.connect(filt); oscs.push(o); return o; };
+    let a = 0.02, rel = 0.25, peak = amp;
+    if (role === 'countersubject') { osc('sine', 1, 1); osc('sine', 2, 0.15); filt.frequency.value = 2400; a = 0.06; }
+    else if (type === 0) { // Magic: glass + choir
+      osc('triangle', 1, 0.8, -6); osc('triangle', 1, 0.8, 6); if (v === 0) { osc('sine', 3.01, 0.18); osc('sine', 4.2, 0.08); }
+      filt.frequency.value = 2600; a = v === 0 ? 0.01 : 0.09; rel = 0.5;
+    } else if (type === 1) { // Hunter: plucked leader, horn followers
+      if (v === 0) { osc('sawtooth', 1, 0.7); filt.frequency.setValueAtTime(4200, t); filt.frequency.exponentialRampToValueAtTime(500, t + Math.min(dur, 0.4) + 0.05); a = 0.005; }
+      else { osc('square', 1, 0.35); osc('sine', 1, 0.6); filt.frequency.value = 1300; a = 0.05; }
+    } else { // Brute: low brass + sub
+      osc('sawtooth', 1, 0.6, -4); osc('sawtooth', 1, 0.6, 4); osc('sine', 0.5, 0.5);
+      filt.frequency.value = 900 + (v === 0 ? 500 : 0); a = 0.04; rel = 0.35; peak = amp * 1.15;
+    }
+    if (b.shiny) osc('sine', 2, 0.12);
+    if (b.animated) { const lfo = ctx.createOscillator(); lfo.frequency.value = 5.2; const lg = ctx.createGain(); lg.gain.value = 7; lfo.connect(lg); oscs.forEach((o) => lg.connect(o.detune)); oscs.push(lfo); }
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(peak, t + a);
+    g.gain.setTargetAtTime(peak * 0.7, t + a, 0.15);
+    g.gain.setTargetAtTime(0, t + dur, rel / 3);
+    oscs.forEach((o) => { o.start(t); o.stop(t + dur + rel + 0.3); });
+    return oscs;
+  }
+  function play(r, canvas) {
+    ensureAudio(); stop(); ctx.resume();
+    const out = ctx.createGain(); out.connect(bus.comp); out.connect(bus.rev);
+    const tick = r.params.tempo_us / 1e6 / 480, t0 = ctx.currentTime + 0.12;
+    const ticks = Math.max(...r.form.events.map((e) => e.time + e.duration));
+    r.form.events.forEach((e) => voiceNote(out, t0 + e.time * tick, e.duration * tick, e.pitch, e.velocity, e.voice_id, e.role, r.beast));
+    playing = { res: r, out, t0, tick, ticks, canvas: canvas || $('roll'), full: !canvas, raf: 0 };
+    setIcon(true);
+    const step = () => {
+      if (!playing) return;
+      const pt = (ctx.currentTime - playing.t0) / playing.tick;
+      if (pt > playing.ticks + 480) { stop(); return; }
+      drawRoll(playing.canvas, playing.res, playing.full, Math.max(0, pt));
+      playing.raf = requestAnimationFrame(step);
+    };
+    step();
+  }
+  function stop() {
+    if (!playing) return;
+    const p = playing; playing = null;
+    cancelAnimationFrame(p.raf);
+    p.out.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
+    setTimeout(() => p.out.disconnect(), 400);
+    drawRoll(p.canvas, p.res, p.full);
+    setIcon(false);
+  }
+  function setIcon(on) {
+    $('playIcon').innerHTML = on ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>' : '<path d="M7 4.5v15l13-7.5z"/>';
+    $('play').setAttribute('aria-label', on ? 'Stop' : 'Play theme');
+  }
+  $('play').addEventListener('click', () => { if (playing && playing.res === result) stop(); else play(result); });
+
+  // ── downloads ──────────────────────────────────────────────────
+  function crc32(bytes) { let c, crc = 0xffffffff; for (let n = 0; n < bytes.length; n++) { c = (crc ^ bytes[n]) & 0xff; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; crc = (crc >>> 8) ^ c; } return (crc ^ 0xffffffff) >>> 0; }
+  function zipOne(name, data) {
+    const nm = new TextEncoder().encode(name), crc = crc32(data);
+    const le = (n, b) => Array.from({ length: b }, (_, i) => (n >>> (8 * i)) & 255);
+    const local = [...le(0x04034b50, 4), 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...le(crc, 4), ...le(data.length, 4), ...le(data.length, 4), ...le(nm.length, 2), 0, 0, ...nm];
+    const central = [...le(0x02014b50, 4), 20, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...le(crc, 4), ...le(data.length, 4), ...le(data.length, 4), ...le(nm.length, 2), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...nm];
+    const off = local.length + data.length;
+    const end = [...le(0x06054b50, 4), 0, 0, 0, 0, 1, 0, 1, 0, ...le(central.length, 4), ...le(off, 4), 0, 0];
+    const outArr = new Uint8Array(off + central.length + end.length);
+    outArr.set(local, 0); outArr.set(data, local.length); outArr.set(central, off); outArr.set(end, off + central.length);
+    return outArr;
+  }
+  const slug = () => nameOf(state.beast).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  $('dlMidi').addEventListener('click', async () => {
+    $('dlMsg').textContent = '';
+    // Same path a client takes with get_score_notes: compact BSN1 felts -> decoder -> MIDI file.
+    const midi = E.bsnToMidi(E.bytesToFelts(E.encodeBsn(result)));
+    const zip = zipOne(`${slug()}.mid`, midi);
+    const dl = await window.claude?.use?.('downloads');
+    if (dl) {
+      try { await dl.save({ filename: `${slug()}-midi.zip`, data: zip }); $('dlMsg').textContent = 'Saved.'; }
+      catch (e) { $('dlMsg').textContent = e.code === 'declined' ? '' : 'Download unavailable here.'; }
+      return;
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([midi], { type: 'audio/midi' })); a.download = `${slug()}.mid`; a.click();
+  });
+  $('copyCall').addEventListener('click', async () => {
+    const b = result.beast, l = result.live;
+    const txt = `token_id: 0x${E.encodeTokenId(b).toString(16)}\nbeast: ${JSON.stringify(b)}\nlive: ${JSON.stringify(l)}\nscore_hash: ${fmtHex(result.form.score_hash)}`;
+    try { await navigator.clipboard.writeText(txt); $('dlMsg').textContent = 'Copied.'; }
+    catch { $('dlMsg').textContent = txt; }
+  });
+
+  // ── tabs ───────────────────────────────────────────────────────
+  function showTab(which) {
+    const plan = which === 'plan';
+    $('view-sim').hidden = plan; $('view-plan').hidden = !plan;
+    $('tab-sim').setAttribute('aria-selected', String(!plan)); $('tab-plan').setAttribute('aria-selected', String(plan));
+    if (!plan) requestAnimationFrame(update);
+  }
+  $('tab-sim').addEventListener('click', () => showTab('sim'));
+  $('tab-plan').addEventListener('click', () => { stop(); showTab('plan'); });
+  if (location.hash === '#plan') showTab('plan');
+
+  // data note on plan tab
+  const ks = snap.map((s) => s.live.adventurers_killed), sc = snap.map((s) => s.live.scars), hs = snap.map((s) => s.live.summit_held_seconds / 3600);
+  const pct = (xs, f) => Math.round(100 * xs.filter(f).length / xs.length);
+  $('dataNote').textContent = `From the ${snap.length}-Beast mainnet snapshot: ${pct(ks, (k) => k === 0)}% have 0 kills and the most is ${Math.max(...ks)}. Every Beast has a Death Mountain collect count of exactly 1. On Summit, ${pct(sc, (k) => k > 0)}% have died at least once (most: ${Math.max(...sc)}), ${pct(sc, (k) => k >= 7)}% have died 7+ times, and ${pct(hs, (h) => h > 0)}% have held the summit (most: ${Math.round(Math.max(...hs))} hours).`;
+
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (!playing) { drawRoll($('roll'), result, true); historyResults.forEach((r, i) => drawRoll($('history').children[i].querySelector('canvas'), r, false)); } }, 150); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => update());
+
+  syncControls(); drawRoster(); update();
+})();
+</script>

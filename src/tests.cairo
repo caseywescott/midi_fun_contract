@@ -50,6 +50,7 @@ pub mod test_beast_trait_map;
 pub mod test_beast_score;
 pub mod test_beast_midi;
 pub mod test_beast_v3_sound;
+pub mod test_beast_engine_v2;
 pub mod test_articulation;
 pub mod test_contrapuntal;
 pub mod test_transformational_counterpoint;

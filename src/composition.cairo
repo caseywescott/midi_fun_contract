@@ -47,6 +47,7 @@ pub mod ornamentation_v2;
 pub mod beast_trait_map;
 pub mod beast_score;
 pub mod beast_v3_sound;
+pub mod beast_engine_v2;
 pub mod articulation;
 pub mod canon_inversion;
 pub mod invertible_counterpoint;

@@ -149,6 +149,10 @@ pub struct V2NoteEvent {
     pub voice_index: u32,
 }
 
+/// `HarmonyEvent.function_label` value meaning "minor tonic": the engine then builds the chord
+/// context with a minor third. Every other label keeps the original major-triad behavior.
+pub const HARMONY_FN_MINOR_TONIC: u8 = 128;
+
 #[derive(Copy, Drop)]
 pub struct HarmonyEvent {
     pub root_pc: u8,

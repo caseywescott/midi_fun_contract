@@ -150,7 +150,7 @@ fn degree_hash(seed: felt252, step_index: u32, leader_degree: i32, prior_hash: f
     (hu % 0x100000000).try_into().unwrap()
 }
 
-fn theme_hash(degrees: Span<i32>) -> felt252 {
+pub fn theme_hash(degrees: Span<i32>) -> felt252 {
     let mut h = PoseidonTrait::new();
     h = h.update('BEAST_THEME_V1');
     let mut i: u32 = 0;
@@ -246,7 +246,7 @@ pub fn build_beast_theme(params: BeastCompositionParams, motif_seed: felt252) ->
     BeastTheme { degrees, steps, theme_hash: th }
 }
 
-fn canonical_to_melodic_mode(mode_id: u8) -> u8 {
+pub fn canonical_to_melodic_mode(mode_id: u8) -> u8 {
     if mode_id == 4 {
         1 // Dorian
     } else if mode_id == 5 {
@@ -264,7 +264,7 @@ fn canonical_to_melodic_mode(mode_id: u8) -> u8 {
     }
 }
 
-fn transposed_tonic(tonic: u8, shift: i32) -> u8 {
+pub fn transposed_tonic(tonic: u8, shift: i32) -> u8 {
     let raw: i32 = tonic.into() + shift;
     if raw < 24 {
         24
@@ -320,7 +320,7 @@ fn apply_section_offset(events: Span<NoteEvent>, section_offset: u32) -> Array<N
     out
 }
 
-fn plan_from_beast_articulation(profile: u8, ceiling: u8) -> ArticulationPlan {
+pub fn plan_from_beast_articulation(profile: u8, ceiling: u8) -> ArticulationPlan {
     if profile == ARTICULATION_STACCATO {
         ArticulationPlan { pattern: array![ART_STACCATO], velocity_ceiling: ceiling, min_duration: 60 }
     } else if profile == ARTICULATION_TENUTO {
@@ -735,7 +735,7 @@ pub fn build_beast_ornamented_midi(
 
 /// Number of leader notes for the IC canon walk, scaled by beast tier.
 /// Tier 1-2 (high-tier / formidable) get the longest phrase for maximum imitative complexity.
-fn ic_canon_length_for_tier(tier: u8) -> u32 {
+pub fn ic_canon_length_for_tier(tier: u8) -> u32 {
     if tier <= 2 {
         36
     } else if tier == 3 {
@@ -761,7 +761,7 @@ fn beast_ic_orn_seed(ornament_seed: felt252, section_id: u8) -> felt252 {
 
 /// Select V2 ornament style from beast ornament density.
 /// High-density beasts get baroque surface; mid-density get modal canon; sparse get common practice.
-fn ornament_style_for_density(density: u8) -> OrnamentStyleProfile {
+pub fn ornament_style_for_density(density: u8) -> OrnamentStyleProfile {
     if density >= 5 {
         profile_baroque_ornament()
     } else if density >= 3 {

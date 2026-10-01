@@ -2938,3 +2938,112 @@ pub fn ornament_tone_is_legal(added: i32, against: i32, weak_beat: bool, by_step
     }
     weak_beat && by_step
 }
+
+// ──────────────────────────────────────────────────────────
+// Beast engine v2: invertible canon with entry lags and full-entropy draws
+// ──────────────────────────────────────────────────────────
+
+fn v2_enc_i32(v: i32) -> felt252 {
+    if v < 0 {
+        (1000_i32 + v).into()
+    } else {
+        v.into()
+    }
+}
+
+/// Pairwise constraints for every entry lag from 1 to `max_lag` (voice `j` entering `j * lag`
+/// notes after the leader). A melody walked under this union is invertible and clash-free for
+/// any of those lags and for any prefix of the voices.
+pub fn ic_constraints_all_lags(offsets: Span<i32>, max_lag: u32) -> Array<PairConstraint> {
+    let mut out: Array<PairConstraint> = ArrayTrait::new();
+    let mut lag: u32 = 1;
+    while lag <= max_lag {
+        let mut i: u32 = 0;
+        while i < offsets.len() {
+            let mut j: u32 = i + 1;
+            while j < offsets.len() {
+                out.append(PairConstraint { d: *offsets.at(j) - *offsets.at(i), w: (j - i) * lag });
+                j += 1;
+            }
+            i += 1;
+        }
+        lag += 1;
+    }
+    out
+}
+
+/// Leader walk for an octave-invertible canon whose voices enter at arbitrary `entries`.
+///
+/// Same candidate rules as `walk_leader_banded_ic` (pairwise vertical rules over the actual entry
+/// windows, the IC fifth check, the parallel-perfect policy, the constant register band and the
+/// cadence approach). Only the draw differs: each step picks
+/// `poseidon(canon_seed, 'LEADER_WALK_V3', p, prior) mod |candidates|`, so the full seed reaches
+/// the melody instead of an 8-bit LCG state.
+pub fn walk_leader_entries_ic_hashed(
+    canon_seed: felt252, offsets: Span<i32>, entries: Span<u32>, profile: @AestheticProfile, len: u32,
+) -> (Array<i32>, Array<i32>) {
+    let constraints = koji::composition::canon_entry_rules::pair_constraints_from_entries(
+        offsets, entries,
+    );
+    walk_leader_constraints_ic_hashed(canon_seed, offsets, constraints.span(), profile, len)
+}
+
+/// The same walk under an explicit constraint set (e.g. `ic_constraints_all_lags`).
+pub fn walk_leader_constraints_ic_hashed(
+    canon_seed: felt252,
+    offsets: Span<i32>,
+    constraints: Span<PairConstraint>,
+    profile: @AestheticProfile,
+    len: u32,
+) -> (Array<i32>, Array<i32>) {
+    let prefer = keep_within_skip(
+        allowed_steps_multivoice_p(profile, offsets).span(),
+        prefer_skip_for_profile(*profile.id, *profile.octave),
+    );
+    let primary_d = if offsets.len() > 1 {
+        *offsets.at(1)
+    } else {
+        0
+    };
+    let has_unit_step = contains_i32(prefer.span(), 1) || contains_i32(prefer.span(), -1);
+    let env = constant_band(profile);
+    let mut degrees: Array<i32> = array![0];
+    let mut steps: Array<i32> = ArrayTrait::new();
+    let mut prior = core::poseidon::poseidon_hash_span(array![canon_seed, 'LEADER_PRIOR_V3'].span());
+    let mut p: u32 = 1;
+    while p < len {
+        let (lo, hi) = band_at(@env, p, len);
+        let cands = candidates_at(
+            profile,
+            constraints,
+            primary_d,
+            p,
+            degrees.span(),
+            steps.span(),
+            prefer.span(),
+            lo,
+            hi,
+            0,
+            turnaround_plan_default(),
+            canon_seed,
+            false,
+            true,
+        );
+        assert(cands.len() > 0, 'no valid ic leader step');
+        let cur = *degrees.at(degrees.len() - 1);
+        let draw = core::poseidon::poseidon_hash_span(
+            array![canon_seed, 'LEADER_WALK_V3', p.into(), prior].span(),
+        );
+        let draw_u: u256 = draw.into();
+        let raw: u32 = (draw_u % 0x100000000).try_into().unwrap();
+        let m = match cadence_target(p, len, primary_d, has_unit_step) {
+            Option::Some(t) => pick_toward(cands.span(), cur, t),
+            Option::None => *cands.at(raw % cands.len()),
+        };
+        degrees.append(cur + m);
+        steps.append(m);
+        prior = core::poseidon::poseidon_hash_span(array![prior, v2_enc_i32(m)].span());
+        p += 1;
+    }
+    (degrees, steps)
+}

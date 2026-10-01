@@ -19,7 +19,8 @@ use koji::composition::ornamentation_v2::selection::{
 };
 use koji::composition::ornamentation_v2::types::{
     default_boundary_for_kind, default_constraints, HarmonyEvent, MusicalTile,
-    OrnamentCanonResult, OrnamentConfig, OrnamentContext, OrnamentPhraseResult,
+    HARMONY_FN_MINOR_TONIC, OrnamentCanonResult, OrnamentConfig, OrnamentContext,
+    OrnamentPhraseResult,
     OUTPUT_ONCHAIN_COMPACT, OUTPUT_SYMBOLIC, SELECTION_LIVE, SELECTION_SEEDED,
     WORKFLOW_CANON_FIRST, WORKFLOW_ORNAMENT_FIRST, structural_event, V2NoteEvent,
 };
@@ -44,8 +45,13 @@ fn harmony_at(harmony: Span<HarmonyEvent>, time: u32) -> (Array<u8>, u8, bool) {
         if time >= h.start && time < h.start + h.duration {
             let mut chord: Array<u8> = ArrayTrait::new();
             let root = h.root_pc;
+            let third: u8 = if h.function_label == HARMONY_FN_MINOR_TONIC {
+                3
+            } else {
+                4
+            };
             chord.append(root);
-            chord.append((root + 4) % 12);
+            chord.append((root + third) % 12);
             chord.append((root + 7) % 12);
             return (chord, h.bass_pc, true);
         }

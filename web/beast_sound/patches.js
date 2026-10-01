@@ -345,13 +345,18 @@ function chipWaves(kit) {
 // hold until note-off, then release frames.
 function chipEnvelope(param, t, dur, peak, { attack = 0, decay = 0, sustain = 1, release = 2 }) {
   const q = (v) => Math.round(v * 15) / 15;
-  let frame = 0;
-  param.setValueAtTime(0, t);
   const at = (n) => t + n * FRAME;
   const end = t + Math.max(dur, FRAME);
-  for (let i = 1; i <= attack && at(frame + 1) < end; i++) param.setValueAtTime(peak * q(i / attack), at(frame++));
+  // Onset: a 3 ms ramp to the first level removes the click of jumping from silence to full
+  // volume; every later step stays an instant 8-bit jump.
+  const DECLICK = 0.003;
+  const first = attack ? peak * q(1 / attack) : peak;
+  param.setValueAtTime(0, t);
+  param.linearRampToValueAtTime(first, t + DECLICK);
+  let frame = 1;
+  for (let i = 2; i <= attack && at(frame + 1) < end; i++) param.setValueAtTime(peak * q(i / attack), at(frame++));
+  if (attack) frame--;
   let level = 1;
-  if (!attack) { param.setValueAtTime(peak, t); }
   for (let i = 1; i <= decay && at(frame + 1) < end; i++) { level = 1 - (1 - sustain) * (i / decay); param.setValueAtTime(peak * q(level), at(++frame)); }
   for (let i = 1; i <= release; i++) param.setValueAtTime(peak * q(level * (1 - i / release)), end + (i - 1) * FRAME);
   return end + release * FRAME;

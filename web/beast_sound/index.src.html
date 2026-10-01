@@ -853,9 +853,9 @@ const SNAP = /*SNAPSHOT*/;
       sel.append(g);
     });
     sel.add(new Option('Custom, per voice…', 'custom'));
-    [['patchLeader', 'flute'], ['patchFollowers', 'harp'], ['patchCs', 'cello']].forEach(([id, def]) => { fillPatchSelect($(id), true); $(id).value = def; });
+    [['patchLeader', 'chip_tri_lead'], ['patchFollowers', 'chip_tri_lead'], ['patchCs', 'chip_tri_lead']].forEach(([id, def]) => { fillPatchSelect($(id), true); $(id).value = def; });
     let saved = null;
-    try { saved = JSON.parse(localStorage.getItem('beastSoundInstrument') || 'null'); } catch { saved = null; }
+    try { saved = JSON.parse(localStorage.getItem('beastSoundInstrument.v2') || 'null'); } catch { saved = null; }
     sel.value = 'patch:chip_tri_lead'; // default: Triangle lead (vibrato)
     if (saved && [...sel.options].some((o) => o.value === saved.instrument)) {
       sel.value = saved.instrument;
@@ -864,7 +864,7 @@ const SNAP = /*SNAPSHOT*/;
     syncCustom();
     ['instrument', 'patchLeader', 'patchFollowers', 'patchCs'].forEach((id) => $(id).addEventListener('change', () => {
       syncCustom();
-      try { localStorage.setItem('beastSoundInstrument', JSON.stringify({ instrument: sel.value, patchLeader: $('patchLeader').value, patchFollowers: $('patchFollowers').value, patchCs: $('patchCs').value })); } catch { /* storage unavailable */ }
+      try { localStorage.setItem('beastSoundInstrument.v2', JSON.stringify({ instrument: sel.value, patchLeader: $('patchLeader').value, patchFollowers: $('patchFollowers').value, patchCs: $('patchCs').value })); } catch { /* storage unavailable */ }
       if (playing) play(playing.res, playing.full ? null : playing.canvas);
     }));
   })();

@@ -1,0 +1,19 @@
+{
+  "name": "@koji/beast-sound",
+  "version": "1.0.0",
+  "description": "Offchain Beast Sound: turn any Loot Survivor Beast (token ID + live stats) into its canonical canon, MIDI file and compact BSN1 note stream. Output matches the Cairo reference byte for byte.",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": { "types": "./index.d.ts", "default": "./src/index.js" },
+    "./engine": "./src/engine.js",
+    "./chain": "./src/chain.js"
+  },
+  "bin": { "beast-sound": "./bin/beast-sound.mjs" },
+  "files": ["src", "bin", "index.d.ts", "README.md"],
+  "scripts": { "test": "node --test test/" },
+  "dependencies": { "@scure/starknet": "^2.4.0" },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}

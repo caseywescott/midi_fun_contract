@@ -2,5 +2,6 @@
 import * as Eng from '../../offchain/beast-sound/src/engine.js';
 import { engine, engineV2, poseidonHashMany, ORNAMENT_NAMES } from '../../offchain/beast-sound/src/index.js';
 import { selector } from '../../offchain/beast-sound/src/chain.js';
+import { PATCHES, PATCH_BY_ID, PATCH_FAMILIES, ENSEMBLES, createKit } from './patches.js';
 
-window.BeastSound = { ...Eng, engine, engineV2, ORNAMENT_NAMES, poseidonHashMany, selector };
+window.BeastSound = { ...Eng, engine, engineV2, ORNAMENT_NAMES, poseidonHashMany, selector, PATCHES, PATCH_BY_ID, PATCH_FAMILIES, ENSEMBLES, createKit };

@@ -63,7 +63,9 @@ header.top { display: grid; gap: 14px; margin-bottom: 22px; }
 .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
 
 .app { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 22px; align-items: start; }
-@media (max-width: 900px) { .app { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .app { grid-template-columns: minmax(0, 1fr); } }
+.wrap, .panel, .roster, .group, .field { min-width: 0; }
+.legend span, .hint, .roster .meta { overflow-wrap: anywhere; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px; display: grid; gap: 16px; min-width: 0; }
 .panel > .group { display: grid; gap: 10px; }
 .panel > .group + .group { border-top: 1px solid var(--line); padding-top: 16px; }
@@ -102,6 +104,8 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .play { width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--accent); color: var(--on-accent); cursor: pointer; display: grid; place-items: center; }
 .play svg { width: 22px; height: 22px; fill: currentColor; }
 .time { font: 13px var(--mono); color: var(--muted); }
+.instruments { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; align-items: end; }
+.instruments select { width: 100%; }
 
 .roll { position: relative; width: 100%; background: var(--sunk); border-radius: 4px; border: 1px solid var(--line); overflow: hidden; }
 .roll canvas { display: block; width: 100%; height: 300px; }
@@ -241,6 +245,17 @@ pre.code { margin: 0; overflow-x: auto; background: var(--sunk); border: 1px sol
         <div class="row" style="justify-content:space-between">
           <div class="legend" id="legend"></div>
           <span class="time" id="dur"></span>
+        </div>
+
+        <div class="group">
+          <span class="label">Instruments · synthesized in your browser</span>
+          <div class="instruments">
+            <div class="field"><label for="instrument">Sound</label><select id="instrument"></select></div>
+            <div class="field" id="customLeaderF" hidden><label for="patchLeader">Leader</label><select id="patchLeader"></select></div>
+            <div class="field" id="customFollowersF" hidden><label for="patchFollowers">Followers</label><select id="patchFollowers"></select></div>
+            <div class="field" id="customCsF" hidden><label for="patchCs">Countersubject</label><select id="patchCs"></select></div>
+          </div>
+          <p class="hint" id="instrumentHint">The score is the same whatever you pick; the instrument is a playback choice, not part of the Beast.</p>
         </div>
 
         <div class="group">
@@ -708,6 +723,14 @@ const SNAP = /*SNAPSHOT*/;
   function drawRoll(canvas, r, full, playT) {
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.clientWidth || 600, h = canvas.clientHeight || (full ? 300 : 70);
+    const cached = canvas._roll;
+    if (playT != null && cached && cached.r === r && cached.w === w && cached.h === h) {
+      // Playback frame: copy the cached roll and draw the playhead (no per-note redraw).
+      const g = canvas.getContext('2d');
+      g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, canvas.width, canvas.height); g.drawImage(cached.img, 0, 0);
+      g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = cached.ink; g.fillRect(cached.x(playT), 0, 1.5, h);
+      return;
+    }
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
     const g = canvas.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
     const ev = r.form.events, vc = voiceColors();
@@ -733,6 +756,9 @@ const SNAP = /*SNAPSHOT*/;
       g.fillRect(x(e.time) + 0.5, y(e.pitch) - nh / 2, Math.max(1.5, x(e.duration) - 1), nh);
     });
     g.globalAlpha = 1;
+    const img = document.createElement('canvas'); img.width = canvas.width; img.height = canvas.height;
+    img.getContext('2d').drawImage(canvas, 0, 0);
+    canvas._roll = { r, w, h, img, x, ink: cssVar('--ink') };
     if (playT != null) { g.fillStyle = cssVar('--ink'); g.fillRect(x(playT), 0, 1.5, h); }
   }
 
@@ -806,30 +832,110 @@ const SNAP = /*SNAPSHOT*/;
     });
   }
 
-  // ── audio: placeholder instrument packs by type (offchain, swappable) ──
-  let ctx = null, bus = null, playing = null;
+  // ── instruments ────────────────────────────────────────────────
+  const fillPatchSelect = (sel, withAuto) => {
+    if (withAuto) sel.add(new Option('Auto (by Beast type)', 'auto'));
+    Object.entries(BS.PATCH_FAMILIES).forEach(([fam, label]) => {
+      const g = document.createElement('optgroup'); g.label = label;
+      BS.PATCHES.filter((p) => p.family === fam).forEach((p) => g.append(new Option(p.name, p.id)));
+      sel.append(g);
+    });
+  };
+  (function buildInstrumentPicker() {
+    const sel = $('instrument');
+    sel.add(new Option('Auto (by Beast type)', 'auto'));
+    const eg = document.createElement('optgroup'); eg.label = 'Ensembles (one instrument per voice)';
+    BS.ENSEMBLES.forEach((e) => eg.append(new Option(e.name, 'ensemble:' + e.id)));
+    sel.append(eg);
+    Object.entries(BS.PATCH_FAMILIES).forEach(([fam, label]) => {
+      const g = document.createElement('optgroup'); g.label = label + ' (all voices)';
+      BS.PATCHES.filter((p) => p.family === fam).forEach((p) => g.append(new Option(p.name, 'patch:' + p.id)));
+      sel.append(g);
+    });
+    sel.add(new Option('Custom, per voice…', 'custom'));
+    [['patchLeader', 'flute'], ['patchFollowers', 'harp'], ['patchCs', 'cello']].forEach(([id, def]) => { fillPatchSelect($(id), true); $(id).value = def; });
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem('beastSoundInstrument') || 'null'); } catch { saved = null; }
+    if (saved && [...sel.options].some((o) => o.value === saved.instrument)) {
+      sel.value = saved.instrument;
+      ['patchLeader', 'patchFollowers', 'patchCs'].forEach((id) => { if (saved[id]) $(id).value = saved[id]; });
+    }
+    syncCustom();
+    ['instrument', 'patchLeader', 'patchFollowers', 'patchCs'].forEach((id) => $(id).addEventListener('change', () => {
+      syncCustom();
+      try { localStorage.setItem('beastSoundInstrument', JSON.stringify({ instrument: sel.value, patchLeader: $('patchLeader').value, patchFollowers: $('patchFollowers').value, patchCs: $('patchCs').value })); } catch { /* storage unavailable */ }
+      if (playing) play(playing.res, playing.full ? null : playing.canvas);
+    }));
+  })();
+  function syncCustom() {
+    const custom = $('instrument').value === 'custom';
+    ['customLeaderF', 'customFollowersF', 'customCsF'].forEach((id) => { $(id).hidden = !custom; });
+  }
+  // Patch id (or 'auto') for each role under the current selection.
+  function rolePatches() {
+    const v = $('instrument').value;
+    if (v === 'auto') return { leader: 'auto', followers: 'auto', countersubject: 'auto' };
+    if (v.startsWith('patch:')) { const id = v.slice(6); return { leader: id, followers: id, countersubject: id }; }
+    if (v.startsWith('ensemble:')) { const e = BS.ENSEMBLES.find((x) => x.id === v.slice(9)); return { leader: e.leader, followers: e.followers, countersubject: e.countersubject }; }
+    return { leader: $('patchLeader').value, followers: $('patchFollowers').value, countersubject: $('patchCs').value };
+  }
+
+  // ── audio ──────────────────────────────────────────────────────
+  let ctx = null, bus = null, playing = null, kit = null;
+  // Phones and small tablets get a lighter signal chain (no convolution reverb, longer lookahead).
+  const LITE = (() => { try { return matchMedia('(pointer: coarse)').matches || (navigator.hardwareConcurrency || 8) <= 4; } catch { return false; } })();
+  const LOOKAHEAD = LITE ? 0.6 : 0.35; // seconds of notes scheduled ahead of the audio clock
   function ensureAudio() {
     if (ctx) return;
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const AC = window.AudioContext || window.webkitAudioContext;
+    try { ctx = new AC({ latencyHint: 'playback' }); } catch { ctx = new AC(); }
     const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3;
     comp.connect(ctx.destination);
-    const rev = ctx.createConvolver();
-    const len = Math.floor(ctx.sampleRate * 2.6), ir = ctx.createBuffer(2, len, ctx.sampleRate);
-    for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4); }
-    rev.buffer = ir;
-    const wet = ctx.createGain(); wet.gain.value = 0.32; rev.connect(wet); wet.connect(comp);
+    let rev;
+    if (LITE) {
+      // Cheap room: two short feedback delays through a low-pass, instead of a convolver.
+      rev = ctx.createGain();
+      const wet = ctx.createGain(); wet.gain.value = 0.22; wet.connect(comp);
+      [0.067, 0.113].forEach((dt) => {
+        const d = ctx.createDelay(1), fb = ctx.createGain(), lp = ctx.createBiquadFilter();
+        d.delayTime.value = dt; fb.gain.value = 0.38; lp.type = 'lowpass'; lp.frequency.value = 2800;
+        rev.connect(d); d.connect(lp); lp.connect(fb); fb.connect(d); lp.connect(wet);
+      });
+    } else {
+      rev = ctx.createConvolver();
+      const len = Math.floor(ctx.sampleRate * 2.6), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+      for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4); }
+      rev.buffer = ir;
+      const wet = ctx.createGain(); wet.gain.value = 0.32; rev.connect(wet); wet.connect(comp);
+    }
     bus = { comp, rev };
+    kit = BS.createKit(ctx);
+  }
+  // iOS only starts audio from inside a tap: resume and play one silent sample synchronously.
+  function unlockAudio() {
+    ensureAudio();
+    if (ctx.state !== 'running') ctx.resume().catch(() => {});
+    try { const b = ctx.createBuffer(1, 1, ctx.sampleRate), s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start(0); } catch { /* not needed elsewhere */ }
   }
   const freq = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  // Ramp-only envelope (identical in every Web Audio engine).
+  function envelope(p, t, dur, peak, a, s, r) {
+    const atk = Math.max(0.002, Math.min(a, dur * 0.5)), dec = t + atk + 0.15, rel = Math.max(t + dur, t + atk);
+    p.setValueAtTime(0, t);
+    p.linearRampToValueAtTime(peak, t + atk);
+    if (rel >= dec) { p.linearRampToValueAtTime(peak * s, dec); p.setValueAtTime(peak * s, rel); }
+    else p.linearRampToValueAtTime(peak + (peak * s - peak) * ((rel - t - atk) / 0.15), rel);
+    p.linearRampToValueAtTime(0, rel + r);
+  }
   function voiceNote(out, t, dur, m, vel, v, role, b) {
     const type = b.beast_type, f = freq(m), amp = 0.11 * (vel / 127);
     if (dur < 0.2 && role !== 'countersubject') {
       // Ornament notes: one oscillator keeps thousands of fast notes light on the audio thread.
       const g = ctx.createGain(); g.connect(out);
       const o = ctx.createOscillator(); o.type = type === 2 ? 'sawtooth' : 'triangle'; o.frequency.value = f; o.connect(g);
-      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(amp * (type === 2 ? 0.6 : 0.9), t + 0.006); g.gain.setTargetAtTime(0, t + dur, 0.03);
-      o.start(t); o.stop(t + dur + 0.2);
-      return [o];
+      envelope(g.gain, t, dur, amp * (type === 2 ? 0.6 : 0.9), 0.006, 0.8, 0.06);
+      o.start(t); o.stop(t + dur + 0.1);
+      return;
     }
     const g = ctx.createGain(); g.connect(out);
     const filt = ctx.createBiquadFilter(); filt.type = 'lowpass'; filt.connect(g);
@@ -838,7 +944,7 @@ const SNAP = /*SNAPSHOT*/;
     let a = 0.02, rel = 0.25, peak = amp;
     if (role === 'countersubject') { osc('sine', 1, 1); osc('sine', 2, 0.15); filt.frequency.value = 2400; a = 0.06; }
     else if (type === 0) { // Magic: glass + choir
-      osc('triangle', 1, 0.8, -6); osc('triangle', 1, 0.8, 6); if (v === 0) { osc('sine', 3.01, 0.18); osc('sine', 4.2, 0.08); }
+      osc('triangle', 1, 0.8, -6); osc('triangle', 1, 0.8, 6); if (v === 0 && !LITE) { osc('sine', 3.01, 0.18); osc('sine', 4.2, 0.08); }
       filt.frequency.value = 2600; a = v === 0 ? 0.01 : 0.09; rel = 0.5;
     } else if (type === 1) { // Hunter: plucked leader, horn followers
       if (v === 0) { osc('sawtooth', 1, 0.7); filt.frequency.setValueAtTime(4200, t); filt.frequency.exponentialRampToValueAtTime(500, t + Math.min(dur, 0.4) + 0.05); a = 0.005; }
@@ -847,29 +953,61 @@ const SNAP = /*SNAPSHOT*/;
       osc('sawtooth', 1, 0.6, -4); osc('sawtooth', 1, 0.6, 4); osc('sine', 0.5, 0.5);
       filt.frequency.value = 900 + (v === 0 ? 500 : 0); a = 0.04; rel = 0.35; peak = amp * 1.15;
     }
-    if (b.shiny) osc('sine', 2, 0.12);
+    if (b.shiny && !LITE) osc('sine', 2, 0.12);
     if (b.animated) { const lfo = ctx.createOscillator(); lfo.frequency.value = 5.2; const lg = ctx.createGain(); lg.gain.value = 7; lfo.connect(lg); oscs.forEach((o) => lg.connect(o.detune)); oscs.push(lfo); }
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(peak, t + a);
-    g.gain.setTargetAtTime(peak * 0.7, t + a, 0.15);
-    g.gain.setTargetAtTime(0, t + dur, rel / 3);
-    oscs.forEach((o) => { o.start(t); o.stop(t + dur + rel + 0.3); });
-    return oscs;
+    envelope(g.gain, t, dur, peak, a, 0.7, rel);
+    oscs.forEach((o) => { o.start(t); o.stop(t + dur + rel + 0.1); });
+  }
+  function scheduleNote(p, e) {
+    const t = p.t0 + e.time * p.tick, dur = e.duration * p.tick;
+    const role = e.role === 'countersubject' ? 'countersubject' : e.voice_id === 0 ? 'leader' : 'followers';
+    const id = p.roles[role], dest = p.buses[e.voice_id % 5];
+    if (id === 'auto') { voiceNote(dest, t, dur, e.pitch, e.velocity, e.voice_id, e.role, p.res.beast); return; }
+    const patch = BS.PATCH_BY_ID[id];
+    patch.play(kit, dest, t, dur, freq(e.pitch), 0.16 * (e.velocity / 127) * patch.gain);
   }
   function play(r, canvas) {
-    ensureAudio(); stop(); ctx.resume();
+    unlockAudio(); stop();
     const out = ctx.createGain(); out.connect(bus.comp); out.connect(bus.rev);
-    const tick = r.params.tempo_us / 1e6 / 480, t0 = ctx.currentTime + 0.12;
-    const ticks = Math.max(...r.form.events.map((e) => e.time + e.duration));
-    r.form.events.forEach((e) => voiceNote(out, t0 + e.time * tick, e.duration * tick, e.pitch, e.velocity, e.voice_id, e.role, r.beast));
-    playing = { res: r, out, t0, tick, ticks, canvas: canvas || $('roll'), full: !canvas, raf: 0 };
+    // One stereo position per voice so the canon entries are easy to follow.
+    const PAN = [0, -0.45, 0.45, 0.25, -0.25];
+    const buses = PAN.map((pan) => { const p = ctx.createStereoPanner(); p.pan.value = pan; p.connect(out); return p; });
+    const events = r.form.events;
+    const order = events.map((_, i) => i).sort((i, j) => events[i].time - events[j].time || i - j);
+    const p = {
+      res: r, out, buses, roles: rolePatches(), events, order, next: 0, t0: 0, started: false,
+      tick: r.params.tempo_us / 1e6 / 480, ticks: Math.max(...events.map((e) => e.time + e.duration)),
+      canvas: canvas || $('roll'), full: !canvas, raf: 0, timer: 0,
+    };
+    playing = p;
     setIcon(true);
+    // Schedule a small window of notes at a time: few live nodes, nothing lands in the past.
+    const pump = () => {
+      if (playing !== p) return;
+      if (!p.started) {
+        if (ctx.state !== 'running') return; // wait for resume() before fixing the start time
+        p.t0 = ctx.currentTime + (LITE ? 0.3 : 0.15);
+        p.started = true;
+      }
+      const horizon = ctx.currentTime + LOOKAHEAD;
+      while (p.next < p.order.length) {
+        const e = p.events[p.order[p.next]];
+        if (p.t0 + e.time * p.tick > horizon) break;
+        scheduleNote(p, e);
+        p.next++;
+      }
+    };
+    pump();
+    p.timer = setInterval(pump, 40);
+    const latency = () => (ctx.outputLatency || 0) + (ctx.baseLatency || 0);
     const step = () => {
-      if (!playing) return;
-      const pt = (ctx.currentTime - playing.t0) / playing.tick;
-      if (pt > playing.ticks + 480) { stop(); return; }
-      drawRoll(playing.canvas, playing.res, playing.full, Math.max(0, pt));
-      playing.raf = requestAnimationFrame(step);
+      if (playing !== p) return;
+      if (p.started) {
+        const pt = (ctx.currentTime - latency() - p.t0) / p.tick;
+        if (pt > p.ticks + 480) { stop(); return; }
+        drawRoll(p.canvas, p.res, p.full, Math.max(0, pt));
+      }
+      p.raf = requestAnimationFrame(step);
     };
     step();
   }
@@ -877,8 +1015,11 @@ const SNAP = /*SNAPSHOT*/;
     if (!playing) return;
     const p = playing; playing = null;
     cancelAnimationFrame(p.raf);
-    p.out.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
-    setTimeout(() => p.out.disconnect(), 400);
+    clearInterval(p.timer);
+    const now = ctx.currentTime;
+    p.out.gain.setValueAtTime(p.out.gain.value, now);
+    p.out.gain.linearRampToValueAtTime(0, now + 0.08);
+    setTimeout(() => p.out.disconnect(), 300);
     drawRoll(p.canvas, p.res, p.full);
     setIcon(false);
   }

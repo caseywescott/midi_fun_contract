@@ -109,7 +109,11 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 
 .roll { position: relative; width: 100%; background: var(--sunk); border-radius: 4px; border: 1px solid var(--line); overflow: hidden; }
 .roll canvas { display: block; width: 100%; height: 300px; }
-.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.legend { display: flex; gap: 8px 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.legend label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.legend input { accent-color: var(--accent); margin: 0; }
+.legend .pan { font: 11px var(--mono); color: var(--muted); }
+.legend label.muted { opacity: 0.5; text-decoration: line-through; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
 
 .kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px 18px; }
@@ -249,6 +253,7 @@ pre.code { margin: 0; overflow-x: auto; background: var(--sunk); border: 1px sol
             <div class="field" id="customFollowersF" hidden><label for="patchFollowers">Followers</label><select id="patchFollowers"></select></div>
             <div class="field" id="customCsF" hidden><label for="patchCs">Countersubject</label><select id="patchCs"></select></div>
           </div>
+          <label class="check"><input type="checkbox" id="drums"> Chiptune drums: kick on beat 1, snare on beat 3</label>
           <p class="hint" id="instrumentHint">The score is the same whatever you pick; the instrument is a playback choice, not part of the Beast.</p>
         </div>
 
@@ -705,19 +710,49 @@ const SNAP = /*SNAPSHOT*/;
     const secs = ticks / 480 * p.tempo_us / 1e6;
     $('dur').textContent = `${ev.length} notes · ${secs.toFixed(1)} s · ${Math.round(60e6 / p.tempo_us)} bpm`;
 
-    const vc = voiceColors();
-    const legend = $('legend'); legend.textContent = '';
-    const voices = [...new Set(ev.map((e) => e.voice_id))].sort();
-    voices.forEach((v) => {
-      const isCs = ev.find((e) => e.voice_id === v).role === 'countersubject';
-      const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = vc[v % vc.length];
-      s.append(i, document.createTextNode(isCs ? 'Countersubject' : v === 0 ? 'Leader (theme)' : `Follower ${v}`)); legend.append(s);
-    });
+    drawLegend(result);
 
     drawRoll($('roll'), result, true);
     drawParams(result);
     drawHashes(result);
     drawHistory();
+  }
+
+  // ── voices: stereo positions and mutes ─────────────────────────
+  const muted = new Set(); // voice ids the listener has switched off (kept across Beasts)
+  const voiceIds = (r) => [...new Set(r.form.events.map((e) => e.voice_id))].sort((a, b) => a - b);
+  // Spread a piece's voices evenly across the stereo field: leader left … countersubject right.
+  function panOf(ids, v) {
+    if (ids.length < 2) return 0;
+    return -0.85 + (1.7 * ids.indexOf(v)) / (ids.length - 1);
+  }
+  const panLabel = (x) => (Math.abs(x) < 0.05 ? 'C' : (x < 0 ? 'L' : 'R') + Math.round(Math.abs(x) * 100));
+  function drawLegend(r) {
+    const vc = voiceColors(), ids = voiceIds(r), legend = $('legend');
+    legend.textContent = '';
+    ids.forEach((v) => {
+      const isCs = r.form.events.find((e) => e.voice_id === v).role === 'countersubject';
+      const label = document.createElement('label');
+      const box = document.createElement('input'); box.type = 'checkbox'; box.checked = !muted.has(v);
+      box.setAttribute('aria-label', 'Play ' + (isCs ? 'countersubject' : v === 0 ? 'leader' : 'follower ' + v));
+      const sw = document.createElement('i'); sw.style.background = vc[v % vc.length];
+      const pan = document.createElement('span'); pan.className = 'pan'; pan.textContent = panLabel(panOf(ids, v));
+      label.append(box, sw, document.createTextNode(isCs ? 'Countersubject' : v === 0 ? 'Leader (theme)' : `Follower ${v}`), pan);
+      label.classList.toggle('muted', muted.has(v));
+      box.addEventListener('change', () => {
+        if (box.checked) muted.delete(v); else muted.add(v);
+        label.classList.toggle('muted', muted.has(v));
+        if (playing && playing.voiceGains) {
+          const g = playing.voiceGains[v].gain, now = ctx.currentTime;
+          g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(muted.has(v) ? 0 : 1, now + 0.03);
+        }
+        // redraw rolls with the muted voice dimmed (drop the playback cache)
+        $('roll')._roll = null;
+        if (!playing || !playing.full) drawRoll($('roll'), result, true);
+        historyResults.forEach((hr, i) => { const cv = $('history').children[i]?.querySelector('canvas'); if (cv) { cv._roll = null; drawRoll(cv, hr, false); } });
+      });
+      legend.append(label);
+    });
   }
 
   function drawRoll(canvas, r, full, playT) {
@@ -751,7 +786,7 @@ const SNAP = /*SNAPSHOT*/;
     }
     const nh = Math.max(2, Math.min(full ? 7 : 3, H / (hi - lo) * 0.9));
     ev.forEach((e) => {
-      g.globalAlpha = 0.45 + 0.55 * (e.velocity / 127);
+      g.globalAlpha = (0.45 + 0.55 * (e.velocity / 127)) * (muted.has(e.voice_id) ? 0.12 : 1);
       g.fillStyle = vc[e.voice_id % vc.length];
       g.fillRect(x(e.time) + 0.5, y(e.pitch) - nh / 2, Math.max(1.5, x(e.duration) - 1), nh);
     });
@@ -860,11 +895,12 @@ const SNAP = /*SNAPSHOT*/;
     if (saved && [...sel.options].some((o) => o.value === saved.instrument)) {
       sel.value = saved.instrument;
       ['patchLeader', 'patchFollowers', 'patchCs'].forEach((id) => { if (saved[id]) $(id).value = saved[id]; });
+      $('drums').checked = !!saved.drums;
     }
     syncCustom();
-    ['instrument', 'patchLeader', 'patchFollowers', 'patchCs'].forEach((id) => $(id).addEventListener('change', () => {
+    ['instrument', 'patchLeader', 'patchFollowers', 'patchCs', 'drums'].forEach((id) => $(id).addEventListener('change', () => {
       syncCustom();
-      try { localStorage.setItem('beastSoundInstrument.v2', JSON.stringify({ instrument: sel.value, patchLeader: $('patchLeader').value, patchFollowers: $('patchFollowers').value, patchCs: $('patchCs').value })); } catch { /* storage unavailable */ }
+      try { localStorage.setItem('beastSoundInstrument.v2', JSON.stringify({ instrument: sel.value, patchLeader: $('patchLeader').value, patchFollowers: $('patchFollowers').value, patchCs: $('patchCs').value, drums: $('drums').checked })); } catch { /* storage unavailable */ }
       if (playing) play(playing.res, playing.full ? null : playing.canvas);
     }));
   })();
@@ -971,15 +1007,28 @@ const SNAP = /*SNAPSHOT*/;
     unlockAudio(); stop();
     const out = ctx.createGain(); out.connect(bus.comp); out.connect(bus.rev);
     // One stereo position per voice so the canon entries are easy to follow.
-    const PAN = [0, -0.45, 0.45, 0.25, -0.25];
-    const buses = PAN.map((pan) => { const p = ctx.createStereoPanner(); p.pan.value = pan; p.connect(out); return p; });
+    // Per voice: mute gain -> stereo panner -> out. Voices spread evenly across the field.
+    const ids = voiceIds(r);
+    const voiceGains = [], buses = [];
+    for (let v = 0; v < 5; v++) {
+      const pan = ctx.createStereoPanner(); pan.pan.value = panOf(ids, v); pan.connect(out);
+      const mg = ctx.createGain(); mg.gain.value = muted.has(v) ? 0 : 1; mg.connect(pan);
+      voiceGains.push(mg); buses.push(mg);
+    }
     const events = r.form.events;
     const order = events.map((_, i) => i).sort((i, j) => events[i].time - events[j].time || i - j);
     const p = {
-      res: r, out, buses, roles: rolePatches(), events, order, next: 0, t0: 0, started: false,
+      res: r, out, buses, voiceGains, roles: rolePatches(), events, order, next: 0, t0: 0, started: false,
       tick: r.params.tempo_us / 1e6 / 480, ticks: Math.max(...events.map((e) => e.time + e.duration)),
       canvas: canvas || $('roll'), full: !canvas, raf: 0, timer: 0,
+      drums: [], nextDrum: 0,
     };
+    if ($('drums').checked) {
+      for (let beat = 0; beat * 480 < p.ticks; beat++) {
+        if (beat % 4 === 0) p.drums.push({ time: beat * 480, kind: 'kick' });
+        else if (beat % 4 === 2) p.drums.push({ time: beat * 480, kind: 'snare' });
+      }
+    }
     playing = p;
     setIcon(true);
     // Schedule a small window of notes at a time: few live nodes, nothing lands in the past.
@@ -996,6 +1045,13 @@ const SNAP = /*SNAPSHOT*/;
         if (p.t0 + e.time * p.tick > horizon) break;
         scheduleNote(p, e);
         p.next++;
+      }
+      while (p.nextDrum < p.drums.length) {
+        const d = p.drums[p.nextDrum];
+        const t = p.t0 + d.time * p.tick;
+        if (t > horizon) break;
+        BS.chipDrum(kit, p.out, t, d.kind, d.kind === 'kick' ? 0.32 : 0.16);
+        p.nextDrum++;
       }
     };
     pump();

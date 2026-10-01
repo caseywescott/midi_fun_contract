@@ -337,7 +337,11 @@ function chipWaves(kit) {
   const bits = []; let reg = 1;
   for (let i = 0; i < 93; i++) { const fb = (reg & 1) ^ ((reg >> 6) & 1); reg = (reg >> 1) | (fb << 14); bits.push(reg & 1 ? 0.4 : -0.4); }
   const noise = make(bits);
-  kit.chip = { p12: pulse(0.125), p25: pulse(0.25), p50: pulse(0.5), tri, saw, noise, len: { p12: CYCLE, p25: CYCLE, p50: CYCLE, tri: CYCLE, saw: CYCLE, noise: 93 } };
+  // NES noise, long mode: 15-bit LFSR (bit 1 tap), period 32,767: white-ish hiss for snares.
+  const hiss = []; let r2 = 1;
+  for (let i = 0; i < 32767; i++) { const fb = (r2 & 1) ^ ((r2 >> 1) & 1); r2 = (r2 >> 1) | (fb << 14); hiss.push(r2 & 1 ? 0.5 : -0.5); }
+  const longNoise = make(hiss);
+  kit.chip = { p12: pulse(0.125), p25: pulse(0.25), p50: pulse(0.5), tri, saw, noise, longNoise, len: { p12: CYCLE, p25: CYCLE, p50: CYCLE, tri: CYCLE, saw: CYCLE, noise: 93 } };
   return kit.chip;
 }
 
@@ -420,4 +424,49 @@ ENSEMBLES.push(
 );
 
 export const PATCH_BY_ID = Object.fromEntries(PATCHES.map((p) => [p.id, p]));
+
+// ── chiptune drums ────────────────────────────────────────────────
+// kind: 'kick' (triangle pitch dive, NES style) or 'snare' (long-mode LFSR noise + pulse body).
+export function chipDrum(kit, dest, t, kind, level) {
+  const ac = kit.ac, w = chipWaves(kit), sr = ac.sampleRate;
+  const DECLICK = 0.003;
+  if (kind === 'kick') {
+    const src = ac.createBufferSource(), g = ac.createGain();
+    src.buffer = w.tri; src.loop = true;
+    const base = sr / w.tri.length;
+    src.playbackRate.setValueAtTime(160 / base, t);
+    src.playbackRate.exponentialRampToValueAtTime(45 / base, t + 0.09);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(level, t + DECLICK);
+    g.gain.setValueAtTime(level, t + 0.04);
+    g.gain.linearRampToValueAtTime(0, t + 0.17);
+    src.connect(g); g.connect(dest);
+    src.start(t); src.stop(t + 0.2);
+    // short noise click on the beat
+    const n = ac.createBufferSource(), ng = ac.createGain();
+    n.buffer = w.longNoise; n.loop = true; n.playbackRate.value = 1;
+    ng.gain.setValueAtTime(0, t); ng.gain.linearRampToValueAtTime(level * 0.25, t + 0.002); ng.gain.linearRampToValueAtTime(0, t + 0.012);
+    n.connect(ng); ng.connect(dest);
+    n.start(t, Math.random()); n.stop(t + 0.02);
+    return;
+  }
+  // snare: noise with a stepped (per-frame) decay
+  const n = ac.createBufferSource(), ng = ac.createGain();
+  n.buffer = w.longNoise; n.loop = true; n.playbackRate.value = 0.6;
+  ng.gain.setValueAtTime(0, t);
+  ng.gain.linearRampToValueAtTime(level, t + DECLICK);
+  const STEPS = 9;
+  for (let k = 1; k <= STEPS; k++) ng.gain.setValueAtTime(level * Math.round(15 * (1 - k / STEPS)) / 15, t + k * FRAME);
+  n.connect(ng); ng.connect(dest);
+  n.start(t, Math.random()); n.stop(t + (STEPS + 1) * FRAME);
+  // pulse body with a quick pitch drop
+  const b = ac.createBufferSource(), bg = ac.createGain();
+  b.buffer = w.p50; b.loop = true;
+  const base = sr / w.p50.length;
+  b.playbackRate.setValueAtTime(200 / base, t);
+  b.playbackRate.exponentialRampToValueAtTime(110 / base, t + 0.05);
+  bg.gain.setValueAtTime(0, t); bg.gain.linearRampToValueAtTime(level * 0.35, t + DECLICK); bg.gain.linearRampToValueAtTime(0, t + 0.07);
+  b.connect(bg); bg.connect(dest);
+  b.start(t); b.stop(t + 0.09);
+}
 

@@ -4,6 +4,7 @@
 // access and works inside marketplace iframes. Tap to start (browsers require a gesture); the theme
 // loops until stopped. Synthesis is the simulator's patch library (Triangle lead by default).
 import { createKit, PATCH_BY_ID, chipDrum } from '../../../web/beast_sound/patches.js';
+import { createLoopScheduler } from './scheduler.js';
 
 const B = window.BEAST;
 const $ = (id) => document.getElementById(id);
@@ -29,52 +30,30 @@ function play() {
   unlock();
   const notes = B.notes; // [time, duration, pitch, velocity, voice] in ticks (480 per beat)
   const tick = B.tempo_us / 1e6 / 480;
-  const ticks = Math.max(...notes.map((n) => n[0] + n[1]));
-  const loopTicks = Math.ceil(ticks / 1920) * 1920;
   const voices = [...new Set(notes.map((n) => n[4]))].sort((a, b) => a - b);
   const buses = voices.map((v, i) => {
     const p = ctx.createStereoPanner(); p.pan.value = voices.length < 2 ? 0 : -0.85 + (1.7 * i) / (voices.length - 1); p.connect(out); return p;
   });
   const patch = PATCH_BY_ID[B.patch] || PATCH_BY_ID.chip_tri_lead;
-  const order = notes.map((_, i) => i).sort((i, j) => notes[i][0] - notes[j][0] || i - j);
-  const p = { t0: 0, started: false, next: 0, pass: 0, raf: 0 };
+  const sched = createLoopScheduler(notes, {
+    tick,
+    drums: B.drums,
+    onNote: (n, t) => patch.play(kit, buses[voices.indexOf(n[4])], t, n[1] * tick, 440 * 2 ** ((n[2] - 69) / 12), 0.16 * (n[3] / 127) * patch.gain),
+    onDrum: (d, t) => chipDrum(kit, out, t, d.kind, d.level),
+  });
+  const p = { started: false, raf: 0, timer: 0 };
   playing = p;
-  const drums = [];
-  if (B.drums) for (let t = 0; t < loopTicks; t += 240) {
-    if (t % 1920 === 0) drums.push([t, 'kick', 0.32]);
-    if (t % 1920 === 960) drums.push([t, 'snare', 0.16]);
-    drums.push([t, 'hat', t % 480 === 0 ? 0.07 : 0.05]);
-  }
-  let nextDrum = 0;
   const pump = () => {
     if (playing !== p) return;
-    if (!p.started) { if (ctx.state !== 'running') return; p.t0 = ctx.currentTime + 0.2; p.started = true; }
-    const horizon = ctx.currentTime + LOOKAHEAD;
-    for (;;) {
-      const off = p.pass * loopTicks;
-      while (p.next < order.length) {
-        const n = notes[order[p.next]], t = p.t0 + (off + n[0]) * tick;
-        if (t > horizon) break;
-        patch.play(kit, buses[voices.indexOf(n[4])], t, n[1] * tick, 440 * 2 ** ((n[2] - 69) / 12), 0.16 * (n[3] / 127) * patch.gain);
-        p.next++;
-      }
-      while (nextDrum < drums.length) {
-        const d = drums[nextDrum], t = p.t0 + (off + d[0]) * tick;
-        if (t > horizon) break;
-        chipDrum(kit, out, t, d[1], d[2]);
-        nextDrum++;
-      }
-      if (p.next < order.length || nextDrum < drums.length) break;
-      if (p.t0 + (off + loopTicks) * tick > horizon) break;
-      p.pass++; p.next = 0; nextDrum = 0;
-    }
+    if (!p.started) { if (ctx.state !== 'running') return; sched.start(ctx.currentTime); p.started = true; }
+    sched.pump(ctx.currentTime + LOOKAHEAD);
   };
   pump();
   p.timer = setInterval(pump, 40);
   const bar = $('bar');
   const step = () => {
     if (playing !== p) return;
-    if (p.started) bar.style.width = `${(100 * (((ctx.currentTime - p.t0) / tick) % loopTicks)) / loopTicks}%`;
+    if (p.started) bar.style.width = `${(100 * sched.position(ctx.currentTime)) / sched.loopTicks}%`;
     p.raf = requestAnimationFrame(step);
   };
   step();

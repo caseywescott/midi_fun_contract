@@ -159,6 +159,14 @@ pre.code { margin: 0; overflow-x: auto; background: var(--sunk); border: 1px sol
     <div class="app">
       <aside class="panel" aria-label="Choose a Beast">
         <div class="group">
+          <span class="label">Engine</span>
+          <div class="row" role="radiogroup" aria-label="Engine version">
+            <label class="check"><input type="radio" name="engine" id="engine2" value="2" checked> v2 ornamented canon (preview)</label>
+            <label class="check"><input type="radio" name="engine" id="engine1" value="1"> v1 skeleton</label>
+          </div>
+          <p class="hint" id="engineHint"></p>
+        </div>
+        <div class="group">
           <span class="label">Real Beasts · mainnet + V3 Sepolia</span>
           <input type="text" id="search" placeholder="Search: Warlock, Sorrow, crown…" aria-label="Search snapshot">
           <div class="roster" id="roster"></div>
@@ -442,10 +450,18 @@ struct BeastV3LiveState {
             <tr><td>Composer as a deployable contract (<code>BeastSoundComposer</code>)</td><td><span class="status done">Done</span></td><td>Builds to 25,139 CASM felts (limit 81,920). <code>get_score_notes</code> returns BSN1; <code>get_score_midi</code> returns a real MIDI file. Both are byte-identical to the browser engine, and BSN1 decodes to the identical MIDI file</td></tr>
             <tr><td>Execution cost per view, measured on starknet-devnet</td><td><span class="status done">Done</span></td><td>Params and state hash: about 1.3M L2 gas. Heaviest possible Beast: score hash 63M, BSN1 notes 119M (17 felts), full MIDI 350M (122 felts). Every call succeeded</td></tr>
             <tr><td>Run <code>get_score_notes</code> and <code>get_score_midi</code> for the heaviest Beast on Sepolia and confirm public RPC nodes return them</td><td><span class="status todo">Next</span></td><td>View calls are free, but each node operator caps the work per call. Will test on Cartridge, dRPC and PublicNode</td></tr>
+            <tr><td>Engine v2: ornamented invertible canon (V2 ornaments, suffix-driven)</td><td><span class="status done">Built</span></td><td>Cairo + JS, byte-identical on 36 renders (30-file A/B set and 6 golden cases). Each melody is valid at every stretto, so history never changes it. Preview on this page; defaults await a listening sign-off</td></tr>
+            <tr><td>BSN2 compact format for ornamented scores</td><td><span class="status done">Done</span></td><td>10 bits per note; decodes to the identical MIDI (2,068 notes in 2.7 KB)</td></tr>
             <tr><td>Instrument packs (sound design)</td><td><span class="status todo">Next</span></td><td>This page uses a placeholder WebAudio pack per Beast type</td></tr>
             <tr><td>Drop salt commitment + reveal</td><td><span class="status ask">Decide</span></td><td>Tie to V3 mainnet launch</td></tr>
           </tbody>
         </table></div>
+      </section>
+
+      <section>
+        <span class="label">What building engine v2 uncovered</span>
+        <h3>The old invertible canon played one melody for everyone</h3>
+        <p>The original 3-voice invertible canon (offsets 0, −4, +3) leaves almost no legal melodies once invertibility is enforced: a single melody at the tightest stretto, 4–16 at the loosest, across 1,500 seeds. A search over every 3-voice configuration found ones that stay invertible at every stretto with a distinct melody per Beast. Engine v2 uses a canon at the sixth below and third above, and walks each Beast's melody once under every constraint its history could ever impose.</p>
       </section>
 
       <section>
@@ -504,6 +520,15 @@ const SNAP = /*SNAPSHOT*/;
   const first = snap.find((s) => s.token === 52918) || snap[0];
   let state = { beast: { ...first.beast }, live: { ...first.live }, token: first.token, net: 'mainnet' };
   let result = null;
+  let engineVersion = 2;
+  const V2 = BS.engineV2;
+  const renderCurrent = (b, l) => (engineVersion === 2 ? V2.renderV2(b, l) : E.render(b, l));
+  const ENGINE_HINT = {
+    1: 'Engine v1: the theme as a plain canon. This is the version the published hashes and onchain contract use today.',
+    2: 'Engine v2: an invertible canon at the sixth and third with V2 ornaments (trills, turns, suspensions…) chosen by the suffix. Same Cairo reference, byte-identical here.',
+  };
+  ['engine1', 'engine2'].forEach((id) => $(id).addEventListener('change', () => { engineVersion = Number($(id).value); $('engineHint').textContent = ENGINE_HINT[engineVersion]; update(); }));
+  $('engineHint').textContent = ENGINE_HINT[engineVersion];
 
   // ── controls ───────────────────────────────────────────────────
   const sel = $('species');
@@ -644,7 +669,7 @@ const SNAP = /*SNAPSHOT*/;
 
   function update() {
     stop();
-    try { result = E.render(state.beast, state.live); }
+    try { result = renderCurrent(state.beast, state.live); }
     catch (e) { $('bname').textContent = 'Invalid Beast: ' + e.message; return; }
     const b = state.beast, p = result.params, st = p._state;
     const has = E.hasSound(DROP_SALT, DROP_BPS, b);
@@ -696,7 +721,7 @@ const SNAP = /*SNAPSHOT*/;
         if (i % 2 === 1) { g.fillStyle = cssVar('--grid'); g.fillRect(x0, 0, x1 - x0, h); }
         g.fillStyle = cssVar('--muted'); g.font = '11px "IBM Plex Mono", monospace';
         const shift = s.shift === 0 ? 'home' : (s.shift > 0 ? '+' : '') + s.shift;
-        g.fillText(`${SECTION[i]} · ${shift}`, x0 + 6, 14);
+        g.fillText(s.inversionPass ? 'inversion' : `${SECTION[i]} · ${shift}`, x0 + 6, 14);
       });
       g.strokeStyle = cssVar('--grid');
       for (let pch = Math.ceil(lo / 12) * 12; pch <= hi; pch += 12) { g.beginPath(); g.moveTo(0, y(pch)); g.lineTo(w, y(pch)); g.stroke(); }
@@ -728,6 +753,13 @@ const SNAP = /*SNAPSHOT*/;
       ['Performance', `${Math.round(60e6 / p.tempo_us)} bpm · ${BS.ARTICULATION_NAMES[p.articulation_profile]}`, (b.shiny || b.animated) ? [b.shiny && 'shiny', b.animated && 'animated'].filter(Boolean).join(' + ') : 'standard'],
       ['Rank tier', ['Crown', 'Top 1%', 'Top 5%', 'Top 20%', 'Field'][st.rank_tier] + (b.prefix === 0 ? ' (Genesis)' : ''), b.prefix === 0 ? 'creator token, unranked' : `rank ${r.live.rank} of ${r.live.species_count}`],
     ];
+    if (r.engineVersion === 2) {
+      const f = r.form;
+      const top = [...f.ornamentKinds].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k]) => BS.ORNAMENT_NAMES[k]).join(', ');
+      items.splice(2, 1, ['Canon', `${f.voiceCount} voice${f.voiceCount > 1 ? 's' : ''}${p.use_countersubject || p.voice_count >= 4 ? ' + countersubject' : ''} · entries every ${f.entryLag}`, 'invertible at the octave: answer a sixth below, third voice a third above']);
+      items.splice(4, 1, ['Stretto', `entries every ${f.entryLag} beat${f.entryLag > 1 ? 's' : ''}`, 'kills tighten it; the melody never changes']);
+      items.splice(8, 1, ['Ornament', `${f.style.replace('_', ' ')} · ${[...f.ornamentKinds.values()].reduce((a, b) => a + b, 0)} ornaments`, top ? `most used: ${top}` : 'none applied']);
+    }
     const root = $('params'); root.textContent = '';
     items.forEach(([k, v, why]) => {
       const d = document.createElement('div');
@@ -749,8 +781,9 @@ const SNAP = /*SNAPSHOT*/;
       ['params_hash', fmtHex(r.params_hash)],
       ['score_hash', fmtHex(r.form.score_hash)],
     ];
-    const bsn = E.bytesToFelts(E.encodeBsn(r)), midi = E.bytesToFelts(E.toMidiFile(r));
-    rows.push(['onchain notes', `BSN1 · ${bsn[0]} bytes in ${bsn.length} felts (MIDI would be ${midi.length} felts) · 7 bits per note`]);
+    const v2 = r.engineVersion === 2;
+    const bsn = E.bytesToFelts(v2 ? V2.encodeBsn2(r) : E.encodeBsn(r)), midi = E.bytesToFelts(E.eventsToMidi(r.form.events, r.params.tempo_us));
+    rows.push(['compact notes', `BSN${v2 ? 2 : 1} · ${bsn[0]} bytes in ${bsn.length} felts (MIDI would be ${midi.length} felts) · ${v2 ? '10' : '7'} bits per note`]);
     const root = $('hashes'); root.textContent = '';
     rows.forEach(([k, v]) => { const d = document.createElement('div'); const a = document.createElement('span'); a.textContent = k; const b = document.createElement('span'); b.textContent = v; d.append(a, b); root.append(d); });
   }
@@ -759,13 +792,13 @@ const SNAP = /*SNAPSHOT*/;
   let historyResults = [];
   function drawHistory() {
     const root = $('history'); root.textContent = '';
-    historyResults = LIFETIMES.map(([k]) => E.render(state.beast, { ...state.live, adventurers_killed: k }));
+    historyResults = LIFETIMES.map(([k]) => renderCurrent(state.beast, { ...state.live, adventurers_killed: k }));
     historyResults.forEach((r, i) => {
       const cell = document.createElement('div'); cell.className = 'hcell';
       const lab = document.createElement('span'); lab.className = 'label'; lab.textContent = LIFETIMES[i][1];
       const cv = document.createElement('canvas');
       const meta = document.createElement('span'); meta.className = 'hint mono';
-      meta.textContent = `${r.params.section_count} sec · lag ${r.params.stretto_lag} · motif ${fmtHex(r.form.theme.theme_hash).slice(0, 8)}`;
+      meta.textContent = `${r.params.section_count} sec · lag ${r.params.stretto_lag} · ${r.form.events.length} notes · motif ${fmtHex(r.form.theme.theme_hash).slice(0, 8)}`;
       const btn = document.createElement('button'); btn.className = 'btn'; btn.type = 'button'; btn.textContent = 'Play';
       btn.addEventListener('click', () => { if (playing && playing.res === r) stop(); else play(r, cv); });
       cell.append(lab, cv, meta, btn); root.append(cell);
@@ -790,6 +823,14 @@ const SNAP = /*SNAPSHOT*/;
   const freq = (m) => 440 * Math.pow(2, (m - 69) / 12);
   function voiceNote(out, t, dur, m, vel, v, role, b) {
     const type = b.beast_type, f = freq(m), amp = 0.11 * (vel / 127);
+    if (dur < 0.2 && role !== 'countersubject') {
+      // Ornament notes: one oscillator keeps thousands of fast notes light on the audio thread.
+      const g = ctx.createGain(); g.connect(out);
+      const o = ctx.createOscillator(); o.type = type === 2 ? 'sawtooth' : 'triangle'; o.frequency.value = f; o.connect(g);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(amp * (type === 2 ? 0.6 : 0.9), t + 0.006); g.gain.setTargetAtTime(0, t + dur, 0.03);
+      o.start(t); o.stop(t + dur + 0.2);
+      return [o];
+    }
     const g = ctx.createGain(); g.connect(out);
     const filt = ctx.createBiquadFilter(); filt.type = 'lowpass'; filt.connect(g);
     const oscs = [];
@@ -864,7 +905,7 @@ const SNAP = /*SNAPSHOT*/;
   $('dlMidi').addEventListener('click', async () => {
     $('dlMsg').textContent = '';
     // Same path a client takes with get_score_notes: compact BSN1 felts -> decoder -> MIDI file.
-    const midi = E.bsnToMidi(E.bytesToFelts(E.encodeBsn(result)));
+    const midi = result.engineVersion === 2 ? V2.bsn2ToMidi(E.bytesToFelts(V2.encodeBsn2(result))) : E.bsnToMidi(E.bytesToFelts(E.encodeBsn(result)));
     const zip = zipOne(`${slug()}.mid`, midi);
     const dl = await window.claude?.use?.('downloads');
     if (dl) {

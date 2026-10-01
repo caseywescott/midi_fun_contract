@@ -1,7 +1,7 @@
 <title>Beast Sound</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=VT323&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root {
   --bg: #e8eaee;
@@ -149,6 +149,62 @@ pre.code { margin: 0; overflow-x: auto; background: var(--sunk); border: 1px sol
 .callout { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; }
 .mermaid { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 12px; overflow-x: auto; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ── skin toggle ───────────────────────────────────────────── */
+.tabs { align-items: center; }
+.tabs .skin { margin-left: auto; }
+
+/* Loot Survivor skin: terminal green on black, VT323, square glowing panels, CRT scanlines.
+   Values from Provable-Games/loot-survivor ui/tailwind.config.js and globals.css. */
+html[data-skin="ls"]:root {
+  --bg: #000000; --surface: #0b0b0b; --sunk: #151515; --ink: #4af626; --muted: rgba(74, 246, 38, 0.72);
+  --line: rgba(74, 246, 38, 0.38); --accent: #4af626; --accent-soft: rgba(74, 246, 38, 0.12); --on-accent: #000000;
+  --gold: #d3af37; --ok: #4af626;
+  --v0: #4af626; --v1: #ffb000; --v2: #d3af37; --v3: #aaa9ad; --v4: #a97142; --grid: rgba(74, 246, 38, 0.12);
+  --display: "VT323", ui-monospace, monospace; --sans: "VT323", ui-monospace, monospace; --mono: "VT323", ui-monospace, monospace;
+  color-scheme: dark;
+}
+html[data-skin="ls"] body { font-size: 19px; line-height: 1.3; text-shadow: rgba(173, 216, 230, 0.55) 1px 0 8px; }
+html[data-skin="ls"] h1, html[data-skin="ls"] h2, html[data-skin="ls"] h3, html[data-skin="ls"] .card .name {
+  text-transform: uppercase; letter-spacing: 0.02em; text-shadow: 0 0 12px rgba(74, 246, 38, 0.65);
+}
+html[data-skin="ls"] h1 { font-size: clamp(40px, 6vw, 64px); line-height: 0.95; }
+html[data-skin="ls"] .label { font-size: 15px; letter-spacing: 0.08em; }
+html[data-skin="ls"] .hint, html[data-skin="ls"] .legend, html[data-skin="ls"] .chip, html[data-skin="ls"] .time,
+html[data-skin="ls"] .roster .meta, html[data-skin="ls"] .roster .rk, html[data-skin="ls"] .hashes,
+html[data-skin="ls"] .field label, html[data-skin="ls"] .kv .why, html[data-skin="ls"] th, html[data-skin="ls"] td code,
+html[data-skin="ls"] p code, html[data-skin="ls"] li code, html[data-skin="ls"] pre.code { font-size: 16px; }
+html[data-skin="ls"] .kv b, html[data-skin="ls"] .roster .nm { font-size: 18px; }
+html[data-skin="ls"] .top .lede { font-size: 22px; max-width: 60ch; }
+html[data-skin="ls"] .check, html[data-skin="ls"] .doc p, html[data-skin="ls"] .doc li, html[data-skin="ls"] td { font-size: 19px; }
+html[data-skin="ls"] .panel, html[data-skin="ls"] .roll, html[data-skin="ls"] .roster, html[data-skin="ls"] .tbl,
+html[data-skin="ls"] pre.code, html[data-skin="ls"] .mermaid {
+  border-radius: 0; border: 1px solid var(--line); box-shadow: 0 0 20px -2px rgba(51, 255, 51, 0.35);
+}
+html[data-skin="ls"] select, html[data-skin="ls"] input[type="text"], html[data-skin="ls"] input[type="number"] {
+  border-radius: 0; background: #000; border: 1px solid var(--line); color: var(--ink); font-size: 18px;
+}
+html[data-skin="ls"] .btn, html[data-skin="ls"] .btn.primary {
+  border-radius: 0; background: var(--accent); color: #000; border-color: var(--accent);
+  text-transform: uppercase; text-shadow: none; font-size: 18px;
+}
+html[data-skin="ls"] .btn:hover { background: rgba(74, 246, 38, 0.8); animation: ls-pulse 0.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+html[data-skin="ls"] .btn:active, html[data-skin="ls"] .play:active { transform: scale(0.95); }
+html[data-skin="ls"] .play { border-radius: 0; background: var(--accent); color: #000; box-shadow: 0 0 20px -2px rgb(51, 255, 51); }
+html[data-skin="ls"] .chip { border-radius: 0; background: #000; }
+html[data-skin="ls"] .tabs button { text-transform: uppercase; font-size: 20px; }
+html[data-skin="ls"] .tabs button[aria-selected="true"] { color: var(--ink); text-shadow: 0 0 10px rgba(74, 246, 38, 0.8); }
+html[data-skin="ls"] .status { border-radius: 0; }
+html[data-skin="ls"] ::selection { background: #ffb000; color: #151515; }
+html[data-skin="ls"] a { color: #ffb000; }
+html[data-skin="ls"] body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 9000;
+  background:
+    repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0) 2px, rgba(0, 0, 0, 0.22) 2px, rgba(0, 0, 0, 0.22) 3px),
+    radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.55) 100%);
+}
+@keyframes ls-pulse { 50% { opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { html[data-skin="ls"] .btn:hover { animation: none; } }
 </style>
 
 <div class="wrap">
@@ -161,6 +217,7 @@ pre.code { margin: 0; overflow-x: auto; background: var(--sunk); border: 1px sol
   <nav class="tabs" role="tablist">
     <button role="tab" id="tab-sim" aria-selected="true" aria-controls="view-sim">Simulator</button>
     <button role="tab" id="tab-plan" aria-selected="false" aria-controls="view-plan">How it ships with V3</button>
+    <button class="btn skin" id="skinToggle" type="button" aria-pressed="false">Loot Survivor style</button>
   </nav>
 
   <main id="view-sim" role="tabpanel" aria-labelledby="tab-sim">
@@ -1019,8 +1076,8 @@ const SNAP = /*SNAPSHOT*/;
     envelope(g.gain, t, dur, peak, a, 0.7, rel);
     oscs.forEach((o) => { o.start(t); o.stop(t + dur + rel + 0.1); });
   }
-  function scheduleNote(p, e) {
-    const t = p.t0 + e.time * p.tick, dur = e.duration * p.tick;
+  function scheduleNote(p, e, offset = 0) {
+    const t = p.t0 + (offset + e.time) * p.tick, dur = e.duration * p.tick;
     const role = e.role === 'countersubject' ? 'countersubject' : e.voice_id === 0 ? 'leader' : 'followers';
     const id = p.roles[role], dest = p.buses[e.voice_id % 5];
     if (id === 'auto') { voiceNote(dest, t, dur, e.pitch, e.velocity, e.voice_id, e.role, p.res.beast); return; }
@@ -1045,19 +1102,25 @@ const SNAP = /*SNAPSHOT*/;
       res: r, out, buses, voiceGains, roles: rolePatches(), events, order, next: 0, t0: 0, started: false,
       tick: r.params.tempo_us / 1e6 / 480 / tempoScale(), ticks: Math.max(...events.map((e) => e.time + e.duration)),
       canvas: canvas || $('roll'), full: !canvas, raf: 0, timer: 0,
-      drums: [], nextDrum: 0,
+      drums: [], nextDrum: 0, pass: 0, loopTicks: 0,
     };
-    if ($('drums').checked) {
-      for (let time = 0; time < p.ticks; time += 240) {
+    // Loop length rounded up to whole 4-beat bars so the drum pattern stays in place every pass.
+    p.loopTicks = Math.ceil(p.ticks / 1920) * 1920;
+    const makeDrums = () => {
+      const out = [];
+      if (!$('drums').checked) return out;
+      for (let time = 0; time < p.loopTicks; time += 240) {
         const onBeat = time % 480 === 0, beat = time / 480;
         if (onBeat && beat % 4 === 0) p.drums.push({ time, kind: 'kick', level: 0.32 });
         if (onBeat && beat % 4 === 2) p.drums.push({ time, kind: 'snare', level: 0.16 });
         // hi-hat on every eighth: accented on the beat, random level, ~1 in 8 off-beats opens up
         const open = !onBeat && Math.random() < 0.125;
         const level = (onBeat ? 0.075 : 0.05) * (0.7 + Math.random() * 0.6);
-        p.drums.push({ time, kind: open ? 'openhat' : 'hat', level });
+        out.push({ time, kind: open ? 'openhat' : 'hat', level });
       }
-    }
+      return out;
+    };
+    p.drums = makeDrums();
     playing = p;
     setIcon(true);
     // Schedule a small window of notes at a time: few live nodes, nothing lands in the past.
@@ -1069,18 +1132,27 @@ const SNAP = /*SNAPSHOT*/;
         p.started = true;
       }
       const horizon = ctx.currentTime + LOOKAHEAD;
-      while (p.next < p.order.length) {
-        const e = p.events[p.order[p.next]];
-        if (p.t0 + e.time * p.tick > horizon) break;
-        scheduleNote(p, e);
-        p.next++;
-      }
-      while (p.nextDrum < p.drums.length) {
-        const d = p.drums[p.nextDrum];
-        const t = p.t0 + d.time * p.tick;
-        if (t > horizon) break;
-        BS.chipDrum(kit, p.out, t, d.kind, d.level);
-        p.nextDrum++;
+      // Times are absolute ticks since play started (pass * loop length + tick in the piece), so
+      // passes join seamlessly and a tempo change re-anchors cleanly.
+      for (;;) {
+        const offset = p.pass * p.loopTicks;
+        while (p.next < p.order.length) {
+          const e = p.events[p.order[p.next]];
+          if (p.t0 + (offset + e.time) * p.tick > horizon) break;
+          scheduleNote(p, e, offset);
+          p.next++;
+        }
+        while (p.nextDrum < p.drums.length) {
+          const d = p.drums[p.nextDrum];
+          const t = p.t0 + (offset + d.time) * p.tick;
+          if (t > horizon) break;
+          BS.chipDrum(kit, p.out, t, d.kind, d.level);
+          p.nextDrum++;
+        }
+        // Both lists done for this pass and the next pass starts inside the window: loop.
+        if (p.next < p.order.length || p.nextDrum < p.drums.length) break;
+        if (p.t0 + (offset + p.loopTicks) * p.tick > horizon) break;
+        p.pass++; p.next = 0; p.nextDrum = 0; p.drums = makeDrums();
       }
     };
     pump();
@@ -1090,8 +1162,8 @@ const SNAP = /*SNAPSHOT*/;
       if (playing !== p) return;
       if (p.started) {
         const pt = (ctx.currentTime - latency() - p.t0) / p.tick;
-        if (pt > p.ticks + 480) { stop(); return; }
-        drawRoll(p.canvas, p.res, p.full, Math.max(0, pt));
+        // Loops until Stop: the playhead wraps at the end of each pass.
+        drawRoll(p.canvas, p.res, p.full, Math.max(0, pt) % p.loopTicks);
       }
       p.raf = requestAnimationFrame(step);
     };
@@ -1149,6 +1221,22 @@ const SNAP = /*SNAPSHOT*/;
     catch { $('dlMsg').textContent = txt; }
   });
 
+  // ── page style: classic or Loot Survivor ───────────────────────
+  function applySkin(skin) {
+    const ls = skin === 'ls';
+    if (ls) document.documentElement.setAttribute('data-skin', 'ls'); else document.documentElement.removeAttribute('data-skin');
+    $('skinToggle').textContent = ls ? 'Classic style' : 'Loot Survivor style';
+    $('skinToggle').setAttribute('aria-pressed', String(ls));
+    try { localStorage.setItem('beastSoundSkin', ls ? 'ls' : 'classic'); } catch { /* storage unavailable */ }
+    if (!result) return;
+    // Canvas colors come from CSS tokens: redraw the rolls (cache dropped) and the legend.
+    $('roll')._roll = null;
+    if (!playing || !playing.full) drawRoll($('roll'), result, true);
+    historyResults.forEach((hr, i) => { const cv = $('history').children[i]?.querySelector('canvas'); if (cv) { cv._roll = null; drawRoll(cv, hr, false); } });
+    drawLegend(result);
+  }
+  $('skinToggle').addEventListener('click', () => applySkin(document.documentElement.getAttribute('data-skin') === 'ls' ? 'classic' : 'ls'));
+
   // ── tabs ───────────────────────────────────────────────────────
   function showTab(which) {
     const plan = which === 'plan';
@@ -1168,6 +1256,7 @@ const SNAP = /*SNAPSHOT*/;
   let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (!playing) { drawRoll($('roll'), result, true); historyResults.forEach((r, i) => drawRoll($('history').children[i].querySelector('canvas'), r, false)); } }, 150); });
   matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => update());
 
+  try { if (localStorage.getItem('beastSoundSkin') === 'ls') applySkin('ls'); } catch { /* storage unavailable */ }
   syncControls(); drawRoster(); update();
 })();
 </script>

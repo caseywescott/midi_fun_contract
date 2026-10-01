@@ -121,6 +121,21 @@ pub fn beast_params_hash(params: BeastCompositionParams) -> felt252 {
     h = h.update(params.stretto_lag.into());
     h = h.update(params.ornament_density.into());
     h = h.update(params.articulation_profile.into());
+    // Every remaining field that changes the rendered events or their timing, so the score hash
+    // commits to the whole performance (two different scores can never share a hash).
+    h = h.update(params.register_band.into());
+    h = h.update(if params.use_inversion {
+        1
+    } else {
+        0
+    });
+    h = h.update(if params.use_countersubject {
+        1
+    } else {
+        0
+    });
+    h = h.update(params.velocity_ceiling.into());
+    h = h.update(params.tempo_us.into());
     h.finalize()
 }
 

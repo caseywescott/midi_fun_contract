@@ -100,7 +100,8 @@ pub struct BeastLiveBuckets {
 
 #[derive(Copy, Drop, Serde)]
 pub struct BeastCompositionParams {
-    pub species_id: u8,
+    /// Widened to u64 for Beasts V3 community species (ids 76+).
+    pub species_id: u64,
     pub name_variant_id: u32,
     pub mode_id: u8,
     pub tonic_keynum: u8,
@@ -337,7 +338,7 @@ pub fn live_buckets(stats: BeastLiveStats) -> BeastLiveBuckets {
     }
 }
 
-fn sections_for_kill_bucket(kill_bucket: u8) -> u8 {
+pub fn sections_for_kill_bucket(kill_bucket: u8) -> u8 {
     if kill_bucket == 0 {
         1
     } else if kill_bucket == 1 {
@@ -351,7 +352,7 @@ fn sections_for_kill_bucket(kill_bucket: u8) -> u8 {
     }
 }
 
-fn tonic_keynum_for_cell(cell: BeastKeyCell) -> u8 {
+pub fn tonic_keynum_for_cell(cell: BeastKeyCell) -> u8 {
     let base = if cell.register_band == REGISTER_LOW {
         48
     } else if cell.register_band == REGISTER_MID {
@@ -362,7 +363,7 @@ fn tonic_keynum_for_cell(cell: BeastKeyCell) -> u8 {
     base + cell.tonic_pc
 }
 
-fn clamp_u8(v: u32, hi: u8) -> u8 {
+pub fn clamp_u8(v: u32, hi: u8) -> u8 {
     if v > hi.into() {
         hi
     } else {
@@ -430,7 +431,7 @@ pub fn map_beast_traits_to_composition_params(
         + if buckets.is_crown { 1 } else { 0 };
     let tempo_us = 500000 - perf.tempo_bump;
     BeastCompositionParams {
-        species_id,
+        species_id: species_id.into(),
         name_variant_id,
         mode_id: key.canonical_mode_id,
         tonic_keynum: tonic_keynum_for_cell(key),

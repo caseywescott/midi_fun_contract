@@ -18,15 +18,20 @@ Measured with cairo-test on the real Sepolia genesis Warlock (members 2.3 KB, SV
 | | L2 gas (est.) | token_uri size |
 |---|---:|---:|
 | Today: one base64 pass over the JSON | 775M | 43 KB |
-| With sound, via `BeastSoundPage.token_uri` | 833M (+7.5%) | 156 KB |
-| With sound, naively (base64 the 64 KB page, put it in the JSON, base64 everything) | ≈4.3B (estimated from the per-byte cost) | 156 KB |
+| With sound, via `BeastSoundPage.token_uri` | 812M (+4.8%) | 120 KB |
+| With sound, naively (base64 the 43 KB page, put it in the JSON, base64 everything) | ≈3.2B (estimated from the per-byte cost) | 120 KB |
 
 The cross-contract call's calldata and return copying are not included. Measure them on devnet
 before mainnet.
 
-The composer is stored once, in the code of a stateless contract: 40 KB of JavaScript, 2,345
-felts. The CASM class is 16,578 felts, against the 81,920 limit. No composition runs onchain, so the
+The composer is stored once, in the code of a stateless contract: 20 KB of JavaScript, 1,182
+felts. The CASM class is 13,146 felts, against the 81,920 limit. No composition runs onchain, so the
 v1 Cairo composer's 5–120M gas per call does not apply.
+
+The composer hashes with `src/poseidon_lite.js` instead of `@scure/starknet`: a 1 KB Starknet
+Poseidon that derives its round constants (`sha256("Hades" + i) mod p`) on first use, in about
+11 ms. `test/poseidon_lite.test.mjs` checks it against `@scure/starknet` on 207 inputs and on
+full Beast renders.
 
 ### Why the cost barely moves
 
@@ -121,8 +126,5 @@ The composer lives in contract code. A different engine or synth means a new cla
 
 ## Possible next steps
 
-- **A leaner Poseidon:** `@scure/starknet` brings about 20 KB of curve and hash helpers. A
-  dedicated Poseidon with inline round constants would cut the composer to about 25 KB and about
-  1,100 felts.
 - **Engine v2:** needs its JS port bundled in (about +30 KB). There's still no onchain composition
   cost.

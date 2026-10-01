@@ -6,7 +6,7 @@
 // syntax, so it is shown through an <img> rather than inlined. Both come after this script, so it
 // waits for the document. It composes the Beast's theme with engine v1 (byte-identical to the Cairo
 // reference, so the score hash is checkable) and plays it with the chip synth on tap. No network.
-import { poseidonHashMany } from '@scure/starknet';
+import { poseidonHashMany } from '../src/poseidon_lite.js';
 import { createEngine } from '../src/engine.js';
 import { chip, chipDrum } from '../../../web/beast_sound/chip.js';
 import { createLoopScheduler } from '../server/scheduler.js';

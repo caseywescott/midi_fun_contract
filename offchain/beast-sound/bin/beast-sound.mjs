@@ -6,6 +6,7 @@
 //   beast-sound compose --species 1 --prefix 57 --suffix 15 --level 126 --health 229 --kills 40
 //
 // Common flags: -o <file.mid>  --bsn <file.bsn>  --json  --salt <felt> --bps <n>  --rpc <url>
+//               --engine 2   (ornamented invertible canon; default 1)
 
 import { writeFileSync } from 'node:fs';
 import { composeBeast, decodeTokenId, genesisBeast, hasSound, soundDropRoll, MODE_NAMES, FAMILY_NAMES, TABLES } from '../src/index.js';
@@ -22,7 +23,8 @@ const usage = () => {
   beast-sound compose --species <1-75> [--prefix 1-69 --suffix 1-18] [--level N --health N]
                       [--shiny] [--animated] [--tier 1-5 --type 0-2 for species 76+]
                       [--kills N --scars N --summit-hours N --rank N --count N]
-options: -o <file.mid> write MIDI · --bsn <file> write BSN1 bytes · --json print everything
+options: -o <file.mid> write MIDI · --bsn <file> write compact bytes (BSN1, or BSN2 for --engine 2)
+         --engine 1|2 (2 = ornamented invertible canon) · --json print everything
          --salt <felt> --bps <n> evaluate the Sound drop (default 500 bps)`);
   process.exit(1);
 };
@@ -52,7 +54,7 @@ async function load() {
 }
 
 const got = await load();
-const song = composeBeast(got.beast, got.live, { speciesName: got.speciesName });
+const song = composeBeast(got.beast, got.live, { speciesName: got.speciesName, engineVersion: num('engine', 1) });
 const p = song.params, st = song.musicState;
 const hex = (x) => '0x' + BigInt(x).toString(16);
 
@@ -66,7 +68,9 @@ if (has('json')) {
   console.log(`  live          ${song.live.adventurers_killed} kills · ${song.live.scars} scars · ${Math.floor(song.live.summit_held_seconds / 3600)} h on Summit · rank ${song.live.rank}/${song.live.species_count}`);
   console.log(`  music         ${tonic} ${MODE_NAMES[p.mode_id] || p.mode_id} · ${FAMILY_NAMES[`${p.canon_config_id}/${p.profile_id}`] || 'config ' + p.canon_config_id}`);
   console.log(`                ${p.voice_count} voices${p.use_countersubject ? ' + countersubject' : ''} · ${p.section_count} sections · stretto ${p.stretto_lag} · ${p.use_inversion ? 'inverted (scarred) · ' : ''}${Math.round(60e6 / p.tempo_us)} bpm`);
-  console.log(`  length        ${song.events.length} notes · ${song.durationSeconds.toFixed(1)} s · MIDI ${song.midi.length} B · BSN1 ${song.bsn.length} B`);
+  console.log(`  engine        v${song.engineVersion}${song.engineVersion === 2 ? ` · ${song.canonVoices}-voice invertible canon, entries every ${song.entryLag} · ${song.ornamentStyle} ornaments` : ''}`);
+  if (song.ornamentKinds) console.log(`  ornaments     ${Object.entries(song.ornamentKinds).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ×${n}`).join(', ')}`);
+  console.log(`  length        ${song.events.length} notes · ${song.durationSeconds.toFixed(1)} s · MIDI ${song.midi.length} B · BSN${song.engineVersion} ${song.bsn.length} B`);
   console.log(`  score_hash    ${hex(song.scoreHash)}`);
   console.log(`  state_hash    ${hex(song.stateHash)}  (crown ${st.is_crown}, kill bucket ${st.kill_bucket}, scar bucket ${st.defeat_bucket})`);
   if (flag('salt')) {

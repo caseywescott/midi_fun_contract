@@ -85,7 +85,33 @@ scarb test -- --include-ignored --filter beast_v3_parity_fixture | grep PARITY >
 node scripts/beast_v3_parity.mjs /tmp/parity.txt --write
 ```
 
-## Compact format (BSN1)
+## Engine v2 (preview): ornamented invertible canon
+
+```js
+const song = composeBeast(beast, live, { engineVersion: 2 });
+song.ornamentKinds   // e.g. { 'upper neighbor': 114, 'turn (upper first)': 92, … }
+song.bsn             // BSN2 (see below)
+```
+
+```bash
+npx beast-sound mainnet 52918 --engine 2 -o warlock-v2.mid
+```
+
+A canon at the sixth below and third above, invertible at the octave, ornamented by the V2 engine
+(25 ornament kinds) with the Beast's suffix choosing which kinds are allowed. Each Beast's melody is
+walked once under the constraints of every possible live state, so kills, level and rank change the
+stretto, voices and form but never the melody. Port of `src/composition/beast_engine_v2.cairo`,
+checked byte for byte against Cairo renders. Defaults and the findings behind them:
+`docs/beasts/engine_v2_defaults.md`. v1 stays the default until the v2 defaults are signed off by
+listening.
+
+## Compact format (BSN1 / BSN2)
+
+BSN2 carries engine v2 scores at 10 bits per note: the written notes (key + duration on a 120-tick
+grid) plus the articulation rule, which the decoder re-applies exactly. `bsn2ToMidi(song.bsn)`
+rebuilds the identical MIDI file (2,068 notes: 2.7 KB, against 17 KB of MIDI).
+
+### BSN1
 
 For storage, indexers or anywhere bytes matter, `song.bsn` is the score in about 7 bits per note
 (436 bytes for the largest possible Beast, versus 3.7 KB as MIDI). `bsnToMidi(song.bsn)` rebuilds

@@ -233,9 +233,13 @@ export function createEngine({ poseidonHashMany }) {
 
   const canonicalToMelodic = (m) => (m === 4 ? 1 : m === 5 ? 2 : m === 7 ? 5 : m === 8 ? 5 : m === 6 ? 2 : m === 26 ? 1 : 5);
   const SCALES = [[0, 2, 4, 5, 7, 9, 11], [0, 2, 3, 5, 7, 9, 10], [0, 1, 3, 5, 7, 8, 10], [0, 2, 4, 6, 7, 9, 11], [0, 2, 4, 5, 7, 9, 10], [0, 2, 3, 5, 7, 8, 10]];
+  // degree_to_keynum_sized: the i32 -> u32 and u32 -> u8 conversions panic in Cairo; throw here.
   function realize(deg, tonic, mode) {
     const du = deg + 70;
-    return tonic + 12 * Math.floor(du / 7) + SCALES[mode % 6][du % 7] - 120;
+    if (du < 0) throw new Error('realize: degree below lattice');
+    const total = tonic + 12 * Math.floor(du / 7) + SCALES[mode % 6][du % 7] - 120;
+    if (total < 0 || total > 255) throw new Error('realize: keynum out of u8 range');
+    return total;
   }
   const icPairSafe = (a, b) => Math.abs(a - b) % 12 !== 7;
   const transposedTonic = (t, s) => Math.max(24, Math.min(96, t + s));
@@ -457,7 +461,15 @@ export function createEngine({ poseidonHashMany }) {
   }
   const bsnToMidi = (input) => { const d = decodeBsn(input); return eventsToMidi(d.events, d.tempo_us); };
 
+  // Building blocks reused by engine v2 (engine_v2.js). Not part of the public API.
+  const internals = {
+    H, enc, realize, articulate, generateCountersubject, paramsHash, deriveSeeds, sectionTonicShift,
+    transposedTonic, canonicalToMelodic, mapV3, soundSeed, prefix2Policy, typeTierFamily,
+    themeHash: (degrees) => H('BEAST_THEME_V1', ...degrees.map(enc)),
+  };
+
   return {
+    internals,
     encodeBsn, decodeBsn, bsnToMidi, eventsToMidi, bytesToFelts, feltsToBytes,
     decodeTokenId, encodeTokenId, genesisTokenId, soundSeed, soundDropRoll, hasSound, nameVariantId, mapV3, musicState,
     musicStateHash, paramsHash, buildForm, render, eventChecksum, toMidiFile, typeTierFamily, rankTier,

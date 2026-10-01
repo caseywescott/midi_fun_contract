@@ -63,3 +63,38 @@ test('sound drop is a pure function of the salt and the Beast', () => {
   assert.equal(hasSound(b, { salt, bps: 0 }), false);
   assert.equal(hasSound(genesisBeast({ id: 29 }), { salt, bps: 0 }), true); // Genesis always sings
 });
+
+// ── Engine v2 (ornamented invertible canon): fixtures from Cairo's v2_parity_fixture ──
+import { engineV2, decodeBsn2, bsn2ToMidi } from '../src/index.js';
+
+const goldenV2 = JSON.parse(readFileSync(new URL('./golden_v2.json', import.meta.url)));
+
+for (const [i, c] of goldenV2.cases.entries()) {
+  test(`engine v2 case ${i}: ${beastName(c.beast)} matches Cairo`, () => {
+    const r = engineV2.renderV2(c.beast, c.live);
+    const midi = engine.bytesToFelts(engine.eventsToMidi(r.form.events, r.params.tempo_us));
+    assert.deepEqual({
+      score: r.form.score_hash.toString(), events: String(r.form.events.length),
+      checksum: engine.eventChecksum(r.form.events).toString(),
+      midi_len: String(midi[0]), midi_hash: poseidonHashMany(midi).toString(),
+    }, c.expected);
+  });
+
+  test(`engine v2 case ${i}: BSN2 round-trips to the identical MIDI and events`, () => {
+    const song = composeBeast(c.beast, c.live, { engineVersion: 2 });
+    assert.deepEqual(bsn2ToMidi(song.bsnFelts), song.midi);
+    assert.equal(engineV2.eventsHash(decodeBsn2(song.bsn).events), engineV2.eventsHash(engineV2.renderV2(c.beast, c.live).form.events));
+  });
+}
+
+test('engine v2: history changes the arrangement, never the melody', () => {
+  const warlock = genesisBeast({ id: 1, prefix: 57, suffix: 15, level: 126, health: 229 });
+  const states = [
+    { adventurers_killed: 0, species_count: 954, rank: 500 },
+    { adventurers_killed: 9, scars: 12, species_count: 954, rank: 1 },
+    { adventurers_killed: 200, scars: 63, summit_held_seconds: 1800000, species_count: 954, rank: 1 },
+  ].map((l) => composeBeast(warlock, l, { engineVersion: 2 }));
+  assert.equal(new Set(states.map((s) => s.motifHash)).size, 1);
+  assert.equal(new Set(states.map((s) => s.scoreHash)).size, 3);
+  assert.ok(states[2].entryLag < states[0].entryLag);
+});

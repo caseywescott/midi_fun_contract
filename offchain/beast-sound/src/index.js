@@ -6,6 +6,7 @@
 
 import { poseidonHashMany } from '@scure/starknet';
 import { createEngine, TABLES, genesisTier, genesisType, shortString } from './engine.js';
+import { createEngineV2, DEFAULT_V2_OPTIONS, ORNAMENT_NAMES } from './engine_v2.js';
 
 export {
   TABLES, genesisTier, genesisType, MODE_NAMES, FAMILY_NAMES, ORNAMENT_FAMILIES, ARTICULATION_NAMES,
@@ -15,6 +16,10 @@ export {
 export const ENGINE_VERSION = 1;
 export { poseidonHashMany };
 export const engine = createEngine({ poseidonHashMany });
+/** Engine v2 (invertible canon + V2 ornaments). Opt in with composeBeast(..., { engineVersion: 2 }). */
+export const engineV2 = createEngineV2(engine);
+export { DEFAULT_V2_OPTIONS, ORNAMENT_NAMES };
+export const { decodeBsn2, bsn2ToMidi } = engineV2;
 export const { decodeTokenId, encodeTokenId, genesisTokenId, decodeBsn, bsnToMidi, eventsToMidi } = engine;
 
 /** Build a full Beast from a genesis species id (1–75) and its per-token traits. */
@@ -45,14 +50,16 @@ export function normalizeLive(beast, live = {}) {
  * Compose a Beast's canonical theme.
  * @returns everything a player, game client or indexer needs; see index.d.ts.
  */
-export function composeBeast(beast, live, { speciesName } = {}) {
+export function composeBeast(beast, live, { speciesName, engineVersion = 1, v2Options } = {}) {
   const l = normalizeLive(beast, live);
-  const r = engine.render(beast, l);
+  if (engineVersion !== 1 && engineVersion !== 2) throw new Error(`unknown engine version ${engineVersion}`);
+  const v2 = engineVersion === 2;
+  const r = v2 ? engineV2.renderV2(beast, l, v2Options) : engine.render(beast, l);
   const { _ornament, _state, ...params } = r.params;
-  const bsn = engine.encodeBsn(r);
+  const bsn = v2 ? engineV2.encodeBsn2(r) : engine.encodeBsn(r);
   const ticks = Math.max(...r.form.events.map((e) => e.time + e.duration));
   return {
-    engineVersion: ENGINE_VERSION,
+    engineVersion: v2 ? 2 : ENGINE_VERSION,
     name: beastName(beast, speciesName),
     beast,
     live: l,
@@ -60,7 +67,7 @@ export function composeBeast(beast, live, { speciesName } = {}) {
     creatorTokenId: engine.genesisTokenId(beast.id, beast.tier, beast.beast_type),
     params,
     musicState: _state,
-    events: r.form.events.map(({ time, duration, pitch, velocity, voice_id, section, role }) => ({ time, duration, pitch, velocity, voice: voice_id, section, role })),
+    events: r.form.events.map(({ time, duration, pitch, velocity, voice_id, section, role, ornament }) => ({ time, duration, pitch, velocity, voice: voice_id, section, role, ornament: ornament || 0 })),
     sections: r.form.sections,
     durationSeconds: (ticks / 480) * (params.tempo_us / 1e6),
     soundSeed: r.seed,
@@ -68,7 +75,8 @@ export function composeBeast(beast, live, { speciesName } = {}) {
     paramsHash: r.params_hash,
     stateHash: r.state_hash,
     scoreHash: r.form.score_hash,
-    midi: engine.toMidiFile(r),
+    midi: engine.eventsToMidi(r.form.events, params.tempo_us),
+    ...(v2 ? { ornamentStyle: r.form.style, ornamentKinds: Object.fromEntries([...r.form.ornamentKinds].map(([k, n]) => [ORNAMENT_NAMES[k], n])), canonVoices: r.form.voiceCount, entryLag: r.form.entryLag } : {}),
     bsn,
     bsnFelts: engine.bytesToFelts(bsn),
   };

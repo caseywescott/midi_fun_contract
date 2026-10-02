@@ -89,6 +89,28 @@ Tempo is exact: the vendored TinySynth is patched to keep fractional BPM (`vendo
 
 ## What it costs
 
+### The page, before and after the rebase (starknet-devnet 0.10.0)
+
+Measured 2 Oct 2026, both page classes on one devnet: the public Beasts NFT (`ae3fa8d`, real art
+providers, no Death Mountain), the real `BeastMidiProvider`, and each `MidiSoundPage` called with
+the members and SVG base64 that NFT's own `token_uri` holds. Values are L2 gas, read as raw
+`l2_gas_consumed` from `starknet_estimateFee`:
+
+| Beast | NFT `token_uri`, sound off | `get_midi` | Page, base64 JSON (PR #1) | **Page, plain JSON + `b64.cairo`** |
+|---|---:|---:|---:|---:|
+| Tier 5 common (153 B MIDI) | 2,013M | 5.4M | 646M | **177M** |
+| Sorrow Peak Warlock (816 B) | 2,022M | 29.4M | 721M | **212M** |
+| Tier 1 Brute, shiny + animated (816 B) | 2,166M | 29.4M | 761M | **194M** |
+
+- **3.6–3.9× cheaper:** that's the page, against PR #1's own page on the same chain.
+- **Byte-identical:** both pages' output matches its JS reference byte for byte. The plain-JSON
+  output keeps the NFT's name, image and attributes unchanged.
+- **Not measured: the full NFT path with the patch.** It needs the private beasts-v3 `main`
+  (`integration/e2e_devnet.mjs` runs it).
+  - Estimate: the PR #1 measurement below minus this page saving puts sound-on `token_uri` at
+    roughly 1.0–1.3B, against 1.7–2.2B with sound off.
+  - That's derived, not measured.
+
 ### Full path, starknet-devnet 0.10.2 (base64 layout, before the plain-JSON rebase)
 
 Measured 2 Oct 2026, on the base64 layout this branch replaced, so rerun it before relying on it. Beasts V3 `main` + `integration/beasts_nft-sound.patch` with the real art

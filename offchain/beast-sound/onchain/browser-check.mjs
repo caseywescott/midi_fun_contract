@@ -6,6 +6,7 @@
 // Prints one JSON line per page and exits non-zero on any failed check. Extra arguments are files
 // holding Beast token_uris returned by a deployed NFT (e.g. from integration/e2e_devnet.mjs); they
 // are checked the same way, as bare scores at the tempo their MIDI declares.
+import { TINYCHIP_ONCHAIN } from './tinychip/config.mjs';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { encodeTokenId, engine } from '../src/index.js';
@@ -118,8 +119,10 @@ for (const p of PAGES) {
     running: audio.state === 'running',
     tempo: Math.abs(audio.tempo - p.tempo) < 1e-9,
     loopWholeBars: audio.loopEnd % audio.timebase === 0 && audio.loopEnd >= audio.maxTick,
-    orchestration: audio.bare === p.bare && audio.orchestration === 1
-      && (p.bare ? played.channels.filter((c) => c !== 9).every((c) => audio.pg[c] === 128) && played.channels.includes(9)
+    // bare Beast scores take the TinyChip orchestration when the pack is stored onchain
+    orchestration: audio.bare === p.bare && audio.orchestration === (p.bare && TINYCHIP_ONCHAIN ? 'tinychip-1' : 1)
+      // the player's own lead is program 128; TinyChip's lead (its program 0) sits at 129
+      && (p.bare ? played.channels.filter((c) => c !== 9).every((c) => audio.pg[c] === (TINYCHIP_ONCHAIN ? 129 : 128)) && played.channels.includes(9)
         : Object.entries(p.programs).every(([c, g]) => audio.pg[c] === g)),
     sound: played.peak > 0.001,
     stop: stopped === 0,

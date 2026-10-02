@@ -17,7 +17,7 @@ import {
   LEAD, LEAD_PROGRAM, ORCHESTRATION, decodeMidi, drumEvents, isBareScore, loopEndTicks, noteChannels, panValue,
 } from './player-core.js';
 
-let midi = null, synth = null, base = null, bare = false, playing = false;
+let midi = null, synth = null, base = null, bare = false, playing = false, chip = null;
 
 addEventListener('DOMContentLoaded', () => {
   const art = document.getElementById('art');
@@ -48,6 +48,9 @@ function load() {
       synth.setPan(ch, panValue(i, channels.length));
     });
   }
+  // Optional TinyChip pack (onchain/tinychip): present when the page stores it or a client injects
+  // it before the first Play. Without it the player is unchanged.
+  if (window.TinyChip) chip = window.TinyChip.attach(synth, { bare, channels: noteChannels(base), events: base });
 }
 
 function play() {
@@ -91,4 +94,4 @@ document.body.appendChild(controls);
 document.addEventListener('click', () => (playing ? stop() : play()));
 
 // Read-only handle for inspection and tests.
-window.SOUND = { orchestration: ORCHESTRATION, get midi() { return midi; }, get synth() { return synth; }, get bare() { return bare; } };
+window.SOUND = { get orchestration() { return chip ? chip.orchestration : ORCHESTRATION; }, get chip() { return chip; }, get midi() { return midi; }, get synth() { return synth; }, get bare() { return bare; } };

@@ -60,6 +60,16 @@ the Cairo builds the same bytes:
   `foreignObject`, which the HTML parser cannot read. The page shows it through an `<img>`, exactly
   as marketplaces render `image`. It must never contain `</script`.
 
+### Optional: TinyChip chiptune pack
+
+`tinychip/` is a removable module: 100 chiptune presets and a chip drum kit for tinysynth.
+- **Switch:** it's stored onchain while `tinychip/config.mjs` has `TINYCHIP_ONCHAIN = true`. That
+  adds 14.2 KB, taking the page from 1,971 to 2,583 felts and `MidiSoundPage` to 26,098 CASM
+  felts.
+- **What changes:** bare Beast scores play the chip Triangle Lead and the chip kit, and MIDI files
+  can select the chip bank with Bank Select 1.
+- **Turning it off or going client-only:** see `tinychip/README.md`.
+
 ### Player and orchestration
 
 The player decodes the MIDI, builds TinySynth inside the first tap (browsers only start audio from a
@@ -176,7 +186,7 @@ on this one.
 
 ```bash
 npm install                                  # @scure/starknet (in offchain/beast-sound)
-node onchain/build.mjs                       # patch + minify TinySynth, bundle the player, encode STORED, write cairo/src/page_data.cairo
+node onchain/build.mjs                       # patch + minify TinySynth, bundle the player (+ TinyChip if enabled), encode STORED, write cairo/src/page_data.cairo
 node onchain/build-library.mjs               # the offchain JS library (onchain/lib) and dist/composer.js, for sites and demos
 node onchain/engines-demo.mjs                # public/onchain/engines.html: the same MIDI through the chip synth or TinySynth
 node onchain/golden.mjs                      # Cairo tests from the JS reference (page.js) and JS engine MIDI

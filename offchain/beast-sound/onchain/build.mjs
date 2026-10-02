@@ -9,6 +9,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { pageHtml, storedSegment } from './page.js';
 import { PATCHES, UPSTREAM, patchTinySynth } from './vendor/webaudio-tinysynth/patch.mjs';
+import { TINYCHIP_ONCHAIN } from './tinychip/config.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const ESBUILD = ['-y', 'esbuild@0.23.0'];
@@ -23,7 +24,11 @@ writeFileSync(here + 'dist/tinysynth.min.js', tinysynthMin + '\n');
 execFileSync('npx', [...ESBUILD, here + 'player-src.js', '--bundle', '--minify', '--format=iife', '--charset=utf8', '--target=es2020', `--outfile=${here}dist/player.js`], { stdio: 'inherit' });
 const player = readFileSync(here + 'dist/player.js', 'utf8').trim();
 
-const js = `${tinysynthMin}\n${player}`;
+// Optional TinyChip pack (onchain/tinychip): always built for clients, stored onchain when enabled.
+const tinychip = execFileSync('npx', [...ESBUILD, '--loader=js', '--minify', '--charset=utf8', '--target=es2020'], { input: readFileSync(here + 'tinychip/tinysynth-chip.js', 'utf8') }).toString().trim();
+writeFileSync(here + 'dist/tinychip.min.js', tinychip + '\n');
+
+const js = TINYCHIP_ONCHAIN ? `${tinysynthMin}\n${tinychip}\n${player}` : `${tinysynthMin}\n${player}`;
 const stored = storedSegment(js);
 writeFileSync(here + 'dist/stored.b64', stored);
 const sha = createHash('sha256').update(stored).digest('hex');

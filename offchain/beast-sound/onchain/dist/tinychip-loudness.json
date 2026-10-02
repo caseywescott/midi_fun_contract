@@ -1,0 +1,706 @@
+{
+ "target_db": -20.8,
+ "tolerance_db": 0.5,
+ "presets": [
+  {
+   "program": 0,
+   "name": "Triangle Lead (vibrato)",
+   "before_db": 1.45,
+   "after_db": 0.01,
+   "gain": 0.835
+  },
+  {
+   "program": 1,
+   "name": "Pulse 12.5% Lead",
+   "before_db": -1.6,
+   "after_db": 0,
+   "gain": 1.21
+  },
+  {
+   "program": 2,
+   "name": "Pulse 25% Lead",
+   "before_db": 0.54,
+   "after_db": 0,
+   "gain": 0.939
+  },
+  {
+   "program": 3,
+   "name": "Square Lead",
+   "before_db": 1.18,
+   "after_db": 0,
+   "gain": 0.872
+  },
+  {
+   "program": 4,
+   "name": "4-bit Saw Lead",
+   "before_db": -0.67,
+   "after_db": 0,
+   "gain": 1.084
+  },
+  {
+   "program": 5,
+   "name": "Square Lead (dry)",
+   "before_db": 1.18,
+   "after_db": 0,
+   "gain": 0.872
+  },
+  {
+   "program": 6,
+   "name": "Pulse 25% Lead (dry)",
+   "before_db": 1.37,
+   "after_db": 0,
+   "gain": 0.851
+  },
+  {
+   "program": 7,
+   "name": "Soft Pulse 12.5%",
+   "before_db": -2.04,
+   "after_db": 0,
+   "gain": 1.273
+  },
+  {
+   "program": 8,
+   "name": "Fast Vibrato Lead",
+   "before_db": 1.37,
+   "after_db": 0,
+   "gain": 0.851
+  },
+  {
+   "program": 9,
+   "name": "Wide Delayed Vibrato",
+   "before_db": -0.56,
+   "after_db": 0,
+   "gain": 1.069
+  },
+  {
+   "program": 10,
+   "name": "Detuned Duo (25%)",
+   "before_db": 1.36,
+   "after_db": 0.01,
+   "gain": 0.845
+  },
+  {
+   "program": 11,
+   "name": "Octave Stack Lead",
+   "before_db": 0.54,
+   "after_db": 0,
+   "gain": 0.937
+  },
+  {
+   "program": 12,
+   "name": "Pulse 25% Pluck",
+   "before_db": -3.62,
+   "after_db": -0.01,
+   "gain": 1.543
+  },
+  {
+   "program": 13,
+   "name": "Pulse 12.5% Pluck",
+   "before_db": -6.04,
+   "after_db": -0.04,
+   "gain": 2.088
+  },
+  {
+   "program": 14,
+   "name": "Square Pluck",
+   "before_db": -5.42,
+   "after_db": -0.01,
+   "gain": 1.908
+  },
+  {
+   "program": 15,
+   "name": "Triangle Pluck",
+   "before_db": -2.39,
+   "after_db": -0.02,
+   "gain": 1.344
+  },
+  {
+   "program": 16,
+   "name": "4-bit Saw Pluck",
+   "before_db": -6.23,
+   "after_db": -0.04,
+   "gain": 2.135
+  },
+  {
+   "program": 17,
+   "name": "Chip Harp",
+   "before_db": -2.9,
+   "after_db": -0.01,
+   "gain": 1.417
+  },
+  {
+   "program": 18,
+   "name": "Chip Piano",
+   "before_db": 0.2,
+   "after_db": 0,
+   "gain": 0.976
+  },
+  {
+   "program": 19,
+   "name": "Muted Pluck",
+   "before_db": -8.81,
+   "after_db": -0.25,
+   "gain": 3.116
+  },
+  {
+   "program": 20,
+   "name": "Triangle Bass (NES)",
+   "before_db": 3.71,
+   "after_db": 0.02,
+   "gain": 0.627
+  },
+  {
+   "program": 21,
+   "name": "Pulse Bass",
+   "before_db": 0.51,
+   "after_db": 0,
+   "gain": 0.941
+  },
+  {
+   "program": 22,
+   "name": "Square Bass",
+   "before_db": 1.14,
+   "after_db": 0,
+   "gain": 0.876
+  },
+  {
+   "program": 23,
+   "name": "4-bit Saw Bass (drop)",
+   "before_db": -1.58,
+   "after_db": 0,
+   "gain": 1.209
+  },
+  {
+   "program": 24,
+   "name": "Punch Triangle Bass",
+   "before_db": 3.23,
+   "after_db": 0.02,
+   "gain": 0.668
+  },
+  {
+   "program": 25,
+   "name": "Sub Octave Bass",
+   "before_db": 2.81,
+   "after_db": 0.02,
+   "gain": 0.701
+  },
+  {
+   "program": 26,
+   "name": "Pluck Bass",
+   "before_db": -4.11,
+   "after_db": -0.01,
+   "gain": 1.639
+  },
+  {
+   "program": 27,
+   "name": "Wave Bass (GB)",
+   "before_db": 3.58,
+   "after_db": 0.01,
+   "gain": 0.644
+  },
+  {
+   "program": 28,
+   "name": "Pulse Swell",
+   "before_db": -1.47,
+   "after_db": 0,
+   "gain": 1.191
+  },
+  {
+   "program": 29,
+   "name": "Square Swell",
+   "before_db": -1.3,
+   "after_db": 0,
+   "gain": 1.165
+  },
+  {
+   "program": 30,
+   "name": "4-bit Saw Swell",
+   "before_db": 0.47,
+   "after_db": 0,
+   "gain": 0.943
+  },
+  {
+   "program": 31,
+   "name": "Detuned Square Pad",
+   "before_db": -3.74,
+   "after_db": -0.02,
+   "gain": 1.577
+  },
+  {
+   "program": 32,
+   "name": "Wave Pad (GB)",
+   "before_db": -0.71,
+   "after_db": 0,
+   "gain": 1.088
+  },
+  {
+   "program": 33,
+   "name": "Triangle Pad",
+   "before_db": -1.69,
+   "after_db": -0.01,
+   "gain": 1.234
+  },
+  {
+   "program": 34,
+   "name": "Octave Arp",
+   "before_db": 0.31,
+   "after_db": 0,
+   "gain": 0.964
+  },
+  {
+   "program": 35,
+   "name": "Fifth Arp",
+   "before_db": 0.53,
+   "after_db": 0,
+   "gain": 0.94
+  },
+  {
+   "program": 36,
+   "name": "Major Third Arp",
+   "before_db": 0.43,
+   "after_db": 0,
+   "gain": 0.951
+  },
+  {
+   "program": 37,
+   "name": "Minor Third Arp",
+   "before_db": -1.41,
+   "after_db": 0,
+   "gain": 1.182
+  },
+  {
+   "program": 38,
+   "name": "Pulse Blip",
+   "before_db": -3.17,
+   "after_db": 0,
+   "gain": 1.455
+  },
+  {
+   "program": 39,
+   "name": "Square Blip",
+   "before_db": -2.72,
+   "after_db": 0,
+   "gain": 1.373
+  },
+  {
+   "program": 40,
+   "name": "Laser Drop",
+   "before_db": -1.35,
+   "after_db": 0,
+   "gain": 1.172
+  },
+  {
+   "program": 41,
+   "name": "Pitch Rise",
+   "before_db": 0.32,
+   "after_db": 0,
+   "gain": 0.964
+  },
+  {
+   "program": 42,
+   "name": "GB Wave Lead",
+   "before_db": 2.73,
+   "after_db": 0.01,
+   "gain": 0.715
+  },
+  {
+   "program": 43,
+   "name": "GB Organ Wave",
+   "before_db": -1.99,
+   "after_db": -0.01,
+   "gain": 1.273
+  },
+  {
+   "program": 44,
+   "name": "GB Wave Pluck",
+   "before_db": -0.52,
+   "after_db": 0,
+   "gain": 1.066
+  },
+  {
+   "program": 45,
+   "name": "FM Bell",
+   "before_db": 5.37,
+   "after_db": 0.02,
+   "gain": 0.508
+  },
+  {
+   "program": 46,
+   "name": "FM Electric Piano",
+   "before_db": 3.31,
+   "after_db": 0.03,
+   "gain": 0.656
+  },
+  {
+   "program": 47,
+   "name": "FM Brass",
+   "before_db": 3.41,
+   "after_db": 0.03,
+   "gain": 0.645
+  },
+  {
+   "program": 48,
+   "name": "Metallic Tone",
+   "before_db": -1.34,
+   "after_db": 0,
+   "gain": 1.17
+  },
+  {
+   "program": 49,
+   "name": "Noise Hit",
+   "before_db": -3.92,
+   "after_db": -0.01,
+   "gain": 1.6
+  },
+  {
+   "program": 50,
+   "name": "Robot Hero Lead",
+   "before_db": 1.17,
+   "after_db": 0,
+   "gain": 0.872
+  },
+  {
+   "program": 51,
+   "name": "Vampire Hunter Lead",
+   "before_db": 1.44,
+   "after_db": 0.01,
+   "gain": 0.837
+  },
+  {
+   "program": 52,
+   "name": "Plumber Lead",
+   "before_db": -0.45,
+   "after_db": 0,
+   "gain": 1.053
+  },
+  {
+   "program": 53,
+   "name": "Hero Fanfare",
+   "before_db": -0.89,
+   "after_db": 0,
+   "gain": 1.115
+  },
+  {
+   "program": 54,
+   "name": "Bounty Hunter Pad",
+   "before_db": -6.14,
+   "after_db": -0.05,
+   "gain": 2.124
+  },
+  {
+   "program": 55,
+   "name": "Coin Blip",
+   "before_db": -0.75,
+   "after_db": 0,
+   "gain": 1.09
+  },
+  {
+   "program": 56,
+   "name": "Jump Sweep",
+   "before_db": -0.96,
+   "after_db": 0,
+   "gain": 1.119
+  },
+  {
+   "program": 57,
+   "name": "Power-Up Arp",
+   "before_db": 0.3,
+   "after_db": 0,
+   "gain": 0.966
+  },
+  {
+   "program": 58,
+   "name": "Triangle Kick Bass",
+   "before_db": 3.43,
+   "after_db": 0.02,
+   "gain": 0.649
+  },
+  {
+   "program": 59,
+   "name": "Ninja Lead",
+   "before_db": -1.72,
+   "after_db": 0,
+   "gain": 1.227
+  },
+  {
+   "program": 60,
+   "name": "Echo Pulse",
+   "before_db": 1.03,
+   "after_db": 0,
+   "gain": 0.883
+  },
+  {
+   "program": 61,
+   "name": "Sunsoft Saw Bass",
+   "before_db": -0.5,
+   "after_db": 0,
+   "gain": 1.062
+  },
+  {
+   "program": 62,
+   "name": "VRC6 Saw Lead",
+   "before_db": 1.34,
+   "after_db": 0,
+   "gain": 0.85
+  },
+  {
+   "program": 63,
+   "name": "VRC6 Thin Pulse",
+   "before_db": -1.04,
+   "after_db": -0.01,
+   "gain": 1.136
+  },
+  {
+   "program": 64,
+   "name": "FDS Wavetable Lead",
+   "before_db": -0.47,
+   "after_db": 0,
+   "gain": 1.057
+  },
+  {
+   "program": 65,
+   "name": "N163 Brass Wave",
+   "before_db": -1.2,
+   "after_db": -0.01,
+   "gain": 1.161
+  },
+  {
+   "program": 66,
+   "name": "5B Buzz Square",
+   "before_db": 1.24,
+   "after_db": 0,
+   "gain": 0.861
+  },
+  {
+   "program": 67,
+   "name": "MMC5 Pulse Duet",
+   "before_db": 0.8,
+   "after_db": 0,
+   "gain": 0.909
+  },
+  {
+   "program": 68,
+   "name": "Pocket Monster Lead",
+   "before_db": -0.04,
+   "after_db": 0,
+   "gain": 1.004
+  },
+  {
+   "program": 69,
+   "name": "Falling Blocks Lead",
+   "before_db": -1.32,
+   "after_db": 0,
+   "gain": 1.166
+  },
+  {
+   "program": 70,
+   "name": "Island Wave Lead",
+   "before_db": 2.73,
+   "after_db": 0.01,
+   "gain": 0.715
+  },
+  {
+   "program": 71,
+   "name": "Wave Bass Pluck",
+   "before_db": -4.19,
+   "after_db": -0.02,
+   "gain": 1.657
+  },
+  {
+   "program": 72,
+   "name": "Noise Channel Lead",
+   "before_db": -2.54,
+   "after_db": 0,
+   "gain": 1.346
+  },
+  {
+   "program": 73,
+   "name": "Duty Sweep Lead",
+   "before_db": 0.26,
+   "after_db": 0,
+   "gain": 0.969
+  },
+  {
+   "program": 74,
+   "name": "Puffball Pluck",
+   "before_db": -3.28,
+   "after_db": -0.01,
+   "gain": 1.488
+  },
+  {
+   "program": 75,
+   "name": "Echo Wave Pad",
+   "before_db": -1.06,
+   "after_db": 0,
+   "gain": 1.137
+  },
+  {
+   "program": 76,
+   "name": "PWM Lead",
+   "before_db": 2.92,
+   "after_db": 0,
+   "gain": 0.701
+  },
+  {
+   "program": 77,
+   "name": "Combined Wave Lead",
+   "before_db": -1.22,
+   "after_db": -0.01,
+   "gain": 1.167
+  },
+  {
+   "program": 78,
+   "name": "Ring Mod Bell",
+   "before_db": 3.76,
+   "after_db": 0.04,
+   "gain": 0.615
+  },
+  {
+   "program": 79,
+   "name": "Driving Bass",
+   "before_db": -2.73,
+   "after_db": -0.01,
+   "gain": 1.393
+  },
+  {
+   "program": 80,
+   "name": "Chord Arp (fast)",
+   "before_db": 0.08,
+   "after_db": 0,
+   "gain": 0.99
+  },
+  {
+   "program": 81,
+   "name": "Saw Brass",
+   "before_db": -0.34,
+   "after_db": 0,
+   "gain": 1.042
+  },
+  {
+   "program": 82,
+   "name": "Hard Sync Lead",
+   "before_db": 0.04,
+   "after_db": 0,
+   "gain": 0.995
+  },
+  {
+   "program": 83,
+   "name": "Noise Wind",
+   "before_db": -3,
+   "after_db": 0,
+   "gain": 1.426
+  },
+  {
+   "program": 84,
+   "name": "TIA Buzz Lead",
+   "before_db": 4.26,
+   "after_db": 0.01,
+   "gain": 0.6
+  },
+  {
+   "program": 85,
+   "name": "TIA Poly Bass",
+   "before_db": 3.33,
+   "after_db": 0,
+   "gain": 0.676
+  },
+  {
+   "program": 86,
+   "name": "TIA Div-31 Drone",
+   "before_db": 1.41,
+   "after_db": 0,
+   "gain": 0.845
+  },
+  {
+   "program": 87,
+   "name": "TIA Laser Shot",
+   "before_db": 1.23,
+   "after_db": 0,
+   "gain": 0.866
+  },
+  {
+   "program": 88,
+   "name": "AY Buzzer Bass",
+   "before_db": 1.73,
+   "after_db": 0.01,
+   "gain": 0.809
+  },
+  {
+   "program": 89,
+   "name": "MSX Square Lead",
+   "before_db": 1.18,
+   "after_db": 0,
+   "gain": 0.872
+  },
+  {
+   "program": 90,
+   "name": "PSG Square Pad",
+   "before_db": -1.37,
+   "after_db": 0,
+   "gain": 1.175
+  },
+  {
+   "program": 91,
+   "name": "Arcade Siren",
+   "before_db": 2.35,
+   "after_db": 0.01,
+   "gain": 0.745
+  },
+  {
+   "program": 92,
+   "name": "Arcade Shot",
+   "before_db": -2.56,
+   "after_db": 0,
+   "gain": 1.352
+  },
+  {
+   "program": 93,
+   "name": "FM Slap Bass",
+   "before_db": 4.24,
+   "after_db": 0.02,
+   "gain": 0.586
+  },
+  {
+   "program": 94,
+   "name": "FM Brass Stab",
+   "before_db": 3.29,
+   "after_db": 0.02,
+   "gain": 0.659
+  },
+  {
+   "program": 95,
+   "name": "FM Organ",
+   "before_db": 3.79,
+   "after_db": 0.03,
+   "gain": 0.617
+  },
+  {
+   "program": 96,
+   "name": "FM Speed Lead",
+   "before_db": 5.94,
+   "after_db": 0.03,
+   "gain": 0.472
+  },
+  {
+   "program": 97,
+   "name": "FM Marimba",
+   "before_db": 1.68,
+   "after_db": 0.01,
+   "gain": 0.811
+  },
+  {
+   "program": 98,
+   "name": "PCE Wavetable Lead",
+   "before_db": -0.85,
+   "after_db": -0.01,
+   "gain": 1.111
+  },
+  {
+   "program": 99,
+   "name": "PCE Wavetable Pluck",
+   "before_db": -4.89,
+   "after_db": -0.02,
+   "gain": 1.806
+  }
+ ]
+}

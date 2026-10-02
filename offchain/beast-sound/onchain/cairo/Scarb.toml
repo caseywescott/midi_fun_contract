@@ -1,10 +1,11 @@
 [package]
 name = "beast_sound_page"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024_07"
 cairo-version = "2.11.4"
 
 [dependencies]
+midi_provider = { path = "../../../../contracts/midi_provider" }
 starknet = "2.11.4"
 
 [dev-dependencies]
@@ -15,3 +16,4 @@ cairo_test = "2.11.4"
 [[target.starknet-contract]]
 sierra = true
 casm = true
+build-external-contracts = ["midi_provider::examples::scale::ScaleMidiProvider"]

@@ -1,32 +1,145 @@
 // Generate the Cairo tests from the JS reference (onchain/page.js): Cairo's token_uri must match
-// byte for byte. The fixture is a real Beasts V3 token_uri (Sepolia, genesis Warlock).
+// byte for byte. MIDI comes from the JS engine (byte-identical to the Cairo composer and to
+// BeastMidiProvider); the art fixture is a real Beasts V3 token_uri (Sepolia, genesis Warlock).
 //   node onchain/golden.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { inputsHtml, tokenUri } from './page.js';
+import { engine, encodeTokenId } from '../src/index.js';
+import { midiHtml, tokenUri } from './page.js';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const fixture = JSON.parse(readFileSync(here + 'fixtures/warlock_v3.json', 'utf8'));
 const stored = readFileSync(here + 'dist/stored.b64', 'utf8');
-const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
+const b64 = (b) => Buffer.from(b).toString('base64');
 const cairoStr = (s) => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-const u256 = (x) => `0x${BigInt(x).toString(16)}_u256`;
-const liveLit = (l) => `BeastSoundInputs { adventurers_killed: ${l.adventurers_killed}, scars: ${l.scars}, summit_held_seconds: ${l.summit_held_seconds}, rank: ${l.rank}, species_count: ${l.species_count} }`;
 
-const small = { members: '"name":"Test","attributes":[]', svg: "<svg xmlns='http://www.w3.org/2000/svg'/>" };
-const CASES = [
-  { name: 'small_genesis', ...small, token: fixture.token_id, live: { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1243 } },
-  { name: 'small_max_values', ...small, members: '"name":"Max"', token: (1n << 116n) - 1n, live: { adventurers_killed: 2n ** 64n - 1n, scars: 2n ** 64n - 1n, summit_held_seconds: 2n ** 64n - 1n, rank: 65535, species_count: 65535 } },
-];
-const BASE64 = ['', 'f', 'fo', 'foo', 'foob', 'fooba', 'foobar', "<svg xmlns='http://www.w3.org/2000/svg'/>"];
+/** Bytes the Cairo tests rebuild with `synthetic(n)`. */
+const synthetic = (n) => Uint8Array.from({ length: n }, (_, i) => (i * 37 + 11) % 256);
+
+/** A ByteArray literal of arbitrary bytes, as its serialized felts. */
+function byteArrayFelts(bytes) {
+  const buf = Buffer.from(bytes);
+  const words = [];
+  let i = 0;
+  for (; i + 31 <= buf.length; i += 31) words.push('0x' + buf.subarray(i, i + 31).toString('hex'));
+  const rest = buf.subarray(i);
+  return [String(words.length), ...words, rest.length ? '0x' + rest.toString('hex') : '0', String(rest.length)];
+}
+const feltsFn = (name, bytes) => `fn ${name}() -> ByteArray {
+    from_felts(
+        array![
+${byteArrayFelts(bytes).map((f) => `            ${f},`).join('\n')}
+        ],
+    )
+}`;
+
+// Real Beast MIDI from the composer, with Summit retired (summit_held_seconds = 0).
+const render = (tokenId, live) => engine.render(engine.decodeTokenId(BigInt(tokenId)), { ...live, summit_held_seconds: 0 });
+const midiOf = (r) => Uint8Array.from(engine.toMidiFile(r));
+const warlock = render(fixture.token_id, fixture.live);
+const heaviestId = encodeTokenId({ id: 53, prefix: 69, suffix: 18, level: 255, health: 1023, shiny: 1, animated: 1, tier: 1, beast_type: 2 });
+const heaviest = render(heaviestId, { adventurers_killed: 200, scars: 63, rank: 1, species_count: 1243 });
+
+// One MIDI channel per voice: channel 10 (index 9) is General MIDI percussion, so a Beast score must
+// never reach it. Check every tier/type/flag combination at its most crowded.
+let maxVoice = 0;
+for (let tier = 1; tier <= 5; tier++) for (let type = 0; type <= 2; type++) for (const flags of [[0, 0], [1, 1]]) {
+  const id = encodeTokenId({ id: 53, prefix: 69, suffix: 18, level: 255, health: 1023, shiny: flags[0], animated: flags[1], tier, beast_type: type });
+  for (const e of render(id, { adventurers_killed: 200, scars: 63, rank: 1, species_count: 1243 }).form.events) maxVoice = Math.max(maxVoice, e.voice_id);
+}
+if (maxVoice >= 9) throw new Error(`a Beast voice reaches MIDI channel ${maxVoice + 1}`);
+
+const small = { members: '"name":"Test","attributes":[]', svg_b64: b64("<svg xmlns='http://www.w3.org/2000/svg'/>") };
+const MIDI_LENGTHS = [0, 1, 2, 3, 30, 31, 32, 62, 92];
+const BASE64 = ['', 'f', 'fo', 'foo', 'foob', 'fooba', 'foobar'];
+
+/** token_uri split around the stored segment, so the test literals stay small. */
+function split(members, svgB64, midi) {
+  const uri = tokenUri(stored, members, svgB64, midi);
+  const at = uri.indexOf(stored);
+  if (at < 0) throw new Error('stored segment missing');
+  return { head: uri.slice(0, at), tail: uri.slice(at + stored.length), len: uri.length };
+}
+const uriTest = (name, membersExpr, svgExpr, midiExpr, parts) => `
+#[test]
+fn token_uri_${name}() {
+    let uri = token_uri(@${membersExpr}, @${svgExpr}, @${midiExpr});
+    assert_eq!(uri.len(), ${parts.len});
+    let mut expected: ByteArray = ${cairoStr(parts.head)};
+    expected.append(@stored_segment());
+    expected.append(@${cairoStr(parts.tail)});
+    assert_eq!(uri, expected);
+}`;
 
 const tests = `// Generated by onchain/golden.mjs from the JS reference (onchain/page.js). Do not edit.
-use super::{BeastSoundInputs, base64, inputs_html, token_uri};
 use super::page_data::{STORED_LEN, stored_segment};
+use super::{append_base64, base64, midi_html, token_uri};
+
+/// ((i * 37 + 11) % 256) for i in 0..n: every byte value, no alignment with 3 or 31.
+fn synthetic(n: usize) -> ByteArray {
+    let mut s: ByteArray = Default::default();
+    let mut i: usize = 0;
+    while i < n {
+        s.append_byte(((i * 37 + 11) % 256).try_into().unwrap());
+        i += 1;
+    }
+    s
+}
+
+fn from_felts(felts: Array<felt252>) -> ByteArray {
+    let mut span = felts.span();
+    Serde::deserialize(ref span).unwrap()
+}
 
 #[test]
 fn base64_matches_rfc4648() {
-${BASE64.map((s) => `    assert_eq!(base64(@${cairoStr(s)}), ${cairoStr(b64(s))});`).join('\n')}
+${BASE64.map((s) => `    assert_eq!(base64(@${cairoStr(s)}), ${cairoStr(b64(Buffer.from(s)))});`).join('\n')}
+}
+
+fn base64_expected() -> Array<ByteArray> {
+    array![
+${Array.from({ length: 101 }, (_, n) => `        ${cairoStr(b64(synthetic(n)))},`).join('\n')}
+    ]
+}
+
+/// Every input length 0..100 (all word and group remainders), into empty and unaligned outputs.
+#[test]
+fn base64_every_length() {
+    let expected = base64_expected();
+    let mut n: usize = 0;
+    while n <= 100 {
+        let input = synthetic(n);
+        assert_eq!(base64(@input), expected[n].clone());
+        let mut out: ByteArray = "xy";
+        append_base64(ref out, @input);
+        let mut want: ByteArray = "xy";
+        want.append(expected[n]);
+        assert_eq!(out, want);
+        n += 1;
+    }
+}
+
+fn midi_html_expected() -> Array<ByteArray> {
+    array![
+${Array.from({ length: 93 }, (_, n) => `        ${cairoStr(midiHtml(synthetic(n)))},`).join('\n')}
+    ]
+}
+
+/// MIDI lengths 0..92: every (length mod 31, length mod 3) pair, so every chunk and base64
+/// remainder. D and its page-level base64 must match and stay whole groups.
+#[test]
+fn midi_html_every_length() {
+    let expected = midi_html_expected();
+    let mut n: usize = 0;
+    while n < 93 {
+        let d = midi_html(@synthetic(n));
+        assert_eq!(d.len() % 9, 0);
+        assert_eq!(d, expected[n].clone());
+        let page_part = base64(@d);
+        assert_eq!(page_part.len() % 3, 0);
+        assert_eq!(page_part[page_part.len() - 1] != '=', true);
+        n += 1;
+    }
 }
 
 #[test]
@@ -36,14 +149,17 @@ fn stored_segment_is_whole_groups() {
     assert_eq!(s.len() % 4, 0);
     assert_eq!(s[s.len() - 1], ${stored.charCodeAt(stored.length - 1)}); // no '=' padding
 }
-${CASES.map((c) => `
-#[test]
-fn token_uri_${c.name}() {
-    let live = ${liveLit(c.live)};
-    assert_eq!(inputs_html(${u256(c.token)}, live), ${cairoStr(inputsHtml(c.token, c.live))});
-    let uri = token_uri(@${cairoStr(c.members)}, @${cairoStr(b64(c.svg))}, ${u256(c.token)}, live);
-    assert_eq!(uri, ${cairoStr(tokenUri(stored, c.members, b64(c.svg), c.token, c.live))});
-}`).join('\n')}
+${MIDI_LENGTHS.map((n) => uriTest(`small_midi_${n}`, cairoStr(small.members), cairoStr(small.svg_b64), `synthetic(${n})`, split(small.members, small.svg_b64, synthetic(n)))).join('\n')}
+
+/// Genesis Warlock (Sepolia 0x7006400010000000000000000001) with live state ${JSON.stringify(fixture.live).replace(/"/g, '')}:
+/// ${midiOf(warlock).length} bytes of MIDI, ${warlock.form.events.length} notes.
+${feltsFn('warlock_midi', midiOf(warlock))}
+
+/// Largest score the Beast provider writes (tier 1, 4 voices + countersubject, 5 sections):
+/// ${midiOf(heaviest).length} bytes of MIDI, ${heaviest.form.events.length} notes.
+${feltsFn('heaviest_midi', midiOf(heaviest))}
+${uriTest('small_warlock_midi', cairoStr(small.members), cairoStr(small.svg_b64), 'warlock_midi()', split(small.members, small.svg_b64, midiOf(warlock)))}
+${uriTest('small_heaviest_midi', cairoStr(small.members), cairoStr(small.svg_b64), 'heaviest_midi()', split(small.members, small.svg_b64, midiOf(heaviest)))}
 
 fn warlock_members() -> ByteArray {
     ${cairoStr(fixture.members)}
@@ -53,17 +169,41 @@ fn warlock_svg_b64() -> ByteArray {
     ${cairoStr(fixture.svg_b64)}
 }
 
-/// The real Sepolia Warlock, byte for byte against the JS reference. Gas here is the full cost of
-/// building token_uri with sound from the members and SVG base64 the NFT already has.
+/// The real Sepolia Warlock art with its real MIDI, byte for byte against the JS reference. Gas
+/// here is the page's whole cost given the members, SVG base64 and MIDI.
+${uriTest('real_warlock', 'warlock_members()', 'warlock_svg_b64()', 'warlock_midi()', split(fixture.members, fixture.svg_b64, midiOf(warlock))).trim()}
+
+/// The real Warlock art with the largest score.
+${uriTest('real_warlock_heaviest_midi', 'warlock_members()', 'warlock_svg_b64()', 'heaviest_midi()', split(fixture.members, fixture.svg_b64, midiOf(heaviest))).trim()}
+
+/// Cost of the assembly alone (no comparison): real Warlock art, real Warlock MIDI.
 #[test]
-fn token_uri_real_warlock() {
-    let live = ${liveLit(fixture.live)};
-    let uri = token_uri(@warlock_members(), @warlock_svg_b64(), ${u256(fixture.token_id)}, live);
-    assert_eq!(uri.len(), ${tokenUri(stored, fixture.members, fixture.svg_b64, fixture.token_id, fixture.live).length});
-    assert_eq!(uri, ${cairoStr(tokenUri(stored, fixture.members, fixture.svg_b64, fixture.token_id, fixture.live))});
+fn bench_token_uri_real_warlock() {
+    let members = warlock_members();
+    let svg_b64 = warlock_svg_b64();
+    let midi = warlock_midi();
+    assert_eq!(token_uri(@members, @svg_b64, @midi).len(), ${split(fixture.members, fixture.svg_b64, midiOf(warlock)).len});
 }
 
-/// Baseline: what the NFT does today for the same Beast (one base64 pass over the whole JSON).
+/// Cost of the assembly alone: real Warlock art, largest score.
+#[test]
+fn bench_token_uri_real_warlock_heaviest_midi() {
+    let members = warlock_members();
+    let svg_b64 = warlock_svg_b64();
+    let midi = heaviest_midi();
+    assert_eq!(token_uri(@members, @svg_b64, @midi).len(), ${split(fixture.members, fixture.svg_b64, midiOf(heaviest)).len});
+}
+
+/// Inputs only, to subtract from the bench numbers.
+#[test]
+fn bench_inputs_only() {
+    let members = warlock_members();
+    let svg_b64 = warlock_svg_b64();
+    let midi = heaviest_midi();
+    assert!(members.len() + svg_b64.len() + midi.len() > 0);
+}
+
+/// Baseline: what the NFT does without sound for the same Beast (one base64 pass over the JSON).
 #[test]
 fn baseline_today_warlock() {
     let mut json: ByteArray = "{";
@@ -77,4 +217,4 @@ fn baseline_today_warlock() {
 }
 `;
 writeFileSync(here + 'cairo/src/tests.cairo', tests);
-console.log(`wrote ${CASES.length} small cases + real Warlock, ${BASE64.length} base64 cases`);
+console.log(`Warlock MIDI ${midiOf(warlock).length} B, heaviest ${midiOf(heaviest).length} B, max voice ${maxVoice}; wrote ${MIDI_LENGTHS.length + 4} token_uri cases`);

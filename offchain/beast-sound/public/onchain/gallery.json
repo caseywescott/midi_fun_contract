@@ -1,6 +1,14 @@
 [
  {
   "token": 1022,
+  "token_id": "0x5400460018330000000000000004b",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 898,
+   "species_count": 1241
+  },
   "name": "Pandemonium Grasp Skeleton",
   "tier": 5,
   "level": 24,
@@ -16,6 +24,14 @@
  },
  {
   "token": 3570,
+  "token_id": "0x150038001909f0000000000000018",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 872,
+   "species_count": 1241
+  },
   "name": "Glyph Bane Pixie",
   "tier": 5,
   "level": 25,
@@ -31,6 +47,14 @@
  },
  {
   "token": 5746,
+  "token_id": "0x34015100207280000000000000031",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 566,
+   "species_count": 1242
+  },
   "name": "Loath Tear Spider",
   "tier": 5,
   "level": 32,
@@ -46,6 +70,14 @@
  },
  {
   "token": 6406,
+  "token_id": "0x30001f0015428000000000000002b",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 1065,
+   "species_count": 1235
+  },
   "name": "Loath Glow Jaguar",
   "tier": 4,
   "level": 21,
@@ -61,6 +93,14 @@
  },
  {
   "token": 8065,
+  "token_id": "0x14003200151140000000000000015",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 2,
+   "summit_held_seconds": 0,
+   "rank": 1087,
+   "species_count": 1242
+  },
   "name": "Dragon Root Fairy",
   "tier": 5,
   "level": 21,
@@ -76,6 +116,14 @@
  },
  {
   "token": 9868,
+  "token_id": "0x34007c002a3830000000000000031",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 378,
+   "species_count": 1242
+  },
   "name": "Armageddon Instrument Spider",
   "tier": 5,
   "level": 42,
@@ -91,6 +139,14 @@
  },
  {
   "token": 11839,
+  "token_id": "0x54016d004d92a000000000000004a",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 78,
+   "species_count": 1241
+  },
   "name": "Mind Moon Orc",
   "tier": 5,
   "level": 77,
@@ -106,6 +162,14 @@
  },
  {
   "token": 12494,
+  "token_id": "0x3400ff00146930000000000000032",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 1109,
+   "species_count": 1241
+  },
   "name": "Dire Growl Rat",
   "tier": 5,
   "level": 20,
@@ -121,6 +185,14 @@
  },
  {
   "token": 16615,
+  "token_id": "0x5201dc002852a0000000000000043",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 382,
+   "species_count": 1236
+  },
   "name": "Mind Shadow Berserker",
   "tier": 4,
   "level": 40,
@@ -136,6 +208,14 @@
  },
  {
   "token": 18810,
+  "token_id": "0x3401d8002d09a000000000000002e",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 10,
+   "summit_held_seconds": 0,
+   "rank": 298,
+   "species_count": 1242
+  },
   "name": "Fate Bane Bear",
   "tier": 5,
   "level": 45,
@@ -151,6 +231,14 @@
  },
  {
   "token": 19958,
+  "token_id": "0x54007700150c00000000000000047",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 1068,
+   "species_count": 1242
+  },
   "name": "Viper Bane Troll",
   "tier": 5,
   "level": 21,
@@ -166,6 +254,14 @@
  },
  {
   "token": 23032,
+  "token_id": "0x30014600152bc000000000000002c",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 1045,
+   "species_count": 1234
+  },
   "name": "Tempest Roar Satori",
   "tier": 4,
   "level": 21,
@@ -181,6 +277,14 @@
  },
  {
   "token": 25042,
+  "token_id": "0x10006000141210000000000000013",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 9,
+   "summit_held_seconds": 0,
+   "rank": 1142,
+   "species_count": 1234
+  },
   "name": "Grim Root Sprite",
   "tier": 4,
   "level": 20,
@@ -196,6 +300,14 @@
  },
  {
   "token": 28630,
+  "token_id": "0x550058001339d000000000000004b",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 1212,
+   "species_count": 1241
+  },
   "name": "Ghoul Instrument Skeleton",
   "tier": 5,
   "level": 19,
@@ -211,6 +323,14 @@
  },
  {
   "token": 31891,
+  "token_id": "0x3400cc00247a50000000000000030",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 452,
+   "species_count": 1241
+  },
   "name": "Horror Peak Mantis",
   "tier": 5,
   "level": 36,
@@ -226,6 +346,14 @@
  },
  {
   "token": 33711,
+  "token_id": "0x340142001793d000000000000002e",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 4,
+   "summit_held_seconds": 0,
+   "rank": 913,
+   "species_count": 1242
+  },
   "name": "Torment Moon Bear",
   "tier": 5,
   "level": 23,
@@ -241,6 +369,14 @@
  },
  {
   "token": 38429,
+  "token_id": "0x34019d0047330000000000000002e",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 97,
+   "species_count": 1242
+  },
   "name": "Pandemonium Grasp Bear",
   "tier": 5,
   "level": 71,
@@ -256,6 +392,14 @@
  },
  {
   "token": 40122,
+  "token_id": "0x300082002c504000000000000002d",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 349,
+   "species_count": 1234
+  },
   "name": "Beast Shadow Direwolf",
   "tier": 4,
   "level": 44,
@@ -271,6 +415,14 @@
  },
  {
   "token": 40832,
+  "token_id": "0x30002300182bb0000000000000029",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 4,
+   "summit_held_seconds": 0,
+   "rank": 928,
+   "species_count": 1240
+  },
   "name": "Storm Roar Hippogriff",
   "tier": 4,
   "level": 24,
@@ -286,6 +438,14 @@
  },
  {
   "token": 44131,
+  "token_id": "0x30005b001c286000000000000002a",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 735,
+   "species_count": 1233
+  },
   "name": "Blight Roar Fenrir",
   "tier": 4,
   "level": 28,
@@ -301,6 +461,14 @@
  },
  {
   "token": 45644,
+  "token_id": "0x14009f00196310000000000000017",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 812,
+   "species_count": 1242
+  },
   "name": "Phoenix Shout Kelpie",
   "tier": 5,
   "level": 25,
@@ -316,6 +484,14 @@
  },
  {
   "token": 47545,
+  "token_id": "0x54004400138120000000000000049",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 1214,
+   "species_count": 1242
+  },
   "name": "Demon Form Ogre",
   "tier": 5,
   "level": 19,
@@ -331,6 +507,14 @@
  },
  {
   "token": 49049,
+  "token_id": "0x540017001d49d0000000000000049",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 682,
+   "species_count": 1242
+  },
   "name": "Ghoul Bender Ogre",
   "tier": 5,
   "level": 29,
@@ -346,6 +530,14 @@
  },
  {
   "token": 51431,
+  "token_id": "0x540027001d2910000000000000047",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 6,
+   "summit_held_seconds": 0,
+   "rank": 685,
+   "species_count": 1242
+  },
   "name": "Death Roar Troll",
   "tier": 5,
   "level": 29,
@@ -361,6 +553,14 @@
  },
  {
   "token": 58396,
+  "token_id": "0x54005500154960000000000000049",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 8,
+   "summit_held_seconds": 0,
+   "rank": 1075,
+   "species_count": 1242
+  },
   "name": "Doom Bender Ogre",
   "tier": 5,
   "level": 21,
@@ -376,6 +576,14 @@
  },
  {
   "token": 63912,
+  "token_id": "0x340012001f8c50000000000000031",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 612,
+   "species_count": 1242
+  },
   "name": "Shimmering Sun Spider",
   "tier": 5,
   "level": 31,
@@ -391,6 +599,14 @@
  },
  {
   "token": 73724,
+  "token_id": "0x3501e7002e328000000000000002e",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 6,
+   "summit_held_seconds": 0,
+   "rank": 284,
+   "species_count": 1242
+  },
   "name": "Loath Grasp Bear",
   "tier": 5,
   "level": 46,
@@ -406,6 +622,14 @@
  },
  {
   "token": 86122,
+  "token_id": "0x140076001c5b90000000000000017",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 680,
+   "species_count": 1242
+  },
   "name": "Sorrow Whisper Kelpie",
   "tier": 5,
   "level": 28,
@@ -421,6 +645,14 @@
  },
  {
   "token": 7012,
+  "token_id": "0x1000d7003863c0000000000000010",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 11,
+   "summit_held_seconds": 0,
+   "rank": 182,
+   "species_count": 1239
+  },
   "name": "Tempest Shout Goblin",
   "tier": 4,
   "level": 56,
@@ -436,6 +668,14 @@
  },
  {
   "token": 8303,
+  "token_id": "0x36008e001e41e0000000000000031",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 626,
+   "species_count": 1242
+  },
   "name": "Gloom Glow Spider",
   "tier": 5,
   "level": 30,
@@ -451,6 +691,14 @@
  },
  {
   "token": 11296,
+  "token_id": "0x50019300794a70000000000000046",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 12,
+   "species_count": 1241
+  },
   "name": "Kraken Bender Ent",
   "tier": 4,
   "level": 121,
@@ -466,6 +714,14 @@
  },
  {
   "token": 15386,
+  "token_id": "0x540123003d2420000000000000047",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 144,
+   "species_count": 1242
+  },
   "name": "Woe Song Troll",
   "tier": 5,
   "level": 61,
@@ -481,6 +737,14 @@
  },
  {
   "token": 22323,
+  "token_id": "0x5000fd001c7180000000000000046",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 10,
+   "summit_held_seconds": 0,
+   "rank": 694,
+   "species_count": 1241
+  },
   "name": "Eagle Tear Ent",
   "tier": 4,
   "level": 28,
@@ -496,6 +760,14 @@
  },
  {
   "token": 23959,
+  "token_id": "0xc00bf0022413000000000000000f",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 8,
+   "summit_held_seconds": 0,
+   "rank": 536,
+   "species_count": 1198
+  },
   "name": "Dire Glow Vampire",
   "tier": 3,
   "level": 34,
@@ -511,6 +783,14 @@
  },
  {
   "token": 29756,
+  "token_id": "0x340098001c2af000000000000002f",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 10,
+   "summit_held_seconds": 0,
+   "rank": 697,
+   "species_count": 1241
+  },
   "name": "Pain Roar Wolf",
   "tier": 5,
   "level": 28,
@@ -526,6 +806,14 @@
  },
  {
   "token": 36286,
+  "token_id": "0x30012400333c3000000000000002c",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 240,
+   "species_count": 1234
+  },
   "name": "Wrath Instrument Satori",
   "tier": 4,
   "level": 51,
@@ -541,6 +829,14 @@
  },
  {
   "token": 38402,
+  "token_id": "0x3000d5001e1b2000000000000002c",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 659,
+   "species_count": 1234
+  },
   "name": "Plague Bite Satori",
   "tier": 4,
   "level": 30,
@@ -556,6 +852,14 @@
  },
  {
   "token": 42201,
+  "token_id": "0x5400fc00441a4000000000000004a",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 128,
+   "species_count": 1241
+  },
   "name": "Honour Bite Orc",
   "tier": 5,
   "level": 68,
@@ -571,6 +875,14 @@
  },
  {
   "token": 46024,
+  "token_id": "0x31017300353180000000000000029",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 242,
+   "species_count": 1240
+  },
   "name": "Eagle Grasp Hippogriff",
   "tier": 4,
   "level": 53,
@@ -586,6 +898,14 @@
  },
  {
   "token": 54798,
+  "token_id": "0x5001e0003f73f0000000000000044",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 4,
+   "summit_held_seconds": 0,
+   "rank": 130,
+   "species_count": 1241
+  },
   "name": "Victory Tear Yeti",
   "tier": 4,
   "level": 63,
@@ -601,6 +921,14 @@
  },
  {
   "token": 61241,
+  "token_id": "0x30002d001c0ab0000000000000029",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 763,
+   "species_count": 1240
+  },
   "name": "Miracle Bane Hippogriff",
   "tier": 4,
   "level": 28,
@@ -616,6 +944,14 @@
  },
  {
   "token": 73322,
+  "token_id": "0x1401c500259410000000000000018",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 5,
+   "summit_held_seconds": 0,
+   "rank": 427,
+   "species_count": 1241
+  },
   "name": "Vortex Moon Pixie",
   "tier": 5,
   "level": 37,
@@ -631,6 +967,14 @@
  },
  {
   "token": 80712,
+  "token_id": "0x2c007e00233b10000000000000027",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 12,
+   "summit_held_seconds": 0,
+   "rank": 508,
+   "species_count": 1187
+  },
   "name": "Phoenix Instrument Harpy",
   "tier": 3,
   "level": 35,
@@ -646,6 +990,14 @@
  },
  {
   "token": 82278,
+  "token_id": "0x10001500161160000000000000012",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 1042,
+   "species_count": 1239
+  },
   "name": "Doom Root Wraith",
   "tier": 4,
   "level": 22,
@@ -661,6 +1013,14 @@
  },
  {
   "token": 22227,
+  "token_id": "0x50011900150a40000000000000045",
+  "live": {
+   "adventurers_killed": 3,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 1077,
+   "species_count": 1241
+  },
   "name": "Honour Bane Golem",
   "tier": 4,
   "level": 21,
@@ -676,6 +1036,14 @@
  },
  {
   "token": 4154,
+  "token_id": "0x2c023b00363050000000000000024",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 2,
+   "summit_held_seconds": 0,
+   "rank": 204,
+   "species_count": 1196
+  },
   "name": "Behemoth Grasp Weretiger",
   "tier": 3,
   "level": 54,
@@ -691,6 +1059,14 @@
  },
  {
   "token": 12688,
+  "token_id": "0xc008600208c1000000000000000b",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 595,
+   "species_count": 1200
+  },
   "name": "Vortex Sun Rakshasa",
   "tier": 3,
   "level": 32,
@@ -706,6 +1082,14 @@
  },
  {
   "token": 17712,
+  "token_id": "0x2c009600183360000000000000027",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 884,
+   "species_count": 1187
+  },
   "name": "Skull Grasp Harpy",
   "tier": 3,
   "level": 24,
@@ -721,6 +1105,14 @@
  },
  {
   "token": 28470,
+  "token_id": "0x4c023e0013195000000000000003d",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 1161,
+   "species_count": 1228
+  },
   "name": "Dread Bite Oni",
   "tier": 3,
   "level": 19,
@@ -736,6 +1128,14 @@
  },
  {
   "token": 38447,
+  "token_id": "0x2d009d001e0990000000000000024",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 16,
+   "summit_held_seconds": 0,
+   "rank": 630,
+   "species_count": 1196
+  },
   "name": "Empyrean Bane Weretiger",
   "tier": 3,
   "level": 30,
@@ -751,6 +1151,14 @@
  },
  {
   "token": 45869,
+  "token_id": "0x5102f400721430000000000000045",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 8,
+   "summit_held_seconds": 0,
+   "rank": 17,
+   "species_count": 1241
+  },
   "name": "Wrath Root Golem",
   "tier": 4,
   "level": 114,
@@ -766,6 +1174,14 @@
  },
  {
   "token": 51686,
+  "token_id": "0x2c006900156380000000000000027",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 5,
+   "summit_held_seconds": 0,
+   "rank": 1040,
+   "species_count": 1187
+  },
   "name": "Soul Shout Harpy",
   "tier": 3,
   "level": 21,
@@ -781,6 +1197,14 @@
  },
  {
   "token": 58886,
+  "token_id": "0x4e000d00207980000000000000041",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 11,
+   "summit_held_seconds": 0,
+   "rank": 651,
+   "species_count": 1225
+  },
   "name": "Eagle Peak Giant",
   "tier": 3,
   "level": 32,
@@ -796,6 +1220,14 @@
  },
  {
   "token": 67012,
+  "token_id": "0x2c035b002b48b0000000000000027",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 336,
+   "species_count": 1187
+  },
   "name": "Carrion Bender Harpy",
   "tier": 3,
   "level": 43,
@@ -811,6 +1243,14 @@
  },
  {
   "token": 71287,
+  "token_id": "0x2d002100178880000000000000027",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 25,
+   "summit_held_seconds": 0,
+   "rank": 956,
+   "species_count": 1187
+  },
   "name": "Bramble Sun Harpy",
   "tier": 3,
   "level": 23,
@@ -826,6 +1266,14 @@
  },
  {
   "token": 81207,
+  "token_id": "0xc0050001f503000000000000000c",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 619,
+   "species_count": 1221
+  },
   "name": "Armageddon Shadow Werewolf",
   "tier": 3,
   "level": 31,
@@ -841,6 +1289,14 @@
  },
  {
   "token": 73089,
+  "token_id": "0x8019e00182820000000000000009",
+  "live": {
+   "adventurers_killed": 0,
+   "scars": 10,
+   "summit_held_seconds": 0,
+   "rank": 772,
+   "species_count": 1088
+  },
   "name": "Apocalypse Roar Chimera",
   "tier": 2,
   "level": 24,
@@ -856,6 +1312,14 @@
  },
  {
   "token": 11542,
+  "token_id": "0xc0121001638f000000000000000f",
+  "live": {
+   "adventurers_killed": 3,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 964,
+   "species_count": 1198
+  },
   "name": "Corruption Instrument Vampire",
   "tier": 3,
   "level": 22,
@@ -871,6 +1335,14 @@
  },
  {
   "token": 28287,
+  "token_id": "0x50008400450af0000000000000044",
+  "live": {
+   "adventurers_killed": 3,
+   "scars": 12,
+   "summit_held_seconds": 0,
+   "rank": 104,
+   "species_count": 1241
+  },
   "name": "Pain Bane Yeti",
   "tier": 4,
   "level": 69,
@@ -886,6 +1358,14 @@
  },
  {
   "token": 48293,
+  "token_id": "0x4c00a900174ba000000000000003d",
+  "live": {
+   "adventurers_killed": 5,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 981,
+   "species_count": 1228
+  },
   "name": "Spirit Bender Oni",
   "tier": 3,
   "level": 23,
@@ -901,6 +1381,14 @@
  },
  {
   "token": 60309,
+  "token_id": "0x4c001000196a0000000000000003f",
+  "live": {
+   "adventurers_killed": 3,
+   "scars": 4,
+   "summit_held_seconds": 0,
+   "rank": 866,
+   "species_count": 1223
+  },
   "name": "Golem Growl Ettin",
   "tier": 3,
   "level": 25,
@@ -916,6 +1404,14 @@
  },
  {
   "token": 83369,
+  "token_id": "0x4c0014001b3a8000000000000003d",
+  "live": {
+   "adventurers_killed": 4,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 818,
+   "species_count": 1228
+  },
   "name": "Loath Instrument Oni",
   "tier": 3,
   "level": 27,
@@ -931,6 +1427,14 @@
  },
  {
   "token": 69544,
+  "token_id": "0xc0319004022b000000000000000e",
+  "live": {
+   "adventurers_killed": 3,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 130,
+   "species_count": 1195
+  },
   "name": "Miracle Song Draugr",
   "tier": 3,
   "level": 64,
@@ -946,6 +1450,14 @@
  },
  {
   "token": 16289,
+  "token_id": "0x48033c003d682000000000000003c",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 2,
+   "summit_held_seconds": 0,
+   "rank": 121,
+   "species_count": 1162
+  },
   "name": "Apocalypse Growl Juggernaut",
   "tier": 2,
   "level": 61,
@@ -961,6 +1473,14 @@
  },
  {
   "token": 27701,
+  "token_id": "0x4800ee00139190000000000000039",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 10,
+   "summit_held_seconds": 0,
+   "rank": 1114,
+   "species_count": 1154
+  },
   "name": "Empyrean Moon Nephilim",
   "tier": 2,
   "level": 19,
@@ -976,6 +1496,14 @@
  },
  {
   "token": 35197,
+  "token_id": "0x40155001d5bf0000000000000001",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 12,
+   "summit_held_seconds": 0,
+   "rank": 480,
+   "species_count": 954
+  },
   "name": "Victory Whisper Warlock",
   "tier": 1,
   "level": 29,
@@ -991,6 +1519,14 @@
  },
  {
   "token": 36995,
+  "token_id": "0x8014400377150000000000000009",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 4,
+   "summit_held_seconds": 0,
+   "rank": 142,
+   "species_count": 1088
+  },
   "name": "Dread Tear Chimera",
   "tier": 2,
   "level": 55,
@@ -1006,6 +1542,14 @@
  },
  {
   "token": 43749,
+  "token_id": "0x48013a00307a20000000000000038",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 245,
+   "species_count": 1153
+  },
   "name": "Hate Peak Titan",
   "tier": 2,
   "level": 48,
@@ -1021,6 +1565,14 @@
  },
  {
   "token": 46599,
+  "token_id": "0x280110001338f000000000000001f",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 5,
+   "summit_held_seconds": 0,
+   "rank": 1018,
+   "species_count": 1056
+  },
   "name": "Corruption Instrument Qilin",
   "tier": 2,
   "level": 19,
@@ -1036,6 +1588,14 @@
  },
  {
   "token": 56702,
+  "token_id": "0x401df001a73a0000000000000004",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 553,
+   "species_count": 930
+  },
   "name": "Spirit Tear Anansi",
   "tier": 1,
   "level": 26,
@@ -1051,6 +1611,14 @@
  },
  {
   "token": 59586,
+  "token_id": "0x803ff003d4250000000000000007",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 94,
+   "species_count": 1108
+  },
   "name": "Horror Glow Kitsune",
   "tier": 2,
   "level": 61,
@@ -1066,6 +1634,14 @@
  },
  {
   "token": 61601,
+  "token_id": "0x2800d3001e3a90000000000000020",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 5,
+   "summit_held_seconds": 0,
+   "rank": 561,
+   "species_count": 1082
+  },
   "name": "Maelstrom Instrument Ammit",
   "tier": 2,
   "level": 30,
@@ -1081,6 +1657,14 @@
  },
  {
   "token": 63776,
+  "token_id": "0x2400c6001e115000000000000001a",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 454,
+   "species_count": 892
+  },
   "name": "Dread Root Griffin",
   "tier": 1,
   "level": 30,
@@ -1096,6 +1680,14 @@
  },
  {
   "token": 65979,
+  "token_id": "0x4801cf00175bd0000000000000038",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 2,
+   "summit_held_seconds": 0,
+   "rank": 883,
+   "species_count": 1153
+  },
   "name": "Torment Whisper Titan",
   "tier": 2,
   "level": 23,
@@ -1111,6 +1703,14 @@
  },
  {
   "token": 67600,
+  "token_id": "0x8001a00244a0000000000000000a",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 10,
+   "summit_held_seconds": 0,
+   "rank": 435,
+   "species_count": 1085
+  },
   "name": "Golem Bender Wendigo",
   "tier": 2,
   "level": 36,
@@ -1126,6 +1726,14 @@
  },
  {
   "token": 70838,
+  "token_id": "0x8016900276bc0000000000000006",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 345,
+   "species_count": 1098
+  },
   "name": "Tempest Growl Gorgon",
   "tier": 2,
   "level": 39,
@@ -1141,6 +1749,14 @@
  },
  {
   "token": 74654,
+  "token_id": "0x400eb001e1ad0000000000000001",
+  "live": {
+   "adventurers_killed": 1,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 460,
+   "species_count": 954
+  },
   "name": "Oblivion Bite Warlock",
   "tier": 1,
   "level": 30,
@@ -1156,6 +1772,14 @@
  },
  {
   "token": 80947,
+  "token_id": "0x8006400261ae0000000000000006",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 378,
+   "species_count": 1098
+  },
   "name": "Onslaught Bite Gorgon",
   "tier": 2,
   "level": 38,
@@ -1171,6 +1795,14 @@
  },
  {
   "token": 83166,
+  "token_id": "0x28012f001a440000000000000001f",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 678,
+   "species_count": 1056
+  },
   "name": "Viper Glow Qilin",
   "tier": 2,
   "level": 26,
@@ -1186,6 +1818,14 @@
  },
  {
   "token": 52918,
+  "token_id": "0x400e5007e7b90000000000000001",
+  "live": {
+   "adventurers_killed": 2,
+   "scars": 12,
+   "summit_held_seconds": 0,
+   "rank": 1,
+   "species_count": 954
+  },
   "name": "Sorrow Peak Warlock",
   "tier": 1,
   "level": 126,
@@ -1201,6 +1841,14 @@
  },
  {
   "token": 1949,
+  "token_id": "0x700fd00134a70000000000000003",
+  "live": {
+   "adventurers_killed": 5,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 880,
+   "species_count": 924
+  },
   "name": "Kraken Bender Jiangshi",
   "tier": 1,
   "level": 19,
@@ -1216,6 +1864,14 @@
  },
  {
   "token": 16221,
+  "token_id": "0x4501d1003821c0000000000000034",
+  "live": {
+   "adventurers_killed": 3,
+   "scars": 2,
+   "summit_held_seconds": 0,
+   "rank": 100,
+   "species_count": 999
+  },
   "name": "Gale Song Colossus",
   "tier": 1,
   "level": 56,
@@ -1231,6 +1887,14 @@
  },
  {
   "token": 22209,
+  "token_id": "0x2501d700158c2000000000000001d",
+  "live": {
+   "adventurers_killed": 3,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 753,
+   "species_count": 891
+  },
   "name": "Woe Sun Dragon",
   "tier": 1,
   "level": 21,
@@ -1246,6 +1910,14 @@
  },
  {
   "token": 33299,
+  "token_id": "0x48010a00198230000000000000039",
+  "live": {
+   "adventurers_killed": 4,
+   "scars": 1,
+   "summit_held_seconds": 0,
+   "rank": 797,
+   "species_count": 1154
+  },
   "name": "Havoc Form Nephilim",
   "tier": 2,
   "level": 25,
@@ -1261,6 +1933,14 @@
  },
  {
   "token": 41638,
+  "token_id": "0x4402fe00274970000000000000033",
+  "live": {
+   "adventurers_killed": 4,
+   "scars": 61,
+   "summit_held_seconds": 0,
+   "rank": 253,
+   "species_count": 992
+  },
   "name": "Dusk Bender Kraken",
   "tier": 1,
   "level": 39,
@@ -1276,6 +1956,14 @@
  },
  {
   "token": 47184,
+  "token_id": "0x4800ea003f103000000000000003c",
+  "live": {
+   "adventurers_killed": 3,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 113,
+   "species_count": 1162
+  },
   "name": "Armageddon Root Juggernaut",
   "tier": 2,
   "level": 63,
@@ -1291,6 +1979,14 @@
  },
  {
   "token": 52156,
+  "token_id": "0x80149001d12b0000000000000007",
+  "live": {
+   "adventurers_killed": 4,
+   "scars": 11,
+   "summit_held_seconds": 0,
+   "rank": 593,
+   "species_count": 1108
+  },
   "name": "Miracle Root Kitsune",
   "tier": 2,
   "level": 29,
@@ -1306,6 +2002,14 @@
  },
  {
   "token": 55139,
+  "token_id": "0x5024b002a82b0000000000000003",
+  "live": {
+   "adventurers_killed": 5,
+   "scars": 10,
+   "summit_held_seconds": 0,
+   "rank": 202,
+   "species_count": 924
+  },
   "name": "Miracle Form Jiangshi",
   "tier": 1,
   "level": 42,
@@ -1321,6 +2025,14 @@
  },
  {
   "token": 56071,
+  "token_id": "0x24000c0032786000000000000001e",
+  "live": {
+   "adventurers_killed": 6,
+   "scars": 15,
+   "summit_held_seconds": 0,
+   "rank": 145,
+   "species_count": 936
+  },
   "name": "Blight Peak Minotaur",
   "tier": 1,
   "level": 50,
@@ -1336,6 +2048,14 @@
  },
  {
   "token": 57962,
+  "token_id": "0x28013e001d816000000000000001f",
+  "live": {
+   "adventurers_killed": 3,
+   "scars": 10,
+   "summit_held_seconds": 0,
+   "rank": 579,
+   "species_count": 1056
+  },
   "name": "Doom Form Qilin",
   "tier": 2,
   "level": 29,
@@ -1351,6 +2071,14 @@
  },
  {
   "token": 61628,
+  "token_id": "0x800850024910000000000000000a",
+  "live": {
+   "adventurers_killed": 3,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 431,
+   "species_count": 1085
+  },
   "name": "Damnation Moon Wendigo",
   "tier": 2,
   "level": 36,
@@ -1366,6 +2094,14 @@
  },
  {
   "token": 63128,
+  "token_id": "0x4801de002e58b000000000000003c",
+  "live": {
+   "adventurers_killed": 4,
+   "scars": 17,
+   "summit_held_seconds": 0,
+   "rank": 255,
+   "species_count": 1162
+  },
   "name": "Carrion Whisper Juggernaut",
   "tier": 2,
   "level": 46,
@@ -1381,6 +2117,14 @@
  },
  {
   "token": 67657,
+  "token_id": "0x800df00181890000000000000006",
+  "live": {
+   "adventurers_killed": 5,
+   "scars": 7,
+   "summit_held_seconds": 0,
+   "rank": 789,
+   "species_count": 1098
+  },
   "name": "Brimstone Bite Gorgon",
   "tier": 2,
   "level": 24,
@@ -1396,6 +2140,14 @@
  },
  {
   "token": 75473,
+  "token_id": "0x44006b001793d0000000000000034",
+  "live": {
+   "adventurers_killed": 4,
+   "scars": 14,
+   "summit_held_seconds": 0,
+   "rank": 767,
+   "species_count": 999
+  },
   "name": "Torment Moon Colossus",
   "tier": 1,
   "level": 23,
@@ -1411,6 +2163,14 @@
  },
  {
   "token": 76403,
+  "token_id": "0x801ab002f1980000000000000007",
+  "live": {
+   "adventurers_killed": 3,
+   "scars": 7,
+   "summit_held_seconds": 0,
+   "rank": 196,
+   "species_count": 1108
+  },
   "name": "Eagle Bite Kitsune",
   "tier": 2,
   "level": 47,
@@ -1426,6 +2186,14 @@
  },
  {
   "token": 78713,
+  "token_id": "0x240104002210c000000000000001d",
+  "live": {
+   "adventurers_killed": 5,
+   "scars": 7,
+   "summit_held_seconds": 0,
+   "rank": 331,
+   "species_count": 891
+  },
   "name": "Cataclysm Root Dragon",
   "tier": 1,
   "level": 34,
@@ -1441,6 +2209,14 @@
  },
  {
   "token": 82472,
+  "token_id": "0x40120001e5900000000000000002",
+  "live": {
+   "adventurers_killed": 6,
+   "scars": 4,
+   "summit_held_seconds": 0,
+   "rank": 432,
+   "species_count": 927
+  },
   "name": "Damnation Whisper Typhon",
   "tier": 1,
   "level": 30,
@@ -1456,6 +2232,14 @@
  },
  {
   "token": 85134,
+  "token_id": "0x480144002d686000000000000003b",
+  "live": {
+   "adventurers_killed": 4,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 258,
+   "species_count": 1147
+  },
   "name": "Blight Growl Hydra",
   "tier": 2,
   "level": 45,
@@ -1471,6 +2255,14 @@
  },
  {
   "token": 3553,
+  "token_id": "0x6022b00423810000000000000005",
+  "live": {
+   "adventurers_killed": 6,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 42,
+   "species_count": 927
+  },
   "name": "Agony Instrument Basilisk",
   "tier": 1,
   "level": 66,
@@ -1486,6 +2278,14 @@
  },
  {
   "token": 84438,
+  "token_id": "0x400b4004062d0000000000000004",
+  "live": {
+   "adventurers_killed": 3,
+   "scars": 0,
+   "summit_held_seconds": 0,
+   "rank": 59,
+   "species_count": 930
+  },
   "name": "Oblivion Shout Anansi",
   "tier": 1,
   "level": 64,

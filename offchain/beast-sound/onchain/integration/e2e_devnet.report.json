@@ -1,0 +1,259 @@
+{
+ "sizes": {
+  "nft": {
+   "sierra_felts": 33046,
+   "casm_felts": 74927
+  },
+  "provider": {
+   "sierra_felts": 9623,
+   "casm_felts": 22574
+  },
+  "page": {
+   "sierra_felts": 13621,
+   "casm_felts": 15828
+  }
+ },
+ "checks": {},
+ "tokens": [
+  {
+   "label": "Genesis Warlock (constructor mint)",
+   "tokenId": "0x7006400010000000000000000001",
+   "off": {
+    "uri_bytes": 43357,
+    "l2_gas": 1807950720,
+    "call_ms": 863
+   },
+   "on": {
+    "uri_bytes": 166621,
+    "midi_bytes": 816,
+    "call_ms": 666,
+    "json_same_as_off": true,
+    "midi_matches_js_engine": true,
+    "midi_matches_provider": true,
+    "live": {
+     "adventurers_killed": 0,
+     "scars": 0,
+     "summit_held_seconds": 0,
+     "rank": 0,
+     "species_count": 1
+    },
+    "sources": {
+     "adventurers_killed": "Read",
+     "scars": "Read",
+     "summit_held_seconds": "Retired"
+    },
+    "complete": true,
+    "members_bytes": 2277,
+    "l2_gas": 1515310720,
+    "provider_get_midi_l2_gas": 30435840,
+    "provider_get_live_state_l2_gas": 2115840,
+    "page_token_uri_l2_gas": 739222080
+   },
+   "after": {
+    "live": {
+     "adventurers_killed": 40,
+     "scars": 8,
+     "summit_held_seconds": 0,
+     "rank": 0,
+     "species_count": 1
+    },
+    "sources": {
+     "adventurers_killed": "Read",
+     "scars": "Read",
+     "summit_held_seconds": "Retired"
+    },
+    "uri_bytes": 171789,
+    "midi_bytes": 2991,
+    "midi_matches_js_engine": true,
+    "midi_matches_provider": true,
+    "midi_changed": true,
+    "l2_gas": 1733590720,
+    "provider_get_midi_l2_gas": 108075840
+   },
+   "max": {
+    "live": {
+     "adventurers_killed": 200,
+     "scars": 63,
+     "summit_held_seconds": 0,
+     "rank": 0,
+     "species_count": 1
+    },
+    "sources": {
+     "adventurers_killed": "Read",
+     "scars": "Read",
+     "summit_held_seconds": "Retired"
+    },
+    "uri_bytes": 173517,
+    "midi_bytes": 3716,
+    "midi_matches_js_engine": true,
+    "midi_matches_provider": true,
+    "midi_changed": true,
+    "l2_gas": 1768230720,
+    "provider_get_midi_l2_gas": 133835840
+   },
+   "off_again_identical": true
+  },
+  {
+   "label": "Sorrow Peak Warlock",
+   "tokenId": "0x400e5007e7b90000000000000001",
+   "off": {
+    "uri_bytes": 41137,
+    "l2_gas": 1713150720,
+    "call_ms": 833
+   },
+   "on": {
+    "uri_bytes": 162049,
+    "midi_bytes": 816,
+    "call_ms": 639,
+    "json_same_as_off": true,
+    "midi_matches_js_engine": true,
+    "midi_matches_provider": true,
+    "live": {
+     "adventurers_killed": 0,
+     "scars": 0,
+     "summit_held_seconds": 0,
+     "rank": 1,
+     "species_count": 1
+    },
+    "sources": {
+     "adventurers_killed": "Read",
+     "scars": "Read",
+     "summit_held_seconds": "Retired"
+    },
+    "complete": true,
+    "members_bytes": 2377,
+    "l2_gas": 1450190720,
+    "provider_get_midi_l2_gas": 31035840,
+    "provider_get_live_state_l2_gas": 2635840,
+    "page_token_uri_l2_gas": 715265600
+   },
+   "after": {
+    "live": {
+     "adventurers_killed": 40,
+     "scars": 8,
+     "summit_held_seconds": 0,
+     "rank": 1,
+     "species_count": 1
+    },
+    "sources": {
+     "adventurers_killed": "Read",
+     "scars": "Read",
+     "summit_held_seconds": "Retired"
+    },
+    "uri_bytes": 167217,
+    "midi_bytes": 2991,
+    "midi_matches_js_engine": true,
+    "midi_matches_provider": true,
+    "midi_changed": true,
+    "l2_gas": 1654630720,
+    "provider_get_midi_l2_gas": 109035840
+   },
+   "max": {
+    "live": {
+     "adventurers_killed": 200,
+     "scars": 63,
+     "summit_held_seconds": 0,
+     "rank": 1,
+     "species_count": 1
+    },
+    "sources": {
+     "adventurers_killed": "Read",
+     "scars": "Read",
+     "summit_held_seconds": "Retired"
+    },
+    "uri_bytes": 168949,
+    "midi_bytes": 3716,
+    "midi_matches_js_engine": true,
+    "midi_matches_provider": true,
+    "midi_changed": true,
+    "l2_gas": 1713990720,
+    "provider_get_midi_l2_gas": 134915840
+   },
+   "off_again_identical": true
+  },
+  {
+   "label": "Tier 1 Brute, shiny + animated, level 255",
+   "tokenId": "0x4703ff00ff9450000000000000035",
+   "off": {
+    "uri_bytes": 44589,
+    "l2_gas": 1862070720,
+    "call_ms": 884
+   },
+   "on": {
+    "uri_bytes": 168945,
+    "midi_bytes": 816,
+    "call_ms": 676,
+    "json_same_as_off": true,
+    "midi_matches_js_engine": true,
+    "midi_matches_provider": true,
+    "live": {
+     "adventurers_killed": 0,
+     "scars": 0,
+     "summit_held_seconds": 0,
+     "rank": 1,
+     "species_count": 1
+    },
+    "sources": {
+     "adventurers_killed": "Read",
+     "scars": "Read",
+     "summit_held_seconds": "Retired"
+    },
+    "complete": true,
+    "members_bytes": 2387,
+    "l2_gas": 1560470720,
+    "provider_get_midi_l2_gas": 30955840,
+    "provider_get_live_state_l2_gas": 2635840,
+    "page_token_uri_l2_gas": 760170560
+   },
+   "after": {
+    "live": {
+     "adventurers_killed": 40,
+     "scars": 8,
+     "summit_held_seconds": 0,
+     "rank": 1,
+     "species_count": 1
+    },
+    "sources": {
+     "adventurers_killed": "Read",
+     "scars": "Read",
+     "summit_held_seconds": "Retired"
+    },
+    "uri_bytes": 174113,
+    "midi_bytes": 2991,
+    "midi_matches_js_engine": true,
+    "midi_matches_provider": true,
+    "midi_changed": true,
+    "l2_gas": 1774150720,
+    "provider_get_midi_l2_gas": 108795840
+   },
+   "max": {
+    "live": {
+     "adventurers_killed": 200,
+     "scars": 63,
+     "summit_held_seconds": 0,
+     "rank": 1,
+     "species_count": 1
+    },
+    "sources": {
+     "adventurers_killed": "Read",
+     "scars": "Read",
+     "summit_held_seconds": "Retired"
+    },
+    "uri_bytes": 175841,
+    "midi_bytes": 3716,
+    "midi_matches_js_engine": true,
+    "midi_matches_provider": true,
+    "midi_changed": true,
+    "l2_gas": 1839870720,
+    "provider_get_midi_l2_gas": 134595840
+   },
+   "off_again_identical": true
+  }
+ ],
+ "addresses": {
+  "nft": "0xf3c1a64eb1c867e88c61f19c73ac498eb2b0ca43b5dd3db21a31fededd6fd7",
+  "deathMountain": "0x36f101a739db958a9f9cf9d166da9c0d751caf98ddde9ff0b0090eb738b1ee6",
+  "midiProvider": "0x2d080d71520c847fd5f7265b19f57baf618d87f0620aab314e3f91ebb2f2212",
+  "page": "0x2f967135d8bc26d340f2dbed042bec54600fedfa9cff01a218b95b11b5b992a"
+ }
+}

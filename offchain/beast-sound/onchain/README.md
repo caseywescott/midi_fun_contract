@@ -1,221 +1,207 @@
-# Beast Sound in `token_uri` (fully onchain)
+# Sound in `token_uri`: TinySynth page + onchain MIDI
 
-The Beasts NFT keeps its animated SVG as `image` and gains an `animation_url`: an HTML page holding
-the Beast Sound composer, one line of per-token inputs, and the same SVG. The browser composes the
-Beast's theme from the inputs (engine v1, byte-identical to the Cairo reference) and plays it when
-the viewer taps. Nothing is fetched and no server is involved.
+The NFT keeps its animated SVG as `image` and gains an `animation_url`: an HTML page holding a
+TinySynth player, the token's music as a Standard MIDI File composed onchain, and the same SVG. The
+browser plays the MIDI when the viewer taps. Nothing is fetched, and the player knows nothing about
+Beasts.
 
 ```
-token_uri → data:application/json;base64,{ "name", "description", "image", "animation_url", "attributes" }
-                                                    │                 │
-                              animated SVG (unchanged)   data:text/html;base64, page = [composer][inputs][SVG]
+NFT token_uri ──► MidiSoundPage.token_uri(members, svg_b64, token_address, token_id)
+                        │
+                        └─► IMidiProvider.get_midi(token_address, token_id)      (BeastMidiProvider)
+                                   │  reads rank, species count, kills, Death Mountain defeats
+                                   └─ composes with the Cairo engine (v1) → MIDI bytes
+                        ◄── data:application/json;utf8,{ name, description, attributes, image, animation_url }
+                                                                                     │
+                            data:text/html;base64, [TinySynth + player][MIDI as base64][SVG]
 ```
 
-## The onchain library: `window.BeastSound`
+- `contracts/midi_provider`: the generic `IMidiProvider` interface and a non-Beast example provider.
+- `contracts/beast_sound`: `BeastMidiProvider`, which validates the collection and token and reads
+  the Beast's live state itself (see its README for sources and missing-state behavior).
+- `cairo/` (`beast_sound_page`): `MidiSoundPage`, configured with one provider at deploy.
+- `integration/`: the Beasts V3 patch and the devnet end-to-end check.
 
-The stored script is a library of layers that work alone or together. Any page that loads it (the
-token_uri page, a game client, a marketplace, a site that pulls it from the chain) gets the same
-deterministic engine. Source: `onchain/lib/`.
+## The page
 
-A **song** is the common currency: `{ notes: [[time, duration, pitch, velocity, voice], ...], tempo_us }`,
-with 480 ticks per beat. Every layer consumes or produces one.
+`cairo/src/page_data.cairo` stores the page head, the patched TinySynth (`vendor/`, 42,214 bytes
+minified), the player (`player-src.js`, 2,954 bytes) and the opening of the MIDI block, base64-encoded
+at build time: 45,748 bytes of HTML (padded), 61,008 characters, 1,971 felts. At call time only the
+MIDI is encoded.
 
-| Layer (`BeastSound.v1`) | Functions | Use it for |
-|---|---|---|
-| `beast` | `decode(tokenId)`, `live(stats)`, `params(traits, live)`, `seed(traits)` | Turning a Beast into musical parameters |
-| `music` | `generate(params, seed)` → song, `fromNotes(notes, tempo_us)` | Counterpoint from any params, no Beast needed |
-| `midi` | `write(song)` → bytes, `url(song)` | MIDI for any song; Beast scores match the Cairo `get_score_midi` byte for byte |
-| `synth` | `instrument(def)`, `presets`, `drum(kit, dest, t, kind, level)` | Chip instruments defined as data |
-| `play` | `play(song, { instruments, drums, loop, destination, volume })` → handle `{ stop, playing, position, onNote, onEnd }`; `context()` | Many songs at once, routed into any audio graph |
-| `fx` | `transpose`, `tempo`, `voices`, `gain`, `layer(...songs)`, `concat(...songs)` | Pure song → song transforms |
-
-```js
-const { beast, music, midi, synth, play, fx } = BeastSound.v1;
-
-// the Beast pipeline, one stage at a time (== BeastSound.compose(tokenId, stats))
-const traits = beast.decode(tokenId);
-const song = music.generate(beast.params(traits, stats), beast.seed(traits));
-
-// two Beasts in a battle duet, with a custom lead and a callback per note
-const duet = fx.layer(BeastSound.compose(a, statsA), fx.transpose(BeastSound.compose(b, statsB), -12));
-const h = play(duet, { instruments: [synth.instrument(synth.presets.pulseLead), synth.instrument(synth.presets.triangleBass)] });
-h.onNote((n) => pulseArt(n[2]));
-const file = midi.write(duet);
-```
-
-The flat API from the first release still works: `compose`, `fromInputs`, `midi`, `midiUrl`,
-`play`, `stop`, `isPlaying`, `onPlayingChange`, `decodeTokenId`. It drives one global player.
-
-- **Inputs:** a Beast's token ID plus its live stats. The token ID already packs every static trait.
-- **No compact note format:** that's only for storing notes onchain, so it isn't in the library.
-  The npm package keeps it (`src/bsn.js`) for Cairo parity.
-- **Tested:** `test/onchain.test.mjs` runs the built blob in a sandbox:
-  - its score and MIDI hashes match the Cairo goldens, and it matches the package engine on 300
-    random Beasts;
-  - the separate layers compose to exactly the same song as `compose()`;
-  - the transforms are pure.
-- **Playback, checked in real-time Chrome:** two handles at once, per-voice instruments, a caller's
-  destination node, `onNote`, and play-once ending with `onEnd`.
-- **The token_uri page:** when the page carries the `BEAST_SOUND` inputs line, `lib/page.js` also
-  mounts the art and the ♪ (play) and MIDI (download) buttons. Loaded anywhere else, the library
-  only defines the API.
-
-## Onchain modules
-
-Each layer is its own script and its own contract, so a project stores or loads only what it needs.
-A module registers itself into `window.BeastSound.v1` and finds its dependencies there. Load any
-subset in dependency order; a module whose dependency is missing throws before it runs.
-
-| Module | Contract | JS | Needs | Provides |
-|---|---|---:|---|---|
-| `core` | `BeastSoundModuleCore` | 11.2 KB | | engine v1 + Poseidon |
-| `beast` | `BeastSoundModuleBeast` | 0.7 KB | core | `v1.beast` |
-| `music` | `BeastSoundModuleMusic` | 0.7 KB | core | `v1.music` |
-| `midi` | `BeastSoundModuleMidi` | 1.1 KB | | `v1.midi` (any song) |
-| `synth` | `BeastSoundModuleSynth` | 4.9 KB | | `v1.synth` |
-| `play` | `BeastSoundModulePlay` | 3.1 KB | synth | `v1.play`, `v1.context` |
-| `fx` | `BeastSoundModuleFx` | 1.4 KB | | `v1.fx` |
-| `notes` | `BeastSoundModuleNotes` | 2.1 KB | | `v1.notes.decode(felts)`: BSN1 or BSI1 felts → song |
-| `api` | `BeastSoundModuleApi` | 1.1 KB | beast, music, midi, play | `compose`, `fromInputs`, flat API |
-| `page` | `BeastSoundModulePage` | 1.9 KB | midi, play (+ api or notes) | token_uri page mount |
-
-- **Contracts:** each module contract exposes `name()` and `segment()`. A segment is
-  base64(base64(`<script>…</script>`)), so a site reading it over RPC decodes it twice to get the
-  script.
-- **Page contract:** `BeastSoundPage` keeps the page head and a module list fixed at deploy, and
-  splices HEAD plus every segment into `animation_url`.
-- **One file:** `dist/composer.js` is all modules concatenated, 25.8 KB, for sites that want a
-  single file.
-- **Build:** `onchain/build.mjs` builds the modules (`onchain/modules.mjs` is the manifest),
-  `dist/`, and the Cairo in `cairo/src/modules.cairo` and `page_data.cairo`.
-
-## Two page variants: who composes
-
-Both variants implement the same `IBeastSoundPage`, so the NFT patch points at either one.
-
-| | Inputs page (`BeastSoundPage`) | Notes page (`BeastSoundNotesPage`) |
-|---|---|---|
-| Who composes | The library, in the browser, from token ID + stats | The chain: the Cairo composer's `get_score_notes` |
-| Per-token line | `BEAST_SOUND="token,kills,scars,held,rank,count"` | `BEAST_NOTES="0x…,0x…"` (BSN1 felts) |
-| Data per Beast | ~2 felts of inputs | 2–16 felts (median 4 over 400 mainnet Beasts) |
-| Modules on the page | all but notes, 9 (26.1 KB) | midi, synth, play, notes, page (13.1 KB) |
-| Score in the token data | No (deterministic from onchain code + inputs) | Yes |
-| Page `token_uri` gas, real (devnet) | 0.27–0.28B | 0.26–0.54B (BSN1), 0.28–1.13B (BSI1) |
-
-**The notes format (BSN1):**
-- **Layout:** felts are `[byte_len, 31-byte chunks…]`.
-- **Header:** tempo, grid, duration, articulation and velocities.
-- **Runs:** each run is `voice 4 | start beat 12 | count 8`, then 7-bit keys.
-- **Why runs:** Beast scores sit on a fixed grid with one duration, so run-length coding beats a
-  fixed-width instruction. A 62-bit, 4-per-felt instruction format would take about 4–61 felts
-  (median 13) for the same Beasts.
-- **BSI1, the general format, is also built:** 62-bit instructions (header, tempo, notes), 4 per
-  felt, from `src/bsi.js` and the composer's `get_score_instructions`. The `notes` module
-  auto-detects it.
-- **BSI1 cost:** it's cheaper for the composer to produce (103M against 178M for the heaviest
-  Beast), but its line is about 6× larger, and the page base64-encodes that line twice. So the
-  BSN1 page is the lighter one.
-
-`test/onchain.test.mjs` checks that the notes page, with no composer loaded, decodes the felts Cairo
-emits (golden `bsn_hash`) into exactly the reference notes and MIDI.
-
-## What it costs (real execution, devnet 0.10.0)
-
-`token_uri` is plain JSON (`data:application/json;utf8,…`). That removes the outer base64 pass,
-the biggest cost in today's `token_uri`.
-
-**Their Beasts NFT, measured on devnet:** their real `beasts_nft`, the real art providers and the
-real `BeastSoundComposer`, through `starknet_call` and fee estimates:
-
-| NFT `token_uri` (L2 gas) | Today, sound off | With inputs page | With notes page (BSN1) | With notes page (BSI1) |
-|---|---:|---:|---:|---:|
-| Tier 5 common | 3.00B | **1.51B** | 1.50B | 1.52B |
-| Sorrow Peak Warlock | 3.01B | **1.52B** | 1.55B | 1.67B |
-| Tier 1 shiny | 3.09B | **1.56B** | 1.59B | 1.71B |
-| Animated shiny | 3.25B | **1.60B** | 1.63B | 1.75B |
-
-With sound, `token_uri` costs about half of today's `token_uri` without sound.
-
-**Each page contract on its own,** with the Warlock fixture's members and SVG. The notes pages
-include the real composer's call:
-
-| Beast | Notes | Inputs page | Notes page (BSN1) | Notes page (BSI1) |
-|---|---:|---:|---:|---:|
-| Tier 5 fresh | 12 | 0.28B | 0.26B | 0.28B |
-| Sorrow Peak Warlock | 160 | 0.27B | 0.37B | 0.60B |
-| Tier 1, 3 sections | 240 | 0.28B | 0.43B | 0.78B |
-| Heaviest | 400 | 0.28B | 0.54B | 1.13B |
-
-**What's verified:**
-- **Byte-identical output:** every composer output and page `token_uri` on devnet matches the JS
-  reference byte for byte.
-- **Real-time playback:** the heaviest BSI1 page, as the contract returned it, plays in real-time
-  Chrome with all 400 notes and the MIDI bytes exact.
-
-**Before plain JSON:** with a base64 JSON, the same pages cost 2.46–2.81B on their own, and the NFT
-plus any page exceeded the execution step limit. Earlier "+7%" figures were cairo-test estimates.
-Those use smaller gas units than real L2 gas.
-
-**Marketplace check (open):** marketplaces must accept a `data:application/json;utf8,` token_uri.
-- **Escaping:** `%` and `#` are escaped as `%25` and `%23`.
-- **Parsing:** `decodeURIComponent` of the payload, or the raw payload, both parse as JSON.
-
-### The layout
+`token_uri` is plain JSON (`data:application/json;utf8,…`). Base64-encoding the whole JSON was the
+biggest per-call cost, so the JSON and the SVG are never re-encoded. `page.js` is the reference, and
+the Cairo builds the same bytes:
 
 ```
 'data:application/json;utf8,{' ++ escape(members)
   ++ ',"image":"data:image/svg+xml;base64,' ++ svg_b64 ++ '",' ++ <spaces>
   ++ '"animation_url":"data:text/html;base64,'
-  ++ HEAD ++ MODULE_1 ++ … ++ MODULE_n      stored, base64 at build time, word-aligned by <spaces>
-  ++ b64(inputs or notes line)              ~100 bytes: the only per-call base64
-  ++ svg_b64 ++ '"}'                        reused from `image`
+  ++ STORED       b64(PAGE): head + TinySynth + player + '<script type="text/plain" id="midi">'
+  ++ b64(D)       D = b64(midi) <spaces> '</script><script type="text/plain" id="art">'
+  ++ svg_b64      the same SVG base64 the NFT computed for `image`
+  ++ '"}'
 ```
 
-- **Piece size:** each page piece is padded to 279n bytes (9 × 31). Its base64 is then 372n
-  characters: whole base64 groups and whole 31-byte words.
-- **Why:** the stored segments concatenate, and Cairo appends them at word boundaries, which is
-  cheap.
-- **The SVG:** its base64 sits last in the HTML data URI, so its trailing `=` is legal.
+- **Word alignment:** `PAGE` is padded to 279n bytes (9 × 31), so `STORED` is 372n characters:
+  whole base64 groups and whole 31-byte words. The JSON whitespace before the `animation_url` key
+  puts `STORED` on a word boundary of the output, where Cairo appends it cheaply.
+- **The MIDI block:** `D` closes the MIDI block and opens the art block, whose content is the SVG.
+  `D` is padded to 3n bytes inside the MIDI block, where the player strips whitespace. So `b64(D)`
+  has no `=`, and base64 never produces `<`.
+- **Trailing `=`:** the SVG's base64 sits last in the HTML data URI, where its `=` is legal.
+- **Escaping:** `escape()` writes `%` as `%25` and `#` as `%23`. A JSON data URI can't carry them
+  raw; everything else is already URI-safe for browsers.
+- **Marketplaces:** ArkProject's open-source metadata parser accepts `data:application/json;utf8,`
+  and keeps `animation_url`. Its parsing code was run on these `token_uri`s, and both variants
+  parsed cleanly. Closed-source marketplaces need a check. With sound off, the NFT's own base64 JSON
+  is unchanged.
+- **The SVG is not inlined:** the Beasts SVG embeds its art as `<xhtml:img …/>` in a
+  `foreignObject`, which the HTML parser cannot read. The page shows it through an `<img>`, exactly
+  as marketplaces render `image`. It must never contain `</script`.
 
-### Why the SVG is not inlined
+### Player and orchestration
 
-The Beasts SVG embeds the art as `<xhtml:img …/>` inside a `foreignObject`. That syntax is
-XML-only, and the HTML parser swallows everything after it.
+The player decodes the MIDI, builds TinySynth inside the first tap (browsers only start audio from a
+gesture), and loops. Tap anywhere or ♪/■ to play or stop; ↺ restarts from the top.
 
-The page therefore carries the SVG as inert text, in `<script type="text/plain" id="art">`. The
-composer shows it through an `<img>`, exactly as marketplaces render `image` today. The SVG needs
-no changes, but it must never contain `</script`.
+**Orchestration v1** (`player-core.js`, `ORCHESTRATION = 1`). MIDI bytes are composition, so they
+come from the provider unchanged. Instruments and accompaniment belong to the page, so they carry
+their own version:
 
-## Integration (Beasts NFT side)
+| Score | Instruments | Accompaniment | Loop |
+|---|---|---|---|
+| Bare: no program change, nothing on channel 10 (every Beast v1 score) | Every channel plays the chip lead (program slot 128): triangle, 3 ms attack, 33 ms release, 6 Hz / 30-cent vibrato faded in over 0.2 s. This is the previous page's lead. Voices are panned from −0.85 to 0.85. | The previous page's pattern on channel 10: kick on beat 1, snare on beat 3, hi-hat on every eighth at ±30%, about 1 in 8 off-beats opened. Hi-hat levels are rolled again on every Play (the old page rolled them every pass). | Whole 4/4 bars |
+| Anything else | As written, with TinySynth's General MIDI set | None added | Whole 4/4 bars |
 
-`integration/beasts_nft-sound.patch` is a ready-to-apply change to the Beasts repo. It's tested
-against their suite and end to end with the real contracts; see `integration/README.md`. In short:
-- **Contract change:** `beasts_nft` gets an owner-set `sound_page` address.
-- **`token_uri`:** when the address is set, it passes its JSON members (name, description,
-  attributes) and SVG base64 to `BeastSoundPage.token_uri`. When it's zero, `token_uri` is
-  unchanged, byte for byte.
+Tempo is exact: the vendored TinySynth is patched to keep fractional BPM (`vendor/README.md`).
+
+### Playback limits
+
+- 16 channels; channel 10 is percussion. Beast scores use channels 1–5, and the golden generator
+  checks every tier/type at its most crowded.
+- 64 simultaneous voices (TinySynth `voices`), then the oldest note is cut.
+- TinySynth's General MIDI set: note on/off, program change, pitch bend, CC 1/7/10/11/64 and RPN.
+  Its SysEx and text events are ignored.
+- The MIDI's length is the provider's. A Beast score is 816–3,716 bytes.
+- Audio starts only from a click or tap, and the page makes no network requests (checked with all
+  routes aborted).
+
+## What it costs
+
+### The page, before and after the rebase (starknet-devnet 0.10.0)
+
+Measured 2 Oct 2026, both page classes on one devnet: the public Beasts NFT (`ae3fa8d`, real art
+providers, no Death Mountain), the real `BeastMidiProvider`, and each `MidiSoundPage` called with
+the members and SVG base64 that NFT's own `token_uri` holds. Values are L2 gas, read as raw
+`l2_gas_consumed` from `starknet_estimateFee`:
+
+| Beast | NFT `token_uri`, sound off | `get_midi` | Page, base64 JSON (PR #1) | **Page, plain JSON + `b64.cairo`** |
+|---|---:|---:|---:|---:|
+| Tier 5 common (153 B MIDI) | 2,013M | 5.4M | 646M | **177M** |
+| Sorrow Peak Warlock (816 B) | 2,022M | 29.4M | 721M | **212M** |
+| Tier 1 Brute, shiny + animated (816 B) | 2,166M | 29.4M | 761M | **194M** |
+
+- **3.6–3.9× cheaper:** that's the page, against PR #1's own page on the same chain.
+- **Byte-identical:** both pages' output matches its JS reference byte for byte. The plain-JSON
+  output keeps the NFT's name, image and attributes unchanged.
+- **Not measured: the full NFT path with the patch.** It needs the private beasts-v3 `main`
+  (`integration/e2e_devnet.mjs` runs it).
+  - Estimate: the PR #1 measurement below minus this page saving puts sound-on `token_uri` at
+    roughly 1.0–1.3B, against 1.7–2.2B with sound off.
+  - That's derived, not measured.
+
+### Full path, starknet-devnet 0.10.2 (base64 layout, before the plain-JSON rebase)
+
+Measured 2 Oct 2026, on the base64 layout this branch replaced, so rerun it before relying on it. Beasts V3 `main` + `integration/beasts_nft-sound.patch` with the real art
+providers, `BeastMidiProvider`, `MidiSoundPage`, and beasts-v3's mock Death Mountain. Values are L2
+gas from `starknet_estimateFee`, followed by the `token_uri` size:
+
+| Beast | Sound off (today) | Sound on, fresh | Sound on, 40 kills / 8 scars | Sound on, 200 kills / 63 scars |
+|---|---:|---:|---:|---:|
+| Genesis Warlock | 1,808M · 43.4 KB | 1,515M · 166.6 KB | 1,734M · 171.8 KB | 1,768M · 173.5 KB |
+| Sorrow Peak Warlock | 1,713M · 41.1 KB | 1,450M · 162.0 KB | 1,655M · 167.2 KB | 1,714M · 168.9 KB |
+| Tier 1 Brute, shiny + animated | 1,862M · 44.6 KB | 1,560M · 168.9 KB | 1,774M · 174.1 KB | 1,840M · 175.8 KB |
+
+The MIDI was 816, 2,991 and 3,716 bytes in those three states.
+
+- **Sound on is not more expensive than sound off.** The NFT skips its own base64 pass over the
+  JSON, and the page's word-wise encoder costs about a third as much per byte. Even the largest
+  score lands within ±2% of today's `token_uri`.
+- **Where the gas goes, sound on:**
+
+  | Part | L2 gas |
+  |---|---:|
+  | `BeastMidiProvider.get_midi` | 30M / 108M / 134M |
+  | `get_live_state` reads | 2.1–2.6M |
+  | `MidiSoundPage.token_uri` called directly with the NFT's ~43 KB of members and SVG as calldata | 715–760M |
+  | The NFT's own work (art, SVG, members) | the rest |
+
+- **Call latency** (`starknet_call` on local devnet, execution only): sound off 830–885 ms, sound on
+  655–690 ms.
+- **Sepolia public RPC:** the provider's getters each take 41–45 ms to read from offchain, and
+  `token_uri` takes 65–128 ms today. Inside `get_midi` they are in-process calls in one execution.
+- **Execution limits:** public RPC nodes may cap `starknet_call`. Sound on stays at or below
+  today's sound-off cost, so it does not move a Beast closer to such a cap than it is today.
+
+### Contract sizes
+
+| Class | Sierra felts | CASM felts (limit 81,920) |
+|---|---:|---:|
+| `MidiSoundPage` | 26,462 | 24,202 (15,828 with the PR encoder) |
+| `BeastMidiProvider` | 9,623 | 22,574 |
+| `beasts_nft`, patched (unpatched) | 33,046 (32,753) | 74,927 (74,062) |
+
+### Assembly alone (cairo-test estimate)
+
+These are the `bench_*` tests in `cairo/src/tests.cairo`, without calldata or the provider call.
+cairo-test reports Sierra gas, a different unit from devnet's fee estimate, so only compare rows
+here with each other:
+
+| Case | Base64 JSON, PR encoder | Plain JSON, PR encoder | Plain JSON, `b64.cairo` |
+|---|---:|---:|---:|
+| Real Warlock art + 816 B MIDI | 335M | 101.5M | **92.9M** |
+| Real Warlock art + 3,716 B MIDI | 416M | 148.9M | **109.2M** |
+| (reference) one base64 pass over the same JSON | 250M | | |
+
+**Encoders:**
+- **`b64.cairo`:** reads input as 31-byte words, 93 bytes per step, through a 4,096-entry 12-bit
+  table. On devnet it measured about 6.7K L2 gas per byte, against 40K for the NFT's encoder.
+- **Its size:** it takes `MidiSoundPage` from 14.5K to 24.2K CASM felts (the limit is 81,920).
+
+**Pending:** the devnet full-path table above was measured on the base64 layout and needs a rerun
+on this one.
 
 ## Build and test
 
 ```bash
-npm install                      # esbuild (pinned dev dependency, used by the module build)
-node onchain/fetch-fixture.mjs   # snapshot a real V3 token_uri (Sepolia) into fixtures/
-node onchain/build.mjs           # build the modules, dist/, and cairo/src/{modules,page_data}.cairo
-node onchain/golden.mjs          # generate Cairo tests from the JS reference (page.js)
-node --test test/onchain.test.mjs
-cd onchain/cairo && scarb test   # Cairo == JS byte for byte (incl. the real Warlock); deployed page + modules
+npm install                                  # @scure/starknet (in offchain/beast-sound)
+node onchain/build.mjs                       # patch + minify TinySynth, bundle the player, encode STORED, write cairo/src/page_data.cairo
+node onchain/build-library.mjs               # the offchain JS library (onchain/lib) and dist/composer.js, for sites and demos
+node onchain/engines-demo.mjs                # public/onchain/engines.html: the same MIDI through the chip synth or TinySynth
+node onchain/golden.mjs                      # Cairo tests from the JS reference (page.js) and JS engine MIDI
+npm test                                     # layout, decoding, player core, TinySynth timing (Node)
+cd onchain/cairo && scarb test               # Cairo token_uri == JS token_uri byte for byte; contract tests
+node onchain/browser-check.mjs [uri files]   # offline headless Chromium (see the header for setup)
+node onchain/integration/e2e_devnet.mjs …    # full path on devnet (see integration/README.md)
+node onchain/gallery.mjs --rebuild           # re-render public/onchain from recorded inputs
 ```
 
-`page.js` is the reference implementation of the layout. The Cairo in `cairo/src/lib.cairo` builds
-the same bytes.
+The golden Cairo tests cover base64 at every length 0..100 into empty and unaligned outputs, the MIDI
+block at every MIDI length 0..92 (every remainder mod 31 and mod 3), full URIs for small and real
+Beast MIDI, and the real Sepolia Warlock art. `browser-check.mjs` opens each token's real
+`animation_url` with every request aborted, taps, and checks the following:
+- the art and decoded MIDI;
+- a running audio context and non-silent output;
+- the exact fractional tempo and whole-bar loop end;
+- the orchestration rule;
+- stop, restart and loop wrap;
+- zero requests and no page errors.
 
 ## Versioning
 
-The composer lives in contract code. A different engine or synth means a new class and a new
-`sound_page` address, which also changes the music. Follow the versioning rule in
-`docs/beasts/composition_guide.md`.
-
-## Possible next steps
-
-- **Engine v2:** needs its JS port bundled in (about +30 KB). There's still no onchain composition
-  cost.
+| What changes | What ships |
+|---|---|
+| Composition (the MIDI) | A new provider deployment and a new `MidiSoundPage` pointing at it. Follow the rule in `docs/beasts/composition_guide.md`: a version never changes what it produces. |
+| Player, orchestration or TinySynth | A new page class. Bump `ORCHESTRATION` when the sound of a given MIDI changes. |
+| Neither | The NFT owner points `sound_page` at a new page, or sets it to zero to turn sound off. |

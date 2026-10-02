@@ -212,3 +212,7 @@ player after `node server/build.mjs` and a deploy.
 - `docs/beasts/ornament_port_tasks.md`: the port plan
 - `offchain/beast-sound/README.md`: package API
 - `offchain/beast-sound/server/README.md`: endpoint and the `token_uri` change
+- `offchain/beast-sound/onchain/README.md`: the onchain path (`token_uri` → TinySynth page →
+  `IMidiProvider`), its orchestration version and measured costs
+- `contracts/beast_sound/README.md`: `BeastMidiProvider` and where each live input comes from
+  (Summit is retired: `summit_held_seconds` is always 0 there)

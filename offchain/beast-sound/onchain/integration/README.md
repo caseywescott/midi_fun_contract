@@ -1,68 +1,91 @@
-# Integrating Beast Sound into `beasts_nft`
+# Integrating the sound page into `beasts_nft`
 
 `beasts_nft-sound.patch` is a ready-to-apply change to
-[Provable-Games/beasts](https://github.com/Provable-Games/beasts) (written against `main` at
-`ae3fa8d`):
+[Provable-Games/beasts-v3](https://github.com/Provable-Games/beasts-v3), written against `main` at
+`dea2d1b` (scarb 2.18.0, snforge 0.60.0):
 
 ```bash
-git apply beasts_nft-sound.patch      # or: git am beasts_nft-sound.patch
+git am beasts_nft-sound.patch          # or: git apply beasts_nft-sound.patch
 scarb build && snforge test --max-n-steps 4294967295
 ```
+
+The step limit is the one their CI passes (`.github/workflows/test.yml`); the round-trip test
+renders `token_uri` three times and exceeds snforge's default.
+
+The NFT no longer supplies Beast state. It hands the page its own address and the token ID, and the
+page's MIDI provider reads everything it composes from directly.
 
 ## What it changes
 
 | File | Change |
 |---|---|
-| `src/interfaces.cairo` | `BeastSoundInputs` struct and an `IBeastSoundPage` dispatcher interface; `set_sound_page_address` and `get_sound_page_address` on `IBeasts` |
-| `src/lib.cairo` | `sound_page: ContractAddress` storage, an owner-only setter, and `generate_metadata` receiving `sound_page` and `beast_counts(beast.id)` |
-| `src/metadata_generator.cairo` | `sound_page == 0` gives today's output, byte for byte. Otherwise it passes the JSON members (name, description, attributes) and the SVG base64 to the sound page and returns its `token_uri`. `MetadataComponents.image` becomes `image_svg_b64`, and the attribute loop is shared |
-| `src/sound_page_tests.cairo` | Three tests: defaults to off, delegates when set, owner-only setter |
+| `src/interfaces.cairo` | `set_sound_page_address` / `get_sound_page_address` on `IBeasts`. An `IMidiSoundPage` dispatcher interface: `token_uri(members, svg_b64, token_address, token_id)` |
+| `src/lib.cairo` | `sound_page: ContractAddress` storage and an owner-only setter. `build_metadata_uri` calls `generate_metadata_with_sound` when the address is set and the unchanged `generate_metadata` when it is zero |
+| `src/metadata_generator.cairo` | `generate_metadata_with_sound` builds the same components and hands the members (name, description, attributes), the SVG base64, `get_contract_address()` and the token ID to the page. `MetadataComponents.image` becomes `image_svg_b64`, and the attribute loop is shared |
+| `src/sound_page_tests.cairo` | Four tests: off by default and byte-identical after an on/off round trip; delegates when set; owner-only setter; the page's members match the plain JSON minus `image` |
 
 Mints, transfers and every other write path are untouched. Only the `token_uri` and
-`animation_url` views change, and only after the owner sets the address.
+`animation_url` views change, and only after the owner sets the address. The NFT never calls the
+provider: the page does, and the provider only calls the NFT's state getters
+(`get_beast_rank`, `get_species_count`, `get_adventurers_killed`, `get_cached_stats`,
+`get_death_mountain_address`), never `token_uri`, so metadata cannot recurse.
 
-## Deploy
+## Deploy (separate step, not done here)
 
-1. Declare and deploy the 9 library module contracts from `../cairo`, in this order:
-   `BeastSoundModuleCore`, `Beast`, `Music`, `Midi`, `Synth`, `Play`, `Fx`, `Api`, `Page`. Each is
-   stateless, with no constructor arguments. Then deploy `BeastSoundPage` with their addresses, in
-   that order, as its constructor argument. The module list is fixed for the page's life: a new
-   library version means a new page contract.
-   **Or, for chain-composed notes:** deploy the Cairo composer (`contracts/beast_sound`
-   `BeastSoundComposer`, constructor `drop_salt, drop_bps`). Deploy the notes modules (`Midi`,
-   `Synth`, `Play`, `Notes`, `Page`), then `BeastSoundNotesPage` with `(modules, composer)`. It has
-   the same interface, so use its address in step 3. The page then carries the score itself as
-   BSN1 felts, at +5.6–119M gas per call for composing. See `../README.md`, "Two page variants".
-2. Upgrade or redeploy `beasts_nft` with the patch.
-3. As owner, call `set_sound_page_address(<BeastSoundPage>)`. Setting it back to `0` turns sound
-   off.
+1. Declare and deploy `BeastMidiProvider` (`contracts/beast_sound`, scarb 2.11.4). Constructor:
+   the Beasts NFT address.
+2. Declare and deploy `MidiSoundPage` (`onchain/cairo`). Constructor: the provider address.
+3. Upgrade or redeploy `beasts_nft` with the patch.
+4. Before switching, call `MidiSoundPage.token_uri(members, svg_b64, <nft>, <token_id>)` directly
+   for a genesis token and a minted one. A page whose provider serves a different collection
+   reverts, and once it is set every `token_uri` would revert with it (the NFT cannot catch the
+   failure).
+5. As owner, call `set_sound_page_address(<MidiSoundPage>)`. Setting it back to `0` turns sound off.
+
+Before mainnet:
+- **Death Mountain address:** confirm the NFT's `get_death_mountain_address()` is set. Without it,
+  genesis-species kills and scars compose as 0 and `get_live_state` reports them `Unavailable`. It
+  is zero on both Sepolia deployments.
+- **Token ID width:** confirm the token ID format is still 116 bits. The 180-bit format in draft
+  PR #116 needs a new provider.
 
 ## Verified
 
-- **Their suite:** 74 pass with the patch (their 71 plus the 3 new ones). `scarb fmt --check` is
-  clean.
-- **Size:** the `beasts_nft` class grows from 30,249 to 30,556 Sierra felts (+1%).
-- **End to end, real contracts:** `sound_e2e_tests.cairo` ran their real PNG and GIF art providers
-  with the real `BeastSoundPage` and its 9 module contracts. Running it needs `beast_sound_page` as
-  a path dependency and `build-external-contracts = ["beast_sound_page::*"]`.
-  - With sound on, `token_uri` decodes to valid JSON. Name, description, attributes and `image`
-    are identical to the sound-off output, with `animation_url` added.
-  - In Chrome, the page composes the expected score hash and plays, for a plain Beast and for an
-    animated shiny one.
-- **Gas, real execution (devnet):**
-  - **Today:** their `token_uri` costs 3.0–3.25B L2 gas with sound off.
-  - **With sound:** it costs 1.50–1.75B, about half, because the sound page returns plain JSON
-    (`data:application/json;utf8,`) instead of base64-encoding the whole JSON. Every call succeeds
-    through `starknet_call`, and the JSON parses.
-  - **Measured on:** their real `beasts_nft` and art contracts plus the real composer. See
-    `../README.md`, "What it costs".
-- **Marketplace check (open):** with sound set, `token_uri` is a `data:application/json;utf8,`
-  URI, with `%` and `#` escaped. Confirm the marketplaces you target accept it. With sound unset,
-  the base64 JSON is unchanged.
+- **Their suite:** with the patch, 237 tests pass, 1 is ignored and none fail (their tests plus the
+  4 new ones). `scarb fmt --check` is clean.
+- **Size:** the `beasts_nft` class grows from 32,753 to 33,046 Sierra felts (+0.9%), and its CASM
+  from 74,062 to 74,927 felts against the 81,920 limit.
+- **End to end on devnet** (`e2e_devnet.mjs`): the patched NFT with its real art providers, the
+  real `BeastMidiProvider` and `MidiSoundPage`, and beasts-v3's mock Death Mountain. That mock
+  asserts the `dungeon` key is its own address, the Beasts convention the provider follows. For a
+  genesis token and two minted Beasts:
+  - **Sound off:** `token_uri` is byte-identical before and after turning sound on and off again.
+  - **Sound on:** valid JSON. Name, description, attributes and `image` are identical to the
+    sound-off output, with `animation_url` added.
+  - **MIDI:** the embedded MIDI equals the provider's `get_midi` and the JS engine's score for the
+    live state the provider reports.
+  - **Live-state changes:** changing Death Mountain state (40 kills and 9 collects, then 200 and
+    64) changes the music on the next `token_uri`, and it matches the engine again.
+  - **Playable:** two of those `token_uri`s, exactly as the NFT returned them, pass
+    `browser-check.mjs` offline. The art shows, the MIDI plays at its exact tempo with the chip lead
+    and drums, stop, restart and the loop work, and no request is made
+    (`../browser-check.report.jsonl`).
+  - **Cost:** L2 gas and sizes are in `../README.md`. Sound on costs 1.45–1.84B L2 gas against
+    1.71–1.86B for today's sound-off `token_uri`.
 
-## Not wired yet
+```bash
+starknet-devnet --seed 42 --port 5056 --accounts 1 --initial-balance 1000000000000000000000000000
+# in the patched beasts-v3 checkout: scarb build, then CASM for the classes it declares:
+#   universal-sierra-compiler compile-contract --sierra-path <class>.contract_class.json --output-path <class>.compiled_contract_class.json
+#   (beasts_nft, the four art providers, and unittest_mock_death_mountain.test → <mock casm>)
+E2E_URI_DIR=/tmp/uris STARKNET_JS=<node_modules/starknet> node onchain/integration/e2e_devnet.mjs \
+  http://127.0.0.1:5056 <account> <private_key> <beasts-v3>/target/dev/ <mock casm>
+PLAYWRIGHT_CORE=<node_modules/playwright-core> node onchain/browser-check.mjs /tmp/uris/*.txt
+```
 
-- **Summit stats:** `scars` and `summit_held_seconds` are passed as 0. Summit deaths, hours held
-  and later Death Mountain collects need a source in the NFT, such as a stats cache.
+## Not wired
+
 - **Sound drop:** every token gets sound once the address is set. To gate non-genesis Beasts by
-  the sound drop, check the roll before calling the page.
+  the sound drop (`beast_has_sound`), check the roll before calling the page.
+- **Metadata refresh events:** setting the address changes every token's metadata, but no ERC-4906
+  batch event is emitted.

@@ -1,8 +1,66 @@
-# BeastSoundComposer
+# beast_sound
 
-The Koji Beast composer (`koji::composition::beast_v3_sound`) as a Starknet contract. Every view
-is a pure function of a Beasts V3 token ID plus live state. In this build the live state is passed
-as calldata; the production `BeastSound` contract reads it from the Beasts NFT and Summit.
+The Koji Beast composer (`koji::composition::beast_v3_sound`, engine v1) as Starknet contracts.
+
+- **`BeastMidiProvider`** (`src/provider.cairo`): the production path. It implements the generic
+  `IMidiProvider::get_midi(token_address, token_id)` (`contracts/midi_provider`) and reads the
+  Beast's live state itself, so the TinySynth sound page needs nothing but the two identifiers.
+- **`BeastSoundComposer`** (`src/lib.cairo`): benchmark views that take the live state as calldata.
+
+## BeastMidiProvider
+
+Deploy with one constructor argument, the Beasts V3 NFT it serves. The address is fixed: another
+collection or engine is another deployment.
+
+| View | Returns |
+|---|---|
+| `get_midi(token_address, token_id)` | Standard MIDI File bytes (format 1, 480 PPQN, one track per voice), byte-identical to `v3_score_midi` and the JS engine for the same state |
+| `get_live_state(token_address, token_id)` | The exact `BeastV3LiveState` `get_midi` composes from, with each field's source |
+| `get_collection()` / `get_engine_version()` | The supported collection; `1` |
+
+`get_midi` reverts only for another collection (`unsupported collection`), a token ID that is not a
+116-bit Beasts V3 ID (`invalid token id` and the trait range checks) or an unminted token (the NFT's
+own `get_beast_rank` check). It never reverts because live state is unavailable: it runs inside the
+NFT's `token_uri`, where a failed call cannot be caught.
+
+### Live state
+
+Every read happens inside the one call (one state snapshot, nothing cached). The provider calls the
+NFT's state getters and Death Mountain, never `token_uri`.
+
+| Input | Source | When it cannot be read |
+|---|---|---|
+| `rank` | NFT `get_beast_rank(token_id)` (0 for the genesis token) | — |
+| `species_count` | NFT `get_species_count(species)` (0 is real: Sepolia's genesis Warlock reads 0; the rank tier treats 0 like 1) | — |
+| `adventurers_killed`, species 1–75 | NFT `get_adventurers_killed(token_id)`: Death Mountain `get_entity_stats`, live | NFT has no Death Mountain address: 0, `Unavailable` |
+| `adventurers_killed`, community species | NFT `get_cached_stats(token_id)`, the value their `token_uri` shows (refreshed by `refresh_stats`) | — |
+| `scars`, species 1–75 | Death Mountain `get_collectable_count(dm, poseidon(id, prefix, suffix)) - 1` | no Death Mountain address: 0, `Unavailable` |
+| `scars`, community species | 0: Death Mountain does not track them | `NotTracked` |
+| `summit_held_seconds` | Retired: Summit is obsolete, always 0 | `Retired` |
+
+`dm` is the NFT's `get_death_mountain_address()`, passed as the `dungeon` key exactly as the NFT's
+own metadata passes it (Death Mountain maps that key to the Beasts dungeon). The entity hash is the
+one both Beasts V3 (`pack::get_hash`) and Death Mountain (`ImplBeast::get_beast_hash`) use.
+
+Death Mountain's `add_collectable` runs on every defeat of a named Beast at or above the
+special-name level, and the NFT mints from collect 0, so `count - 1` is the number of defeats after
+the one that made the Beast mintable.
+
+`get_live_state` reports each composed field as `Read` (a real value, including zero), `NotTracked`
+(zero by definition), `Unavailable` (zero because the source is not configured) or `Retired`, plus
+`complete` when nothing is `Unavailable`.
+
+### Verified against the deployments (2 Oct 2026)
+
+- **Beasts V3 `main` (`dea2d1b`):** same getters and token layout (116-bit), genesis species read
+  Death Mountain live and community species read the stats cache. Draft PR #116 widens token IDs to
+  180 bits; this provider (and the composer's `decode_v3_token_id`) reverts on those, so that change
+  needs a new provider before it ships.
+- **Sepolia (`0x017e2cb5…`, and the older `0x01dac778…`):** `get_death_mountain_address()` is zero,
+  so kills and scars read `Unavailable` there; rank and species count read normally.
+- **Summit:** retired, not read. (It keyed Beasts by pre-V3 `u32` token numbers.)
+
+## BeastSoundComposer
 
 | View | Returns |
 |---|---|
@@ -26,13 +84,25 @@ Runs are in emission order; a run whose voice is not above the previous run's vo
 section, which resets the accent counter. Velocity = base, or min(base + 20, ceiling) on every 4th
 note of a section when articulation is accent.
 
-## Build
+## Build and test
 
 ```bash
-scarb build   # CASM 25,139 felts (Starknet limit 81,920)
+scarb build   # BeastMidiProvider: Sierra 9,623 felts, CASM 22,574 (Starknet limit 81,920)
+scarb test    # provider vs v3_score_midi on mock NFT + Death Mountain, sources, rejections
 ```
 
-## Measured execution cost (starknet-devnet 0.10.0, 1 Oct 2026)
+## BeastMidiProvider cost (starknet-devnet 0.10.2, 2 Oct 2026)
+
+L2 gas from `starknet_estimateFee`, with the real patched Beasts NFT (see
+`offchain/beast-sound/onchain/integration`):
+
+| Beast state | MIDI | `get_midi` | `get_live_state` |
+|---|---:|---:|---:|
+| Fresh (0 kills, 0 scars) | 816 B | 30–31M | 2.1–2.6M |
+| 40 kills, 8 scars | 2,991 B | 108–109M | |
+| 200 kills, 63 scars (largest score) | 3,716 B | 134–135M | |
+
+## BeastSoundComposer cost (starknet-devnet 0.10.0, 1 Oct 2026)
 
 L2 gas per call, including ~1M of fixed transaction overhead from the estimate:
 

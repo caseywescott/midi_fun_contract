@@ -22,9 +22,11 @@
 //! - rank is read relative to the species population, since species sizes differ;
 //! - the sound seed is derived from the entity hash inputs only, so it survives the V2 -> V3
 //!   `burn_and_mint` migration (no chain id or contract address in the identity);
-//! - "scars" come from Summit deaths (`revival_count`), the one defeat counter that moves:
-//!   every minted Beast has a Death Mountain collect count of exactly 1;
-//! - time held on the Summit adds to the Beast's history and, past 16 hours, to its ornament.
+//! - "scars" are Death Mountain defeats after the one that made the Beast mintable
+//!   (`get_collectable_count - 1`);
+//! - `summit_held_seconds` is a retired input (Summit is obsolete). The mapping still accepts it
+//!   so earlier renders stay reproducible, but `BeastMidiProvider` always passes 0, which keeps the
+//!   Summit ornament layer off.
 //!
 //! Authority for per-species sound settings follows Beasts V3: the species' creator is whoever
 //! holds its Genesis Beast `(id, 0, 0)` (see `genesis_token_id`).
@@ -85,12 +87,13 @@ pub struct PackableBeastV3 {
 #[derive(Copy, Drop, Serde)]
 pub struct BeastV3LiveState {
     /// Beasts NFT `get_adventurers_killed(token_id)`: live Death Mountain read for species
-    /// 1-75, the `refresh_stats` cache for community species.
+    /// 1-75, the `refresh_stats` cache (`get_cached_stats`) for community species.
     pub adventurers_killed: u64,
-    /// Defeats after mint: Summit `LiveBeastStats.revival_count` plus Death Mountain
-    /// `get_collectable_count - 1` (the mint itself is one collect).
+    /// Death Mountain defeats after the one that made the Beast mintable:
+    /// `get_collectable_count - 1`. (Earlier drafts also added Summit deaths; Summit is retired.)
     pub scars: u64,
-    /// Summit `LiveBeastStats.summit_held_seconds`.
+    /// Retired input (Summit is obsolete). Kept so existing compositions stay reproducible;
+    /// `BeastMidiProvider` always supplies 0.
     pub summit_held_seconds: u64,
     /// `get_beast_rank(token_id)`; 0 for the genesis token (unranked).
     pub rank: u16,
@@ -625,12 +628,17 @@ pub fn beast_form_to_smf_bytes(form: @BeastForm, tempo_us: u32) -> Array<u8> {
     out
 }
 
+/// Canonical score as Standard MIDI File bytes.
+pub fn v3_score_smf_bytes(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<u8> {
+    let params = map_v3_beast_to_composition_params(beast, live);
+    let form = build_beast_form(params, beast_sound_seed(beast.id, beast.prefix, beast.suffix));
+    beast_form_to_smf_bytes(@form, params.tempo_us)
+}
+
 /// Canonical score as a Standard MIDI File, packed 31 bytes per felt with the byte length first
 /// (`koji::midi::output::to_felt252_array` layout).
 pub fn v3_score_midi(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<felt252> {
-    let params = map_v3_beast_to_composition_params(beast, live);
-    let form = build_beast_form(params, beast_sound_seed(beast.id, beast.prefix, beast.suffix));
-    koji::midi::output::to_felt252_array(beast_form_to_smf_bytes(@form, params.tempo_us))
+    koji::midi::output::to_felt252_array(v3_score_smf_bytes(beast, live))
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -152,7 +152,7 @@ node onchain/build.mjs                       # patch + minify TinySynth, bundle 
 node onchain/golden.mjs                      # Cairo tests from the JS reference (page.js) and JS engine MIDI
 npm test                                     # layout, decoding, player core, TinySynth timing (Node)
 cd onchain/cairo && scarb test               # Cairo token_uri == JS token_uri byte for byte; contract tests
-node onchain/browser-check.mjs               # offline headless Chromium (see the header for setup)
+node onchain/browser-check.mjs [uri files]   # offline headless Chromium (see the header for setup)
 node onchain/integration/e2e_devnet.mjs …    # full path on devnet (see integration/README.md)
 node onchain/gallery.mjs --rebuild           # re-render public/onchain from recorded inputs
 ```

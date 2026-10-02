@@ -21,12 +21,12 @@
    "off": {
     "uri_bytes": 43357,
     "l2_gas": 1807950720,
-    "call_ms": 884
+    "call_ms": 863
    },
    "on": {
     "uri_bytes": 166621,
     "midi_bytes": 816,
-    "call_ms": 670,
+    "call_ms": 666,
     "json_same_as_off": true,
     "midi_matches_js_engine": true,
     "midi_matches_provider": true,
@@ -99,12 +99,12 @@
    "off": {
     "uri_bytes": 41137,
     "l2_gas": 1713150720,
-    "call_ms": 832
+    "call_ms": 833
    },
    "on": {
     "uri_bytes": 162049,
     "midi_bytes": 816,
-    "call_ms": 656,
+    "call_ms": 639,
     "json_same_as_off": true,
     "midi_matches_js_engine": true,
     "midi_matches_provider": true,
@@ -177,12 +177,12 @@
    "off": {
     "uri_bytes": 44589,
     "l2_gas": 1862070720,
-    "call_ms": 883
+    "call_ms": 884
    },
    "on": {
     "uri_bytes": 168945,
     "midi_bytes": 816,
-    "call_ms": 689,
+    "call_ms": 676,
     "json_same_as_off": true,
     "midi_matches_js_engine": true,
     "midi_matches_provider": true,
@@ -251,9 +251,9 @@
   }
  ],
  "addresses": {
-  "nft": "0x15365e83e1c0925d26339a65a82936c95fef31902e26ee591eb52947b9dc74a",
-  "deathMountain": "0x2bff2c3c17ba3a80855193feba2827ad5f61089331e5a171379eccde7ebd112",
-  "midiProvider": "0x48ce1bb0b097e2f2483d7d072650d61d87e395fa212c19b8b50a7d1992d4e3",
-  "page": "0x35c9dae86f66049b7a4959b3c8d1b0adfa8f6e9062152ac6dfad45103e81fd8"
+  "nft": "0xf3c1a64eb1c867e88c61f19c73ac498eb2b0ca43b5dd3db21a31fededd6fd7",
+  "deathMountain": "0x36f101a739db958a9f9cf9d166da9c0d751caf98ddde9ff0b0090eb738b1ee6",
+  "midiProvider": "0x2d080d71520c847fd5f7265b19f57baf618d87f0620aab314e3f91ebb2f2212",
+  "page": "0x2f967135d8bc26d340f2dbed042bec54600fedfa9cff01a218b95b11b5b992a"
  }
 }

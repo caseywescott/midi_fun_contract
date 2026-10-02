@@ -3,7 +3,9 @@
 //   npm i --no-save playwright-core@1.62.1   (matches Chromium build 1234; any matching pair works)
 //   PLAYWRIGHT_CORE=/path/to/node_modules/playwright-core node onchain/browser-check.mjs
 //
-// Prints one JSON line per page and exits non-zero on any failed check.
+// Prints one JSON line per page and exits non-zero on any failed check. Extra arguments are files
+// holding Beast token_uris returned by a deployed NFT (e.g. from integration/e2e_devnet.mjs); they
+// are checked the same way, as bare scores at the tempo their MIDI declares.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { encodeTokenId, engine } from '../src/index.js';
@@ -32,11 +34,28 @@ function writtenScore() {
   return Uint8Array.from([0x4d, 0x54, 0x68, 0x64, ...u32(6), 0, 0, 0, 1, 1, 0xe0, 0x4d, 0x54, 0x72, 0x6b, ...u32(ev.length), ...ev]);
 }
 
+/** First tempo meta event (FF 51 03) of a MIDI file, as BPM. */
+function midiTempo(midi) {
+  for (let i = 0; i + 5 < midi.length; i++) if (midi[i] === 0xff && midi[i + 1] === 0x51 && midi[i + 2] === 3) return 60e6 / ((midi[i + 3] << 16) | (midi[i + 4] << 8) | midi[i + 5]);
+  return 120;
+}
+const midiOfUri = (uri) => {
+  const meta = JSON.parse(Buffer.from(uri.slice(uri.indexOf(',') + 1), 'base64').toString('utf8'));
+  const html = Buffer.from(meta.animation_url.slice(meta.animation_url.indexOf(',') + 1), 'base64').toString('utf8');
+  return Uint8Array.from(Buffer.from(html.match(/id="midi">([^<]*)<\/script>/)[1].replace(/\s+/g, ''), 'base64'));
+};
+
 const PAGES = [
   { name: 'genesis Warlock (bare Beast score)', midi: beastMidi(fx.token_id, fx.live), bare: true, tempo: 60e6 / 455000 },
   { name: 'heaviest Beast score', midi: beastMidi(heaviestId, { adventurers_killed: 200, scars: 63, rank: 1, species_count: 1243 }), bare: true, tempo: 60e6 / 455000 },
   { name: 'score with its own instruments', midi: writtenScore(), bare: false, tempo: 60e6 / 500000, programs: { 0: 12, 1: 33 } },
 ];
+
+for (const file of process.argv.slice(2)) {
+  const uri = readFileSync(file, 'utf8').trim();
+  const midi = midiOfUri(uri);
+  PAGES.push({ name: file.split('/').pop(), uri, midi, bare: true, tempo: midiTempo(midi) });
+}
 
 const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
 let failed = 0;
@@ -47,7 +66,8 @@ for (const p of PAGES) {
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  const meta = JSON.parse(Buffer.from(tokenUri(stored, fx.members, fx.svg_b64, p.midi).split(',')[1], 'base64').toString('utf8'));
+  const uri = p.uri ?? tokenUri(stored, fx.members, fx.svg_b64, p.midi);
+  const meta = JSON.parse(Buffer.from(uri.slice(uri.indexOf(',') + 1), 'base64').toString('utf8'));
   await page.goto(meta.animation_url);
   await page.waitForFunction(() => document.querySelector('body > img')?.complete);
   const art = await page.evaluate(() => { const i = document.querySelector('body > img'); return { w: i.naturalWidth, h: i.naturalHeight }; });

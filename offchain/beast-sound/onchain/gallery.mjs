@@ -1,23 +1,63 @@
-// Build a gallery of onchain Beast Sound pages from real mainnet Beasts, spread across complexity.
+// Build a gallery of onchain TinySynth sound pages from real mainnet Beasts, spread across complexity.
 //   node onchain/gallery.mjs [count=100] [candidates=400]
+//   node onchain/gallery.mjs --rebuild     (offline: re-render the pages already in public/onchain)
 //
 // Samples candidate tokens from the current mainnet collection, reads their traits and live stats,
 // composes each (engine v1), keeps `count` spread evenly from the simplest theme to the densest,
 // then fetches each one's real token_uri art and writes exactly the page its animation_url would
 // hold: public/onchain/beasts/<token>.html (+ .svg thumbnail) and public/onchain/index.html.
+// Summit is retired, so pages compose with summit_held_seconds = 0, as BeastMidiProvider does.
+// (These are pre-V3 Beasts: their scars are what src/chain.js read, which still counts Summit
+// revivals.) --rebuild also writes the genesis Warlock preview (warlock.html, warlock-token-uri.txt).
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { call, NETWORKS, readMainnetBeast } from '../src/chain.js';
-import { composeBeast, encodeTokenId } from '../src/index.js';
-import { animationHtml } from './page.js';
-import { PAGES, loadBuiltModules } from './modules.mjs';
+import { composeBeast, encodeTokenId, engine } from '../src/index.js';
+import { animationHtml, tokenUri } from './page.js';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const out = here + '../public/onchain/';
 const COUNT = Number(process.argv[2] || 100);
 const CANDIDATES = Number(process.argv[3] || 400);
 const net = NETWORKS.mainnet;
-const js = loadBuiltModules(PAGES.inputs);
+const js = readFileSync(here + 'dist/tinysynth.min.js', 'utf8').trim() + '\n' + readFileSync(here + 'dist/player.js', 'utf8').trim();
+const retired = (live) => ({ ...live, summit_held_seconds: 0 });
+const midiFor = (tokenId, live) => Uint8Array.from(engine.toMidiFile(engine.render(engine.decodeTokenId(BigInt(tokenId)), retired(live))));
+
+function row(token, tokenId, beast, live, song) {
+  return {
+    token, token_id: '0x' + BigInt(tokenId).toString(16), live: retired(live), name: song.name, tier: beast.tier, level: beast.level,
+    kills: live.adventurers_killed, scars: live.scars, rank: live.rank, count: live.species_count,
+    notes: song.events.length, voices: song.params.voice_count, sections: song.params.section_count,
+    bpm: Math.round(60e6 / song.params.tempo_us), seconds: Math.round(song.durationSeconds),
+  };
+}
+
+if (process.argv[2] === '--rebuild') {
+  // Rows from before token_id/live were recorded carry them in their old page's inputs line.
+  const rows = JSON.parse(readFileSync(out + 'gallery.json', 'utf8')).map((r) => {
+    if (r.token_id) return r;
+    const m = readFileSync(out + `beasts/${r.token}.html`, 'utf8').match(/BEAST_SOUND="(\d+),(\d+),(\d+),(\d+),(\d+),(\d+)"/);
+    if (!m) throw new Error(`no inputs in beasts/${r.token}.html`);
+    const [kills, scars, held, rank, count] = m.slice(2).map(Number);
+    return { ...r, token_id: '0x' + BigInt(m[1]).toString(16), live: { adventurers_killed: kills, scars, summit_held_seconds: held, rank, species_count: count } };
+  });
+  const list = rows.map((r) => {
+    const beast = engine.decodeTokenId(BigInt(r.token_id));
+    writeFileSync(out + `beasts/${r.token}.html`, animationHtml(js, midiFor(r.token_id, r.live), readFileSync(out + `beasts/${r.token}.svg`, 'utf8')));
+    return row(r.token, r.token_id, beast, r.live, composeBeast(beast, retired(r.live)));
+  }).sort((a, b) => a.notes - b.notes || a.token - b.token);
+  writeFileSync(out + 'gallery.json', JSON.stringify(list, null, 1));
+  writeFileSync(out + 'index.html', indexHtml(list));
+  // The genesis Warlock fixture (Sepolia V3) as a stand-alone preview and its full token_uri.
+  const fx = JSON.parse(readFileSync(here + 'fixtures/warlock_v3.json', 'utf8'));
+  const live = { adventurers_killed: 412, scars: 7, summit_held_seconds: 0, rank: 3, species_count: 1243 };
+  const midi = midiFor(fx.token_id, live);
+  writeFileSync(out + 'warlock.html', animationHtml(js, midi, Buffer.from(fx.svg_b64, 'base64').toString('utf8')));
+  writeFileSync(out + 'warlock-token-uri.txt', tokenUri(readFileSync(here + 'dist/stored.b64', 'utf8'), fx.members, fx.svg_b64, midi));
+  console.log(`rebuilt ${list.length} pages + index + Warlock preview`);
+  process.exit(0);
+}
 
 async function pool(items, limit, fn) {
   const results = new Array(items.length);
@@ -63,7 +103,7 @@ console.log(`reading ${tokens.size} of ${supply} Beasts (${Object.keys(cache).le
 const read = await pool([...tokens], 2, async (token) => {
   if (!cache[token]) { cache[token] = await readMainnetBeast(token); save(); }
   const { beast, live } = cache[token];
-  return { token, beast, live, song: composeBeast(beast, live) };
+  return { token, beast, live, song: composeBeast(beast, retired(live)) };
 });
 const ok = read.filter(Boolean).sort((a, b) => a.song.events.length - b.song.events.length || a.token - b.token);
 
@@ -77,19 +117,11 @@ console.log(`composed ${ok.length}; notes ${ok[0].song.events.length}–${ok.at(
 
 mkdirSync(out + 'beasts', { recursive: true });
 const rows = await pool(picks, 2, async (p) => {
-  // reuse art saved by an earlier run; fetch only what's missing
-  const saved = out + `beasts/${p.token}.svg`;
-  const svg = existsSync(saved) ? readFileSync(saved, 'utf8') : await tokenSvg(p.token);
+  const svg = await tokenSvg(p.token);
   const tokenId = encodeTokenId(p.beast);
-  writeFileSync(out + `beasts/${p.token}.html`, animationHtml(js, tokenId, p.live, svg));
+  writeFileSync(out + `beasts/${p.token}.html`, animationHtml(js, midiFor(tokenId, p.live), svg));
   writeFileSync(out + `beasts/${p.token}.svg`, svg);
-  const s = p.song;
-  return {
-    token: p.token, name: s.name, tier: p.beast.tier, level: p.beast.level,
-    kills: p.live.adventurers_killed, scars: p.live.scars, rank: p.live.rank, count: p.live.species_count,
-    notes: s.events.length, voices: s.params.voice_count, sections: s.params.section_count,
-    bpm: Math.round(60e6 / s.params.tempo_us), seconds: Math.round(s.durationSeconds),
-  };
+  return row(p.token, tokenId, p.beast, p.live, p.song);
 });
 const list = rows.filter(Boolean);
 writeFileSync(out + 'gallery.json', JSON.stringify(list, null, 1));
@@ -137,7 +169,7 @@ li[hidden]{display:none}
 </style></head><body>
 <header>
 <h1>Beast Sound Gallery</h1>
-<p>${list.length} mainnet Beasts, from the sparest theme to the densest. Each page is exactly what its onchain <code>animation_url</code> would hold: the Beast's own art plus a composer that writes its theme from its traits and history. Open one and tap ♪.</p>
+<p>${list.length} mainnet Beasts, from the sparest theme to the densest. Each page is exactly what its onchain <code>animation_url</code> would hold: the Beast's own art, its theme as a MIDI file composed onchain from its traits and history, and a TinySynth player. Open one and tap ♪.</p>
 <nav aria-label="Filter by complexity">${['All', 'Sparse', 'Moderate', 'Rich', 'Dense'].map((l) => `<button type="button" data-f="${l}" aria-pressed="${l === 'All'}">${l}</button>`).join('')}</nav>
 </header>
 <main><ol>

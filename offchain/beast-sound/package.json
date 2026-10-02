@@ -24,7 +24,7 @@
     "src"
   ],
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test 'test/*.test.mjs'",
     "serve": "node server/build.mjs && node server/node.mjs"
   },
   "dependencies": {

@@ -1,11 +1,12 @@
 // token_uri page mount. Runs only when the page carries a line written by the contract:
 //   <script>BEAST_SOUND="token,kills,scars,held,rank,count"</script>   inputs: the library composes
 //   <script>BEAST_NOTES="f1,f2,…"</script>                            felts: the chain composed (BSN1)
+//   <script>BEAST_MIDI="<base64 .mid>"</script>                       a MIDI file the chain wrote
 // then the SVG as text in <script type="text/plain" id="art"> (XML-only syntax, shown via <img>).
 // Loaded anywhere else, the library just defines window.BeastSound.
 //
-// Needs midi + play; plus api for an inputs line, or notes for a felts line. A felts page needs no
-// composer at all.
+// Needs midi + play; plus api for an inputs line, notes for a felts line, or smf for a MIDI line.
+// Felts and MIDI pages need no composer at all.
 
 function button(label, aria, right) {
   const b = document.createElement('button');
@@ -20,9 +21,9 @@ function button(label, aria, right) {
 export function mountPage(BeastSound) {
   addEventListener('DOMContentLoaded', () => {
     const v1 = BeastSound.v1;
-    const fromFelts = window.BEAST_NOTES !== undefined;
-    if (!fromFelts && window.BEAST_SOUND === undefined) return;
-    if (fromFelts ? !v1.notes : !v1.fromInputs) throw new Error(`beast-sound: this page needs module ${fromFelts ? 'notes' : 'api'}`);
+    const kind = window.BEAST_MIDI !== undefined ? 'smf' : window.BEAST_NOTES !== undefined ? 'notes' : window.BEAST_SOUND !== undefined ? 'api' : null;
+    if (!kind) return;
+    if (!v1[kind === 'api' ? 'fromInputs' : kind]) throw new Error(`beast-sound: this page needs module ${kind}`);
     const art = document.getElementById('art');
     if (art) {
       const img = document.createElement('img');
@@ -33,7 +34,7 @@ export function mountPage(BeastSound) {
     let song = null;
     const ready = () => {
       if (song) return song;
-      song = fromFelts ? v1.notes.decode(window.BEAST_NOTES) : v1.fromInputs(window.BEAST_SOUND);
+      song = kind === 'smf' ? v1.smf.parse(window.BEAST_MIDI) : kind === 'notes' ? v1.notes.decode(window.BEAST_NOTES) : v1.fromInputs(window.BEAST_SOUND);
       if (song.scoreHash) window.BEAST_SCORE_HASH = song.scoreHash;
       window.BEAST_SONG = song;
       return song;

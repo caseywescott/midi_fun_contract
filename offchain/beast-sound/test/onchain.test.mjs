@@ -187,3 +187,26 @@ test('plain-JSON token_uri: % and # are escaped, the rest is raw, the library is
   assert.equal(parseTokenUri(uri).name, '100% #1 Beast');
   assert.equal(uri.indexOf(stored) % 31, 0);
 });
+
+// ── MIDI page: the chain writes a Standard MIDI File, the page parses and plays it ──
+test('smf module parses the composer MIDI (== Cairo get_score_midi) back to the exact notes', { skip: !built && 'run node onchain/build.mjs' }, () => {
+  const mods = Object.fromEntries(loadBuiltModules().map((m) => [m.name, m.js]));
+  const window = { addEventListener() {} };
+  const ctx = { window, addEventListener() {}, matchMedia: undefined, URL, Blob, setTimeout, setInterval, clearInterval, BigInt, Math, Uint8Array, atob };
+  for (const n of PAGES.midi) vm.runInNewContext(mods[n], ctx);
+  const v1 = window.BeastSound.v1;
+  assert.equal(v1.core, undefined); // no composer on a MIDI page
+  const sorted = (ns) => ns.map((n) => [...n]).sort((a, b) => a[0] - b[0] || a[4] - b[4] || a[2] - b[2]);
+  const golden = JSON.parse(readFileSync(new URL('../test/golden.json', import.meta.url), 'utf8'));
+  for (const c of golden.cases) {
+    const ref = composeBeast(c.beast, c.live);
+    assert.equal(poseidonHashMany(engine.bytesToFelts(ref.midi)).toString(), c.expected.midi_hash); // the bytes Cairo writes
+    for (const input of [ref.midi, Buffer.from(ref.midi).toString('base64')]) {
+      const song = v1.smf.parse(input);
+      assert.equal(song.tempo_us, ref.params.tempo_us);
+      assert.deepEqual(sorted(Array.from(song.notes)), sorted(ref.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice])));
+      // and it round-trips through the MIDI writer to the same file
+      assert.deepEqual(Buffer.from(v1.midi.write(song)), Buffer.from(ref.midi));
+    }
+  }
+});

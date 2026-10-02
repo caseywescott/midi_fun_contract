@@ -54,6 +54,12 @@
   "segment_chars": 2976
  },
  {
+  "name": "smf",
+  "deps": [],
+  "js_bytes": 1579,
+  "segment_chars": 2232
+ },
+ {
   "name": "api",
   "deps": [
    "beast",
@@ -70,7 +76,7 @@
    "midi",
    "play"
   ],
-  "js_bytes": 2023,
+  "js_bytes": 2115,
   "segment_chars": 2976
  }
 ]

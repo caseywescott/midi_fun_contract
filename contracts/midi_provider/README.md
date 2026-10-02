@@ -19,7 +19,7 @@ collections it supports, reads the token's traits and live state itself, and com
 | Rule | Why |
 |---|---|
 | Return a Standard MIDI File (`MThd` + `MTrk` chunks, format 0 or 1) as raw bytes. | The page base64-encodes it as-is and TinySynth parses it in the browser. |
-| Revert only for an unsupported collection, an invalid token ID or a token that does not exist. | The call runs inside the NFT's `token_uri`; Starknet cannot catch a failed call, so a revert breaks the metadata. |
+| Revert only for an unsupported collection, an invalid token ID or (if the provider checks it) a token that does not exist. `BeastMidiProvider` checks existence through the NFT; the example `ScaleMidiProvider` does not. | The call runs inside the NFT's `token_uri`; Starknet cannot catch a failed call, so a revert breaks the metadata. |
 | Never revert because optional live state is unavailable. Compose from a documented default and expose where each input came from in a view of your own. | Same reason. |
 | Read state through the collection's getters (or other contracts), never through `token_uri`. | `token_uri` is what is calling you. |
 | Read everything inside the one `get_midi` call and cache nothing. | Every input then comes from the same state snapshot. |

@@ -96,9 +96,8 @@ fn page_needs_a_provider() {
     assert_eq!(result.unwrap_err(), array!['zero midi provider', 'CONSTRUCTOR_FAILED']);
 }
 
-/// Gas for the whole page call with the real Warlock art and the real Warlock MIDI from a
-/// provider, without the test's own comparison work (see `bench_*` in tests.cairo for the pure
-/// assembly).
+/// Gas for a whole page call (small members and SVG, MIDI from ScaleMidiProvider) without the
+/// test's own comparison work. `bench_*` in tests.cairo measures assembly with the real Warlock.
 #[test]
 fn bench_page_call_scale_provider() {
     let provider = deploy(ScaleMidiProvider::TEST_CLASS_HASH, array![collection().into()]);

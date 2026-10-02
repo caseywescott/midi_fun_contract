@@ -1,9 +1,14 @@
-// TinyChip: a 50-preset chiptune pack for webaudio-tinysynth, built only from TinySynth's own hooks.
+// TinyChip: a 100-preset chiptune pack for webaudio-tinysynth, built only from TinySynth's own hooks.
 //
-//   TinyChip.install(synth)   registers the chip waveforms, puts the presets in programs 0–49 and a
+//   TinyChip.install(synth)   registers the chip waveforms, puts the presets in programs 0–99 and a
 //                             chip drum kit on the drum map (keys 35–59). Select a preset with a
 //                             normal MIDI program change (0xC0 | channel, program).
-//   TinyChip.PRESETS          [{ program, name, category, p }]   TinyChip.DRUMS  { key: name }
+//   TinyChip.PRESETS          [{ program, name, category, inspired?, p }]   TinyChip.DRUMS  { key: name }
+//
+// Programs 0–49 are generic chip voices. Programs 50–99 are styled after the sound chips and game
+// soundtracks of the 8- and 16-bit era (NES and its Famicom expansion chips, Game Boy, C64 SID,
+// Atari 2600 TIA, AY/PSG arcade and home computers, Genesis FM, PC Engine). They are original
+// approximations made from the chips' waveforms and techniques, not samples.
 //
 // How it gets an 8-bit sound out of TinySynth: an oscillator whose wave name starts with "n" plays a
 // looped sample buffer from synth.noiseBuf at playbackRate = note / 440 Hz. Each chip waveform is a
@@ -30,6 +35,16 @@
     return bits;
   }
   const SHORT = lfsr(93, 6), LONG = lfsr(32767, 1);
+  // Atari 2600 TIA polynomial patterns (poly4: 15 steps, poly5: 31 steps) and its div-31 buzz
+  const poly = (bits, taps, len) => { const out = []; let r = (1 << bits) - 1; for (let i = 0; i < len; i++) { const b = ((r >> taps[0]) ^ (r >> taps[1])) & 1; r = ((r << 1) | b) & ((1 << bits) - 1); out.push(r & 1 ? 0.5 : -0.5); } return out; };
+  const POLY4 = poly(4, [3, 2], 15), POLY5 = poly(5, [4, 2], 31);
+  const step = (table) => (x) => table[Math.floor(x * table.length)];
+  const vrc6saw = (x) => (Math.floor(x * 7) / 3 - 1) * 0.5;                    // VRC6: 7-step accumulator saw
+  const fdsWave = (x) => { const p = 2 * Math.PI * Math.floor(x * 64) / 64; return Math.round(31.5 + 24 * Math.sin(p) + 7 * Math.sin(3 * p)) / 31.5 - 1; }; // FDS 64×6-bit
+  const n163 = (x) => { const k = Math.floor(x * 32); return ((k < 16 ? k : 31 - k) * 0.6 + (k % 8 < 4 ? 4 : 0)) / 7.5 - 1; }; // Namco 163 brassy 4-bit
+  const sidCombined = (x) => { const tri = Math.floor((x < 0.5 ? x * 2 : 2 - x * 2) * 255), saw = Math.floor(x * 255); return ((tri & saw) / 127.5 - 1) * 0.6; }; // SID tri & saw
+  const pce1 = (x) => { const k = Math.floor(x * 32); return (Math.round(15.5 + 15.5 * Math.sin(2 * Math.PI * k / 32) * (k < 16 ? 1 : 0.4)) / 15.5 - 1) * 0.5; }; // PC Engine 5-bit
+  const pce2 = (x) => { const k = Math.floor(x * 32); return ((k * 3) % 32 / 15.5 - 1) * 0.45; };
 
   function registerWaves(synth) {
     const ac = synth.getAudioContext(), sr = ac.sampleRate;
@@ -39,6 +54,10 @@
       nP12: cyc(pulse(0.125)), nP25: cyc(pulse(0.25)), nP50: cyc(pulse(0.5)),
       nTRI: cyc(tri4), nSAW: cyc(saw4), nWV1: cyc(wav1), nWV2: cyc(wav2),
       nMTP: cyc((x) => SHORT[Math.floor(x * 93)]),     // short-mode LFSR as a pitched metallic tone
+      nP06: cyc(pulse(0.0625)), nP37: cyc(pulse(0.375)),
+      nVRS: cyc(vrc6saw), nFDS: cyc((x) => fdsWave(x) * 0.5), nN16: cyc((x) => n163(x) * 0.5), nSID: cyc(sidCombined),
+      nTI4: cyc(step(POLY4)), nTI5: cyc(step(POLY5)), nTIB: cyc((x) => (x < 13 / 31 ? 0.5 : -0.5)),
+      nPC1: cyc(pce1), nPC2: cyc(pce2),
       nNOI: make((i) => LONG[i % 32767]),             // long-mode LFSR noise (snares, crashes)
       nMET: make((i) => SHORT[i % 93]),               // short-mode LFSR noise (hats, rides)
     });
@@ -71,8 +90,24 @@
     { w, v: o.v ?? 0.3, a: o.a ?? 0.003, h: 0.02, d: 0.1, s: 1, r: o.r ?? 0.04, t: 1 + cents(c) },
   ];
 
+  // Pulse-width movement (C64 style): two pulse widths a few cents apart phase against each other.
+  const pwm = (wa, wb, c, o = {}) => [
+    { w: wa, v: o.v ?? 0.3, a: o.a ?? 0.003, h: 0.02, d: o.d ?? 0.1, s: o.s ?? 1, r: o.r ?? 0.04, t: o.t ?? 1 },
+    { w: wb, v: o.v ?? 0.3, a: o.a ?? 0.003, h: 0.02, d: o.d ?? 0.1, s: o.s ?? 1, r: o.r ?? 0.04, t: (o.t ?? 1) * (1 + cents(c)) },
+    ...(o.vib ? [vib(o.vib[0], o.vib[1], o.vib[2])] : []),
+  ];
+  // Amplitude modulation of operator 0 (g: 11): tremolo at slow rates, buzz/ring at audio rates.
+  const am = (w, modWave, o = {}) => [
+    { w, v: o.v ?? 0.4, a: o.a ?? 0.003, h: 0.02, d: o.d ?? 0.15, s: o.s ?? 1, r: o.r ?? 0.04, t: o.t ?? 1 },
+    { g: 11, w: modWave, t: o.mt ?? 0, f: o.mf ?? 0, v: o.mv ?? 0.1, a: 0, h: 0, d: 0.01, s: 1, r: 0.05 },
+  ];
+  const siren = (w, rate, semis, o = {}) => [
+    { w, v: o.v ?? 0.45, a: 0.01, h: 0.02, d: 0.1, s: 1, r: 0.05 },
+    { g: 1, w: 'triangle', t: 0, f: rate, v: 2 ** (semis / 12) - 1, a: 0, h: 0, d: 0.01, s: 1, r: 0.05 },
+  ];
+
   const P = [];
-  const add = (category, name, p) => P.push({ program: P.length, category, name, p });
+  const add = (category, name, p, inspired) => P.push({ program: P.length, category, name, p, ...(inspired ? { inspired } : {}) });
 
   // Leads (12)
   add('Lead', 'Triangle Lead (vibrato)', lead('nTRI', { v: 0.55, c: 30, delay: 0.2 }));
@@ -133,6 +168,66 @@
   add('Noise', 'Metallic Tone', lead('nMTP', { v: 0.42, d: 0.15, s: 0.5, vib: false }));
   add('Noise', 'Noise Hit', [{ w: 'nNOI', v: 0.45, a: 0.002, h: 0, d: 0.06, s: 0, r: 0.03, t: 0, f: 440 }]);
 
+  // ── 50–99: styled after classic sound chips and soundtracks ───────
+  // NES 2A03 (12)
+  add('NES', 'Robot Hero Lead', lead('nP50', { v: 0.36, rate: 8, c: 35, delay: 0.08 }), 'Mega Man 2 (NES)');
+  add('NES', 'Vampire Hunter Lead', detune('nP25', 8, { v: 0.3, a: 0.012 }), 'Castlevania (NES)');
+  add('NES', 'Plumber Lead', lead('nP50', { v: 0.36, d: 0.2, s: 0.6, vib: false }), 'Super Mario Bros. (NES)');
+  add('NES', 'Hero Fanfare', [...lead('nP12', { v: 0.32, c: 18, delay: 0.22 }), { w: 'nP25', v: 0.18, a: 0.01, h: 0.02, d: 0.2, s: 0.9, r: 0.04, t: 0.5 }], 'The Legend of Zelda (NES)');
+  add('NES', 'Bounty Hunter Pad', [...swell('nTRI', { v: 0.45, a: 0.3, c: 8 }), { w: 'nP12', v: 0.12, a: 0.4, h: 0.05, d: 0.5, s: 1, r: 0.3, t: 2.003 }], 'Metroid (NES)');
+  add('NES', 'Coin Blip', [{ w: 'nP50', v: 0.36, a: 0.002, h: 0.02, d: 0.25, s: 0.4, r: 0.05, t: 1, p: 2 ** (5 / 12), q: 0.03 }], 'Super Mario Bros. coin (NES)');
+  add('NES', 'Jump Sweep', sweep('nP25', 0.6, { q: 0.05, s: 0.5 }), 'Super Mario Bros. jump (NES)');
+  add('NES', 'Power-Up Arp', arp('nP50', 2, { v: 0.34, rate: 30 }), 'NES power-up jingles');
+  add('NES', 'Triangle Kick Bass', [{ w: 'nTRI', v: 0.75, a: 0.002, h: 0.01, d: 0.3, s: 0.8, r: 0.03, t: 2, p: 0.5, q: 0.006 }], 'NES triangle bass lines'); // starts an octave up, snaps to the note
+  add('NES', 'Ninja Lead', lead('nP12', { v: 0.4, a: 0.001, d: 0.08, s: 0.85, rate: 6.5, c: 45, delay: 0.3 }), 'Ninja Gaiden (NES)');
+  add('NES', 'Echo Pulse', [...lead('nP25', { v: 0.36, vib: false }), { w: 'nP25', v: 0.14, a: 0.12, h: 0.02, d: 0.3, s: 0.6, r: 0.15, t: 1.002 }], 'NES two-channel echo (DuckTales)');
+  add('NES', 'Sunsoft Saw Bass', bass('nSAW', { v: 0.6, d: 0.25, s: 0.75, p: 0.97, q: 0.05 }), 'Sunsoft bass (Batman, NES)');
+  // Famicom expansion chips (6)
+  add('Famicom+', 'VRC6 Saw Lead', lead('nVRS', { v: 0.55, rate: 5.5, c: 22, delay: 0.2 }), 'Konami VRC6 (Akumajou Densetsu)');
+  add('Famicom+', 'VRC6 Thin Pulse', lead('nP06', { v: 0.5, c: 18 }), 'Konami VRC6 (Esper Dream 2)');
+  add('Famicom+', 'FDS Wavetable Lead', [...lead('nFDS', { v: 0.55, vib: false }), vib(5, 35, 0.12)], 'Famicom Disk System (Zelda no Densetsu)');
+  add('Famicom+', 'N163 Brass Wave', lead('nN16', { v: 0.6, a: 0.015, c: 15 }), 'Namco 163 (King of Kings)');
+  add('Famicom+', '5B Buzz Square', am('nP50', 'sawtooth', { v: 0.36, mt: 1, mv: 0.12 }), 'Sunsoft 5B (Gimmick!)');
+  add('Famicom+', 'MMC5 Pulse Duet', [{ w: 'nP25', v: 0.26, a: 0.003, h: 0.02, d: 0.1, s: 1, r: 0.04 }, { w: 'nP50', v: 0.2, a: 0.003, h: 0.02, d: 0.1, s: 1, r: 0.04, t: 1.004 }], 'Nintendo MMC5 (Just Breed)');
+  // Game Boy DMG (8)
+  add('Game Boy', 'Pocket Monster Lead', lead('nP25', { v: 0.42, d: 0.15, s: 0.7, c: 15, delay: 0.25 }), 'Pokémon Red/Blue (GB)');
+  add('Game Boy', 'Falling Blocks Lead', lead('nP50', { v: 0.36, d: 0.12, s: 0.55, vib: false }), 'Tetris (GB)');
+  add('Game Boy', 'Island Wave Lead', lead('nWV1', { v: 0.65, rate: 5, c: 25, delay: 0.3 }), "Link's Awakening (GB)");
+  add('Game Boy', 'Wave Bass Pluck', bass('nWV2', { v: 0.7, d: 0.15, s: 0.3 }), 'Game Boy wave-channel bass');
+  add('Game Boy', 'Noise Channel Lead', lead('nMTP', { v: 0.38, d: 0.1, s: 0.6, vib: false, t: 0.5 }), 'Game Boy noise-channel melodies');
+  add('Game Boy', 'Duty Sweep Lead', pwm('nP12', 'nP25', 6, { v: 0.26, vib: [5.5, 15, 0.25] }), 'Game Boy duty cycling');
+  add('Game Boy', 'Puffball Pluck', [...pluck('nP25', { v: 0.45, d: 0.16 }), { w: 'nP12', v: 0.18, a: 0.002, h: 0, d: 0.08, s: 0, r: 0.03, t: 2 }], "Kirby's Dream Land (GB)");
+  add('Game Boy', 'Echo Wave Pad', [...swell('nWV1', { v: 0.45, a: 0.2 }), { w: 'nWV1', v: 0.2, a: 0.35, h: 0.05, d: 0.5, s: 1, r: 0.4, t: 1.004 }], 'Game Boy wave-channel pads');
+  // Commodore 64 SID (8)
+  add('C64 SID', 'PWM Lead', pwm('nP25', 'nP37', 4, { v: 0.28, vib: [6, 20, 0.2] }), 'C64 SID pulse-width leads (Rob Hubbard)');
+  add('C64 SID', 'Combined Wave Lead', lead('nSID', { v: 0.55, c: 25 }), 'C64 SID combined waveforms');
+  add('C64 SID', 'Ring Mod Bell', am('sine', 'square', { v: 0.26, d: 0.4, s: 0.15, r: 0.2, mt: 2.5, mv: 0.2 }), 'C64 SID ring modulation');
+  add('C64 SID', 'Driving Bass', [...bass('nSAW', { v: 0.45, d: 0.12, s: 0.6 }), { w: 'nP50', v: 0.18, a: 0.002, h: 0.01, d: 0.1, s: 0.5, r: 0.03, t: 0.25 }], 'Monty on the Run (C64)');
+  add('C64 SID', 'Chord Arp (fast)', arp('nP25', 2 ** (7 / 12), { rate: 50, v: 0.38 }), 'C64 fast chord arpeggios');
+  add('C64 SID', 'Saw Brass', lead('nSAW', { v: 0.6, a: 0.05, d: 0.2, s: 0.85, c: 12, delay: 0.3 }), 'C64 SID brass');
+  add('C64 SID', 'Hard Sync Lead', [{ w: 'nP50', v: 0.26, a: 0.003, h: 0.02, d: 0.1, s: 1, r: 0.04 }, { w: 'nSAW', v: 0.3, a: 0.003, h: 0.02, d: 0.1, s: 1, r: 0.04, t: 2 }, vib(6, 15, 0.2)], 'C64 SID sync-style leads');
+  add('C64 SID', 'Noise Wind', [{ w: 'nNOI', v: 0.3, a: 0.3, h: 0.05, d: 0.5, s: 1, r: 0.4, t: 0.25 }], 'C64 SID noise effects');
+  // Atari 2600 TIA (4)
+  add('Atari 2600', 'TIA Buzz Lead', lead('nTI5', { v: 0.42, vib: false }), 'Atari 2600 TIA poly5');
+  add('Atari 2600', 'TIA Poly Bass', bass('nTI4', { v: 0.45 }), 'Atari 2600 TIA poly4');
+  add('Atari 2600', 'TIA Div-31 Drone', swell('nTIB', { v: 0.36, a: 0.1, c: 5 }), 'Atari 2600 TIA div-31');
+  add('Atari 2600', 'TIA Laser Shot', sweep('nTI4', 4, { q: 0.08, s: 0.2, v: 0.45 }), 'Atari 2600 shots');
+  // AY / PSG arcade and home computers (5)
+  add('AY / PSG', 'AY Buzzer Bass', am('nP50', 'sawtooth', { v: 0.36, t: 0.5, mt: 0.5, mv: 0.2 }), 'AY-3-8910 envelope buzzer (ZX Spectrum, MSX)');
+  add('AY / PSG', 'MSX Square Lead', lead('nP50', { v: 0.36, rate: 5, c: 12, delay: 0.25 }), 'MSX PSG (Konami)');
+  add('AY / PSG', 'PSG Square Pad', swell('nP50', { v: 0.28, a: 0.2 }), 'Sega Master System PSG');
+  add('AY / PSG', 'Arcade Siren', siren('nTRI', 3, 4, { v: 0.6 }), 'Arcade siren (Pac-Man)');
+  add('AY / PSG', 'Arcade Shot', sweep('nP25', 3, { q: 0.03, s: 0.15 }), 'Arcade shooters (Galaga)');
+  // Genesis / Mega Drive YM2612 FM (5)
+  add('Genesis FM', 'FM Slap Bass', [{ w: 'sine', v: 0.5, a: 0.002, h: 0.01, d: 0.3, s: 0.5, r: 0.06, t: 0.5 }, { g: 1, w: 'sine', t: 0.5, v: 4, a: 0, h: 0, d: 0.08, s: 0.3, r: 0.05 }], 'Genesis slap bass (Streets of Rage)');
+  add('Genesis FM', 'FM Brass Stab', fm('sine', 1, 4, { a: 0.01, d: 0.2, s: 0.5, md: 0.15, ms: 0.4 }), 'Genesis FM brass');
+  add('Genesis FM', 'FM Organ', [{ w: 'sine', v: 0.35, a: 0.005, h: 0.02, d: 0.1, s: 1, r: 0.05 }, { g: 1, w: 'sine', t: 2, v: 0.8, a: 0, h: 0, d: 0.1, s: 1, r: 0.05 }, { w: 'sine', v: 0.15, a: 0.005, h: 0.02, d: 0.1, s: 1, r: 0.05, t: 2 }], 'Genesis FM organ');
+  add('Genesis FM', 'FM Speed Lead', [...fm('sine', 2, 2, { d: 0.3, s: 0.8, md: 0.2, ms: 0.5 }), vib(6, 20, 0.15)], 'Sonic the Hedgehog (Genesis)');
+  add('Genesis FM', 'FM Marimba', fm('sine', 4, 3, { d: 0.25, s: 0, md: 0.05, ms: 0 }), 'Genesis FM mallets');
+  // PC Engine / TurboGrafx-16 (2)
+  add('PC Engine', 'PCE Wavetable Lead', lead('nPC1', { v: 0.6, c: 20 }), 'PC Engine wavetable (Bonk)');
+  add('PC Engine', 'PCE Wavetable Pluck', pluck('nPC2', { v: 0.6, d: 0.15 }), 'PC Engine wavetable');
+
   // ── drum kit (GM keys) ──────────────────────────────────────────
   const kick = (f) => [{ w: 'nTRI', t: 0, f, v: 0.95, a: 0.002, h: 0, d: 0.06, s: 0, r: 0.03, p: 0.28, q: 0.03 }];
   const tom = (f) => [{ w: 'nTRI', t: 0, f, v: 0.75, a: 0.002, h: 0, d: 0.08, s: 0, r: 0.03, p: 0.6, q: 0.05 }];
@@ -163,5 +258,5 @@
     return synth;
   }
 
-  root.TinyChip = { install, PRESETS: P, DRUMS: Object.fromEntries(Object.entries(DRUMS).map(([k, [n]]) => [k, n])), WAVES: ['nP12', 'nP25', 'nP50', 'nTRI', 'nSAW', 'nWV1', 'nWV2', 'nMTP', 'nNOI', 'nMET'] };
+  root.TinyChip = { install, PRESETS: P, DRUMS: Object.fromEntries(Object.entries(DRUMS).map(([k, [n]]) => [k, n])), WAVES: ['nP06', 'nP12', 'nP25', 'nP37', 'nP50', 'nTRI', 'nSAW', 'nVRS', 'nWV1', 'nWV2', 'nFDS', 'nN16', 'nSID', 'nTI4', 'nTI5', 'nTIB', 'nPC1', 'nPC2', 'nMTP', 'nNOI', 'nMET'] };
 })(typeof window !== 'undefined' ? window : globalThis);

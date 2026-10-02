@@ -23,7 +23,7 @@ const TINY_NOTICE = '/*! webaudio-tinysynth (c) g200kg, Apache License 2.0, http
 // TinyChip: 50 chiptune presets + a chip drum kit for tinysynth, from its own setTimbre/noiseBuf hooks
 const chipPack = (await build({ stdin: { contents: readFileSync(here + 'tinysynth-chip.js', 'utf8'), loader: 'js' }, minify: true, write: false, logLevel: 'error' })).outputFiles[0].text;
 globalThis.window = globalThis; await import('./tinysynth-chip.js');
-const CHIP_PRESETS = globalThis.TinyChip.PRESETS.map(({ program, name, category }) => ({ program, name, category }));
+const CHIP_PRESETS = globalThis.TinyChip.PRESETS.map(({ program, name, category, inspired }) => ({ program, name, category, inspired }));
 
 const chipModules = loadBuiltModules(['midi', 'synth', 'play', 'smf']);
 const chipBytes = chipModules.reduce((n, m) => n + m.js.length, 0);
@@ -82,7 +82,7 @@ label.check{display:flex;gap:8px;align-items:center;font-size:20px}
 @media (max-width:720px){.layout{grid-template-columns:1fr}.art{max-width:320px}}
 </style></head><body><main>
 <h1>One MIDI, three engines</h1>
-<p>Each Beast's music is a standard MIDI file, the bytes the Cairo composer's <code>get_score_midi</code> returns onchain. Switch the engine that plays it: our chip synth (MIDI parsed into chiptune voices), webaudio-tinysynth (a General MIDI synth), or tinysynth with the TinyChip pack (50 chiptune presets and a chip drum kit, built from tinysynth's own timbre engine). Same notes, same file.</p>
+<p>Each Beast's music is a standard MIDI file, the bytes the Cairo composer's <code>get_score_midi</code> returns onchain. Switch the engine that plays it: our chip synth (MIDI parsed into chiptune voices), webaudio-tinysynth (a General MIDI synth), or tinysynth with the TinyChip pack (100 chiptune presets, half of them styled after classic game sound chips, plus a chip drum kit, all built from tinysynth's own timbre engine). Same notes, same file.</p>
 <div class="layout">
   <div class="art"><img id="art" alt=""></div>
   <div class="panel">
@@ -96,6 +96,7 @@ label.check{display:flex;gap:8px;align-items:center;font-size:20px}
       <label id="gmRow" hidden>Instrument <select id="gm">${GM.map(([n, label]) => `<option value="${n}">${n}: ${esc(label)}</option>`).join('')}</select></label>
       <div id="chipRow" hidden>
         <label>Chip preset (${CHIP_PRESETS.length}) <select id="chipPreset">${[...new Set(CHIP_PRESETS.map((p) => p.category))].map((c) => `<optgroup label="${esc(c)}">${CHIP_PRESETS.filter((p) => p.category === c).map((p) => `<option value="${p.program}">${p.program}: ${esc(p.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
+        <span class="note" id="chipInspired"></span>
         <label class="check"><input type="checkbox" id="bassVoice" checked> Lowest voice on Triangle Bass</label>
       </div>
       <span class="note" id="engineNote"></span>
@@ -125,6 +126,8 @@ const v1 = BeastSound.v1;
 const $ = (id) => document.getElementById(id);
 let engine = 'chip', current = 0, handle = null, tiny = null, tinyOn = false, tinyChip = null;
 const BASS_PROGRAM = 20; // TinyChip: Triangle Bass (NES)
+const INSPIRED = ${JSON.stringify(Object.fromEntries(CHIP_PRESETS.filter((p) => p.inspired).map((p) => [p.program, p.inspired])))};
+const showInspired = () => { const v = INSPIRED[$('chipPreset').value]; $('chipInspired').textContent = v ? 'Inspired by ' + v : 'Generic chip voice'; };
 const bytesOf = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 
 // The chip engine's drum pattern as General MIDI drums (kick 36, snare 38, hats 42 / open 46).
@@ -197,7 +200,7 @@ $('play').addEventListener('click', () => ((handle || tinyOn) ? stop() : play())
 $('beast').addEventListener('change', (e) => { const was = handle || tinyOn; stop(); current = +e.target.value; show(); if (was) play(); });
 $('drums').addEventListener('change', () => { if (handle || tinyOn) { stop(); play(); } });
 $('gm').addEventListener('change', setProgram);
-$('chipPreset').addEventListener('change', setProgram);
+$('chipPreset').addEventListener('change', () => { showInspired(); setProgram(); });
 $('bassVoice').addEventListener('change', setProgram);
 document.querySelectorAll('[data-engine]').forEach((btn) => btn.addEventListener('click', () => {
   const was = handle || tinyOn; stop();
@@ -211,6 +214,7 @@ $('dl').addEventListener('click', () => {
   a.download = 'beast-' + current + '.mid'; a.click();
 });
 show();
+showInspired();
 </script></body></html>`;
 writeFileSync(out + 'engines.html', html);
 console.log(`engines.html: ${(html.length / 1000).toFixed(0)} KB · ${data.length} Beasts · chip engine ${chipBytes} B · tinysynth ${tiny.length} B`);

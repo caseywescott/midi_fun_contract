@@ -1,8 +1,21 @@
 # BeastSoundComposer
 
-The Koji Beast composer (`koji::composition::beast_v3_sound`) as a Starknet contract. Every view
-is a pure function of a Beasts V3 token ID plus live state. In this build the live state is passed
-as calldata; the production `BeastSound` contract reads it from the Beasts NFT and Summit.
+`provider::BeastMidiProvider` implements `midi_interfaces::IMidiProvider`:
+
+```cairo
+get_midi(token_address: ContractAddress, token_id: u256) -> ByteArray
+```
+
+Constructor arguments are the supported NFT collection and verified Death Mountain source.
+The immutable provider validates collection/mint/source, reads kills/rank/species count from the
+NFT and collect count directly from Death Mountain, and returns raw SMF bytes. Scars exclude the
+initial collect; the retired Summit input is deliberately zero. It supports the116-bit V3 codec
+and original species1–75, with explicit failures for unsupported/unavailable sources. See
+[the MIDI page documentation](../../offchain/beast-sound/onchain/README.md) for exact source
+namespace, artifact versions, measured complete-path costs and release limitations.
+
+The existing `BeastSoundComposer` below remains a standalone benchmark/compatibility contract.
+Its callers supply historical state; it is not the provider used by `MidiPage`.
 
 | View | Returns |
 |---|---|
@@ -29,7 +42,7 @@ note of a section when articulation is accent.
 ## Build
 
 ```bash
-scarb build   # CASM 25,139 felts (Starknet limit 81,920)
+scarb build   # provider CASM23,605 felts; see complete-path measurements in the MIDI page docs
 ```
 
 ## Measured execution cost (starknet-devnet 0.10.0, 1 Oct 2026)

@@ -1,0 +1,19 @@
+[package]
+name = "midi_integration"
+version = "0.1.0"
+edition = "2024_07"
+cairo-version = "=2.11.4"
+[dependencies]
+starknet = "2.11.4"
+koji = { path = "../.." }
+midi_interfaces = { path = "../midi_interfaces" }
+beast_sound = { path = "../beast_sound" }
+beast_sound_page = { path = "../../offchain/beast-sound/onchain/cairo" }
+[dev-dependencies]
+snforge_std = "0.44.0"
+[[target.starknet-contract]]
+build-external-contracts = ["beast_sound::provider::BeastMidiProvider", "beast_sound_page::MidiPage"]
+sierra = true
+casm = true
+[tool.scarb]
+allow-prebuilt-plugins = ["snforge_std"]

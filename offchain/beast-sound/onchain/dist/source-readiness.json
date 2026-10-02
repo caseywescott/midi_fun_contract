@@ -1,0 +1,11 @@
+{
+  "ready": false,
+  "checked_at": "2026-10-02T15:33:12.569Z",
+  "block": 15976090,
+  "collection": "0x01dac77837c6751777d917051a6e405967c5c75f46df5ab7c635e52819634bfd",
+  "token_id": "0x7006400010000000000000000001",
+  "owner": "0x736faa0dca6a4569bf22471b574ddf42107f5af81d67e2cb9e1aa9bba7de76b",
+  "death_mountain": "0x0",
+  "reason": "minted token or configured defeat source unavailable",
+  "read_ms": 133
+}

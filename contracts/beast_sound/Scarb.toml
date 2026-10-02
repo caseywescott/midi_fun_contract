@@ -6,7 +6,10 @@ cairo-version = "=2.11.4"
 
 [dependencies]
 koji = { path = "../.." }
+midi_interfaces = { path = "../midi_interfaces" }
 starknet = "2.11.4"
+
+[lib]
 
 [[target.starknet-contract]]
 sierra = true

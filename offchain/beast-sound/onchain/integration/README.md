@@ -1,52 +1,36 @@
-# Integrating Beast Sound into `beasts_nft`
+# Integrating the generic MIDI page into Beasts
 
-`beasts_nft-sound.patch` is a ready-to-apply change to
-[Provable-Games/beasts](https://github.com/Provable-Games/beasts) (written against `main` at
-`ae3fa8d`):
+`beasts_nft-sound.patch` applies to [Provable-Games/beasts at ae3fa8d](https://github.com/Provable-Games/beasts/tree/ae3fa8d0efdb8de62144abcd26984d34e90aab5b), the 116-bit V3 collection. It adds an owner-set `sound_page` pointer, where zero retains the existing sound-disabled metadata. When enabled, metadata/artwork are passed to `IMidiPage.token_uri(members, svg_b64, get_contract_address(), token_id)`. No music state or Summit data is passed by the NFT.
 
 ```bash
-git apply beasts_nft-sound.patch      # or: git am beasts_nft-sound.patch
-scarb build && snforge test --max-n-steps 4294967295
+# Use an isolated checkout at the exact baseline:
+git apply --check beasts_nft-sound.patch
+git apply beasts_nft-sound.patch
+scarb fmt --check
+snforge test --max-n-steps 4294967295
 ```
 
-## What it changes
+The exported patch contains only `interfaces.cairo`, `lib.cairo`, `metadata_generator.cairo` and `sound_page_tests.cairo`. It adds neither a composer dependency nor the temporary end-to-end test module. It was clean-applied and tested with the NFT's own Scarb 2.18.0 / Foundry 0.60.0 toolchain: 74 tests passed. The provider/page use Scarb 2.11.4 and are separate classes; no shared Cairo package version is forced onto the NFT.
 
-| File | Change |
-|---|---|
-| `src/interfaces.cairo` | `BeastSoundInputs` struct and an `IBeastSoundPage` dispatcher interface; `set_sound_page_address` and `get_sound_page_address` on `IBeasts` |
-| `src/lib.cairo` | `sound_page: ContractAddress` storage, an owner-only setter, and `generate_metadata` receiving `sound_page` and `beast_counts(beast.id)` |
-| `src/metadata_generator.cairo` | `sound_page == 0` gives today's output, byte for byte. Otherwise it passes the JSON members (name, description, attributes) and the SVG base64 to the sound page and returns its `token_uri`. `MetadataComponents.image` becomes `image_svg_b64`, and the attribute loop is shared |
-| `src/sound_page_tests.cairo` | Three tests: defaults to off, delegates when set, owner-only setter |
+## End-to-end harness
 
-Mints, transfers and every other write path are untouched. Only the `token_uri` and
-`animation_url` views change, and only after the owner sets the address.
+`sound_e2e_tests.cairo` is separate from the patch. It instantiates the real NFT and all four real PNG/GIF art classes, our real `MidiPage` and `BeastMidiProvider`, and a Death Mountain ABI mock. State remains mock-controlled; this is not evidence of a configured live production source. The heaviest case explicitly sets 200 kills/64 collects and exercises 3,716-byte MIDI.
 
-## Deploy
+The runner builds the MIDI artifacts separately, adds the test module to the **isolated checkout**, and injects those artifacts into Foundry's generated test manifest after each build. The wrapper and logs remain in `/tmp`; it changes no production dependencies or class pointers.
 
-1. Declare and deploy `BeastSoundPage` from `../cairo`. It's stateless, with no constructor
-   arguments.
-2. Upgrade or redeploy `beasts_nft` with the patch.
-3. As owner, call `set_sound_page_address(<BeastSoundPage>)`. Setting it back to `0` turns sound
-   off.
+```bash
+# Run from offchain/beast-sound:
+SCARB_MIDI=/path/to/scarb-2.11.4 \
+SCARB_NFT=/path/to/scarb-2.18.0 \
+SNFORGE_NFT=/path/to/snforge-0.60.0 \
+node onchain/integration/run-e2e.mjs /path/to/isolated-patched-beasts /tmp/nft-flow.log
 
-## Verified
+node onchain/verify-flow.mjs /tmp/midi-flow.log /tmp/nft-flow.log
+node onchain/measure.mjs /tmp/midi-flow.log /tmp/nft-flow.log
+```
 
-- **Their suite:** 74 pass with the patch (their 71 plus the 3 new ones). `scarb fmt --check` is
-  clean.
-- **Size:** the `beasts_nft` class grows from 30,249 to 30,556 Sierra felts (+1%).
-- **End to end, real contracts:** `sound_e2e_tests.cairo` ran their real PNG and GIF art providers
-  with the real `BeastSoundPage`. Running it needs `beast_sound_page` as a path dependency and
-  `build-external-contracts = ["beast_sound_page::BeastSoundPage"]`.
-  - With sound on, `token_uri` decodes to valid JSON. Name, description, attributes and `image`
-    are identical to the sound-off output, with `animation_url` added.
-  - In Chrome, the page composes the expected score hash and plays, for a plain Beast and for an
-    animated shiny one.
-- **Gas:** setup, mint and `token_uri` cost 1,249.5M L2 gas with sound off and 1,277.2M with
-  sound on. So sound adds under 28M per call, and that figure includes deploying the page.
+Eight end-to-end tests passed. Independently decoded output retains all name/description/attributes/image fields exactly for plain and animated shiny Beasts. Its embedded raw MIDI matches the independent JS composer for equivalent authoritative mock state. Exact emitted data URLs also pass offline Chromium playback. The ownable setter remains restricted; restoring the pointer to zero retains sound-disabled behavior.
 
-## Not wired yet
+## Activation prerequisites
 
-- **Summit stats:** `scars` and `summit_held_seconds` are passed as 0. Summit deaths, hours held
-  and later Death Mountain collects need a source in the NFT, such as a stats cache.
-- **Sound drop:** every token gets sound once the address is set. To gate non-genesis Beasts by
-  the sound drop, check the roll before calling the page.
+Declare/deploy decisions and `set_sound_page_address` are outside this implementation. Before considering them, verify a nonzero Death Mountain configuration against the 116-bit source/namespace, configure an RPC read budget that actually accepts the measured full path, and validate the intended marketplace/browser. The documented Sepolia collection currently reports source 0. Newer 180-bit/community collections require their own verified provider policy. See [the full resource and source report](../README.md); class-size success does not establish read/deployment readiness.

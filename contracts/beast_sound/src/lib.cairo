@@ -1,8 +1,8 @@
 //! BeastSoundComposer: the Koji Beast composer as a Starknet contract.
 //!
-//! Every view is a pure function of a Beasts V3 token ID plus the Beast's live state. In this
-//! benchmark build the live state is passed as calldata; the production `BeastSound` contract
-//! reads it from the Beasts NFT (kills, rank, species count) and Summit (deaths, hours held).
+//! This benchmark/compatibility ABI accepts the historical live-state struct. The production
+//! page calls the separate `provider::BeastMidiProvider`, whose generic ABI accepts only an NFT
+//! collection address and token ID and retrieves authoritative state internally.
 
 use koji::composition::beast_trait_map::BeastCompositionParams;
 use koji::composition::beast_v3_sound::BeastV3LiveState;
@@ -81,3 +81,5 @@ pub mod BeastSoundComposer {
         }
     }
 }
+
+pub mod provider;

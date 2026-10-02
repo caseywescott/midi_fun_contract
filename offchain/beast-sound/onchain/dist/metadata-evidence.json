@@ -1,0 +1,33 @@
+{
+  "checked": "NFT fields/image exact; generic raw SMF matches independent JS composer; dynamic MIDI/art decoded exactly",
+  "cases": [
+    {
+      "name": "non_beast",
+      "uri_bytes": 83157,
+      "html_bytes": 46678,
+      "midi_bytes": 42,
+      "image_base64_bytes": 8
+    },
+    {
+      "name": "actual_plain",
+      "uri_bytes": 177029,
+      "html_bytes": 76280,
+      "midi_bytes": 816,
+      "image_base64_bytes": 28584
+    },
+    {
+      "name": "actual_fancy",
+      "uri_bytes": 182553,
+      "html_bytes": 77965,
+      "midi_bytes": 659,
+      "image_base64_bytes": 30476
+    },
+    {
+      "name": "actual_heaviest",
+      "uri_bytes": 191249,
+      "html_bytes": 82506,
+      "midi_bytes": 3716,
+      "image_base64_bytes": 30940
+    }
+  ]
+}

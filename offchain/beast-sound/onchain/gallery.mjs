@@ -8,7 +8,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { call, NETWORKS, readMainnetBeast } from '../src/chain.js';
-import { composeBeast, encodeTokenId } from '../src/index.js';
+import { composeBeast } from '../src/index.js';
 import { animationHtml } from './page.js';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
@@ -16,7 +16,7 @@ const out = here + '../public/onchain/';
 const COUNT = Number(process.argv[2] || 100);
 const CANDIDATES = Number(process.argv[3] || 400);
 const net = NETWORKS.mainnet;
-const js = readFileSync(here + 'dist/composer.js', 'utf8');
+const js = readFileSync(here + 'dist/player.js', 'utf8');
 
 async function pool(items, limit, fn) {
   const results = new Array(items.length);
@@ -77,8 +77,7 @@ console.log(`composed ${ok.length}; notes ${ok[0].song.events.length}–${ok.at(
 mkdirSync(out + 'beasts', { recursive: true });
 const rows = await pool(picks, 2, async (p) => {
   const svg = await tokenSvg(p.token);
-  const tokenId = encodeTokenId(p.beast);
-  writeFileSync(out + `beasts/${p.token}.html`, animationHtml(js, tokenId, p.live, svg));
+  writeFileSync(out + `beasts/${p.token}.html`, animationHtml(js, p.song.midi, Buffer.from(svg).toString('base64')));
   writeFileSync(out + `beasts/${p.token}.svg`, svg);
   const s = p.song;
   return {
@@ -134,7 +133,7 @@ li[hidden]{display:none}
 </style></head><body>
 <header>
 <h1>Beast Sound Gallery</h1>
-<p>${list.length} mainnet Beasts, from the sparest theme to the densest. Each page is exactly what its onchain <code>animation_url</code> would hold: the Beast's own art plus a composer that writes its theme from its traits and history. Open one and tap ♪.</p>
+<p>${list.length} mainnet Beasts, from the sparest theme to the densest. Each page is exactly what its onchain <code>animation_url</code> would hold: the Beast's own art plus an offline player for its MIDI theme. Open one and tap ♪.</p>
 <nav aria-label="Filter by complexity">${['All', 'Sparse', 'Moderate', 'Rich', 'Dense'].map((l) => `<button type="button" data-f="${l}" aria-pressed="${l === 'All'}">${l}</button>`).join('')}</nav>
 </header>
 <main><ol>

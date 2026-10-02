@@ -1,72 +1,79 @@
-//! Beast Sound page: a Beast's `token_uri` with its theme as `animation_url`, built onchain.
-//!
-//! The Beasts NFT keeps building its JSON members and animated SVG exactly as today, then calls
-//! `token_uri(members, svg_b64, token_id, live)` here instead of base64-encoding the JSON itself.
-//! `animation_url` is an HTML page: the composer script (stored in this contract's code), one line
-//! of per-token inputs, and the same SVG. The browser composes the theme from the inputs with
-//! engine v1 and plays it on tap; nothing is fetched.
-//!
-//! Every piece is aligned to 3 bytes so base64 runs concatenate (see onchain/page.js):
-//!
-//!   "data:application/json;base64,"
-//!     ++ b64('{' members ',' <spaces> '"image":"data:image/svg+xml;base64,')
-//!     ++ b64(S) where S = svg_b64 '"' <spaces>          (encoded once, appended twice)
-//!     ++ b64(',  ')
-//!     ++ stored_segment()                               (the page, encoded at build time)
-//!     ++ b64(b64(inputs line + '<script type="text/plain" id="art">'))
-//!     ++ b64(S)
-//!     ++ b64('}')
-//!
-//! So the per-call base64 work is the same as today's plus about 150 bytes.
-
+//! Generic MIDI page: NFT presentation → provider raw SMF → embedded offline TinySynth.
+//! Only dynamic MIDI and artwork are encoded at runtime. The fixed player is pre-encoded.
 pub mod page_data;
 
-/// Live stats the composer reads (same fields and types as koji's `BeastV3LiveState`).
-#[derive(Copy, Drop, Serde, PartialEq, Debug)]
-pub struct BeastSoundInputs {
-    pub adventurers_killed: u64,
-    pub scars: u64,
-    pub summit_held_seconds: u64,
-    pub rank: u16,
-    pub species_count: u16,
-}
-
-fn pad_spaces(ref s: ByteArray, multiple: usize, extra: usize) {
-    while (s.len() + extra) % multiple != 0 {
+fn pad_spaces(ref s: ByteArray, multiple: usize) {
+    while s.len() % multiple != 0 {
         s.append_byte(' ');
     }
 }
 
-/// `<script>BEAST_SOUND="token,kills,scars,held,rank,count"</script>`, then the opening of the inert
-/// text block that carries the SVG (the Beasts SVG uses XML-only syntax, so the page shows it through
-/// an <img> instead of inlining it). Space-padded to 9n bytes so its base64 is whole 3-byte groups.
-pub fn inputs_html(token_id: u256, live: BeastSoundInputs) -> ByteArray {
-    let art_open: ByteArray = "<script type=\"text/plain\" id=\"art\">";
-    let mut s: ByteArray = "<script>BEAST_SOUND=\"";
-    s
-        .append(
-            @format!(
-                "{},{},{},{},{},{}",
-                token_id,
-                live.adventurers_killed,
-                live.scars,
-                live.summit_held_seconds,
-                live.rank,
-                live.species_count,
-            ),
-        );
-    s.append(@"\"</script>");
-    pad_spaces(ref s, 9, art_open.len());
-    s.append(@art_open);
-    s
-}
-
 fn base64_chars() -> Span<u8> {
     array![
-        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
-        'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
-        'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1',
-        '2', '3', '4', '5', '6', '7', '8', '9', '+', '/',
+        'A',
+        'B',
+        'C',
+        'D',
+        'E',
+        'F',
+        'G',
+        'H',
+        'I',
+        'J',
+        'K',
+        'L',
+        'M',
+        'N',
+        'O',
+        'P',
+        'Q',
+        'R',
+        'S',
+        'T',
+        'U',
+        'V',
+        'W',
+        'X',
+        'Y',
+        'Z',
+        'a',
+        'b',
+        'c',
+        'd',
+        'e',
+        'f',
+        'g',
+        'h',
+        'i',
+        'j',
+        'k',
+        'l',
+        'm',
+        'n',
+        'o',
+        'p',
+        'q',
+        'r',
+        's',
+        't',
+        'u',
+        'v',
+        'w',
+        'x',
+        'y',
+        'z',
+        '0',
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+        '8',
+        '9',
+        '+',
+        '/',
     ]
         .span()
 }
@@ -109,64 +116,123 @@ pub fn base64(input: @ByteArray) -> ByteArray {
     out
 }
 
-/// The complete token_uri. `members` is the JSON object body without braces and without `image`,
-/// e.g. `"name":"Warlock","description":"...","attributes":[...]`. `svg_b64` is base64 of the
-/// Beast's SVG (what the NFT puts after `data:image/svg+xml;base64,` today).
-pub fn token_uri(
-    members: @ByteArray, svg_b64: @ByteArray, token_id: u256, live: BeastSoundInputs,
-) -> ByteArray {
-    let image_key: ByteArray = "\"image\":\"data:image/svg+xml;base64,";
-    let mut a: ByteArray = "{";
-    a.append(members);
-    a.append_byte(',');
-    pad_spaces(ref a, 3, image_key.len());
-    a.append(@image_key);
 
-    let mut s = svg_b64.clone();
-    s.append_byte('"');
-    pad_spaces(ref s, 3, 0);
-    let s_b64 = base64(@s);
+// Split at 9 whole 31-byte words (279 bytes): Base64(prefix) is both JSON-aligned and
+// HTML-aligned. Share that first encoded artwork fragment instead of processing SVG twice.
+fn split_art(svg_b64: @ByteArray) -> (ByteArray, ByteArray) {
+    let mut serialized: Array<felt252> = array![];
+    svg_b64.serialize(ref serialized);
+    let mut words = serialized.span();
+    let full: usize = (*words.pop_front().unwrap()).try_into().unwrap();
+    let prefix_words = full / 9 * 9;
+    let mut prefix: ByteArray = Default::default();
+    let mut suffix: ByteArray = Default::default();
+    let mut i: usize = 0;
+    while i < full {
+        let word = *words.pop_front().unwrap();
+        if i < prefix_words {
+            prefix.append_word(word, 31);
+        } else {
+            suffix.append_word(word, 31);
+        }
+        i += 1;
+    }
+    let pending = *words.pop_front().unwrap();
+    let length: usize = (*words.pop_front().unwrap()).try_into().unwrap();
+    suffix.append_word(pending, length);
+    (prefix, suffix)
+}
+
+pub fn midi_open_html(midi: @ByteArray) -> ByteArray {
+    let art_open: ByteArray = "<script type=\"text/plain\" id=\"art\">";
+    let mut head = base64(midi);
+    head.append(@"</script>");
+    while (head.len() + art_open.len()) % 9 != 0 {
+        head.append_byte(' ');
+    }
+    head.append(@art_open);
+    head
+}
+
+/// Closed inert Base64 payloads: neither raw artwork nor arbitrary MIDI is executable HTML.
+pub fn midi_html(midi: @ByteArray, svg_b64: @ByteArray) -> ByteArray {
+    let mut tail = midi_open_html(midi);
+    tail.append(svg_b64);
+    tail.append(@"</script></body></html>");
+    tail
+}
+
+/// `members` is trusted JSON without braces/image; `svg_b64` is canonical SVG Base64.
+pub fn token_uri(members: @ByteArray, svg_b64: @ByteArray, midi: @ByteArray) -> ByteArray {
+    let image_key: ByteArray = "\"image\":\"data:image/svg+xml;base64,";
+    let mut prefix: ByteArray = "{";
+    prefix.append(members);
+    prefix.append_byte(',');
+    while (prefix.len() + image_key.len()) % 3 != 0 {
+        prefix.append_byte(' ');
+    }
+    prefix.append(@image_key);
+    let (art_prefix, art_suffix) = split_art(svg_b64);
+    let art_once = base64(@art_prefix);
+    let mut image_tail = art_suffix.clone();
+    image_tail.append(@"\",");
+    pad_spaces(ref image_tail, 3);
+    let mut html_tail = art_suffix;
+    html_tail.append(@"</script></body></html>");
+    let mut json_tail = base64(@html_tail);
+    json_tail.append(@"\"}");
 
     let mut out: ByteArray = "data:application/json;base64,";
-    append_base64(ref out, @a);
-    out.append(@s_b64);
-    append_base64(ref out, @",  ");
+    append_base64(ref out, @prefix);
+    out.append(@art_once);
+    append_base64(ref out, @image_tail);
     out.append(@page_data::stored_segment());
-    append_base64(ref out, @base64(@inputs_html(token_id, live)));
-    out.append(@s_b64);
-    append_base64(ref out, @"}");
+    append_base64(ref out, @base64(@midi_open_html(midi)));
+    append_base64(ref out, @art_once);
+    append_base64(ref out, @json_tail);
     out
 }
 
 #[starknet::interface]
-pub trait IBeastSoundPage<T> {
-    /// The Beast's full token_uri with `animation_url` (see module docs for the arguments).
+pub trait IMidiPage<T> {
     fn token_uri(
-        self: @T, members: ByteArray, svg_b64: ByteArray, token_id: u256, live: BeastSoundInputs,
+        self: @T,
+        members: ByteArray,
+        svg_b64: ByteArray,
+        token_address: starknet::ContractAddress,
+        token_id: u256,
     ) -> ByteArray;
 }
 
-/// Stateless: the composer lives in the contract's code, so a new engine version is a new class.
 #[starknet::contract]
-pub mod BeastSoundPage {
-    use super::BeastSoundInputs;
-
+pub mod MidiPage {
+    use core::num::traits::Zero;
+    use midi_interfaces::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
+    use starknet::ContractAddress;
+    use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
     #[storage]
-    struct Storage {}
-
+    struct Storage {
+        provider: ContractAddress,
+    }
+    #[constructor]
+    fn constructor(ref self: ContractState, provider: ContractAddress) {
+        assert(provider.is_non_zero(), 'MIDI provider unavailable');
+        self.provider.write(provider);
+    }
     #[abi(embed_v0)]
-    impl BeastSoundPageImpl of super::IBeastSoundPage<ContractState> {
+    impl MidiPageImpl of super::IMidiPage<ContractState> {
         fn token_uri(
             self: @ContractState,
             members: ByteArray,
             svg_b64: ByteArray,
+            token_address: ContractAddress,
             token_id: u256,
-            live: BeastSoundInputs,
         ) -> ByteArray {
-            super::token_uri(@members, @svg_b64, token_id, live)
+            let midi = IMidiProviderDispatcher { contract_address: self.provider.read() }
+                .get_midi(token_address, token_id);
+            super::token_uri(@members, @svg_b64, @midi)
         }
     }
 }
-
 #[cfg(test)]
 mod tests;

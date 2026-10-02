@@ -1,23 +1,6 @@
-From 30303ee8fd669e88a102ffa5e2d90de91172a0d4 Mon Sep 17 00:00:00 2001
-From: CaseyW <zkpowergrind@gmail.com>
-Date: Fri, 2 Oct 2026 09:58:19 +1000
-Subject: [PATCH] add Beast Sound animation_url to token_uri
-
-Optional sound page contract (owner-set, zero = unchanged token_uri). When set,
-token_uri hands the JSON members and SVG base64 to the page, which returns the
-full token_uri with an animation_url that plays the Beast's theme.
-
-Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
----
- src/interfaces.cairo         | 27 +++++++++++++
- src/lib.cairo                | 14 +++++++
- src/metadata_generator.cairo | 74 +++++++++++++++++++++++++++---------
- src/sound_page_tests.cairo   | 74 ++++++++++++++++++++++++++++++++++++
- 4 files changed, 170 insertions(+), 19 deletions(-)
- create mode 100644 src/sound_page_tests.cairo
-
+# Generic MIDI page integration for Provable-Games/beasts at ae3fa8d0efdb8de62144abcd26984d34e90aab5b
 diff --git a/src/interfaces.cairo b/src/interfaces.cairo
-index 7548449..922b404 100644
+index 7548449..cf8c4fd 100644
 --- a/src/interfaces.cairo
 +++ b/src/interfaces.cairo
 @@ -26,6 +26,9 @@ pub trait IBeasts<TContractState> {
@@ -30,36 +13,26 @@ index 7548449..922b404 100644
  
      // Minting functions
      fn mint(
-@@ -197,3 +200,27 @@ pub struct SpecialPowers {
+@@ -197,3 +200,17 @@ pub struct SpecialPowers {
      pub special2: u8,
      pub special3: u8,
  }
-+
-+/// Live stats the Beast Sound composer reads to write a Beast's theme.
-+#[derive(Copy, Drop, Serde)]
-+pub struct BeastSoundInputs {
-+    pub adventurers_killed: u64,
-+    pub scars: u64,
-+    pub summit_held_seconds: u64,
-+    pub rank: u16,
-+    pub species_count: u16,
-+}
 +
 +/// Beast Sound page contract: builds the full token_uri with an `animation_url` that plays the
 +/// Beast's theme. `members` is the metadata JSON body without braces and without `image`;
 +/// `svg_b64` is the base64 SVG that `image` would carry.
 +#[starknet::interface]
-+pub trait IBeastSoundPage<TContractState> {
++pub trait IMidiPage<TContractState> {
 +    fn token_uri(
 +        self: @TContractState,
 +        members: ByteArray,
 +        svg_b64: ByteArray,
++        token_address: ContractAddress,
 +        token_id: u256,
-+        live: BeastSoundInputs,
 +    ) -> ByteArray;
 +}
 diff --git a/src/lib.cairo b/src/lib.cairo
-index a8dcde7..59c5711 100644
+index a8dcde7..0183f5a 100644
 --- a/src/lib.cairo
 +++ b/src/lib.cairo
 @@ -18,6 +18,8 @@ mod mint_tests;
@@ -95,20 +68,19 @@ index a8dcde7..59c5711 100644
          fn mint(
              ref self: ContractState,
              to: ContractAddress,
-@@ -595,6 +607,8 @@ pub mod beasts_nft {
+@@ -595,6 +607,7 @@ pub mod beasts_nft {
                  adventurers_killed,
                  last_killed_by_adventurer,
                  last_killed_timestamp,
 +                self.sound_page.read(),
-+                self.beast_counts.entry(beast.id).read(),
              )
          }
  
 diff --git a/src/metadata_generator.cairo b/src/metadata_generator.cairo
-index f687d07..52ad4d0 100644
+index f687d07..8e86ca9 100644
 --- a/src/metadata_generator.cairo
 +++ b/src/metadata_generator.cairo
-@@ -1,7 +1,12 @@
+@@ -1,7 +1,11 @@
 +use core::num::traits::Zero;
 +use starknet::ContractAddress;
  use super::beast_manager::BeastManagerTrait;
@@ -116,13 +88,12 @@ index f687d07..52ad4d0 100644
  use super::encoding::bytes_base64_encode;
 -use super::interfaces::IBeastImageDataProviderDispatcher;
 +use super::interfaces::{
-+    BeastSoundInputs, IBeastImageDataProviderDispatcher, IBeastSoundPageDispatcher,
-+    IBeastSoundPageDispatcherTrait,
++    IBeastImageDataProviderDispatcher, IMidiPageDispatcher, IMidiPageDispatcherTrait,
 +};
  use super::pack::PackableBeast;
  use super::utils::felt252_to_byte_array;
  
-@@ -14,7 +19,8 @@ pub struct MetadataGenerator {}
+@@ -14,7 +18,8 @@ pub struct MetadataGenerator {}
  pub struct MetadataComponents {
      pub name: ByteArray,
      pub description: ByteArray,
@@ -132,7 +103,7 @@ index f687d07..52ad4d0 100644
      pub attributes: Array<Attribute>,
  }
  
-@@ -27,7 +33,8 @@ pub struct Attribute {
+@@ -27,7 +32,8 @@ pub struct Attribute {
  
  #[generate_trait]
  pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
@@ -142,16 +113,15 @@ index f687d07..52ad4d0 100644
      fn generate_metadata(
          token_id: u256,
          beast: PackableBeast,
-@@ -36,6 +43,8 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
+@@ -36,6 +42,7 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
          adventurers_killed: u64,
          last_killed_by_adventurer: u64,
          last_killed_timestamp: u64,
 +        sound_page: ContractAddress,
-+        species_count: u16,
      ) -> ByteArray {
          let components = Self::build_metadata_components(
              token_id,
-@@ -46,9 +55,19 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
+@@ -46,9 +53,15 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
              last_killed_by_adventurer,
              last_killed_timestamp,
          );
@@ -162,18 +132,14 @@ index f687d07..52ad4d0 100644
 +        }
  
 -        format!("data:application/json;base64,{}", bytes_base64_encode(json))
-+        // The sound page assembles and encodes the JSON itself, reusing the SVG base64 so the
-+        // added work is small (see IBeastSoundPage).
++        // Metadata/artwork are presentation only; the provider reads its own live music state.
 +        let (members, svg_b64) = Self::components_to_members(components);
-+        let live = BeastSoundInputs {
-+            adventurers_killed, scars: 0, summit_held_seconds: 0, rank, species_count,
-+        };
-+        IBeastSoundPageDispatcher { contract_address: sound_page }
-+            .token_uri(members, svg_b64, token_id, live)
++        IMidiPageDispatcher { contract_address: sound_page }
++            .token_uri(members, svg_b64, starknet::get_contract_address(), token_id)
      }
  
      /// Builds metadata components from beast data
-@@ -115,7 +134,7 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
+@@ -115,7 +128,7 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
          let svg = BeastSvgTrait::generate_svg(
              beast.id, prefix_name, suffix_name, beast_name, rank, beast_attrs, image_data_provider,
          );
@@ -182,7 +148,7 @@ index f687d07..52ad4d0 100644
  
          // Build attributes
          let mut attributes = array![];
-@@ -230,7 +249,7 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
+@@ -230,7 +243,7 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
              }));
          attributes.append(Attribute { trait_type: "Genesis", value: genesis_value });
  
@@ -191,7 +157,7 @@ index f687d07..52ad4d0 100644
      }
  
      /// Converts metadata components to JSON string
-@@ -251,25 +270,47 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
+@@ -251,25 +264,47 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
          json.append(@"\",");
  
          // Image
@@ -245,7 +211,7 @@ index f687d07..52ad4d0 100644
              json.append(@"\"}");
  
              if i < attributes_len - 1 {
-@@ -280,11 +321,6 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
+@@ -280,11 +315,6 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
          }
  
          json.append(@"]");
@@ -257,7 +223,7 @@ index f687d07..52ad4d0 100644
      }
  }
  
-@@ -502,7 +538,7 @@ mod tests {
+@@ -502,7 +532,7 @@ mod tests {
          attributes.append(Attribute { trait_type: "Another", value: "Thing" });
  
          let components = super::MetadataComponents {
@@ -346,6 +312,3 @@ index 0000000..865ae8c
 +    start_cheat_caller_address(beasts.contract_address, addr('someone'));
 +    beasts.set_sound_page_address(addr('sound_page'));
 +}
--- 
-2.41.0
-

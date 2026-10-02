@@ -1,0 +1,8 @@
+[package]
+name = "midi_interfaces"
+version = "0.1.0"
+edition = "2024_07"
+cairo-version = "=2.11.4"
+
+[dependencies]
+starknet = "2.11.4"

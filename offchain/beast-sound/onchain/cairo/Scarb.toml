@@ -6,6 +6,7 @@ cairo-version = "2.11.4"
 
 [dependencies]
 starknet = "2.11.4"
+midi_interfaces = { path = "../../../../contracts/midi_interfaces" }
 
 [dev-dependencies]
 cairo_test = "2.11.4"

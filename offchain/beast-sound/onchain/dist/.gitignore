@@ -1,0 +1,3 @@
+# Local decoded output artifacts; regenerate from golden.mjs / verify-flow.mjs.
+warlock-uri.txt
+contract-uris.json

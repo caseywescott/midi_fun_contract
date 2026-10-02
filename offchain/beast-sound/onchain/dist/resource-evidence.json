@@ -1,0 +1,144 @@
+{
+  "toolchains": {
+    "midi": {
+      "scarb": "2.11.4",
+      "snforge": "0.44.0",
+      "resource": "legacy Cairo steps converted by Foundry"
+    },
+    "real_nft": {
+      "scarb": "2.18.0",
+      "snforge": "0.60.0",
+      "resource": "Sierra gas with separately built 2.11.4 callees",
+      "source_commit": "ae3fa8d0efdb8de62144abcd26984d34e90aab5b"
+    }
+  },
+  "classes": {
+    "BeastMidiProvider": {
+      "casm_felts": 23605,
+      "sierra_felts": 9995,
+      "sierra_json_bytes_without_debug": 505368
+    },
+    "MidiPage": {
+      "casm_felts": 16612,
+      "sierra_felts": 14026,
+      "sierra_json_bytes_without_debug": 720399
+    }
+  },
+  "mock_real_presentation": {
+    "named": {
+      "test": {
+        "l2_gas_estimate": 7887080000,
+        "l1_data_gas_setup": 1536,
+        "details": [
+          "steps: 31737165",
+          "builtins: (range_check: 4929404, poseidon: 344, pedersen: 74)",
+          "syscalls: (StorageRead: 21, CallContract: 14, StorageWrite: 12, Deploy: 5, GetExecutionInfo: 2)"
+        ]
+      },
+      "setup": {
+        "l2_gas_estimate": 1560000,
+        "l1_data_gas_setup": 1536,
+        "details": [
+          "steps: 15156",
+          "builtins: (range_check: 585, pedersen: 46, poseidon: 2)",
+          "syscalls: (StorageWrite: 12, CallContract: 5, Deploy: 5)"
+        ]
+      },
+      "l2_gas_excluding_setup": 7885520000
+    },
+    "heaviest": {
+      "test": {
+        "l2_gas_estimate": 9841840000,
+        "l1_data_gas_setup": 1632,
+        "details": [
+          "steps: 39304355",
+          "builtins: (range_check: 6151136, poseidon: 368, pedersen: 74)",
+          "syscalls: (StorageRead: 21, CallContract: 14, StorageWrite: 12, Deploy: 5, GetExecutionInfo: 2)"
+        ]
+      },
+      "setup": {
+        "l2_gas_estimate": 1560000,
+        "l1_data_gas_setup": 1632,
+        "details": [
+          "steps: 15156",
+          "builtins: (range_check: 585, pedersen: 46, poseidon: 2)",
+          "syscalls: (StorageWrite: 12, Deploy: 5, CallContract: 5)"
+        ]
+      },
+      "l2_gas_excluding_setup": 9840280000
+    }
+  },
+  "actual_nft_and_art": {
+    "plain": {
+      "test": {
+        "l2_gas_estimate": 2475295684,
+        "l1_data_gas_setup": 32928,
+        "details": [
+          "sierra gas: 2336652564",
+          "syscalls: (StorageRead: 503, StorageWrite: 499, EmitEvent: 78, CallContract: 19, Deploy: 8, GetExecutionInfo: 8)"
+        ]
+      },
+      "setup": {
+        "l2_gas_estimate": 194643617,
+        "l1_data_gas_setup": 32928,
+        "details": [
+          "sierra gas: 56000497",
+          "syscalls: (StorageWrite: 499, StorageRead: 483, EmitEvent: 78, Deploy: 8, CallContract: 6, GetExecutionInfo: 5)"
+        ]
+      },
+      "l2_gas_excluding_setup": 2280652067
+    },
+    "fancy": {
+      "test": {
+        "l2_gas_estimate": 2583424418,
+        "l1_data_gas_setup": 32928,
+        "details": [
+          "sierra gas: 2444781298",
+          "syscalls: (StorageRead: 503, StorageWrite: 499, EmitEvent: 78, CallContract: 19, GetExecutionInfo: 8, Deploy: 8)"
+        ]
+      },
+      "setup": {
+        "l2_gas_estimate": 194643617,
+        "l1_data_gas_setup": 32928,
+        "details": [
+          "sierra gas: 56000497",
+          "syscalls: (StorageWrite: 499, StorageRead: 483, EmitEvent: 78, Deploy: 8, CallContract: 6, GetExecutionInfo: 5)"
+        ]
+      },
+      "l2_gas_excluding_setup": 2388780801
+    },
+    "heaviest": {
+      "test": {
+        "l2_gas_estimate": 3091089906,
+        "l1_data_gas_setup": 33600,
+        "details": [
+          "sierra gas: 2949581586",
+          "syscalls: (StorageRead: 513, StorageWrite: 511, EmitEvent: 79, CallContract: 21, Deploy: 8, GetExecutionInfo: 7)"
+        ]
+      },
+      "setup": {
+        "l2_gas_estimate": 198941999,
+        "l1_data_gas_setup": 33600,
+        "details": [
+          "sierra gas: 57433679",
+          "syscalls: (StorageWrite: 511, StorageRead: 495, EmitEvent: 79, Deploy: 8, CallContract: 7, GetExecutionInfo: 6)"
+        ]
+      },
+      "l2_gas_excluding_setup": 2892147907
+    },
+    "sound_off_whole_test": {
+      "l2_gas_estimate": 1249521999,
+      "l1_data_gas_setup": 32160,
+      "details": [
+        "sierra gas: 1112888879",
+        "syscalls: (StorageWrite: 494, StorageRead: 486, EmitEvent: 78, CallContract: 5, Deploy: 5, GetExecutionInfo: 3)"
+      ]
+    }
+  },
+  "limitations": [
+    "State sources are ABI-enforcing mocks; actual NFT and its PNG/GIF providers are real.",
+    "Foundry estimates are not deployed RPC call limits or transaction fee estimates.",
+    "The documented Sepolia 116-bit collection currently has zero Death Mountain source; live production path/read latency remains unavailable.",
+    "Configured RPC execution limits must be checked before enabling the page."
+  ]
+}

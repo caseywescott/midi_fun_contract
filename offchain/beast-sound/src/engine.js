@@ -13,6 +13,7 @@
 //   createCoreEngine({ poseidonHashMany })   // composition + MIDI only
 
 import { createBsn } from './bsn.js';
+import { notesToMidi } from './midi_file.js';
 
 export const TABLES = {
   species: ['Warlock', 'Typhon', 'Jiangshi', 'Anansi', 'Basilisk', 'Gorgon', 'Kitsune', 'Lich', 'Chimera', 'Wendigo', 'Rakshasa', 'Werewolf', 'Banshee', 'Draugr', 'Vampire', 'Goblin', 'Ghoul', 'Wraith', 'Sprite', 'Kappa', 'Fairy', 'Leprechaun', 'Kelpie', 'Pixie', 'Gnome', 'Griffin', 'Manticore', 'Phoenix', 'Dragon', 'Minotaur', 'Qilin', 'Ammit', 'Nue', 'Skinwalker', 'Chupacabra', 'Weretiger', 'Wyvern', 'Roc', 'Harpy', 'Pegasus', 'Hippogriff', 'Fenrir', 'Jaguar', 'Satori', 'Direwolf', 'Bear', 'Wolf', 'Mantis', 'Spider', 'Rat', 'Kraken', 'Colossus', 'Balrog', 'Leviathan', 'Tarrasque', 'Titan', 'Nephilim', 'Behemoth', 'Hydra', 'Juggernaut', 'Oni', 'Jotunn', 'Ettin', 'Cyclops', 'Giant', 'Nemean Lion', 'Berserker', 'Yeti', 'Golem', 'Ent', 'Troll', 'Bigfoot', 'Ogre', 'Orc', 'Skeleton'],
@@ -378,28 +379,7 @@ export function createCoreEngine({ poseidonHashMany }) {
   // Standard MIDI file (type 1, 480 ppq); one track per voice + tempo track.
   // Byte-identical to beast_form_to_smf_bytes in beast_v3_sound.cairo.
   const toMidiFile = (result) => eventsToMidi(result.form.events, result.params.tempo_us);
-  function eventsToMidi(events, tempo) {
-    const form = { events };
-    const vlq = (n) => { const b = [n & 0x7f]; while ((n >>= 7)) b.unshift((n & 0x7f) | 0x80); return b; };
-    const chunk = (type, data) => [...type].map((c) => c.charCodeAt(0)).concat([(data.length >>> 24) & 255, (data.length >>> 16) & 255, (data.length >>> 8) & 255, data.length & 255], data);
-    const tracks = [[0, 0xff, 0x51, 0x03, (tempo >> 16) & 255, (tempo >> 8) & 255, tempo & 255, 0, 0xff, 0x2f, 0x00]];
-    const voices = [...new Set(form.events.map((e) => e.voice_id))].sort((a, b) => a - b);
-    for (const v of voices) {
-      const msgs = [];
-      for (const e of form.events.filter((x) => x.voice_id === v)) {
-        msgs.push([e.time, 0x90 | v, e.pitch, e.velocity]);
-        msgs.push([e.time + e.duration, 0x80 | v, e.pitch, 64]);
-      }
-      msgs.sort((a, b) => a[0] - b[0] || (a[1] & 0xf0) - (b[1] & 0xf0));
-      const data = [];
-      let t = 0;
-      for (const m of msgs) { data.push(...vlq(m[0] - t), m[1], m[2], m[3]); t = m[0]; }
-      data.push(0, 0xff, 0x2f, 0x00);
-      tracks.push(data);
-    }
-    const header = chunk('MThd', [0, 1, 0, tracks.length, (480 >> 8) & 255, 480 & 255]);
-    return new Uint8Array(header.concat(...tracks.map((d) => chunk('MTrk', d))));
-  }
+  const eventsToMidi = (events, tempo) => notesToMidi(events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), tempo);
 
 
   // Building blocks reused by engine v2 (engine_v2.js). Not part of the public API.

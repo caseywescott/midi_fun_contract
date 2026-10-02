@@ -24,10 +24,10 @@ export function drumPass(loopTicks, random = Math.random) {
 
 /**
  * @param notes  [[time, duration, pitch, velocity, voice], ...] in ticks
- * @param opts   { tick: seconds per tick, drums: bool, onNote(note, t), onDrum(drum, t), random }
- * @returns { start(now), pump(now, horizon), position(now), loopTicks, passes() }
+ * @param opts   { tick: seconds per tick, drums: bool, loop: bool (default true), onNote(note, t), onDrum(drum, t), random }
+ * @returns { start(now), pump(horizon), position(now), loopTicks, passes(), endTime() }
  */
-export function createLoopScheduler(notes, { tick, drums, onNote, onDrum, random = Math.random }) {
+export function createLoopScheduler(notes, { tick, drums, loop = true, onNote, onDrum, random = Math.random }) {
   const ticks = Math.max(...notes.map((n) => n[0] + n[1]));
   const loopTicks = Math.ceil(ticks / BAR_TICKS) * BAR_TICKS;
   const order = notes.map((_, i) => i).sort((i, j) => notes[i][0] - notes[j][0] || i - j);
@@ -53,6 +53,7 @@ export function createLoopScheduler(notes, { tick, drums, onNote, onDrum, random
           nextDrum++;
         }
         if (next < order.length || nextDrum < drumList.length) return;
+        if (!loop) return; // one pass only: everything is scheduled
         if (t0 + (offset + loopTicks) * tick > horizon) return;
         pass++; next = 0; nextDrum = 0;
         if (drums) drumList = drumPass(loopTicks, random);
@@ -60,5 +61,7 @@ export function createLoopScheduler(notes, { tick, drums, onNote, onDrum, random
     },
     position(now) { return Math.max(0, (now - t0) / tick) % loopTicks; },
     passes() { return pass; },
+    /** Audio-clock time the first pass ends (rounded to whole bars). */
+    endTime() { return t0 + loopTicks * tick; },
   };
 }

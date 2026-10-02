@@ -13,29 +13,52 @@ token_uri → data:application/json;base64,{ "name", "description", "image", "an
 
 ## The onchain library: `window.BeastSound`
 
-The stored script is a library, not only a player. Any page that loads it (the token_uri page, a
-game client, a marketplace, a site that pulls it from the chain) gets the same deterministic engine:
+The stored script is a library of layers that work alone or together. Any page that loads it (the
+token_uri page, a game client, a marketplace, a site that pulls it from the chain) gets the same
+deterministic engine. Source: `onchain/lib/`.
+
+A **song** is the common currency: `{ notes: [[time, duration, pitch, velocity, voice], ...], tempo_us }`,
+with 480 ticks per beat. Every layer consumes or produces one.
+
+| Layer (`BeastSound.v1`) | Functions | Use it for |
+|---|---|---|
+| `beast` | `decode(tokenId)`, `live(stats)`, `params(traits, live)`, `seed(traits)` | Turning a Beast into musical parameters |
+| `music` | `generate(params, seed)` → song, `fromNotes(notes, tempo_us)` | Counterpoint from any params, no Beast needed |
+| `midi` | `write(song)` → bytes, `url(song)` | MIDI for any song; Beast scores match the Cairo `get_score_midi` byte for byte |
+| `synth` | `instrument(def)`, `presets`, `drum(kit, dest, t, kind, level)` | Chip instruments defined as data |
+| `play` | `play(song, { instruments, drums, loop, destination, volume })` → handle `{ stop, playing, position, onNote, onEnd }`; `context()` | Many songs at once, routed into any audio graph |
+| `fx` | `transpose`, `tempo`, `voices`, `gain`, `layer(...songs)`, `concat(...songs)` | Pure song → song transforms |
 
 ```js
-const song = BeastSound.compose(tokenId, { adventurers_killed, scars, summit_held_seconds, rank, species_count });
-song.notes       // [[time, duration, pitch, velocity, voice], ...] in ticks (480 per beat)
-song.params      // the composition params (mode, tonic, voices, sections, tempo, ...)
-song.scoreHash   // '0x...' commitment to the full score, equal to the Cairo reference
-BeastSound.midi(song)     // Standard MIDI File bytes, byte-identical to the Cairo get_score_midi
-BeastSound.midiUrl(song)  // object URL for a download link
-BeastSound.play(song); BeastSound.stop(); BeastSound.isPlaying(); BeastSound.onPlayingChange(fn)
-BeastSound.fromInputs('token,kills,scars,held,rank,count')   // parse the token_uri inputs line
+const { beast, music, midi, synth, play, fx } = BeastSound.v1;
+
+// the Beast pipeline, one stage at a time (== BeastSound.compose(tokenId, stats))
+const traits = beast.decode(tokenId);
+const song = music.generate(beast.params(traits, stats), beast.seed(traits));
+
+// two Beasts in a battle duet, with a custom lead and a callback per note
+const duet = fx.layer(BeastSound.compose(a, statsA), fx.transpose(BeastSound.compose(b, statsB), -12));
+const h = play(duet, { instruments: [synth.instrument(synth.presets.pulseLead), synth.instrument(synth.presets.triangleBass)] });
+h.onNote((n) => pulseArt(n[2]));
+const file = midi.write(duet);
 ```
+
+The flat API from the first release still works: `compose`, `fromInputs`, `midi`, `midiUrl`,
+`play`, `stop`, `isPlaying`, `onPlayingChange`, `decodeTokenId`. It drives one global player.
 
 - **Inputs:** a Beast's token ID plus its live stats. The token ID already packs every static trait.
 - **No compact note format:** that's only for storing notes onchain, so it isn't in the library.
   The npm package keeps it (`src/bsn.js`) for Cairo parity.
-- **Tested:** `test/onchain.test.mjs` runs the built blob in a sandbox. Its score hashes and MIDI
-  hashes match the Cairo contract's golden values, and it matches the package engine exactly on 300
-  random Beasts.
-- **The token_uri page:** when the page carries the `BEAST_SOUND` inputs line, the library also
-  mounts the art and the ♪ (play) and MIDI (download) buttons. Loaded anywhere else, it only
-  defines the API.
+- **Tested:** `test/onchain.test.mjs` runs the built blob in a sandbox:
+  - its score and MIDI hashes match the Cairo goldens, and it matches the package engine on 300
+    random Beasts;
+  - the separate layers compose to exactly the same song as `compose()`;
+  - the transforms are pure.
+- **Playback, checked in real-time Chrome:** two handles at once, per-voice instruments, a caller's
+  destination node, `onNote`, and play-once ending with `onEnd`.
+- **The token_uri page:** when the page carries the `BEAST_SOUND` inputs line, `lib/page.js` also
+  mounts the art and the ♪ (play) and MIDI (download) buttons. Loaded anywhere else, the library
+  only defines the API.
 
 ## What it costs
 
@@ -50,8 +73,8 @@ Measured with cairo-test on the real Sepolia genesis Warlock (members 2.3 KB, SV
 The cross-contract call's calldata and return copying are not included. Measure them on devnet
 before mainnet.
 
-The composer library is stored once, in the code of a stateless contract: 19.7 KB of JavaScript,
-1,153 felts. The CASM class is 13,059 felts, against the 81,920 limit. No composition runs onchain, so the
+The library is stored once, in the code of a stateless contract: 22.6 KB of JavaScript, 1,317
+felts. The CASM class is 13,581 felts, against the 81,920 limit. No composition runs onchain, so the
 v1 Cairo composer's 5–120M gas per call does not apply.
 
 The composer hashes with `src/poseidon_lite.js` instead of `@scure/starknet`: a 1 KB Starknet

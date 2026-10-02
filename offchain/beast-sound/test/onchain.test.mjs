@@ -73,3 +73,41 @@ test('library blob matches the package engine on 300 random Beasts', { skip: !bu
     assert.deepEqual(lib.midi(song), ref.midi);
   }
 });
+
+test('v1 layers compose separately to the same song as compose()', { skip: !built && 'run node onchain/build.mjs' }, () => {
+  const { v1 } = loadLibrary();
+  const golden = JSON.parse(readFileSync(new URL('../test/golden.json', import.meta.url), 'utf8'));
+  for (const c of golden.cases) {
+    const tokenId = encodeTokenId(c.beast);
+    const traits = v1.beast.decode(tokenId);
+    const song = v1.music.generate(v1.beast.params(traits, c.live), v1.beast.seed(traits));
+    assert.equal(BigInt(song.scoreHash).toString(), c.expected.score);
+    assert.deepEqual(song.notes, v1.compose(tokenId, c.live).notes);
+    assert.equal(poseidonHashMany(engine.bytesToFelts(v1.midi.write(song))).toString(), c.expected.midi_hash);
+  }
+});
+
+test('v1 midi.write takes any notes; fx transforms are pure', { skip: !built && 'run node onchain/build.mjs' }, () => {
+  const { v1 } = loadLibrary();
+  const custom = v1.music.fromNotes([[0, 480, 60, 100, 0], [480, 480, 64, 100, 0], [0, 960, 48, 90, 1]], 500000);
+  const bytes = v1.midi.write(custom);
+  assert.equal(String.fromCharCode(...bytes.slice(0, 4)), 'MThd');
+  assert.equal(bytes[11], 3); // tempo track + 2 voices
+  assert.equal(custom.durationSeconds, 1);
+
+  const a = v1.compose(encodeTokenId(genesisBeast({ id: 1 })), {});
+  const b = v1.compose(encodeTokenId(genesisBeast({ id: 29 })), {});
+  const before = JSON.stringify(a.notes);
+  const up = v1.fx.transpose(a, 5);
+  assert.deepEqual(up.notes.map((n) => n[2]), a.notes.map((n) => Math.min(127, n[2] + 5)));
+  assert.equal(JSON.stringify(a.notes), before);
+  assert.equal(v1.fx.tempo(a, 2).tempo_us, Math.round(a.tempo_us / 2));
+  const voicesA = new Set(a.notes.map((n) => n[4])).size, voicesB = new Set(b.notes.map((n) => n[4])).size;
+  const duet = v1.fx.layer(a, b);
+  assert.equal(duet.notes.length, a.notes.length + b.notes.length);
+  assert.equal(new Set(duet.notes.map((n) => n[4])).size, voicesA + voicesB);
+  const suite = v1.fx.concat(a, b);
+  assert.equal(suite.notes.length, a.notes.length + b.notes.length);
+  assert.equal(Math.min(...suite.notes.slice(a.notes.length).map((n) => n[0])) % 1920, 0); // b starts on a bar
+  assert.deepEqual(new Set(v1.fx.voices(a, [0]).notes.map((n) => n[4])), new Set([0]));
+});

@@ -11,6 +11,32 @@ token_uri → data:application/json;base64,{ "name", "description", "image", "an
                               animated SVG (unchanged)   data:text/html;base64, page = [composer][inputs][SVG]
 ```
 
+## The onchain library: `window.BeastSound`
+
+The stored script is a library, not only a player. Any page that loads it (the token_uri page, a
+game client, a marketplace, a site that pulls it from the chain) gets the same deterministic engine:
+
+```js
+const song = BeastSound.compose(tokenId, { adventurers_killed, scars, summit_held_seconds, rank, species_count });
+song.notes       // [[time, duration, pitch, velocity, voice], ...] in ticks (480 per beat)
+song.params      // the composition params (mode, tonic, voices, sections, tempo, ...)
+song.scoreHash   // '0x...' commitment to the full score, equal to the Cairo reference
+BeastSound.midi(song)     // Standard MIDI File bytes, byte-identical to the Cairo get_score_midi
+BeastSound.midiUrl(song)  // object URL for a download link
+BeastSound.play(song); BeastSound.stop(); BeastSound.isPlaying(); BeastSound.onPlayingChange(fn)
+BeastSound.fromInputs('token,kills,scars,held,rank,count')   // parse the token_uri inputs line
+```
+
+- **Inputs:** a Beast's token ID plus its live stats. The token ID already packs every static trait.
+- **No compact note format:** that's only for storing notes onchain, so it isn't in the library.
+  The npm package keeps it (`src/bsn.js`) for Cairo parity.
+- **Tested:** `test/onchain.test.mjs` runs the built blob in a sandbox. Its score hashes and MIDI
+  hashes match the Cairo contract's golden values, and it matches the package engine exactly on 300
+  random Beasts.
+- **The token_uri page:** when the page carries the `BEAST_SOUND` inputs line, the library also
+  mounts the art and the ♪ (play) and MIDI (download) buttons. Loaded anywhere else, it only
+  defines the API.
+
 ## What it costs
 
 Measured with cairo-test on the real Sepolia genesis Warlock (members 2.3 KB, SVG base64 30 KB):
@@ -24,8 +50,8 @@ Measured with cairo-test on the real Sepolia genesis Warlock (members 2.3 KB, SV
 The cross-contract call's calldata and return copying are not included. Measure them on devnet
 before mainnet.
 
-The composer is stored once, in the code of a stateless contract: 20 KB of JavaScript, 1,182
-felts. The CASM class is 13,146 felts, against the 81,920 limit. No composition runs onchain, so the
+The composer library is stored once, in the code of a stateless contract: 19.7 KB of JavaScript,
+1,153 felts. The CASM class is 13,059 felts, against the 81,920 limit. No composition runs onchain, so the
 v1 Cairo composer's 5–120M gas per call does not apply.
 
 The composer hashes with `src/poseidon_lite.js` instead of `@scure/starknet`: a 1 KB Starknet

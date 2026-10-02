@@ -76,7 +76,9 @@ console.log(`composed ${ok.length}; notes ${ok[0].song.events.length}–${ok.at(
 
 mkdirSync(out + 'beasts', { recursive: true });
 const rows = await pool(picks, 2, async (p) => {
-  const svg = await tokenSvg(p.token);
+  // reuse art saved by an earlier run; fetch only what's missing
+  const saved = out + `beasts/${p.token}.svg`;
+  const svg = existsSync(saved) ? readFileSync(saved, 'utf8') : await tokenSvg(p.token);
   const tokenId = encodeTokenId(p.beast);
   writeFileSync(out + `beasts/${p.token}.html`, animationHtml(js, tokenId, p.live, svg));
   writeFileSync(out + `beasts/${p.token}.svg`, svg);

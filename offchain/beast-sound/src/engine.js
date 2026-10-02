@@ -9,7 +9,10 @@
 // output by test/golden.test.mjs (fixtures regenerated with scripts/beast_v3_parity.mjs --write).
 //
 // Poseidon is injected so this file has no dependencies:
-//   createEngine({ poseidonHashMany })   // from @scure/starknet
+//   createEngine({ poseidonHashMany })       // full engine, incl. BSN1 (bsn.js)
+//   createCoreEngine({ poseidonHashMany })   // composition + MIDI only
+
+import { createBsn } from './bsn.js';
 
 export const TABLES = {
   species: ['Warlock', 'Typhon', 'Jiangshi', 'Anansi', 'Basilisk', 'Gorgon', 'Kitsune', 'Lich', 'Chimera', 'Wendigo', 'Rakshasa', 'Werewolf', 'Banshee', 'Draugr', 'Vampire', 'Goblin', 'Ghoul', 'Wraith', 'Sprite', 'Kappa', 'Fairy', 'Leprechaun', 'Kelpie', 'Pixie', 'Gnome', 'Griffin', 'Manticore', 'Phoenix', 'Dragon', 'Minotaur', 'Qilin', 'Ammit', 'Nue', 'Skinwalker', 'Chupacabra', 'Weretiger', 'Wyvern', 'Roc', 'Harpy', 'Pegasus', 'Hippogriff', 'Fenrir', 'Jaguar', 'Satori', 'Direwolf', 'Bear', 'Wolf', 'Mantis', 'Spider', 'Rat', 'Kraken', 'Colossus', 'Balrog', 'Leviathan', 'Tarrasque', 'Titan', 'Nephilim', 'Behemoth', 'Hydra', 'Juggernaut', 'Oni', 'Jotunn', 'Ettin', 'Cyclops', 'Giant', 'Nemean Lion', 'Berserker', 'Yeti', 'Golem', 'Ent', 'Troll', 'Bigfoot', 'Ogre', 'Orc', 'Skeleton'],
@@ -49,7 +52,11 @@ export function shortString(s) {
   return v;
 }
 
-export function createEngine({ poseidonHashMany }) {
+/**
+ * Composition + MIDI only: what the onchain page library bundles. The compact BSN1 note stream
+ * (used for Cairo parity and onchain note storage) lives in bsn.js; createEngine adds it.
+ */
+export function createCoreEngine({ poseidonHashMany }) {
   const H = (...xs) => poseidonHashMany(xs.map((x) => (typeof x === 'string' ? shortString(x) : BigInt(x))));
   const enc = (d) => (d < 0 ? 1000 + d : d); // Cairo's (1000 + negative) felt encoding
 
@@ -394,72 +401,6 @@ export function createEngine({ poseidonHashMany }) {
     return new Uint8Array(header.concat(...tracks.map((d) => chunk('MTrk', d))));
   }
 
-  // ── BSN1: compact onchain note stream (see beast_v3_sound.cairo) ──
-  // header: version 8 | tempo_us 24 | grid 12 | duration 12 | articulation 3 | base_vel 7 | vel_ceiling 7 | runs 8
-  // run: voice 4 | start_beat 12 | count 8, then count × key 7
-  function encodeBsn(result) {
-    const { form, params } = result;
-    const ev = form.events, grid = TIME_UNIT, dur = ev[0].duration;
-    const bits = [];
-    const push = (v, w) => { for (let i = w - 1; i >= 0; i--) bits.push((v >> i) & 1); };
-    const runs = [];
-    ev.forEach((e, i) => {
-      const p = ev[i - 1];
-      if (!p || p.voice_id !== e.voice_id || p.time + grid !== e.time) runs.push([]);
-      runs[runs.length - 1].push(e);
-    });
-    push(1, 8); push(params.tempo_us, 24); push(grid, 12); push(dur, 12); push(params.articulation_profile, 3);
-    push(DEFAULT_VELOCITY, 7); push(params.velocity_ceiling, 7); push(runs.length, 8);
-    for (const r of runs) { push(r[0].voice_id, 4); push(r[0].time / grid, 12); push(r.length, 8); r.forEach((e) => push(e.pitch, 7)); }
-    while (bits.length % 8) bits.push(0);
-    const bytes = new Uint8Array(bits.length / 8);
-    for (let i = 0; i < bytes.length; i++) for (let b = 0; b < 8; b++) bytes[i] = (bytes[i] << 1) | bits[i * 8 + b];
-    return bytes;
-  }
-
-  // Bytes <-> felts in the to_felt252_array layout: [byte_len, 31-byte big-endian chunks...].
-  function bytesToFelts(bytes) {
-    const felts = [BigInt(bytes.length)];
-    for (let i = 0; i < bytes.length; i += 31) felts.push(bytes.slice(i, i + 31).reduce((v, x) => v * 256n + BigInt(x), 0n));
-    return felts;
-  }
-  function feltsToBytes(felts) {
-    const len = Number(BigInt(felts[0]));
-    const out = new Uint8Array(len);
-    for (let c = 1, o = 0; o < len; c++) {
-      const n = Math.min(31, len - o);
-      let v = BigInt(felts[c]);
-      for (let k = n - 1; k >= 0; k--) { out[o + k] = Number(v & 255n); v >>= 8n; }
-      o += n;
-    }
-    return out;
-  }
-
-  // Decode BSN1 (bytes, or felts straight from get_score_notes) into canonical note events.
-  function decodeBsn(input) {
-    const bytes = input instanceof Uint8Array ? input : feltsToBytes(input);
-    let pos = 0;
-    const read = (w) => { let v = 0; for (let i = 0; i < w; i++, pos++) v = v * 2 + ((bytes[pos >> 3] >> (7 - (pos & 7))) & 1); return v; };
-    const version = read(8);
-    if (version !== 1) throw new Error('unsupported BSN version ' + version);
-    const tempo_us = read(24), grid = read(12), duration = read(12), articulation = read(3);
-    const base = read(7), ceilRaw = read(7), runCount = read(8);
-    const ceil = ceilRaw === 0 ? 127 : ceilRaw;
-    const events = [];
-    let prevVoice = Infinity, section = -1, idx = 0;
-    for (let r = 0; r < runCount; r++) {
-      const voice = read(4), start = read(12), count = read(8);
-      if (voice <= prevVoice) { section += 1; idx = 0; } // a non-ascending voice starts a new section
-      prevVoice = voice;
-      for (let k = 0; k < count; k++, idx++) {
-        let vel = articulation === ART_ACCENT && idx % 4 === 0 ? Math.min(base + 20, ceil) : base;
-        if (vel > ceil) vel = ceil;
-        events.push({ time: (start + k) * grid, duration, pitch: read(7), velocity: vel, voice_id: voice, section });
-      }
-    }
-    return { tempo_us, events };
-  }
-  const bsnToMidi = (input) => { const d = decodeBsn(input); return eventsToMidi(d.events, d.tempo_us); };
 
   // Building blocks reused by engine v2 (engine_v2.js). Not part of the public API.
   const internals = {
@@ -470,9 +411,15 @@ export function createEngine({ poseidonHashMany }) {
 
   return {
     internals,
-    encodeBsn, decodeBsn, bsnToMidi, eventsToMidi, bytesToFelts, feltsToBytes,
+    eventsToMidi,
     decodeTokenId, encodeTokenId, genesisTokenId, soundSeed, soundDropRoll, hasSound, nameVariantId, mapV3, musicState,
     musicStateHash, paramsHash, buildForm, render, eventChecksum, toMidiFile, typeTierFamily, rankTier,
     FIELD_P,
   };
+}
+
+/** The full engine: core plus the BSN1 compact note stream (npm package, parity scripts). */
+export function createEngine(opts) {
+  const core = createCoreEngine(opts);
+  return { ...core, ...createBsn(core, { grid: TIME_UNIT, baseVelocity: DEFAULT_VELOCITY, accent: ART_ACCENT }) };
 }

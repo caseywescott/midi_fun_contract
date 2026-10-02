@@ -35,3 +35,41 @@ test('inputs line is padded to whole base64 groups', () => {
     assert.match(line, /^<script>BEAST_SOUND="1,\d+,0,0,0,1"<\/script> *<script type="text\/plain" id="art">$/);
   }
 });
+
+// The onchain library blob itself, run in a sandbox: compose + MIDI must equal the Cairo reference.
+import vm from 'node:vm';
+import { engine, encodeTokenId, composeBeast, genesisBeast, poseidonHashMany } from '../src/index.js';
+
+function loadLibrary() {
+  const js = readFileSync(new URL('dist/composer.js', dir), 'utf8');
+  const window = { addEventListener() {} };
+  vm.runInNewContext(js, { window, addEventListener() {}, matchMedia: undefined, URL, Blob, setTimeout, setInterval, clearInterval, BigInt, Math, Uint8Array });
+  return window.BeastSound;
+}
+
+test('library blob composes and writes MIDI identical to Cairo', { skip: !built && 'run node onchain/build.mjs' }, () => {
+  const lib = loadLibrary();
+  const golden = JSON.parse(readFileSync(new URL('../test/golden.json', import.meta.url), 'utf8'));
+  for (const c of golden.cases) {
+    const song = lib.compose(encodeTokenId(c.beast), c.live);
+    assert.equal(BigInt(song.scoreHash).toString(), c.expected.score);
+    const midi = lib.midi(song);
+    assert.equal(String(midi.length), c.expected.midi_len);
+    assert.equal(poseidonHashMany(engine.bytesToFelts(midi)).toString(), c.expected.midi_hash);
+  }
+});
+
+test('library blob matches the package engine on 300 random Beasts', { skip: !built && 'run node onchain/build.mjs' }, () => {
+  const lib = loadLibrary();
+  let x = 12345;
+  const r = (n) => ((x = (x * 1103515245 + 12345) % 2147483648) % n);
+  for (let i = 0; i < 300; i++) {
+    const id = 1 + r(75);
+    const genesis = r(10) === 0;
+    const beast = genesisBeast({ id, prefix: genesis ? 0 : 1 + r(69), suffix: genesis ? 0 : 1 + r(18), level: 1 + r(300), health: 1 + r(1000), shiny: r(2), animated: r(2) });
+    const ref = composeBeast(beast, { adventurers_killed: r(500), scars: r(20), summit_held_seconds: r(200000), rank: genesis ? 0 : 1 + r(1243), species_count: 1243 });
+    const song = lib.compose(ref.tokenId, ref.live);
+    assert.equal(BigInt(song.scoreHash), BigInt(ref.scoreHash));
+    assert.deepEqual(lib.midi(song), ref.midi);
+  }
+});

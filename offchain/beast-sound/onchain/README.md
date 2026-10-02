@@ -11,7 +11,7 @@ NFT token_uri ──► MidiSoundPage.token_uri(members, svg_b64, token_address,
                         └─► IMidiProvider.get_midi(token_address, token_id)      (BeastMidiProvider)
                                    │  reads rank, species count, kills, Death Mountain defeats
                                    └─ composes with the Cairo engine (v1) → MIDI bytes
-                        ◄── data:application/json;base64,{ name, description, attributes, image, animation_url }
+                        ◄── data:application/json;utf8,{ name, description, attributes, image, animation_url }
                                                                                      │
                             data:text/html;base64, [TinySynth + player][MIDI as base64][SVG]
 ```
@@ -25,30 +25,37 @@ NFT token_uri ──► MidiSoundPage.token_uri(members, svg_b64, token_address,
 ## The page
 
 `cairo/src/page_data.cairo` stores the page head, the patched TinySynth (`vendor/`, 42,214 bytes
-minified), the player (`player-src.js`, 2,954 bytes) and the opening of the MIDI block, already
-encoded at both base64 layers: 45,523 bytes of HTML, 80,996 characters, 2,615 felts. At call time
-only the MIDI is encoded.
+minified), the player (`player-src.js`, 2,954 bytes) and the opening of the MIDI block, base64-encoded
+at build time: 45,748 bytes of HTML (padded), 61,008 characters, 1,971 felts. At call time only the
+MIDI is encoded.
 
-Every piece is aligned to 3 bytes, so base64 runs concatenate (`page.js` is the reference; the
-Cairo builds the same bytes):
+`token_uri` is plain JSON (`data:application/json;utf8,…`). Base64-encoding the whole JSON was the
+biggest per-call cost, so the JSON and the SVG are never re-encoded. `page.js` is the reference, and
+the Cairo builds the same bytes:
 
 ```
-"data:application/json;base64,"
-  ++ b64('{' members ',' <spaces> '"image":"data:image/svg+xml;base64,')
-  ++ b64(S)            S = svg_b64 '"' <spaces>        encoded once, appended twice
-  ++ b64(',  ')
-  ++ STORED            b64('"animation_url":"data:text/html;base64,' ++ b64(PAGE)), built offline
-  ++ b64(b64(D))       D = b64(midi) <spaces> '</script><script type="text/plain" id="art">'
-  ++ b64(S)
-  ++ b64('}')
+'data:application/json;utf8,{' ++ escape(members)
+  ++ ',"image":"data:image/svg+xml;base64,' ++ svg_b64 ++ '",' ++ <spaces>
+  ++ '"animation_url":"data:text/html;base64,'
+  ++ STORED       b64(PAGE): head + TinySynth + player + '<script type="text/plain" id="midi">'
+  ++ b64(D)       D = b64(midi) <spaces> '</script><script type="text/plain" id="art">'
+  ++ svg_b64      the same SVG base64 the NFT computed for `image`
+  ++ '"}'
 ```
 
-- `PAGE` (9n bytes) ends by opening `<script type="text/plain" id="midi">`; `D` (9n bytes) closes it
-  and opens the art block, whose content is the SVG. So the page's own base64 is
-  `b64(PAGE) ++ b64(D) ++ svg_b64`.
-- **Padding:** spaces sit between JSON tokens or inside the MIDI block, where the player strips
-  whitespace. Base64 never produces `<`, so the MIDI cannot close its block early.
-- **Trailing `=`:** the SVG's base64 sits last in both data URIs, so its `=` padding is legal there.
+- **Word alignment:** `PAGE` is padded to 279n bytes (9 × 31), so `STORED` is 372n characters:
+  whole base64 groups and whole 31-byte words. The JSON whitespace before the `animation_url` key
+  puts `STORED` on a word boundary of the output, where Cairo appends it cheaply.
+- **The MIDI block:** `D` closes the MIDI block and opens the art block, whose content is the SVG.
+  `D` is padded to 3n bytes inside the MIDI block, where the player strips whitespace. So `b64(D)`
+  has no `=`, and base64 never produces `<`.
+- **Trailing `=`:** the SVG's base64 sits last in the HTML data URI, where its `=` is legal.
+- **Escaping:** `escape()` writes `%` as `%25` and `#` as `%23`. A JSON data URI can't carry them
+  raw; everything else is already URI-safe for browsers.
+- **Marketplaces:** ArkProject's open-source metadata parser accepts `data:application/json;utf8,`
+  and keeps `animation_url`. Its parsing code was run on these `token_uri`s, and both variants
+  parsed cleanly. Closed-source marketplaces need a check. With sound off, the NFT's own base64 JSON
+  is unchanged.
 - **The SVG is not inlined:** the Beasts SVG embeds its art as `<xhtml:img …/>` in a
   `foreignObject`, which the HTML parser cannot read. The page shows it through an `<img>`, exactly
   as marketplaces render `image`. It must never contain `</script`.
@@ -82,9 +89,9 @@ Tempo is exact: the vendored TinySynth is patched to keep fractional BPM (`vendo
 
 ## What it costs
 
-### Full path, starknet-devnet 0.10.2
+### Full path, starknet-devnet 0.10.2 (base64 layout, before the plain-JSON rebase)
 
-Measured 2 Oct 2026. Beasts V3 `main` + `integration/beasts_nft-sound.patch` with the real art
+Measured 2 Oct 2026, on the base64 layout this branch replaced, so rerun it before relying on it. Beasts V3 `main` + `integration/beasts_nft-sound.patch` with the real art
 providers, `BeastMidiProvider`, `MidiSoundPage`, and beasts-v3's mock Death Mountain. Values are L2
 gas from `starknet_estimateFee`, followed by the `token_uri` size:
 
@@ -119,36 +126,37 @@ The MIDI was 816, 2,991 and 3,716 bytes in those three states.
 
 | Class | Sierra felts | CASM felts (limit 81,920) |
 |---|---:|---:|
-| `MidiSoundPage` | 13,621 | 15,828 |
+| `MidiSoundPage` | 26,462 | 24,202 (15,828 with the PR encoder) |
 | `BeastMidiProvider` | 9,623 | 22,574 |
 | `beasts_nft`, patched (unpatched) | 33,046 (32,753) | 74,927 (74,062) |
 
 ### Assembly alone (cairo-test estimate)
 
-These are `bench_*` tests in `cairo/src/tests.cairo`, without calldata or the provider call:
+These are the `bench_*` tests in `cairo/src/tests.cairo`, without calldata or the provider call.
+cairo-test reports Sierra gas, a different unit from devnet's fee estimate, so only compare rows
+here with each other:
 
-| Case | L2 gas |
-|---|---:|
-| Real Warlock art + 816 B MIDI | 335M |
-| Real Warlock art + 3,716 B MIDI | 416M |
-| One base64 pass over the same JSON | 250M |
+| Case | Base64 JSON, PR encoder | Plain JSON, PR encoder | Plain JSON, `b64.cairo` |
+|---|---:|---:|---:|
+| Real Warlock art + 816 B MIDI | 335M | 101.5M | **92.9M** |
+| Real Warlock art + 3,716 B MIDI | 416M | 148.9M | **109.2M** |
+| (reference) one base64 pass over the same JSON | 250M | | |
 
-The MIDI is encoded three times (into `D`, into the page, into the JSON): (416M − 335M) / 2.9 KB,
-about 28M gas per KB of MIDI.
+**Encoders:**
+- **`b64.cairo`:** reads input as 31-byte words, 93 bytes per step, through a 4,096-entry 12-bit
+  table. On devnet it measured about 6.7K L2 gas per byte, against 40K for the NFT's encoder.
+- **Its size:** it takes `MidiSoundPage` from 14.5K to 24.2K CASM felts (the limit is 81,920).
 
-### Follow-ups, not done
-
-- **Aligned bulk appends:** appending the 81 KB stored segment to a ByteArray that is not
-  word-aligned costs 36.8M instead of 4.6M (measured). Padding before the stored segment and both
-  SVG copies, using the same JSON-whitespace trick, would save roughly 55M per call.
-- **Fused encoding:** a single pass mapping 27 MIDI bytes to 64 output characters would avoid
-  building the two intermediate layers.
+**Pending:** the devnet full-path table above was measured on the base64 layout and needs a rerun
+on this one.
 
 ## Build and test
 
 ```bash
 npm install                                  # @scure/starknet (in offchain/beast-sound)
 node onchain/build.mjs                       # patch + minify TinySynth, bundle the player, encode STORED, write cairo/src/page_data.cairo
+node onchain/build-library.mjs               # the offchain JS library (onchain/lib) and dist/composer.js, for sites and demos
+node onchain/engines-demo.mjs                # public/onchain/engines.html: the same MIDI through the chip synth or TinySynth
 node onchain/golden.mjs                      # Cairo tests from the JS reference (page.js) and JS engine MIDI
 npm test                                     # layout, decoding, player core, TinySynth timing (Node)
 cd onchain/cairo && scarb test               # Cairo token_uri == JS token_uri byte for byte; contract tests

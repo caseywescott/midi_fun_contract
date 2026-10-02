@@ -1,13 +1,12 @@
 // Build public/onchain/engines.html: the same onchain MIDI played by two sound engines.
-//   node onchain/engines-demo.mjs        (after onchain/build.mjs and onchain/gallery.mjs)
+//   node onchain/engines-demo.mjs   (after onchain/build.mjs, onchain/build-library.mjs and onchain/gallery.mjs)
 //
 // Each Beast's MIDI is what the Cairo composer's get_score_midi returns (the package engine writes
 // identical bytes; test/golden.test.mjs checks them against Cairo). Engines:
 //   chip  our library: smf (parse) → play (scheduler) → synth (chip voices + drums)
-//   tiny  webaudio-tinysynth by g200kg (Apache-2.0), a General MIDI synth that reads MIDI files
+//   tiny  webaudio-tinysynth by g200kg (Apache-2.0), the pinned and patched build the onchain page uses
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { build } from 'esbuild';
 import { composeBeast, decodeTokenId } from '../src/index.js';
 import { loadBuiltModules } from './modules.mjs';
 
@@ -16,10 +15,10 @@ const out = here + '../public/onchain/';
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
 
-// tinysynth, minified, with its license notice kept
-const tinySrc = await (await fetch('https://cdn.jsdelivr.net/gh/g200kg/webaudio-tinysynth@master/webaudio-tinysynth.js')).text();
-const tiny = (await build({ stdin: { contents: tinySrc, loader: 'js' }, minify: true, write: false, logLevel: 'error' })).outputFiles[0].text;
-const TINY_NOTICE = '/*! webaudio-tinysynth (c) g200kg, Apache License 2.0, https://github.com/g200kg/webaudio-tinysynth */';
+// tinysynth: the pinned, patched, minified build the onchain page uses (onchain/build.mjs), with its
+// license banner
+const tiny = readFileSync(here + 'dist/tinysynth.min.js', 'utf8').trim();
+const TINY_NOTICE = '';
 
 const chipModules = loadBuiltModules(['midi', 'synth', 'play', 'smf']);
 const chipBytes = chipModules.reduce((n, m) => n + m.js.length, 0);

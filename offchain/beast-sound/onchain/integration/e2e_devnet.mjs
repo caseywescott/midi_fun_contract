@@ -78,7 +78,8 @@ async function liveState(page, nft, tokenId) {
   const r = (await call(page.provider, 'get_live_state', [nft, ...u256(tokenId)])).felts.map((x) => Number(BigInt(x)));
   return { live: { adventurers_killed: r[0], scars: r[1], summit_held_seconds: r[2], rank: r[3], species_count: r[4] }, sources: { adventurers_killed: SOURCES[r[5]], scars: SOURCES[r[6]], summit_held_seconds: SOURCES[r[7]] }, complete: r[8] === 1 };
 }
-const jsonOf = (uri) => JSON.parse(Buffer.from(uri.slice(uri.indexOf(',') + 1), 'base64').toString('utf8'));
+// Sound on: plain JSON from the page; sound off: the NFT's own base64 JSON.
+const jsonOf = (uri) => (uri.startsWith('data:application/json;utf8,') ? JSON.parse(decodeURIComponent(uri.slice(27))) : JSON.parse(Buffer.from(uri.slice(uri.indexOf(',') + 1), 'base64').toString('utf8')));
 const midiIn = (meta) => {
   const html = Buffer.from(meta.animation_url.slice(meta.animation_url.indexOf(',') + 1), 'base64').toString('utf8');
   return Uint8Array.from(Buffer.from(html.match(/id="midi">([^<]*)<\/script>/)[1].replace(/\s+/g, ''), 'base64'));

@@ -39,8 +39,9 @@ function midiTempo(midi) {
   for (let i = 0; i + 5 < midi.length; i++) if (midi[i] === 0xff && midi[i + 1] === 0x51 && midi[i + 2] === 3) return 60e6 / ((midi[i + 3] << 16) | (midi[i + 4] << 8) | midi[i + 5]);
   return 120;
 }
+const jsonOf = (uri) => (uri.startsWith('data:application/json;utf8,') ? JSON.parse(decodeURIComponent(uri.slice(27))) : JSON.parse(Buffer.from(uri.slice(uri.indexOf(',') + 1), 'base64').toString('utf8')));
 const midiOfUri = (uri) => {
-  const meta = JSON.parse(Buffer.from(uri.slice(uri.indexOf(',') + 1), 'base64').toString('utf8'));
+  const meta = jsonOf(uri);
   const html = Buffer.from(meta.animation_url.slice(meta.animation_url.indexOf(',') + 1), 'base64').toString('utf8');
   return Uint8Array.from(Buffer.from(html.match(/id="midi">([^<]*)<\/script>/)[1].replace(/\s+/g, ''), 'base64'));
 };
@@ -67,7 +68,7 @@ for (const p of PAGES) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   const uri = p.uri ?? tokenUri(stored, fx.members, fx.svg_b64, p.midi);
-  const meta = JSON.parse(Buffer.from(uri.slice(uri.indexOf(',') + 1), 'base64').toString('utf8'));
+  const meta = jsonOf(uri);
   await page.goto(meta.animation_url);
   await page.waitForFunction(() => document.querySelector('body > img')?.complete);
   const art = await page.evaluate(() => { const i = document.querySelector('body > img'); return { w: i.naturalWidth, h: i.naturalHeight }; });

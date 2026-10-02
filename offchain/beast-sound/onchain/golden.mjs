@@ -126,17 +126,17 @@ ${Array.from({ length: 93 }, (_, n) => `        ${cairoStr(midiHtml(synthetic(n)
 }
 
 /// MIDI lengths 0..92: every (length mod 31, length mod 3) pair, so every chunk and base64
-/// remainder. D and its page-level base64 must match and stay whole groups.
+/// remainder. D and its page-level base64 must match the reference and stay whole groups.
 #[test]
 fn midi_html_every_length() {
     let expected = midi_html_expected();
     let mut n: usize = 0;
     while n < 93 {
         let d = midi_html(@synthetic(n));
-        assert_eq!(d.len() % 9, 0);
+        assert_eq!(d.len() % 3, 0);
         assert_eq!(d, expected[n].clone());
         let page_part = base64(@d);
-        assert_eq!(page_part.len() % 3, 0);
+        assert_eq!(page_part.len() % 4, 0); // whole base64 groups: the SVG base64 can follow
         assert_eq!(page_part[page_part.len() - 1] != '=', true);
         n += 1;
     }

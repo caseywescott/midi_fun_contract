@@ -20,6 +20,10 @@ const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
 const tinySrc = await (await fetch('https://cdn.jsdelivr.net/gh/g200kg/webaudio-tinysynth@master/webaudio-tinysynth.js')).text();
 const tiny = (await build({ stdin: { contents: tinySrc, loader: 'js' }, minify: true, write: false, logLevel: 'error' })).outputFiles[0].text;
 const TINY_NOTICE = '/*! webaudio-tinysynth (c) g200kg, Apache License 2.0, https://github.com/g200kg/webaudio-tinysynth */';
+// TinyChip: 50 chiptune presets + a chip drum kit for tinysynth, from its own setTimbre/noiseBuf hooks
+const chipPack = (await build({ stdin: { contents: readFileSync(here + 'tinysynth-chip.js', 'utf8'), loader: 'js' }, minify: true, write: false, logLevel: 'error' })).outputFiles[0].text;
+globalThis.window = globalThis; await import('./tinysynth-chip.js');
+const CHIP_PRESETS = globalThis.TinyChip.PRESETS.map(({ program, name, category }) => ({ program, name, category }));
 
 const chipModules = loadBuiltModules(['midi', 'synth', 'play', 'smf']);
 const chipBytes = chipModules.reduce((n, m) => n + m.js.length, 0);
@@ -68,7 +72,8 @@ legend{padding:0 6px;font-size:18px;color:var(--dim);text-transform:uppercase}
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .controls #play{background:var(--g);color:#000;min-width:120px}
 select{font:inherit;font-size:20px;background:#000;color:var(--g);border:1px solid var(--line);padding:4px 8px;width:100%;min-width:0}
-label#gmRow{display:grid;gap:6px;font-size:18px;color:var(--dim)}
+label#gmRow,#chipRow label{display:grid;gap:6px;font-size:18px;color:var(--dim)}
+#chipRow{display:grid;gap:10px}#chipRow label.check{display:flex;color:var(--g)}
 label.check{display:flex;gap:8px;align-items:center;font-size:20px}
 .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .fact{border:1px solid var(--line);padding:8px 10px}.fact b{display:block;font-weight:400;font-size:24px}.fact small{font-size:16px;color:var(--dim)}
@@ -76,8 +81,8 @@ label.check{display:flex;gap:8px;align-items:center;font-size:20px}
 [hidden]{display:none!important}
 @media (max-width:720px){.layout{grid-template-columns:1fr}.art{max-width:320px}}
 </style></head><body><main>
-<h1>One MIDI, two engines</h1>
-<p>Each Beast's music is a standard MIDI file, the bytes the Cairo composer's <code>get_score_midi</code> returns onchain. Switch the engine that plays it: our chip synth (MIDI parsed into chiptune voices) or webaudio-tinysynth (a General MIDI synth). Same notes, same file.</p>
+<h1>One MIDI, three engines</h1>
+<p>Each Beast's music is a standard MIDI file, the bytes the Cairo composer's <code>get_score_midi</code> returns onchain. Switch the engine that plays it: our chip synth (MIDI parsed into chiptune voices), webaudio-tinysynth (a General MIDI synth), or tinysynth with the TinyChip pack (50 chiptune presets and a chip drum kit, built from tinysynth's own timbre engine). Same notes, same file.</p>
 <div class="layout">
   <div class="art"><img id="art" alt=""></div>
   <div class="panel">
@@ -86,8 +91,13 @@ label.check{display:flex;gap:8px;align-items:center;font-size:20px}
       <div class="choices" role="group" aria-label="Sound engine">
         <button type="button" data-engine="chip" aria-pressed="true">Chip synth (ours)</button>
         <button type="button" data-engine="tiny" aria-pressed="false">TinySynth (General MIDI)</button>
+        <button type="button" data-engine="tinychip" aria-pressed="false">TinySynth + chip pack</button>
       </div>
       <label id="gmRow" hidden>Instrument <select id="gm">${GM.map(([n, label]) => `<option value="${n}">${n}: ${esc(label)}</option>`).join('')}</select></label>
+      <div id="chipRow" hidden>
+        <label>Chip preset (${CHIP_PRESETS.length}) <select id="chipPreset">${[...new Set(CHIP_PRESETS.map((p) => p.category))].map((c) => `<optgroup label="${esc(c)}">${CHIP_PRESETS.filter((p) => p.category === c).map((p) => `<option value="${p.program}">${p.program}: ${esc(p.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
+        <label class="check"><input type="checkbox" id="bassVoice" checked> Lowest voice on Triangle Bass</label>
+      </div>
       <span class="note" id="engineNote"></span>
     </fieldset>
     <div class="controls">
@@ -101,18 +111,20 @@ label.check{display:flex;gap:8px;align-items:center;font-size:20px}
       <div class="fact"><b id="fFelts"></b><small>felts onchain</small></div>
       <div class="fact"><b id="fEngine"></b><small>engine size</small></div>
     </div>
-    <p class="note">Drums are not in the MIDI file: the chip engine adds its own pattern, and for TinySynth the page adds the same pattern as a General MIDI drum track (channel 10).</p>
+    <p class="note">Drums are not in the MIDI file: the chip engine adds its own pattern, and for tinysynth the page adds the same pattern as a General MIDI drum track (channel 10), played by the GM kit or the TinyChip chip kit.</p>
   </div>
 </div>
 </main>
 <script>${inline(chipModules.map((m) => m.js).join('\n'))}</script>
 <script>${TINY_NOTICE}\n${inline(tiny)}</script>
+<script>${inline(chipPack)}</script>
 <script>
 const BEASTS = ${JSON.stringify(data)};
-const SIZES = { chip: ${chipBytes}, tiny: ${tiny.length} };
+const SIZES = { chip: ${chipBytes}, tiny: ${tiny.length}, tinychip: ${tiny.length + chipPack.length} };
 const v1 = BeastSound.v1;
 const $ = (id) => document.getElementById(id);
-let engine = 'chip', current = 0, handle = null, tiny = null, tinyOn = false;
+let engine = 'chip', current = 0, handle = null, tiny = null, tinyOn = false, tinyChip = null;
+const BASS_PROGRAM = 20; // TinyChip: Triangle Bass (NES)
 const bytesOf = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 
 // The chip engine's drum pattern as General MIDI drums (kick 36, snare 38, hats 42 / open 46).
@@ -130,7 +142,7 @@ function withDrums(song) {
 
 function stop() {
   if (handle) { handle.stop(); handle = null; }
-  if (tinyOn) { tiny.stopMIDI(); tinyOn = false; }
+  if (tinyOn) { (tinyOn === 'chip' ? tinyChip : tiny).stopMIDI(); tinyOn = false; }
   $('play').textContent = '▶ Play';
 }
 function play() {
@@ -139,21 +151,33 @@ function play() {
   if (engine === 'chip') {
     handle = v1.play(song, { drums: $('drums').checked });
   } else {
-    if (!tiny) tiny = new WebAudioTinySynth({ quality: 1, useReverb: 0 });
-    tiny.getAudioContext().resume();
+    // Separate instances: the chip pack rewrites programs 0-49 and the drum map
+    if (engine === 'tiny' && !tiny) tiny = new WebAudioTinySynth({ quality: 1, useReverb: 0 });
+    if (engine === 'tinychip' && !tinyChip) tinyChip = TinyChip.install(new WebAudioTinySynth({ quality: 1, useReverb: 0 }));
+    const synth = engine === 'tiny' ? tiny : tinyChip;
+    synth.getAudioContext().resume();
     const file = $('drums').checked ? v1.midi.write(withDrums(song)) : bytesOf(b.midi);
-    tiny.loadMIDI(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength));
-    tiny.setLoop(1);
-    tiny.playMIDI();
+    synth.loadMIDI(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength));
+    synth.setLoop(1);
+    synth.playMIDI();
+    tinyOn = engine === 'tiny' ? 'gm' : 'chip';
     setProgram();
-    tinyOn = true;
   }
   $('play').textContent = '■ Stop';
 }
 function setProgram() {
-  if (!tiny) return;
-  const prg = +$('gm').value;
-  for (let ch = 0; ch < 16; ch++) if (ch !== 9) tiny.send([0xc0 | ch, prg]);
+  if (tinyOn === 'gm') {
+    const prg = +$('gm').value;
+    for (let ch = 0; ch < 16; ch++) if (ch !== 9) tiny.send([0xc0 | ch, prg]);
+  } else if (tinyOn === 'chip') {
+    const prg = +$('chipPreset').value;
+    // the voice with the lowest average pitch can take the bass preset
+    const notes = v1.smf.parse(BEASTS[current].midi).notes, avg = {};
+    for (const n of notes) (avg[n[4]] ||= []).push(n[2]);
+    const voices = Object.keys(avg).map(Number);
+    const low = voices.length > 1 ? voices.reduce((a, v) => (avg[v].reduce((x, y) => x + y, 0) / avg[v].length < avg[a].reduce((x, y) => x + y, 0) / avg[a].length ? v : a)) : -1;
+    for (let ch = 0; ch < 16; ch++) if (ch !== 9) tinyChip.send([0xc0 | ch, $('bassVoice').checked && ch === low ? BASS_PROGRAM : prg]);
+  }
 }
 function show() {
   const b = BEASTS[current];
@@ -163,14 +187,18 @@ function show() {
   $('fFelts').textContent = b.felts;
   $('fEngine').textContent = (SIZES[engine] / 1000).toFixed(1) + ' KB';
   $('gmRow').hidden = engine !== 'tiny';
+  $('chipRow').hidden = engine !== 'tinychip';
   $('engineNote').textContent = engine === 'chip'
     ? 'MIDI parsed by the smf module, played by our chip synth (Triangle lead, panned voices).'
-    : 'MIDI loaded straight into tinysynth; pick any General MIDI instrument.';
+    : engine === 'tiny' ? 'MIDI loaded straight into tinysynth; pick any General MIDI instrument.'
+    : 'Tinysynth with the TinyChip pack: sampled 8-bit waveforms (pulse, NES triangle, 4-bit saw, GB wave, LFSR noise) through its own timbre engine, plus a chip drum kit.';
 }
 $('play').addEventListener('click', () => ((handle || tinyOn) ? stop() : play()));
 $('beast').addEventListener('change', (e) => { const was = handle || tinyOn; stop(); current = +e.target.value; show(); if (was) play(); });
 $('drums').addEventListener('change', () => { if (handle || tinyOn) { stop(); play(); } });
 $('gm').addEventListener('change', setProgram);
+$('chipPreset').addEventListener('change', setProgram);
+$('bassVoice').addEventListener('change', setProgram);
 document.querySelectorAll('[data-engine]').forEach((btn) => btn.addEventListener('click', () => {
   const was = handle || tinyOn; stop();
   engine = btn.dataset.engine;

@@ -34,14 +34,7 @@ function row(token, tokenId, beast, live, song) {
 }
 
 if (process.argv[2] === '--rebuild') {
-  // Rows from before token_id/live were recorded carry them in their old page's inputs line.
-  const rows = JSON.parse(readFileSync(out + 'gallery.json', 'utf8')).map((r) => {
-    if (r.token_id) return r;
-    const m = readFileSync(out + `beasts/${r.token}.html`, 'utf8').match(/BEAST_SOUND="(\d+),(\d+),(\d+),(\d+),(\d+),(\d+)"/);
-    if (!m) throw new Error(`no inputs in beasts/${r.token}.html`);
-    const [kills, scars, held, rank, count] = m.slice(2).map(Number);
-    return { ...r, token_id: '0x' + BigInt(m[1]).toString(16), live: { adventurers_killed: kills, scars, summit_held_seconds: held, rank, species_count: count } };
-  });
+  const rows = JSON.parse(readFileSync(out + 'gallery.json', 'utf8'));
   const list = rows.map((r) => {
     const beast = engine.decodeTokenId(BigInt(r.token_id));
     writeFileSync(out + `beasts/${r.token}.html`, animationHtml(js, midiFor(r.token_id, r.live), readFileSync(out + `beasts/${r.token}.svg`, 'utf8')));

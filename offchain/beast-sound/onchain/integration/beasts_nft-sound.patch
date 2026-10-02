@@ -1,85 +1,80 @@
-From 30303ee8fd669e88a102ffa5e2d90de91172a0d4 Mon Sep 17 00:00:00 2001
-From: CaseyW <zkpowergrind@gmail.com>
-Date: Fri, 2 Oct 2026 09:58:19 +1000
-Subject: [PATCH] add Beast Sound animation_url to token_uri
+From e600ef77a94ac8bcb2f3b9c53a3462b3ba297e95 Mon Sep 17 00:00:00 2001
+From: loothero <loothero@provable.games>
+Date: Fri, 2 Oct 2026 08:28:35 -0700
+Subject: [PATCH] add sound page animation_url to token_uri
 
-Optional sound page contract (owner-set, zero = unchanged token_uri). When set,
-token_uri hands the JSON members and SVG base64 to the page, which returns the
-full token_uri with an animation_url that plays the Beast's theme.
+Optional sound page contract (owner-set, zero = unchanged token_uri). When
+set, token_uri hands the JSON members and SVG base64 to the page together with
+this collection's address and the token ID; the page's MIDI provider reads the
+Beast's live state from this contract's getters and returns the full token_uri
+with an animation_url that plays the Beast's music.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ---
- src/interfaces.cairo         | 27 +++++++++++++
- src/lib.cairo                | 14 +++++++
- src/metadata_generator.cairo | 74 +++++++++++++++++++++++++++---------
- src/sound_page_tests.cairo   | 74 ++++++++++++++++++++++++++++++++++++
- 4 files changed, 170 insertions(+), 19 deletions(-)
+ src/interfaces.cairo         |  19 +++++++
+ src/lib.cairo                |  27 +++++++++
+ src/metadata_generator.cairo |  85 +++++++++++++++++++++-------
+ src/sound_page_tests.cairo   | 107 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 219 insertions(+), 19 deletions(-)
  create mode 100644 src/sound_page_tests.cairo
 
 diff --git a/src/interfaces.cairo b/src/interfaces.cairo
-index 7548449..922b404 100644
+index a035b37..703c492 100644
 --- a/src/interfaces.cairo
 +++ b/src/interfaces.cairo
-@@ -26,6 +26,9 @@ pub trait IBeasts<TContractState> {
-     fn get_dungeon_address(self: @TContractState) -> ContractAddress;
-     fn set_death_mountain_address(ref self: TContractState, death_mountain: ContractAddress);
+@@ -28,6 +28,9 @@ pub trait IBeasts<TContractState> {
      fn get_death_mountain_address(self: @TContractState) -> ContractAddress;
-+    /// Beast Sound page contract; zero disables `animation_url` and keeps the original token_uri.
+     fn set_registry_address(ref self: TContractState, registry: ContractAddress);
+     fn get_registry_address(self: @TContractState) -> ContractAddress;
++    /// Sound page contract; zero (the default) keeps `token_uri` without `animation_url`.
 +    fn set_sound_page_address(ref self: TContractState, sound_page: ContractAddress);
 +    fn get_sound_page_address(self: @TContractState) -> ContractAddress;
  
      // Minting functions
      fn mint(
-@@ -197,3 +200,27 @@ pub struct SpecialPowers {
+@@ -397,3 +400,19 @@ pub struct SpecialPowers {
      pub special2: u8,
      pub special3: u8,
  }
 +
-+/// Live stats the Beast Sound composer reads to write a Beast's theme.
-+#[derive(Copy, Drop, Serde)]
-+pub struct BeastSoundInputs {
-+    pub adventurers_killed: u64,
-+    pub scars: u64,
-+    pub summit_held_seconds: u64,
-+    pub rank: u16,
-+    pub species_count: u16,
-+}
-+
-+/// Beast Sound page contract: builds the full token_uri with an `animation_url` that plays the
-+/// Beast's theme. `members` is the metadata JSON body without braces and without `image`;
-+/// `svg_b64` is the base64 SVG that `image` would carry.
++/// Sound page (`beast_sound_page::MidiSoundPage`): returns the full token_uri with an
++/// `animation_url` that plays the token's music. `members` is the metadata JSON body without
++/// braces and without `image`; `svg_b64` is the base64 SVG that `image` would carry. The page's
++/// MIDI provider composes from `(token_address, token_id)` alone, reading this contract's state
++/// getters (never `token_uri`).
 +#[starknet::interface]
-+pub trait IBeastSoundPage<TContractState> {
++pub trait IMidiSoundPage<TContractState> {
 +    fn token_uri(
 +        self: @TContractState,
 +        members: ByteArray,
 +        svg_b64: ByteArray,
++        token_address: ContractAddress,
 +        token_id: u256,
-+        live: BeastSoundInputs,
 +    ) -> ByteArray;
 +}
 diff --git a/src/lib.cairo b/src/lib.cairo
-index a8dcde7..59c5711 100644
+index 4ea68a6..bf15cd4 100644
 --- a/src/lib.cairo
 +++ b/src/lib.cairo
-@@ -18,6 +18,8 @@ mod mint_tests;
- pub mod minting_coordinator;
+@@ -28,6 +28,8 @@ pub mod minting_coordinator;
  pub mod pack;
  #[cfg(test)]
-+mod sound_page_tests;
+ mod registry_integration_tests;
 +#[cfg(test)]
- mod tests;
- pub mod utils;
- 
-@@ -135,6 +137,7 @@ pub mod beasts_nft {
++mod sound_page_tests;
+ pub mod stats_cache;
+ pub mod stored_art_provider;
+ #[cfg(test)]
+@@ -183,6 +185,8 @@ pub mod beasts_nft {
          pub regular_gif_provider: IBeastImageDataProviderDispatcher,
          pub shiny_gif_provider: IBeastImageDataProviderDispatcher,
          pub death_mountain_dispatcher: IBeastSystemsDispatcher,
++        /// Optional sound page; zero keeps `token_uri` as it was.
 +        pub sound_page: ContractAddress,
      }
  
      #[derive(Drop, starknet::Event)]
-@@ -233,6 +236,15 @@ pub mod beasts_nft {
+@@ -281,6 +285,15 @@ pub mod beasts_nft {
              self.death_mountain_dispatcher.read().contract_address
          }
  
@@ -92,37 +87,44 @@ index a8dcde7..59c5711 100644
 +            self.sound_page.read()
 +        }
 +
-         fn mint(
-             ref self: ContractState,
-             to: ContractAddress,
-@@ -595,6 +607,8 @@ pub mod beasts_nft {
-                 adventurers_killed,
-                 last_killed_by_adventurer,
-                 last_killed_timestamp,
-+                self.sound_page.read(),
-+                self.beast_counts.entry(beast.id).read(),
-             )
-         }
+         /// Wires the permissionless species registry. Write-once: the
+         /// registry is the sole authority over who may mint every community
+         /// species, and it holds a matching one-way pointer back here, so a
+@@ -1048,6 +1061,20 @@ pub mod beasts_nft {
+             let beast_image = Self::resolve_art(self, beast);
  
+             // Generate metadata
++            let sound_page = self.sound_page.read();
++            if sound_page.is_non_zero() {
++                return MetadataGeneratorTrait::generate_metadata_with_sound(
++                    token_id,
++                    beast,
++                    rank,
++                    beast_name,
++                    beast_image,
++                    adventurers_killed,
++                    last_killed_by_adventurer,
++                    last_killed_timestamp,
++                    sound_page,
++                );
++            }
+             MetadataGeneratorTrait::generate_metadata(
+                 token_id,
+                 beast,
 diff --git a/src/metadata_generator.cairo b/src/metadata_generator.cairo
-index f687d07..52ad4d0 100644
+index b9d02b4..b525f9b 100644
 --- a/src/metadata_generator.cairo
 +++ b/src/metadata_generator.cairo
-@@ -1,7 +1,12 @@
-+use core::num::traits::Zero;
+@@ -1,6 +1,8 @@
 +use starknet::ContractAddress;
- use super::beast_manager::BeastManagerTrait;
+ use super::beast_manager::{BeastManagerTrait, GENESIS_SPECIES_MAX};
  use super::beast_svg::BeastSvgTrait;
  use super::encoding::bytes_base64_encode;
--use super::interfaces::IBeastImageDataProviderDispatcher;
-+use super::interfaces::{
-+    BeastSoundInputs, IBeastImageDataProviderDispatcher, IBeastSoundPageDispatcher,
-+    IBeastSoundPageDispatcherTrait,
-+};
++use super::interfaces::{IMidiSoundPageDispatcher, IMidiSoundPageDispatcherTrait};
  use super::pack::PackableBeast;
  use super::utils::felt252_to_byte_array;
  
-@@ -14,7 +19,8 @@ pub struct MetadataGenerator {}
+@@ -13,7 +15,8 @@ pub struct MetadataGenerator {}
  pub struct MetadataComponents {
      pub name: ByteArray,
      pub description: ByteArray,
@@ -132,57 +134,52 @@ index f687d07..52ad4d0 100644
      pub attributes: Array<Attribute>,
  }
  
-@@ -27,7 +33,8 @@ pub struct Attribute {
- 
- #[generate_trait]
- pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
--    /// Generates complete metadata JSON for a beast
-+    /// Generates complete metadata JSON for a beast. With a Beast Sound page set, the JSON also
-+    /// carries an `animation_url` that plays the Beast's theme; otherwise it is unchanged.
-     fn generate_metadata(
-         token_id: u256,
-         beast: PackableBeast,
-@@ -36,6 +43,8 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
-         adventurers_killed: u64,
-         last_killed_by_adventurer: u64,
-         last_killed_timestamp: u64,
-+        sound_page: ContractAddress,
-+        species_count: u16,
-     ) -> ByteArray {
-         let components = Self::build_metadata_components(
-             token_id,
-@@ -46,9 +55,19 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
-             last_killed_by_adventurer,
-             last_killed_timestamp,
-         );
--        let json = Self::components_to_json(components);
-+        if sound_page.is_zero() {
-+            let json = Self::components_to_json(components);
-+            return format!("data:application/json;base64,{}", bytes_base64_encode(json));
-+        }
- 
--        format!("data:application/json;base64,{}", bytes_base64_encode(json))
-+        // The sound page assembles and encodes the JSON itself, reusing the SVG base64 so the
-+        // added work is small (see IBeastSoundPage).
-+        let (members, svg_b64) = Self::components_to_members(components);
-+        let live = BeastSoundInputs {
-+            adventurers_killed, scars: 0, summit_held_seconds: 0, rank, species_count,
-+        };
-+        IBeastSoundPageDispatcher { contract_address: sound_page }
-+            .token_uri(members, svg_b64, token_id, live)
+@@ -56,6 +59,35 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
+         format!("data:application/json;base64,{}", bytes_base64_encode(json))
      }
  
++    /// Same metadata, with an `animation_url` that plays the Beast's music. The sound page
++    /// assembles and encodes the JSON itself, reusing the SVG base64, and asks its MIDI provider
++    /// for the music from this collection's address and the token ID.
++    fn generate_metadata_with_sound(
++        token_id: u256,
++        beast: PackableBeast,
++        rank: u16,
++        beast_name: felt252,
++        beast_image: ByteArray,
++        adventurers_killed: u64,
++        last_killed_by_adventurer: u64,
++        last_killed_timestamp: u64,
++        sound_page: ContractAddress,
++    ) -> ByteArray {
++        let components = Self::build_metadata_components(
++            token_id,
++            beast,
++            rank,
++            beast_name,
++            beast_image,
++            adventurers_killed,
++            last_killed_by_adventurer,
++            last_killed_timestamp,
++        );
++        let (members, svg_b64) = Self::components_to_members(components);
++        IMidiSoundPageDispatcher { contract_address: sound_page }
++            .token_uri(members, svg_b64, starknet::get_contract_address(), token_id)
++    }
++
      /// Builds metadata components from beast data
-@@ -115,7 +134,7 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
+     fn build_metadata_components(
+         token_id: u256,
+@@ -122,7 +154,7 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
          let svg = BeastSvgTrait::generate_svg(
-             beast.id, prefix_name, suffix_name, beast_name, rank, beast_attrs, image_data_provider,
+             prefix_name, suffix_name, beast_name, rank, beast_attrs, beast_image,
          );
 -        let image = format!("data:image/svg+xml;base64,{}", bytes_base64_encode(svg));
 +        let image_svg_b64 = bytes_base64_encode(svg);
  
          // Build attributes
          let mut attributes = array![];
-@@ -230,7 +249,7 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
+@@ -237,7 +269,7 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
              }));
          attributes.append(Attribute { trait_type: "Genesis", value: genesis_value });
  
@@ -191,7 +188,7 @@ index f687d07..52ad4d0 100644
      }
  
      /// Converts metadata components to JSON string
-@@ -251,25 +270,47 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
+@@ -258,25 +290,47 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
          json.append(@"\",");
  
          // Image
@@ -210,8 +207,8 @@ index f687d07..52ad4d0 100644
 +        json
 +    }
 +
-+    /// JSON members for the Beast Sound page: name, description and attributes, without braces
-+    /// and without `image`. Returns them with the SVG base64, which the page places itself.
++    /// JSON members for the sound page: name, description and attributes, without braces and
++    /// without `image`. Returns them with the SVG base64, which the page places itself.
 +    fn components_to_members(components: MetadataComponents) -> (ByteArray, ByteArray) {
 +        let MetadataComponents { name, description, image_svg_b64, attributes } = components;
 +        let mut json: ByteArray = "\"name\":\"";
@@ -245,7 +242,7 @@ index f687d07..52ad4d0 100644
              json.append(@"\"}");
  
              if i < attributes_len - 1 {
-@@ -280,11 +321,6 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
+@@ -287,11 +341,6 @@ pub impl MetadataGeneratorImpl of MetadataGeneratorTrait {
          }
  
          json.append(@"]");
@@ -257,7 +254,26 @@ index f687d07..52ad4d0 100644
      }
  }
  
-@@ -502,7 +538,7 @@ mod tests {
+@@ -603,16 +652,14 @@ mod tests {
+         );
+         let expected_svg_power =
+             "class='label'>POWER</text><text x='35' y='46' text-anchor='middle' class='valL'>65535</text>";
+-        let expected_image = format!(
+-            "data:image/svg+xml;base64,{}", bytes_base64_encode(svg.clone()),
+-        );
++        let expected_image = bytes_base64_encode(svg.clone());
+ 
+         assert(beast_attrs.power == 65535, 'Wrong canonical power');
+         assert(components.attributes.len() == 15, 'Wrong Genesis attrs');
+         assert(components.attributes.at(7).trait_type == @"Power", 'Should have Power trait');
+         assert(components.attributes.at(7).value == @"65535", 'Wrong JSON power value');
+         assert(find_substring(@svg, @expected_svg_power), 'Wrong SVG power value');
+-        assert(components.image == expected_image, 'Metadata SVG mismatch');
++        assert(components.image_svg_b64 == expected_image, 'Metadata SVG mismatch');
+ 
+         let expected_json = MetadataGeneratorTrait::components_to_json(components);
+         let expected_uri = format!(
+@@ -633,7 +680,7 @@ mod tests {
          attributes.append(Attribute { trait_type: "Another", value: "Thing" });
  
          let components = super::MetadataComponents {
@@ -268,11 +284,12 @@ index f687d07..52ad4d0 100644
          let json = MetadataGeneratorTrait::components_to_json(components);
 diff --git a/src/sound_page_tests.cairo b/src/sound_page_tests.cairo
 new file mode 100644
-index 0000000..865ae8c
+index 0000000..5880905
 --- /dev/null
 +++ b/src/sound_page_tests.cairo
-@@ -0,0 +1,74 @@
+@@ -0,0 +1,107 @@
 +use beasts_nft::interfaces::{IBeastsDispatcher, IBeastsDispatcherTrait};
++use beasts_nft::metadata_generator::{Attribute, MetadataComponents, MetadataGeneratorTrait};
 +use openzeppelin_interfaces::erc721::{IERC721MetadataDispatcher, IERC721MetadataDispatcherTrait};
 +use snforge_std::{
 +    ContractClassTrait, DeclareResultTrait, declare, start_cheat_caller_address, start_mock_call,
@@ -290,15 +307,19 @@ index 0000000..865ae8c
 +        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAEElEQVR4nGP4z8DAwMAAAgABAAJcQp0pAAAAAElFTkSuQmCC";
 +    start_mock_call(provider, selector!("get_data_uri"), img);
 +
-+    let mut calldata: Array<felt252> = array![0, 'Beasts', 6, 0, 'BEAST', 5];
-+    calldata.append(addr('owner').into());
-+    calldata.append(addr('royalty').into());
-+    calldata.append(500);
-+    calldata.append(provider.into());
-+    calldata.append(provider.into());
-+    calldata.append(provider.into());
-+    calldata.append(provider.into());
-+    calldata.append(0);
++    let mut calldata: Array<felt252> = array![];
++    let name: ByteArray = "Beasts";
++    let symbol: ByteArray = "BEAST";
++    name.serialize(ref calldata);
++    symbol.serialize(ref calldata);
++    addr('owner').serialize(ref calldata);
++    addr('royalty').serialize(ref calldata);
++    500_u128.serialize(ref calldata);
++    provider.serialize(ref calldata);
++    provider.serialize(ref calldata);
++    provider.serialize(ref calldata);
++    provider.serialize(ref calldata);
++    0.serialize(ref calldata);
 +    let (nft, _) = declare("beasts_nft").unwrap().contract_class().deploy(@calldata).unwrap();
 +    let beasts = IBeastsDispatcher { contract_address: nft };
 +
@@ -311,17 +332,26 @@ index 0000000..865ae8c
 +    (beasts, IERC721MetadataDispatcher { contract_address: nft }, token_id)
 +}
 +
++fn set_page(beasts: IBeastsDispatcher, page: ContractAddress) {
++    start_cheat_caller_address(beasts.contract_address, addr('owner'));
++    beasts.set_sound_page_address(page);
++    stop_cheat_caller_address(beasts.contract_address);
++}
++
 +#[test]
 +fn sound_page_defaults_to_zero_and_keeps_token_uri() {
 +    let (beasts, metadata, token_id) = deploy_with_minted_beast();
 +    assert!(beasts.get_sound_page_address() == 0.try_into().unwrap());
-+    let uri = metadata.token_uri(token_id);
-+    let prefix: ByteArray = "data:application/json;base64,";
-+    let mut head: ByteArray = "";
-+    for i in 0..prefix.len() {
-+        head.append_byte(uri.at(i).unwrap());
-+    }
-+    assert!(head == prefix);
++    let before = metadata.token_uri(token_id);
++
++    // Turning sound on and back off restores the original bytes.
++    let page = addr('sound_page');
++    let from_page: ByteArray = "data:application/json;base64,c291bmQ=";
++    start_mock_call(page, selector!("token_uri"), from_page);
++    set_page(beasts, page);
++    assert!(metadata.token_uri(token_id) != before);
++    set_page(beasts, 0.try_into().unwrap());
++    assert!(metadata.token_uri(token_id) == before);
 +}
 +
 +#[test]
@@ -330,11 +360,7 @@ index 0000000..865ae8c
 +    let page = addr('sound_page');
 +    let from_page: ByteArray = "data:application/json;base64,c291bmQ=";
 +    start_mock_call(page, selector!("token_uri"), from_page.clone());
-+
-+    start_cheat_caller_address(beasts.contract_address, addr('owner'));
-+    beasts.set_sound_page_address(page);
-+    stop_cheat_caller_address(beasts.contract_address);
-+
++    set_page(beasts, page);
 +    assert!(beasts.get_sound_page_address() == page);
 +    assert!(metadata.token_uri(token_id) == from_page);
 +}
@@ -346,6 +372,29 @@ index 0000000..865ae8c
 +    start_cheat_caller_address(beasts.contract_address, addr('someone'));
 +    beasts.set_sound_page_address(addr('sound_page'));
 +}
++
++fn components() -> MetadataComponents {
++    let attributes = array![
++        Attribute { trait_type: "Rank", value: "1" }, Attribute { trait_type: "Shiny", value: "0" },
++    ];
++    MetadataComponents {
++        name: "Warlock", description: "A test beast", image_svg_b64: "PHN2Zy8+", attributes,
++    }
++}
++
++/// The page gets the same members and image as the plain JSON, minus the image member.
++#[test]
++fn sound_page_members_match_the_plain_json() {
++    let json = MetadataGeneratorTrait::components_to_json(components());
++    let (members, svg_b64) = MetadataGeneratorTrait::components_to_members(components());
++    assert!(svg_b64 == "PHN2Zy8+");
++    assert!(
++        members == "\"name\":\"Warlock\",\"description\":\"A test beast\",\"attributes\":[{\"trait_type\":\"Rank\",\"value\":\"1\"},{\"trait_type\":\"Shiny\",\"value\":\"0\"}]",
++    );
++    assert!(
++        json == "{\"name\":\"Warlock\",\"description\":\"A test beast\",\"image\":\"data:image/svg+xml;base64,PHN2Zy8+\",\"attributes\":[{\"trait_type\":\"Rank\",\"value\":\"1\"},{\"trait_type\":\"Shiny\",\"value\":\"0\"}]}",
++    );
++}
 -- 
-2.41.0
+2.43.0
 

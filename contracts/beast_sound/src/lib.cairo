@@ -20,6 +20,11 @@ pub trait IBeastSoundComposer<T> {
     /// BSN1 compact note stream (7 bits per note), same packing. Clients rebuild the exact MIDI
     /// file with `bsnToMidi` (web/beast_sound/engine.js).
     fn get_score_notes(self: @T, token_id: u256, live: BeastV3LiveState) -> Array<felt252>;
+    /// BSI1 instruction stream (62-bit instructions, 4 per felt): any music, not only grid canons.
+    /// Decode with decodeBsi (offchain/beast-sound/src/bsi.js) or the library's notes module.
+    fn get_score_instructions(
+        self: @T, token_id: u256, live: BeastV3LiveState,
+    ) -> Array<felt252>;
 }
 
 #[starknet::contract]
@@ -27,7 +32,8 @@ pub mod BeastSoundComposer {
     use koji::composition::beast_trait_map::BeastCompositionParams;
     use koji::composition::beast_v3_sound::{
         BeastV3LiveState, beast_has_sound, build_v3_beast_form, decode_v3_token_id,
-        map_v3_beast_to_composition_params, v3_music_state_hash, v3_score_midi, v3_score_notes,
+        map_v3_beast_to_composition_params, v3_music_state_hash, v3_score_instructions, v3_score_midi,
+        v3_score_notes,
     };
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
 
@@ -78,6 +84,12 @@ pub mod BeastSoundComposer {
             self: @ContractState, token_id: u256, live: BeastV3LiveState,
         ) -> Array<felt252> {
             v3_score_notes(decode_v3_token_id(token_id), live)
+        }
+
+        fn get_score_instructions(
+            self: @ContractState, token_id: u256, live: BeastV3LiveState,
+        ) -> Array<felt252> {
+            v3_score_instructions(decode_v3_token_id(token_id), live)
         }
     }
 }

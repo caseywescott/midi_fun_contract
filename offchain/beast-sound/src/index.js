@@ -14,6 +14,7 @@ export {
 
 /** Bump only with a deliberate, announced change to the music; old versions stay installable. */
 export const ENGINE_VERSION = 1;
+export { encodeBsi, decodeBsi, isBsi, BSI_VERSION } from './bsi.js';
 export { poseidonHashMany };
 export const engine = createEngine({ poseidonHashMany });
 /** Engine v2 (invertible canon + V2 ornaments). Opt in with composeBeast(..., { engineVersion: 2 }). */

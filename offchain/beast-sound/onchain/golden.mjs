@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { inputsHtml, notesHtml, tokenUri, tokenUriWithNotes, storedSegment } from './page.js';
 import { MODULES, PAGES, loadBuiltModules } from './modules.mjs';
-import { composeBeast, decodeTokenId } from '../src/index.js';
+import { composeBeast, decodeTokenId, encodeBsi } from '../src/index.js';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const fixture = JSON.parse(readFileSync(here + 'fixtures/warlock_v3.json', 'utf8'));
@@ -20,9 +20,12 @@ const CASES = [
   { name: 'small_genesis', ...small, token: fixture.token_id, live: { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1243 } },
   { name: 'small_max_values', ...small, members: '"name":"Max"', token: (1n << 116n) - 1n, live: { adventurers_killed: 2n ** 64n - 1n, scars: 2n ** 64n - 1n, summit_held_seconds: 2n ** 64n - 1n, rank: 65535, species_count: 65535 } },
 ];
-const warlockFelts = composeBeast(decodeTokenId(BigInt(fixture.token_id)), fixture.live).bsnFelts;
+const warlockSong = composeBeast(decodeTokenId(BigInt(fixture.token_id)), fixture.live);
+const warlockFelts = warlockSong.bsnFelts;
+const warlockBsi = encodeBsi({ notes: warlockSong.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice]), tempo_us: warlockSong.params.tempo_us });
 const storedNotes = storedSegment(loadBuiltModules(PAGES.notes));
 const notesUri = tokenUriWithNotes(storedNotes, fixture.members, fixture.svg_b64, warlockFelts);
+const bsiUri = tokenUriWithNotes(storedNotes, fixture.members, fixture.svg_b64, warlockBsi);
 const pascal = (n) => n[0].toUpperCase() + n.slice(1);
 const BASE64 = ['', 'f', 'fo', 'foo', 'foob', 'fooba', 'foobar', "<svg xmlns='http://www.w3.org/2000/svg'/>"];
 
@@ -112,6 +115,11 @@ pub fn warlock_felts() -> Array<felt252> {
     array![${warlockFelts.map((f) => '0x' + f.toString(16)).join(', ')}]
 }
 
+/// The same score as BSI1 instructions (as get_score_instructions returns them).
+pub fn warlock_bsi_felts() -> Array<felt252> {
+    array![${warlockBsi.map((f) => '0x' + f.toString(16)).join(', ')}]
+}
+
 fn stored_notes_local() -> ByteArray {
     let mut stored = crate::page_data::head_segment();
 ${PAGES.notes.map((n) => `    stored.append(@crate::modules::${n}::segment());`).join('\n')}
@@ -134,17 +142,36 @@ fn notes_token_uri_matches_js() {
     assert!(uri == expected_notes_uri());
 }
 
-/// Deployed: the notes modules, a composer, and BeastSoundNotesPage wired to both.
-#[test]
-fn notes_page_contract_calls_composer_and_modules() {
+fn deploy_notes_page(format: felt252) -> IBeastSoundPageDispatcher {
     let mut calldata: Array<felt252> = array![${PAGES.notes.length}];
 ${PAGES.notes.map((n) => `    calldata.append(deploy(crate::modules::${n}::BeastSoundModule${pascal(n)}::TEST_CLASS_HASH, array![].span()).into());`).join('\n')}
     calldata.append(deploy(crate::MockComposer::TEST_CLASS_HASH, array![].span()).into());
-    let page = IBeastSoundPageDispatcher {
+    calldata.append(format);
+    IBeastSoundPageDispatcher {
         contract_address: deploy(crate::BeastSoundNotesPage::TEST_CLASS_HASH, calldata.span()),
-    };
+    }
+}
+
+fn expected_bsi_uri() -> ByteArray {
+    ${cairoStr(bsiUri)}
+}
+
+/// Deployed: the notes modules, a composer, and BeastSoundNotesPage wired to both (BSN1 format).
+#[test]
+fn notes_page_contract_calls_composer_and_modules() {
     let live = ${liveLit(fixture.live)};
+    let page = deploy_notes_page(0);
     assert!(page.token_uri(warlock_members(), warlock_svg_b64(), ${u256(fixture.token_id)}, live) == expected_notes_uri());
+}
+
+/// Same, with the composer's BSI1 instruction stream (62-bit instructions, 4 per felt).
+#[test]
+fn notes_page_bsi_format() {
+    let live = ${liveLit(fixture.live)};
+    let page = deploy_notes_page(1);
+    let uri = page.token_uri(warlock_members(), warlock_svg_b64(), ${u256(fixture.token_id)}, live);
+    assert_eq!(uri.len(), ${bsiUri.length});
+    assert!(uri == expected_bsi_uri());
 }
 `;
 writeFileSync(here + 'cairo/src/tests.cairo', tests);

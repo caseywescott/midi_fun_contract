@@ -49,9 +49,12 @@ Mints, transfers and every other write path are untouched. Only the `token_uri` 
     are identical to the sound-off output, with `animation_url` added.
   - In Chrome, the page composes the expected score hash and plays, for a plain Beast and for an
     animated shiny one.
-- **Gas:** setup, mint and `token_uri` cost 1,249.5M L2 gas with sound off and 1,294.4M with
-  sound on. So sound adds under 45M per call, and that figure includes deploying all 10 contracts.
-  In the page's own test, the deployed system adds 54M to a 775M baseline (+7%).
+- **Gas, real execution (devnet):** this does not work yet. Their `token_uri` costs 3.0–3.25B L2
+  gas with sound off. With any sound page it exceeds the execution step limit and fails, through
+  both `starknet_call` and fee estimates. The snforge run above passed only because it ran with no
+  step limit.
+  - **Cause:** Cairo base64 at about 70K gas per byte. See `../README.md`, "What it costs".
+  - **Proposed fix:** a plain-JSON `token_uri`.
 
 ## Not wired yet
 

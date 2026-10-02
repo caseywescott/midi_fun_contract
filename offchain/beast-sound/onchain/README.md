@@ -100,7 +100,7 @@ Both variants implement the same `IBeastSoundPage`, so the NFT patch points at e
 | Data per Beast | ~2 felts of inputs | 2–16 felts (median 4 over 400 mainnet Beasts) |
 | Modules on the page | all 10 (27.5 KB) | midi, synth, play, notes, page (12.4 KB) |
 | Score in the token data | No (deterministic from onchain code + inputs) | Yes |
-| Warlock token_uri gas | 829M | 809M + composer (5.6–119M) |
+| Page `token_uri` gas, real (devnet) | 2.47–2.48B | 2.46–2.81B (BSN1); BSI1 2.49–3.33B, heaviest over the step limit |
 
 **The notes format (BSN1):**
 - **Layout:** felts are `[byte_len, 31-byte chunks…]`.
@@ -109,40 +109,56 @@ Both variants implement the same `IBeastSoundPage`, so the NFT patch points at e
 - **Why runs:** Beast scores sit on a fixed grid with one duration, so run-length coding beats a
   fixed-width instruction. A 62-bit, 4-per-felt instruction format would take about 4–61 felts
   (median 13) for the same Beasts.
-- **Arbitrary music:** a general instruction format is the natural next `notes` decoder.
+- **BSI1, the general format, is also built:** 62-bit instructions (header, tempo, notes), 4 per
+  felt, from `src/bsi.js` and the composer's `get_score_instructions`. The `notes` module
+  auto-detects it.
+- **BSI1 cost:** it's cheaper for the composer to produce (103M against 178M for the heaviest
+  Beast), but its line is about 6× larger, and the page base64-encodes that line twice. So the
+  BSN1 page is the lighter one.
 
 `test/onchain.test.mjs` checks that the notes page, with no composer loaded, decodes the felts Cairo
 emits (golden `bsn_hash`) into exactly the reference notes and MIDI.
 
-## What it costs
+## What it costs (real execution, devnet 0.10.0)
 
-Measured with cairo-test on the real Sepolia genesis Warlock (members 2.3 KB, SVG base64 30 KB):
+**Status: too expensive as designed.** Their Beasts NFT plus any sound page exceeds the execution
+step limit, so `token_uri` fails. Measured with their real `beasts_nft`, the real art providers and
+the real `BeastSoundComposer`, through `starknet_call` and fee estimates:
 
-| | L2 gas (est.) | token_uri size |
-|---|---:|---:|
-| Today: one base64 pass over the JSON | 775M | 43 KB |
-| With sound: deployed `BeastSoundPage` + 9 module contracts | 829M (+7%) | 133 KB |
-| With sound, naively (base64 the page, put it in the JSON, base64 everything) | ≈3.5B (estimated from the per-byte cost) | 133 KB |
+| NFT `token_uri` | Sound off | Inputs page | Notes page (BSN1) | Notes page (BSI1) |
+|---|---:|---:|---:|---:|
+| Tier 5 common | 3.00B | step limit | step limit | step limit |
+| Sorrow Peak Warlock | 3.01B | step limit | step limit | step limit |
+| Tier 1 shiny | 3.09B | step limit | step limit | step limit |
+| Animated shiny | 3.25B | step limit | step limit | step limit |
 
-**Where the 54M goes:** assembling the page costs 18M, and the 9 module calls cost 36M.
+Each page contract on its own, called with the Warlock fixture's members and SVG:
 
-**Word alignment:**
-- **What's padded:** every segment is a whole number of 31-byte words, and JSON whitespace puts
-  the library on a word boundary of the output.
-- **Why:** assembling at word boundaries is cheap. Without alignment the same system cost +103M.
-- **End to end:** against the real Beasts contracts (`integration/`), sound adds under 45M per
-  `token_uri`, including deploying all 10 contracts.
+| Beast | Notes | Inputs page | Notes page (BSN1) | Notes page (BSI1) |
+|---|---:|---:|---:|---:|
+| Tier 5 fresh | 12 | 2.47B | 2.46B | 2.49B |
+| Sorrow Peak Warlock | 160 | 2.47B | 2.59B | 3.04B |
+| Tier 1, 3 sections | 240 | 2.48B | 2.67B | 3.33B |
+| Heaviest | 400 | 2.48B | 2.81B | step limit |
 
-**Contract sizes:** each module contract is 869–2,756 CASM felts and the page is 12,108, all far
-under the 81,920 limit. No composition runs onchain, so the v1 Cairo composer's 5–120M gas per call
-does not apply.
+**Why it fails:**
+- **Base64 per byte:** base64 in Cairo costs about 70K L2 gas per byte.
+- **Already near the cap:** the NFT already base64-encodes the SVG and then the whole JSON, about
+  54 KB, which puts it near the step limit before any sound is added.
 
-The composer hashes with `src/poseidon_lite.js` instead of `@scure/starknet`: a 1 KB Starknet
-Poseidon that derives its round constants (`sha256("Hades" + i) mod p`) on first use, in about
-11 ms. `test/poseidon_lite.test.mjs` checks it against `@scure/starknet` on 207 inputs and on
-full Beast renders.
+**Correction:** earlier figures here (+37M, +54M, "+7%") were cairo-test and snforge estimates.
+Those use smaller gas units than real L2 gas, and the snforge runs had no step limit. Correctness
+results stand: on devnet, every page and composer output matched the JS reference byte for byte.
 
-### Why the cost barely moves
+**Proposed fix (not built yet): plain-JSON `token_uri`**
+(`data:application/json;utf8,…`).
+- **What it removes:** the outer base64 pass over the whole JSON.
+- **Per-call encoding left:** only the SVG, which the NFT encodes today anyway, plus the inputs line.
+- **Expected:** `token_uri` with sound should cost less than today's sound-off `token_uri`.
+- **To check first:** marketplaces must accept non-base64 JSON data URIs, and `%` or `#` in the
+  JSON must be escaped.
+
+### The layout: no extra per-call encoding of the library
 
 Every piece is aligned to 3 bytes, so base64 runs concatenate:
 

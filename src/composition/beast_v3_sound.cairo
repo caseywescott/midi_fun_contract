@@ -797,3 +797,73 @@ pub fn v3_score_notes(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<f
     let form = build_beast_form(params, beast_sound_seed(beast.id, beast.prefix, beast.suffix));
     koji::midi::output::to_felt252_array(beast_form_to_bsn_bytes(@form, params))
 }
+
+// ─────────────────────────────────────────────────────────────
+// BSI1: general instruction stream (any music, 62-bit instructions)
+// ─────────────────────────────────────────────────────────────
+//
+// Fixed-width instructions, 4 per felt, the first in the most significant slot:
+//   felt = i0·2^186 + i1·2^124 + i2·2^62 + i3   (unused trailing slots are 0)
+//
+//   op 2 HEADER  version 8 | ppq 16 | count 24 (instructions, header included) | 0 12
+//   op 1 TEMPO   tempo_us 24 | 0 36
+//   op 0 NOTE    time 20 | duration 20 | pitch 7 | velocity 7 | voice 4 | 0 2   (absolute ticks)
+//
+// Unlike BSN1 it assumes nothing about the score (no grid, any durations), at ~62 bits per note.
+// Byte-identical to encodeBsi in offchain/beast-sound/src/bsi.js.
+
+const P2: felt252 = 0x4;
+const P4: felt252 = 0x10;
+const P7: felt252 = 0x80;
+const P8: felt252 = 0x100;
+const P12: felt252 = 0x1000;
+const P16: felt252 = 0x10000;
+const P20: felt252 = 0x100000;
+const P24: felt252 = 0x1000000;
+const P36: felt252 = 0x1000000000;
+const P62: felt252 = 0x4000000000000000;
+
+fn bsi_push(ref out: Array<felt252>, ref acc: felt252, ref slot: u32, ins: felt252) {
+    acc = acc * P62 + ins;
+    slot += 1;
+    if slot == 4 {
+        out.append(acc);
+        acc = 0;
+        slot = 0;
+    }
+}
+
+pub fn beast_form_to_bsi_felts(form: @BeastForm, tempo_us: u32) -> Array<felt252> {
+    let events = form.events.span();
+    let count: u32 = events.len() + 2;
+    assert(count < 0x1000000, 'bsi too long');
+    assert(tempo_us < 0x1000000, 'bsi bad tempo');
+    let mut out: Array<felt252> = array![];
+    let mut acc: felt252 = 0;
+    let mut slot: u32 = 0;
+    bsi_push(ref out, ref acc, ref slot, (((2 * P8 + 1) * P16 + 480) * P24 + count.into()) * P12);
+    bsi_push(ref out, ref acc, ref slot, (P24 + tempo_us.into()) * P36);
+    for i in 0..events.len() {
+        let e = *events.at(i);
+        assert(e.time < 0x100000, 'bsi time');
+        assert(e.duration < 0x100000, 'bsi duration');
+        assert(e.pitch < 128 && e.velocity < 128, 'bsi key');
+        assert(e.voice_id < 16, 'bsi voice');
+        let ins = ((((e.time.into() * P20 + e.duration.into()) * P7 + e.pitch.into()) * P7
+            + e.velocity.into())
+            * P4
+            + e.voice_id.into())
+            * P2;
+        bsi_push(ref out, ref acc, ref slot, ins);
+    }
+    while slot != 0 {
+        bsi_push(ref out, ref acc, ref slot, 0);
+    }
+    out
+}
+
+pub fn v3_score_instructions(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<felt252> {
+    let params = map_v3_beast_to_composition_params(beast, live);
+    let form = build_beast_form(params, beast_sound_seed(beast.id, beast.prefix, beast.suffix));
+    beast_form_to_bsi_felts(@form, params.tempo_us)
+}

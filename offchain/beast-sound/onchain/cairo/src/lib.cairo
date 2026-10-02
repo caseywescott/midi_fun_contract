@@ -262,11 +262,17 @@ pub mod BeastSoundPage {
 #[starknet::interface]
 pub trait IBeastSoundComposer<T> {
     fn get_score_notes(self: @T, token_id: u256, live: BeastSoundInputs) -> Array<felt252>;
+    fn get_score_instructions(self: @T, token_id: u256, live: BeastSoundInputs) -> Array<felt252>;
 }
+
+/// Notes page formats: which composer view feeds the page (the `notes` module reads either).
+pub const FORMAT_BSN1: u8 = 0; // get_score_notes: Beast canons, 7 bits per note
+pub const FORMAT_BSI1: u8 = 1; // get_score_instructions: any music, 62-bit instructions
 
 #[starknet::interface]
 pub trait IBeastSoundNotesPageInfo<T> {
     fn composer(self: @T) -> starknet::ContractAddress;
+    fn format(self: @T) -> u8;
 }
 
 /// The notes page: the chain composes. token_uri asks the Cairo composer for the score's BSN1 felts
@@ -288,15 +294,20 @@ pub mod BeastSoundNotesPage {
     struct Storage {
         modules: Vec<ContractAddress>,
         composer: ContractAddress,
+        format: u8,
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState, modules: Array<ContractAddress>, composer: ContractAddress) {
+    fn constructor(
+        ref self: ContractState, modules: Array<ContractAddress>, composer: ContractAddress, format: u8,
+    ) {
         assert(modules.len() > 0, 'no modules');
+        assert(format == super::FORMAT_BSN1 || format == super::FORMAT_BSI1, 'bad format');
         for m in modules {
             self.modules.push(m);
         }
         self.composer.write(composer);
+        self.format.write(format);
     }
 
     #[abi(embed_v0)]
@@ -308,8 +319,12 @@ pub mod BeastSoundNotesPage {
             token_id: u256,
             live: BeastSoundInputs,
         ) -> ByteArray {
-            let felts = IBeastSoundComposerDispatcher { contract_address: self.composer.read() }
-                .get_score_notes(token_id, live);
+            let composer = IBeastSoundComposerDispatcher { contract_address: self.composer.read() };
+            let felts = if self.format.read() == super::FORMAT_BSI1 {
+                composer.get_score_instructions(token_id, live)
+            } else {
+                composer.get_score_notes(token_id, live)
+            };
             let mut stored = super::page_data::head_segment();
             for i in 0..self.modules.len() {
                 let module = IBeastSoundModuleDispatcher { contract_address: self.modules.at(i).read() };
@@ -332,6 +347,10 @@ pub mod BeastSoundNotesPage {
         fn composer(self: @ContractState) -> ContractAddress {
             self.composer.read()
         }
+
+        fn format(self: @ContractState) -> u8 {
+            self.format.read()
+        }
     }
 }
 
@@ -349,6 +368,12 @@ pub mod MockComposer {
             self: @ContractState, token_id: u256, live: super::BeastSoundInputs,
         ) -> Array<felt252> {
             crate::tests::warlock_felts()
+        }
+
+        fn get_score_instructions(
+            self: @ContractState, token_id: u256, live: super::BeastSoundInputs,
+        ) -> Array<felt252> {
+            crate::tests::warlock_bsi_felts()
         }
     }
 }

@@ -54,8 +54,12 @@ export function mountPage(BeastSound) {
       a.download = `beast-${(window.BEAST_SOUND || 'score').split(',')[0]}.mid`;
       document.body.appendChild(a); a.click(); a.remove();
     });
-    // Tap anywhere else (art or ♪) toggles; browsers only start audio from a gesture.
+    // Tap anywhere else (art or ♪) toggles; browsers only start audio from a gesture. With the api
+    // module loaded, play through its flat API so BeastSound.isPlaying() reflects the page.
+    const flat = typeof BeastSound.isPlaying === 'function' ? BeastSound : null;
+    if (flat) flat.onPlayingChange(show);
     document.addEventListener('click', () => {
+      if (flat) { if (flat.isPlaying()) flat.stop(); else flat.play(ready()); return; }
       if (handle && handle.playing) { handle.stop(); return; }
       handle = v1.play(ready());
       handle.onEnd(() => show(false));

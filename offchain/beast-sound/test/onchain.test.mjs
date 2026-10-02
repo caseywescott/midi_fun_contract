@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
-import { animationHtml, inputsHtml, storedSegment, tokenUri } from '../onchain/page.js';
+import { animationHtml, inputsHtml, parseTokenUri, storedSegment, tokenUri } from '../onchain/page.js';
 import { loadBuiltModules } from '../onchain/modules.mjs';
 
 const dir = new URL('../onchain/', import.meta.url);
@@ -20,7 +20,7 @@ test('token_uri decodes to valid JSON with image and animation_url', { skip: !bu
   const stored = storedSegment(js);
   assert.equal(stored, readFileSync(new URL('dist/stored.b64', dir), 'utf8'));
   for (const live of [fx.live, { adventurers_killed: 412, scars: 7, summit_held_seconds: 86400, rank: 3, species_count: 1243 }]) {
-    const meta = JSON.parse(fromDataUri(tokenUri(stored, fx.members, fx.svg_b64, fx.token_id, live), 'application/json'));
+    const meta = parseTokenUri(tokenUri(stored, fx.members, fx.svg_b64, fx.token_id, live));
     assert.equal(meta.name, fx.name);
     const svg = Buffer.from(fx.svg_b64, 'base64').toString('utf8');
     assert.equal(fromDataUri(meta.image, 'image/svg+xml'), svg);
@@ -32,7 +32,7 @@ test('token_uri decodes to valid JSON with image and animation_url', { skip: !bu
 test('inputs line is padded to whole base64 groups', () => {
   for (const kills of [0, 9, 99, 12345, 2n ** 64n - 1n]) {
     const line = inputsHtml(1n, { adventurers_killed: kills, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1 });
-    assert.equal(Buffer.byteLength(line) % 9, 0);
+    assert.equal(Buffer.byteLength(line) % 3, 0);
     assert.match(line, /^<script>BEAST_SOUND="1,\d+,0,0,0,1"<\/script> *<script type="text\/plain" id="art">$/);
   }
 });
@@ -171,9 +171,19 @@ test('notes token_uri decodes to the notes page', { skip: !built && 'run node on
   const stored = storedSegment(mods);
   assert.equal(stored, readFileSync(new URL('dist/stored-notes.b64', dir), 'utf8'));
   const felts = composeBeast(decodeTokenId(BigInt(fx.token_id)), fx.live).bsnFelts;
-  const meta = JSON.parse(fromDataUri(tokenUriWithNotes(stored, fx.members, fx.svg_b64, felts), 'application/json'));
+  const meta = parseTokenUri(tokenUriWithNotes(stored, fx.members, fx.svg_b64, felts));
   const svg = Buffer.from(fx.svg_b64, 'base64').toString('utf8');
   assert.equal(fromDataUri(meta.image, 'image/svg+xml'), svg);
   assert.equal(fromDataUri(meta.animation_url, 'text/html'), animationHtmlWithNotes(mods, felts, svg));
-  assert.equal(Buffer.byteLength(notesHtml(felts)) % 9, 0);
+  assert.equal(Buffer.byteLength(notesHtml(felts)) % 3, 0);
+});
+
+test('plain-JSON token_uri: % and # are escaped, the rest is raw, the library is word-aligned', { skip: !built && 'run node onchain/build.mjs' }, () => {
+  const stored = storedSegment(loadBuiltModules(PAGES.inputs));
+  const members = '"name":"100% #1 Beast","description":"a\\nb","attributes":[]';
+  const uri = tokenUri(stored, members, 'PHN2Zy8+', 1n, { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1 });
+  assert.ok(uri.startsWith('data:application/json;utf8,{"name":"100%25 %231 Beast"'));
+  assert.ok(!uri.includes('#'));
+  assert.equal(parseTokenUri(uri).name, '100% #1 Beast');
+  assert.equal(uri.indexOf(stored) % 31, 0);
 });

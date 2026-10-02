@@ -75,7 +75,7 @@ subset in dependency order; a module whose dependency is missing throws before i
 | `synth` | `BeastSoundModuleSynth` | 4.9 KB | | `v1.synth` |
 | `play` | `BeastSoundModulePlay` | 3.1 KB | synth | `v1.play`, `v1.context` |
 | `fx` | `BeastSoundModuleFx` | 1.4 KB | | `v1.fx` |
-| `notes` | `BeastSoundModuleNotes` | 1.4 KB | | `v1.notes.decode(felts)`: BSN1 felts → song |
+| `notes` | `BeastSoundModuleNotes` | 2.1 KB | | `v1.notes.decode(felts)`: BSN1 or BSI1 felts → song |
 | `api` | `BeastSoundModuleApi` | 1.1 KB | beast, music, midi, play | `compose`, `fromInputs`, flat API |
 | `page` | `BeastSoundModulePage` | 1.9 KB | midi, play (+ api or notes) | token_uri page mount |
 
@@ -98,9 +98,9 @@ Both variants implement the same `IBeastSoundPage`, so the NFT patch points at e
 | Who composes | The library, in the browser, from token ID + stats | The chain: the Cairo composer's `get_score_notes` |
 | Per-token line | `BEAST_SOUND="token,kills,scars,held,rank,count"` | `BEAST_NOTES="0x…,0x…"` (BSN1 felts) |
 | Data per Beast | ~2 felts of inputs | 2–16 felts (median 4 over 400 mainnet Beasts) |
-| Modules on the page | all 10 (27.5 KB) | midi, synth, play, notes, page (12.4 KB) |
+| Modules on the page | all but notes, 9 (26.1 KB) | midi, synth, play, notes, page (13.1 KB) |
 | Score in the token data | No (deterministic from onchain code + inputs) | Yes |
-| Page `token_uri` gas, real (devnet) | 2.47–2.48B | 2.46–2.81B (BSN1); BSI1 2.49–3.33B, heaviest over the step limit |
+| Page `token_uri` gas, real (devnet) | 0.27–0.28B | 0.26–0.54B (BSN1), 0.28–1.13B (BSI1) |
 
 **The notes format (BSN1):**
 - **Layout:** felts are `[byte_len, 31-byte chunks…]`.
@@ -121,62 +121,61 @@ emits (golden `bsn_hash`) into exactly the reference notes and MIDI.
 
 ## What it costs (real execution, devnet 0.10.0)
 
-**Status: too expensive as designed.** Their Beasts NFT plus any sound page exceeds the execution
-step limit, so `token_uri` fails. Measured with their real `beasts_nft`, the real art providers and
-the real `BeastSoundComposer`, through `starknet_call` and fee estimates:
+`token_uri` is plain JSON (`data:application/json;utf8,…`). That removes the outer base64 pass,
+the biggest cost in today's `token_uri`.
 
-| NFT `token_uri` | Sound off | Inputs page | Notes page (BSN1) | Notes page (BSI1) |
+**Their Beasts NFT, measured on devnet:** their real `beasts_nft`, the real art providers and the
+real `BeastSoundComposer`, through `starknet_call` and fee estimates:
+
+| NFT `token_uri` (L2 gas) | Today, sound off | With inputs page | With notes page (BSN1) | With notes page (BSI1) |
 |---|---:|---:|---:|---:|
-| Tier 5 common | 3.00B | step limit | step limit | step limit |
-| Sorrow Peak Warlock | 3.01B | step limit | step limit | step limit |
-| Tier 1 shiny | 3.09B | step limit | step limit | step limit |
-| Animated shiny | 3.25B | step limit | step limit | step limit |
+| Tier 5 common | 3.00B | **1.51B** | 1.50B | 1.52B |
+| Sorrow Peak Warlock | 3.01B | **1.52B** | 1.55B | 1.67B |
+| Tier 1 shiny | 3.09B | **1.56B** | 1.59B | 1.71B |
+| Animated shiny | 3.25B | **1.60B** | 1.63B | 1.75B |
 
-Each page contract on its own, called with the Warlock fixture's members and SVG:
+With sound, `token_uri` costs about half of today's `token_uri` without sound.
+
+**Each page contract on its own,** with the Warlock fixture's members and SVG. The notes pages
+include the real composer's call:
 
 | Beast | Notes | Inputs page | Notes page (BSN1) | Notes page (BSI1) |
 |---|---:|---:|---:|---:|
-| Tier 5 fresh | 12 | 2.47B | 2.46B | 2.49B |
-| Sorrow Peak Warlock | 160 | 2.47B | 2.59B | 3.04B |
-| Tier 1, 3 sections | 240 | 2.48B | 2.67B | 3.33B |
-| Heaviest | 400 | 2.48B | 2.81B | step limit |
+| Tier 5 fresh | 12 | 0.28B | 0.26B | 0.28B |
+| Sorrow Peak Warlock | 160 | 0.27B | 0.37B | 0.60B |
+| Tier 1, 3 sections | 240 | 0.28B | 0.43B | 0.78B |
+| Heaviest | 400 | 0.28B | 0.54B | 1.13B |
 
-**Why it fails:**
-- **Base64 per byte:** base64 in Cairo costs about 70K L2 gas per byte.
-- **Already near the cap:** the NFT already base64-encodes the SVG and then the whole JSON, about
-  54 KB, which puts it near the step limit before any sound is added.
+**What's verified:**
+- **Byte-identical output:** every composer output and page `token_uri` on devnet matches the JS
+  reference byte for byte.
+- **Real-time playback:** the heaviest BSI1 page, as the contract returned it, plays in real-time
+  Chrome with all 400 notes and the MIDI bytes exact.
 
-**Correction:** earlier figures here (+37M, +54M, "+7%") were cairo-test and snforge estimates.
-Those use smaller gas units than real L2 gas, and the snforge runs had no step limit. Correctness
-results stand: on devnet, every page and composer output matched the JS reference byte for byte.
+**Before plain JSON:** with a base64 JSON, the same pages cost 2.46–2.81B on their own, and the NFT
+plus any page exceeded the execution step limit. Earlier "+7%" figures were cairo-test estimates.
+Those use smaller gas units than real L2 gas.
 
-**Proposed fix (not built yet): plain-JSON `token_uri`**
-(`data:application/json;utf8,…`).
-- **What it removes:** the outer base64 pass over the whole JSON.
-- **Per-call encoding left:** only the SVG, which the NFT encodes today anyway, plus the inputs line.
-- **Expected:** `token_uri` with sound should cost less than today's sound-off `token_uri`.
-- **To check first:** marketplaces must accept non-base64 JSON data URIs, and `%` or `#` in the
-  JSON must be escaped.
+**Marketplace check (open):** marketplaces must accept a `data:application/json;utf8,` token_uri.
+- **Escaping:** `%` and `#` are escaped as `%25` and `%23`.
+- **Parsing:** `decodeURIComponent` of the payload, or the raw payload, both parse as JSON.
 
-### The layout: no extra per-call encoding of the library
-
-Every piece is aligned to 3 bytes, so base64 runs concatenate:
+### The layout
 
 ```
-"data:application/json;base64,"
-  ++ b64('{' members ',' <spaces> '"image":"data:image/svg+xml;base64,')
-  ++ b64(S)            S = svg_b64 '"' <spaces>        encoded once, appended twice
-  ++ b64(',  ')
-  ++ STORED            b64('"animation_url":"data:text/html;base64,' ++ b64(page)), built offline
-  ++ b64(b64(inputs))  ~150 bytes: the only new per-call encoding
-  ++ b64(S)
-  ++ b64('}')
+'data:application/json;utf8,{' ++ escape(members)
+  ++ ',"image":"data:image/svg+xml;base64,' ++ svg_b64 ++ '",' ++ <spaces>
+  ++ '"animation_url":"data:text/html;base64,'
+  ++ HEAD ++ MODULE_1 ++ … ++ MODULE_n      stored, base64 at build time, word-aligned by <spaces>
+  ++ b64(inputs or notes line)              ~100 bytes: the only per-call base64
+  ++ svg_b64 ++ '"}'                        reused from `image`
 ```
 
-- **JSON validity:** the padding spaces sit between JSON tokens, where whitespace is allowed.
-- **Trailing `=`:** the SVG's base64 sits last in both data URIs, so its `=` padding is legal there.
-- **Per-call work:** the NFT's base64 work is what it is today (members plus the SVG), plus the
-  inputs line.
+- **Piece size:** each page piece is padded to 279n bytes (9 × 31). Its base64 is then 372n
+  characters: whole base64 groups and whole 31-byte words.
+- **Why:** the stored segments concatenate, and Cairo appends them at word boundaries, which is
+  cheap.
+- **The SVG:** its base64 sits last in the HTML data URI, so its trailing `=` is legal.
 
 ### Why the SVG is not inlined
 

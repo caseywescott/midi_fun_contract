@@ -6,30 +6,30 @@
 //! of per-token inputs, and the same SVG. The browser composes the theme from the inputs with
 //! engine v1 and plays it on tap; nothing is fetched.
 //!
-//! Every piece is aligned to 3 bytes so base64 runs concatenate (see onchain/page.js):
+//! token_uri is plain JSON (`data:application/json;utf8,…`), not base64: Cairo base64 costs ~70K
+//! L2 gas per byte, and encoding the whole JSON is the biggest cost of today's token_uri. Only the
+//! page inside animation_url is base64, and nearly all of it was encoded at build time:
 //!
-//!   "data:application/json;base64,"
-//!     ++ b64('{' members ',' <spaces> '"image":"data:image/svg+xml;base64,')
-//!     ++ b64(S) where S = svg_b64 '"' <spaces>          (encoded once, appended twice)
-//!     ++ b64(',  ')
-//!     ++ HEAD ++ MODULE_1 ++ … ++ MODULE_n               (encoded at build time; see below)
-//!     ++ b64(b64(inputs line + '<script type="text/plain" id="art">'))
-//!     ++ b64(S)
-//!     ++ b64('}')
+//!   'data:application/json;utf8,{' ++ escape(members)
+//!     ++ ',"image":"data:image/svg+xml;base64,' ++ svg_b64 ++ '",' ++ <spaces>
+//!     ++ '"animation_url":"data:text/html;base64,'
+//!     ++ HEAD ++ MODULE_1 ++ … ++ MODULE_n               (stored, word-aligned by the spaces)
+//!     ++ b64(inputs or notes line)                       (~100 bytes: the only per-call encoding)
+//!     ++ svg_b64 ++ '"}'
 //!
-//! So the per-call base64 work is the same as today's plus about 150 bytes.
+//! escape() writes '%' as %25 and '#' as %23, the two characters a JSON data URI cannot carry raw.
 
 //!
 //! The library is split into modules (core, beast, music, midi, synth, play, fx, api, page), each in
-//! its own contract (`modules.cairo`) exposing its segment, base64(base64(<script>…</script>)).
+//! its own contract (`modules.cairo`) exposing its segment, base64(<script>…</script>).
 //! `BeastSoundPage` keeps the page HEAD and a fixed list of module contracts, and splices
 //! HEAD ++ every module segment into animation_url. Other projects can reuse any module contract.
 
 pub mod modules;
 pub mod page_data;
 
-/// A stored library module: its name and its segment, base64(base64(<script>…</script>)) padded so
-/// segments concatenate. Decode a segment twice to get the module's script.
+/// A stored library module: its name and its segment, base64(<script>…</script>) padded so segments
+/// concatenate at word boundaries. Decode a segment once to get the module's script.
 #[starknet::interface]
 pub trait IBeastSoundModule<T> {
     fn name(self: @T) -> felt252;
@@ -71,7 +71,7 @@ pub fn inputs_html(token_id: u256, live: BeastSoundInputs) -> ByteArray {
             ),
         );
     s.append(@"\"</script>");
-    pad_spaces(ref s, 9, art_open.len());
+    pad_spaces(ref s, 3, art_open.len());
     s.append(@art_open);
     s
 }
@@ -89,7 +89,7 @@ pub fn notes_html(felts: Span<felt252>) -> ByteArray {
         s.append(@format!("0x{:x}", v));
     }
     s.append(@"\"</script>");
-    pad_spaces(ref s, 9, art_open.len());
+    pad_spaces(ref s, 3, art_open.len());
     s.append(@art_open);
     s
 }
@@ -169,32 +169,34 @@ pub fn token_uri(
 pub fn token_uri_with_line(
     members: @ByteArray, svg_b64: @ByteArray, line: @ByteArray, stored: @ByteArray,
 ) -> ByteArray {
-    let image_key: ByteArray = "\"image\":\"data:image/svg+xml;base64,";
-    let mut s = svg_b64.clone();
-    s.append_byte('"');
-    pad_spaces(ref s, 3, 0);
-    let s_b64 = base64(@s);
-
-    let mut a: ByteArray = "{";
-    a.append(members);
-    a.append_byte(',');
-    pad_spaces(ref a, 3, image_key.len());
-    // Extra JSON whitespace (3 spaces = 4 base64 characters) until the stored library starts on a
-    // 31-byte word boundary of the output, where appending it is cheap (29 = the URI prefix).
-    while (29 + (a.len() + image_key.len()) / 3 * 4 + s_b64.len() + 4) % 31 != 0 {
-        a.append(@"   ");
-    }
-    a.append(@image_key);
-
-    let mut out: ByteArray = "data:application/json;base64,";
-    append_base64(ref out, @a);
-    out.append(@s_b64);
-    append_base64(ref out, @",  ");
+    let url_key: ByteArray = "\"animation_url\":\"data:text/html;base64,";
+    let mut out: ByteArray = "data:application/json;utf8,{";
+    append_escaped(ref out, members);
+    out.append(@",\"image\":\"data:image/svg+xml;base64,");
+    out.append(svg_b64);
+    out.append(@"\",");
+    // JSON whitespace until the stored library starts on a 31-byte word boundary (cheap to append).
+    pad_spaces(ref out, 31, url_key.len());
+    out.append(@url_key);
     out.append(stored);
-    append_base64(ref out, @base64(line));
-    out.append(@s_b64);
-    append_base64(ref out, @"}");
+    append_base64(ref out, line);
+    out.append(svg_b64);
+    out.append(@"\"}");
     out
+}
+
+/// Append `s` with '%' → %25 and '#' → %23 (JSON data URIs must not carry them raw).
+fn append_escaped(ref out: ByteArray, s: @ByteArray) {
+    for i in 0..s.len() {
+        let c = s[i];
+        if c == '%' {
+            out.append(@"%25");
+        } else if c == '#' {
+            out.append(@"%23");
+        } else {
+            out.append_byte(c);
+        }
+    }
 }
 
 #[starknet::interface]

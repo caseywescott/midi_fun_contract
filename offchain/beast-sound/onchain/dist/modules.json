@@ -3,7 +3,7 @@
   "name": "core",
   "deps": [],
   "js_bytes": 11226,
-  "segment_chars": 20336
+  "segment_chars": 15252
  },
  {
   "name": "beast",
@@ -11,7 +11,7 @@
    "core"
   ],
   "js_bytes": 701,
-  "segment_chars": 1488
+  "segment_chars": 1116
  },
  {
   "name": "music",
@@ -19,19 +19,19 @@
    "core"
   ],
   "js_bytes": 673,
-  "segment_chars": 1488
+  "segment_chars": 1116
  },
  {
   "name": "midi",
   "deps": [],
   "js_bytes": 1051,
-  "segment_chars": 1984
+  "segment_chars": 1488
  },
  {
   "name": "synth",
   "deps": [],
   "js_bytes": 4938,
-  "segment_chars": 8928
+  "segment_chars": 6696
  },
  {
   "name": "play",
@@ -39,19 +39,19 @@
    "synth"
   ],
   "js_bytes": 3089,
-  "segment_chars": 5952
+  "segment_chars": 4464
  },
  {
   "name": "fx",
   "deps": [],
   "js_bytes": 1367,
-  "segment_chars": 2480
+  "segment_chars": 1860
  },
  {
   "name": "notes",
   "deps": [],
-  "js_bytes": 1374,
-  "segment_chars": 2480
+  "js_bytes": 2123,
+  "segment_chars": 2976
  },
  {
   "name": "api",
@@ -62,7 +62,7 @@
    "play"
   ],
   "js_bytes": 1115,
-  "segment_chars": 2480
+  "segment_chars": 1860
  },
  {
   "name": "page",
@@ -71,6 +71,6 @@
    "play"
   ],
   "js_bytes": 1907,
-  "segment_chars": 3472
+  "segment_chars": 2604
  }
 ]

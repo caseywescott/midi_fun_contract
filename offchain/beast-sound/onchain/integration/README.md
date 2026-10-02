@@ -49,12 +49,16 @@ Mints, transfers and every other write path are untouched. Only the `token_uri` 
     are identical to the sound-off output, with `animation_url` added.
   - In Chrome, the page composes the expected score hash and plays, for a plain Beast and for an
     animated shiny one.
-- **Gas, real execution (devnet):** this does not work yet. Their `token_uri` costs 3.0–3.25B L2
-  gas with sound off. With any sound page it exceeds the execution step limit and fails, through
-  both `starknet_call` and fee estimates. The snforge run above passed only because it ran with no
-  step limit.
-  - **Cause:** Cairo base64 at about 70K gas per byte. See `../README.md`, "What it costs".
-  - **Proposed fix:** a plain-JSON `token_uri`.
+- **Gas, real execution (devnet):**
+  - **Today:** their `token_uri` costs 3.0–3.25B L2 gas with sound off.
+  - **With sound:** it costs 1.50–1.75B, about half, because the sound page returns plain JSON
+    (`data:application/json;utf8,`) instead of base64-encoding the whole JSON. Every call succeeds
+    through `starknet_call`, and the JSON parses.
+  - **Measured on:** their real `beasts_nft` and art contracts plus the real composer. See
+    `../README.md`, "What it costs".
+- **Marketplace check (open):** with sound set, `token_uri` is a `data:application/json;utf8,`
+  URI, with `%` and `#` escaped. Confirm the marketplaces you target accept it. With sound unset,
+  the base64 JSON is unchanged.
 
 ## Not wired yet
 

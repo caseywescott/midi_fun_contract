@@ -59,6 +59,10 @@ Before mainnet:
     live state the provider reports.
   - **Live-state changes:** changing Death Mountain state (40 kills and 9 collects, then 200 and
     64) changes the music on the next `token_uri`, and it matches the engine again.
+  - **Playable:** two of those `token_uri`s, exactly as the NFT returned them, pass
+    `browser-check.mjs` offline. The art shows, the MIDI plays at its exact tempo with the chip lead
+    and drums, stop, restart and the loop work, and no request is made
+    (`../browser-check.report.jsonl`).
   - **Cost:** L2 gas and sizes are in `../README.md`. Sound on costs 1.45–1.84B L2 gas against
     1.71–1.86B for today's sound-off `token_uri`.
 
@@ -67,8 +71,9 @@ starknet-devnet --seed 42 --port 5056 --accounts 1 --initial-balance 10000000000
 # in the patched beasts-v3 checkout: scarb build, then CASM for the classes it declares:
 #   universal-sierra-compiler compile-contract --sierra-path <class>.contract_class.json --output-path <class>.compiled_contract_class.json
 #   (beasts_nft, the four art providers, and unittest_mock_death_mountain.test → <mock casm>)
-STARKNET_JS=<node_modules/starknet> node onchain/integration/e2e_devnet.mjs \
+E2E_URI_DIR=/tmp/uris STARKNET_JS=<node_modules/starknet> node onchain/integration/e2e_devnet.mjs \
   http://127.0.0.1:5056 <account> <private_key> <beasts-v3>/target/dev/ <mock casm>
+PLAYWRIGHT_CORE=<node_modules/playwright-core> node onchain/browser-check.mjs /tmp/uris/*.txt
 ```
 
 ## Not wired

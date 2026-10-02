@@ -8,8 +8,9 @@
 //
 // The Death Mountain is beasts-v3's own test mock (`mock_death_mountain`: one global deaths/kills
 // value, and it asserts the `dungeon` argument is its own address, the Beasts NFT convention). Its
-// CASM comes from `universal-sierra-compiler compile-contract`. Prints a JSON report.
-import { readFileSync } from 'node:fs';
+// CASM comes from `universal-sierra-compiler compile-contract`. Prints a JSON report. With
+// E2E_URI_DIR set, also saves each sound-on token_uri there (for `browser-check.mjs <files>`).
+import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { encodeTokenId, engine, genesisBeast } from '../../src/index.js';
 
@@ -172,6 +173,7 @@ for (const [phase, deaths, kills] of [['after', 9, 40], ['max', 64, 200]]) {
   await invoke(deathMountain, 'set_values', [deaths, kills, 1727800000]);
   for (const b of BEASTS) {
     const s = await soundOn(b, phase);
+    if (process.env.E2E_URI_DIR) writeFileSync(`${process.env.E2E_URI_DIR}/${b.label.replace(/\W+/g, '_')}.${phase}.txt`, s.uri);
     b[phase] = {
       live: s.row.live, sources: s.row.sources, uri_bytes: s.row.uri_bytes, midi_bytes: s.row.midi_bytes,
       midi_matches_js_engine: s.row.midi_matches_js_engine, midi_matches_provider: s.row.midi_matches_provider,

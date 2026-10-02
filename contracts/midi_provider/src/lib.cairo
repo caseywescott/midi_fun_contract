@@ -13,8 +13,9 @@ pub mod examples;
 #[starknet::interface]
 pub trait IMidiProvider<T> {
     /// Standard MIDI File bytes (format 0 or 1) for `token_id` of the collection at
-    /// `token_address`. Reverts for a collection the provider does not support or a token that
-    /// does not exist; never reverts because optional live state is unavailable.
+    /// `token_address`. May revert for a collection the provider does not support, an invalid
+    /// token ID or a token that does not exist; never reverts because optional live state is
+    /// unavailable.
     fn get_midi(self: @T, token_address: ContractAddress, token_id: u256) -> ByteArray;
 }
 

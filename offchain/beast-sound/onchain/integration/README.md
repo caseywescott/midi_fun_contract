@@ -9,6 +9,9 @@ git am beasts_nft-sound.patch          # or: git apply beasts_nft-sound.patch
 scarb build && snforge test --max-n-steps 4294967295
 ```
 
+The step limit is the one their CI passes (`.github/workflows/test.yml`); the round-trip test
+renders `token_uri` three times and exceeds snforge's default.
+
 The NFT no longer supplies Beast state. It hands the page its own address and the token ID, and the
 page's MIDI provider reads everything it composes from directly.
 
@@ -33,7 +36,11 @@ provider: the page does, and the provider only calls the NFT's state getters
    the Beasts NFT address.
 2. Declare and deploy `MidiSoundPage` (`onchain/cairo`). Constructor: the provider address.
 3. Upgrade or redeploy `beasts_nft` with the patch.
-4. As owner, call `set_sound_page_address(<MidiSoundPage>)`. Setting it back to `0` turns sound off.
+4. Before switching, call `MidiSoundPage.token_uri(members, svg_b64, <nft>, <token_id>)` directly
+   for a genesis token and a minted one. A page whose provider serves a different collection
+   reverts, and once it is set every `token_uri` would revert with it (the NFT cannot catch the
+   failure).
+5. As owner, call `set_sound_page_address(<MidiSoundPage>)`. Setting it back to `0` turns sound off.
 
 Before mainnet:
 - **Death Mountain address:** confirm the NFT's `get_death_mountain_address()` is set. Without it,

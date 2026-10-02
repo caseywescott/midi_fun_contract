@@ -1,8 +1,11 @@
-// token_uri page mount. Runs only when the page carries the contract's inputs line
-// (window.BEAST_SOUND); loaded anywhere else, the library just defines window.BeastSound.
+// token_uri page mount. Runs only when the page carries a line written by the contract:
+//   <script>BEAST_SOUND="token,kills,scars,held,rank,count"</script>   inputs: the library composes
+//   <script>BEAST_NOTES="f1,f2,…"</script>                            felts: the chain composed (BSN1)
+// then the SVG as text in <script type="text/plain" id="art"> (XML-only syntax, shown via <img>).
+// Loaded anywhere else, the library just defines window.BeastSound.
 //
-// The page is [library][<script>BEAST_SOUND="…"</script>][<script type="text/plain" id="art">SVG].
-// The Beasts SVG uses XML-only syntax, so it is shown through an <img> rather than inlined.
+// Needs midi + play; plus api for an inputs line, or notes for a felts line. A felts page needs no
+// composer at all.
 
 function button(label, aria, right) {
   const b = document.createElement('button');
@@ -16,7 +19,10 @@ function button(label, aria, right) {
 
 export function mountPage(BeastSound) {
   addEventListener('DOMContentLoaded', () => {
-    if (window.BEAST_SOUND === undefined) return;
+    const v1 = BeastSound.v1;
+    const fromFelts = window.BEAST_NOTES !== undefined;
+    if (!fromFelts && window.BEAST_SOUND === undefined) return;
+    if (fromFelts ? !v1.notes : !v1.fromInputs) throw new Error(`beast-sound: this page needs module ${fromFelts ? 'notes' : 'api'}`);
     const art = document.getElementById('art');
     if (art) {
       const img = document.createElement('img');
@@ -25,23 +31,35 @@ export function mountPage(BeastSound) {
       document.body.insertBefore(img, document.body.firstChild);
     }
     let song = null;
-    const ready = () => song || (song = BeastSound.fromInputs(window.BEAST_SOUND), window.BEAST_SCORE_HASH = song.scoreHash, song);
+    const ready = () => {
+      if (song) return song;
+      song = fromFelts ? v1.notes.decode(window.BEAST_NOTES) : v1.fromInputs(window.BEAST_SOUND);
+      if (song.scoreHash) window.BEAST_SCORE_HASH = song.scoreHash;
+      window.BEAST_SONG = song;
+      return song;
+    };
     addEventListener('load', () => setTimeout(ready, 0));
 
     const playBtn = button('♪', 'Play sound', 12);
     const midiBtn = button('MIDI', 'Download MIDI file', 64);
-    BeastSound.onPlayingChange((on) => {
+    let handle = null;
+    const show = (on) => {
       playBtn.textContent = on ? '■' : '♪';
       playBtn.setAttribute('aria-label', on ? 'Stop sound' : 'Play sound');
-    });
+    };
     midiBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const a = document.createElement('a');
-      a.href = BeastSound.midiUrl(ready());
-      a.download = `beast-${ready().tokenId}.mid`;
+      a.href = v1.midi.url(ready());
+      a.download = `beast-${(window.BEAST_SOUND || 'score').split(',')[0]}.mid`;
       document.body.appendChild(a); a.click(); a.remove();
     });
     // Tap anywhere else (art or ♪) toggles; browsers only start audio from a gesture.
-    document.addEventListener('click', () => (BeastSound.isPlaying() ? BeastSound.stop() : BeastSound.play(ready())));
+    document.addEventListener('click', () => {
+      if (handle && handle.playing) { handle.stop(); return; }
+      handle = v1.play(ready());
+      handle.onEnd(() => show(false));
+      show(true);
+    });
   });
 }

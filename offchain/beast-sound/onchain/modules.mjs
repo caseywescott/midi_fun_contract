@@ -16,9 +16,18 @@ export const MODULES = [
   { name: 'synth', file: 'synth.js', deps: [], global: 'v1.synth', register: 'v1.synth = m' },
   { name: 'play', file: 'player.js', deps: ['synth'], global: '{ play: v1.play, context: v1.context }', register: 'v1.play = m.play; v1.context = m.context' },
   { name: 'fx', file: 'fx.js', deps: [], global: 'v1.fx', register: 'v1.fx = m' },
+  { name: 'notes', file: 'notes.js', deps: [], global: 'v1.notes', register: 'v1.notes = m' },
   { name: 'api', file: 'index.js', deps: ['beast', 'music', 'midi', 'play'], global: '{ compose: v1.compose, fromInputs: v1.fromInputs, flat: B }', register: 'v1.compose = m.compose; v1.fromInputs = m.fromInputs; Object.assign(B, m.flat)' },
-  { name: 'page', file: 'page.js', deps: ['api'], global: '{}', register: 'm.mountPage(B)' },
+  { name: 'page', file: 'page.js', deps: ['midi', 'play'], global: '{}', register: 'm.mountPage(B)' },
 ];
+
+// Module lists for the two token_uri page variants (a page contract's list is fixed at deploy):
+//   inputs  the contract writes token ID + stats; the library composes (whole library on the page)
+//   notes   the contract writes BSN1 felts computed in Cairo; the page only decodes and plays
+export const PAGES = {
+  inputs: MODULES.map((m) => m.name).filter((n) => n !== 'notes'),
+  notes: ['midi', 'synth', 'play', 'notes', 'page'],
+};
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 

@@ -15,7 +15,7 @@ const fromDataUri = (uri, type) => {
 };
 
 test('token_uri decodes to valid JSON with image and animation_url', { skip: !built && 'run node onchain/build.mjs' }, () => {
-  const js = loadBuiltModules();
+  const js = loadBuiltModules(PAGES.inputs);
   const fx = JSON.parse(readFileSync(new URL('fixtures/warlock_v3.json', dir), 'utf8'));
   const stored = storedSegment(js);
   assert.equal(stored, readFileSync(new URL('dist/stored.b64', dir), 'utf8'));
@@ -39,7 +39,7 @@ test('inputs line is padded to whole base64 groups', () => {
 
 // The onchain library blob itself, run in a sandbox: compose + MIDI must equal the Cairo reference.
 import vm from 'node:vm';
-import { engine, encodeTokenId, composeBeast, genesisBeast, poseidonHashMany } from '../src/index.js';
+import { engine, encodeTokenId, composeBeast, genesisBeast, decodeTokenId, poseidonHashMany } from '../src/index.js';
 
 function loadLibrary() {
   const js = readFileSync(new URL('dist/composer.js', dir), 'utf8');
@@ -138,4 +138,42 @@ test('modules load separately: any dependency-ordered subset works, missing deps
   assert.throws(() => run(['beast']), /module beast needs module core/);
   // all modules == the all-in-one blob
   assert.deepEqual([...run(Object.keys(mods)).v1.modules], Object.keys(mods));
+});
+
+// ── notes page: the chain composes (BSN1 felts), the page only decodes and plays ──
+import { notesHtml, tokenUriWithNotes, animationHtmlWithNotes } from '../onchain/page.js';
+import { PAGES } from '../onchain/modules.mjs';
+
+test('notes module plays chain-composed felts: same notes and MIDI as Cairo, no composer loaded', { skip: !built && 'run node onchain/build.mjs' }, () => {
+  const mods = Object.fromEntries(loadBuiltModules().map((m) => [m.name, m.js]));
+  const window = { addEventListener() {} };
+  const ctx = { window, addEventListener() {}, matchMedia: undefined, URL, Blob, setTimeout, setInterval, clearInterval, BigInt, Math, Uint8Array };
+  for (const n of PAGES.notes) vm.runInNewContext(mods[n], ctx);
+  const v1 = window.BeastSound.v1;
+  assert.equal(v1.core, undefined); // no engine on a notes page
+  const golden = JSON.parse(readFileSync(new URL('../test/golden.json', import.meta.url), 'utf8'));
+  for (const c of golden.cases) {
+    const ref = composeBeast(c.beast, c.live);
+    const felts = ref.bsnFelts; // == Cairo get_score_notes (golden bsn_hash)
+    assert.equal(poseidonHashMany(felts).toString(), c.expected.bsn_hash); // the felts Cairo emits
+    for (const input of [felts, felts.map((f) => '0x' + f.toString(16)).join(',')]) {
+      const song = v1.notes.decode(input);
+      assert.deepEqual(Array.from(song.notes, (n) => Array.from(n)), ref.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice]));
+      assert.equal(song.tempo_us, ref.params.tempo_us);
+      assert.equal(poseidonHashMany(engine.bytesToFelts(v1.midi.write(song))).toString(), c.expected.midi_hash);
+    }
+  }
+});
+
+test('notes token_uri decodes to the notes page', { skip: !built && 'run node onchain/build.mjs' }, () => {
+  const fx = JSON.parse(readFileSync(new URL('fixtures/warlock_v3.json', dir), 'utf8'));
+  const mods = loadBuiltModules(PAGES.notes);
+  const stored = storedSegment(mods);
+  assert.equal(stored, readFileSync(new URL('dist/stored-notes.b64', dir), 'utf8'));
+  const felts = composeBeast(decodeTokenId(BigInt(fx.token_id)), fx.live).bsnFelts;
+  const meta = JSON.parse(fromDataUri(tokenUriWithNotes(stored, fx.members, fx.svg_b64, felts), 'application/json'));
+  const svg = Buffer.from(fx.svg_b64, 'base64').toString('utf8');
+  assert.equal(fromDataUri(meta.image, 'image/svg+xml'), svg);
+  assert.equal(fromDataUri(meta.animation_url, 'text/html'), animationHtmlWithNotes(mods, felts, svg));
+  assert.equal(Buffer.byteLength(notesHtml(felts)) % 9, 0);
 });

@@ -10,14 +10,14 @@ import { fileURLToPath } from 'node:url';
 import { call, NETWORKS, readMainnetBeast } from '../src/chain.js';
 import { composeBeast, encodeTokenId } from '../src/index.js';
 import { animationHtml } from './page.js';
-import { loadBuiltModules } from './modules.mjs';
+import { PAGES, loadBuiltModules } from './modules.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const out = here + '../public/onchain/';
 const COUNT = Number(process.argv[2] || 100);
 const CANDIDATES = Number(process.argv[3] || 400);
 const net = NETWORKS.mainnet;
-const js = loadBuiltModules();
+const js = loadBuiltModules(PAGES.inputs);
 
 async function pool(items, limit, fn) {
   const results = new Array(items.length);

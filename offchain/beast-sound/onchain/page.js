@@ -84,21 +84,41 @@ export function inputsHtml(tokenId, live) {
 }
 
 /**
- * The full token_uri. `members` is the JSON object body without braces and without `image`
- * (e.g. `"name":"Warlock","description":"…","attributes":[…]`); `svgB64` is base64 of the SVG.
+ * The felts line for a page driven by notes the chain computed: BSN1 felts as 0x-hex
+ * (e.g. the Cairo composer's get_score_notes), padded like the inputs line.
  */
-export function tokenUri(stored, members, svgB64, tokenId, live) {
+export function notesHtml(felts) {
+  const v = felts.map((f) => '0x' + BigInt(f).toString(16));
+  return padTo(`<script>BEAST_NOTES="${v.join(',')}"</script>`, 9, len(ART_OPEN)) + ART_OPEN;
+}
+
+/**
+ * The full token_uri around one per-token line (inputsHtml or notesHtml). `members` is the JSON
+ * object body without braces and without `image` (e.g. `"name":"Warlock","description":"…",
+ * "attributes":[…]`); `svgB64` is base64 of the SVG.
+ */
+export function tokenUriWithLine(stored, members, svgB64, lineHtml) {
   const s = padTo(`${svgB64}"`, 3);
   // Extra JSON whitespace (3 spaces = 4 base64 characters) until the library lands on a word boundary.
   let pre = padTo(`{${members},`, 3, len(IMAGE_KEY));
   const before = () => 29 + ((len(pre) + len(IMAGE_KEY)) / 3) * 4 + (len(s) / 3) * 4 + 4;
   while (before() % 31 !== 0) pre += spaces(3);
   const a = pre + IMAGE_KEY;
-  const i = b64(inputsHtml(tokenId, live));
-  return 'data:application/json;base64,' + b64(a) + b64(s) + b64(',  ') + stored + b64(i) + b64(s) + b64('}');
+  return 'data:application/json;base64,' + b64(a) + b64(s) + b64(',  ') + stored + b64(b64(lineHtml)) + b64(s) + b64('}');
 }
+
+/** token_uri for the inputs page: the library composes from token ID + stats. */
+export const tokenUri = (stored, members, svgB64, tokenId, live) => tokenUriWithLine(stored, members, svgB64, inputsHtml(tokenId, live));
+
+/** token_uri for the notes page: the chain composed; the page plays the felts. */
+export const tokenUriWithNotes = (stored, members, svgB64, felts) => tokenUriWithLine(stored, members, svgB64, notesHtml(felts));
 
 /** What the browser ends up rendering for animation_url (for tests and local previews). */
 export function animationHtml(modules, tokenId, live, svg) {
   return pageHtml(modules) + inputsHtml(tokenId, live) + svg;
+}
+
+/** The notes page as the browser renders it. */
+export function animationHtmlWithNotes(modules, felts, svg) {
+  return pageHtml(modules) + notesHtml(felts) + svg;
 }

@@ -2,7 +2,7 @@
  {
   "name": "core",
   "deps": [],
-  "js_bytes": 11225,
+  "js_bytes": 11226,
   "segment_chars": 20336
  },
  {
@@ -48,6 +48,12 @@
   "segment_chars": 2480
  },
  {
+  "name": "notes",
+  "deps": [],
+  "js_bytes": 1374,
+  "segment_chars": 2480
+ },
+ {
   "name": "api",
   "deps": [
    "beast",
@@ -61,9 +67,10 @@
  {
   "name": "page",
   "deps": [
-   "api"
+   "midi",
+   "play"
   ],
-  "js_bytes": 1618,
-  "segment_chars": 2976
+  "js_bytes": 1907,
+  "segment_chars": 3472
  }
 ]

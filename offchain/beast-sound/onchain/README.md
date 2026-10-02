@@ -75,8 +75,9 @@ subset in dependency order; a module whose dependency is missing throws before i
 | `synth` | `BeastSoundModuleSynth` | 4.9 KB | | `v1.synth` |
 | `play` | `BeastSoundModulePlay` | 3.1 KB | synth | `v1.play`, `v1.context` |
 | `fx` | `BeastSoundModuleFx` | 1.4 KB | | `v1.fx` |
+| `notes` | `BeastSoundModuleNotes` | 1.4 KB | | `v1.notes.decode(felts)`: BSN1 felts → song |
 | `api` | `BeastSoundModuleApi` | 1.1 KB | beast, music, midi, play | `compose`, `fromInputs`, flat API |
-| `page` | `BeastSoundModulePage` | 1.6 KB | api | token_uri page mount |
+| `page` | `BeastSoundModulePage` | 1.9 KB | midi, play (+ api or notes) | token_uri page mount |
 
 - **Contracts:** each module contract exposes `name()` and `segment()`. A segment is
   base64(base64(`<script>…</script>`)), so a site reading it over RPC decodes it twice to get the
@@ -87,6 +88,31 @@ subset in dependency order; a module whose dependency is missing throws before i
   single file.
 - **Build:** `onchain/build.mjs` builds the modules (`onchain/modules.mjs` is the manifest),
   `dist/`, and the Cairo in `cairo/src/modules.cairo` and `page_data.cairo`.
+
+## Two page variants: who composes
+
+Both variants implement the same `IBeastSoundPage`, so the NFT patch points at either one.
+
+| | Inputs page (`BeastSoundPage`) | Notes page (`BeastSoundNotesPage`) |
+|---|---|---|
+| Who composes | The library, in the browser, from token ID + stats | The chain: the Cairo composer's `get_score_notes` |
+| Per-token line | `BEAST_SOUND="token,kills,scars,held,rank,count"` | `BEAST_NOTES="0x…,0x…"` (BSN1 felts) |
+| Data per Beast | ~2 felts of inputs | 2–16 felts (median 4 over 400 mainnet Beasts) |
+| Modules on the page | all 10 (27.5 KB) | midi, synth, play, notes, page (12.4 KB) |
+| Score in the token data | No (deterministic from onchain code + inputs) | Yes |
+| Warlock token_uri gas | 829M | 809M + composer (5.6–119M) |
+
+**The notes format (BSN1):**
+- **Layout:** felts are `[byte_len, 31-byte chunks…]`.
+- **Header:** tempo, grid, duration, articulation and velocities.
+- **Runs:** each run is `voice 4 | start beat 12 | count 8`, then 7-bit keys.
+- **Why runs:** Beast scores sit on a fixed grid with one duration, so run-length coding beats a
+  fixed-width instruction. A 62-bit, 4-per-felt instruction format would take about 4–61 felts
+  (median 13) for the same Beasts.
+- **Arbitrary music:** a general instruction format is the natural next `notes` decoder.
+
+`test/onchain.test.mjs` checks that the notes page, with no composer loaded, decodes the felts Cairo
+emits (golden `bsn_hash`) into exactly the reference notes and MIDI.
 
 ## What it costs
 

@@ -76,6 +76,24 @@ pub fn inputs_html(token_id: u256, live: BeastSoundInputs) -> ByteArray {
     s
 }
 
+/// `<script>BEAST_NOTES="0x…,0x…"</script>` (BSN1 felts, e.g. from the Cairo composer's
+/// get_score_notes), then the opening of the SVG text block, space-padded to 9n bytes.
+pub fn notes_html(felts: Span<felt252>) -> ByteArray {
+    let art_open: ByteArray = "<script type=\"text/plain\" id=\"art\">";
+    let mut s: ByteArray = "<script>BEAST_NOTES=\"";
+    for i in 0..felts.len() {
+        if i > 0 {
+            s.append_byte(',');
+        }
+        let v: u256 = (*felts[i]).into();
+        s.append(@format!("0x{:x}", v));
+    }
+    s.append(@"\"</script>");
+    pad_spaces(ref s, 9, art_open.len());
+    s.append(@art_open);
+    s
+}
+
 fn base64_chars() -> Span<u8> {
     array![
         'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',
@@ -135,13 +153,21 @@ pub fn stored_local() -> ByteArray {
     stored
 }
 
-/// The complete token_uri, given the stored segment (HEAD ++ module segments).
+/// The complete token_uri for the inputs page (the library composes from token ID + stats), given the
+/// stored segment (HEAD ++ module segments).
 pub fn token_uri(
     members: @ByteArray,
     svg_b64: @ByteArray,
     token_id: u256,
     live: BeastSoundInputs,
     stored: @ByteArray,
+) -> ByteArray {
+    token_uri_with_line(members, svg_b64, @inputs_html(token_id, live), stored)
+}
+
+/// The complete token_uri around one per-token line (`inputs_html` or `notes_html`).
+pub fn token_uri_with_line(
+    members: @ByteArray, svg_b64: @ByteArray, line: @ByteArray, stored: @ByteArray,
 ) -> ByteArray {
     let image_key: ByteArray = "\"image\":\"data:image/svg+xml;base64,";
     let mut s = svg_b64.clone();
@@ -165,7 +191,7 @@ pub fn token_uri(
     out.append(@s_b64);
     append_base64(ref out, @",  ");
     out.append(stored);
-    append_base64(ref out, @base64(@inputs_html(token_id, live)));
+    append_base64(ref out, @base64(line));
     out.append(@s_b64);
     append_base64(ref out, @"}");
     out
@@ -227,6 +253,102 @@ pub mod BeastSoundPage {
                 out.append(self.modules.at(i).read());
             }
             out
+        }
+    }
+}
+
+/// The Cairo composer (contracts/beast_sound `BeastSoundComposer`): engine v1 computed onchain.
+/// `BeastSoundInputs` serializes exactly like its `BeastV3LiveState`.
+#[starknet::interface]
+pub trait IBeastSoundComposer<T> {
+    fn get_score_notes(self: @T, token_id: u256, live: BeastSoundInputs) -> Array<felt252>;
+}
+
+#[starknet::interface]
+pub trait IBeastSoundNotesPageInfo<T> {
+    fn composer(self: @T) -> starknet::ContractAddress;
+}
+
+/// The notes page: the chain composes. token_uri asks the Cairo composer for the score's BSN1 felts
+/// and writes them into the page, which only decodes and plays them (deploy it with the notes
+/// module list: midi, synth, play, notes, page). Same interface as BeastSoundPage, so the NFT can
+/// point at either.
+#[starknet::contract]
+pub mod BeastSoundNotesPage {
+    use starknet::ContractAddress;
+    use starknet::storage::{
+        MutableVecTrait, StoragePointerReadAccess, StoragePointerWriteAccess, Vec, VecTrait,
+    };
+    use super::{
+        BeastSoundInputs, IBeastSoundComposerDispatcher, IBeastSoundComposerDispatcherTrait,
+        IBeastSoundModuleDispatcher, IBeastSoundModuleDispatcherTrait,
+    };
+
+    #[storage]
+    struct Storage {
+        modules: Vec<ContractAddress>,
+        composer: ContractAddress,
+    }
+
+    #[constructor]
+    fn constructor(ref self: ContractState, modules: Array<ContractAddress>, composer: ContractAddress) {
+        assert(modules.len() > 0, 'no modules');
+        for m in modules {
+            self.modules.push(m);
+        }
+        self.composer.write(composer);
+    }
+
+    #[abi(embed_v0)]
+    impl BeastSoundPageImpl of super::IBeastSoundPage<ContractState> {
+        fn token_uri(
+            self: @ContractState,
+            members: ByteArray,
+            svg_b64: ByteArray,
+            token_id: u256,
+            live: BeastSoundInputs,
+        ) -> ByteArray {
+            let felts = IBeastSoundComposerDispatcher { contract_address: self.composer.read() }
+                .get_score_notes(token_id, live);
+            let mut stored = super::page_data::head_segment();
+            for i in 0..self.modules.len() {
+                let module = IBeastSoundModuleDispatcher { contract_address: self.modules.at(i).read() };
+                stored.append(@module.segment());
+            }
+            super::token_uri_with_line(@members, @svg_b64, @super::notes_html(felts.span()), @stored)
+        }
+
+        fn modules(self: @ContractState) -> Array<ContractAddress> {
+            let mut out = array![];
+            for i in 0..self.modules.len() {
+                out.append(self.modules.at(i).read());
+            }
+            out
+        }
+    }
+
+    #[abi(embed_v0)]
+    impl InfoImpl of super::IBeastSoundNotesPageInfo<ContractState> {
+        fn composer(self: @ContractState) -> ContractAddress {
+            self.composer.read()
+        }
+    }
+}
+
+/// Test stand-in for BeastSoundComposer: returns fixed felts (the real composer's output is checked
+/// against the JS engine by the package's golden tests).
+#[cfg(test)]
+#[starknet::contract]
+pub mod MockComposer {
+    #[storage]
+    struct Storage {}
+
+    #[abi(embed_v0)]
+    impl ComposerImpl of super::IBeastSoundComposer<ContractState> {
+        fn get_score_notes(
+            self: @ContractState, token_id: u256, live: super::BeastSoundInputs,
+        ) -> Array<felt252> {
+            crate::tests::warlock_felts()
         }
     }
 }

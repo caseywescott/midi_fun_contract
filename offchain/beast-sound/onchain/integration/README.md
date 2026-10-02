@@ -28,6 +28,11 @@ Mints, transfers and every other write path are untouched. Only the `token_uri` 
    stateless, with no constructor arguments. Then deploy `BeastSoundPage` with their addresses, in
    that order, as its constructor argument. The module list is fixed for the page's life: a new
    library version means a new page contract.
+   **Or, for chain-composed notes:** deploy the Cairo composer (`contracts/beast_sound`
+   `BeastSoundComposer`, constructor `drop_salt, drop_bps`). Deploy the notes modules (`Midi`,
+   `Synth`, `Play`, `Notes`, `Page`), then `BeastSoundNotesPage` with `(modules, composer)`. It has
+   the same interface, so use its address in step 3. The page then carries the score itself as
+   BSN1 felts, at +5.6–119M gas per call for composing. See `../README.md`, "Two page variants".
 2. Upgrade or redeploy `beasts_nft` with the patch.
 3. As owner, call `set_sound_page_address(<BeastSoundPage>)`. Setting it back to `0` turns sound
    off.

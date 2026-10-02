@@ -64,46 +64,12 @@ no changes, but it must never contain `</script`.
 
 ## Integration (Beasts NFT side)
 
-1. **Deploy `BeastSoundPage`** from `onchain/cairo`. It's stateless and has no constructor. Store
-   its address in the NFT, e.g. as `sound_page: ContractAddress`, with an admin setter.
-2. **Change `generate_metadata`** in `metadata_generator.cairo`:
-
-```cairo
-// before
-let image = format!("data:image/svg+xml;base64,{}", bytes_base64_encode(svg));
-...
-let json = Self::components_to_json(components);
-format!("data:application/json;base64,{}", bytes_base64_encode(json))
-
-// after
-let svg_b64 = bytes_base64_encode(svg);
-...
-if sound_page.is_zero() || !has_sound {
-    // unchanged path
-    return format!("data:application/json;base64,{}", bytes_base64_encode(json_with_image));
-}
-// members: the JSON body without braces and without `image`:
-//   "name":"…","description":"…","attributes":[…]
-let members = Self::components_to_members(components);
-IBeastSoundPageDispatcher { contract_address: sound_page }
-    .token_uri(
-        members,
-        svg_b64,
-        token_id,
-        BeastSoundInputs {
-            adventurers_killed,      // already read from Death Mountain
-            scars: 0,                // Summit deaths + later Death Mountain collects, if cached
-            summit_held_seconds: 0,  // from Summit, if cached
-            rank,                    // already read
-            species_count,           // beast_counts(beast.id)
-        },
-    )
-```
-
-`has_sound` decides which tokens play. Genesis tokens always have sound; for the drop, use the
-`hasSound(salt, bps, beast)` roll from `@koji/beast-sound`.
-
-`components_to_members` is `components_to_json` minus the `{`, the `}` and the `image` member.
+`integration/beasts_nft-sound.patch` is a ready-to-apply change to the Beasts repo. It's tested
+against their suite and end to end with the real contracts; see `integration/README.md`. In short:
+- **Contract change:** `beasts_nft` gets an owner-set `sound_page` address.
+- **`token_uri`:** when the address is set, it passes its JSON members (name, description,
+  attributes) and SVG base64 to `BeastSoundPage.token_uri`. When it's zero, `token_uri` is
+  unchanged, byte for byte.
 
 ## Build and test
 

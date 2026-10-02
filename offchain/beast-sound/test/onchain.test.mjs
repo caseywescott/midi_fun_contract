@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { animationHtml, inputsHtml, storedSegment, tokenUri } from '../onchain/page.js';
+import { loadBuiltModules } from '../onchain/modules.mjs';
 
 const dir = new URL('../onchain/', import.meta.url);
 const built = existsSync(new URL('dist/composer.js', dir));
@@ -14,7 +15,7 @@ const fromDataUri = (uri, type) => {
 };
 
 test('token_uri decodes to valid JSON with image and animation_url', { skip: !built && 'run node onchain/build.mjs' }, () => {
-  const js = readFileSync(new URL('dist/composer.js', dir), 'utf8');
+  const js = loadBuiltModules();
   const fx = JSON.parse(readFileSync(new URL('fixtures/warlock_v3.json', dir), 'utf8'));
   const stored = storedSegment(js);
   assert.equal(stored, readFileSync(new URL('dist/stored.b64', dir), 'utf8'));
@@ -110,4 +111,31 @@ test('v1 midi.write takes any notes; fx transforms are pure', { skip: !built && 
   assert.equal(suite.notes.length, a.notes.length + b.notes.length);
   assert.equal(Math.min(...suite.notes.slice(a.notes.length).map((n) => n[0])) % 1920, 0); // b starts on a bar
   assert.deepEqual(new Set(v1.fx.voices(a, [0]).notes.map((n) => n[4])), new Set([0]));
+});
+
+test('modules load separately: any dependency-ordered subset works, missing deps fail fast', { skip: !built && 'run node onchain/build.mjs' }, () => {
+  const mods = Object.fromEntries(loadBuiltModules().map((m) => [m.name, m.js]));
+  const run = (names) => {
+    const window = { addEventListener() {} };
+    const ctx = { window, addEventListener() {}, matchMedia: undefined, URL, Blob, setTimeout, setInterval, clearInterval, BigInt, Math, Uint8Array };
+    for (const n of names) vm.runInNewContext(mods[n], ctx);
+    return window.BeastSound;
+  };
+  // MIDI alone: under 1.1 KB, works on any note list
+  const onlyMidi = run(['midi']);
+  assert.deepEqual([...onlyMidi.v1.modules], ['midi']);
+  assert.equal(String.fromCharCode(...onlyMidi.v1.midi.write({ notes: [[0, 480, 60, 100, 0]], tempo_us: 500000 }).slice(0, 4)), 'MThd');
+  // fx alone
+  assert.equal(run(['fx']).v1.fx.transpose({ notes: [[0, 1, 60, 1, 0]], tempo_us: 1 }, 2).notes[0][2], 62);
+  // Beast → song without any audio code
+  const noAudio = run(['core', 'beast', 'music', 'midi']).v1;
+  const traits = noAudio.beast.decode(encodeTokenId(genesisBeast({ id: 1 })));
+  const song = noAudio.music.generate(noAudio.beast.params(traits, {}), noAudio.beast.seed(traits));
+  const ref = composeBeast(genesisBeast({ id: 1 }), {});
+  assert.equal(BigInt(song.scoreHash), BigInt(ref.scoreHash));
+  assert.deepEqual(noAudio.midi.write(song), ref.midi);
+  // a module whose dependency is missing throws before doing anything
+  assert.throws(() => run(['beast']), /module beast needs module core/);
+  // all modules == the all-in-one blob
+  assert.deepEqual([...run(Object.keys(mods)).v1.modules], Object.keys(mods));
 });

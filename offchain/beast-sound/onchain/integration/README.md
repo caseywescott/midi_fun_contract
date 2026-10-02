@@ -23,8 +23,11 @@ Mints, transfers and every other write path are untouched. Only the `token_uri` 
 
 ## Deploy
 
-1. Declare and deploy `BeastSoundPage` from `../cairo`. It's stateless, with no constructor
-   arguments.
+1. Declare and deploy the 9 library module contracts from `../cairo`, in this order:
+   `BeastSoundModuleCore`, `Beast`, `Music`, `Midi`, `Synth`, `Play`, `Fx`, `Api`, `Page`. Each is
+   stateless, with no constructor arguments. Then deploy `BeastSoundPage` with their addresses, in
+   that order, as its constructor argument. The module list is fixed for the page's life: a new
+   library version means a new page contract.
 2. Upgrade or redeploy `beasts_nft` with the patch.
 3. As owner, call `set_sound_page_address(<BeastSoundPage>)`. Setting it back to `0` turns sound
    off.
@@ -35,14 +38,15 @@ Mints, transfers and every other write path are untouched. Only the `token_uri` 
   clean.
 - **Size:** the `beasts_nft` class grows from 30,249 to 30,556 Sierra felts (+1%).
 - **End to end, real contracts:** `sound_e2e_tests.cairo` ran their real PNG and GIF art providers
-  with the real `BeastSoundPage`. Running it needs `beast_sound_page` as a path dependency and
-  `build-external-contracts = ["beast_sound_page::BeastSoundPage"]`.
+  with the real `BeastSoundPage` and its 9 module contracts. Running it needs `beast_sound_page` as
+  a path dependency and `build-external-contracts = ["beast_sound_page::*"]`.
   - With sound on, `token_uri` decodes to valid JSON. Name, description, attributes and `image`
     are identical to the sound-off output, with `animation_url` added.
   - In Chrome, the page composes the expected score hash and plays, for a plain Beast and for an
     animated shiny one.
-- **Gas:** setup, mint and `token_uri` cost 1,249.5M L2 gas with sound off and 1,277.2M with
-  sound on. So sound adds under 28M per call, and that figure includes deploying the page.
+- **Gas:** setup, mint and `token_uri` cost 1,249.5M L2 gas with sound off and 1,294.4M with
+  sound on. So sound adds under 45M per call, and that figure includes deploying all 10 contracts.
+  In the page's own test, the deployed system adds 54M to a 775M baseline (+7%).
 
 ## Not wired yet
 

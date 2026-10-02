@@ -1,6 +1,7 @@
-// window.BeastSound: the onchain Beast Sound library.
+// api module: the whole Beast pipeline in one call, plus the flat API from the first release.
 //
-// Layers, each usable alone or together (BeastSound.v1):
+// The library's layers, each its own module (stored in its own contract) and each usable alone or
+// together under window.BeastSound.v1:
 //   beast  token → traits → params + seed        music  params + seed → song
 //   midi   song → Standard MIDI File              synth  instruments as data + drum kit
 //   play   song → sound (handles, routable)       fx     song → song (transpose, layer, concat…)
@@ -11,9 +12,7 @@
 import * as beast from './beast.js';
 import * as music from './music.js';
 import * as midi from './midi.js';
-import * as synth from './synth.js';
-import * as fx from './fx.js';
-import { play, context } from './player.js';
+import { play } from './player.js';
 
 /** Token ID + live stats → song (with tokenId, traits and live attached). */
 export function compose(tokenId, stats = {}) {
@@ -28,14 +27,11 @@ export function fromInputs(line) {
   return compose(tokenId, { adventurers_killed, scars, summit_held_seconds, rank, species_count });
 }
 
-export const v1 = { version: 'beast-sound/engine-v1', beast, music, midi, synth, play, context, fx, compose, fromInputs };
-
 // Flat API kept from the first library release: one global player.
 let current = null;
 const listeners = new Set();
 const notify = () => listeners.forEach((fn) => fn(!!current));
 export const flat = {
-  version: v1.version,
   compose, fromInputs,
   midi: midi.write,
   midiUrl: midi.url,

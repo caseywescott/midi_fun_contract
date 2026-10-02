@@ -2,7 +2,7 @@
 // several songs can play at once, each into its own (or a caller's) audio graph.
 import { createLoopScheduler } from '../../server/scheduler.js';
 import { instrument, presets, drum } from './synth.js';
-import { TICKS_PER_BEAT } from './core.js';
+import { TICKS_PER_BEAT } from './song.js';
 
 let shared = null;
 const LOOKAHEAD = (() => { try { return matchMedia('(pointer: coarse)').matches ? 0.6 : 0.35; } catch { return 0.35; } })();

@@ -12,14 +12,29 @@
 //!     ++ b64('{' members ',' <spaces> '"image":"data:image/svg+xml;base64,')
 //!     ++ b64(S) where S = svg_b64 '"' <spaces>          (encoded once, appended twice)
 //!     ++ b64(',  ')
-//!     ++ stored_segment()                               (the page, encoded at build time)
+//!     ++ HEAD ++ MODULE_1 ++ … ++ MODULE_n               (encoded at build time; see below)
 //!     ++ b64(b64(inputs line + '<script type="text/plain" id="art">'))
 //!     ++ b64(S)
 //!     ++ b64('}')
 //!
 //! So the per-call base64 work is the same as today's plus about 150 bytes.
 
+//!
+//! The library is split into modules (core, beast, music, midi, synth, play, fx, api, page), each in
+//! its own contract (`modules.cairo`) exposing its segment, base64(base64(<script>…</script>)).
+//! `BeastSoundPage` keeps the page HEAD and a fixed list of module contracts, and splices
+//! HEAD ++ every module segment into animation_url. Other projects can reuse any module contract.
+
+pub mod modules;
 pub mod page_data;
+
+/// A stored library module: its name and its segment, base64(base64(<script>…</script>)) padded so
+/// segments concatenate. Decode a segment twice to get the module's script.
+#[starknet::interface]
+pub trait IBeastSoundModule<T> {
+    fn name(self: @T) -> felt252;
+    fn segment(self: @T) -> ByteArray;
+}
 
 /// Live stats the composer reads (same fields and types as koji's `BeastV3LiveState`).
 #[derive(Copy, Drop, Serde, PartialEq, Debug)]
@@ -112,26 +127,44 @@ pub fn base64(input: @ByteArray) -> ByteArray {
 /// The complete token_uri. `members` is the JSON object body without braces and without `image`,
 /// e.g. `"name":"Warlock","description":"...","attributes":[...]`. `svg_b64` is base64 of the
 /// Beast's SVG (what the NFT puts after `data:image/svg+xml;base64,` today).
+/// HEAD plus every module segment from this package, in load order (no contract calls). This is what
+/// `BeastSoundPage` assembles from its module contracts.
+pub fn stored_local() -> ByteArray {
+    let mut stored = page_data::head_segment();
+    stored.append(@modules::all_segments());
+    stored
+}
+
+/// The complete token_uri, given the stored segment (HEAD ++ module segments).
 pub fn token_uri(
-    members: @ByteArray, svg_b64: @ByteArray, token_id: u256, live: BeastSoundInputs,
+    members: @ByteArray,
+    svg_b64: @ByteArray,
+    token_id: u256,
+    live: BeastSoundInputs,
+    stored: @ByteArray,
 ) -> ByteArray {
     let image_key: ByteArray = "\"image\":\"data:image/svg+xml;base64,";
-    let mut a: ByteArray = "{";
-    a.append(members);
-    a.append_byte(',');
-    pad_spaces(ref a, 3, image_key.len());
-    a.append(@image_key);
-
     let mut s = svg_b64.clone();
     s.append_byte('"');
     pad_spaces(ref s, 3, 0);
     let s_b64 = base64(@s);
 
+    let mut a: ByteArray = "{";
+    a.append(members);
+    a.append_byte(',');
+    pad_spaces(ref a, 3, image_key.len());
+    // Extra JSON whitespace (3 spaces = 4 base64 characters) until the stored library starts on a
+    // 31-byte word boundary of the output, where appending it is cheap (29 = the URI prefix).
+    while (29 + (a.len() + image_key.len()) / 3 * 4 + s_b64.len() + 4) % 31 != 0 {
+        a.append(@"   ");
+    }
+    a.append(@image_key);
+
     let mut out: ByteArray = "data:application/json;base64,";
     append_base64(ref out, @a);
     out.append(@s_b64);
     append_base64(ref out, @",  ");
-    out.append(@page_data::stored_segment());
+    out.append(stored);
     append_base64(ref out, @base64(@inputs_html(token_id, live)));
     out.append(@s_b64);
     append_base64(ref out, @"}");
@@ -144,15 +177,32 @@ pub trait IBeastSoundPage<T> {
     fn token_uri(
         self: @T, members: ByteArray, svg_b64: ByteArray, token_id: u256, live: BeastSoundInputs,
     ) -> ByteArray;
+    /// The module contracts this page splices in, in load order.
+    fn modules(self: @T) -> Array<starknet::ContractAddress>;
 }
 
-/// Stateless: the composer lives in the contract's code, so a new engine version is a new class.
+/// The page: HEAD in code plus a module list fixed at deploy. A different library version or module
+/// set is a new page contract, so a Beast's music never changes under it.
 #[starknet::contract]
 pub mod BeastSoundPage {
-    use super::BeastSoundInputs;
+    use starknet::ContractAddress;
+    use starknet::storage::{
+        MutableVecTrait, StoragePointerReadAccess, StoragePointerWriteAccess, Vec, VecTrait,
+    };
+    use super::{BeastSoundInputs, IBeastSoundModuleDispatcher, IBeastSoundModuleDispatcherTrait};
 
     #[storage]
-    struct Storage {}
+    struct Storage {
+        modules: Vec<ContractAddress>,
+    }
+
+    #[constructor]
+    fn constructor(ref self: ContractState, modules: Array<ContractAddress>) {
+        assert(modules.len() > 0, 'no modules');
+        for m in modules {
+            self.modules.push(m);
+        }
+    }
 
     #[abi(embed_v0)]
     impl BeastSoundPageImpl of super::IBeastSoundPage<ContractState> {
@@ -163,7 +213,20 @@ pub mod BeastSoundPage {
             token_id: u256,
             live: BeastSoundInputs,
         ) -> ByteArray {
-            super::token_uri(@members, @svg_b64, token_id, live)
+            let mut stored = super::page_data::head_segment();
+            for i in 0..self.modules.len() {
+                let module = IBeastSoundModuleDispatcher { contract_address: self.modules.at(i).read() };
+                stored.append(@module.segment());
+            }
+            super::token_uri(@members, @svg_b64, token_id, live, @stored)
+        }
+
+        fn modules(self: @ContractState) -> Array<ContractAddress> {
+            let mut out = array![];
+            for i in 0..self.modules.len() {
+                out.append(self.modules.at(i).read());
+            }
+            out
         }
     }
 }

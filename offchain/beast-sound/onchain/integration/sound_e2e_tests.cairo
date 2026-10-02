@@ -45,7 +45,15 @@ fn setup() -> (IBeastsDispatcher, IERC721MetadataDispatcher, ContractAddress, u2
 }
 
 fn enable_sound(beasts: IBeastsDispatcher, owner: ContractAddress) {
-    let page = deploy_no_args("BeastSoundPage");
+    let mut modules: Array<felt252> = array![9];
+    for name in array![
+        "BeastSoundModuleCore", "BeastSoundModuleBeast", "BeastSoundModuleMusic", "BeastSoundModuleMidi",
+        "BeastSoundModuleSynth", "BeastSoundModulePlay", "BeastSoundModuleFx", "BeastSoundModuleApi",
+        "BeastSoundModulePage",
+    ] {
+        modules.append(deploy_no_args(name).into());
+    }
+    let (page, _) = declare("BeastSoundPage").unwrap().contract_class().deploy(@modules).unwrap();
     start_cheat_caller_address(beasts.contract_address, owner);
     beasts.set_sound_page_address(page);
     stop_cheat_caller_address(beasts.contract_address);

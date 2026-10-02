@@ -1,5 +1,5 @@
 // Transforms: song → new song. Pure functions; inputs are never modified.
-import { fromNotes } from './music.js';
+import { fromNotes } from './song.js';
 
 const BAR = 4 * 480;
 const end = (song) => (song.notes.length ? Math.max(...song.notes.map((n) => n[0] + n[1])) : 0);

@@ -3,4 +3,3 @@ import { poseidonHashMany } from '../../src/poseidon_lite.js';
 import { createCoreEngine } from '../../src/engine.js';
 
 export const engine = createCoreEngine({ poseidonHashMany });
-export const TICKS_PER_BEAT = 480;

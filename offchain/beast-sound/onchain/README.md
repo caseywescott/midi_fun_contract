@@ -60,6 +60,34 @@ The flat API from the first release still works: `compose`, `fromInputs`, `midi`
   mounts the art and the ♪ (play) and MIDI (download) buttons. Loaded anywhere else, the library
   only defines the API.
 
+## Onchain modules
+
+Each layer is its own script and its own contract, so a project stores or loads only what it needs.
+A module registers itself into `window.BeastSound.v1` and finds its dependencies there. Load any
+subset in dependency order; a module whose dependency is missing throws before it runs.
+
+| Module | Contract | JS | Needs | Provides |
+|---|---|---:|---|---|
+| `core` | `BeastSoundModuleCore` | 11.2 KB | | engine v1 + Poseidon |
+| `beast` | `BeastSoundModuleBeast` | 0.7 KB | core | `v1.beast` |
+| `music` | `BeastSoundModuleMusic` | 0.7 KB | core | `v1.music` |
+| `midi` | `BeastSoundModuleMidi` | 1.1 KB | | `v1.midi` (any song) |
+| `synth` | `BeastSoundModuleSynth` | 4.9 KB | | `v1.synth` |
+| `play` | `BeastSoundModulePlay` | 3.1 KB | synth | `v1.play`, `v1.context` |
+| `fx` | `BeastSoundModuleFx` | 1.4 KB | | `v1.fx` |
+| `api` | `BeastSoundModuleApi` | 1.1 KB | beast, music, midi, play | `compose`, `fromInputs`, flat API |
+| `page` | `BeastSoundModulePage` | 1.6 KB | api | token_uri page mount |
+
+- **Contracts:** each module contract exposes `name()` and `segment()`. A segment is
+  base64(base64(`<script>…</script>`)), so a site reading it over RPC decodes it twice to get the
+  script.
+- **Page contract:** `BeastSoundPage` keeps the page head and a module list fixed at deploy, and
+  splices HEAD plus every segment into `animation_url`.
+- **One file:** `dist/composer.js` is all modules concatenated, 25.8 KB, for sites that want a
+  single file.
+- **Build:** `onchain/build.mjs` builds the modules (`onchain/modules.mjs` is the manifest),
+  `dist/`, and the Cairo in `cairo/src/modules.cairo` and `page_data.cairo`.
+
 ## What it costs
 
 Measured with cairo-test on the real Sepolia genesis Warlock (members 2.3 KB, SVG base64 30 KB):
@@ -67,15 +95,21 @@ Measured with cairo-test on the real Sepolia genesis Warlock (members 2.3 KB, SV
 | | L2 gas (est.) | token_uri size |
 |---|---:|---:|
 | Today: one base64 pass over the JSON | 775M | 43 KB |
-| With sound, via `BeastSoundPage.token_uri` | 812M (+4.8%) | 120 KB |
-| With sound, naively (base64 the 43 KB page, put it in the JSON, base64 everything) | ≈3.2B (estimated from the per-byte cost) | 120 KB |
+| With sound: deployed `BeastSoundPage` + 9 module contracts | 829M (+7%) | 133 KB |
+| With sound, naively (base64 the page, put it in the JSON, base64 everything) | ≈3.5B (estimated from the per-byte cost) | 133 KB |
 
-The cross-contract call's calldata and return copying are not included. Measure them on devnet
-before mainnet.
+**Where the 54M goes:** assembling the page costs 18M, and the 9 module calls cost 36M.
 
-The library is stored once, in the code of a stateless contract: 22.6 KB of JavaScript, 1,317
-felts. The CASM class is 13,581 felts, against the 81,920 limit. No composition runs onchain, so the
-v1 Cairo composer's 5–120M gas per call does not apply.
+**Word alignment:**
+- **What's padded:** every segment is a whole number of 31-byte words, and JSON whitespace puts
+  the library on a word boundary of the output.
+- **Why:** assembling at word boundaries is cheap. Without alignment the same system cost +103M.
+- **End to end:** against the real Beasts contracts (`integration/`), sound adds under 45M per
+  `token_uri`, including deploying all 10 contracts.
+
+**Contract sizes:** each module contract is 869–2,756 CASM felts and the page is 12,108, all far
+under the 81,920 limit. No composition runs onchain, so the v1 Cairo composer's 5–120M gas per call
+does not apply.
 
 The composer hashes with `src/poseidon_lite.js` instead of `@scure/starknet`: a 1 KB Starknet
 Poseidon that derives its round constants (`sha256("Hades" + i) mod p`) on first use, in about
@@ -123,11 +157,12 @@ against their suite and end to end with the real contracts; see `integration/REA
 ## Build and test
 
 ```bash
+npm install                      # esbuild (pinned dev dependency, used by the module build)
 node onchain/fetch-fixture.mjs   # snapshot a real V3 token_uri (Sepolia) into fixtures/
-node onchain/build.mjs           # bundle the composer, encode STORED, generate cairo/src/page_data.cairo
+node onchain/build.mjs           # build the modules, dist/, and cairo/src/{modules,page_data}.cairo
 node onchain/golden.mjs          # generate Cairo tests from the JS reference (page.js)
 node --test test/onchain.test.mjs
-cd onchain/cairo && scarb test   # Cairo token_uri == JS token_uri, byte for byte, incl. the real Warlock
+cd onchain/cairo && scarb test   # Cairo == JS byte for byte (incl. the real Warlock); deployed page + modules
 ```
 
 `page.js` is the reference implementation of the layout. The Cairo in `cairo/src/lib.cairo` builds

@@ -1,7 +1,10 @@
 // Build public/onchain/beatsync.html: animated Beast art stepped with its music by BeatSync.
 //   node onchain/beatsync-demo.mjs        (after onchain/gallery.mjs)
 //
-// Each animated Beast's onchain MIDI plays through tinysynth with the TinyChip pack. BeatSync
+// Beasts: the Warlock (demo stats) and every gallery Beast. Five gallery Beasts are minted animated;
+// the others are static and are shown with their species' GIF (onchain/fixtures/beast_gifs.json, the
+// GIFs from the Beasts art contracts), as they'd look if animated. Gallery SVGs are fetched when picked.
+// Each Beast's onchain MIDI plays through tinysynth with the TinyChip pack (any of its presets). BeatSync
 // (onchain/beatsync.js, the module in the onchain page player) decodes the Beast's GIF and shows the
 // frame due at the audible tinysynth tick. The toggle compares 'beat' (one frame per eighth note),
 // 'native' (the GIF's own delays on the audio clock) and 'off' (the browser's own GIF timer), and a
@@ -9,7 +12,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
-import { composeBeast } from '../src/index.js';
+import { composeBeast, decodeTokenId } from '../src/index.js';
 import { loadBuiltModules } from './modules.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
@@ -25,17 +28,26 @@ const chipPack = await minify(readFileSync(here + 'tinysynth-chip.js', 'utf8'));
 const beatsync = await minify(readFileSync(here + 'beatsync.js', 'utf8'));
 const midiModules = loadBuiltModules(['midi', 'smf']);
 
-// every gallery Beast with animated art
+globalThis.window = globalThis; await import('./tinysynth-chip.js');
+const CHIP_PRESETS = globalThis.TinyChip.PRESETS.map(({ program, name, category, inspired }) => ({ program, name, category, inspired }));
+const INSPIRED = Object.fromEntries(CHIP_PRESETS.filter((p) => p.inspired).map((p) => [p.program, p.inspired]));
+
+const fx = JSON.parse(readFileSync(here + 'fixtures/warlock_v3.json', 'utf8'));
 const cache = JSON.parse(readFileSync(here + '.gallery-cache.json', 'utf8'));
 const gallery = JSON.parse(readFileSync(out + 'gallery.json', 'utf8'));
-const data = gallery
-  .filter((g) => cache[g.token]?.beast.animated === 1)
-  .map((g) => {
-    const svg = readFileSync(out + `beasts/${g.token}.svg`, 'utf8');
-    const song = composeBeast(cache[g.token].beast, cache[g.token].live);
-    return { name: `${g.name} #${g.token}`, svg, midi: Buffer.from(song.midi).toString('base64'), notes: song.events.length, bpm: g.bpm };
-  })
-  .filter((b) => b.svg.includes('data:image/gif;base64,'));
+const allGifs = JSON.parse(readFileSync(here + 'fixtures/beast_gifs.json', 'utf8'));
+const midiOf = (song) => ({ midi: Buffer.from(song.midi).toString('base64'), notes: song.events.length });
+const warlockSong = composeBeast(decodeTokenId(BigInt(fx.token_id)), { adventurers_killed: 412, scars: 7, summit_held_seconds: 86400, rank: 3, species_count: 1243 });
+const data = [
+  { name: `${fx.name} (demo stats)`, svg: Buffer.from(fx.svg_b64, 'base64').toString('utf8'), animated: 1, ...midiOf(warlockSong) },
+  ...gallery
+    .map((g) => {
+      const { beast, live } = cache[g.token];
+      return { name: `${g.name} #${g.token}`, token: g.token, animated: beast.animated, gif: beast.animated ? undefined : `${beast.id}${beast.shiny ? 's' : ''}`, ...midiOf(composeBeast(beast, live)) };
+    })
+    .sort((a, b) => b.animated - a.animated || a.name.localeCompare(b.name)),
+];
+const GIFS = Object.fromEntries([...new Set(data.map((b) => b.gif).filter(Boolean))].map((k) => [k, allGifs[k]]));
 
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Beast BeatSync</title>
@@ -65,6 +77,7 @@ legend{padding:0 6px;font-size:18px;color:var(--dim);text-transform:uppercase}
 .controls #play{background:var(--g);color:#000;min-width:120px}
 select{font:inherit;font-size:20px;background:#000;color:var(--g);border:1px solid var(--line);padding:4px 8px;width:100%;min-width:0}
 label.check{display:flex;gap:8px;align-items:center;font-size:20px}
+label.field{display:grid;gap:6px;font-size:18px;color:var(--dim)}
 .strip{display:flex;flex-wrap:wrap;gap:8px}
 .strip canvas{width:64px;height:64px;image-rendering:pixelated;border:2px solid var(--line);background:var(--card)}
 .strip canvas.on{border-color:var(--g);box-shadow:0 0 10px rgba(74,246,38,.6)}
@@ -77,13 +90,23 @@ label.check{display:flex;gap:8px;align-items:center;font-size:20px}
 </style></head><body><main>
 <h1>Beast art on the beat</h1>
 <p>Browsers give a page no control over a GIF's frames, so an animated Beast's GIF runs on its own timer and drifts against its music. BeatSync decodes the GIF from the token's SVG and shows the frame due at the moment you are hearing, taken from the synth's audio clock. Toggle the modes to compare. The small panel is always the browser's own GIF.</p>
+<p>The Warlock and five gallery Beasts are minted animated. The other gallery Beasts are static, so they are shown with their species' animated GIF from the Beasts art contracts, as they would look minted animated. Their music is their own.</p>
 <div class="layout">
   <div class="arts">
     <div class="art"><div class="stack"><img id="art" alt=""></div><small id="artLabel">BeatSync</small></div>
     <div class="art ref"><img id="ref" alt="" style="width:96px;height:auto"><small>Browser GIF (its own timer, for comparison)</small></div>
   </div>
   <div class="panel">
-    <fieldset><legend>Animated Beast</legend><select id="beast" aria-label="Beast">${data.map((b, i) => `<option value="${i}">${esc(b.name)} (${b.notes} notes)</option>`).join('')}</select></fieldset>
+    <fieldset><legend>Beast (${data.length})</legend><select id="beast" aria-label="Beast">${[['Minted animated', 1], ['Static art, shown with its species GIF', 0]].map(([label, a]) => `<optgroup label="${label}">${data.map((b, i) => (b.animated === a ? `<option value="${i}">${esc(b.name)} (${b.notes} notes)</option>` : '')).join('')}</optgroup>`).join('')}</select></fieldset>
+    <fieldset><legend>Chip patch</legend>
+      <label class="field">TinyChip preset (${CHIP_PRESETS.length}) <select id="chipPreset">${[...new Set(CHIP_PRESETS.map((p) => p.category))].map((c) => `<optgroup label="${esc(c)}">${CHIP_PRESETS.filter((p) => p.category === c).map((p) => `<option value="${p.program}">${p.program}: ${esc(p.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
+      <span class="note" id="chipInspired"></span>
+      <div class="controls">
+        <button type="button" id="prevPreset" aria-label="Previous preset">◀ Prev</button>
+        <button type="button" id="nextPreset" aria-label="Next preset">Next ▶</button>
+        <label class="check"><input type="checkbox" id="bassVoice" checked> Lowest voice on Triangle Bass</label>
+      </div>
+    </fieldset>
     <fieldset><legend>Frame timing</legend>
       <div class="choices" role="group" aria-label="Frame timing">
         <button type="button" data-mode="beat" aria-pressed="true">Beat-locked</button>
@@ -107,7 +130,7 @@ label.check{display:flex;gap:8px;align-items:center;font-size:20px}
       <div class="fact"><b id="fBeat"></b><small>frames on eighths</small></div>
       <div class="fact"><b id="fDrift"></b><small>browser GIF slip / loop</small></div>
     </div>
-    <p class="note">Music: the Beast's onchain MIDI through webaudio-tinysynth with the TinyChip pack (Triangle Lead, chip drums). BeatSync is ${(beatsync.length / 1000).toFixed(1)} KB, the same module the onchain page can store.</p>
+    <p class="note">Music: the Beast's onchain MIDI through webaudio-tinysynth with the TinyChip pack (pick any of its ${CHIP_PRESETS.length} presets; chip drums). BeatSync is ${(beatsync.length / 1000).toFixed(1)} KB, the same module the onchain page can store.</p>
   </div>
 </div>
 </main>
@@ -117,10 +140,14 @@ label.check{display:flex;gap:8px;align-items:center;font-size:20px}
 <script>${inline(beatsync)}</script>
 <script>
 const BEASTS = ${JSON.stringify(data)};
+const GIFS = ${JSON.stringify(GIFS)};
+const INSPIRED = ${JSON.stringify(INSPIRED)};
+const BASS_PROGRAM = 20; // TinyChip: Triangle Bass (NES)
 const v1 = BeastSound.v1;
 const $ = (id) => document.getElementById(id);
 const NOTES = { beat: 'One frame per eighth note, so the creature moves on the beat.', native: "The GIF's own frame delays, timed by the audio clock, so it never drifts.", off: "The browser's GIF timer, as on a marketplace: it drifts against the music." };
-let current = 0, mode = 'beat', synth = null, playing = false, beat = null, strip = [];
+let current = 0, mode = 'beat', synth = null, playing = false, beat = null, strip = [], loading = 0;
+const svgs = {};
 const bytesOf = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 const svgUri = (svg) => 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
 
@@ -137,16 +164,27 @@ function withDrums(song) {
   return { notes: song.notes.concat(drums), tempo_us: song.tempo_us };
 }
 
-function load() {
-  const b = BEASTS[current];
+// A Beast's SVG: inline (Warlock), or fetched from the gallery; static art gets its species' GIF.
+async function svgOf(b) {
+  if (b.svg) return b.svg;
+  if (!svgs[b.token]) {
+    const svg = await (await fetch('beasts/' + b.token + '.svg')).text();
+    svgs[b.token] = b.gif ? svg.replace(/data:image\\/png;base64,[A-Za-z0-9+/=]+/, 'data:image/gif;base64,' + GIFS[b.gif]) : svg;
+  }
+  return svgs[b.token];
+}
+async function load() {
+  const b = BEASTS[current], me = ++loading;
+  const svg = await svgOf(b);
+  if (me !== loading) return; // a later pick won
   if (beat) beat.detach();
   const old = $('art'), img = old.cloneNode();
   old.replaceWith(img);
-  img.src = svgUri(b.svg);
+  img.src = svgUri(svg);
   $('ref').src = img.src;
-  beat = BeatSync.attach({ img, svg: b.svg, mode, synth: () => synth });
+  beat = BeatSync.attach({ img, svg, mode, synth: () => synth });
   // the frame strip: each decoded frame, highlighted while it is the one shown
-  const gif = BeatSync.decodeGif(bytesOf(/data:image\\/gif;base64,([A-Za-z0-9+/=]+)/.exec(b.svg)[1]));
+  const gif = BeatSync.decodeGif(bytesOf(/data:image\\/gif;base64,([A-Za-z0-9+/=]+)/.exec(svg)[1]));
   $('strip').replaceChildren(...(strip = gif.frames.map((f, i) => {
     const cv = document.createElement('canvas');
     cv.width = gif.width; cv.height = gif.height;
@@ -154,7 +192,7 @@ function load() {
     cv.title = 'frame ' + (i + 1) + ' · ' + f.delay + ' ms';
     return cv;
   })));
-  const eighth = 30000 / b.bpm, cycle = beat.delays.reduce((a, d) => a + d, 0), beatCycle = eighth * beat.frames;
+  const eighth = v1.smf.parse(b.midi).tempo_us / 2000, cycle = beat.delays.reduce((a, d) => a + d, 0), beatCycle = eighth * beat.frames;
   $('fFrames').textContent = beat.frames;
   $('fGif').textContent = cycle + ' ms';
   $('fBeat').textContent = Math.round(beatCycle) + ' ms';
@@ -169,9 +207,26 @@ function play() {
   synth.loadMIDI(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength));
   synth.setLoop(1);
   synth.playMIDI();
-  for (let ch = 0; ch < 16; ch++) if (ch !== 9) synth.send([0xc0 | ch, 0]); // TinyChip 0: Triangle Lead
   playing = true;
+  setProgram();
   $('play').textContent = '■ Stop';
+}
+// the chosen preset on every voice; the voice with the lowest average pitch can take the bass preset
+function setProgram() {
+  const v = INSPIRED[$('chipPreset').value];
+  $('chipInspired').textContent = v ? 'Inspired by ' + v : 'Generic chip voice';
+  if (!playing) return;
+  const prg = +$('chipPreset').value, avg = {};
+  for (const n of v1.smf.parse(BEASTS[current].midi).notes) (avg[n[4]] ||= []).push(n[2]);
+  const mean = (v) => avg[v].reduce((x, y) => x + y, 0) / avg[v].length;
+  const voices = Object.keys(avg).map(Number);
+  const low = voices.length > 1 ? voices.reduce((a, v) => (mean(v) < mean(a) ? v : a)) : -1;
+  for (let ch = 0; ch < 16; ch++) if (ch !== 9) synth.send([0xc0 | ch, $('bassVoice').checked && ch === low ? BASS_PROGRAM : prg]);
+}
+function stepPreset(d) {
+  const sel = $('chipPreset'), n = sel.options.length;
+  sel.selectedIndex = (sel.selectedIndex + d + n) % n;
+  setProgram();
 }
 function setMode(next) {
   mode = next;
@@ -192,11 +247,16 @@ function setMode(next) {
   requestAnimationFrame(() => setTimeout(readout));
 })();
 $('play').addEventListener('click', () => (playing ? stop() : play()));
-$('beast').addEventListener('change', (e) => { const was = playing; stop(); current = +e.target.value; load(); if (was) play(); });
+$('beast').addEventListener('change', async (e) => { const was = playing; stop(); current = +e.target.value; await load(); if (was) play(); });
 $('drums').addEventListener('change', () => { if (playing) { stop(); play(); } });
+$('chipPreset').addEventListener('change', setProgram);
+$('bassVoice').addEventListener('change', setProgram);
+$('prevPreset').addEventListener('click', () => stepPreset(-1));
+$('nextPreset').addEventListener('click', () => stepPreset(1));
 document.querySelectorAll('[data-mode]').forEach((btn) => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
 load();
 setMode('beat');
+setProgram();
 </script></body></html>`;
 writeFileSync(out + 'beatsync.html', html);
-console.log(`beatsync.html: ${(html.length / 1000).toFixed(0)} KB · ${data.length} animated Beasts · BeatSync ${beatsync.length} B`);
+console.log(`beatsync.html: ${(html.length / 1000).toFixed(0)} KB · ${data.length} Beasts · ${Object.keys(GIFS).length} species GIFs · BeatSync ${beatsync.length} B`);

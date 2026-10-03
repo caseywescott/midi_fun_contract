@@ -176,7 +176,7 @@ async function svgOf(b) {
 async function load() {
   const b = BEASTS[current], me = ++loading;
   const svg = await svgOf(b);
-  if (me !== loading) return; // a later pick won
+  if (me !== loading) return false; // a later pick won
   if (beat) beat.detach();
   const old = $('art'), img = old.cloneNode();
   old.replaceWith(img);
@@ -197,6 +197,7 @@ async function load() {
   $('fGif').textContent = cycle + ' ms';
   $('fBeat').textContent = Math.round(beatCycle) + ' ms';
   $('fDrift').textContent = Math.round(Math.abs(beatCycle - cycle)) + ' ms';
+  return true;
 }
 function stop() { if (synth) synth.stopMIDI(); playing = false; $('play').textContent = '▶ Play'; }
 function play() {
@@ -247,7 +248,14 @@ function setMode(next) {
   requestAnimationFrame(() => setTimeout(readout));
 })();
 $('play').addEventListener('click', () => (playing ? stop() : play()));
-$('beast').addEventListener('change', async (e) => { const was = playing; stop(); current = +e.target.value; await load(); if (was) play(); });
+// keep playing across a switch, even when another pick arrives while an SVG is still loading
+let resume = false;
+$('beast').addEventListener('change', async (e) => {
+  resume = resume || playing;
+  stop();
+  current = +e.target.value;
+  if (await load() && resume) { resume = false; play(); }
+});
 $('drums').addEventListener('change', () => { if (playing) { stop(); play(); } });
 $('chipPreset').addEventListener('change', setProgram);
 $('bassVoice').addEventListener('change', setProgram);

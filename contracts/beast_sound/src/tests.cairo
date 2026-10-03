@@ -261,8 +261,10 @@ fn heaviest() -> PackableBeastV3 {
 
 fn assert_parity(w: World, b: PackableBeastV3, l: BeastV3LiveState) {
     let token_id = set_state(w, b, l);
-    let midi = w.midi.get_midi(w.nft.contract_address, token_id);
+    let midi = w.midi.get_midi(token_id);
     assert_eq!(midi, composer_midi(b, l));
+    // the collection-checked form returns the same bytes
+    assert_eq!(w.midi.get_midi_for(w.nft.contract_address, token_id), midi);
 }
 
 #[test]
@@ -325,25 +327,25 @@ fn live_state_changes_change_the_midi() {
     let b = sorrow_peak_warlock();
     let token_id = set_state(w, b, live(2, 0, 30, 954));
     let nft = w.nft.contract_address;
-    let calm = w.midi.get_midi(nft, token_id);
+    let calm = w.midi.get_midi_for(nft, token_id);
     assert_eq!(calm, composer_midi(b, live(2, 0, 30, 954)));
 
     // Later Death Mountain defeats are scars: 9 collects = 8 defeats after the minting one,
     // enough to invert the canon.
     w.dm.set_collects(w.dm.contract_address, entity_hash(b), 9);
-    let scarred = w.midi.get_midi(nft, token_id);
+    let scarred = w.midi.get_midi_for(nft, token_id);
     assert!(scarred != calm);
     assert_eq!(scarred, composer_midi(b, live(2, 8, 30, 954)));
 
     // More kills: a new kill bucket.
     w.nft.set_kills(token_id, 40);
-    let hunted = w.midi.get_midi(nft, token_id);
+    let hunted = w.midi.get_midi_for(nft, token_id);
     assert!(hunted != scarred);
     assert_eq!(hunted, composer_midi(b, live(40, 8, 30, 954)));
 
     // Taking the species crown.
     w.nft.set_rank(token_id, 1);
-    assert_eq!(w.midi.get_midi(nft, token_id), composer_midi(b, live(40, 8, 1, 954)));
+    assert_eq!(w.midi.get_midi_for(nft, token_id), composer_midi(b, live(40, 8, 1, 954)));
 }
 
 #[test]
@@ -389,7 +391,7 @@ fn missing_death_mountain_is_unavailable_not_zero() {
     assert_eq!(r.live.scars, 0);
     // Still composes (no revert inside token_uri), from the values it could read.
     assert_eq!(
-        w.midi.get_midi(w.nft.contract_address, token_id), composer_midi(b, live(0, 0, 9, 954)),
+        w.midi.get_midi_for(w.nft.contract_address, token_id), composer_midi(b, live(0, 0, 9, 954)),
     );
 }
 
@@ -429,19 +431,26 @@ fn reports_collection_and_engine() {
 fn rejects_other_collections() {
     let w = setup();
     let token_id = set_state(w, sorrow_peak_warlock(), live(0, 0, 1, 1));
-    w.midi.get_midi(w.dm.contract_address, token_id);
+    w.midi.get_midi_for(w.dm.contract_address, token_id);
 }
 
 #[test]
 #[should_panic(expected: ('invalid token id', 'ENTRYPOINT_FAILED'))]
 fn rejects_invalid_token_ids() {
     let w = setup();
-    w.midi.get_midi(w.nft.contract_address, 1_u256 * 0x10000000000000000000000000000000);
+    w.midi.get_midi_for(w.nft.contract_address, 1_u256 * 0x10000000000000000000000000000000);
 }
 
 #[test]
 #[should_panic(expected: ('ERC721: invalid token ID', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 fn rejects_unminted_tokens() {
     let w = setup();
-    w.midi.get_midi(w.nft.contract_address, encode_v3_token_id(sorrow_peak_warlock()));
+    w.midi.get_midi_for(w.nft.contract_address, encode_v3_token_id(sorrow_peak_warlock()));
+}
+
+#[test]
+#[should_panic(expected: ('ERC721: invalid token ID', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn get_midi_rejects_unminted_tokens() {
+    let w = setup();
+    w.midi.get_midi(encode_v3_token_id(sorrow_peak_warlock()));
 }

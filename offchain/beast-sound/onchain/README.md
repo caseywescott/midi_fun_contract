@@ -8,7 +8,8 @@ Beasts.
 ```
 NFT token_uri ──► MidiSoundPage.token_uri(members, svg_b64, token_address, token_id)
                         │
-                        └─► IMidiProvider.get_midi(token_address, token_id)      (BeastMidiProvider)
+                        └─► IMidiProvider.get_midi_for(token_address, token_id)  (BeastMidiProvider;
+                                   │   the NFT can also call get_midi(token_id) directly)
                                    │  reads rank, species count, kills, Death Mountain defeats
                                    └─ composes with the Cairo engine (v1) → MIDI bytes
                         ◄── data:application/json;utf8,{ name, description, attributes, image, animation_url }

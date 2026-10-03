@@ -2,7 +2,7 @@
 //!
 //! Every view is a pure function of a Beasts V3 token ID plus the Beast's live state, passed as
 //! calldata (benchmark build). `provider::BeastMidiProvider` is the production path: it serves the
-//! same MIDI through `IMidiProvider::get_midi(token_address, token_id)` and reads the live state
+//! same MIDI through `IMidiProvider::get_midi(token_id)` and reads the live state
 //! itself from the Beasts NFT and Death Mountain.
 
 use koji::composition::beast_trait_map::BeastCompositionParams;

@@ -1,7 +1,7 @@
 //! BeastMidiProvider: a Beasts V3 token's theme behind the generic `IMidiProvider` interface.
 //!
-//! `get_midi(token_address, token_id)` needs nothing else. The provider validates the collection
-//! and token, decodes the static traits from the token ID, reads the live state itself and runs the
+//! `get_midi(token_id)` needs nothing else (`get_midi_for(token_address, token_id)` also checks the
+//! collection). The provider validates the token, decodes the static traits from the token ID, reads the live state itself and runs the
 //! existing composer (`koji::composition::beast_v3_sound`, engine v1), so the MIDI is
 //! byte-identical to `v3_score_midi` for the same state.
 //!
@@ -80,7 +80,7 @@ pub struct BeastLiveStateReport {
 
 #[starknet::interface]
 pub trait IBeastMidiProvider<T> {
-    /// The live state `get_midi(token_address, token_id)` composes from, and where each field
+    /// The live state `get_midi(token_id)` composes from, and where each field
     /// came from.
     fn get_live_state(
         self: @T, token_address: ContractAddress, token_id: u256,
@@ -121,7 +121,12 @@ pub mod BeastMidiProvider {
 
     #[abi(embed_v0)]
     impl MidiProviderImpl of IMidiProvider<ContractState> {
-        fn get_midi(
+        fn get_midi(self: @ContractState, token_id: u256) -> ByteArray {
+            let (beast, report) = read_live_state(self, self.collection.read(), token_id);
+            bytes_to_byte_array(v3_score_smf_bytes(beast, report.live).span())
+        }
+
+        fn get_midi_for(
             self: @ContractState, token_address: ContractAddress, token_id: u256,
         ) -> ByteArray {
             let (beast, report) = read_live_state(self, token_address, token_id);

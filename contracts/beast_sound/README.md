@@ -3,8 +3,9 @@
 The Koji Beast composer (`koji::composition::beast_v3_sound`, engine v1) as Starknet contracts.
 
 - **`BeastMidiProvider`** (`src/provider.cairo`): the production path. It implements the generic
-  `IMidiProvider::get_midi(token_address, token_id)` (`contracts/midi_provider`) and reads the
-  Beast's live state itself, so the TinySynth sound page needs nothing but the two identifiers.
+  `IMidiProvider` (`contracts/midi_provider`): `get_midi(token_id)` for the NFT it serves, and
+  `get_midi_for(token_address, token_id)`, the same bytes with the collection checked. It reads the
+  Beast's live state itself, so a caller needs nothing but the token ID.
 - **`BeastSoundComposer`** (`src/lib.cairo`): benchmark views that take the live state as calldata.
 
 ## BeastMidiProvider
@@ -14,13 +15,15 @@ collection or engine is another deployment.
 
 | View | Returns |
 |---|---|
-| `get_midi(token_address, token_id)` | Standard MIDI File bytes (format 1, 480 PPQN, one track per voice), byte-identical to `v3_score_midi` and the JS engine for the same state |
+| `get_midi(token_id)` | Standard MIDI File bytes (format 1, 480 PPQN, one track per voice), byte-identical to `v3_score_midi` and the JS engine for the same state |
+| `get_midi_for(token_address, token_id)` | The same bytes, after checking `token_address` is the NFT it serves (the TinySynth page calls this) |
 | `get_live_state(token_address, token_id)` | The exact `BeastV3LiveState` `get_midi` composes from, with each field's source |
 | `get_collection()` / `get_engine_version()` | The supported collection; `1` |
 
-`get_midi` reverts only for another collection (`unsupported collection`), a token ID that is not a
+`get_midi` reverts only for a token ID that is not a
 116-bit Beasts V3 ID (`invalid token id` and the trait range checks) or an unminted token (the NFT's
-own `get_beast_rank` check). It never reverts because live state is unavailable: it runs inside the
+own `get_beast_rank` check); `get_midi_for` also for another collection (`unsupported collection`).
+Neither reverts because live state is unavailable: it runs inside the
 NFT's `token_uri`, where a failed call cannot be caught.
 
 ### Live state

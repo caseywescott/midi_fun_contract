@@ -138,7 +138,7 @@ async function soundOn(b, tag) {
   const state = await liveState(sys, nft, b.tokenId);
   const expected = Uint8Array.from(engine.toMidiFile(engine.render(engine.decodeTokenId(BigInt(b.tokenId)), state.live)));
   const embedded = midiIn(meta);
-  const fromProvider = fromBa((await call(midiProvider, 'get_midi', [nft, ...u256(b.tokenId)])).felts);
+  const fromProvider = fromBa((await call(midiProvider, 'get_midi', u256(b.tokenId))).felts);
   const members = offUris[b.label] && JSON.stringify({ name: plain.name, description: plain.description, attributes: plain.attributes });
   return {
     tag, uri, meta, state, midi: embedded,
@@ -155,7 +155,7 @@ for (const b of BEASTS) {
   const on = await soundOn(b, 'on');
   b.on = on.row;
   b.on.l2_gas = await l2gas(nft, 'token_uri', u256(b.tokenId));
-  b.on.provider_get_midi_l2_gas = await l2gas(midiProvider, 'get_midi', [nft, ...u256(b.tokenId)]);
+  b.on.provider_get_midi_l2_gas = await l2gas(midiProvider, 'get_midi', u256(b.tokenId));
   b.on.provider_get_live_state_l2_gas = await l2gas(midiProvider, 'get_live_state', [nft, ...u256(b.tokenId)]);
   // The page alone, with the members and SVG the NFT would hand it.
   const plain = offUris[b.label];
@@ -180,7 +180,7 @@ for (const [phase, deaths, kills] of [['after', 9, 40], ['max', 64, 200]]) {
       midi_matches_js_engine: s.row.midi_matches_js_engine, midi_matches_provider: s.row.midi_matches_provider,
       midi_changed: Buffer.compare(Buffer.from(s.midi), Buffer.from(b.firstMidi)) !== 0,
       l2_gas: await l2gas(nft, 'token_uri', u256(b.tokenId)),
-      provider_get_midi_l2_gas: await l2gas(midiProvider, 'get_midi', [nft, ...u256(b.tokenId)]),
+      provider_get_midi_l2_gas: await l2gas(midiProvider, 'get_midi', u256(b.tokenId)),
     };
   }
 }

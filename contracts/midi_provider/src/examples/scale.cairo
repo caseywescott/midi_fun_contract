@@ -30,16 +30,24 @@ pub mod ScaleMidiProvider {
 
     #[abi(embed_v0)]
     impl ScaleMidiProviderImpl of IMidiProvider<ContractState> {
-        fn get_midi(
+        fn get_midi(self: @ContractState, token_id: u256) -> ByteArray {
+            midi(self.collection.read(), token_id)
+        }
+
+        fn get_midi_for(
             self: @ContractState, token_address: ContractAddress, token_id: u256,
         ) -> ByteArray {
             assert(token_address == self.collection.read(), 'unsupported collection');
-            let seed: u256 = poseidon_hash_span(
-                array![token_address.into(), token_id.low.into(), token_id.high.into()].span(),
-            )
-                .into();
-            bytes_to_byte_array(scale_smf(seed).span())
+            midi(token_address, token_id)
         }
+    }
+
+    fn midi(token_address: ContractAddress, token_id: u256) -> ByteArray {
+        let seed: u256 = poseidon_hash_span(
+            array![token_address.into(), token_id.low.into(), token_id.high.into()].span(),
+        )
+            .into();
+        bytes_to_byte_array(scale_smf(seed).span())
     }
 
     fn pentatonic(degree: u32) -> u32 {

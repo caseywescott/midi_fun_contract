@@ -42,7 +42,7 @@ fn deploy_scale() -> IMidiProviderDispatcher {
 
 #[test]
 fn scale_provider_returns_a_midi_file() {
-    let midi = deploy_scale().get_midi(collection(), 7);
+    let midi = deploy_scale().get_midi(7);
     assert_eq!(midi[0], 'M');
     assert_eq!(midi[1], 'T');
     assert_eq!(midi[2], 'h');
@@ -63,12 +63,18 @@ fn scale_provider_returns_a_midi_file() {
 #[test]
 fn scale_provider_differs_per_token() {
     let p = deploy_scale();
-    assert!(p.get_midi(collection(), 1) != p.get_midi(collection(), 2));
-    assert_eq!(p.get_midi(collection(), 1), p.get_midi(collection(), 1));
+    assert!(p.get_midi(1) != p.get_midi(2));
+    assert_eq!(p.get_midi(1), p.get_midi(1));
+}
+
+#[test]
+fn scale_provider_get_midi_for_is_get_midi_with_the_collection_checked() {
+    let p = deploy_scale();
+    assert_eq!(p.get_midi_for(collection(), 5), p.get_midi(5));
 }
 
 #[test]
 #[should_panic(expected: ('unsupported collection', 'ENTRYPOINT_FAILED'))]
 fn scale_provider_rejects_other_collections() {
-    deploy_scale().get_midi('OTHER'.try_into().unwrap(), 1);
+    deploy_scale().get_midi_for('OTHER'.try_into().unwrap(), 1);
 }

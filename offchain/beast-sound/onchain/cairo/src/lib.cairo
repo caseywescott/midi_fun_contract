@@ -93,7 +93,8 @@ fn append_escaped(ref out: ByteArray, s: @ByteArray) {
 #[starknet::interface]
 pub trait IMidiSoundPage<T> {
     /// The token's full token_uri with `animation_url`. `members` and `svg_b64` are as for the
-    /// pure `token_uri`; the MIDI comes from the provider's `get_midi(token_address, token_id)`.
+    /// pure `token_uri`; the MIDI comes from the provider's `get_midi_for(token_address, token_id)`
+    /// (the collection-checked form of `get_midi(token_id)`).
     fn token_uri(
         self: @T,
         members: ByteArray,
@@ -134,7 +135,7 @@ pub mod MidiSoundPage {
             token_id: u256,
         ) -> ByteArray {
             let midi = IMidiProviderDispatcher { contract_address: self.midi_provider.read() }
-                .get_midi(token_address, token_id);
+                .get_midi_for(token_address, token_id);
             super::token_uri(@members, @svg_b64, @midi)
         }
 

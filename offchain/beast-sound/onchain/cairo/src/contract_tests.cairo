@@ -18,7 +18,11 @@ mod MockProvider {
 
     #[abi(embed_v0)]
     impl Provider of IMidiProvider<ContractState> {
-        fn get_midi(
+        fn get_midi(self: @ContractState, token_id: u256) -> ByteArray {
+            super::synthetic((token_id % 97).try_into().unwrap())
+        }
+
+        fn get_midi_for(
             self: @ContractState, token_address: ContractAddress, token_id: u256,
         ) -> ByteArray {
             assert(token_address == super::collection(), 'unsupported collection');
@@ -79,7 +83,7 @@ fn page_works_with_a_second_provider() {
     // ScaleMidiProvider knows nothing about Beasts; the page does not care.
     let provider = deploy(ScaleMidiProvider::TEST_CLASS_HASH, array![collection().into()]);
     let uri = page_for(provider).token_uri(members(), svg_b64(), collection(), 42);
-    let midi = IMidiProviderDispatcher { contract_address: provider }.get_midi(collection(), 42);
+    let midi = IMidiProviderDispatcher { contract_address: provider }.get_midi_for(collection(), 42);
     assert_eq!(uri, token_uri(@members(), @svg_b64(), @midi));
 }
 

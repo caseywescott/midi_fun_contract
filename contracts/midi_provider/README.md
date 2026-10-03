@@ -1,29 +1,35 @@
 # midi_provider
 
-A MIDI provider turns an NFT into music from two identifiers: the collection address and the token
-ID.
+A MIDI provider turns an NFT token into music. It serves one collection, set at deploy, so the
+token ID is all a caller needs.
 
 ```cairo
 #[starknet::interface]
 pub trait IMidiProvider<T> {
-    fn get_midi(self: @T, token_address: ContractAddress, token_id: u256) -> ByteArray;
+    fn get_midi(self: @T, token_id: u256) -> ByteArray;
+    fn get_midi_for(self: @T, token_address: ContractAddress, token_id: u256) -> ByteArray;
 }
 ```
 
-`token_address` is the NFT collection, not the provider. Callers such as the TinySynth sound page
-(`beast_sound_page::MidiSoundPage`) know nothing about the collection: the provider decides which
-collections it supports, reads the token's traits and live state itself, and composes.
+- **`get_midi(token_id)`**: what the NFT calls from its `token_uri`.
+- **`get_midi_for(token_address, token_id)`**: the same bytes, after checking that `token_address`
+  (the NFT collection, not the provider) is the one this provider serves. Callers that pass the
+  collection through, such as the TinySynth sound page (`beast_sound_page::MidiSoundPage`), use it
+  so a page wired to the wrong provider reverts instead of playing another collection's music.
+
+Callers know nothing about the collection: the provider reads the token's traits and live state
+itself, and composes.
 
 ## Rules for a provider
 
 | Rule | Why |
 |---|---|
 | Return a Standard MIDI File (`MThd` + `MTrk` chunks, format 0 or 1) as raw bytes. | The page base64-encodes it as-is and TinySynth parses it in the browser. |
-| Revert only for an unsupported collection, an invalid token ID or (if the provider checks it) a token that does not exist. `BeastMidiProvider` checks existence through the NFT; the example `ScaleMidiProvider` does not. | The call runs inside the NFT's `token_uri`; Starknet cannot catch a failed call, so a revert breaks the metadata. |
+| Revert only for an unsupported collection (`get_midi_for`), an invalid token ID or (if the provider checks it) a token that does not exist. `BeastMidiProvider` checks existence through the NFT; the example `ScaleMidiProvider` does not. | The call runs inside the NFT's `token_uri`; Starknet cannot catch a failed call, so a revert breaks the metadata. |
 | Never revert because optional live state is unavailable. Compose from a documented default and expose where each input came from in a view of your own. | Same reason. |
 | Read state through the collection's getters (or other contracts), never through `token_uri`. | `token_uri` is what is calling you. |
 | Read everything inside the one `get_midi` call and cache nothing. | Every input then comes from the same state snapshot. |
-| Keep extra public views on the same `(token_address, token_id)` pattern. | Callers never need collection-specific state. |
+| Keep extra public views on the same `(token_address, token_id)` pattern, or take only the token ID. | Callers never need collection-specific state. |
 
 ## Instruments
 

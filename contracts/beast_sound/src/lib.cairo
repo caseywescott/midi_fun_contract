@@ -5,8 +5,8 @@
 //! same MIDI through `IMidiProvider::get_midi(token_id)` and reads the live state
 //! itself from the Beasts NFT and Death Mountain.
 
-use koji::composition::beast_trait_map::BeastCompositionParams;
-use koji::composition::beast_v3_sound::BeastV3LiveState;
+use beast_music::composition::beast_trait_map::BeastCompositionParams;
+use beast_music::composition::beast_v3_sound::BeastV3LiveState;
 
 pub mod provider;
 
@@ -32,8 +32,8 @@ pub trait IBeastSoundComposer<T> {
 
 #[starknet::contract]
 pub mod BeastSoundComposer {
-    use koji::composition::beast_trait_map::BeastCompositionParams;
-    use koji::composition::beast_v3_sound::{
+    use beast_music::composition::beast_trait_map::BeastCompositionParams;
+    use beast_music::composition::beast_v3_sound::{
         BeastV3LiveState, beast_has_sound, build_v3_beast_form, decode_v3_token_id,
         map_v3_beast_to_composition_params, v3_music_state_hash, v3_score_instructions, v3_score_midi,
         v3_score_notes,

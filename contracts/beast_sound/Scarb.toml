@@ -5,7 +5,7 @@ edition = "2024_07"
 cairo-version = "=2.11.4"
 
 [dependencies]
-koji = { path = "../.." }
+beast_music = { path = "../beast_music" }
 midi_provider = { path = "../midi_provider" }
 starknet = "2.11.4"
 

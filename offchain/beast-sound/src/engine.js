@@ -377,9 +377,11 @@ export function createCoreEngine({ poseidonHashMany }) {
   }
 
   // Standard MIDI file (type 1, 480 ppq); one track per voice + tempo track.
-  // Byte-identical to beast_form_to_smf_bytes in beast_v3_sound.cairo.
-  const toMidiFile = (result) => eventsToMidi(result.form.events, result.params.tempo_us);
-  const eventsToMidi = (events, tempo) => notesToMidi(events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), tempo);
+  // Byte-identical to beast_form_to_smf_bytes in beast_v3_sound.cairo. The file lasts the whole form:
+  // every section, each with its closing rest (BeastForm.length_ticks in Cairo).
+  const formLength = (form) => form.section_ticks * form.sections.length;
+  const toMidiFile = (result) => eventsToMidi(result.form.events, result.params.tempo_us, formLength(result.form));
+  const eventsToMidi = (events, tempo, endTick = 0) => notesToMidi(events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), tempo, endTick);
 
 
   // Building blocks reused by engine v2 (engine_v2.js). Not part of the public API.
@@ -393,7 +395,7 @@ export function createCoreEngine({ poseidonHashMany }) {
     internals,
     eventsToMidi,
     decodeTokenId, encodeTokenId, genesisTokenId, soundSeed, soundDropRoll, hasSound, nameVariantId, mapV3, musicState,
-    musicStateHash, paramsHash, buildForm, render, eventChecksum, toMidiFile, typeTierFamily, rankTier,
+    musicStateHash, paramsHash, buildForm, render, eventChecksum, toMidiFile, formLength, typeTierFamily, rankTier,
     FIELD_P,
   };
 }

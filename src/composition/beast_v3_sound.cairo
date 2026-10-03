@@ -573,7 +573,8 @@ pub fn beast_form_to_smf_bytes(form: @BeastForm, tempo_us: u32) -> Array<u8> {
     tempo_track.append(((tempo_us / 0x10000) % 256).try_into().unwrap());
     tempo_track.append(((tempo_us / 0x100) % 256).try_into().unwrap());
     tempo_track.append((tempo_us % 256).try_into().unwrap());
-    tempo_track.append(0);
+    // End of Track at the form's full length (closing rest included), so the file is as long as the form
+    push_vlq(ref tempo_track, *form.length_ticks);
     tempo_track.append(0xFF);
     tempo_track.append(0x2F);
     tempo_track.append(0);
@@ -796,6 +797,11 @@ pub fn beast_form_to_bsn_bytes(form: @BeastForm, params: BeastCompositionParams)
         }
         start = end;
     }
+    // Trailer (after the runs, so older decoders ignore it): the form length in beats, so a client
+    // rebuilds the exact MIDI file, End of Track included.
+    let length_ticks = *form.length_ticks;
+    assert(length_ticks % grid == 0, 'bsn length off grid');
+    bw_push(ref w, length_ticks / grid, 12);
     bw_finish(w)
 }
 

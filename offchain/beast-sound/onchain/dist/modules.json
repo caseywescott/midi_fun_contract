@@ -2,7 +2,7 @@
  {
   "name": "core",
   "deps": [],
-  "js_bytes": 11226
+  "js_bytes": 11307
  },
  {
   "name": "beast",
@@ -16,12 +16,12 @@
   "deps": [
    "core"
   ],
-  "js_bytes": 673
+  "js_bytes": 709
  },
  {
   "name": "midi",
   "deps": [],
-  "js_bytes": 1051
+  "js_bytes": 1079
  },
  {
   "name": "synth",
@@ -33,22 +33,22 @@
   "deps": [
    "synth"
   ],
-  "js_bytes": 3089
+  "js_bytes": 3124
  },
  {
   "name": "fx",
   "deps": [],
-  "js_bytes": 1367
+  "js_bytes": 1374
  },
  {
   "name": "notes",
   "deps": [],
-  "js_bytes": 2123
+  "js_bytes": 2215
  },
  {
   "name": "smf",
   "deps": [],
-  "js_bytes": 1579
+  "js_bytes": 1638
  },
  {
   "name": "api",

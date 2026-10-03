@@ -72,7 +72,7 @@ const goldenV2 = JSON.parse(readFileSync(new URL('./golden_v2.json', import.meta
 for (const [i, c] of goldenV2.cases.entries()) {
   test(`engine v2 case ${i}: ${beastName(c.beast)} matches Cairo`, () => {
     const r = engineV2.renderV2(c.beast, c.live);
-    const midi = engine.bytesToFelts(engine.eventsToMidi(r.form.events, r.params.tempo_us));
+    const midi = engine.bytesToFelts(engine.eventsToMidi(r.form.events, r.params.tempo_us, engine.formLength(r.form)));
     assert.deepEqual({
       score: r.form.score_hash.toString(), events: String(r.form.events.length),
       checksum: engine.eventChecksum(r.form.events).toString(),

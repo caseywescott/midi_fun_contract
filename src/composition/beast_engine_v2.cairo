@@ -376,7 +376,8 @@ pub fn build_beast_form_v2(
         ]
             .span(),
     );
-    BeastForm { events, score_hash, section_count: total_sections }
+    let length_ticks: u32 = total_sections.into() * cycle_ticks;
+    BeastForm { events, score_hash, section_count: total_sections, length_ticks }
 }
 
 pub fn build_v3_beast_form_v2_with(

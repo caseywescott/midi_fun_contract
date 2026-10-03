@@ -24,11 +24,12 @@ export function drumPass(loopTicks, random = Math.random) {
 
 /**
  * @param notes  [[time, duration, pitch, velocity, voice], ...] in ticks
- * @param opts   { tick: seconds per tick, drums: bool, loop: bool (default true), onNote(note, t), onDrum(drum, t), random }
+ * @param opts   { tick: seconds per tick, length: the song's length in ticks (optional; a closing rest
+ *                counts), drums: bool, loop: bool (default true), onNote(note, t), onDrum(drum, t), random }
  * @returns { start(now), pump(horizon), position(now), loopTicks, passes(), endTime() }
  */
-export function createLoopScheduler(notes, { tick, drums, loop = true, onNote, onDrum, random = Math.random }) {
-  const ticks = Math.max(...notes.map((n) => n[0] + n[1]));
+export function createLoopScheduler(notes, { tick, length = 0, drums, loop = true, onNote, onDrum, random = Math.random }) {
+  const ticks = Math.max(length, ...notes.map((n) => n[0] + n[1]));
   const loopTicks = Math.ceil(ticks / BAR_TICKS) * BAR_TICKS;
   const order = notes.map((_, i) => i).sort((i, j) => notes[i][0] - notes[j][0] || i - j);
   let t0 = 0, pass = 0, next = 0, nextDrum = 0;

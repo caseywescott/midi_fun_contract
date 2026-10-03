@@ -18,6 +18,6 @@ export function decode(input) {
     const { notes, tempo_us } = decodeBsi(src);
     return fromNotes(notes, tempo_us);
   }
-  const { tempo_us, events } = decodeBsn(src instanceof Uint8Array ? src : src.map((f) => BigInt(f)));
-  return fromNotes(events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), tempo_us);
+  const { tempo_us, events, length_ticks } = decodeBsn(src instanceof Uint8Array ? src : src.map((f) => BigInt(f)));
+  return fromNotes(events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), tempo_us, length_ticks ? { length_ticks } : {});
 }

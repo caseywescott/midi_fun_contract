@@ -3,7 +3,7 @@
 // tempo, running status; skips other meta, sysex and channel messages. Voice = MIDI channel.
 import { fromNotes, TICKS_PER_BEAT } from './song.js';
 
-/** Bytes (Uint8Array / ArrayBuffer) or base64 text → song { notes, tempo_us }. */
+/** Bytes (Uint8Array / ArrayBuffer) or base64 text → song { notes, tempo_us, length_ticks }. */
 export function parse(input) {
   const b = typeof input === 'string' ? Uint8Array.from(atob(input), (c) => c.charCodeAt(0)) : new Uint8Array(input);
   let p = 0;
@@ -20,7 +20,7 @@ export function parse(input) {
   p = hstart + hlen;
   const scale = TICKS_PER_BEAT / division;
 
-  let tempo_us = 500000;
+  let tempo_us = 500000, songEnd = 0;
   const notes = [];
   for (let t = 0; t < ntrks && p < b.length; t++) {
     if (tag() !== 'MTrk') throw new Error('smf: bad track');
@@ -36,7 +36,7 @@ export function parse(input) {
         const type = u8(), len = vlq();
         if (type === 0x51 && len === 3) tempo_us = (b[p] << 16) | (b[p + 1] << 8) | b[p + 2];
         p += len;
-        if (type === 0x2f) break;
+        if (type === 0x2f) { songEnd = Math.max(songEnd, time); break; } // End of Track: the song's length
         continue;
       }
       if (s === 0xf0 || s === 0xf7) { p += vlq(); continue; }
@@ -59,5 +59,5 @@ export function parse(input) {
     p = end;
   }
   notes.sort((x, y) => x[0] - y[0] || x[4] - y[4] || x[2] - y[2]);
-  return fromNotes(notes, tempo_us);
+  return fromNotes(notes, tempo_us, { length_ticks: Math.round(songEnd * scale) });
 }

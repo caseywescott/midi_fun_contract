@@ -58,7 +58,7 @@ export function composeBeast(beast, live, { speciesName, engineVersion = 1, v2Op
   const r = v2 ? engineV2.renderV2(beast, l, v2Options) : engine.render(beast, l);
   const { _ornament, _state, ...params } = r.params;
   const bsn = v2 ? engineV2.encodeBsn2(r) : engine.encodeBsn(r);
-  const ticks = Math.max(...r.form.events.map((e) => e.time + e.duration));
+  const ticks = engine.formLength(r.form); // the whole form, closing rest included: one loop
   return {
     engineVersion: v2 ? 2 : ENGINE_VERSION,
     name: beastName(beast, speciesName),
@@ -70,13 +70,14 @@ export function composeBeast(beast, live, { speciesName, engineVersion = 1, v2Op
     musicState: _state,
     events: r.form.events.map(({ time, duration, pitch, velocity, voice_id, section, role, ornament }) => ({ time, duration, pitch, velocity, voice: voice_id, section, role, ornament: ornament || 0 })),
     sections: r.form.sections,
+    lengthTicks: ticks,
     durationSeconds: (ticks / 480) * (params.tempo_us / 1e6),
     soundSeed: r.seed,
     motifHash: r.form.theme.theme_hash,
     paramsHash: r.params_hash,
     stateHash: r.state_hash,
     scoreHash: r.form.score_hash,
-    midi: engine.eventsToMidi(r.form.events, params.tempo_us),
+    midi: engine.eventsToMidi(r.form.events, params.tempo_us, ticks),
     ...(v2 ? { ornamentStyle: r.form.style, ornamentKinds: Object.fromEntries([...r.form.ornamentKinds].map(([k, n]) => [ORNAMENT_NAMES[k], n])), canonVoices: r.form.voiceCount, entryLag: r.form.entryLag } : {}),
     bsn,
     bsnFelts: engine.bytesToFelts(bsn),

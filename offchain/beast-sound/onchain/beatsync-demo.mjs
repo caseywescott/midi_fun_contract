@@ -89,10 +89,15 @@ label.field{display:grid;gap:6px;font-size:18px;color:var(--dim)}
 .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
 .fact{border:1px solid var(--line);padding:8px 10px}.fact b{display:block;font-weight:400;font-size:24px}.fact small{font-size:16px;color:var(--dim)}
 .note{font-size:18px;color:var(--dim)}
+.loopbar{position:relative;height:20px;border:1px solid var(--line);background:repeating-linear-gradient(45deg,transparent 0 6px,rgba(74,246,38,.12) 6px 12px)}
+.loopbar .music{position:absolute;top:0;bottom:0;left:0;background:rgba(74,246,38,.35)}
+.loopbar .head{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1px;background:var(--g);box-shadow:0 0 8px var(--g);left:0}
+.badge{display:inline-block;margin-top:12px;padding:2px 10px;border:1px solid var(--g);font-size:18px}
 [hidden]{display:none!important}
 @media (max-width:720px){.layout{grid-template-columns:1fr}.arts{max-width:340px}}
 </style></head><body><main>
 <h1>Beast art on the beat</h1>
+<span class="badge">Loop fix: each loop plays the whole form, including its closing rest</span>
 <p>Browsers give a page no control over a GIF's frames, so an animated Beast's GIF runs on its own timer and drifts against its music. BeatSync decodes the GIF from the token's SVG and shows the frame due at the moment you are hearing, taken from the synth's audio clock. Toggle the modes to compare. The small panel is always the browser's own GIF.</p>
 <p>The Warlock and five gallery Beasts are minted animated. The other gallery Beasts are static, so they are shown with their species' animated GIF from the Beasts art contracts, as they would look minted animated. Their music is their own.</p>
 <div class="layout">
@@ -128,6 +133,11 @@ label.field{display:grid;gap:6px;font-size:18px;color:var(--dim)}
       <div class="beats" id="beats" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
       <span class="note" id="pos">Stopped: the art is the browser's GIF.</span>
     </fieldset>
+    <fieldset><legend>Loop</legend>
+      <div class="loopbar" aria-hidden="true"><div class="music" id="loopMusic"></div><div class="head" id="loopHead"></div></div>
+      <span class="note" id="loopInfo"></span>
+      <span class="note" id="loopPhase">Stopped.</span>
+    </fieldset>
     <div class="facts">
       <div class="fact"><b id="fFrames"></b><small>GIF frames</small></div>
       <div class="fact"><b id="fGif"></b><small>GIF loop</small></div>
@@ -152,6 +162,7 @@ const BASS_PROGRAM = 20; // TinyChip: Triangle Bass (NES)
 const v1 = BeastSound.v1;
 const $ = (id) => document.getElementById(id);
 const NOTES = { beat: 'One frame per eighth note, so the creature moves on the beat.', native: "The GIF's own frame delays, timed by the audio clock, so it never drifts.", off: "The browser's GIF timer, as on a marketplace: it drifts against the music." };
+let loop = null, passes = 0, lastTick = -1, heard = false;
 let current = 0, mode = 'beat', synth = null, playing = false, beat = null, strip = [], loading = 0;
 const svgs = {};
 const bytesOf = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -203,9 +214,16 @@ async function load() {
   $('fGif').textContent = cycle + ' ms';
   $('fBeat').textContent = Math.round(beatCycle) + ' ms';
   $('fDrift').textContent = Math.round(Math.abs(beatCycle - cycle)) + ' ms';
+  // the loop, read from the MIDI file itself: its End of Track is the form's length
+  const sm = v1.smf.parse(b.midi), lastNote = Math.max(...sm.notes.map((n) => n[0] + n[1]));
+  loop = { length: Math.ceil(sm.length_ticks / 1920) * 1920, lastNote };
+  const bars = (t) => +(t / 1920).toFixed(2);
+  $('loopMusic').style.width = (100 * lastNote / loop.length) + '%';
+  $('loopInfo').textContent = 'Loop ' + bars(loop.length) + ' bars (' + loop.length / 480 + ' beats): music ' + bars(lastNote) + ' bars, then ' + (loop.length - lastNote) / 480 + ' beats of rest before it starts again.';
+  passes = 0; lastTick = -1; heard = false;
   return true;
 }
-function stop() { if (synth) synth.stopMIDI(); playing = false; $('play').textContent = '▶ Play'; }
+function stop() { if (synth) synth.stopMIDI(); playing = false; passes = 0; lastTick = -1; heard = false; $('play').textContent = '▶ Play'; }
 function play() {
   if (!synth) synth = TinyChipBank.install(new WebAudioTinySynth({ quality: 1, useReverb: 0 }));
   synth.getAudioContext().resume();
@@ -262,6 +280,18 @@ function setMode(next) {
   strip.forEach((cv, i) => cv.classList.toggle('on', i === k));
   const eighth = tick == null ? -1 : Math.floor(tick / (synth.song.timebase / 8));
   document.querySelectorAll('#beats span').forEach((s, i) => s.classList.toggle('on', i === eighth % 8));
+  // before the first note (TinySynth's pre-roll) the audible tick is still negative: not a pass
+  const preroll = tick != null && !heard && synth.playTick - (synth.playTime - synth.actx.currentTime) / synth.tick2Time < 0;
+  if (loop && preroll) { $('loopHead').style.left = '0'; $('loopPhase').textContent = 'Starting…'; }
+  else if (loop) {
+    if (tick != null) heard = true;
+    if (tick != null && lastTick >= 0 && tick < lastTick - 960) passes++;
+    lastTick = tick == null ? -1 : tick;
+    $('loopHead').style.left = tick == null ? '0' : (100 * Math.min(tick, loop.length) / loop.length) + '%';
+    $('loopPhase').textContent = tick == null ? 'Stopped.'
+      : (tick < loop.lastNote ? 'Playing the music' : 'Closing rest: ' + ((loop.length - tick) / 480).toFixed(1) + ' beats until the loop restarts')
+        + ' · pass ' + (passes + 1);
+  }
   $('pos').textContent = tick == null ? "Stopped: the art is the browser's GIF."
     : 'Bar ' + (Math.floor(eighth / 8) + 1) + ', eighth ' + (eighth % 8 + 1) + (k < 0 ? ' · browser GIF' : ' · frame ' + (k + 1) + ' of ' + strip.length);
   requestAnimationFrame(() => setTimeout(readout));
@@ -286,4 +316,5 @@ setMode('beat');
 setProgram();
 </script></body></html>`;
 writeFileSync(out + 'beatsync.html', html);
+writeFileSync(out + 'beatsync-v2.html', html); // same page at a fresh URL (no cached copy)
 console.log(`beatsync.html: ${(html.length / 1000).toFixed(0)} KB · ${data.length} Beasts · ${Object.keys(GIFS).length} species GIFs · BeatSync ${beatsync.length} B`);

@@ -70,6 +70,13 @@ the Cairo builds the same bytes:
   can select the chip bank with Bank Select 1.
 - **Turning it off or going client-only:** see `tinychip/README.md`.
 
+### Optional: BeatSync
+
+`beatsync/` is a removable module that steps an animated Beast's GIF with the music on the audio
+clock: one frame per eighth note, or the GIF's own timing without drift. It adds 3.4 KB (144 felts)
+while `beatsync/config.mjs` has `BEATSYNC_ONCHAIN = true`. To turn it off or keep it client-only,
+see `beatsync/README.md`.
+
 ### Player and orchestration
 
 The player decodes the MIDI, builds TinySynth inside the first tap (browsers only start audio from a
@@ -186,7 +193,7 @@ on this one.
 
 ```bash
 npm install                                  # @scure/starknet (in offchain/beast-sound)
-node onchain/build.mjs                       # patch + minify TinySynth, bundle the player (+ TinyChip if enabled), encode STORED, write cairo/src/page_data.cairo
+node onchain/build.mjs                       # patch + minify TinySynth, bundle the player (+ TinyChip, BeatSync if enabled), encode STORED, write cairo/src/page_data.cairo
 node onchain/build-library.mjs               # the offchain JS library (onchain/lib) and dist/composer.js, for sites and demos
 node onchain/engines-demo.mjs                # public/onchain/engines.html: the same MIDI through the chip synth or TinySynth
 node onchain/golden.mjs                      # Cairo tests from the JS reference (page.js) and JS engine MIDI

@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { pageHtml, storedSegment } from './page.js';
 import { PATCHES, UPSTREAM, patchTinySynth } from './vendor/webaudio-tinysynth/patch.mjs';
 import { TINYCHIP_ONCHAIN } from './tinychip/config.mjs';
+import { BEATSYNC_ONCHAIN } from './beatsync/config.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const ESBUILD = ['-y', 'esbuild@0.23.0'];
@@ -28,7 +29,12 @@ const player = readFileSync(here + 'dist/player.js', 'utf8').trim();
 const tinychip = execFileSync('npx', [...ESBUILD, '--loader=js', '--minify', '--charset=utf8', '--target=es2020'], { input: readFileSync(here + 'tinychip/tinysynth-chip.js', 'utf8') }).toString().trim();
 writeFileSync(here + 'dist/tinychip.min.js', tinychip + '\n');
 
-const js = TINYCHIP_ONCHAIN ? `${tinysynthMin}\n${tinychip}\n${player}` : `${tinysynthMin}\n${player}`;
+// Optional BeatSync (onchain/beatsync): built for clients, stored onchain when enabled. It loads before
+// the player so the player's DOMContentLoaded hook finds it.
+const beatsync = execFileSync('npx', [...ESBUILD, '--loader=js', '--minify', '--charset=utf8', '--target=es2020'], { input: readFileSync(here + 'beatsync/beatsync.js', 'utf8') }).toString().trim();
+writeFileSync(here + 'dist/beatsync.min.js', beatsync + '\n');
+
+const js = [tinysynthMin, ...(TINYCHIP_ONCHAIN ? [tinychip] : []), ...(BEATSYNC_ONCHAIN ? [beatsync] : []), player].join('\n');
 const stored = storedSegment(js);
 writeFileSync(here + 'dist/stored.b64', stored);
 const sha = createHash('sha256').update(stored).digest('hex');

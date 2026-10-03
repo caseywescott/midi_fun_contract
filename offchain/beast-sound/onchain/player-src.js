@@ -17,7 +17,7 @@ import {
   LEAD, LEAD_PROGRAM, ORCHESTRATION, decodeMidi, drumEvents, isBareScore, loopEndTicks, noteChannels, panValue,
 } from './player-core.js';
 
-let midi = null, synth = null, base = null, bare = false, playing = false, chip = null;
+let midi = null, synth = null, base = null, bare = false, playing = false, chip = null, beat = null;
 
 addEventListener('DOMContentLoaded', () => {
   const art = document.getElementById('art');
@@ -26,6 +26,8 @@ addEventListener('DOMContentLoaded', () => {
     img.alt = '';
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(art.textContent.trim());
     document.body.insertBefore(img, document.body.firstChild);
+    // Optional BeatSync (onchain/beatsync): steps an animated GIF in the art with the music.
+    if (window.BeatSync) beat = window.BeatSync.attach({ img, svg: art.textContent.trim() });
   }
   const block = document.getElementById('midi');
   midi = block && decodeMidi(block.textContent);
@@ -94,4 +96,4 @@ document.body.appendChild(controls);
 document.addEventListener('click', () => (playing ? stop() : play()));
 
 // Read-only handle for inspection and tests.
-window.SOUND = { get orchestration() { return chip ? chip.orchestration : ORCHESTRATION; }, get chip() { return chip; }, get midi() { return midi; }, get synth() { return synth; }, get bare() { return bare; } };
+window.SOUND = { get orchestration() { return chip ? chip.orchestration : ORCHESTRATION; }, get chip() { return chip; }, get beat() { return beat; }, get midi() { return midi; }, get synth() { return synth; }, get bare() { return bare; } };

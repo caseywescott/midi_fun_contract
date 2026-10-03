@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { engine } from '../src/index.js';
 import { TINYCHIP_ONCHAIN } from '../onchain/tinychip/config.mjs';
+import { BEATSYNC_ONCHAIN } from '../onchain/beatsync/config.mjs';
 import { animationHtml, midiHtml, pageHtml, parseTokenUri, storedSegment, tokenUri } from '../onchain/page.js';
 
 const dir = new URL('../onchain/', import.meta.url);
@@ -14,10 +15,11 @@ const fromDataUri = (uri, type) => {
   assert.ok(uri.startsWith(prefix), `expected ${prefix}`);
   return Buffer.from(uri.slice(prefix.length), 'base64').toString('utf8');
 };
-// The stored script, as onchain/build.mjs assembles it (TinyChip included when its switch is on).
+// The stored script, as onchain/build.mjs assembles it (TinyChip and BeatSync included when their switches are on).
 const pageScript = () => [
   readFileSync(new URL('dist/tinysynth.min.js', dir), 'utf8').trim(),
   ...(TINYCHIP_ONCHAIN ? [readFileSync(new URL('dist/tinychip.min.js', dir), 'utf8').trim()] : []),
+  ...(BEATSYNC_ONCHAIN ? [readFileSync(new URL('dist/beatsync.min.js', dir), 'utf8').trim()] : []),
   readFileSync(new URL('dist/player.js', dir), 'utf8').trim(),
 ].join('\n');
 const synthetic = (n) => Uint8Array.from({ length: n }, (_, i) => (i * 37 + 11) % 256);

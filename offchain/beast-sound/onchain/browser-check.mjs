@@ -91,7 +91,7 @@ for (const p of PAGES) {
   // Tempo and program changes take effect as TinySynth plays them, so read them once it has.
   const played = await page.evaluate(() => {
     const s = window.SOUND.synth;
-    return { peak: window.__peak, channels: [...new Set(window.__notes)].sort((a, b) => a - b), tick: s.getPlayStatus().curTick, tempo: s.song.tempo, pg: s.pg.slice(0, 10) };
+    return { peak: window.__peak, channels: [...new Set(window.__notes)].sort((a, b) => a - b), tick: s.getPlayStatus().curTick, tempo: s.song.tempo, pg: s.pg.slice(0, 10), roles: window.SOUND.chip && window.SOUND.chip.presets, ids: window.TinyChip && window.TinyChip.PRESET_IDS };
   });
   Object.assign(audio, { tempo: played.tempo, pg: played.pg });
   // Stop (tap again), then the restart button, which plays from the top.
@@ -120,9 +120,12 @@ for (const p of PAGES) {
     tempo: Math.abs(audio.tempo - p.tempo) < 1e-9,
     loopWholeBars: audio.loopEnd % audio.timebase === 0 && audio.loopEnd >= audio.maxTick,
     // bare Beast scores take the TinyChip orchestration when the pack is stored onchain
-    orchestration: audio.bare === p.bare && audio.orchestration === (p.bare && TINYCHIP_ONCHAIN ? 'tinychip-1' : 1)
-      // the player's own lead is program 128; TinyChip's lead (its program 0) sits at 129
-      && (p.bare ? played.channels.filter((c) => c !== 9).every((c) => audio.pg[c] === (TINYCHIP_ONCHAIN ? 129 : 128)) && played.channels.includes(9)
+    orchestration: audio.bare === p.bare && audio.orchestration === (p.bare && TINYCHIP_ONCHAIN ? 'tinychip-2' : 1)
+      // the player's own lead is program 128; TinyChip presets sit at 129 + their bank number, one
+      // orchestrated preset per note channel, all from the 20 stored onchain
+      && (p.bare ? played.channels.filter((c) => c !== 9).every((c) => (TINYCHIP_ONCHAIN
+        ? played.roles[c] !== undefined && played.ids.includes(played.roles[c]) && audio.pg[c] === 129 + played.roles[c]
+        : audio.pg[c] === 128)) && played.channels.includes(9)
         : Object.entries(p.programs).every(([c, g]) => audio.pg[c] === g)),
     sound: played.peak > 0.001,
     stop: stopped === 0,
@@ -133,7 +136,7 @@ for (const p of PAGES) {
   };
   const ok = Object.values(checks).every(Boolean);
   if (!ok) failed++;
-  console.log(JSON.stringify({ page: p.name, ok, checks, midiBytes: p.midi.length, tempo: audio.tempo, loopEnd: audio.loopEnd, channels: played.channels, peak: +played.peak.toFixed(3), requests, errors }));
+  console.log(JSON.stringify({ page: p.name, ok, checks, midiBytes: p.midi.length, tempo: audio.tempo, loopEnd: audio.loopEnd, channels: played.channels, presets: played.roles, peak: +played.peak.toFixed(3), requests, errors }));
   await context.close();
 }
 await browser.close();

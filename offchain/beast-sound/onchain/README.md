@@ -27,7 +27,7 @@ NFT token_uri ──► MidiSoundPage.token_uri(members, svg_b64, token_address,
 `cairo/src/page_data.cairo` stores the page head, TinySynth (the Provable Games fork, `vendor/`,
 36,187 bytes minified), the player (`player-src.js`, 3,198 bytes) and the opening of the MIDI block,
 base64-encoded at build time: 39,889 bytes of HTML (padded), 53,196 characters, 1,719 felts without the
-optional modules (2,487 with TinyChip and BeatSync). At call time only the MIDI is encoded.
+optional modules (2,115 with TinyChip and BeatSync). At call time only the MIDI is encoded.
 
 `token_uri` is plain JSON (`data:application/json;utf8,…`). Base64-encoding the whole JSON was the
 biggest per-call cost, so the JSON and the SVG are never re-encoded. `page.js` is the reference, and
@@ -60,13 +60,15 @@ the Cairo builds the same bytes:
   `foreignObject`, which the HTML parser cannot read. The page shows it through an `<img>`, exactly
   as marketplaces render `image`. It must never contain `</script`.
 
-### Optional: TinyChip chiptune pack
+### Optional: TinyChip chiptune orchestration
 
-`tinychip/` is a removable module: 100 chiptune presets and a chip drum kit for tinysynth.
+`tinychip/` is a removable module: 20 chiptune presets, a chip drum kit and orchestration rules for
+tinysynth, with the full 100-preset bank as a client add-on.
 - **Switch:** it's stored onchain while `tinychip/config.mjs` has `TINYCHIP_ONCHAIN = true`. That
-  adds 14.2 KB, taking the page from 1,719 to 2,331 felts.
-- **What changes:** bare Beast scores play the chip Triangle Lead and the chip kit, and MIDI files
-  can select the chip bank with Bank Select 1.
+  adds 5.8 KB, taking the page from 1,719 to 1,971 felts.
+- **What changes:** each bare Beast score gets its own chip instrumentation from its voices,
+  register, rests and tempo (orchestration `tinychip-2`), over the chip kit. MIDI files can select
+  the chip bank with Bank Select 1.
 - **Turning it off or going client-only:** see `tinychip/README.md`.
 
 ### Optional: BeatSync

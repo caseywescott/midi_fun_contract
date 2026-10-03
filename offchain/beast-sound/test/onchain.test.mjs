@@ -74,3 +74,11 @@ test('plain-JSON token_uri: % and # are escaped, the rest is raw', { skip: !buil
   assert.ok(!uri.includes('#'));
   assert.equal(parseTokenUri(uri).name, '100% #1 Beast');
 });
+
+test('the Warlock preview page is exactly the animation_url page of its token_uri', () => {
+  const pub = new URL('../public/onchain/', import.meta.url);
+  const uri = readFileSync(new URL('warlock-token-uri.txt', pub), 'utf8');
+  const page = Buffer.from(parseTokenUri(uri).animation_url.split(',')[1], 'base64').toString('utf8');
+  assert.equal(page, readFileSync(new URL('warlock.html', pub), 'utf8'));
+  assert.ok(page.includes(pageScript()), 'the preview carries the stored page script');
+});

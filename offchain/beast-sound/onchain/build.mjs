@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { pageHtml, storedSegment } from './page.js';
 import { PATCHES, UPSTREAM, patchTinySynth } from './vendor/webaudio-tinysynth/patch.mjs';
 import { TINYCHIP_ONCHAIN } from './tinychip/config.mjs';
+import { tinychipSource } from './tinychip/essentials.mjs';
 import { BEATSYNC_ONCHAIN } from './beatsync/config.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
@@ -25,9 +26,12 @@ writeFileSync(here + 'dist/tinysynth.min.js', tinysynthMin + '\n');
 execFileSync('npx', [...ESBUILD, here + 'player-src.js', '--bundle', '--minify', '--format=iife', '--charset=utf8', '--target=es2020', `--outfile=${here}dist/player.js`], { stdio: 'inherit' });
 const player = readFileSync(here + 'dist/player.js', 'utf8').trim();
 
-// Optional TinyChip pack (onchain/tinychip): always built for clients, stored onchain when enabled.
-const tinychip = execFileSync('npx', [...ESBUILD, '--loader=js', '--minify', '--charset=utf8', '--target=es2020'], { input: readFileSync(here + 'tinychip/tinysynth-chip.js', 'utf8') }).toString().trim();
+// Optional TinyChip (onchain/tinychip): the 20-preset runtime with its orchestration, stored onchain
+// when enabled and always built for clients, plus the full 100-preset bank as a client add-on.
+const minify = (input) => execFileSync('npx', [...ESBUILD, '--loader=js', '--minify', '--charset=utf8', '--target=es2020'], { input }).toString().trim();
+const tinychip = minify(tinychipSource());
 writeFileSync(here + 'dist/tinychip.min.js', tinychip + '\n');
+writeFileSync(here + 'dist/tinychip-bank.min.js', minify(readFileSync(here + 'tinychip/tinysynth-chip.js', 'utf8')) + '\n');
 
 // Optional BeatSync (onchain/beatsync): built for clients, stored onchain when enabled. It loads before
 // the player so the player's DOMContentLoaded hook finds it.

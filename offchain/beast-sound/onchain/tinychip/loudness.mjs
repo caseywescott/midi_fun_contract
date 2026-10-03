@@ -26,13 +26,13 @@ writeFileSync(join(dir, 'measure.html'), `<!doctype html><body><script src="ts.j
 window.addEventListener('unhandledrejection', (e) => e.preventDefault());
 window.measure = async (gains) => {
   const SR = 44100, NOTES = [52, 59, 64, 71, 76], ON = 0.3, GAP = 0.05, SLOT = NOTES.length * (ON + GAP) + 0.4;
-  const P = TinyChip.PRESETS, off = new OfflineAudioContext(1, Math.ceil(SR * (P.length * SLOT + 0.5)), SR);
+  const P = TinyChipBank.PRESETS, off = new OfflineAudioContext(1, Math.ceil(SR * (P.length * SLOT + 0.5)), SR);
   const shelf = off.createBiquadFilter(); shelf.type = 'highshelf'; shelf.frequency.value = 1681; shelf.gain.value = 4;
   const hp = off.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 38; hp.Q.value = 0.5;
   shelf.connect(hp); hp.connect(off.destination);
   const synth = new WebAudioTinySynth({ quality: 1, useReverb: 0, voices: 4096 });
   synth.setAudioContext(off, shelf);
-  TinyChip.install(synth, { gains });
+  TinyChipBank.install(synth, { gains });
   P.forEach((pr, i) => {
     synth.send([0xc0, pr.program], 0);
     NOTES.forEach((n, j) => { const t = 0.05 + i * SLOT + j * (ON + GAP); synth.send([0x90, n, 100], t); synth.send([0x80, n, 0], t + ON); });
@@ -49,7 +49,7 @@ window.measure = async (gains) => {
 const browser = await puppeteer.launch({ executablePath: process.env.CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new', args: ['--allow-file-access-from-files'] });
 const page = await browser.newPage();
 await page.goto(pathToFileURL(join(dir, 'measure.html')).href, { waitUntil: 'load' });
-const presets = await page.evaluate(() => TinyChip.PRESETS.map((p) => p.name));
+const presets = await page.evaluate(() => TinyChipBank.PRESETS.map((p) => p.name));
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b); return (s[(s.length - 1) >> 1] + s[s.length >> 1]) / 2; };
 
 let gains = presets.map(() => 1), loud, target, spread;

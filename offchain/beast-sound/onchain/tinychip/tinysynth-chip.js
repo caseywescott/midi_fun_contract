@@ -1,15 +1,13 @@
-// TinyChip: a 100-preset chiptune pack for webaudio-tinysynth, built only from TinySynth's own hooks.
+// TinyChip bank: the full 100-preset chiptune pack for webaudio-tinysynth, built only from TinySynth's
+// own hooks. A client add-on: the onchain page stores the 20-preset runtime (tinychip.js), generated
+// from this file, and uses this bank when a client adds it (Bank Select 1 programs outside the 20).
 //
-//   TinyChip.install(synth, { programBase = 0, drums = true })
+//   TinyChipBank.install(synth, { programBase = 0, drums = true })
 //                             registers the chip waveforms, puts the presets in programs
 //                             programBase … programBase + 99 and (unless drums: false) a chip drum
 //                             kit on the drum map (keys 35–59). With programBase 0 a normal MIDI
 //                             program change selects a preset; above 127 the General MIDI set stays.
-//   TinyChip.attach(synth, { bare, channels, events })
-//                             the hook the onchain TinySynth page player calls (see README.md): bare
-//                             Beast scores get the chip lead and the chip drum kit; any MIDI file can
-//                             select the chip bank on a channel with Bank Select MSB = 1 (CC 0 = 1).
-//   TinyChip.PRESETS          [{ program, name, category, inspired?, p }]   TinyChip.DRUMS  { key: name }
+//   TinyChipBank.PRESETS      [{ program, name, category, inspired?, p }]   TinyChipBank.DRUMS  { key: [name, p] }
 //
 // Programs 0–49 are generic chip voices. Programs 50–99 are styled after the sound chips and game
 // soundtracks of the 8- and 16-bit era (NES and its Famicom expansion chips, Game Boy, C64 SID,
@@ -279,38 +277,5 @@
     return synth;
   }
 
-  // ── hook for the onchain TinySynth page player ───────────────────
-  // Program slots above General MIDI (the player keeps 128 for its own lead), so a MIDI file's GM
-  // instruments are untouched unless it asks for the chip bank.
-  const PROGRAM_BASE = 129, LEAD = 0; // TinyChip program 0: Triangle Lead (vibrato)
-  const ORCHESTRATION = 'tinychip-1';
-
-  /**
-   * Called by the player after it loads the MIDI. `events` are tinysynth song events ({ t, m });
-   * `channels` the channels with notes; `bare` whether the score sets no instruments and no drums.
-   * Bare scores: every note channel plays the chip lead and the accompaniment uses the chip kit.
-   * Other scores: channels that send Bank Select MSB = 1 (0xB0 | ch, 0, 1) play TinyChip presets for
-   * their program numbers 0–99; channel 10 with that bank plays the chip kit. Returns a summary,
-   * or null (and installs nothing) when the score neither is bare nor asks for the chip bank.
-   */
-  function attach(synth, { bare, channels, events }) {
-    const bank = new Set();
-    for (const { m } of events) if ((m[0] & 0xf0) === 0xb0 && m[1] === 0 && m[2] === 1) bank.add(m[0] & 0x0f);
-    if (!bare && bank.size === 0) return null;
-    const chipDrums = bare || bank.has(9);
-    install(synth, { programBase: PROGRAM_BASE, drums: chipDrums });
-    if (bare) {
-      for (const ch of channels) synth.setProgram(ch, PROGRAM_BASE + LEAD);
-    } else {
-      for (const ch of bank) if (ch !== 9) synth.setProgram(ch, PROGRAM_BASE);
-      // remap this channel's program changes into the chip bank (covers playback and locate)
-      for (const e of events) {
-        const ch = e.m[0] & 0x0f;
-        if ((e.m[0] & 0xf0) === 0xc0 && bank.has(ch) && ch !== 9 && e.m[1] < P.length) e.m = [e.m[0], PROGRAM_BASE + e.m[1]];
-      }
-    }
-    return { orchestration: ORCHESTRATION, presets: P.length, chipChannels: bare ? [...channels] : [...bank].filter((c) => c !== 9), chipDrums };
-  }
-
-  root.TinyChip = { install, attach, PROGRAM_BASE, ORCHESTRATION, PRESETS: P, LOUDNESS, DRUMS: Object.fromEntries(Object.entries(DRUMS).map(([k, [n]]) => [k, n])), WAVES: ['nP06', 'nP12', 'nP25', 'nP37', 'nP50', 'nTRI', 'nSAW', 'nVRS', 'nWV1', 'nWV2', 'nFDS', 'nN16', 'nSID', 'nTI4', 'nTI5', 'nTIB', 'nPC1', 'nPC2', 'nMTP', 'nNOI', 'nMET'] };
+  root.TinyChipBank = { install, PRESETS: P, LOUDNESS, DRUMS, WAVES: ['nP06', 'nP12', 'nP25', 'nP37', 'nP50', 'nTRI', 'nSAW', 'nVRS', 'nWV1', 'nWV2', 'nFDS', 'nN16', 'nSID', 'nTI4', 'nTI5', 'nTIB', 'nPC1', 'nPC2', 'nMTP', 'nNOI', 'nMET'] };
 })(typeof window !== 'undefined' ? window : globalThis);

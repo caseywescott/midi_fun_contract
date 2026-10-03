@@ -14,13 +14,17 @@ import { fileURLToPath } from 'node:url';
 import { call, NETWORKS, readMainnetBeast } from '../src/chain.js';
 import { composeBeast, encodeTokenId, engine } from '../src/index.js';
 import { animationHtml, tokenUri } from './page.js';
+import { TINYCHIP_ONCHAIN } from './tinychip/config.mjs';
+import { BEATSYNC_ONCHAIN } from './beatsync/config.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const out = here + '../public/onchain/';
 const COUNT = Number(process.argv[2] || 100);
 const CANDIDATES = Number(process.argv[3] || 400);
 const net = NETWORKS.mainnet;
-const js = readFileSync(here + 'dist/tinysynth.min.js', 'utf8').trim() + '\n' + readFileSync(here + 'dist/player.js', 'utf8').trim();
+// the page script as build.mjs stores it: TinySynth, the optional modules that are switched on, the player
+const dist = (f) => readFileSync(here + 'dist/' + f, 'utf8').trim();
+const js = [dist('tinysynth.min.js'), ...(TINYCHIP_ONCHAIN ? [dist('tinychip.min.js')] : []), ...(BEATSYNC_ONCHAIN ? [dist('beatsync.min.js')] : []), dist('player.js')].join('\n');
 const retired = (live) => ({ ...live, summit_held_seconds: 0 });
 const midiFor = (tokenId, live) => Uint8Array.from(engine.toMidiFile(engine.render(engine.decodeTokenId(BigInt(tokenId)), retired(live))));
 

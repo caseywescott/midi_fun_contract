@@ -24,10 +24,10 @@ NFT token_uri ──► MidiSoundPage.token_uri(members, svg_b64, token_address,
 
 ## The page
 
-`cairo/src/page_data.cairo` stores the page head, the patched TinySynth (`vendor/`, 42,214 bytes
-minified), the player (`player-src.js`, 2,954 bytes) and the opening of the MIDI block, base64-encoded
-at build time: 45,748 bytes of HTML (padded), 61,008 characters, 1,971 felts. At call time only the
-MIDI is encoded.
+`cairo/src/page_data.cairo` stores the page head, TinySynth (the Provable Games fork, `vendor/`,
+36,187 bytes minified), the player (`player-src.js`, 3,198 bytes) and the opening of the MIDI block,
+base64-encoded at build time: 39,889 bytes of HTML (padded), 53,196 characters, 1,719 felts without the
+optional modules (2,487 with TinyChip and BeatSync). At call time only the MIDI is encoded.
 
 `token_uri` is plain JSON (`data:application/json;utf8,…`). Base64-encoding the whole JSON was the
 biggest per-call cost, so the JSON and the SVG are never re-encoded. `page.js` is the reference, and
@@ -64,8 +64,7 @@ the Cairo builds the same bytes:
 
 `tinychip/` is a removable module: 100 chiptune presets and a chip drum kit for tinysynth.
 - **Switch:** it's stored onchain while `tinychip/config.mjs` has `TINYCHIP_ONCHAIN = true`. That
-  adds 14.2 KB, taking the page from 1,971 to 2,583 felts and `MidiSoundPage` to 26,098 CASM
-  felts.
+  adds 14.2 KB, taking the page from 1,719 to 2,331 felts.
 - **What changes:** bare Beast scores play the chip Triangle Lead and the chip kit, and MIDI files
   can select the chip bank with Bank Select 1.
 - **Turning it off or going client-only:** see `tinychip/README.md`.
@@ -91,7 +90,7 @@ their own version:
 | Bare: no program change, nothing on channel 10 (every Beast v1 score) | Every channel plays the chip lead (program slot 128): triangle, 3 ms attack, 33 ms release, 6 Hz / 30-cent vibrato faded in over 0.2 s. This is the previous page's lead. Voices are panned from −0.85 to 0.85. | The previous page's pattern on channel 10: kick on beat 1, snare on beat 3, hi-hat on every eighth at ±30%, about 1 in 8 off-beats opened. Hi-hat levels are rolled again on every Play (the old page rolled them every pass). | Whole 4/4 bars |
 | Anything else | As written, with TinySynth's General MIDI set | None added | Whole 4/4 bars |
 
-Tempo is exact: the vendored TinySynth is patched to keep fractional BPM (`vendor/README.md`).
+Tempo is exact: the vendored TinySynth fork keeps fractional BPM (`vendor/README.md`).
 
 ### Playback limits
 
@@ -193,7 +192,7 @@ on this one.
 
 ```bash
 npm install                                  # @scure/starknet (in offchain/beast-sound)
-node onchain/build.mjs                       # patch + minify TinySynth, bundle the player (+ TinyChip, BeatSync if enabled), encode STORED, write cairo/src/page_data.cairo
+node onchain/build.mjs                       # check + minify TinySynth, bundle the player (+ TinyChip, BeatSync if enabled), encode STORED, write cairo/src/page_data.cairo
 node onchain/build-library.mjs               # the offchain JS library (onchain/lib) and dist/composer.js, for sites and demos
 node onchain/engines-demo.mjs                # public/onchain/engines.html: the same MIDI through the chip synth or TinySynth
 node onchain/golden.mjs                      # Cairo tests from the JS reference (page.js) and JS engine MIDI

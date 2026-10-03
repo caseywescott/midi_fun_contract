@@ -12,7 +12,6 @@ import {
 
 const dir = new URL('../onchain/', import.meta.url);
 const shipped = new URL('dist/tinysynth.min.js', dir);
-const upstream = new URL('vendor/webaudio-tinysynth/webaudio-tinysynth.js', dir);
 
 const seeded = (seed) => () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
 const beastMidi = (b, live) => Uint8Array.from(engine.toMidiFile(engine.render(b, { summit_held_seconds: 0, ...live })));
@@ -126,24 +125,4 @@ test('patched TinySynth plays Beast MIDI at the fractional tempo, looping in who
   for (let i = 0; i < want.length; i++) assert.ok(Math.abs(got[i] - want[i]) < 1e-9, `note ${i}: ${got[i]} vs ${want[i]}`);
   // Every melodic note used the page lead; the MIDI's channels are the voices.
   assert.ok(notes.filter((n) => n.ch !== 9).every((n) => n.p === LEAD));
-});
-
-test('unpatched TinySynth drifts (whole-BPM tempo) and loops without the bar rest', () => {
-  const midi = beastMidi(HEAVY, HEAVY_LIVE);
-  const { synth, notes, run, ac } = loadSynth(readFileSync(upstream, 'utf8'));
-  synth.loadMIDI(midi.slice().buffer);
-  synth.setLoop(1);
-  ac.currentTime = 1;
-  synth.playMIDI();
-  const want = expectedTimes(midi, 1.1, 1, 0);
-  run(want[want.length - 1] + 1);
-  const got = notes.map((n) => n.t).sort((a, b) => a - b);
-  // 131 BPM instead of 131.87: the last note of the pass lands well over 50 ms late.
-  const drift = got[want.length - 1] - want[want.length - 1];
-  assert.ok(drift > 0.05, `upstream drifts ${drift.toFixed(3)} s`);
-  // And the next pass starts on the last note-off, not at the end of the bar.
-  const tick = 455000 / 1e6 / 480;
-  const loopTicks = loopEndTicks(synth.maxTick, synth.song.timebase);
-  assert.ok(loopTicks > synth.maxTick);
-  assert.ok(got[want.length] < 1.1 + loopTicks * tick - 0.05);
 });

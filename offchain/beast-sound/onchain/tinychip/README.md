@@ -35,7 +35,7 @@ lead, so no GM instrument is replaced.
   ```bash
   node onchain/build.mjs && node onchain/golden.mjs && node onchain/gallery.mjs --rebuild
   ```
-  - The stored page drops back to 1,971 felts, and Beasts play with the player's own orchestration.
+  - The stored page drops back to 1,719 felts, and Beasts play with the player's own orchestration.
   - Any client (a site, wallet or game embedding the page) can still add the pack before the first
     Play, and the player will use it:
   ```js

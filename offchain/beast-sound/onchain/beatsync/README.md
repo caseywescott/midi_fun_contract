@@ -25,8 +25,8 @@ removable module, and the page player works the same without it.
 The page exposes it as `SOUND.beat` (`frames`, `delays`, `mode`, `setMode(m)`, `shown`, `detach()`). Art without
 an animated GIF is left alone: `attach` returns null.
 
-- **Size:** 3.4 KB minified (`dist/beatsync.min.js`). It takes the stored page from 2,595 to 2,739
-  felts, and `MidiSoundPage` is 26,566 CASM felts.
+- **Size:** 3.4 KB minified (`dist/beatsync.min.js`). It takes the stored page from 2,331 to 2,487
+  felts (with TinyChip), and `MidiSoundPage` is 25,810 CASM felts with both modules.
 - **Hook:** one guarded line in `player-src.js`, after the art is placed.
 
 ## Turning it off, or keeping it client-only

@@ -820,7 +820,8 @@ pub fn v3_score_notes(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<f
 //   felt = i0·2^186 + i1·2^124 + i2·2^62 + i3   (unused trailing slots are 0)
 //
 //   op 2 HEADER  version 8 | ppq 16 | count 24 (instructions, header included) | 0 12
-//   op 1 TEMPO   tempo_us 24 | 0 36
+//   op 1 TEMPO   tempo_us 24 | length_ticks 24 | 0 12   (length: the form's, End of Track; older
+//                decoders read only tempo_us)
 //   op 0 NOTE    time 20 | duration 20 | pitch 7 | velocity 7 | voice 4 | 0 2   (absolute ticks)
 //
 // Unlike BSN1 it assumes nothing about the score (no grid, any durations), at ~62 bits per note.
@@ -852,11 +853,13 @@ pub fn beast_form_to_bsi_felts(form: @BeastForm, tempo_us: u32) -> Array<felt252
     let count: u32 = events.len() + 2;
     assert(count < 0x1000000, 'bsi too long');
     assert(tempo_us < 0x1000000, 'bsi bad tempo');
+    let length_ticks = *form.length_ticks;
+    assert(length_ticks < 0x1000000, 'bsi bad length');
     let mut out: Array<felt252> = array![];
     let mut acc: felt252 = 0;
     let mut slot: u32 = 0;
     bsi_push(ref out, ref acc, ref slot, (((2 * P8 + 1) * P16 + 480) * P24 + count.into()) * P12);
-    bsi_push(ref out, ref acc, ref slot, (P24 + tempo_us.into()) * P36);
+    bsi_push(ref out, ref acc, ref slot, ((P24 + tempo_us.into()) * P24 + length_ticks.into()) * P12);
     for i in 0..events.len() {
         let e = *events.at(i);
         assert(e.time < 0x100000, 'bsi time');

@@ -7,7 +7,7 @@
 // Run from midi_fun_contract/ after `npm install` in offchain/beast-sound.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
-import { engine as E, poseidonHashMany } from '../offchain/beast-sound/src/index.js';
+import { engine as E, poseidonHashMany, encodeBsi } from '../offchain/beast-sound/src/index.js';
 
 // Must match the cases in src/tests/test_beast_v3_sound.cairo::beast_v3_parity_fixture.
 export const CASES = [
@@ -22,11 +22,13 @@ export function fingerprint(beast, live) {
   const r = E.render(beast, live);
   const midi = E.bytesToFelts(E.toMidiFile(r));
   const bsn = E.bytesToFelts(E.encodeBsn(r));
+  const bsi = encodeBsi({ notes: r.form.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), tempo_us: r.params.tempo_us, length_ticks: E.formLength(r.form) });
   return {
     seed: r.seed.toString(), params: r.params_hash.toString(), score: r.form.score_hash.toString(),
     state: r.state_hash.toString(), events: String(r.form.events.length), checksum: E.eventChecksum(r.form.events).toString(),
     midi_len: String(midi[0]), midi_hash: poseidonHashMany(midi).toString(),
     bsn_len: String(bsn[0]), bsn_hash: poseidonHashMany(bsn).toString(),
+    bsi_len: String(bsi.length), bsi_hash: poseidonHashMany(bsi).toString(),
   };
 }
 
@@ -47,7 +49,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     if (roundTrip !== cairo.midi_hash) { failures += 1; console.log(`case ${i} bsn->midi FAIL`); }
     golden.push({ beast: b, live, expected: Object.fromEntries(Object.keys(js).map((k) => [k, cairo[k]])) });
   });
-  console.log(failures === 0 ? `PARITY: all ${CASES.length} cases match Cairo (${CASES.length * 11} checks)` : `PARITY: ${failures} mismatches`);
+  console.log(failures === 0 ? `PARITY: all ${CASES.length} cases match Cairo (${CASES.length * 13} checks)` : `PARITY: ${failures} mismatches`);
   if (failures === 0 && process.argv.includes('--write')) {
     const out = new URL('../offchain/beast-sound/test/golden.json', import.meta.url);
     writeFileSync(out, JSON.stringify({ source: 'src/tests/test_beast_v3_sound.cairo::beast_v3_parity_fixture', cases: golden }, null, 1) + '\n');

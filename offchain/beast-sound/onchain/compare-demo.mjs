@@ -3,6 +3,7 @@
 // TinyChip orchestration and chip drums, and loop on the form's length like the onchain page.
 //   node onchain/compare-demo.mjs        (after onchain/gallery.mjs)
 import { readFileSync, writeFileSync } from 'node:fs';
+import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { engine, decodeTokenId, beastName } from '../src/index.js';
@@ -20,6 +21,8 @@ const TINY_NOTICE = '/*! webaudio-tinysynth (c) g200kg, Apache License 2.0; Prov
 const chipRuntime = readFileSync(here + 'pr3-tinychip/tinychip.min.js', 'utf8').trim();
 const chipBank = readFileSync(here + 'pr3-tinychip/tinychip-bank.min.js', 'utf8').trim();
 const midiModules = loadBuiltModules(['midi', 'smf']);
+const bankCtx = {}; vm.runInNewContext(chipBank, bankCtx);
+const PRESETS = bankCtx.TinyChipBank.PRESETS.map(({ program, name, category, inspired }) => ({ program, name, category, inspired }));
 
 const v11 = createEngineV11(engine);
 const fx = JSON.parse(readFileSync(here + 'fixtures/warlock_v3.json', 'utf8'));
@@ -75,6 +78,7 @@ button{font:inherit;font-size:20px;padding:6px 14px;background:transparent;color
 #play{background:var(--g);color:#000;min-width:120px}
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 label.check{display:flex;gap:8px;align-items:center;font-size:20px}
+label.field{display:grid;gap:6px;font-size:18px;color:var(--dim)}
 .roll{display:grid;gap:6px}.roll div{font-size:17px;color:var(--dim)}
 canvas{width:100%;height:150px;background:var(--card);border:1px solid var(--line);display:block}
 canvas.on{border-color:var(--g)}canvas.on.b{border-color:var(--b)}
@@ -107,6 +111,12 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
         <label class="check"><input type="checkbox" id="drums" checked> Drums</label>
         <label class="check"><input type="checkbox" id="keep" checked> Keep playing when switching</label>
       </div>
+      <label class="field">Instrument, the same for v1 and v1.1
+        <select id="preset"><option value="auto">Auto: the onchain orchestration (worked out from v1's score, used for both)</option>${[...new Set(PRESETS.map((x) => x.category))].map((c) => `<optgroup label="${esc(c)}">${PRESETS.filter((x) => x.category === c).map((x) => `<option value="${x.program}"${x.program === 0 ? ' selected' : ''}>All voices: ${x.program}: ${esc(x.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
+      <div class="controls">
+        <button type="button" id="prev">◀ Prev</button><button type="button" id="next">Next ▶</button>
+        <span class="note" id="presetNote"></span>
+      </div>
       <span class="note">Switch while it plays to hear the difference: the new version starts from the top.</span>
     </fieldset>
     <div class="roll">
@@ -122,7 +132,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
 <tr><td>v1</td><td>${SUM.v1.durations}</td><td>${SUM.v1.clash}%</td><td>${SUM.v1.clashOnBeat}%</td><td>${SUM.v1.octave}%</td><td>${SUM.v1.parallels}</td><td>${SUM.v1.cadence}%</td></tr>
 <tr><td class="b">v1.1</td><td class="b">${SUM.v11.durations}</td><td class="b">${SUM.v11.clash}%</td><td class="b">${SUM.v11.clashOnBeat}%</td><td class="b">${SUM.v11.octave}%</td><td class="b">${SUM.v11.parallels}</td><td class="b">${SUM.v11.cadence}%</td></tr>
 </table></div>
-<p class="note">Clashes: seconds, sevenths and tritones between voices sounding together, as a share of all voice pairs (multi-voice Beasts). Both versions loop on the form's length, with the same closing rest. Instruments: the onchain TinyChip orchestration (20 presets, one per voice) and chip drums.</p>
+<p class="note">Clashes: seconds, sevenths and tritones between voices sounding together, as a share of all voice pairs (multi-voice Beasts). Both versions loop on the form's length, with the same closing rest. Instruments: one TinyChip preset for every voice (pick any of the 100), or Auto, the onchain orchestration worked out from v1's score and applied to both versions; chip drums.</p>
 </main>
 <script>${inline(midiModules.map((m) => m.js).join('\n'))}</script>
 <script>${TINY_NOTICE}\n${inline(tiny)}</script>
@@ -130,6 +140,8 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
 <script>${inline(chipRuntime)}</script>
 <script>
 const BEASTS = ${JSON.stringify(data)};
+const NAMES = ${JSON.stringify(Object.fromEntries(PRESETS.map((x) => [x.program, x.name])))};
+const INSPIRED = ${JSON.stringify(Object.fromEntries(PRESETS.filter((x) => x.inspired).map((x) => [x.program, x.inspired])))};
 const v1lib = BeastSound.v1, $ = (id) => document.getElementById(id);
 let current = 0, version = 'v1', synth = null, playing = false;
 const bytesOf = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -172,10 +184,12 @@ function show() {
   $('art').src = b.art;
   drawRoll($('rollA'), b.v1.midi); drawRoll($('rollB'), b.v11.midi);
   metricsTable();
+  setInstrument();
 }
 function stop() { if (synth) synth.stopMIDI(); playing = false; $('play').textContent = '▶ Play'; }
 function play() {
-  if (!synth) synth = new WebAudioTinySynth({ quality: 1, useReverb: 0, voices: 64 });
+  // the full bank at programs 0-99 (and the chip kit); the onchain runtime adds its 20 at 129+
+  if (!synth) synth = TinyChipBank.install(new WebAudioTinySynth({ quality: 1, useReverb: 0, voices: 64 }));
   synth.getAudioContext().resume();
   const midi = BEASTS[current][version].midi, song = v1lib.smf.parse(midi);
   const file = $('drums').checked ? v1lib.midi.write(withDrums(song)) : bytesOf(midi);
@@ -185,9 +199,34 @@ function play() {
   // the onchain orchestration, from the score without the drum track
   const channels = [...new Set(song.notes.map((n) => n[4]))].sort((a, b) => a - b);
   synth.playMIDI();
-  TinyChip.attach(synth, { bare: true, channels, events: synth.song.ev.filter((e) => e.m[0] >= 0xf0 || (e.m[0] & 15) !== 9) });
   playing = true; $('play').textContent = '■ Stop';
+  setInstrument();
 }
+// One instrument choice for both versions. Auto orchestrates v1's score and gives v1.1 the same
+// preset per voice, so a switch changes the notes, never the sound.
+function v1Events() {
+  const s = v1lib.smf.parse(BEASTS[current].v1.midi), ev = [{ t: 0, m: [0xff51, 60e6 / s.tempo_us] }];
+  for (const [t, d, p, v, ch] of s.notes) ev.push({ t, m: [0x90 | ch, p, v] });
+  return { ev: ev.sort((a, b) => a.t - b.t), channels: [...new Set(s.notes.map((n) => n[4]))].sort((a, b) => a - b) };
+}
+function setInstrument() {
+  const val = $('preset').value;
+  if (val === 'auto') {
+    const { ev, channels } = v1Events();
+    const roles = TinyChip.orchestrate(ev, channels, 1920);
+    $('presetNote').textContent = channels.map((ch) => 'voice ' + (ch + 1) + ': ' + NAMES[roles[ch]]).join(' · ');
+    if (!playing) return;
+    TinyChip.attach(synth, { bare: true, channels: [], events: [] }); // installs the onchain runtime's presets at 129+
+    for (const ch of channels) synth.send([0xc0 | ch, 129 + roles[ch]]);
+    // a voice v1.1 has that v1 lacks (none today) keeps the lead's preset
+    for (let ch = 0; ch < 16; ch++) if (ch !== 9 && !(ch in roles)) synth.send([0xc0 | ch, 129 + roles[channels[channels.length - 1]]]);
+    return;
+  }
+  const v = INSPIRED[val];
+  $('presetNote').textContent = NAMES[val] + (v ? ' · inspired by ' + v : '');
+  if (playing) for (let ch = 0; ch < 16; ch++) if (ch !== 9) synth.send([0xc0 | ch, +val]);
+}
+function stepPreset(d) { const sel = $('preset'), n = sel.options.length; sel.selectedIndex = (sel.selectedIndex + d + n) % n; setInstrument(); }
 function setVersion(v) {
   const was = playing && $('keep').checked; stop(); version = v;
   document.querySelectorAll('[data-v]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.v === v));
@@ -205,8 +244,12 @@ function setVersion(v) {
 $('play').addEventListener('click', () => (playing ? stop() : play()));
 $('beast').addEventListener('change', (e) => { const was = playing; stop(); current = +e.target.value; show(); if (was) play(); });
 $('drums').addEventListener('change', () => { if (playing) { stop(); play(); } });
+$('preset').addEventListener('change', setInstrument);
+$('prev').addEventListener('click', () => stepPreset(-1));
+$('next').addEventListener('click', () => stepPreset(1));
 document.querySelectorAll('[data-v]').forEach((btn) => btn.addEventListener('click', () => setVersion(btn.dataset.v)));
 show();
+setInstrument();
 </script></body></html>`;
 writeFileSync(out + 'compare.html', html);
 console.log(`compare.html: ${(html.length / 1000).toFixed(0)} KB · ${data.length} Beasts`);

@@ -36,7 +36,7 @@ function play() {
   });
   const patch = PATCH_BY_ID[B.patch] || PATCH_BY_ID.chip_tri_lead;
   const sched = createLoopScheduler(notes, {
-    tick,
+    tick, length: B.length_ticks,
     drums: B.drums,
     onNote: (n, t) => patch.play(kit, buses[voices.indexOf(n[4])], t, n[1] * tick, 440 * 2 ** ((n[2] - 69) / 12), 0.16 * (n[3] / 127) * patch.gain),
     onDrum: (d, t) => chipDrum(kit, out, t, d.kind, d.level),

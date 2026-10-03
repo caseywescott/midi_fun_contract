@@ -22,7 +22,7 @@ export const CASES = [
 
 export function fingerprintV2(beast, live) {
   const r = V2.renderV2(beast, live);
-  const midi = E.bytesToFelts(E.eventsToMidi(r.form.events, r.params.tempo_us));
+  const midi = E.bytesToFelts(E.eventsToMidi(r.form.events, r.params.tempo_us, E.formLength(r.form)));
   return {
     score: r.form.score_hash.toString(), events: String(r.form.events.length),
     checksum: E.eventChecksum(r.form.events).toString(),

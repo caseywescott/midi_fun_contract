@@ -9,8 +9,11 @@ const GRID = 480, BASE_VELOCITY = 90, ACCENT = 3;
 // ── BSN1: compact onchain note stream (see beast_v3_sound.cairo) ──
 // header: version 8 | tempo_us 24 | grid 12 | duration 12 | articulation 3 | base_vel 7 | vel_ceiling 7 | runs 8
 // run: voice 4 | start_beat 12 | count 8, then count × key 7
+// trailer: length_beats 12 (the form's length; older streams end without it and older decoders stop
+// after the runs)
 export function encodeBsn(result) {
   const { form, params } = result;
+  const length = form.section_ticks * form.sections.length;
   const ev = form.events, grid = GRID, dur = ev[0].duration;
   const bits = [];
   const push = (v, w) => { for (let i = w - 1; i >= 0; i--) bits.push((v >> i) & 1); };
@@ -23,6 +26,7 @@ export function encodeBsn(result) {
   push(1, 8); push(params.tempo_us, 24); push(grid, 12); push(dur, 12); push(params.articulation_profile, 3);
   push(BASE_VELOCITY, 7); push(params.velocity_ceiling, 7); push(runs.length, 8);
   for (const r of runs) { push(r[0].voice_id, 4); push(r[0].time / grid, 12); push(r.length, 8); r.forEach((e) => push(e.pitch, 7)); }
+  push(length / grid, 12);
   while (bits.length % 8) bits.push(0);
   const bytes = new Uint8Array(bits.length / 8);
   for (let i = 0; i < bytes.length; i++) for (let b = 0; b < 8; b++) bytes[i] = (bytes[i] << 1) | bits[i * 8 + b];
@@ -69,13 +73,15 @@ export function decodeBsn(input) {
       events.push({ time: (start + k) * grid, duration, pitch: read(7), velocity: vel, voice_id: voice, section });
     }
   }
-  return { tempo_us, events };
+  // the length trailer, when present (padding is under 8 bits, the field is 12)
+  const length_ticks = bytes.length * 8 - pos >= 12 ? read(12) * grid : 0;
+  return { tempo_us, events, length_ticks };
 }
 
 /** BSN1 (bytes, or felts as from get_score_notes) → Standard MIDI File bytes. */
 export const bsnToMidi = (input) => {
   const d = decodeBsn(input);
-  return notesToMidi(d.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), d.tempo_us);
+  return notesToMidi(d.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), d.tempo_us, d.length_ticks);
 };
 
 /** The engine's BSN1 methods (kept for the package API and parity scripts). */

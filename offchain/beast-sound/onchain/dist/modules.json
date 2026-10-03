@@ -2,7 +2,7 @@
  {
   "name": "core",
   "deps": [],
-  "js_bytes": 11226,
+  "js_bytes": 11322,
   "segment_chars": 15252
  },
  {
@@ -18,13 +18,13 @@
   "deps": [
    "core"
   ],
-  "js_bytes": 673,
+  "js_bytes": 709,
   "segment_chars": 1116
  },
  {
   "name": "midi",
   "deps": [],
-  "js_bytes": 1051,
+  "js_bytes": 1079,
   "segment_chars": 1488
  },
  {
@@ -38,25 +38,25 @@
   "deps": [
    "synth"
   ],
-  "js_bytes": 3089,
+  "js_bytes": 3124,
   "segment_chars": 4464
  },
  {
   "name": "fx",
   "deps": [],
-  "js_bytes": 1367,
+  "js_bytes": 1374,
   "segment_chars": 1860
  },
  {
   "name": "notes",
   "deps": [],
-  "js_bytes": 2123,
+  "js_bytes": 2215,
   "segment_chars": 2976
  },
  {
   "name": "smf",
   "deps": [],
-  "js_bytes": 1579,
+  "js_bytes": 1638,
   "segment_chars": 2232
  },
  {

@@ -76,6 +76,7 @@ function playerHtml(token, { song }, opts) {
   const data = {
     name: song.name,
     tempo_us: song.params.tempo_us,
+    length_ticks: song.lengthTicks,
     notes: song.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice]),
     patch: opts.patch, drums: opts.drums,
   };

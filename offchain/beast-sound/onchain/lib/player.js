@@ -44,7 +44,7 @@ export function play(song, { instruments = DEFAULT, drums = true, loop = true, d
   });
   const noteFns = new Set(), endFns = new Set();
   const sched = createLoopScheduler(song.notes, {
-    tick, drums, loop,
+    tick, length: song.length_ticks, drums, loop,
     onNote: (n, t) => {
       const inst = pick(n[4]);
       inst.play(kit, buses[voices.indexOf(n[4])], t, n[1] * tick, 440 * 2 ** ((n[2] - 69) / 12), 0.16 * (n[3] / 127) * inst.gain);

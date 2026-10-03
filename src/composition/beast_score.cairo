@@ -66,6 +66,9 @@ pub struct BeastForm {
     pub events: Array<NoteEvent>,
     pub score_hash: felt252,
     pub section_count: u8,
+    /// Length of the form in ticks: section_count whole sections, including each section's closing
+    /// rest. The MIDI file ends here, so a looping player repeats the form at its full length.
+    pub length_ticks: u32,
 }
 
 #[derive(Copy, Drop, Serde)]
@@ -416,8 +419,13 @@ pub fn build_beast_section(
     apply_articulation_plan(out.span(), @plan)
 }
 
+/// A section: the theme, the voice entries and a closing rest of two entry lags, rounded up to
+/// whole 4/4 bars so every section starts on a downbeat and the rest before each section (and at
+/// the loop) is the same.
 fn section_duration(theme_len: u32, params: BeastCompositionParams) -> u32 {
-    (theme_len + params.stretto_lag * (params.voice_count + 1)) * BEAST_TIME_UNIT
+    let raw = (theme_len + params.stretto_lag * (params.voice_count + 1)) * BEAST_TIME_UNIT;
+    let bar = 4 * BEAST_TIME_UNIT;
+    ((raw + bar - 1) / bar) * bar
 }
 
 pub fn build_beast_form(params: BeastCompositionParams, sound_seed: felt252) -> BeastForm {
@@ -441,7 +449,8 @@ pub fn build_beast_form(params: BeastCompositionParams, sound_seed: felt252) -> 
         params.stretto_bucket.into(),
         BEAST_SCORE_VERSION.into(),
     );
-    BeastForm { events, score_hash, section_count: params.section_count }
+    let length_ticks: u32 = params.section_count.into() * dur;
+    BeastForm { events, score_hash, section_count: params.section_count, length_ticks }
 }
 
 pub fn build_beast_form_from_traits(

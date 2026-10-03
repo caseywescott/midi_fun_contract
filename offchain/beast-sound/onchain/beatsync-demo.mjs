@@ -23,9 +23,9 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
 const minify = async (src) => (await build({ stdin: { contents: src, loader: 'js' }, minify: true, write: false, logLevel: 'error' })).outputFiles[0].text;
 
-const tinySrc = await (await fetch('https://cdn.jsdelivr.net/gh/g200kg/webaudio-tinysynth@master/webaudio-tinysynth.js')).text();
+const tinySrc = await (await fetch('https://cdn.jsdelivr.net/gh/Provable-Games/webaudio-tinysynth@b70ba90d63c5ea657cb67ca98de90d7f778c29bd/webaudio-tinysynth.js')).text();
 const tiny = await minify(tinySrc);
-const TINY_NOTICE = '/*! webaudio-tinysynth (c) g200kg, Apache License 2.0, https://github.com/g200kg/webaudio-tinysynth */';
+const TINY_NOTICE = '/*! webaudio-tinysynth (c) g200kg, Apache License 2.0; Provable Games fork b70ba90 (fractional tempo, loopEnd), https://github.com/Provable-Games/webaudio-tinysynth */';
 // TinyChip as PR #3 builds it: the onchain runtime (orchestration) and the full bank (manual presets)
 const chipRuntime = readFileSync(here + 'pr3-tinychip/tinychip.min.js', 'utf8').trim();
 const chipBank = readFileSync(here + 'pr3-tinychip/tinychip-bank.min.js', 'utf8').trim();
@@ -159,7 +159,7 @@ const svgUri = (svg) => 'data:image/svg+xml;base64,' + btoa(unescape(encodeURICo
 
 // The chip engine's drum pattern as General MIDI drums (kick 36, snare 38, hats 42), played by the chip kit.
 function withDrums(song) {
-  const end = Math.max(...song.notes.map((n) => n[0] + n[1]));
+  const end = Math.max(song.length_ticks || 0, ...song.notes.map((n) => n[0] + n[1]));
   const bars = Math.ceil(end / 1920) * 1920, drums = [];
   for (let t = 0; t < bars; t += 240) {
     const b = t / 480, onBeat = t % 480 === 0;
@@ -167,7 +167,7 @@ function withDrums(song) {
     if (onBeat && b % 4 === 2) drums.push([t, 120, 38, 90, 9]);
     drums.push([t, 60, 42, onBeat ? 70 : 50, 9]);
   }
-  return { notes: song.notes.concat(drums), tempo_us: song.tempo_us };
+  return { notes: song.notes.concat(drums), tempo_us: song.tempo_us, length_ticks: bars };
 }
 
 // A Beast's SVG: inline (Warlock), or fetched from the gallery; static art gets its species' GIF.
@@ -212,7 +212,8 @@ function play() {
   const song = v1.smf.parse(BEASTS[current].midi);
   const file = $('drums').checked ? v1.midi.write(withDrums(song)) : bytesOf(BEASTS[current].midi);
   synth.loadMIDI(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength));
-  synth.setLoop(1);
+  synth.loopEnd = Math.ceil(synth.maxTick / synth.song.timebase) * synth.song.timebase; // whole bars, closing rest included
+    synth.setLoop(1);
   synth.playMIDI();
   playing = true;
   setProgram();

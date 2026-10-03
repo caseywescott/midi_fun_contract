@@ -348,7 +348,8 @@ export function createCoreEngine({ poseidonHashMany }) {
   function buildForm(p, seed) {
     const seeds = deriveSeeds(seed);
     const theme = buildTheme(p, seeds.motif_seed);
-    const dur = (theme.degrees.length + p.stretto_lag * (p.voice_count + 1)) * TIME_UNIT;
+    // theme + voice entries + a closing rest of two lags, rounded up to whole 4/4 bars (beast_score.cairo)
+    const dur = Math.ceil((theme.degrees.length + p.stretto_lag * (p.voice_count + 1)) / 4) * 4 * TIME_UNIT;
     const csSeed = H(p.name_variant_id, p.species_id);
     const events = [];
     const sections = [];
@@ -378,8 +379,10 @@ export function createCoreEngine({ poseidonHashMany }) {
 
   // Standard MIDI file (type 1, 480 ppq); one track per voice + tempo track.
   // Byte-identical to beast_form_to_smf_bytes in beast_v3_sound.cairo.
-  const toMidiFile = (result) => eventsToMidi(result.form.events, result.params.tempo_us);
-  const eventsToMidi = (events, tempo) => notesToMidi(events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), tempo);
+  // The file lasts the whole form: every section, each with its closing rest (BeastForm.length_ticks).
+  const formLength = (form) => form.section_ticks * form.sections.length;
+  const toMidiFile = (result) => eventsToMidi(result.form.events, result.params.tempo_us, formLength(result.form));
+  const eventsToMidi = (events, tempo, endTick = 0) => notesToMidi(events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), tempo, endTick);
 
 
   // Building blocks reused by engine v2 (engine_v2.js). Not part of the public API.
@@ -393,7 +396,7 @@ export function createCoreEngine({ poseidonHashMany }) {
     internals,
     eventsToMidi,
     decodeTokenId, encodeTokenId, genesisTokenId, soundSeed, soundDropRoll, hasSound, nameVariantId, mapV3, musicState,
-    musicStateHash, paramsHash, buildForm, render, eventChecksum, toMidiFile, typeTierFamily, rankTier,
+    musicStateHash, paramsHash, buildForm, render, eventChecksum, toMidiFile, formLength, typeTierFamily, rankTier,
     FIELD_P,
   };
 }
@@ -401,5 +404,5 @@ export function createCoreEngine({ poseidonHashMany }) {
 /** The full engine: core plus the BSN1 compact note stream (npm package, parity scripts). */
 export function createEngine(opts) {
   const core = createCoreEngine(opts);
-  return { ...core, ...createBsn(core, { grid: TIME_UNIT, baseVelocity: DEFAULT_VELOCITY, accent: ART_ACCENT }) };
+  return { ...core, ...createBsn() };
 }

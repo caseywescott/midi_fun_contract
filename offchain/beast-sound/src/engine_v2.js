@@ -561,6 +561,7 @@ export function createEngineV2(engine) {
   // ── BSN2: compact stream for engine v2 scores ──
   // header: version 8 | tempo_us 24 | grid_ticks 12 | articulation 3 | base_velocity 7
   //         | velocity_ceiling 7 | run_count 8                                  (69 bits)
+  // trailer: length in grid units 16 (the form's length, for the MIDI file's End of Track)
   // run: voice 4 | start (grid units) 16 | note_count 10                        (30 bits)
   // note: key 7 | written duration in grid units − 1 (3 bits, 1..8)            (10 bits)
   // Runs are the written (pre-articulation) notes in emission order; a run whose voice is not
@@ -583,6 +584,7 @@ export function createEngineV2(engine) {
       push(r[0].voice_id, 4); push(r[0].time / GRID, 16); push(r.length, 10);
       for (const e of r) { push(e.pitch, 7); push(e.duration / GRID - 1, 3); }
     }
+    push(engine.formLength(result.form) / GRID, 16);
     while (bits.length % 8) bits.push(0);
     const out = new Uint8Array(bits.length / 8);
     for (let i = 0; i < out.length; i++) for (let b = 0; b < 8; b++) out[i] = (out[i] << 1) | bits[i * 8 + b];
@@ -608,9 +610,10 @@ export function createEngineV2(engine) {
       }
     }
     const events = sections.flatMap((sec) => I.articulate(sec, articulation, ceiling).map(({ art, ...e }) => e));
-    return { tempo_us, events };
+    const length_ticks = bytes.length * 8 - pos >= 16 ? read(16) * grid : 0;
+    return { tempo_us, events, length_ticks };
   }
-  const bsn2ToMidi = (input) => { const d = decodeBsn2(input); return engine.eventsToMidi(d.events, d.tempo_us); };
+  const bsn2ToMidi = (input) => { const d = decodeBsn2(input); return engine.eventsToMidi(d.events, d.tempo_us, d.length_ticks); };
 
   return { renderV2, walkLeader, walkLeaderConstraints, constraintsAllLags, ornamentPolicy, enabledOrnaments, eventsHash, encodeBsn2, decodeBsn2, bsn2ToMidi };
 }

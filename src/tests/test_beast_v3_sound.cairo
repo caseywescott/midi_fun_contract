@@ -2,7 +2,8 @@ use koji::composition::beast_score::{note_events_valid, build_beast_theme, deriv
 use koji::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, beast_has_sound, beast_sound_seed, build_v3_beast_form,
     decode_v3_token_id, encode_v3_token_id, genesis_token_id, standalone_sound_seed, map_v3_beast_to_composition_params, type_tier_family,
-    v3_music_state_hash, v3_name_variant_id, v3_params_hash, v3_rank_tier, v3_score_midi, v3_score_notes,
+    v3_music_state_hash, v3_name_variant_id, v3_params_hash, v3_rank_tier, v3_score_instructions, v3_score_midi,
+    v3_score_notes,
 };
 
 // "Sorrow Peak Warlock": live mainnet rank-1 Warlock (legacy token #52918).
@@ -234,8 +235,10 @@ fn beast_v3_parity_fixture() {
         let midi_hash = core::poseidon::poseidon_hash_span(midi.span());
         let bsn = v3_score_notes(b, live);
         let bsn_hash = core::poseidon::poseidon_hash_span(bsn.span());
+        let bsi = v3_score_instructions(b, live);
+        let bsi_hash = core::poseidon::poseidon_hash_span(bsi.span());
         println!(
-            "PARITY case={} seed={} params={} score={} state={} events={} checksum={} midi_len={} midi_hash={} bsn_len={} bsn_hash={}",
+            "PARITY case={} seed={} params={} score={} state={} events={} checksum={} midi_len={} midi_hash={} bsn_len={} bsn_hash={} bsi_len={} bsi_hash={}",
             i,
             beast_sound_seed(b.id, b.prefix, b.suffix),
             v3_params_hash(b, live),
@@ -247,6 +250,8 @@ fn beast_v3_parity_fixture() {
             midi_hash,
             *bsn.at(0),
             bsn_hash,
+            bsi.len(),
+            bsi_hash,
         );
         i += 1;
     }

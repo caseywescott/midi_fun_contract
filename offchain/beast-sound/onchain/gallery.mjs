@@ -1,5 +1,6 @@
 // Build a gallery of onchain Beast Sound pages from real mainnet Beasts, spread across complexity.
 //   node onchain/gallery.mjs [count=100] [candidates=400]
+//   node onchain/gallery.mjs --rebuild     (offline: re-render the pages already in public/onchain)
 //
 // Samples candidate tokens from the current mainnet collection, reads their traits and live stats,
 // composes each (engine v1), keeps `count` spread evenly from the simplest theme to the densest,
@@ -18,6 +19,34 @@ const COUNT = Number(process.argv[2] || 100);
 const CANDIDATES = Number(process.argv[3] || 400);
 const net = NETWORKS.mainnet;
 const js = loadBuiltModules(PAGES.inputs);
+
+function row(p) {
+  const s = p.song;
+  return {
+    token: p.token, name: s.name, tier: p.beast.tier, level: p.beast.level,
+    kills: p.live.adventurers_killed, scars: p.live.scars, rank: p.live.rank, count: p.live.species_count,
+    notes: s.events.length, voices: s.params.voice_count, sections: s.params.section_count,
+    bpm: Math.round(60e6 / s.params.tempo_us), seconds: Math.round(s.durationSeconds),
+  };
+}
+
+// Offline: re-render the gallery already in public/onchain (same Beasts, cached reads, saved art)
+// after the library or engine changes. No network.
+if (process.argv[2] === '--rebuild') {
+  const cache = JSON.parse(readFileSync(here + '.gallery-cache.json', 'utf8'));
+  const list = JSON.parse(readFileSync(out + 'gallery.json', 'utf8')).map(({ token }) => {
+    const { beast, live } = cache[token];
+    const svg = readFileSync(out + `beasts/${token}.svg`, 'utf8');
+    writeFileSync(out + `beasts/${token}.html`, animationHtml(js, encodeTokenId(beast), live, svg));
+    return row({ token, beast, live, song: composeBeast(beast, live) });
+  });
+  if (!list.length) throw new Error('gallery.json is empty: nothing to rebuild');
+  writeFileSync(out + 'gallery.json', JSON.stringify(list, null, 1));
+  writeFileSync(out + 'index.html', indexHtml(list));
+  console.log(`rebuilt ${list.length} pages + index`);
+  process.exit(0);
+}
+if (!(COUNT >= 1) || !(CANDIDATES >= COUNT)) throw new Error('usage: node onchain/gallery.mjs [count] [candidates] | --rebuild');
 
 async function pool(items, limit, fn) {
   const results = new Array(items.length);
@@ -83,13 +112,7 @@ const rows = await pool(picks, 2, async (p) => {
   const tokenId = encodeTokenId(p.beast);
   writeFileSync(out + `beasts/${p.token}.html`, animationHtml(js, tokenId, p.live, svg));
   writeFileSync(out + `beasts/${p.token}.svg`, svg);
-  const s = p.song;
-  return {
-    token: p.token, name: s.name, tier: p.beast.tier, level: p.beast.level,
-    kills: p.live.adventurers_killed, scars: p.live.scars, rank: p.live.rank, count: p.live.species_count,
-    notes: s.events.length, voices: s.params.voice_count, sections: s.params.section_count,
-    bpm: Math.round(60e6 / s.params.tempo_us), seconds: Math.round(s.durationSeconds),
-  };
+  return row(p);
 });
 const list = rows.filter(Boolean);
 writeFileSync(out + 'gallery.json', JSON.stringify(list, null, 1));

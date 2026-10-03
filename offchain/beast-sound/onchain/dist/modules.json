@@ -50,8 +50,8 @@
  {
   "name": "notes",
   "deps": [],
-  "js_bytes": 2215,
-  "segment_chars": 2976
+  "js_bytes": 2308,
+  "segment_chars": 3348
  },
  {
   "name": "smf",

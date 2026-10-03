@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { poseidonHashMany } from '@scure/starknet';
 import {
   engine, composeBeast, decodeBsn, bsnToMidi, decodeTokenId, encodeTokenId, genesisTokenId,
-  genesisBeast, beastName, hasSound, dropSaltFromBlockHash,
+  genesisBeast, beastName, hasSound, dropSaltFromBlockHash, encodeBsi,
 } from '../src/index.js';
 
 const golden = JSON.parse(readFileSync(new URL('./golden.json', import.meta.url)));
@@ -16,12 +16,14 @@ for (const [i, c] of golden.cases.entries()) {
     const r = engine.render(c.beast, c.live);
     const midi = engine.bytesToFelts(engine.toMidiFile(r));
     const bsn = engine.bytesToFelts(engine.encodeBsn(r));
+    const bsi = encodeBsi({ notes: r.form.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), tempo_us: r.params.tempo_us, length_ticks: engine.formLength(r.form) });
     const got = {
       seed: r.seed.toString(), params: r.params_hash.toString(), score: r.form.score_hash.toString(),
       state: r.state_hash.toString(), events: String(r.form.events.length),
       checksum: engine.eventChecksum(r.form.events).toString(),
       midi_len: String(midi[0]), midi_hash: poseidonHashMany(midi).toString(),
       bsn_len: String(bsn[0]), bsn_hash: poseidonHashMany(bsn).toString(),
+      bsi_len: String(bsi.length), bsi_hash: poseidonHashMany(bsi).toString(),
     };
     assert.deepEqual(got, c.expected);
   });

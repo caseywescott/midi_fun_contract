@@ -15,8 +15,8 @@ import { fromNotes } from './song.js';
 export function decode(input) {
   const src = typeof input === 'string' ? input.split(',').map((f) => BigInt(f.trim())) : input;
   if (!(src instanceof Uint8Array) && isBsi(src)) {
-    const { notes, tempo_us } = decodeBsi(src);
-    return fromNotes(notes, tempo_us);
+    const { notes, tempo_us, length_ticks } = decodeBsi(src);
+    return fromNotes(notes, tempo_us, length_ticks ? { length_ticks } : {});
   }
   const { tempo_us, events, length_ticks } = decodeBsn(src instanceof Uint8Array ? src : src.map((f) => BigInt(f)));
   return fromNotes(events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), tempo_us, length_ticks ? { length_ticks } : {});

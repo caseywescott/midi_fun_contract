@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { composeBeast, encodeBsi, decodeBsi, isBsi, genesisBeast } from '../src/index.js';
 
 const golden = JSON.parse(readFileSync(new URL('./golden.json', import.meta.url), 'utf8'));
-const song = (s) => ({ notes: s.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice]), tempo_us: s.params.tempo_us });
+const song = (s) => ({ notes: s.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice]), tempo_us: s.params.tempo_us, length_ticks: s.lengthTicks });
 
 test('BSI1 round-trips Beast scores exactly and packs 4 instructions per felt', () => {
   const cases = golden.cases.map((c) => composeBeast(c.beast, c.live));

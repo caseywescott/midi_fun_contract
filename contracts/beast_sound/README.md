@@ -1,6 +1,8 @@
 # beast_sound
 
-The Koji Beast composer (`koji::composition::beast_v3_sound`, engine v1) as Starknet contracts.
+The Koji Beast composer (`beast_music::composition::beast_v3_sound`, engine v1) as Starknet
+contracts. It depends on `contracts/beast_music`, the standalone composer package (14 modules
+extracted from `koji`), not on the whole library.
 
 - **`BeastMidiProvider`** (`src/provider.cairo`): the production path. It implements the generic
   `IMidiProvider` (`contracts/midi_provider`): `get_midi(token_id)` for the NFT it serves, and

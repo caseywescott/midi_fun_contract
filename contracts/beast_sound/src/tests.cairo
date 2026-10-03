@@ -1,6 +1,6 @@
 //! BeastMidiProvider against mock Beasts NFT and Death Mountain contracts.
 
-use koji::composition::beast_v3_sound::{
+use beast_music::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, encode_v3_token_id, v3_score_midi,
 };
 use midi_provider::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};

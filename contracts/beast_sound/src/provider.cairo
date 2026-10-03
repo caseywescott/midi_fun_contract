@@ -2,7 +2,7 @@
 //!
 //! `get_midi(token_id)` needs nothing else (`get_midi_for(token_address, token_id)` also checks the
 //! collection). The provider validates the token, decodes the static traits from the token ID, reads the live state itself and runs the
-//! existing composer (`koji::composition::beast_v3_sound`, engine v1), so the MIDI is
+//! existing composer (`beast_music::composition::beast_v3_sound`, engine v1), so the MIDI is
 //! byte-identical to `v3_score_midi` for the same state.
 //!
 //! Live state, all read inside one entry-point call (one state snapshot, nothing cached):
@@ -25,7 +25,7 @@
 //! be caught. It reverts only for an unsupported collection, an invalid token ID or an unminted
 //! token. The provider only calls state getters, never `token_uri`, so metadata cannot recurse.
 
-use koji::composition::beast_v3_sound::BeastV3LiveState;
+use beast_music::composition::beast_v3_sound::BeastV3LiveState;
 use starknet::ContractAddress;
 
 /// `IBeasts::get_cached_stats` (Beasts V3 `BeastLiveStats`).
@@ -95,7 +95,7 @@ pub trait IBeastMidiProvider<T> {
 pub mod BeastMidiProvider {
     use core::num::traits::Zero;
     use core::poseidon::poseidon_hash_span;
-    use koji::composition::beast_v3_sound::{
+    use beast_music::composition::beast_v3_sound::{
         BEAST_V3_ENGINE_VERSION, BeastV3LiveState, GENESIS_SPECIES_MAX, PackableBeastV3,
         decode_v3_token_id, v3_score_smf_bytes,
     };

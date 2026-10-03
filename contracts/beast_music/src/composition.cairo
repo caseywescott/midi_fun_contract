@@ -1,0 +1,10 @@
+pub mod articulation;
+pub mod beast_score;
+pub mod beast_trait_map;
+pub mod beast_v3_sound;
+pub mod canon_rules;
+pub mod counterpoint;
+pub mod countersubject;
+pub mod invertible_counterpoint;
+pub mod melodic_canon;
+pub mod stretto;

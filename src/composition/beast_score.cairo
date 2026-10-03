@@ -419,8 +419,13 @@ pub fn build_beast_section(
     apply_articulation_plan(out.span(), @plan)
 }
 
+/// A section: the theme, the voice entries and a closing rest of two entry lags, rounded up to
+/// whole 4/4 bars so every section starts on a downbeat and the rest before each section (and at
+/// the loop) is the same.
 fn section_duration(theme_len: u32, params: BeastCompositionParams) -> u32 {
-    (theme_len + params.stretto_lag * (params.voice_count + 1)) * BEAST_TIME_UNIT
+    let raw = (theme_len + params.stretto_lag * (params.voice_count + 1)) * BEAST_TIME_UNIT;
+    let bar = 4 * BEAST_TIME_UNIT;
+    ((raw + bar - 1) / bar) * bar
 }
 
 pub fn build_beast_form(params: BeastCompositionParams, sound_seed: felt252) -> BeastForm {

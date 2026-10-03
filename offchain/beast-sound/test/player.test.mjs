@@ -108,7 +108,11 @@ test('patched TinySynth plays Beast MIDI at the fractional tempo, looping in who
   synth.loadMIDI(midi.slice().buffer);
   assert.ok(isBareScore(synth.song.ev));
   const loopTicks = loopEndTicks(synth.maxTick, synth.song.timebase);
-  assert.ok(loopTicks > synth.maxTick, 'this score ends mid-bar, so the loop end matters');
+  // The file ends at the form's length (End of Track), after the closing rest; without loopEnd TinySynth
+  // would jump back at the last note-off and drop that rest.
+  const lastEvent = Math.max(...synth.song.ev.map((e) => e.t));
+  assert.equal(loopTicks, synth.maxTick, 'the loop is the whole form, in whole bars');
+  assert.ok(loopTicks > lastEvent, 'the form closes with a rest, so the loop end matters');
   synth.loopEnd = loopTicks;
   synth.setLoop(1);
   synth.program[LEAD_PROGRAM] = { name: 'Chip lead', p: LEAD };

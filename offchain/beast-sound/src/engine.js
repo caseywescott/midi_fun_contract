@@ -348,7 +348,8 @@ export function createCoreEngine({ poseidonHashMany }) {
   function buildForm(p, seed) {
     const seeds = deriveSeeds(seed);
     const theme = buildTheme(p, seeds.motif_seed);
-    const dur = (theme.degrees.length + p.stretto_lag * (p.voice_count + 1)) * TIME_UNIT;
+    // theme + voice entries + a closing rest of two lags, rounded up to whole 4/4 bars (beast_score.cairo)
+    const dur = Math.ceil((theme.degrees.length + p.stretto_lag * (p.voice_count + 1)) / 4) * 4 * TIME_UNIT;
     const csSeed = H(p.name_variant_id, p.species_id);
     const events = [];
     const sections = [];

@@ -10,8 +10,9 @@
 //   BeatSync.attach({ img, svg, mode })   img: the page's art <img>; svg: the SVG text; mode:
 //                                         'beat' (one frame per eighth note), 'native' (the GIF's own
 //                                         frame delays, timed by the audio clock) or 'off'.
-//                                         Returns { frames, delays, mode, setMode, shown } or null if
-//                                         the SVG has no animated GIF.
+//                                         Returns { frames, delays, mode, setMode, shown, detach } or
+//                                         null if the SVG has no animated GIF. detach() removes the
+//                                         layers and gives the art back to the native GIF.
 //   BeatSync.decodeGif(bytes)             { width, height, frames: [{ delay (ms), rgba }] }
 //   BeatSync.audibleTick(synth)           the tick being heard now, or null when stopped
 (function (root) {
@@ -134,16 +135,18 @@
       while (ms >= delays[k]) ms -= delays[k++];
       return k;
     };
+    let raf = 0;
     (function step() {
       const s = synth(), tick = state.mode === 'off' ? null : audibleTick(s);
       show(tick == null ? -1 : frameAt(s, tick));
-      requestAnimationFrame(step);
+      raf = requestAnimationFrame(step);
     })();
     return {
       frames: layers.length, delays,
       get mode() { return state.mode; },
       setMode(next) { state.mode = next; },
       get shown() { return state.shown; },
+      detach() { cancelAnimationFrame(raf); show(-1); layers.forEach((el) => el.remove()); },
     };
   }
 

@@ -22,7 +22,7 @@ removable module, and the page player works the same without it.
 | `native` | Uses the GIF's own frame delays, but timed by the audio clock so it never drifts |
 | `off` | The native GIF, as without BeatSync |
 
-The page exposes it as `SOUND.beat` (`frames`, `delays`, `mode`, `setMode(m)`, `shown`). Art without
+The page exposes it as `SOUND.beat` (`frames`, `delays`, `mode`, `setMode(m)`, `shown`, `detach()`). Art without
 an animated GIF is left alone: `attach` returns null.
 
 - **Size:** 3.4 KB minified (`dist/beatsync.min.js`). It takes the stored page from 2,595 to 2,739

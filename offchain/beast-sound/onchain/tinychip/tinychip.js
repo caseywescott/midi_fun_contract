@@ -45,8 +45,9 @@
   // ── orchestration ────────────────────────────────────────────────
   // Roles by register: the highest voice leads, the lowest is the bass (or keys, when it sits above
   // E3), the voices between are pads when they rest a lot and keys when they move. A faster tempo
-  // than 120 BPM picks from the brighter leads. A hash of the notes picks within each pool, so every
-  // score gets its own set while the roles stay musical. Pools are bank program numbers.
+  // than 120 BPM picks from the brighter leads. A hash of the notes (independent of their order) picks
+  // within each pool, so every score gets its own set while the roles stay musical. Pools are bank
+  // program numbers.
   const POOLS = {
     lead: [0, 2, 3, 1],       // Triangle Lead, Pulse 25% Lead, Square Lead, Pulse 12.5% Lead
     bright: [50, 51, 53, 4],  // Robot Hero Lead, Vampire Hunter Lead, Hero Fanfare, 4-bit Saw Lead
@@ -56,14 +57,17 @@
   };
   function orchestrate(events, channels, timebase) {
     const v = {}, quarter = timebase / 4;
-    let h = 0x811c9dc5, bpm = 120;
+    let h = 0, bpm = 120;
     for (const { t, m } of events) {
       if (m[0] === 0xff51 && t === 0) bpm = m[1];
       if ((m[0] & 0xf0) !== 0x90 || !m[2]) continue;
       const ch = m[0] & 15, s = (v[ch] ||= { sum: 0, n: 0, first: t, last: t });
       s.sum += m[1]; s.n++; s.last = t;
-      for (const x of [t, ch, m[1]]) h = Math.imul(h ^ x, 16777619) >>> 0; // FNV-1a over the notes
+      let x = 0x811c9dc5;
+      for (const y of [t, ch, m[1]]) x = Math.imul(x ^ y, 16777619); // FNV-1a of each note, summed:
+      h = (h + (x >>> 0)) >>> 0;                                       // the order of same-tick notes can't matter
     }
+    h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
     const order = channels.filter((ch) => v[ch]).sort((a, b) => v[a].sum / v[a].n - v[b].sum / v[b].n);
     const out = {}, used = new Set();
     const pick = (pool, k) => { for (let i = 0; i < pool.length; i++) { const id = pool[(k + i) % pool.length]; if (!used.has(id)) { used.add(id); return id; } } return pool[k % pool.length]; };

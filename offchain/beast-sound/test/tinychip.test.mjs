@@ -123,3 +123,11 @@ test('MIDI that never selects the chip bank is left exactly as written', () => {
   assert.equal(s.calls.length, 0);
   assert.equal(s.program[T.PROGRAM_BASE], undefined, 'nothing installed');
 });
+
+test('orchestration ignores the order of notes on the same tick', () => {
+  const { TinyChip: T } = load();
+  const { events, channels } = beastEvents({ id: 53, prefix: 69, suffix: 18, level: 255, health: 1023, shiny: 1, animated: 1, tier: 1, beast_type: 2 }, { adventurers_killed: 500, scars: 20, rank: 1, species_count: 40 });
+  const shuffled = [...events].sort((a, b) => a.t - b.t || (b.m[0] & 15) - (a.m[0] & 15)); // reverse channel order within each tick
+  assert.notDeepEqual(shuffled.map((e) => e.m[0]), events.map((e) => e.m[0]));
+  assert.deepEqual(plain(T.orchestrate(shuffled, channels, 1920)), plain(T.orchestrate(events, channels, 1920)));
+});

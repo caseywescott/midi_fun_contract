@@ -36,7 +36,8 @@ health), rests (kills, ornaments) and tempo (shiny, animated).
 | Between, resting a lot (under 0.7 notes per quarter) | Pads: Pulse Swell 28, Triangle Pad 33, Bounty Hunter Pad 54, Octave Arp 34 |
 | Between, moving | Keys |
 
-An FNV-1a hash of the notes picks within each pool, and no preset is used twice in a score. The same
+A hash of the notes picks within each pool (FNV-1a of each note, summed, so the order of notes on
+the same tick doesn't matter), and no preset is used twice in a score. The same
 MIDI always gets the same instruments. Across the 100 gallery Beasts that gives 62 different
 orchestrations and uses all 20 presets (42 of those Beasts have one voice, so they differ only in
 the lead). The drums the player adds use the chip kit.

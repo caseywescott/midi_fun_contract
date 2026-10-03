@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loop Test Pages</title>
+<style>
+:root{--bg:#000;--fg:#4af626;--dim:rgba(74,246,38,.65);--line:rgba(74,246,38,.3)}
+:root[data-theme="light"]{--bg:#f6fbf4;--fg:#1d6b0e;--dim:#3d6b33;--line:#b9d8b0}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f6fbf4;--fg:#1d6b0e;--dim:#3d6b33;--line:#b9d8b0}}
+body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.5 ui-monospace,Menlo,monospace}
+main{width:min(100% - 32px,760px);margin:0 auto;padding:32px 0}
+h1{font-size:28px;margin:0 0 8px}p{color:var(--dim);margin:8px 0}
+a{color:var(--fg)}li{margin:10px 0}code{color:var(--fg)}
+</style></head><body><main>
+<h1>Loop test pages</h1>
+<p>Each page below is the exact <code>animation_url</code> HTML returned by <code>MidiSoundPage.token_uri</code> on a local devnet, with the fixed composer (PR #3). Tap to play and listen through the end: after the last note there is an 8-beat rest (the section's closing rest), then the loop starts again on the next downbeat.</p>
+<ul>
+<li><a href="tier5-single-section.html">Tier 5 common</a>: 3 bars of music, then 2 bars of rest (loop 5 bars, about 10 s)</li>
+<li><a href="warlock.html">Sorrow Peak Warlock</a>: 7 bars, then 2 bars of rest (loop 9 bars, about 18 s)</li>
+<li><a href="tier1-brute-shiny-animated.html">Tier 1 Brute, shiny and animated</a>: 7 bars, then 2 bars of rest, with BeatSync on the animated art</li>
+</ul>
+<p>Fresh mints have no kills, so these are single-section forms. Multi-section Beasts (see the <a href="../beatsync.html">BeatSync demo</a>) have the same rest between every section and at the loop.</p>
+</main></body></html>

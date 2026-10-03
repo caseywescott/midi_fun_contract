@@ -4,12 +4,14 @@
 // Beasts: the Warlock (demo stats) and every gallery Beast. Five gallery Beasts are minted animated;
 // the others are static and are shown with their species' GIF (onchain/fixtures/beast_gifs.json, the
 // GIFs from the Beasts art contracts), as they'd look if animated. Gallery SVGs are fetched when picked.
-// Each Beast's onchain MIDI plays through tinysynth with the TinyChip pack (any of its presets). BeatSync
+// Each Beast's onchain MIDI plays through tinysynth with TinyChip: Auto uses the onchain orchestration
+// (PR #3's runtime), or any preset of the full bank. BeatSync
 // (onchain/beatsync.js, the module in the onchain page player) decodes the Beast's GIF and shows the
 // frame due at the audible tinysynth tick. The toggle compares 'beat' (one frame per eighth note),
 // 'native' (the GIF's own delays on the audio clock) and 'off' (the browser's own GIF timer), and a
 // second panel always shows the browser's GIF for comparison.
 import { readFileSync, writeFileSync } from 'node:fs';
+import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { composeBeast, decodeTokenId } from '../src/index.js';
@@ -24,12 +26,14 @@ const minify = async (src) => (await build({ stdin: { contents: src, loader: 'js
 const tinySrc = await (await fetch('https://cdn.jsdelivr.net/gh/g200kg/webaudio-tinysynth@master/webaudio-tinysynth.js')).text();
 const tiny = await minify(tinySrc);
 const TINY_NOTICE = '/*! webaudio-tinysynth (c) g200kg, Apache License 2.0, https://github.com/g200kg/webaudio-tinysynth */';
-const chipPack = await minify(readFileSync(here + 'tinysynth-chip.js', 'utf8'));
+// TinyChip as PR #3 builds it: the onchain runtime (orchestration) and the full bank (manual presets)
+const chipRuntime = readFileSync(here + 'pr3-tinychip/tinychip.min.js', 'utf8').trim();
+const chipBank = readFileSync(here + 'pr3-tinychip/tinychip-bank.min.js', 'utf8').trim();
 const beatsync = await minify(readFileSync(here + 'beatsync.js', 'utf8'));
 const midiModules = loadBuiltModules(['midi', 'smf']);
 
-globalThis.window = globalThis; await import('./tinysynth-chip.js');
-const CHIP_PRESETS = globalThis.TinyChip.PRESETS.map(({ program, name, category, inspired }) => ({ program, name, category, inspired }));
+const bankCtx = {}; vm.runInNewContext(chipBank, bankCtx);
+const CHIP_PRESETS = bankCtx.TinyChipBank.PRESETS.map(({ program, name, category, inspired }) => ({ program, name, category, inspired }));
 const INSPIRED = Object.fromEntries(CHIP_PRESETS.filter((p) => p.inspired).map((p) => [p.program, p.inspired]));
 
 const fx = JSON.parse(readFileSync(here + 'fixtures/warlock_v3.json', 'utf8'));
@@ -99,7 +103,7 @@ label.field{display:grid;gap:6px;font-size:18px;color:var(--dim)}
   <div class="panel">
     <fieldset><legend>Beast (${data.length})</legend><select id="beast" aria-label="Beast">${[['Minted animated', 1], ['Static art, shown with its species GIF', 0]].map(([label, a]) => `<optgroup label="${label}">${data.map((b, i) => (b.animated === a ? `<option value="${i}">${esc(b.name)} (${b.notes} notes)</option>` : '')).join('')}</optgroup>`).join('')}</select></fieldset>
     <fieldset><legend>Chip patch</legend>
-      <label class="field">TinyChip preset (${CHIP_PRESETS.length}) <select id="chipPreset">${[...new Set(CHIP_PRESETS.map((p) => p.category))].map((c) => `<optgroup label="${esc(c)}">${CHIP_PRESETS.filter((p) => p.category === c).map((p) => `<option value="${p.program}">${p.program}: ${esc(p.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
+      <label class="field">TinyChip preset (${CHIP_PRESETS.length}) <select id="chipPreset"><option value="auto">Auto: the onchain orchestration (tinychip-2)</option>${[...new Set(CHIP_PRESETS.map((p) => p.category))].map((c) => `<optgroup label="${esc(c)}">${CHIP_PRESETS.filter((p) => p.category === c).map((p) => `<option value="${p.program}">${p.program}: ${esc(p.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
       <span class="note" id="chipInspired"></span>
       <div class="controls">
         <button type="button" id="prevPreset" aria-label="Previous preset">◀ Prev</button>
@@ -130,18 +134,20 @@ label.field{display:grid;gap:6px;font-size:18px;color:var(--dim)}
       <div class="fact"><b id="fBeat"></b><small>frames on eighths</small></div>
       <div class="fact"><b id="fDrift"></b><small>browser GIF slip / loop</small></div>
     </div>
-    <p class="note">Music: the Beast's onchain MIDI through webaudio-tinysynth with the TinyChip pack (pick any of its ${CHIP_PRESETS.length} presets; chip drums). BeatSync is ${(beatsync.length / 1000).toFixed(1)} KB, the same module the onchain page can store.</p>
+    <p class="note">Music: the Beast's onchain MIDI through webaudio-tinysynth with TinyChip: Auto plays the onchain page's orchestration (20 presets, one per voice); or pick any of the ${CHIP_PRESETS.length} presets in the full bank. Chip drums. BeatSync is ${(beatsync.length / 1000).toFixed(1)} KB, the same module the onchain page can store.</p>
   </div>
 </div>
 </main>
 <script>${inline(midiModules.map((m) => m.js).join('\n'))}</script>
 <script>${TINY_NOTICE}\n${inline(tiny)}</script>
-<script>${inline(chipPack)}</script>
+<script>${inline(chipBank)}</script>
+<script>${inline(chipRuntime)}</script>
 <script>${inline(beatsync)}</script>
 <script>
 const BEASTS = ${JSON.stringify(data)};
 const GIFS = ${JSON.stringify(GIFS)};
 const INSPIRED = ${JSON.stringify(INSPIRED)};
+const NAMES = ${JSON.stringify(Object.fromEntries(CHIP_PRESETS.map((p) => [p.program, p.name])))};
 const BASS_PROGRAM = 20; // TinyChip: Triangle Bass (NES)
 const v1 = BeastSound.v1;
 const $ = (id) => document.getElementById(id);
@@ -201,7 +207,7 @@ async function load() {
 }
 function stop() { if (synth) synth.stopMIDI(); playing = false; $('play').textContent = '▶ Play'; }
 function play() {
-  if (!synth) synth = TinyChip.install(new WebAudioTinySynth({ quality: 1, useReverb: 0 }));
+  if (!synth) synth = TinyChipBank.install(new WebAudioTinySynth({ quality: 1, useReverb: 0 }));
   synth.getAudioContext().resume();
   const song = v1.smf.parse(BEASTS[current].midi);
   const file = $('drums').checked ? v1.midi.write(withDrums(song)) : bytesOf(BEASTS[current].midi);
@@ -213,7 +219,19 @@ function play() {
   $('play').textContent = '■ Stop';
 }
 // the chosen preset on every voice; the voice with the lowest average pitch can take the bass preset
+// Auto: what the onchain page plays. TinyChip.attach orchestrates the bare score (presets at 129 + id).
 function setProgram() {
+  const auto = $('chipPreset').value === 'auto';
+  $('bassVoice').disabled = auto;
+  if (auto) {
+    $('chipInspired').textContent = 'Each voice gets a preset from its register, rests and tempo, as on the onchain page.';
+    if (!playing) return;
+    const channels = [...new Set(v1.smf.parse(BEASTS[current].midi).notes.map((n) => n[4]))].sort((a, b) => a - b);
+    // the score without the demo's drum track, as the onchain player sees it before adding its drums
+    const r = TinyChip.attach(synth, { bare: true, channels, events: synth.song.ev.filter((e) => e.m[0] >= 0xf0 || (e.m[0] & 15) !== 9) });
+    $('chipInspired').textContent = 'Orchestration ' + r.orchestration + ': ' + channels.map((ch) => 'voice ' + (ch + 1) + ' ' + NAMES[r.presets[ch]]).join(' · ');
+    return;
+  }
   const v = INSPIRED[$('chipPreset').value];
   $('chipInspired').textContent = v ? 'Inspired by ' + v : 'Generic chip voice';
   if (!playing) return;

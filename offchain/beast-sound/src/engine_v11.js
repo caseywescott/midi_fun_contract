@@ -8,6 +8,10 @@
 //   3. Voices    every note is checked against every voice sounding with it: thirds and sixths are
 //                preferred, clashes on the beat, unisons and parallel 5ths/8ves are avoided by
 //                nudging the note a step or two (a free canon instead of a strict one).
+//   4. Episodes  no silent bars: from the end of its theme until the next section, every voice plays
+//                a sequence of the theme's opening bar (its rhythm and shape, a step lower or higher
+//                each bar), then a half cadence onto the dominant of the next section's key (for the
+//                last section, the first section's key, so the loop leads back in). Voice-checked.
 //   + Dynamics   each phrase rises toward its highest note; bar downbeats are accented.
 //
 //   const v11 = createEngineV11(engine);
@@ -83,7 +87,7 @@ export function createEngineV11(engine) {
         else if (ic === 7) score += 0.5;
         // parallel 5ths / 8ves against the note this voice and that voice had before
         if (prevSame && perfect(ic)) {
-          const before = placed.find((r) => r.voice === q.voice && r.time < time && r.time + r.duration >= prevSame.time + prevSame.duration - 1 && r.time <= prevSame.time);
+          const before = placed.find((r) => r.voice_id === q.voice_id && r.time <= prevSame.time && r.time + r.duration > prevSame.time);
           if (before && IC(prevSame.pitch, before.pitch) === ic && prevSame.pitch !== pitch) score += 8;
         }
       }
@@ -93,13 +97,17 @@ export function createEngineV11(engine) {
     return best;
   }
 
-  function buildSection(p, theme, slots, s, offset, csSeed) {
+  function buildSection(p, theme, slots, s, offset, csSeed, sectionTicks, seed) {
     const tonic = I.transposedTonic(p.tonic_keynum, I.sectionTonicShift(p, s));
+    const next = s + 1 < p.section_count ? s + 1 : 0;
+    const nextTonic = I.transposedTonic(p.tonic_keynum, I.sectionTonicShift(p, next));
     const mode = I.canonicalToMelodic(p.mode_id);
-    const out = [];
+    const out = [], ends = [];
     const realize = (d) => I.realize(d, tonic, mode);
     for (let v = 0; v < p.voice_count; v++) {
       const entry = v === 0 ? 0 : v * p.stretto_lag * TU, off = [0, -4, 3][v] ?? -8;
+      const map = (d) => (p.use_inversion && v === 1 ? 4 - d : d + off);
+      ends.push({ v, map, off });
       let prev = null;
       for (const sl of slots) {
         const base = p.use_inversion && v === 1 ? 4 - sl.degree : sl.degree + off;
@@ -113,6 +121,7 @@ export function createEngineV11(engine) {
         const e = { time, duration: sl.duration, pitch, velocity: 90, voice_id: v, section: s, role: 'canon', slot: sl };
         out.push(e); prev = e;
       }
+      ends[v].last = prev;
     }
     if (p.use_countersubject) {
       // v1's countersubject, in steady quarters against the rhythmic subject, also voice-checked
@@ -125,8 +134,64 @@ export function createEngineV11(engine) {
         const e = { time, duration: TU, pitch, velocity: 90, voice_id: p.voice_count, section: s, role: 'countersubject' };
         out.push(e); prev = e;
       });
+      // its episode sequences its own first four notes, in quarters
+      ends.push({ v: p.voice_count, map: (d) => d, last: prev, head: cs.slice(0, 4).map((d, i) => ({ time: i * TU, duration: TU, degree: d })) });
+    }
+    // episodes: every voice fills from the end of its line to the next section
+    const sectionEnd = offset + sectionTicks;
+    const dir = (seed >>> 3) & 1 ? -1 : 1;
+    const bass = Math.min(...ends.map((x) => x.off ?? 99)) ;
+    for (const x of ends) {
+      const head = x.head || slots.filter((sl) => sl.group === 0);
+      episode(out, x, head, dir, x.off === bass, sectionEnd, offset, realize, nextTonic, s);
     }
     return out;
+  }
+
+  // From the end of a voice's line to the section end: fill to the barline stepping toward the
+  // sequence, then sequence bars of the head motif, then a half cadence on the next key's dominant.
+  function episode(out, x, head, dir, isBass, end, offset, realize, nextTonic, s) {
+    let prev = x.last, t = prev.time + prev.duration;
+    if (end - t < 240) return;
+    const place = (time, duration, cands, role) => {
+      const best = choosePitch(cands, time, duration, out, prev);
+      const e = { time, duration, pitch: best.pitch, velocity: 90, voice_id: x.v, section: s, role };
+      out.push(e); prev = e;
+    };
+    const near = (deg) => [0, 1, -1, 2, -2].map((a) => [a, realize(x.map(deg + a))]);
+    // the degree this voice's line ended on (inverse of the realize step is not needed: start from the head)
+    const headDeg = head.map((h) => h.degree);
+    const nextBar = offset + Math.ceil((t - offset) / BAR) * BAR;
+    const fullBars = Math.max(0, Math.floor((end - nextBar) / BAR));
+    const seqBars = Math.max(0, fullBars - 1);
+    // 1. up to the barline: quarters (or one shorter note) leading to the sequence's first note
+    const target1 = headDeg[0] + dir;
+    for (let k = 0; t < Math.min(nextBar, end) && fullBars > 0; k++) {
+      const d = Math.min(TU - (t - offset) % TU || TU, nextBar - t);
+      place(t, d, near(target1 - dir * Math.max(0, Math.ceil((nextBar - t) / TU) - 1)), 'episode');
+      t += d;
+    }
+    // 2. sequence: the head motif, a step further each bar
+    for (let k = 1; k <= seqBars; k++) {
+      for (const h of head) place(t + h.time, h.duration, near(h.degree + dir * k), 'episode');
+      t += BAR;
+    }
+    // 3. half cadence into the next section: two steps, then the next key's dominant chord tone, held
+    const left = end - t;
+    if (left <= 0) return;
+    const pcs = isBass ? [7] : [7, 11, 2];            // the 5th (bass); 5th, leading tone or 2nd above
+    const dominant = (from) => {
+      const c = [];
+      for (let m = from - 9; m <= from + 9; m++) if (pcs.includes(((m - nextTonic) % 12 + 12) % 12)) c.push([Math.abs(m - from) / 2, m]);
+      return c.length ? c : [[0, from]];
+    };
+    if (left >= BAR) {
+      place(t, TU, near(headDeg[0] + dir * (seqBars + 1)), 'cadence');
+      place(t + TU, TU, near(headDeg[0] + dir * (seqBars + 1) - dir), 'cadence');
+      place(t + 2 * TU, left - 2 * TU, dominant(prev.pitch), 'cadence');
+    } else {
+      place(t, left, dominant(prev.pitch), 'cadence');
+    }
   }
 
   // phrase arc per voice and section, accents on bar downbeats, articulation by profile, under the ceiling
@@ -153,7 +218,8 @@ export function createEngineV11(engine) {
     const slots = themeRhythm(p, theme.degrees, f.seeds.motif_seed);
     const csSeed = I.H(p.name_variant_id, p.species_id);
     let events = [];
-    for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * f.section_ticks, csSeed));
+    const seed = Number(BigInt(f.seeds.motif_seed) % 4294967291n);
+    for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * f.section_ticks, csSeed, f.section_ticks, seed));
     events = shape(events, p).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
     return { ...r, form: { ...f, theme, events }, v11: { cells: [...new Set(slots.map((x) => x.group))].length } };
   }
@@ -183,13 +249,21 @@ export function createEngineV11(engine) {
       }
       prevMap = map;
     }
+    // silent time: share of the form (sections × section length) in rests of a beat or more
+    const formEnd = form ? form.section_ticks * form.sections.length : Math.ceil(Math.max(...events.map((e) => e.time + e.duration)) / BAR) * BAR;
+    const iv = events.map((e) => [e.time, e.time + e.duration]).sort((a, b) => a[0] - b[0]);
+    // gaps of a beat or more with nothing sounding (shorter gaps are articulation, not silence)
+    let silent = 0, cur = 0;
+    for (const [a, b] of iv) { if (a - cur >= TU) silent += a - cur; cur = Math.max(cur, b); }
+    if (formEnd - cur >= TU) silent += formEnd - cur;
     const lead = events.filter((e) => e.voice_id === 0 && e.section === 0);
     const tonicPc = lead.length ? lead[0].pitch % 12 : 0;
     return {
       notes: events.length, voices: voices.length, durations: durations.size,
       clashPct: pairs ? +(100 * clashes / pairs).toFixed(1) : 0, clashOnBeatPct: pairs ? +(100 * clashesOnBeat / pairs).toFixed(1) : 0,
       octavePct: pairs ? +(100 * octaves / pairs).toFixed(1) : 0, parallels, moves,
-      cadence: lead.length ? lead[lead.length - 1].pitch % 12 === tonicPc : false,
+      cadence: lead.length ? lead.filter((e) => e.role !== 'episode' && e.role !== 'cadence').at(-1).pitch % 12 === tonicPc : false,
+      silentPct: +(100 * silent / formEnd).toFixed(1),
     };
   }
 

@@ -34,8 +34,8 @@ function entry(name, beast, live, art) {
   const r1 = engine.render(beast, live), r2 = v11.render(beast, live), len = engine.formLength(r1.form);
   return {
     name, art, voices: r1.params.voice_count, sections: r1.params.section_count,
-    v1: { midi: b64(engine.eventsToMidi(r1.form.events, r1.params.tempo_us, len)), m: v11.metrics(r1.form.events) },
-    v11: { midi: b64(engine.eventsToMidi(r2.form.events, r2.params.tempo_us, len)), m: v11.metrics(r2.form.events) },
+    v1: { midi: b64(engine.eventsToMidi(r1.form.events, r1.params.tempo_us, len)), m: v11.metrics(r1.form.events, r1.form) },
+    v11: { midi: b64(engine.eventsToMidi(r2.form.events, r2.params.tempo_us, len)), m: v11.metrics(r2.form.events, r2.form) },
   };
 }
 const warlockLive = { adventurers_killed: 412, scars: 7, summit_held_seconds: 0, rank: 3, species_count: 1243 };
@@ -50,9 +50,9 @@ const data = [
 function summary(pick) {
   const rows = Object.values(cache).map(({ beast, live }) => pick(beast, live)), multi = rows.filter((r) => r.voices > 1);
   const avg = (k, rs) => +(rs.reduce((a, r) => a + r[k], 0) / rs.length).toFixed(1);
-  return { durations: avg('durations', rows), clash: avg('clashPct', multi), clashOnBeat: avg('clashOnBeatPct', multi), octave: avg('octavePct', multi), parallels: avg('parallels', multi), cadence: Math.round(100 * rows.filter((r) => r.cadence).length / rows.length) };
+  return { silent: avg('silentPct', rows), durations: avg('durations', rows), clash: avg('clashPct', multi), clashOnBeat: avg('clashOnBeatPct', multi), octave: avg('octavePct', multi), parallels: avg('parallels', multi), cadence: Math.round(100 * rows.filter((r) => r.cadence).length / rows.length) };
 }
-const SUM = { v1: summary((b, l) => v11.metrics(engine.render(b, l).form.events)), v11: summary((b, l) => v11.metrics(v11.render(b, l).form.events)), n: Object.keys(cache).length };
+const SUM = { v1: summary((b, l) => { const r = engine.render(b, l); return v11.metrics(r.form.events, r.form); }), v11: summary((b, l) => { const r = v11.render(b, l); return v11.metrics(r.form.events, r.form); }), n: Object.keys(cache).length };
 
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Beast Composer A/B</title>
@@ -91,10 +91,11 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
 @media (max-width:760px){.layout{grid-template-columns:1fr}.art{max-width:240px}}
 </style></head><body><main>
 <h1>Beast composer: v1 vs v1.1</h1>
-<p>The same Beast and the same synth, composed two ways. <b>v1</b> is the onchain composer today. <span class="bb">v1.1</span> is a prototype (JavaScript only for now) that keeps v1's themes, keys and form and changes three things:</p>
+<p>The same Beast and the same synth, composed two ways. <b>v1</b> is the onchain composer today. <span class="bb">v1.1</span> is a prototype (JavaScript only for now) that keeps v1's themes, keys and form and changes four things:</p>
 <ul>
 <li><b>Cadence:</b> the theme's last bar steps to the tonic and holds it, so each section and the loop end on purpose.</li>
 <li><b>Rhythm:</b> the theme is built from 4-beat rhythm cells (long notes, dotted rhythms, short runs) picked by the Beast's motif seed, with a family per Beast type; the kill-driven ornament density decides how many passing notes appear.</li>
+<li><b>No silent bars:</b> from the end of its theme until the next section, every voice plays an episode: the theme's opening bar in sequence (a step higher or lower each bar), then a half cadence onto the dominant of the next section's key. The last section leads back into the first, so the loop flows on.</li>
 <li><b>Voices:</b> every note is checked against every voice sounding with it. Thirds and sixths are preferred; clashes on the beat, unisons and parallel 5ths/8ves are avoided by moving a note a step or two.</li>
 </ul>
 <div class="layout">
@@ -128,11 +129,11 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
 </div>
 <h2>Across ${SUM.n} Beasts</h2>
 <div class="tablewrap"><table>
-<tr><th></th><th>Note lengths per score</th><th>Clashes between voices</th><th>Clashes on the beat</th><th>Unisons / octaves</th><th>Parallel 5ths/8ves per score</th><th>Ends on the tonic</th></tr>
-<tr><td>v1</td><td>${SUM.v1.durations}</td><td>${SUM.v1.clash}%</td><td>${SUM.v1.clashOnBeat}%</td><td>${SUM.v1.octave}%</td><td>${SUM.v1.parallels}</td><td>${SUM.v1.cadence}%</td></tr>
-<tr><td class="b">v1.1</td><td class="b">${SUM.v11.durations}</td><td class="b">${SUM.v11.clash}%</td><td class="b">${SUM.v11.clashOnBeat}%</td><td class="b">${SUM.v11.octave}%</td><td class="b">${SUM.v11.parallels}</td><td class="b">${SUM.v11.cadence}%</td></tr>
+<tr><th></th><th>Silent time</th><th>Note lengths per score</th><th>Clashes between voices</th><th>Clashes on the beat</th><th>Unisons / octaves</th><th>Parallel 5ths/8ves per score</th><th>Ends on the tonic</th></tr>
+<tr><td>v1</td><td>${SUM.v1.silent}%</td><td>${SUM.v1.durations}</td><td>${SUM.v1.clash}%</td><td>${SUM.v1.clashOnBeat}%</td><td>${SUM.v1.octave}%</td><td>${SUM.v1.parallels}</td><td>${SUM.v1.cadence}%</td></tr>
+<tr><td class="b">v1.1</td><td class="b">${SUM.v11.silent}%</td><td class="b">${SUM.v11.durations}</td><td class="b">${SUM.v11.clash}%</td><td class="b">${SUM.v11.clashOnBeat}%</td><td class="b">${SUM.v11.octave}%</td><td class="b">${SUM.v11.parallels}</td><td class="b">${SUM.v11.cadence}%</td></tr>
 </table></div>
-<p class="note">Clashes: seconds, sevenths and tritones between voices sounding together, as a share of all voice pairs (multi-voice Beasts). Both versions loop on the form's length, with the same closing rest. Instruments: one TinyChip preset for every voice (pick any of the 100), or Auto, the onchain orchestration worked out from v1's score and applied to both versions; chip drums.</p>
+<p class="note">Clashes: seconds, sevenths and tritones between voices sounding together, as a share of all voice pairs (multi-voice Beasts). Silent time: share of the form in rests of a beat or more with no note sounding (shorter gaps are articulation). Both versions loop on the same form length; v1 rests for the closing bars, v1.1 fills them. Instruments: one TinyChip preset for every voice (pick any of the 100), or Auto, the onchain orchestration worked out from v1's score and applied to both versions; chip drums.</p>
 </main>
 <script>${inline(midiModules.map((m) => m.js).join('\n'))}</script>
 <script>${TINY_NOTICE}\n${inline(tiny)}</script>
@@ -175,7 +176,7 @@ function drawRoll(canvas, midi, tick) {
 function metricsTable() {
   const a = BEASTS[current].v1.m, b = BEASTS[current].v11.m;
   const row = (label, k, f = (x) => x) => '<tr><td>' + label + '</td><td>' + f(a[k]) + '</td><td class="b">' + f(b[k]) + '</td></tr>';
-  $('mt').innerHTML = '<tr><th>This Beast</th><th>v1</th><th>v1.1</th></tr>' + row('Notes', 'notes') + row('Note lengths', 'durations')
+  $('mt').innerHTML = '<tr><th>This Beast</th><th>v1</th><th>v1.1</th></tr>' + row('Notes', 'notes') + row('Silent time', 'silentPct', (x) => x + '%') + row('Note lengths', 'durations')
     + (a.voices > 1 ? row('Clashes between voices', 'clashPct', (x) => x + '%') + row('Clashes on the beat', 'clashOnBeatPct', (x) => x + '%') + row('Unisons / octaves', 'octavePct', (x) => x + '%') + row('Parallel 5ths/8ves', 'parallels') : '')
     + row('Ends on the tonic', 'cadence', (x) => (x ? 'yes' : 'no'));
 }

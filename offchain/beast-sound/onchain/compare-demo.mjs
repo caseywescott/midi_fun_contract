@@ -177,6 +177,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
 <tr><td class="b">v1.1: keys change</td><td class="b">${KEYS.v11.avg}</td><td class="b">${KEYS.v11.tritones} of ${KEYS.v11.moves}</td><td class="b">${SUM.v11.silent}%</td><td class="b">${SUM.v11.durations}</td><td class="b">${SUM.v11.clash}%</td><td class="b">${SUM.v11.clashOnBeat}%</td><td class="b">${SUM.v11.octave}%</td><td class="b">${SUM.v11.parallels}</td><td class="b">${SUM.v11.cadence}%</td></tr>
 <tr><td class="c">v1.1: same mode, even phrases, history</td><td class="c">${KEYS.v11m.avg}</td><td class="c">${KEYS.v11m.tritones} of ${KEYS.v11m.moves}</td><td class="c">${SUM.v11m.silent}%</td><td class="c">${SUM.v11m.durations}</td><td class="c">${SUM.v11m.clash}%</td><td class="c">${SUM.v11m.clashOnBeat}%</td><td class="c">${SUM.v11m.octave}%</td><td class="c">${SUM.v11m.parallels}</td><td class="c">${SUM.v11m.cadence}%</td></tr>
 </table></div>
+<p class="note">Drums: kick, snare backbeat and eighth-note hi-hats, phrased in bar pairs (firmer first bar, a pickup kick and an open hat closing each pair); the tier's fill replaces the snare at the end of each section while the kick and hats keep going. This page uses a fuller kick (deep pitch drop plus a click) and crisper hats than the stock chip kit.</p>
 <p class="note">Clashes: seconds, sevenths and tritones between voices sounding together, as a share of all voice pairs (multi-voice Beasts). Silent time: share of the form in rests of a beat or more with no note sounding (shorter gaps are articulation). Both versions loop on the same form length; v1 rests for the closing bars, v1.1 fills them. Instruments: one TinyChip preset for every voice (pick any of the 100), or Auto, the onchain orchestration worked out from v1's score and applied to every version; chip drums.</p>
 </main>
 <script>${inline(midiModules.map((m) => m.js).join('\n'))}</script>
@@ -211,20 +212,48 @@ function fillNotes(f) {
   if (f === 'C') return [[0, 120, 36, 100], [0, 120, 38, 80], [240, 120, 38, 88], ...[0, 1, 2, 3].map((k) => [480 + k * 120, 90, 38, 92 + k * 8])];
   return [50, 50, 48, 48, 47, 45, 43, 41].map((key, k) => [k * 120, 110, key, 84 + k * 4]).concat([[840, 120, 36, 110]]); // toms high to low, a kick on the last sixteenth
 }
+// the groove keeps going through the fills: kick and hi-hats play on, the fill takes the snare's place
 function withDrums(song, sectionBars, tier) {
   const end = Math.max(song.length_ticks || 0, ...song.notes.map((n) => n[0] + n[1]));
   const bars = Math.ceil(end / 1920) * 1920, sec = (sectionBars || 4) * 1920, drums = [];
-  const f = fillFor(tier), region = FILLS[f].beats * 480;
+  const f = fillFor(tier), region = FILLS[f].beats * 480, fill = fillNotes(f);
+  const fillKickAt = new Set(fill.filter((n) => n[2] === 36).map((n) => n[0]));
   for (let t = 0; t < bars; t += 240) {
-    const rel = t % sec, bar = Math.floor(rel / 1920), b = (rel % 1920) / 480, onBeat = t % 480 === 0;
-    if (rel === sec - region) for (const [st, d, key, v] of fillNotes(f)) drums.push([t + st, d, key, v, 9]);
-    if (rel >= sec - region) continue;                        // the fill replaces the groove here
-    if (f === 'D' && rel === 0) { drums.push([t, 480, 49, 104, 9]); drums.push([t, 120, 36, 120, 9]); continue; } // crash on each section's downbeat
-    if (onBeat && b === 0) drums.push([t, 120, 36, bar % 2 === 0 ? 120 : 92, 9]);
-    if (onBeat && b === 2) drums.push([t, 120, 38, bar % 2 === 0 ? 92 : 84, 9]);
-    drums.push([t, 60, 42, onBeat ? 70 : 50, 9]);
+    const rel = t % sec, bar = Math.floor(rel / 1920), second = bar % 2 === 1, b = (rel % 1920) / 480, onBeat = t % 480 === 0;
+    const inFill = rel >= sec - region;
+    if (rel === sec - region) for (const [st, d, key, v] of fill) drums.push([t + st, d, key, v, 9]);
+    if (f === 'D' && rel === 0) drums.push([t, 480, 49, 100, 9]);                      // crash on each section's downbeat (fill D)
+    // kick: beat 1 (firmer on the first bar of a pair), a pickup on the and of 3 in the second bar,
+    // and beat 3 under the fill unless the fill brings its own kick there
+    if (b === 0) drums.push([t, 120, 36, second ? 104 : 122, 9]);
+    if (!inFill && second && b === 2.5) drums.push([t, 120, 36, 86, 9]);
+    if (inFill && b === 2 && !fillKickAt.has(rel - (sec - region))) drums.push([t, 120, 36, 100, 9]);
+    // snare backbeat on 3, except where the fill plays
+    if (!inFill && b === 2) drums.push([t, 120, 38, second ? 88 : 94, 9]);
+    // hi-hats: eighths, accented on the beat, an open hat closing each bar pair; a touch softer under a fill
+    const open = !inFill && second && b === 3.5;
+    let hv = b === 0 ? 80 : onBeat ? 70 : 52;
+    if (inFill) hv -= 12;
+    drums.push(open ? [t, 240, 46, 64, 9] : [t, 60, 42, hv, 9]);
   }
   return { notes: song.notes.concat(drums), tempo_us: song.tempo_us, length_ticks: bars };
+}
+// a fuller kick and crisper hats than the stock chip kit (this page only; applied after TinyChip installs its kit)
+function betterKit(s) {
+  const kick = [
+    { w: 'sine', t: 0, f: 150, v: 0.5, a: 0.001, h: 0.008, d: 0.12, s: 0, r: 0.06, p: 0.3, q: 0.022 },   // body: a deep pitch drop
+    { w: 'nTRI', t: 0, f: 150, v: 0.12, a: 0.001, h: 0.004, d: 0.05, s: 0, r: 0.03, p: 0.4, q: 0.02 },    // a little chip grit
+    { w: 'n0', t: 0, f: 3200, v: 0.16, a: 0, h: 0, d: 0.004, s: 0, r: 0.004 },                             // the click
+  ];
+  const hat = (d, v) => [
+    { w: 'nMET', t: 0, f: 440 * 19, v, a: 0.0005, h: 0, d, s: 0, r: d / 2 },                               // metallic
+    { w: 'n0', t: 0, f: 440 * 3, v: v * 0.7, a: 0.0005, h: 0, d: d * 0.7, s: 0, r: d / 3 },               // air
+  ];
+  s.setTimbre(1, 35, kick.map((o) => ({ ...o, f: o.w === 'n0' ? o.f : 130 })));
+  s.setTimbre(1, 36, kick);
+  s.setTimbre(1, 42, hat(0.014, 0.17));
+  s.setTimbre(1, 44, hat(0.02, 0.13));
+  s.setTimbre(1, 46, hat(0.085, 0.15));
 }
 function drawRoll(canvas, midi, tick) {
   const s = v1lib.smf.parse(midi), ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
@@ -273,6 +302,7 @@ function play() {
   synth.playMIDI();
   playing = true; $('play').textContent = '■ Stop';
   setInstrument();
+  betterKit(synth);
 }
 // One instrument choice for both versions. Auto orchestrates v1's score and gives v1.1 the same
 // preset per voice, so a switch changes the notes, never the sound.
@@ -289,6 +319,7 @@ function setInstrument() {
     $('presetNote').textContent = channels.map((ch) => 'voice ' + (ch + 1) + ': ' + NAMES[roles[ch]]).join(' · ');
     if (!playing) return;
     TinyChip.attach(synth, { bare: true, channels: [], events: [] }); // installs the onchain runtime's presets at 129+
+    betterKit(synth);                                                   // (attach reinstalls the chip kit)
     for (const ch of channels) synth.send([0xc0 | ch, 129 + roles[ch]]);
     // a voice v1.1 has that v1 lacks (none today) keeps the lead's preset
     for (let ch = 0; ch < 16; ch++) if (ch !== 9 && !(ch in roles)) synth.send([0xc0 | ch, 129 + roles[channels[channels.length - 1]]]);

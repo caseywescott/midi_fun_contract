@@ -127,6 +127,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
 <li><b>Related keys:</b> sections move around the circle of fifths instead of v1's fixed shifts, which often jump a tritone. The Beast's tier sets how far they roam: tiers 4–5 stay within one fifth (I, V, IV), tier 3 two, tier 2 three, tier 1 four (a third relation such as C → E). Its type picks the sharp or flat side, and the last section comes back within a fifth of home, so the loop returns smoothly.</li>
 <li><b>Same mode, even phrases (third button):</b> the same plan as diatonic transposition: every section stays in the home key and mode, and the theme starts on the planned scale degree (V = degree 5 of the home scale), so no new sharps or flats appear. Sections are an even number of bars by <em>shortening</em>: the episode is 1 or 2 bars, whichever makes the section even (4, 6 or 8 bars), so there is never more repetition than v1.1's other versions, and the theme and canon are untouched. The first bar of each pair is accented, and the drums mark the pairs and fill into each section. The checkbox lets a single-voice Beast's theme breathe instead (6 bars).</li>
 <li><b>History (third version):</b> Beast data mapped to musical function by layer. Identity (species, name, type, tier) fixes the tune, mode, rhythm family and harmonic reach. Trajectory, with kills and defeats swapped after listening (the track came alive when defeats turned on the inversion, and that belongs to kills): kills bring the mirrored follower voice and the inverted, calmer development and make the bridges sink; defeats add sections, tighter stretto and faster motion, and more ornament; the second name prefix picks the ornament vocabulary (trills or passing notes). Current state: level and health set how widely the voices spread; rank sets how far the lead stands out, so a ranking shuffle changes prominence, never the tune. Try the history scrubber.</li>
+<li><b>New Beast family (picker):</b> no Beast so far plays a major mode (all are Dorian, Aeolian or Phrygian), so the new Beasts get the major side. Each pair shares a tonic and its elemental form alters a note or two: Sprout in Lydian over a tonic drone, voices unfolding twice as far apart; Mushroom in Lydian ♯5 with notes left ringing like bells; Brownie in Mixolydian with a jig skip, detached and a little faster; Fire broom in Phrygian dominant, the same jig catching fire, faster, its bridges climbing; Tortoise in major pentatonic, slow, low and long-noted; Volcanic tortoise in the acoustic scale (Lydian dominant), slow and low, its bridges sinking. Each family has its own instruments and groove. Whole tone stays available as its own option.</li>
 <li><b>Voices:</b> every note is checked against every voice sounding with it. Thirds and sixths are preferred; clashes on the beat, unisons and parallel 5ths/8ves are avoided by moving a note a step or two.</li>
 </ul>
 <div class="layout">
@@ -145,10 +146,19 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
         <span class="note" id="fillNote"></span>
         <label class="check"><input type="checkbox" id="keep" checked> Keep playing when switching</label>
       </div>
+      <label class="field">New Beast family (third version): a major-side mode, rhythm feel, tempo, texture and instruments
+        <select id="family"><option value="">None: the Beast's own mode</option>
+          <option value="sprout">Sprout: Lydian, tonic drone, voices unfold</option>
+          <option value="mushroom">Mushroom: Lydian ♯5, drone, ringing bells</option>
+          <option value="brownie">Brownie: Mixolydian jig, detached</option>
+          <option value="fire">Fire broom: Phrygian dominant jig, faster, climbing</option>
+          <option value="tortoise">Tortoise: major pentatonic, slow and low</option>
+          <option value="lava">Volcanic tortoise: acoustic scale, slow, low, sinking</option>
+        </select></label>
       <label class="check"><input type="checkbox" id="wholetone"> Third version in a whole-tone scale (a test for the new Beasts: six equal steps, no fifths)</label>
       <label class="check"><input type="checkbox" id="breath"> Same mode, single-voice Beasts: let the theme breathe (hold its last note a bar: 6 bars instead of 4)</label>
       <label class="field">Instrument, the same for every version
-        <select id="preset"><option value="auto">Auto: the onchain orchestration (worked out from v1's score, used for every version)</option>${[...new Set(PRESETS.map((x) => x.category))].map((c) => `<optgroup label="${esc(c)}">${PRESETS.filter((x) => x.category === c).map((x) => `<option value="${x.program}"${x.program === 0 ? ' selected' : ''}>All voices: ${x.program}: ${esc(x.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
+        <select id="preset"><option value="family">Family instruments (for the chosen new Beast family)</option><option value="auto">Auto: the onchain orchestration (worked out from v1's score, used for every version)</option>${[...new Set(PRESETS.map((x) => x.category))].map((c) => `<optgroup label="${esc(c)}">${PRESETS.filter((x) => x.category === c).map((x) => `<option value="${x.program}"${x.program === 0 ? ' selected' : ''}>All voices: ${x.program}: ${esc(x.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
       <div class="controls">
         <button type="button" id="prev">◀ Prev</button><button type="button" id="next">Next ▶</button>
         <span class="note" id="presetNote"></span>
@@ -214,7 +224,7 @@ function fillNotes(f) {
   return [50, 50, 48, 48, 47, 45, 43, 41].map((key, k) => [k * 120, 110, key, 84 + k * 4]).concat([[840, 120, 36, 110]]); // toms high to low, a kick on the last sixteenth
 }
 // the groove keeps going through the fills: kick and hi-hats play on, the fill takes the snare's place
-function withDrums(song, sectionBars, tier) {
+function withDrums(song, sectionBars, tier, fam = null) {
   const end = Math.max(song.length_ticks || 0, ...song.notes.map((n) => n[0] + n[1]));
   const bars = Math.ceil(end / 1920) * 1920, sec = (sectionBars || 4) * 1920, drums = [];
   const f = fillFor(tier), region = FILLS[f].beats * 480, fill = fillNotes(f);
@@ -224,6 +234,7 @@ function withDrums(song, sectionBars, tier) {
     const inFill = rel >= sec - region;
     if (rel === sec - region) for (const [st, d, key, v] of fill) drums.push([t + st, d, key, v, 9]);
     if (f === 'D' && rel === 0) drums.push([t, 960, 49, 76, 9]);                       // a soft cymbal on each section's downbeat (fill D)
+    if (fam) { familyDrums(drums, fam, t, rel, bar, second, b, onBeat, inFill); continue; }
     // kick: beat 1 (firmer on the first bar of a pair), a pickup on the and of 3 in the second bar,
     // and beat 3 under the fill unless the fill brings its own kick there
     if (b === 0) drums.push([t, 120, 36, second ? 104 : 122, 9]);
@@ -240,6 +251,26 @@ function withDrums(song, sectionBars, tier) {
   return { notes: song.notes.concat(drums), tempo_us: song.tempo_us, length_ticks: bars };
 }
 // a fuller kick and crisper hats than the stock chip kit (this page only; applied after TinyChip installs its kit)
+// the new families' grooves (the tier fill still closes each section)
+function familyDrums(drums, fam, t, rel, bar, second, b, onBeat, inFill) {
+  const push = (d, key, v, at = t) => drums.push([at, d, key, v, 9]);
+  if (fam === 'sprout' || fam === 'mushroom') {               // soft: kick on 1, a side stick on 3, hats on the beat
+    if (b === 0) push(120, 36, second ? 84 : 96);
+    if (!inFill && b === 2) push(90, 37, 56);
+    if (onBeat) push(60, 42, inFill ? 40 : 52);
+  } else if (fam === 'brownie' || fam === 'fire') {           // jig: swung hats (the offbeat falls late, on the triplet)
+    if (b === 0) push(120, 36, second ? 104 : 120);
+    if (!inFill && b === 2) push(120, 38, 90);
+    if (fam === 'fire' && !inFill && b === 2.5) push(120, 36, 88);
+    if (onBeat) push(60, 42, b === 0 ? 78 : 66);
+    else push(60, 42, inFill ? 40 : 54, t + 80);
+    if (fam === 'fire' && onBeat) push(50, 42, 40, t + 160);    // crackle: an extra triplet hat
+  } else {                                                    // tortoises: a heavy kick on 1, quarter hats, sparse backbeat
+    if (b === 0) push(160, 36, 120);
+    if (!inFill && second && b === 2) push(fam === 'lava' ? 160 : 120, fam === 'lava' ? 41 : 38, fam === 'lava' ? 100 : 82); // lava: a low tom rumble
+    if (onBeat) push(60, 42, inFill ? 36 : 48);
+  }
+}
 function betterKit(s) {
   const kick = [
     { w: 'sine', t: 0, f: 150, v: 0.5, a: 0.001, h: 0.008, d: 0.12, s: 0, r: 0.06, p: 0.3, q: 0.022 },   // body: a deep pitch drop
@@ -303,7 +334,8 @@ function play() {
   if (!synth) synth = TinyChipBank.install(new WebAudioTinySynth({ quality: 1, useReverb: 0, voices: 64 }));
   synth.getAudioContext().resume();
   const k = key(version), midi = BEASTS[current][k].midi, song = v1lib.smf.parse(midi);
-  const file = $('drums').checked ? v1lib.midi.write(withDrums(song, BEASTS[current].bars[k], BEASTS[current].tier)) : bytesOf(midi);
+  const fam = version === 'v11m' && $('family').value ? $('family').value : null;   // only the third version takes a family
+  const file = $('drums').checked ? v1lib.midi.write(withDrums(song, BEASTS[current].bars[k], BEASTS[current].tier, fam)) : bytesOf(midi);
   synth.loadMIDI(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength));
   synth.loopEnd = Math.ceil(synth.maxTick / synth.song.timebase) * synth.song.timebase;
   synth.setLoop(1);
@@ -321,8 +353,19 @@ function v1Events() {
   for (const [t, d, p, v, ch] of s.notes) ev.push({ t, m: [0x90 | ch, p, v] });
   return { ev: ev.sort((a, b) => a.t - b.t), channels: [...new Set(s.notes.map((n) => n[4]))].sort((a, b) => a - b) };
 }
+// family instruments (bank programs): lead (voice 1), the other voices, the lowest voice (or the drone)
+const FAMILY_INSTR = { sprout: [70, 15, 33], mushroom: [45, 75, 32], brownie: [2, 74, 20], fire: [62, 16, 61], tortoise: [0, 33, 20], lava: [81, 79, 61] };
 function setInstrument() {
   const val = $('preset').value;
+  if (val === 'family') {
+    const fam = $('family').value || 'sprout', [lead, other, low] = FAMILY_INSTR[fam];
+    const s = v1lib.smf.parse(BEASTS[current][key(version)].midi), chans = [...new Set(s.notes.map((n) => n[4]))];
+    const mean = (ch) => { const ps = s.notes.filter((n) => n[4] === ch); return ps.reduce((a, n) => a + n[2], 0) / ps.length; };
+    const rest = chans.filter((c) => c !== 0), lowest = rest.length ? rest.reduce((a, c) => (mean(c) < mean(a) ? c : a)) : -1; // the lowest voice other than the lead
+    $('presetNote').textContent = (!$('family').value ? '(pick a family; showing Sprout) ' : '') + 'lead ' + NAMES[lead] + ' · voices ' + NAMES[other] + (lowest >= 0 ? ' · low voice ' + NAMES[low] : '');
+    if (playing) for (let ch = 0; ch < 16; ch++) if (ch !== 9) synth.send([0xc0 | ch, ch === 0 ? lead : ch === lowest ? low : other]);
+    return;
+  }
   if (val === 'auto') {
     const { ev, channels } = v1Events();
     const roles = TinyChip.orchestrate(ev, channels, 1920);
@@ -365,12 +408,12 @@ function rescore() {
   const B = BEASTS[current], live = scrubbedLive();
   if (!ORIGINAL[current]) ORIGINAL[current] = { v11m: B.v11m, v11mb: B.v11mb, bars: { ...B.bars } };
   const enc = (r) => { const u8 = BS11.engine.eventsToMidi(r.form.events, r.params.tempo_us, BS11.engine.formLength(r.form)); let s = ''; for (const x of u8) s += String.fromCharCode(x); return { midi: btoa(s), m: BS11.v11.metrics(r.form.events, r.form) }; };
-  const scale = $('wholetone').checked ? 'wholetone' : 'mode';
-  const r = BS11.v11.render(B.beast, live, { keys: 'mode', even: true, traj: true, scale }), rb = BS11.v11.render(B.beast, live, { keys: 'mode', even: true, traj: true, breath: true, scale });
+  const scale = $('wholetone').checked ? 'wholetone' : 'mode', family = $('family').value || null;
+  const r = BS11.v11.render(B.beast, live, { keys: 'mode', even: true, traj: true, scale, family }), rb = BS11.v11.render(B.beast, live, { keys: 'mode', even: true, traj: true, breath: true, scale, family });
   B.v11m = enc(r); B.bars.v11m = r.form.section_ticks / 1920;
   if (rb.v11.breathed) { B.v11mb = enc(rb); B.bars.v11mb = rb.form.section_ticks / 1920; }
   const real = live.adventurers_killed === B.live.adventurers_killed && live.scars === B.live.scars && rankOf(live) === rankOf(B.live);
-  $('custom').textContent = [real ? '' : 'scrubbed history', scale === 'wholetone' ? 'whole tone' : ''].filter(Boolean).map((x) => '(' + x + ')').join(' ');
+  $('custom').textContent = [real ? '' : 'scrubbed history', family ? r.v11.family.name + ', ' + r.v11.family.mode : scale === 'wholetone' ? 'whole tone' : ''].filter(Boolean).map((x) => '(' + x + ')').join(' ');
   $('trajNote').textContent = describe(r.v11.trajectory, r);
   $('killsV').textContent = live.adventurers_killed; $('scarsV').textContent = live.scars;
   show();
@@ -400,15 +443,22 @@ function setVersion(v) {
   requestAnimationFrame(tickLoop);
 })();
 $('play').addEventListener('click', () => (playing ? stop() : play()));
-$('beast').addEventListener('change', (e) => { const was = playing; stop(); const prev = current; current = +e.target.value; if (ORIGINAL[prev]) { const o = ORIGINAL[prev]; Object.assign(BEASTS[prev], { v11m: o.v11m, v11mb: o.v11mb, bars: o.bars }); delete ORIGINAL[prev]; } loadHistory(); if ($('wholetone').checked) rescore(); show(); if (was) play(); });
+$('beast').addEventListener('change', (e) => { const was = playing; stop(); const prev = current; current = +e.target.value; if (ORIGINAL[prev]) { const o = ORIGINAL[prev]; Object.assign(BEASTS[prev], { v11m: o.v11m, v11mb: o.v11mb, bars: o.bars }); delete ORIGINAL[prev]; } loadHistory(); if ($('wholetone').checked || $('family').value) rescore(); show(); if (was) play(); });
 $('drums').addEventListener('change', () => { if (playing) { stop(); play(); } });
 ['kills', 'scars'].forEach((id) => $(id).addEventListener('input', () => { $(id + 'V').textContent = (id === 'kills' ? KILL_STEPS : SCAR_STEPS)[+$(id).value]; }));
 ['kills', 'scars', 'rank'].forEach((id) => $(id).addEventListener('change', rescore));
-$('real').addEventListener('click', () => { const was = playing && version === 'v11m'; loadHistory(); if ($('wholetone').checked) return rescore(); show(); if (was) { stop(); play(); } });
+$('real').addEventListener('click', () => { const was = playing && version === 'v11m'; loadHistory(); if ($('wholetone').checked || $('family').value) return rescore(); show(); if (was) { stop(); play(); } });
+// new Beast family: re-render the third version in that family, with its instruments; none restores it
+$('family').addEventListener('change', () => {
+  $('wholetone').disabled = !!$('family').value;            // the family's own scale takes over
+  if ($('family').value) { $('preset').value = 'family'; return rescore(); }
+  if ($('preset').value === 'family') $('preset').value = '0';
+  if (atReal() && !$('wholetone').checked) { const was = playing && version === 'v11m'; loadHistory(); show(); setInstrument(); if (was) { stop(); play(); } } else rescore();
+});
 // whole tone: re-render the third version (with the scrubber's current history); off restores it
 $('wholetone').addEventListener('change', () => {
   if ($('wholetone').checked) return rescore();
-  if (atReal()) { const was = playing && version === 'v11m'; loadHistory(); show(); if (was) { stop(); play(); } } else rescore();
+  if (atReal() && !$('family').value) { const was = playing && version === 'v11m'; loadHistory(); show(); if (was) { stop(); play(); } } else rescore();
 });
 $('breath').addEventListener('change', () => { show(); if (playing && version === 'v11m') { stop(); play(); } });
 $('preset').addEventListener('change', setInstrument);

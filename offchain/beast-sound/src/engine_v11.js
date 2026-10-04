@@ -41,6 +41,14 @@
 //                Option { scale: 'wholetone' }: every pitch comes from the whole-tone scale on the
 //                home tonic (six equal steps, no fifths) instead of the Beast's mode; a test for the
 //                new Beasts.
+//                Option { family }: the new Beasts' major-side family (no Beast so far plays a major
+//                mode). Each pair shares a tonic, the elemental form alters a note or two:
+//                  sprout    Lydian              tonic drone, voices entering twice as far apart
+//                  mushroom  Lydian #5           the same, notes left ringing
+//                  brownie   Mixolydian          jig skip (dotted pairs), detached, +5%
+//                  fire      Phrygian dominant   jig skip, detached, +12%, bridges climb
+//                  tortoise  major pentatonic    long calm notes, low register, -25%
+//                  lava      acoustic scale      long calm notes, low register, -25%, bridges sink
 //   + Dynamics   each phrase rises toward its highest note; bar downbeats are accented.
 //
 //   const v11 = createEngineV11(engine);
@@ -131,6 +139,22 @@ export function createEngineV11(engine) {
   }
   let R = I.realize;    // set for the duration of a render
 
+  // ── the new Beasts' family (major side): scale, rhythm feel, tempo, register, texture ──
+  const FAMILIES = {
+    sprout: { name: 'Sprout', mode: 'Lydian', scale: [0, 2, 4, 6, 7, 9, 11], drone: true, bloom: true },
+    mushroom: { name: 'Mushroom', mode: 'Lydian ♯5', scale: [0, 2, 4, 6, 8, 9, 11], drone: true, bloom: true, ring: true },
+    brownie: { name: 'Brownie', mode: 'Mixolydian', scale: [0, 2, 4, 5, 7, 9, 10], jig: true, detached: true, tempo: 1.05 },
+    fire: { name: 'Fire broom', mode: 'Phrygian dominant', scale: [0, 1, 4, 5, 7, 8, 10], jig: true, detached: true, tempo: 1.12, direction: 1 },
+    tortoise: { name: 'Tortoise', mode: 'major pentatonic', scale: [0, 2, 4, 7, 9], slow: true, low: true, tempo: 0.75 },
+    lava: { name: 'Volcanic tortoise', mode: 'acoustic scale (Lydian dominant)', scale: [0, 2, 4, 6, 7, 9, 10], slow: true, low: true, tempo: 0.75, direction: -1 },
+  };
+  const scaleRealize = (S) => (deg, tonic) => {
+    const L = S.length, du = deg + 10 * L;
+    if (du < 0) throw new Error('scale: degree below lattice');
+    return tonic + 12 * Math.floor(du / L) + S[du % L] - 120;
+  };
+  let FAM = null;       // set for the duration of a render
+
   const IC = (a, b) => Math.abs(a - b) % 12;
   const dissonant = (ic) => ic === 1 || ic === 2 || ic === 6 || ic === 10 || ic === 11;
   const perfect = (ic) => ic === 0 || ic === 7;
@@ -167,6 +191,8 @@ export function createEngineV11(engine) {
       slots[slots.length - 1].degree = 0;                       // still cadences on the tonic
     }
     const offs = tr ? OFFSETS[tr.spacing] : OFFSETS.normal;
+    // family register: tortoises sit low (the lead too unless the key is already low)
+    const famLow = FAM && FAM.low ? -7 : 0, famLeadLow = FAM && FAM.low && p.tonic_keynum >= 55 ? -7 : 0;
     const next = s + 1 < p.section_count ? s + 1 : 0;
     const mode = I.canonicalToMelodic(p.mode_id);
     // modulating: each section has its own tonic. diatonic: one home tonic, the theme moved by scale degrees
@@ -175,6 +201,11 @@ export function createEngineV11(engine) {
     const shift = diatonic ? plan[s % plan.length].degrees : 0, nextShift = diatonic ? plan[next % plan.length].degrees : 0;
     const out = [], ends = [];
     const realize = (d) => R(d + shift, tonic, mode);
+    // family drone: the tonic an octave below, a bar at a time, placed first so every voice hears it
+    if (FAM && FAM.drone) {
+      const dv = p.voice_count + (p.use_countersubject ? 1 : 0);
+      for (let t = 0; t < sectionTicks; t += BAR) out.push({ time: offset + t, duration: BAR, pitch: R(-7 + shift, tonic, mode), velocity: 56, voice_id: dv, section: s, role: 'drone' });
+    }
     // the half cadence's target: the next section's dominant chord (bass: its 5th), as pitch classes
     const domPcs = (isBass) => {
       if (diatonic) return (isBass ? [4] : [4, 6, 1]).map((k) => R(nextShift + k, home, mode) % 12);
@@ -183,11 +214,12 @@ export function createEngineV11(engine) {
     };
     for (let v = 0; v < p.voice_count; v++) {
       const entry = v === 0 ? 0 : v * lag * TU, off = offs[v] ?? offs[3];
-      const map = (d) => (p.use_inversion && v === 1 ? 4 - d : d + off);
+      const fx = v === 0 ? famLeadLow : famLow;
+      const map = (d) => (p.use_inversion && v === 1 ? 4 - d : d + off) + fx;
       ends.push({ v, map, off });
       let prev = null;
       for (const sl of slots) {
-        const base = p.use_inversion && v === 1 ? 4 - sl.degree : sl.degree + off;
+        const base = (p.use_inversion && v === 1 ? 4 - sl.degree : sl.degree + off) + fx;
         const time = offset + entry + sl.time;
         let pitch;
         if (v === 0) pitch = realize(base);
@@ -216,7 +248,7 @@ export function createEngineV11(engine) {
     }
     // episodes: every voice fills from the end of its line to the next section
     const sectionEnd = offset + sectionTicks;
-    const dir = tr ? (tr.direction || (s % 2 ? -1 : 1)) : (seed >>> 3) & 1 ? -1 : 1;
+    const dir = FAM && FAM.direction ? FAM.direction : tr ? (tr.direction || (s % 2 ? -1 : 1)) : (seed >>> 3) & 1 ? -1 : 1;
     const bass = Math.min(...ends.map((x) => x.off ?? 99)) ;
     for (const x of ends) {
       const head = x.head || slots.filter((sl) => sl.group === 0);
@@ -273,10 +305,17 @@ export function createEngineV11(engine) {
   // phrase arc per voice and section, accents on bar downbeats, articulation by profile, under the ceiling
   function shape(events, p, sectionTicks, pairs, prominence = 0) {
     const ceil = p.velocity_ceiling || 127, groups = {};
+    // family: mushroom notes ring on to the voice's next note (up to twice their length)
+    if (FAM && FAM.ring) {
+      const byVoice = {};
+      for (const e of events) (byVoice[e.voice_id] ||= []).push(e);
+      for (const list of Object.values(byVoice)) { list.sort((a, b) => a.time - b.time); list.forEach((e, i) => { if (e.role === 'drone') return; const next = list[i + 1], sectionEnd = (Math.floor(e.time / sectionTicks) + 1) * sectionTicks; e.duration = Math.min(e.duration * 2, next ? next.time - e.time : e.duration * 2, sectionEnd - e.time); }); }
+    }
     for (const e of events) (groups[e.voice_id + ':' + e.section] ||= []).push(e);
     for (const g of Object.values(groups)) {
       const lo = Math.min(...g.map((e) => e.pitch)), hi = Math.max(...g.map((e) => e.pitch)), lead = g[0].voice_id === 0;
       for (const e of g) {
+        if (e.role === 'drone') { e.velocity = Math.min(ceil, 56 + ((e.time % sectionTicks) === 0 ? 6 : 0)); delete e.slot; continue; }
         // prominence (rank): the lead stands further out from the other voices
         let v = (lead ? 80 + 4 * prominence : 70 - 2 * prominence) + Math.round(16 * (hi > lo ? (e.pitch - lo) / (hi - lo) : 0.5));
         if ((e.time % BAR) === 0) {
@@ -284,7 +323,8 @@ export function createEngineV11(engine) {
           v += (pairs ? (Math.floor((e.time % sectionTicks) / BAR) % 2 === 0 ? 12 : 4) : 8) + (lead ? 2 * prominence : 0);
         }
         e.velocity = Math.max(1, Math.min(ceil, v));
-        if (p.articulation_profile === 1) e.duration = Math.max(60, Math.floor(e.duration / 2));
+        if (FAM && FAM.detached) e.duration = Math.max(60, Math.floor(e.duration * 0.65));
+        else if (p.articulation_profile === 1) e.duration = Math.max(60, Math.floor(e.duration / 2));
         else if (p.articulation_profile === 5) e.duration = Math.max(60, Math.floor(e.duration * 3 / 4));
         delete e.slot;
       }
@@ -292,16 +332,19 @@ export function createEngineV11(engine) {
     return events;
   }
 
-  function render(beast, live, { keys = 'modulate', even = false, breath = false, traj = false, scale = 'mode' } = {}) {
-    R = scale === 'wholetone' ? wholeTone : I.realize;
-    try { return renderWith(beast, live, { keys, even, breath, traj, scale }); } finally { R = I.realize; }
+  function render(beast, live, { keys = 'modulate', even = false, breath = false, traj = false, scale = 'mode', family = null } = {}) {
+    FAM = family && FAMILIES[family] ? FAMILIES[family] : null;
+    R = FAM ? scaleRealize(FAM.scale) : scale === 'wholetone' ? wholeTone : I.realize;
+    try { return renderWith(beast, live, { keys, even, breath, traj, scale, family: FAM ? family : null }); } finally { R = I.realize; FAM = null; }
   }
-  function renderWith(beast, live, { keys, even, breath, traj, scale }) {
+  function renderWith(beast, live, { keys, even, breath, traj, scale, family }) {
     // traj: rank is current state only, so the structure is composed with a neutral rank (v1 lets the
     // crown and top ranks add ornament, accents and a voice); the real rank sets prominence alone
     const swapped = traj ? { ...live, adventurers_killed: live.scars, scars: live.adventurers_killed } : live; // kills <-> defeats
     const structural = traj ? { ...swapped, rank: Math.max(2, live.species_count || 2), species_count: live.species_count || 1 } : live;
-    const r = engine.render(beast, structural), p = r.params, f = r.form;
+    const r = engine.render(beast, structural), f = r.form;
+    // family: its tempo, and voices entering twice as far apart for the blooming plant forms
+    const p = FAM ? { ...r.params, tempo_us: Math.round(r.params.tempo_us / (FAM.tempo || 1)), stretto_lag: FAM.bloom ? r.params.stretto_lag * 2 : r.params.stretto_lag } : r.params;
     if (traj) r.live = { ...swapped };
     const theme = { ...f.theme, degrees: cadenceTheme(f.theme.degrees) };
     const tr = traj ? trajectory(r, live) : null;
@@ -310,6 +353,11 @@ export function createEngineV11(engine) {
     if (tr && tr.trill) slots = slots.flatMap((sl, i) => (sl.src === 'p' && sl.duration >= 240
       ? [{ ...sl, src: 't', duration: sl.duration / 2, degree: slots[i - 1].degree + 1 }, { ...sl, src: 't', time: sl.time + sl.duration / 2, duration: sl.duration / 2, degree: slots[i - 1].degree }]
       : [sl]));
+    // family rhythm: the jig skip (a beat's quarter becomes a dotted pair, the short note a step up) or
+    // calm long notes (passing notes absorbed into the note before)
+    if (FAM && FAM.jig) slots = slots.flatMap((sl) => (sl.duration === TU && sl.time % (2 * TU) === 0 && sl.src !== 'T'
+      ? [{ ...sl, duration: 320 }, { ...sl, src: 'p', time: sl.time + 320, duration: 160, degree: sl.degree + 1 }] : [sl]));
+    if (FAM && FAM.slow) slots = slots.filter((sl) => sl.src !== 'p' && sl.src !== 't').map((sl, i, arr) => ({ ...sl, duration: (arr[i + 1] ? arr[i + 1].time : sl.time + sl.duration) - sl.time }));
     // breath: a lone 3-bar theme holds its final tonic one bar longer (a 4-bar phrase)
     const breathed = even && breath && p.voice_count === 1 && theme.degrees.length === 12;
     if (breathed) slots[slots.length - 1] = { ...slots[slots.length - 1], duration: slots[slots.length - 1].duration + BAR };
@@ -328,7 +376,7 @@ export function createEngineV11(engine) {
     for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * ticks, csSeed, ticks, seed, plan, keys === 'mode', tr));
     events = shape(events, p, ticks, even, tr ? tr.prominence : 0).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
     const sections = f.sections.map((x, i) => ({ ...x, start: i * ticks }));
-    return { ...r, form: { ...f, theme, events, section_ticks: ticks, sections }, v11: { keyPlan: plan, keys, even, breathed, trajectory: tr, scale } };
+    return { ...r, params: p, form: { ...f, theme, events, section_ticks: ticks, sections }, v11: { keyPlan: plan, keys, even, breathed, trajectory: tr, scale, family: family && { id: family, name: FAMILIES[family].name, mode: FAMILIES[family].mode } } };
   }
 
   // numbers for the comparison: rhythm, consonance, texture, cadence
@@ -342,6 +390,7 @@ export function createEngineV11(engine) {
       const now = sounding(t), map = {};
       for (const e of now) map[e.voice_id] = e.pitch;
       for (let i = 0; i < now.length; i++) for (let j = i + 1; j < now.length; j++) {
+        if (now[i].role === 'drone' || now[j].role === 'drone') continue;   // a pedal point rubs by design
         const ic = IC(now[i].pitch, now[j].pitch); pairs++;
         if (dissonant(ic)) { clashes++; if (t % TU === 0) clashesOnBeat++; }
         if (ic === 0) octaves++;
@@ -398,5 +447,5 @@ export function createEngineV11(engine) {
 
   // v1's section shifts, for comparison
   const v1KeyPlan = (p) => Array.from({ length: p.section_count }, (_, s) => ({ shift: I.sectionTonicShift(p, s) }));
-  return { render, metrics, keyPlan, v1KeyPlan, trajectory, CELLS, FAMILY, REACH };
+  return { render, metrics, keyPlan, v1KeyPlan, trajectory, CELLS, FAMILY, REACH, FAMILIES };
 }

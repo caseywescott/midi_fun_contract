@@ -5,7 +5,8 @@ use crate::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, beast_has_sound, beast_sound_seed, build_v3_beast_form,
     decode_v3_token_id, encode_v3_token_id, genesis_token_id, map_v3_beast_to_composition_params,
     standalone_sound_seed, type_tier_family, v3_music_state_hash, v3_name_variant_id,
-    v3_params_hash, v3_rank_tier, v3_score_instructions, v3_score_midi, v3_score_notes,
+    v3_params_hash, v3_rank_tier, v3_score_full_smf_bytes, v3_score_instructions, v3_score_midi,
+    v3_score_notes, v3_score_smf_bytes,
 };
 
 // "Sorrow Peak Warlock": live mainnet rank-1 Warlock (legacy token #52918).
@@ -203,6 +204,41 @@ fn v3_score_midi_is_a_standard_midi_file() {
 }
 
 #[test]
+fn v3_score_full_smf_adds_setup_and_drums() {
+    let b = sorrow_peak_warlock();
+    let bare = v3_score_smf_bytes(b, calm());
+    let full = v3_score_full_smf_bytes(b, calm());
+    assert(full.len() > bare.len(), 'full not larger');
+    // Same header except the track count: one more track (the drums on channel 10).
+    let mut i: u32 = 0;
+    while i < 11 {
+        assert(*full.at(i) == *bare.at(i), 'header');
+        i += 1;
+    }
+    assert(*full.at(11) == *bare.at(11) + 1, 'drum track');
+    // The first voice track opens with a program change and CC10 pan at tick 0.
+    let tempo_trk_len: u32 = (*full.at(18)).into() * 0x1000000
+        + (*full.at(19)).into() * 0x10000
+        + (*full.at(20)).into() * 0x100
+        + (*full.at(21)).into();
+    let v = 22 + tempo_trk_len + 8;
+    assert(*full.at(v) == 0 && *full.at(v + 1) & 0xf0 == 0xc0, 'program change');
+    assert(*full.at(v + 3) == 0 && *full.at(v + 4) & 0xf0 == 0xb0, 'cc');
+    assert(*full.at(v + 5) == 10, 'pan');
+    // A note-on on channel 10 somewhere in the file.
+    let mut found = false;
+    let mut j: u32 = 0;
+    while j < full.len() {
+        if *full.at(j) == 0x99 {
+            found = true;
+            break;
+        }
+        j += 1;
+    }
+    assert(found, 'no drums');
+}
+
+#[test]
 fn v3_score_notes_is_much_smaller_than_midi() {
     let b = sorrow_peak_warlock();
     let live = veteran();
@@ -324,6 +360,46 @@ fn beast_v3_parity_fixture() {
             bsi.len(),
             bsi_hash,
         );
+        i += 1;
+    }
+}
+
+/// Full-MIDI parity fixture: the self-contained file (programs, pan, drums) for Beasts covering
+/// every tier's fill and 1 to 5 voices. Compared with offchain/beast-sound/src/full_midi.js by
+/// scripts/full_midi_parity.mjs.
+/// Run: scarb test -- --include-ignored --filter full_midi_parity_fixture
+#[test]
+#[ignore]
+fn full_midi_parity_fixture() {
+    let cases: Array<(PackableBeastV3, BeastV3LiveState)> = array![
+        (sorrow_peak_warlock(), calm()),
+        (sorrow_peak_warlock(), veteran()),
+        (
+            PackableBeastV3 { id: 6, prefix: 10, suffix: 3, level: 40, health: 300, shiny: 0, animated: 0, tier: 2, beast_type: 0 },
+            BeastV3LiveState { adventurers_killed: 20, scars: 2, summit_held_seconds: 0, rank: 4, species_count: 300 },
+        ),
+        (
+            PackableBeastV3 { id: 11, prefix: 30, suffix: 9, level: 70, health: 120, shiny: 1, animated: 0, tier: 3, beast_type: 0 },
+            BeastV3LiveState { adventurers_killed: 5, scars: 9, summit_held_seconds: 0, rank: 50, species_count: 900 },
+        ),
+        (
+            PackableBeastV3 { id: 16, prefix: 44, suffix: 12, level: 12, health: 80, shiny: 0, animated: 1, tier: 4, beast_type: 0 },
+            BeastV3LiveState { adventurers_killed: 1, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 0 },
+        ),
+        (
+            PackableBeastV3 { id: 21, prefix: 0, suffix: 0, level: 3, health: 40, shiny: 0, animated: 0, tier: 5, beast_type: 0 },
+            BeastV3LiveState { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 0 },
+        ),
+        (
+            PackableBeastV3 { id: 53, prefix: 69, suffix: 18, level: 255, health: 1023, shiny: 1, animated: 1, tier: 1, beast_type: 2 },
+            BeastV3LiveState { adventurers_killed: 500, scars: 63, summit_held_seconds: 0, rank: 1, species_count: 1243 },
+        ),
+    ];
+    let mut i: u32 = 0;
+    while i < cases.len() {
+        let (b, live) = *cases.at(i);
+        let midi = crate::composition::beast_v3_sound::v3_score_full_midi(b, live);
+        println!("FULL case={} len={} hash={}", i, *midi.at(0), core::poseidon::poseidon_hash_span(midi.span()));
         i += 1;
     }
 }

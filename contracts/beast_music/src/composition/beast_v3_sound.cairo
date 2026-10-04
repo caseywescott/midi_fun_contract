@@ -655,6 +655,18 @@ pub fn v3_score_smf_bytes(beast: PackableBeastV3, live: BeastV3LiveState) -> Arr
 
 /// Canonical score as a Standard MIDI File, packed 31 bytes per felt with the byte length first
 /// (`crate::midi::output::to_felt252_array` layout).
+/// The self-contained file for a generic player: programs and pan at tick 0 and a drum track
+/// (crate::composition::full_midi).
+pub fn v3_score_full_smf_bytes(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<u8> {
+    let params = map_v3_beast_to_composition_params(beast, live);
+    let form = build_beast_form(params, beast_sound_seed(beast.id, beast.prefix, beast.suffix));
+    crate::composition::full_midi::beast_form_to_full_smf_bytes(@form, params.tempo_us, params.tier)
+}
+
+pub fn v3_score_full_midi(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<felt252> {
+    crate::midi::output::to_felt252_array(v3_score_full_smf_bytes(beast, live))
+}
+
 pub fn v3_score_midi(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<felt252> {
     crate::midi::output::to_felt252_array(v3_score_smf_bytes(beast, live))
 }

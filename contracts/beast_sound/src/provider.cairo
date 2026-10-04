@@ -3,7 +3,9 @@
 //! `get_midi(token_id)` needs nothing else (`get_midi_for(token_address, token_id)` also checks the
 //! collection). The provider validates the token, decodes the static traits from the token ID, reads the live state itself and runs the
 //! existing composer (`beast_music::composition::beast_v3_sound`, engine v1), so the MIDI is
-//! byte-identical to `v3_score_midi` for the same state.
+//! byte-identical to `v3_score_full_midi` for the same state: the score plus a program change and
+//! pan on every voice at tick 0 and a drum track on channel 10, so a player that adds nothing
+//! (onchain-tinysynth) plays it as intended.
 //!
 //! Live state, all read inside one entry-point call (one state snapshot, nothing cached):
 //!
@@ -97,7 +99,7 @@ pub mod BeastMidiProvider {
     use core::poseidon::poseidon_hash_span;
     use beast_music::composition::beast_v3_sound::{
         BEAST_V3_ENGINE_VERSION, BeastV3LiveState, GENESIS_SPECIES_MAX, PackableBeastV3,
-        decode_v3_token_id, v3_score_smf_bytes,
+        decode_v3_token_id, v3_score_full_smf_bytes,
     };
     use midi_provider::{IMidiProvider, bytes_to_byte_array};
     use starknet::ContractAddress;
@@ -123,14 +125,14 @@ pub mod BeastMidiProvider {
     impl MidiProviderImpl of IMidiProvider<ContractState> {
         fn get_midi(self: @ContractState, token_id: u256) -> ByteArray {
             let (beast, report) = read_live_state(self, self.collection.read(), token_id);
-            bytes_to_byte_array(v3_score_smf_bytes(beast, report.live).span())
+            bytes_to_byte_array(v3_score_full_smf_bytes(beast, report.live).span())
         }
 
         fn get_midi_for(
             self: @ContractState, token_address: ContractAddress, token_id: u256,
         ) -> ByteArray {
             let (beast, report) = read_live_state(self, token_address, token_id);
-            bytes_to_byte_array(v3_score_smf_bytes(beast, report.live).span())
+            bytes_to_byte_array(v3_score_full_smf_bytes(beast, report.live).span())
         }
     }
 

@@ -42,7 +42,7 @@ function entry(name, beast, live, art) {
   const home = NOTE[((r1.params.tonic_keynum % 12) + 12) % 12];
   return {
     name, art, voices: r1.params.voice_count, sections: r1.params.section_count, tier: r1.params.tier,
-    beast, live: { ...r1.live },
+    beast, live: { ...r1.live }, kdr: { value: r3.v11.trajectory.kdr, level: r3.v11.trajectory.kdrLevel, name: r3.v11.trajectory.kdrName },
     keys: { v1: keys(r1.params, v11.v1KeyPlan(r1.params)), v11: keys(r2.params, r2.v11.keyPlan), v11m: 'all in ' + home + ', starting on degree ' + r3.v11.keyPlan.map((k) => ((k.degrees % 7) + 7) % 7 + 1).join(' → '), reach: v11.REACH[r1.params.tier] },
     v1: { midi: b64(engine.eventsToMidi(r1.form.events, r1.params.tempo_us, len)), m: v11.metrics(r1.form.events, r1.form) },
     v11: { midi: midiOf(r2), m: v11.metrics(r2.form.events, r2.form) },
@@ -126,7 +126,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
 <li><b>No silent bars:</b> from the end of its theme until the next section, every voice plays an episode: the theme's opening bar in sequence (a step higher or lower each bar), then a half cadence onto the dominant of the next section's key. The last section leads back into the first, so the loop flows on.</li>
 <li><b>Related keys:</b> sections move around the circle of fifths instead of v1's fixed shifts, which often jump a tritone. The Beast's tier sets how far they roam: tiers 4–5 stay within one fifth (I, V, IV), tier 3 two, tier 2 three, tier 1 four (a third relation such as C → E). Its type picks the sharp or flat side, and the last section comes back within a fifth of home, so the loop returns smoothly.</li>
 <li><b>Same mode, even phrases (third button):</b> the same plan as diatonic transposition: every section stays in the home key and mode, and the theme starts on the planned scale degree (V = degree 5 of the home scale), so no new sharps or flats appear. Sections are an even number of bars by <em>shortening</em>: the episode is 1 or 2 bars, whichever makes the section even (4, 6 or 8 bars), so there is never more repetition than v1.1's other versions, and the theme and canon are untouched. The first bar of each pair is accented, and the drums mark the pairs and fill into each section. The checkbox lets a single-voice Beast's theme breathe instead (6 bars).</li>
-<li><b>History (third version):</b> Beast data mapped to musical function by layer. Identity (species, name, type, tier) fixes the tune, mode, rhythm family and harmonic reach. Trajectory, with kills and defeats swapped after listening (the track came alive when defeats turned on the inversion, and that belongs to kills): kills bring the mirrored follower voice and the inverted, calmer development and make the bridges sink; defeats add sections, tighter stretto and faster motion, and more ornament; the second name prefix picks the ornament vocabulary (trills or passing notes). Current state: level and health set how widely the voices spread; rank sets how far the lead stands out, so a ranking shuffle changes prominence, never the tune. Try the history scrubber.</li>
+<li><b>History (third version):</b> Beast data mapped to musical function by layer. Identity (species, name, type, tier) fixes the tune, mode, rhythm family and harmonic reach. Trajectory, with kills and defeats swapped after listening (the track came alive when defeats turned on the inversion, and that belongs to kills): kills bring the mirrored follower voice and the inverted, calmer development and make the bridges sink; defeats add sections, tighter stretto and faster motion, and more ornament; the second name prefix picks the ornament vocabulary (trills or passing notes). <b>KDR</b>, kills per defeat, is a main axis: hunted (under 0.5) stretches into long notes, its other voices sink an octave below the lead, slows 6% and plays softer over a sparse half-time beat; even (0.5–2) plays as composed; dominant (2–8) dots its rhythms, speeds up 4% and adds a pickup kick; apex (8+) runs and syncopates, its lead soars an octave higher, 8% faster and louder, over sixteenth-note hats and a driving kick. Current state: level and health set how widely the voices spread; rank sets how far the lead stands out, so a ranking shuffle changes prominence, never the tune. Try the history scrubber.</li>
 <li><b>Voices:</b> every note is checked against every voice sounding with it. Thirds and sixths are preferred; clashes on the beat, unisons and parallel 5ths/8ves are avoided by moving a note a step or two.</li>
 </ul>
 <div class="layout">
@@ -213,7 +213,7 @@ function fillNotes(f) {
   return [50, 50, 48, 48, 47, 45, 43, 41].map((key, k) => [k * 120, 110, key, 84 + k * 4]).concat([[840, 120, 36, 110]]); // toms high to low, a kick on the last sixteenth
 }
 // the groove keeps going through the fills: kick and hi-hats play on, the fill takes the snare's place
-function withDrums(song, sectionBars, tier) {
+function withDrums(song, sectionBars, tier, kdr = 1) {
   const end = Math.max(song.length_ticks || 0, ...song.notes.map((n) => n[0] + n[1]));
   const bars = Math.ceil(end / 1920) * 1920, sec = (sectionBars || 4) * 1920, drums = [];
   const f = fillFor(tier), region = FILLS[f].beats * 480, fill = fillNotes(f);
@@ -226,7 +226,9 @@ function withDrums(song, sectionBars, tier) {
     // kick: beat 1 (firmer on the first bar of a pair), a pickup on the and of 3 in the second bar,
     // and beat 3 under the fill unless the fill brings its own kick there
     if (b === 0) drums.push([t, 120, 36, second ? 104 : 122, 9]);
-    if (!inFill && second && b === 2.5) drums.push([t, 120, 36, 86, 9]);
+    if (!inFill && second && b === 2.5 && kdr >= 1) drums.push([t, 120, 36, 86, 9]);
+    if (!inFill && kdr >= 2 && b === 1.5) drums.push([t, 120, 36, 80, 9]);                // dominant / apex: a pickup on the and of 2
+    if (!inFill && kdr >= 3 && !second && b === 2.5) drums.push([t, 120, 36, 84, 9]);     // apex: the and of 3 in both bars
     if (inFill && b === 2 && !fillKickAt.has(rel - (sec - region))) drums.push([t, 120, 36, 100, 9]);
     // snare backbeat on 3, except where the fill plays
     if (!inFill && b === 2) drums.push([t, 120, 38, second ? 88 : 94, 9]);
@@ -234,7 +236,9 @@ function withDrums(song, sectionBars, tier) {
     const open = !inFill && second && b === 3.5;
     let hv = b === 0 ? 80 : onBeat ? 70 : 52;
     if (inFill) hv -= 12;
+    if (kdr === 0 && !onBeat) continue;                                                  // hunted: hats on the beat only
     drums.push(open ? [t, 240, 46, 64, 9] : [t, 60, 42, hv, 9]);
+    if (kdr >= 3 && !open) drums.push([t + 120, 50, 42, inFill ? 34 : 42, 9]);          // apex: sixteenth-note hats
   }
   return { notes: song.notes.concat(drums), tempo_us: song.tempo_us, length_ticks: bars };
 }
@@ -302,7 +306,8 @@ function play() {
   if (!synth) synth = TinyChipBank.install(new WebAudioTinySynth({ quality: 1, useReverb: 0, voices: 64 }));
   synth.getAudioContext().resume();
   const k = key(version), midi = BEASTS[current][k].midi, song = v1lib.smf.parse(midi);
-  const file = $('drums').checked ? v1lib.midi.write(withDrums(song, BEASTS[current].bars[k], BEASTS[current].tier)) : bytesOf(midi);
+  const kdr = version === 'v11m' ? BEASTS[current].kdr.level : 1;   // only the history version follows KDR
+  const file = $('drums').checked ? v1lib.midi.write(withDrums(song, BEASTS[current].bars[k], BEASTS[current].tier, kdr)) : bytesOf(midi);
   synth.loadMIDI(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength));
   synth.loopEnd = Math.ceil(synth.maxTick / synth.song.timebase) * synth.song.timebase;
   synth.setLoop(1);
@@ -353,16 +358,17 @@ function scrubbedLive() {
   return l;
 }
 function describe(t, r) {
-  return r.form.sections.length + ' section' + (r.form.sections.length > 1 ? 's' : '') + ' · bridges ' + (t.direction > 0 ? 'climb' : t.direction < 0 ? 'sink' : 'alternate')
+  return 'KDR ' + t.kdr + ' (' + t.kdrName + ') · ' + r.form.sections.length + ' section' + (r.form.sections.length > 1 ? 's' : '') + ' · bridges ' + (t.direction > 0 ? 'climb' : t.direction < 0 ? 'sink' : 'alternate')
     + ' · development: ' + (r.form.sections.length < 2 ? 'none (one section)' : t.development === 'stretto' ? 'tighter stretto, faster' : t.development === 'inversion' ? 'inversion, calmer' : 'sequence')
     + ' · ornaments: ' + (t.trill ? 'trills' : 'passing notes') + ', density ' + t.ornamentDensity + ' · spacing ' + t.spacing + ' · prominence ' + t.prominence + '/3';
 }
 function rescore() {
   const B = BEASTS[current], live = scrubbedLive();
-  if (!ORIGINAL[current]) ORIGINAL[current] = { v11m: B.v11m, v11mb: B.v11mb, bars: { ...B.bars } };
+  if (!ORIGINAL[current]) ORIGINAL[current] = { v11m: B.v11m, v11mb: B.v11mb, bars: { ...B.bars }, kdr: B.kdr };
   const enc = (r) => { const u8 = BS11.engine.eventsToMidi(r.form.events, r.params.tempo_us, BS11.engine.formLength(r.form)); let s = ''; for (const x of u8) s += String.fromCharCode(x); return { midi: btoa(s), m: BS11.v11.metrics(r.form.events, r.form) }; };
   const r = BS11.v11.render(B.beast, live, { keys: 'mode', even: true, traj: true }), rb = BS11.v11.render(B.beast, live, { keys: 'mode', even: true, traj: true, breath: true });
   B.v11m = enc(r); B.bars.v11m = r.form.section_ticks / 1920;
+  B.kdr = { value: r.v11.trajectory.kdr, level: r.v11.trajectory.kdrLevel, name: r.v11.trajectory.kdrName };
   if (rb.v11.breathed) { B.v11mb = enc(rb); B.bars.v11mb = rb.form.section_ticks / 1920; }
   const real = live.adventurers_killed === B.live.adventurers_killed && live.scars === B.live.scars && rankOf(live) === rankOf(B.live);
   $('custom').textContent = real ? '' : '(scrubbed history)';
@@ -375,7 +381,7 @@ function loadHistory() {
   const l = BEASTS[current].live;
   $('kills').value = nearest(KILL_STEPS, l.adventurers_killed); $('scars').value = nearest(SCAR_STEPS, l.scars); $('rank').value = rankOf(l);
   $('killsV').textContent = l.adventurers_killed; $('scarsV').textContent = l.scars;
-  const o = ORIGINAL[current]; if (o) { Object.assign(BEASTS[current], { v11m: o.v11m, v11mb: o.v11mb, bars: o.bars }); delete ORIGINAL[current]; }
+  const o = ORIGINAL[current]; if (o) { Object.assign(BEASTS[current], { v11m: o.v11m, v11mb: o.v11mb, bars: o.bars, kdr: o.kdr }); delete ORIGINAL[current]; }
   $('custom').textContent = '';
   const r = BS11.v11.render(BEASTS[current].beast, l, { keys: 'mode', even: true, traj: true });
   $('trajNote').textContent = describe(r.v11.trajectory, r);
@@ -395,7 +401,7 @@ function setVersion(v) {
   requestAnimationFrame(tickLoop);
 })();
 $('play').addEventListener('click', () => (playing ? stop() : play()));
-$('beast').addEventListener('change', (e) => { const was = playing; stop(); const prev = current; current = +e.target.value; if (ORIGINAL[prev]) { const o = ORIGINAL[prev]; Object.assign(BEASTS[prev], { v11m: o.v11m, v11mb: o.v11mb, bars: o.bars }); delete ORIGINAL[prev]; } loadHistory(); show(); if (was) play(); });
+$('beast').addEventListener('change', (e) => { const was = playing; stop(); const prev = current; current = +e.target.value; if (ORIGINAL[prev]) { const o = ORIGINAL[prev]; Object.assign(BEASTS[prev], { v11m: o.v11m, v11mb: o.v11mb, bars: o.bars, kdr: o.kdr }); delete ORIGINAL[prev]; } loadHistory(); show(); if (was) play(); });
 $('drums').addEventListener('change', () => { if (playing) { stop(); play(); } });
 ['kills', 'scars'].forEach((id) => $(id).addEventListener('input', () => { $(id + 'V').textContent = (id === 'kills' ? KILL_STEPS : SCAR_STEPS)[+$(id).value]; }));
 ['kills', 'scars', 'rank'].forEach((id) => $(id).addEventListener('change', rescore));

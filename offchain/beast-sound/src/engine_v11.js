@@ -21,6 +21,11 @@
 //                Option { keys: 'mode' }: the same plan as diatonic transposition instead: every
 //                section stays in the home key and mode, and the theme starts on the planned scale
 //                degree (V = degree 5 of the home scale, no new sharps or flats).
+//                Option { even: true }: sections are an even number of bars by shortening, never
+//                stretching: the episode is 1 or 2 bars, whichever makes the section even, and bar
+//                pairs are accented (the first bar of each pair stronger). { breath: true } (with
+//                even): a single-voice Beast with a 3-bar theme holds its final tonic one bar more,
+//                a 4-bar phrase, then a 2-bar episode (6 bars instead of 4).
 //   + Dynamics   each phrase rises toward its highest note; bar downbeats are accented.
 //
 //   const v11 = createEngineV11(engine);
@@ -232,14 +237,17 @@ export function createEngineV11(engine) {
   }
 
   // phrase arc per voice and section, accents on bar downbeats, articulation by profile, under the ceiling
-  function shape(events, p) {
+  function shape(events, p, sectionTicks, pairs) {
     const ceil = p.velocity_ceiling || 127, groups = {};
     for (const e of events) (groups[e.voice_id + ':' + e.section] ||= []).push(e);
     for (const g of Object.values(groups)) {
       const lo = Math.min(...g.map((e) => e.pitch)), hi = Math.max(...g.map((e) => e.pitch)), lead = g[0].voice_id === 0;
       for (const e of g) {
         let v = (lead ? 80 : 70) + Math.round(16 * (hi > lo ? (e.pitch - lo) / (hi - lo) : 0.5));
-        if ((e.time % BAR) === 0) v += 8;
+        if ((e.time % BAR) === 0) {
+          // bar pairs: the first bar of each pair (counted from the section start) leans harder
+          v += pairs ? (Math.floor((e.time % sectionTicks) / BAR) % 2 === 0 ? 12 : 4) : 8;
+        }
         e.velocity = Math.max(1, Math.min(ceil, v));
         if (p.articulation_profile === 1) e.duration = Math.max(60, Math.floor(e.duration / 2));
         else if (p.articulation_profile === 5) e.duration = Math.max(60, Math.floor(e.duration * 3 / 4));
@@ -249,17 +257,29 @@ export function createEngineV11(engine) {
     return events;
   }
 
-  function render(beast, live, { keys = 'modulate' } = {}) {
+  function render(beast, live, { keys = 'modulate', even = false, breath = false } = {}) {
     const r = engine.render(beast, live), p = r.params, f = r.form;
     const theme = { ...f.theme, degrees: cadenceTheme(f.theme.degrees) };
     const slots = themeRhythm(p, theme.degrees, f.seeds.motif_seed);
+    // breath: a lone 3-bar theme holds its final tonic one bar longer (a 4-bar phrase)
+    const breathed = even && breath && p.voice_count === 1 && theme.degrees.length === 12;
+    if (breathed) slots[slots.length - 1] = { ...slots[slots.length - 1], duration: slots[slots.length - 1].duration + BAR };
+    // even: canon end + an episode of 1 or 2 bars, whichever is even (never longer than v1's 2)
+    let ticks = f.section_ticks;
+    if (even) {
+      const themeEnd = Math.max(...slots.map((x) => x.time + x.duration));
+      const canonEnd = themeEnd + (p.voice_count - 1) * p.stretto_lag * TU;
+      const base = Math.ceil(canonEnd / BAR);
+      ticks = ((base + 1) % 2 === 0 ? base + 1 : base + 2) * BAR;
+    }
     const csSeed = I.H(p.name_variant_id, p.species_id);
     let events = [];
     const seed = Number(BigInt(f.seeds.motif_seed) % 4294967291n);
     const plan = keyPlan(p);
-    for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * f.section_ticks, csSeed, f.section_ticks, seed, plan, keys === 'mode'));
-    events = shape(events, p).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
-    return { ...r, form: { ...f, theme, events }, v11: { keyPlan: plan, keys } };
+    for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * ticks, csSeed, ticks, seed, plan, keys === 'mode'));
+    events = shape(events, p, ticks, even).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
+    const sections = f.sections.map((x, i) => ({ ...x, start: i * ticks }));
+    return { ...r, form: { ...f, theme, events, section_ticks: ticks, sections }, v11: { keyPlan: plan, keys, even, breathed } };
   }
 
   // numbers for the comparison: rhythm, consonance, texture, cadence

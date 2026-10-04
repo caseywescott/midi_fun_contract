@@ -148,6 +148,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
       </div>
       <label class="field">New Beast family (third version): a major-side mode, rhythm feel, tempo, texture and instruments
         <select id="family"><option value="">None: the Beast's own mode</option>
+          <option value="lydian">Lydian: just the scale, nothing else changed</option>
           <option value="sprout">Sprout: Lydian, tonic drone, voices unfold</option>
           <option value="mushroom">Mushroom: Lydian ♯5, drone, ringing bells</option>
           <option value="brownie">Brownie: Mixolydian jig, detached</option>
@@ -334,7 +335,7 @@ function play() {
   if (!synth) synth = TinyChipBank.install(new WebAudioTinySynth({ quality: 1, useReverb: 0, voices: 64 }));
   synth.getAudioContext().resume();
   const k = key(version), midi = BEASTS[current][k].midi, song = v1lib.smf.parse(midi);
-  const fam = version === 'v11m' && $('family').value ? $('family').value : null;   // only the third version takes a family
+  const fam = version === 'v11m' && $('family').value && $('family').value !== 'lydian' ? $('family').value : null;   // only the third version takes a family (plain Lydian keeps the normal groove)
   const file = $('drums').checked ? v1lib.midi.write(withDrums(song, BEASTS[current].bars[k], BEASTS[current].tier, fam)) : bytesOf(midi);
   synth.loadMIDI(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength));
   synth.loopEnd = Math.ceil(synth.maxTick / synth.song.timebase) * synth.song.timebase;
@@ -354,7 +355,7 @@ function v1Events() {
   return { ev: ev.sort((a, b) => a.t - b.t), channels: [...new Set(s.notes.map((n) => n[4]))].sort((a, b) => a - b) };
 }
 // family instruments (bank programs): lead (voice 1), the other voices, the lowest voice (or the drone)
-const FAMILY_INSTR = { sprout: [70, 15, 33], mushroom: [45, 75, 32], brownie: [2, 74, 20], fire: [62, 16, 61], tortoise: [0, 33, 20], lava: [81, 79, 61] };
+const FAMILY_INSTR = { lydian: [0, 15, 20], sprout: [70, 15, 33], mushroom: [45, 75, 32], brownie: [2, 74, 20], fire: [62, 16, 61], tortoise: [0, 33, 20], lava: [81, 79, 61] };
 function setInstrument() {
   const val = $('preset').value;
   if (val === 'family') {
@@ -413,7 +414,7 @@ function rescore() {
   B.v11m = enc(r); B.bars.v11m = r.form.section_ticks / 1920;
   if (rb.v11.breathed) { B.v11mb = enc(rb); B.bars.v11mb = rb.form.section_ticks / 1920; }
   const real = live.adventurers_killed === B.live.adventurers_killed && live.scars === B.live.scars && rankOf(live) === rankOf(B.live);
-  $('custom').textContent = [real ? '' : 'scrubbed history', family ? r.v11.family.name + ', ' + r.v11.family.mode : scale === 'wholetone' ? 'whole tone' : ''].filter(Boolean).map((x) => '(' + x + ')').join(' ');
+  $('custom').textContent = [real ? '' : 'scrubbed history', family ? (r.v11.family.name === r.v11.family.mode ? r.v11.family.name : r.v11.family.name + ', ' + r.v11.family.mode) : scale === 'wholetone' ? 'whole tone' : ''].filter(Boolean).map((x) => '(' + x + ')').join(' ');
   $('trajNote').textContent = describe(r.v11.trajectory, r);
   $('killsV').textContent = live.adventurers_killed; $('scarsV').textContent = live.scars;
   show();
@@ -451,7 +452,7 @@ $('real').addEventListener('click', () => { const was = playing && version === '
 // new Beast family: re-render the third version in that family, with its instruments; none restores it
 $('family').addEventListener('change', () => {
   $('wholetone').disabled = !!$('family').value;            // the family's own scale takes over
-  if ($('family').value) { $('preset').value = 'family'; return rescore(); }
+  if ($('family').value) { if ($('family').value !== 'lydian') $('preset').value = 'family'; return rescore(); }
   if ($('preset').value === 'family') $('preset').value = '0';
   if (atReal() && !$('wholetone').checked) { const was = playing && version === 'v11m'; loadHistory(); show(); setInstrument(); if (was) { stop(); play(); } } else rescore();
 });

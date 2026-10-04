@@ -43,6 +43,7 @@
 //                new Beasts.
 //                Option { family }: the new Beasts' major-side family (no Beast so far plays a major
 //                mode). Each pair shares a tonic, the elemental form alters a note or two:
+//                  lydian    Lydian              only the scale (no other change)
 //                  sprout    Lydian              tonic drone, voices entering twice as far apart
 //                  mushroom  Lydian #5           the same, notes left ringing
 //                  brownie   Mixolydian          jig skip (dotted pairs), detached, +5%
@@ -141,6 +142,7 @@ export function createEngineV11(engine) {
 
   // ── the new Beasts' family (major side): scale, rhythm feel, tempo, register, texture ──
   const FAMILIES = {
+    lydian: { name: 'Lydian', mode: 'Lydian', scale: [0, 2, 4, 6, 7, 9, 11] },   // just the scale, nothing else changed
     sprout: { name: 'Sprout', mode: 'Lydian', scale: [0, 2, 4, 6, 7, 9, 11], drone: true, bloom: true },
     mushroom: { name: 'Mushroom', mode: 'Lydian ♯5', scale: [0, 2, 4, 6, 8, 9, 11], drone: true, bloom: true, ring: true },
     brownie: { name: 'Brownie', mode: 'Mixolydian', scale: [0, 2, 4, 5, 7, 9, 10], jig: true, detached: true, tempo: 1.05 },

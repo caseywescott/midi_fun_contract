@@ -38,10 +38,6 @@
 //                kills now drive inversion and the inverted development, defeats drive the number
 //                of sections, stretto and ornament amount, and the bridges' direction follows
 //                defeats vs kills.
-//                KDR, (kills + 1) / (defeats + 1) from the real stats, is a main axis: hunted (< 0.5),
-//                even (0.5-2), dominant (2-8), apex (8+) set the theme's rhythmic drive, the register
-//                (hunted: other voices an octave below the lead; apex: lead an octave up), the tempo (-6% .. +8%) and the
-//                dynamics; the page's drum groove follows it too.
 //   + Dynamics   each phrase rises toward its highest note; bar downbeats are accented.
 //
 //   const v11 = createEngineV11(engine);
@@ -67,8 +63,7 @@ export function createEngineV11(engine) {
   const FAMILY = [['plain', 'run', 'lilt', 'long'], ['plain', 'dotted', 'syncop', 'run'], ['plain', 'long', 'dotted', 'halves']];
   const mix = (h, x) => { h = Math.imul(h ^ x, 0x9e3779b1) >>> 0; return (h ^ (h >>> 15)) >>> 0; };
 
-  const BUSY = new Set(['run', 'syncop', 'dotted', 'lilt']), CALM = new Set(['long', 'halves']);
-  function themeRhythm(p, degrees, motifSeed, drive = null) {
+  function themeRhythm(p, degrees, motifSeed) {
     const groups = degrees.length / 4, fam = FAMILY[p.weakness % 3] ?? FAMILY[0];
     let h = Number(BigInt(motifSeed) % 4294967291n);
     const slots = [];
@@ -79,13 +74,7 @@ export function createEngineV11(engine) {
       else if (g === 0) name = fam[h % 2];                  // open plainly: plain or the family's second cell
       else {
         name = fam[h % fam.length];
-        if (drive !== 3 && PASSING.has(name) && (h >>> 8) % 8 >= p.ornament_density + 2) name = 'plain'; // density gates passing notes
-      }
-      // KDR drive: hunted Beasts stretch out, dominant ones dot their long notes, apex ones run
-      if (drive !== null && name !== 'cadence') {
-        if (drive === 0 && BUSY.has(name)) name = (h >>> 3) & 1 ? 'long' : 'halves';
-        else if (drive === 2 && CALM.has(name)) name = 'dotted';
-        else if (drive === 3 && !BUSY.has(name)) { const busy = fam.filter((x) => BUSY.has(x)); name = busy.length ? busy[(h >>> 5) % busy.length] : 'run'; }
+        if (PASSING.has(name) && (h >>> 8) % 8 >= p.ornament_density + 2) name = 'plain'; // density gates passing notes
       }
       for (const [start, duration, src] of CELLS[name]) slots.push({ time: g * BAR + start, duration, src, group: g });
     }
@@ -182,13 +171,11 @@ export function createEngineV11(engine) {
     };
     for (let v = 0; v < p.voice_count; v++) {
       const entry = v === 0 ? 0 : v * lag * TU, off = offs[v] ?? offs[3];
-      // KDR register: a hunted Beast's other voices sink an octave below its lead; an apex Beast's lead soars an octave higher
-      const extra = tr ? (v > 0 && tr.kdrLevel === 0 ? -7 : 0) + (v === 0 && tr.kdrLevel === 3 ? 7 : 0) : 0;
-      const map = (d) => (p.use_inversion && v === 1 ? 4 - d : d + off) + extra;
+      const map = (d) => (p.use_inversion && v === 1 ? 4 - d : d + off);
       ends.push({ v, map, off });
       let prev = null;
       for (const sl of slots) {
-        const base = (p.use_inversion && v === 1 ? 4 - sl.degree : sl.degree + off) + extra;
+        const base = p.use_inversion && v === 1 ? 4 - sl.degree : sl.degree + off;
         const time = offset + entry + sl.time;
         let pitch;
         if (v === 0) pitch = realize(base);
@@ -207,8 +194,7 @@ export function createEngineV11(engine) {
       let prev = null;
       cs.forEach((d, i) => {
         const time = offset + i * TU;
-        const low = tr && tr.kdrLevel === 0 ? -7 : 0;
-        const cands = [0, 1, -1, 2, -2].map((a) => [a, realize(d + a + low)]);
+        const cands = [0, 1, -1, 2, -2].map((a) => [a, realize(d + a)]);
         const pitch = choosePitch(cands, time, TU, out, prev).pitch;
         const e = { time, duration: TU, pitch, velocity: 90, voice_id: p.voice_count, section: s, role: 'countersubject' };
         out.push(e); prev = e;
@@ -273,18 +259,17 @@ export function createEngineV11(engine) {
   }
 
   // phrase arc per voice and section, accents on bar downbeats, articulation by profile, under the ceiling
-  function shape(events, p, sectionTicks, pairs, prominence = 0, kdrLevel = 1) {
-    const DYN = [-8, 0, 3, 6][kdrLevel], ACC = [-3, 0, 1, 3][kdrLevel];
+  function shape(events, p, sectionTicks, pairs, prominence = 0) {
     const ceil = p.velocity_ceiling || 127, groups = {};
     for (const e of events) (groups[e.voice_id + ':' + e.section] ||= []).push(e);
     for (const g of Object.values(groups)) {
       const lo = Math.min(...g.map((e) => e.pitch)), hi = Math.max(...g.map((e) => e.pitch)), lead = g[0].voice_id === 0;
       for (const e of g) {
         // prominence (rank): the lead stands further out from the other voices
-        let v = (lead ? 80 + 4 * prominence : 70 - 2 * prominence) + DYN + Math.round(16 * (hi > lo ? (e.pitch - lo) / (hi - lo) : 0.5));
+        let v = (lead ? 80 + 4 * prominence : 70 - 2 * prominence) + Math.round(16 * (hi > lo ? (e.pitch - lo) / (hi - lo) : 0.5));
         if ((e.time % BAR) === 0) {
           // bar pairs: the first bar of each pair (counted from the section start) leans harder
-          v += (pairs ? (Math.floor((e.time % sectionTicks) / BAR) % 2 === 0 ? 12 : 4) : 8) + (lead ? 2 * prominence : 0) + ACC;
+          v += (pairs ? (Math.floor((e.time % sectionTicks) / BAR) % 2 === 0 ? 12 : 4) : 8) + (lead ? 2 * prominence : 0);
         }
         e.velocity = Math.max(1, Math.min(ceil, v));
         if (p.articulation_profile === 1) e.duration = Math.max(60, Math.floor(e.duration / 2));
@@ -304,7 +289,7 @@ export function createEngineV11(engine) {
     if (traj) r.live = { ...swapped };
     const theme = { ...f.theme, degrees: cadenceTheme(f.theme.degrees) };
     const tr = traj ? trajectory(r, live) : null;
-    let slots = themeRhythm(p, theme.degrees, f.seeds.motif_seed, tr ? tr.kdrLevel : null);
+    let slots = themeRhythm(p, theme.degrees, f.seeds.motif_seed);
     // ornament vocabulary (second name prefix): a trill (upper neighbour and back) replaces a passing note
     if (tr && tr.trill) slots = slots.flatMap((sl, i) => (sl.src === 'p' && sl.duration >= 240
       ? [{ ...sl, src: 't', duration: sl.duration / 2, degree: slots[i - 1].degree + 1 }, { ...sl, src: 't', time: sl.time + sl.duration / 2, duration: sl.duration / 2, degree: slots[i - 1].degree }]
@@ -325,11 +310,9 @@ export function createEngineV11(engine) {
     const seed = Number(BigInt(f.seeds.motif_seed) % 4294967291n);
     const plan = keyPlan(p);
     for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * ticks, csSeed, ticks, seed, plan, keys === 'mode', tr));
-    events = shape(events, p, ticks, even, tr ? tr.prominence : 0, tr ? tr.kdrLevel : 1).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
-    // KDR tempo: hunted 6% slower .. apex 8% faster
-    const params = tr ? { ...p, tempo_us: Math.round(p.tempo_us / [0.94, 1, 1.04, 1.08][tr.kdrLevel]) } : p;
+    events = shape(events, p, ticks, even, tr ? tr.prominence : 0).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
     const sections = f.sections.map((x, i) => ({ ...x, start: i * ticks }));
-    return { ...r, params, form: { ...f, theme, events, section_ticks: ticks, sections }, v11: { keyPlan: plan, keys, even, breathed, trajectory: tr } };
+    return { ...r, form: { ...f, theme, events, section_ticks: ticks, sections }, v11: { keyPlan: plan, keys, even, breathed, trajectory: tr } };
   }
 
   // numbers for the comparison: rhythm, consonance, texture, cadence
@@ -381,16 +364,12 @@ export function createEngineV11(engine) {
   //   spacing      level and health             'wide' | 'normal' | 'close'
   //   prominence   rank (crown 3, top 1% 2, top 5% 1, else 0)
   //   trill        second name prefix policy    trills instead of passing notes
-  //   kdr          (kills + 1) / (defeats + 1)  hunted / even / dominant / apex: drive, register, tempo, dynamics
   function trajectory(r, realLive) {
     const p = r.params, k = r.live.adventurers_killed, d = r.live.scars, b = r.beast;
     const real = realLive ? engine.musicState(realLive) : p._state;
     const st = { ...p._state, rank_tier: real.rank_tier, is_crown: real.is_crown };  // only the rank comes from the real stats
     const kb = st.kill_bucket, db = st.defeat_bucket;
-    const rk = realLive ? realLive.adventurers_killed : k, rd = realLive ? realLive.scars : d;
-    const kdr = (rk + 1) / (rd + 1), kdrLevel = kdr < 0.5 ? 0 : kdr < 2 ? 1 : kdr < 8 ? 2 : 3;
     return {
-      kdr: +kdr.toFixed(2), kdrLevel, kdrName: ['hunted', 'even', 'dominant', 'apex'][kdrLevel],
       direction: k > d ? 1 : k < d ? -1 : 0,
       development: kb >= db + 2 ? 'stretto' : db >= 1 && db >= kb ? 'inversion' : 'sequence',
       spacing: b.level >= 100 || b.health >= 500 ? 'wide' : b.level < 20 && b.health < 120 ? 'close' : 'normal',

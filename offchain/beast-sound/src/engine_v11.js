@@ -38,6 +38,9 @@
 //                kills now drive inversion and the inverted development, defeats drive the number
 //                of sections, stretto and ornament amount, and the bridges' direction follows
 //                defeats vs kills.
+//                Option { scale: 'wholetone' }: every pitch comes from the whole-tone scale on the
+//                home tonic (six equal steps, no fifths) instead of the Beast's mode; a test for the
+//                new Beasts.
 //   + Dynamics   each phrase rises toward its highest note; bar downbeats are accented.
 //
 //   const v11 = createEngineV11(engine);
@@ -119,6 +122,15 @@ export function createEngineV11(engine) {
   }
   const sectionTonic = (p, plan, s) => I.transposedTonic(p.tonic_keynum, plan[s % plan.length].shift);
 
+  // the scale pitches come from: the Beast's mode (v1's realize) or, for the whole-tone test, six equal steps
+  const WHOLE_TONE = [0, 2, 4, 6, 8, 10];
+  function wholeTone(deg, tonic) {
+    const du = deg + 60;
+    if (du < 0) throw new Error('wholeTone: degree below lattice');
+    return tonic + 12 * Math.floor(du / 6) + WHOLE_TONE[du % 6] - 120;
+  }
+  let R = I.realize;    // set for the duration of a render
+
   const IC = (a, b) => Math.abs(a - b) % 12;
   const dissonant = (ic) => ic === 1 || ic === 2 || ic === 6 || ic === 10 || ic === 11;
   const perfect = (ic) => ic === 0 || ic === 7;
@@ -162,10 +174,10 @@ export function createEngineV11(engine) {
     const tonic = diatonic ? home : sectionTonic(p, plan, s);
     const shift = diatonic ? plan[s % plan.length].degrees : 0, nextShift = diatonic ? plan[next % plan.length].degrees : 0;
     const out = [], ends = [];
-    const realize = (d) => I.realize(d + shift, tonic, mode);
+    const realize = (d) => R(d + shift, tonic, mode);
     // the half cadence's target: the next section's dominant chord (bass: its 5th), as pitch classes
     const domPcs = (isBass) => {
-      if (diatonic) return (isBass ? [4] : [4, 6, 1]).map((k) => I.realize(nextShift + k, home, mode) % 12);
+      if (diatonic) return (isBass ? [4] : [4, 6, 1]).map((k) => R(nextShift + k, home, mode) % 12);
       const nt = sectionTonic(p, plan, next);
       return (isBass ? [7] : [7, 11, 2]).map((k) => (nt + k) % 12);
     };
@@ -280,7 +292,11 @@ export function createEngineV11(engine) {
     return events;
   }
 
-  function render(beast, live, { keys = 'modulate', even = false, breath = false, traj = false } = {}) {
+  function render(beast, live, { keys = 'modulate', even = false, breath = false, traj = false, scale = 'mode' } = {}) {
+    R = scale === 'wholetone' ? wholeTone : I.realize;
+    try { return renderWith(beast, live, { keys, even, breath, traj, scale }); } finally { R = I.realize; }
+  }
+  function renderWith(beast, live, { keys, even, breath, traj, scale }) {
     // traj: rank is current state only, so the structure is composed with a neutral rank (v1 lets the
     // crown and top ranks add ornament, accents and a voice); the real rank sets prominence alone
     const swapped = traj ? { ...live, adventurers_killed: live.scars, scars: live.adventurers_killed } : live; // kills <-> defeats
@@ -312,7 +328,7 @@ export function createEngineV11(engine) {
     for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * ticks, csSeed, ticks, seed, plan, keys === 'mode', tr));
     events = shape(events, p, ticks, even, tr ? tr.prominence : 0).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
     const sections = f.sections.map((x, i) => ({ ...x, start: i * ticks }));
-    return { ...r, form: { ...f, theme, events, section_ticks: ticks, sections }, v11: { keyPlan: plan, keys, even, breathed, trajectory: tr } };
+    return { ...r, form: { ...f, theme, events, section_ticks: ticks, sections }, v11: { keyPlan: plan, keys, even, breathed, trajectory: tr, scale } };
   }
 
   // numbers for the comparison: rhythm, consonance, texture, cadence

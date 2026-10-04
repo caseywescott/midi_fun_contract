@@ -145,6 +145,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
         <span class="note" id="fillNote"></span>
         <label class="check"><input type="checkbox" id="keep" checked> Keep playing when switching</label>
       </div>
+      <label class="check"><input type="checkbox" id="wholetone"> Third version in a whole-tone scale (a test for the new Beasts: six equal steps, no fifths)</label>
       <label class="check"><input type="checkbox" id="breath"> Same mode, single-voice Beasts: let the theme breathe (hold its last note a bar: 6 bars instead of 4)</label>
       <label class="field">Instrument, the same for every version
         <select id="preset"><option value="auto">Auto: the onchain orchestration (worked out from v1's score, used for every version)</option>${[...new Set(PRESETS.map((x) => x.category))].map((c) => `<optgroup label="${esc(c)}">${PRESETS.filter((x) => x.category === c).map((x) => `<option value="${x.program}"${x.program === 0 ? ' selected' : ''}>All voices: ${x.program}: ${esc(x.name)}</option>`).join('')}</optgroup>`).join('')}</select></label>
@@ -344,8 +345,11 @@ const KILL_STEPS = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024], SCAR_STEPS 
 const nearest = (steps, x) => steps.reduce((bi, v, i) => (Math.abs(v - x) < Math.abs(steps[bi] - x) ? i : bi), 0);
 const rankOf = (l) => (l.rank === 1 ? 'crown' : !l.rank || !l.species_count ? 'rest' : (l.rank * 100 / l.species_count) <= 1 ? '1' : (l.rank * 100 / l.species_count) <= 5 ? '5' : (l.rank * 100 / l.species_count) <= 20 ? '20' : 'rest');
 const ORIGINAL = {};
+// sliders still where the Beast's real stats put them (they snap to doublings, e.g. 412 kills shows as 512)
+const atReal = () => { const B = BEASTS[current]; return +$('kills').value === nearest(KILL_STEPS, B.live.adventurers_killed) && +$('scars').value === nearest(SCAR_STEPS, B.live.scars) && $('rank').value === rankOf(B.live); };
 function scrubbedLive() {
   const B = BEASTS[current], l = { ...B.live }, count = l.species_count || 1000;
+  if (atReal()) return l;                                   // untouched: the exact real stats
   l.adventurers_killed = KILL_STEPS[+$('kills').value]; l.scars = SCAR_STEPS[+$('scars').value];
   const r = $('rank').value;
   l.rank = r === 'crown' ? 1 : r === 'rest' ? Math.max(2, Math.ceil(count * 0.5)) : Math.max(2, Math.floor(count * (+r) / 100));
@@ -361,11 +365,12 @@ function rescore() {
   const B = BEASTS[current], live = scrubbedLive();
   if (!ORIGINAL[current]) ORIGINAL[current] = { v11m: B.v11m, v11mb: B.v11mb, bars: { ...B.bars } };
   const enc = (r) => { const u8 = BS11.engine.eventsToMidi(r.form.events, r.params.tempo_us, BS11.engine.formLength(r.form)); let s = ''; for (const x of u8) s += String.fromCharCode(x); return { midi: btoa(s), m: BS11.v11.metrics(r.form.events, r.form) }; };
-  const r = BS11.v11.render(B.beast, live, { keys: 'mode', even: true, traj: true }), rb = BS11.v11.render(B.beast, live, { keys: 'mode', even: true, traj: true, breath: true });
+  const scale = $('wholetone').checked ? 'wholetone' : 'mode';
+  const r = BS11.v11.render(B.beast, live, { keys: 'mode', even: true, traj: true, scale }), rb = BS11.v11.render(B.beast, live, { keys: 'mode', even: true, traj: true, breath: true, scale });
   B.v11m = enc(r); B.bars.v11m = r.form.section_ticks / 1920;
   if (rb.v11.breathed) { B.v11mb = enc(rb); B.bars.v11mb = rb.form.section_ticks / 1920; }
   const real = live.adventurers_killed === B.live.adventurers_killed && live.scars === B.live.scars && rankOf(live) === rankOf(B.live);
-  $('custom').textContent = real ? '' : '(scrubbed history)';
+  $('custom').textContent = [real ? '' : 'scrubbed history', scale === 'wholetone' ? 'whole tone' : ''].filter(Boolean).map((x) => '(' + x + ')').join(' ');
   $('trajNote').textContent = describe(r.v11.trajectory, r);
   $('killsV').textContent = live.adventurers_killed; $('scarsV').textContent = live.scars;
   show();
@@ -395,11 +400,16 @@ function setVersion(v) {
   requestAnimationFrame(tickLoop);
 })();
 $('play').addEventListener('click', () => (playing ? stop() : play()));
-$('beast').addEventListener('change', (e) => { const was = playing; stop(); const prev = current; current = +e.target.value; if (ORIGINAL[prev]) { const o = ORIGINAL[prev]; Object.assign(BEASTS[prev], { v11m: o.v11m, v11mb: o.v11mb, bars: o.bars }); delete ORIGINAL[prev]; } loadHistory(); show(); if (was) play(); });
+$('beast').addEventListener('change', (e) => { const was = playing; stop(); const prev = current; current = +e.target.value; if (ORIGINAL[prev]) { const o = ORIGINAL[prev]; Object.assign(BEASTS[prev], { v11m: o.v11m, v11mb: o.v11mb, bars: o.bars }); delete ORIGINAL[prev]; } loadHistory(); if ($('wholetone').checked) rescore(); show(); if (was) play(); });
 $('drums').addEventListener('change', () => { if (playing) { stop(); play(); } });
 ['kills', 'scars'].forEach((id) => $(id).addEventListener('input', () => { $(id + 'V').textContent = (id === 'kills' ? KILL_STEPS : SCAR_STEPS)[+$(id).value]; }));
 ['kills', 'scars', 'rank'].forEach((id) => $(id).addEventListener('change', rescore));
-$('real').addEventListener('click', () => { const was = playing && version === 'v11m'; loadHistory(); show(); if (was) { stop(); play(); } });
+$('real').addEventListener('click', () => { const was = playing && version === 'v11m'; loadHistory(); if ($('wholetone').checked) return rescore(); show(); if (was) { stop(); play(); } });
+// whole tone: re-render the third version (with the scrubber's current history); off restores it
+$('wholetone').addEventListener('change', () => {
+  if ($('wholetone').checked) return rescore();
+  if (atReal()) { const was = playing && version === 'v11m'; loadHistory(); show(); if (was) { stop(); play(); } } else rescore();
+});
 $('breath').addEventListener('change', () => { show(); if (playing && version === 'v11m') { stop(); play(); } });
 $('preset').addEventListener('change', setInstrument);
 $('prev').addEventListener('click', () => stepPreset(-1));

@@ -33,6 +33,11 @@
 //                balanced: sequence); the second name prefix picks the ornament vocabulary (trills
 //                or passing notes) while kills set the amount; level and health set voice spacing;
 //                rank sets prominence (a ranking shuffle changes only this layer).
+//                Kills and defeats are swapped at the input (loothero's listening note: the track
+//                comes alive when defeats turn on the inversion, and that should belong to kills):
+//                kills now drive inversion and the inverted development, defeats drive the number
+//                of sections, stretto and ornament amount, and the bridges' direction follows
+//                defeats vs kills.
 //   + Dynamics   each phrase rises toward its highest note; bar downbeats are accented.
 //
 //   const v11 = createEngineV11(engine);
@@ -278,9 +283,10 @@ export function createEngineV11(engine) {
   function render(beast, live, { keys = 'modulate', even = false, breath = false, traj = false } = {}) {
     // traj: rank is current state only, so the structure is composed with a neutral rank (v1 lets the
     // crown and top ranks add ornament, accents and a voice); the real rank sets prominence alone
-    const structural = traj ? { ...live, rank: Math.max(2, live.species_count || 2), species_count: live.species_count || 1 } : live;
+    const swapped = traj ? { ...live, adventurers_killed: live.scars, scars: live.adventurers_killed } : live; // kills <-> defeats
+    const structural = traj ? { ...swapped, rank: Math.max(2, live.species_count || 2), species_count: live.species_count || 1 } : live;
     const r = engine.render(beast, structural), p = r.params, f = r.form;
-    if (traj) r.live = { ...live };
+    if (traj) r.live = { ...swapped };
     const theme = { ...f.theme, degrees: cadenceTheme(f.theme.degrees) };
     const tr = traj ? trajectory(r, live) : null;
     let slots = themeRhythm(p, theme.degrees, f.seeds.motif_seed);
@@ -360,7 +366,8 @@ export function createEngineV11(engine) {
   //   trill        second name prefix policy    trills instead of passing notes
   function trajectory(r, realLive) {
     const p = r.params, k = r.live.adventurers_killed, d = r.live.scars, b = r.beast;
-    const st = { ...p._state, ...(realLive ? engine.musicState(realLive) : {}) }; // rank from the real stats
+    const real = realLive ? engine.musicState(realLive) : p._state;
+    const st = { ...p._state, rank_tier: real.rank_tier, is_crown: real.is_crown };  // only the rank comes from the real stats
     const kb = st.kill_bucket, db = st.defeat_bucket;
     return {
       direction: k > d ? 1 : k < d ? -1 : 0,

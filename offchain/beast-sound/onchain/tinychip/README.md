@@ -88,10 +88,11 @@ loothero's onchain-tinysynth plays a MIDI file exactly as written and takes its 
 `SynthSettings` value passed to `midi_segment(midi, settings)`. `synth_settings.mjs` builds that
 value from the same bank data as the runtime:
 
-- **Timbres:** the 20 essentials as custom timbres in their own program slots (bank numbers 0-61;
-  the self-contained Beast MIDI selects them with ordinary program changes) and the chip kit on the
-  11 drum notes Beast MIDI plays: 31 timbres, 75 operators, 4,179 bytes of `SETTINGS`. Quality 1 and no reverb, as
-  the page plays; master volume 40, the class's default.
+- **Timbres:** the programs the self-contained Beast MIDI selects (`BEAST_PROGRAMS`; for now only
+  the Triangle Lead, bank 0, on every voice, until the preset set is chosen) as custom timbres in
+  their own program slots, and the chip kit on the 11 drum notes Beast MIDI plays: 12 timbres, 16
+  operators, 894 bytes of `SETTINGS`. Quality 1, the class's default reverb (30) and volume (40).
+  `timbreOperators` builds any of the 20 essentials, and `interim_check.mjs` checks all 20.
 - **Interim waves:** the class rejects custom waves until its issue #2, so each sampled chip wave is
   rebuilt from TinySynth's own (table in `synth_settings.mjs`). The 25% pulse is exact in
   magnitude spectrum (two squares), the 12.5% pulse close (three), and the NES triangle a smooth

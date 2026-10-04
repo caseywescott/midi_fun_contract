@@ -46,7 +46,7 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 #info{font:12px/1.6 ui-monospace,monospace;color:var(--mut);white-space:pre-wrap;margin:0}
 </style></head><body><main>
 <h1>Beast Mega A/B</h1>
-<p class="sub">Normal against mega (the shiny flag), as onchain-tinysynth plays it: the self-contained MIDI through the class's engine with the Beast sound settings. Switch while playing to compare.</p>
+<p class="sub">Normal against mega (the shiny flag), as onchain-tinysynth plays it: the self-contained MIDI through the class's engine with the Beast sound settings (every voice on the Triangle Lead for now, reverb 30). Switch while playing to compare.</p>
 <div class="card"><div class="row">
 <div><label for="beast">Beast</label><select id="beast"></select></div>
 <div><label for="state">Live state</label><select id="state"><option value="calm">Calm: no kills, rank 500</option><option value="veteran" selected>Veteran: 40 kills, 9 defeats, rank 1</option></select></div>
@@ -54,11 +54,10 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 <div class="card"><div class="ab"><button id="normal" class="on">Normal</button><button id="mega" class="mega">Mega ✦</button></div>
 <div class="ctl"><button id="play">▶ Play</button><button id="stop" class="stop">■ Stop</button></div></div>
 <div class="card"><label>Mega ingredients</label><div class="chk">
-<label><input type="checkbox" id="o-shiny" checked><span>Shiny flag in the score<small>today's effect: 120 → 126 BPM, louder, tenuto</small></span></label>
+<label><input type="checkbox" id="o-shiny" checked><span>Shiny flag in the score<small>today's only audible effect: 120 → 126 BPM (same notes)</small></span></label>
 <label><input type="checkbox" id="o-double" checked><span>Octave doubling<small>the lead an octave up on a bright preset, panned opposite</small></span></label>
 <label><input type="checkbox" id="o-groove" checked><span>Mega groove<small>sixteenth hats, an extra kick, a crash on every section</small></span></label>
 <label><input type="checkbox" id="o-lift" checked><span>Final lift<small>the last section a whole step up, home again on the loop</small></span></label>
-<div><label for="o-reverb" style="margin-top:4px">Mega reverb (SynthSettings.reverb)</label><select id="o-reverb"><option value="0">0 (off, as normal)</option><option value="10">10</option><option value="15" selected>15</option><option value="20">20</option><option value="30">30 (the class's default)</option></select></div>
 </div></div>
 <div class="card"><pre id="info"></pre></div>
 </main>
@@ -82,14 +81,14 @@ function make() {
   const r = BS.engine.render({ ...x.b, shiny, animated: 0 }, live);
   const opts = mega ? { double: $('o-double').checked, groove: $('o-groove').checked, lift: $('o-lift').checked } : {};
   const midi = BS.beastFullMidi(r, BS.engine.formLength, opts);
-  const reverb = mega ? +$('o-reverb').value : 0;
+  const reverb = ${settings.reverb};
   $('info').textContent = (mega ? 'MEGA' : 'normal') + ' · ' + (60000000 / r.params.tempo_us).toFixed(1) + ' BPM · ' + r.params.voice_count + ' voices · tier ' + r.params.tier + ' · ' + Math.round(BS.engine.formLength(r.form) / r.form.section_ticks) + ' sections · ' + midi.length + ' bytes MIDI · reverb ' + reverb;
   return { midi, reverb };
 }
 function ensure() {
   if (synth) return synth;
   synth = new WebAudioTinySynth({ quality: 1, useReverb: 1, voices: 64 });
-  synth.setQuality(1); synth.setMasterVol(0.4); synth.setVoices(64);
+  synth.setQuality(${settings.quality}); synth.setMasterVol(${settings.master_vol} / 100); synth.setVoices(${settings.voices});
   for (const [drum, slot, ops] of TIMBRES) synth.setTimbre(drum, slot, ops.map((o) => ({ ...o })));
   return synth;
 }
@@ -105,7 +104,7 @@ $('play').onclick = start;
 $('stop').onclick = () => { if (synth) synth.stopMIDI(); playing = false; };
 $('normal').onclick = () => { mega = false; $('normal').classList.add('on'); $('mega').classList.remove('on'); refresh(); };
 $('mega').onclick = () => { mega = true; $('mega').classList.add('on'); $('normal').classList.remove('on'); refresh(); };
-for (const id of ['beast', 'state', 'o-shiny', 'o-double', 'o-groove', 'o-lift', 'o-reverb']) $(id).onchange = refresh;
+for (const id of ['beast', 'state', 'o-shiny', 'o-double', 'o-groove', 'o-lift']) $(id).onchange = refresh;
 make();
 </script></body></html>`;
 writeFileSync(here + '../public/onchain/mega.html', html);

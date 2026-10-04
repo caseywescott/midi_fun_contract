@@ -19,7 +19,7 @@ collection or engine is another deployment.
 |---|---|
 | `get_midi(token_id)` | Self-contained Standard MIDI File bytes (format 1, 480 PPQN, one track per voice with its program and pan at tick 0, drums on channel 10), byte-identical to `v3_score_full_midi` and the JS reference (`src/full_midi.js`) for the same state |
 | `get_midi_for(token_address, token_id)` | The same bytes, after checking `token_address` is the NFT it serves (the TinySynth page calls this) |
-| `get_settings(token_id)` | The `SynthSettings` the MIDI is written for (`ISynthSettingsProvider`): TinyChip's presets and drum kit for onchain-tinysynth's `midi_segment`. Checks the token ID's format only |
+| `get_settings(token_id)` | The `SynthSettings` the MIDI is written for (`ISynthSettingsProvider`): the Triangle Lead (every voice, for now) and the chip drum kit, reverb 30, for onchain-tinysynth's `midi_segment`. Checks the token ID's format only |
 | `get_live_state(token_address, token_id)` | The exact `BeastV3LiveState` `get_midi` composes from, with each field's source |
 | `get_collection()` / `get_engine_version()` | The supported collection; `1` |
 

@@ -11,21 +11,22 @@ printf 'mod beast_e2e_fixtures;\nmod test_beast_e2e;\n' >> /tmp/ots_e2e/tests/li
 (cd /tmp/ots_e2e && snforge test test_beast_e2e)
 ```
 
-Results at 973f4cf (L2 gas):
+Results at 973f4cf (L2 gas), with every voice on the Triangle Lead and 12 timbres (894 bytes of
+`SETTINGS`, reverb 30):
 
 | Test | Gas |
 |---|---|
-| `beast_build` (fixtures only: settings Serde, two MIDI files) | 3.4M |
-| `beast_settings_validate` | 4.8M (1.5M over the build) |
-| `beast_encode_settings` (4,179 bytes of `SETTINGS`) | 27.0M |
-| `beast_lc_midi_segment_warlock` (1,246-byte MIDI, library call) | 85.1M |
-| `beast_lc_midi_segment_heaviest` (5,066-byte MIDI) | 140.0M |
+| `beast_build` (fixtures only: settings Serde, two MIDI files) | 1.3M |
+| `beast_settings_validate` | 1.1M |
+| `beast_encode_settings` | 5.8M |
+| `beast_lc_midi_segment_warlock` (1,246-byte MIDI, library call) | 33.7M |
+| `beast_lc_midi_segment_heaviest` (5,066-byte MIDI) | 88.9M |
 | the same with the class's `default_settings()` | 75.1M |
-| `beast_token_uri_heaviest` (Beasts-layout `token_uri`, crate functions) | 146.9M |
+| `beast_token_uri_heaviest` (Beasts-layout `token_uri`, crate functions) | 98.7M |
 
-The settings add about 65M to the heaviest Beast's segment. The provider's `get_midi` for that Beast
-is about 478M (beast_sound `heaviest_score_matches_composer`), so a whole `token_uri` is roughly
-0.63B at worst.
+The settings add about 14M to the heaviest Beast's segment (65M with all 20 presets and 19 drums).
+The provider's `get_midi` for that Beast is about 337M (beast_sound
+`heaviest_score_matches_composer`), so a whole `token_uri` is roughly 0.44B at worst.
 
 `beast_token_uri_warlock_print` (ignored) prints a Warlock `token_uri`. Decoded, its page plays in
 Chrome with the TinyChip timbres installed; the token-uri-inspector skill's `split_page.mjs` gives

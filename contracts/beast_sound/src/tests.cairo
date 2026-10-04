@@ -509,10 +509,10 @@ fn beast_synth_settings_pass_the_class_checks() {
             i += 1;
         }
     }
-    // The 20 programs the self-contained MIDI selects and the drum notes it plays.
-    for p in array![0_u8, 1, 2, 3, 4, 12, 15, 18, 20, 21, 23, 28, 33, 34, 38, 50, 51, 53, 54, 61] {
-        assert!(programs.get(p.into()), "program missing");
-    }
+    // The program the self-contained MIDI selects and the drum notes it plays.
+    assert!(
+        programs.get(beast_music::composition::full_midi::VOICE_PROGRAM.into()), "program missing",
+    );
     for d in array![36_u8, 38, 41, 42, 43, 45, 46, 47, 48, 49, 50] {
         assert!(programs.get(d.into() + 256), "drum missing");
     }

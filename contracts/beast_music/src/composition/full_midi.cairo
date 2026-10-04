@@ -2,14 +2,11 @@
 //! written: every play resets each channel to program 0 and adds nothing).
 //!
 //! On top of the score: a program change and a pan (CC10) on every voice at tick 0, and a drum
-//! track on channel 10. Programs come from role pools (the TinyChip orchestration's) and are
-//! TinyChip bank numbers, so sound settings that install those presets in the same slots are
-//! selected by the file. Byte-identical to `beastFullMidi` in
-//! offchain/beast-sound/src/full_midi.js.
+//! track on channel 10. Every voice plays `VOICE_PROGRAM`, a TinyChip bank number, so sound
+//! settings that install that preset in the same slot are selected by the file. Byte-identical to
+//! `beastFullMidi` in offchain/beast-sound/src/full_midi.js.
 //!
-//! Instruments: the highest voice leads (brighter leads above 120 BPM), the lowest is a bass (or
-//! keys above E3), the voices between are pads when they rest a lot and keys when they move; no
-//! preset twice. Drums: kick, half-time snare and eighth-note hats phrased in bar pairs, and a fill
+//! Drums: kick, half-time snare and eighth-note hats phrased in bar pairs, and a fill
 //! into every section by tier (A tier 5, B tier 4, C tier 3, D tiers 1-2 with a cymbal on each
 //! section's downbeat). Drum hits are note-ons only (one-shots), written with running status.
 
@@ -17,170 +14,31 @@ use core::dict::{Felt252Dict, Felt252DictTrait};
 use midi::smf::{TrackWriterTrait, smf_bytes};
 use crate::composition::beast_score::BeastForm;
 
-// role pools (TinyChip bank program numbers)
-fn pool(role: u8) -> Span<u8> {
-    if role == 0 {
-        array![0, 2, 3, 1].span() // lead
-    } else if role == 1 {
-        array![50, 51, 53, 4].span() // bright lead
-    } else if role == 2 {
-        array![20, 61, 23, 21].span() // bass
-    } else if role == 3 {
-        array![12, 15, 18, 38].span() // keys
-    } else {
-        array![28, 33, 54, 34].span() // pad
-    }
-}
+/// The program every voice plays: TinyChip's Triangle Lead (bank 0) for now, until the preset set
+/// and its orchestration are chosen.
+pub const VOICE_PROGRAM: u8 = 0;
 
-fn contains(list: @Array<u8>, x: u8) -> bool {
-    let mut i: u32 = 0;
-    let mut found = false;
-    while i < list.len() {
-        if *list.at(i) == x {
-            found = true;
-            break;
-        }
-        i += 1;
-    }
-    found
-}
-
-fn pick(role: u8, k: u32, ref used: Array<u8>) -> u8 {
-    let p = pool(role);
-    let mut i: u32 = 0;
-    let mut chosen: u8 = *p.at(k % 4);
-    let mut found = false;
-    while i < 4 {
-        let id = *p.at((k + i) % 4);
-        if !contains(@used, id) {
-            chosen = id;
-            found = true;
-            break;
-        }
-        i += 1;
-    }
-    if found {
-        used.append(chosen);
-    }
-    chosen
-}
-
-/// (programs, pans) indexed by voice id 0..=max voice (absent voices get 0, 64).
-pub fn voice_setup(form: @BeastForm, tempo_us: u32) -> (Array<u8>, Array<u8>) {
+/// (programs, pans) indexed by voice id 0..=max voice: every voice on `VOICE_PROGRAM`, the present
+/// voices panned left to right in voice order (absent voices get 64).
+pub fn voice_setup(form: @BeastForm) -> (Array<u8>, Array<u8>) {
     let events = form.events.span();
     let mut max_voice: u32 = 0;
-    let mut i: u32 = 0;
-    while i < events.len() {
-        let v = *events.at(i).voice_id;
-        if v > max_voice {
-            max_voice = v;
+    for e in events {
+        if *e.voice_id > max_voice {
+            max_voice = *e.voice_id;
         }
-        i += 1;
     }
-    // per-voice sum of pitches, count, first and last onset
-    let mut sums: Array<u64> = array![];
-    let mut counts: Array<u64> = array![];
-    let mut firsts: Array<u32> = array![];
-    let mut lasts: Array<u32> = array![];
+    let mut present: Felt252Dict<bool> = Default::default();
+    for e in events {
+        present.insert((*e.voice_id).into(), true);
+    }
     let mut ids: Array<u32> = array![];
     let mut v: u32 = 0;
     while v <= max_voice {
-        let mut sum: u64 = 0;
-        let mut n: u64 = 0;
-        let mut first: u32 = 0;
-        let mut last: u32 = 0;
-        let mut j: u32 = 0;
-        while j < events.len() {
-            let e = *events.at(j);
-            if e.voice_id == v {
-                if n == 0 || e.time < first {
-                    first = e.time;
-                }
-                if n == 0 || e.time > last {
-                    last = e.time;
-                }
-                sum += e.pitch.into();
-                n += 1;
-            }
-            j += 1;
-        }
-        sums.append(sum);
-        counts.append(n);
-        firsts.append(first);
-        lasts.append(last);
-        if n > 0 {
+        if present.get(v.into()) {
             ids.append(v);
         }
         v += 1;
-    }
-    // order the present voices by mean pitch, lowest first (cross-multiplied); ties by voice id
-    let mut order: Array<u32> = array![];
-    let mut placed: u32 = 0;
-    while placed < ids.len() {
-        // pick the lowest remaining (selection, at most 6 voices)
-        let mut best: u32 = 0;
-        let mut best_set = false;
-        let mut a: u32 = 0;
-        while a < ids.len() {
-            let id = *ids.at(a);
-            let mut taken = false;
-            let mut b: u32 = 0;
-            while b < order.len() {
-                if *order.at(b) == id {
-                    taken = true;
-                    break;
-                }
-                b += 1;
-            }
-            if !taken {
-                if !best_set {
-                    best = id;
-                    best_set = true;
-                } else {
-                    let lhs = *sums.at(id) * *counts.at(best);
-                    let rhs = *sums.at(best) * *counts.at(id);
-                    if lhs < rhs || (lhs == rhs && id < best) {
-                        best = id;
-                    }
-                }
-            }
-            a += 1;
-        }
-        order.append(best);
-        placed += 1;
-    }
-    let hash_u256: u256 = (*form.score_hash).into();
-    let hash: u32 = (hash_u256.low % 0x100000000).try_into().unwrap();
-    let h4 = hash / 16;
-    let h8 = hash / 256;
-    let mut progs: Felt252Dict<u8> = Default::default();
-    let mut used: Array<u8> = array![];
-    let nvo = order.len();
-    let mut i: u32 = 0;
-    while i < nvo {
-        let id = *order.at(i);
-        let program = if i == nvo - 1 {
-            pick(if tempo_us < 500000 {
-                1
-            } else {
-                0
-            }, hash % 4, ref used)
-        } else if i == 0 {
-            pick(if *sums.at(id) < 52 * *counts.at(id) {
-                2
-            } else {
-                3
-            }, h4 % 4, ref used)
-        } else {
-            let span: u64 = (*lasts.at(id) - *firsts.at(id) + 480).into();
-            pick(if 4800 * *counts.at(id) < 7 * span {
-                4
-            } else {
-                3
-            }, (h8 + i) % 4, ref used)
-        };
-        progs.insert(id.into(), program);
-        i += 1;
     }
     // pan across the present voices in voice order: floor((960 (n-1) + 10880 i) / (100 (n-1)))
     let mut pans: Felt252Dict<u8> = Default::default();
@@ -199,12 +57,11 @@ pub fn voice_setup(form: @BeastForm, tempo_us: u32) -> (Array<u8>, Array<u8>) {
     let mut out_pan: Array<u8> = array![];
     let mut v: u32 = 0;
     while v <= max_voice {
-        out_p.append(progs.get(v.into()));
-        let pv = pans.get(v.into());
-        out_pan.append(if pv == 0 && *counts.at(v) == 0 {
-            64
+        out_p.append(VOICE_PROGRAM);
+        out_pan.append(if present.get(v.into()) {
+            pans.get(v.into())
         } else {
-            pv
+            64
         });
         v += 1;
     }
@@ -344,7 +201,7 @@ pub fn drum_track(length: u32, sec: u32, tier: u8) -> Array<u8> {
 /// voice (program and pan at tick 0, then the notes), and the drum track.
 pub fn beast_form_to_full_smf_bytes(form: @BeastForm, tempo_us: u32, tier: u8) -> Array<u8> {
     let events = form.events.span();
-    let (programs, pans) = voice_setup(form, tempo_us);
+    let (programs, pans) = voice_setup(form);
     let max_voice: u32 = programs.len() - 1;
     let length = *form.length_ticks;
     let sections: u32 = (*form.section_count).into();

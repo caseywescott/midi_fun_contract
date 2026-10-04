@@ -14,8 +14,8 @@ import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { bankData } from './essentials.mjs';
-import { beastSynthSettings } from './synth_settings.mjs';
+import { bankData, ESSENTIALS } from './essentials.mjs';
+import { BEAST_DRUMS, TIMBRE_TRIM, timbreOperators } from './synth_settings.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const TOLERANCE_DB = 0.5, NOISE_TOLERANCE_DB = 1;
@@ -25,7 +25,12 @@ const { chromium } = (await import(process.env.PLAYWRIGHT_CORE ? pathToFileURL(p
 
 const D = { g: 0, w: 'sine', t: 1, f: 0, v: 0.5, a: 0, h: 0.01, d: 0.01, s: 0, r: 0.05, p: 1, q: 1, k: 0 };
 const W = { Sine: 'sine', Square: 'square', Sawtooth: 'sawtooth', Triangle: 'triangle', WhiteNoise: 'n0', MetallicNoise: 'n1' };
-const data = bankData(), settings = beastSynthSettings(data);
+const data = bankData();
+// every essential, not only the ones the settings carry now, so any can be chosen
+const settings = { timbres: [
+  ...ESSENTIALS.map((id) => ({ drum: false, slot: id, operators: timbreOperators(data.presets[id], TIMBRE_TRIM[id] ?? 1) })),
+  ...BEAST_DRUMS.map((key) => ({ drum: true, slot: key, operators: timbreOperators(data.drums[key]) })),
+] };
 const tinysynth = (ops) => ops.map((o) => ({ g: o.route, w: W[o.wave], v: o.volume / 1e4, t: o.ratio / 1e4, f: o.offset_hz / 1e4, a: o.attack / 1e4, h: o.hold / 1e4, d: o.decay / 1e4, s: o.sustain / 1e4, r: o.release / 1e4, p: o.pitch_ratio / 1e4, q: o.pitch_time / 1e4, k: o.key_scale / 1e4 }));
 const items = settings.timbres.map((t) => ({
   drum: t.drum, slot: t.slot, noise: t.operators.some((o) => o.wave === 'WhiteNoise' || o.wave === 'MetallicNoise'),

@@ -1,12 +1,10 @@
 // Self-contained Beast MIDI for a generic player (onchain-tinysynth plays a file exactly as written:
 // every play resets each channel to program 0 and adds nothing). On top of the score itself:
 //
-//   instruments  a program change on every voice at tick 0, from role pools (the TinyChip
-//                orchestration's): the highest voice leads (brighter leads when the tempo is above
-//                120 BPM), the lowest is a bass (or keys above E3), voices between are pads when
-//                they rest a lot and keys when they move; no preset twice. Programs are TinyChip
-//                bank numbers, so sound settings that install those presets as custom timbres in
-//                the same slots are selected by the file directly.
+//   instruments  a program change on every voice at tick 0: VOICE_PROGRAM (TinyChip's Triangle
+//                Lead) on every voice for now. Programs are TinyChip bank numbers, so sound
+//                settings that install that preset as a custom timbre in the same slot are
+//                selected by the file directly.
 //   pan          CC10 at tick 0, voices spread from left to right in voice order
 //   drums        channel 10: kick, half-time snare and eighth-note hats phrased in bar pairs, and
 //                a fill into every section that grows with the tier (A tier 5 two snares, B tier 4
@@ -16,42 +14,14 @@
 // Every value is integer arithmetic so the Cairo writer (beast_v3_sound.cairo) can match it byte
 // for byte. The tempo track's End-of-Track and the drum track's sit at the form's length.
 
-export const POOLS = {
-  lead: [0, 2, 3, 1],       // Triangle Lead, Pulse 25% Lead, Square Lead, Pulse 12.5% Lead
-  bright: [50, 51, 53, 4],  // Robot Hero Lead, Vampire Hunter Lead, Hero Fanfare, 4-bit Saw Lead
-  bass: [20, 61, 23, 21],   // Triangle Bass, Sunsoft Saw Bass, 4-bit Saw Bass (drop), Pulse Bass
-  keys: [12, 15, 18, 38],   // Pulse 25% Pluck, Triangle Pluck, Chip Piano, Pulse Blip
-  pad: [28, 33, 54, 34],    // Pulse Swell, Triangle Pad, Bounty Hunter Pad, Octave Arp
-};
+/** The program every voice plays: TinyChip's Triangle Lead (bank 0) for now, until the preset set and its orchestration are chosen. */
+export const VOICE_PROGRAM = 0;
 
-/** { voice_id: { program, pan } } for a score's note events. `hash`: a u32 from the score. */
-export function voiceSetup(events, tempo_us, hash) {
-  const st = {};
-  for (const e of events) {
-    const s = (st[e.voice_id] ||= { sum: 0, n: 0, first: e.time, last: e.time });
-    s.sum += e.pitch; s.n += 1;
-    if (e.time < s.first) s.first = e.time;
-    if (e.time > s.last) s.last = e.time;
-  }
-  const ids = Object.keys(st).map(Number).sort((a, b) => a - b);
-  // by mean pitch, lowest first (cross-multiplied: no fractions); ties by voice id
-  const order = [...ids].sort((a, b) => (st[a].sum * st[b].n - st[b].sum * st[a].n) || a - b);
-  const used = new Set(), out = {};
-  const pick = (pool, k) => {
-    for (let i = 0; i < 4; i++) { const id = pool[(k + i) % 4]; if (!used.has(id)) { used.add(id); return id; } }
-    return pool[k % 4];
-  };
-  const h4 = Math.floor(hash / 16), h8 = Math.floor(hash / 256);
-  order.forEach((id, i) => {
-    const s = st[id];
-    let program;
-    if (i === order.length - 1) program = pick(tempo_us < 500000 ? POOLS.bright : POOLS.lead, hash % 4);
-    else if (i === 0) program = pick(s.sum < 52 * s.n ? POOLS.bass : POOLS.keys, h4 % 4);
-    else program = pick(4800 * s.n < 7 * (s.last - s.first + 480) ? POOLS.pad : POOLS.keys, (h8 + i) % 4); // < 0.7 notes per quarter: a pad
-    out[id] = { program, pan: 0 };
-  });
+/** { voice_id: { program, pan } } for a score's note events: every voice on VOICE_PROGRAM, panned left to right in voice order. */
+export function voiceSetup(events) {
+  const ids = [...new Set(events.map((e) => e.voice_id))].sort((a, b) => a - b), out = {};
   // pan: 64 + 64 x (-0.85 .. +0.85) across the voices in voice order, floored
-  ids.forEach((id, i) => { out[id].pan = ids.length < 2 ? 64 : Math.floor((960 * (ids.length - 1) + 10880 * i) / (100 * (ids.length - 1))); });
+  ids.forEach((id, i) => { out[id] = { program: VOICE_PROGRAM, pan: ids.length < 2 ? 64 : Math.floor((960 * (ids.length - 1) + 10880 * i) / (100 * (ids.length - 1))) }; });
   return out;
 }
 
@@ -138,8 +108,7 @@ export const MEGA_ALL = { double: true, groove: true, lift: true };
 /** A rendered Beast (engine.render) -> self-contained SMF bytes. */
 export function beastFullMidi(result, formLength, mega = {}) {
   const f = result.form, p = result.params, length = formLength(f);
-  const hash = Number(BigInt(f.score_hash) & 0xffffffffn);
-  const setup = voiceSetup(f.events, p.tempo_us, hash);
+  const setup = voiceSetup(f.events);
   let notes = f.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]);
   const sec = f.section_ticks, sections = Math.round(length / sec);
   if (mega.double) {
@@ -148,9 +117,8 @@ export function beastFullMidi(result, formLength, mega = {}) {
     for (const [, , pitch, , v] of notes) { const s = (st[v] ||= { sum: 0, n: 0 }); s.sum += pitch; s.n += 1; }
     const ids = Object.keys(st).map(Number);
     const lead = ids.reduce((a, b) => (st[b].sum * st[a].n > st[a].sum * st[b].n || (st[b].sum * st[a].n === st[a].sum * st[b].n && b > a) ? b : a));
-    const ch = Math.max(...ids) + 1, used = new Set(Object.values(setup).map((x) => x.program));
-    const program = POOLS.bright.concat(POOLS.lead).find((id) => !used.has(id));
-    setup[ch] = { program, pan: 128 - setup[lead].pan > 127 ? 127 : 128 - setup[lead].pan };
+    const ch = Math.max(...ids) + 1;
+    setup[ch] = { program: VOICE_PROGRAM, pan: 128 - setup[lead].pan > 127 ? 127 : 128 - setup[lead].pan };
     for (const [t, d, pitch, vel, v] of notes.slice()) {
       if (v === lead && pitch + 12 <= 127) notes.push([t, d, pitch + 12, Math.max(1, Math.floor(vel * 3 / 4)), ch]);
     }

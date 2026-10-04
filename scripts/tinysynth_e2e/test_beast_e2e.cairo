@@ -10,7 +10,7 @@ use crate::helpers::{beasts_token_uri, class};
 #[test]
 fn beast_build() {
     let s = beast_settings();
-    assert(s.timbres.len() == 31, 'timbres');
+    assert(s.timbres.len() == 12, 'timbres');
     assert(warlock_midi().len() == WARLOCK_LEN, 'warlock');
     assert(heaviest_midi().len() == HEAVIEST_LEN, 'heaviest');
 }

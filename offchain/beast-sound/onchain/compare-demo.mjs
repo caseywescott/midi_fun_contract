@@ -48,8 +48,9 @@ function entry(name, beast, live, art) {
     name, art, voices: r1.params.voice_count, sections: r1.params.section_count, tier: r1.params.tier,
     keys: { v1: keys(r1.params, v11.v1KeyPlan(r1.params)), v11: keys(r2.params, r2.v11.keyPlan), v11m: 'all in ' + home + ': ' + r3.v11.harmony.roots.map((x) => numeral(r3.params, x)).join(' – ') + ' (' + BARS(r3.v11.harmony.unit) + ', every section)', reach: v11.REACH[r1.params.tier] },
     v1: { midi: b64(engine.eventsToMidi(r1.form.events, r1.params.tempo_us, len)), m: v11.metrics(r1.form.events, r1.form) },
-    v11: { midi: b64(engine.eventsToMidi(r2.form.events, r2.params.tempo_us, len)), m: v11.metrics(r2.form.events, r2.form) },
-    v11m: { midi: b64(engine.eventsToMidi(r3.form.events, r3.params.tempo_us, len)), m: v11.metrics(r3.form.events, r3.form) },
+    v11: { midi: b64(engine.eventsToMidi(r2.form.events, r2.params.tempo_us, engine.formLength(r2.form))), m: v11.metrics(r2.form.events, r2.form) },
+    v11m: { midi: b64(engine.eventsToMidi(r3.form.events, r3.params.tempo_us, engine.formLength(r3.form))), m: v11.metrics(r3.form.events, r3.form) },
+    bars: { v1: r1.form.section_ticks / 1920, v11: r2.form.section_ticks / 1920, v11m: r3.form.section_ticks / 1920 },
   };
 }
 const warlockLive = { adventurers_killed: 412, scars: 7, summit_held_seconds: 0, rank: 3, species_count: 1243 };
@@ -128,13 +129,14 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
 @media (max-width:760px){.layout{grid-template-columns:1fr}.art{max-width:240px}}
 </style></head><body><main>
 <h1>Beast composer: v1 vs v1.1</h1>
-<p>The same Beast and the same synth, composed two ways. <b>v1</b> is the onchain composer today. <span class="bb">v1.1</span> is a prototype (JavaScript only for now) that keeps v1's themes, home keys and form and changes five things:</p>
+<p>The same Beast and the same synth, composed two ways. <b>v1</b> is the onchain composer today. <span class="bb">v1.1</span> is a prototype (JavaScript only for now) that keeps v1's themes and home keys and changes these things:</p>
 <ul>
 <li><b>Cadence:</b> the theme's last bar steps to the tonic and holds it, so each section and the loop end on purpose.</li>
 <li><b>Rhythm:</b> the theme is built from 4-beat rhythm cells (long notes, dotted rhythms, short runs) picked by the Beast's motif seed, with a family per Beast type; the kill-driven ornament density decides how many passing notes appear.</li>
 <li><b>No silent bars:</b> from the end of its theme until the next section, every voice plays an episode: the theme's opening bar in sequence (a step higher or lower each bar), then a half cadence onto the dominant of the next section's key. The last section leads back into the first, so the loop flows on.</li>
 <li><b>Related keys:</b> sections move around the circle of fifths instead of v1's fixed shifts, which often jump a tritone. The Beast's tier sets how far they roam: tiers 4–5 stay within one fifth (I, V, IV), tier 3 two, tier 2 three, tier 1 four (a third relation such as C → E). Its type picks the sharp or flat side, and the last section comes back within a fifth of home, so the loop returns smoothly.</li>
 <li><b>Same mode + tier chords (third button):</b> the whole Beast stays in its home key and mode, and each tier has its own chord progression, played by an added bass voice. The other voices lean on its chord tones on the beat (the melody moves a step only to avoid clashing with the bass). From tier 5 to tier 1 there are more chords, faster chord changes and a busier bass, so a rarer Beast sounds harmonically richer. Every section starts on I, the theme's cadence lands on I and the section ends on V, leading into the next.</li>
+<li><b>Even phrases:</b> sections are an even number of bars (v1's 5, 7 or 9 become 6, 8 or 10), so phrases pair up; the episode fills the extra bar.</li>
 <li><b>Voices:</b> every note is checked against every voice sounding with it. Thirds and sixths are preferred; clashes on the beat, unisons and parallel 5ths/8ves are avoided by moving a note a step or two.</li>
 </ul>
 <div class="layout">
@@ -225,6 +227,7 @@ function metricsTable() {
   const a = BEASTS[current].v1.m, b = BEASTS[current].v11.m, c = BEASTS[current].v11m.m;
   const row = (label, k, f = (x) => x) => '<tr><td>' + label + '</td><td>' + f(a[k]) + '</td><td class="b">' + f(b[k]) + '</td><td class="c">' + f(c[k]) + '</td></tr>';
   $('mt').innerHTML = '<tr><th>This Beast</th><th>v1</th><th>v1.1: keys change</th><th>v1.1: same mode + tier chords</th></tr>' + '<tr><td>Keys and chords (tier ' + BEASTS[current].tier + ': up to ' + BEASTS[current].keys.reach + ' fifth' + (BEASTS[current].keys.reach > 1 ? 's' : '') + ' away)</td><td>' + BEASTS[current].keys.v1 + '</td><td class="b">' + BEASTS[current].keys.v11 + '</td><td class="c">' + BEASTS[current].keys.v11m + '</td></tr>'
+    + '<tr><td>Bars per section</td><td>' + BEASTS[current].bars.v1 + '</td><td class="b">' + BEASTS[current].bars.v11 + '</td><td class="c">' + BEASTS[current].bars.v11m + '</td></tr>'
     + row('Notes', 'notes') + row('Silent time', 'silentPct', (x) => x + '%') + row('Note lengths', 'durations')
     + (a.voices > 1 ? row('Clashes between voices', 'clashPct', (x) => x + '%') + row('Clashes on the beat', 'clashOnBeatPct', (x) => x + '%') + row('Unisons / octaves', 'octavePct', (x) => x + '%') + row('Parallel 5ths/8ves', 'parallels') : '')
     + row('Ends on the tonic', 'cadence', (x) => (x ? 'yes' : 'no'));

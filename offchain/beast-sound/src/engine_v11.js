@@ -25,6 +25,8 @@
 //                per tier played by an added bass voice; the other voices prefer its chord tones on
 //                the beat (the melody moves a step only to avoid clashing with the bass). Tiers form
 //                a ladder: more chords, faster chord changes and a busier bass from tier 5 to 1.
+//   6. Phrases   sections are an even number of bars (v1's length rounded up: 5 -> 6, 7 -> 8,
+//                9 -> 10), so phrases pair up; the episode fills the extra bar.
 //   + Dynamics   each phrase rises toward its highest note; bar downbeats are accented.
 //
 //   const v11 = createEngineV11(engine);
@@ -319,14 +321,17 @@ export function createEngineV11(engine) {
     const plan = keyPlan(p);
     // chords: every section starts on I in the home key (the progression carries the motion)
     const sectionPlan = chords ? plan.map((k) => ({ ...k, degrees: 0 })) : plan;
+    // an even number of bars per section
+    const ticks = Math.ceil(f.section_ticks / (2 * BAR)) * 2 * BAR;
     let harmony = null;
     for (let s = 0; s < p.section_count; s++) {
-      const sec = buildSection(p, theme, slots, s, s * f.section_ticks, csSeed, f.section_ticks, seed, sectionPlan, keys === 'mode' || chords, chords);
+      const sec = buildSection(p, theme, slots, s, s * ticks, csSeed, ticks, seed, sectionPlan, keys === 'mode' || chords, chords);
       if (sec.harmony && !harmony) harmony = sec.harmony;
       events.push(...sec);
     }
     events = shape(events, p).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
-    return { ...r, form: { ...f, theme, events }, v11: { keyPlan: plan, keys, harmony } };
+    const sections = f.sections.map((x, i) => ({ ...x, start: i * ticks }));
+    return { ...r, form: { ...f, theme, events, section_ticks: ticks, sections }, v11: { keyPlan: plan, keys, harmony } };
   }
 
   // numbers for the comparison: rhythm, consonance, texture, cadence

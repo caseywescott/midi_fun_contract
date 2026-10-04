@@ -59,6 +59,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
       <div class="controls">
         <button type="button" id="play">▶ Play</button>
         <label class="check"><input type="checkbox" id="drums" checked> Drums</label>
+        <span class="note" id="fillNote"></span>
         <label class="check"><input type="checkbox" id="keep" checked> Keep playing when switching</label>
       </div>
       <label class="check"><input type="checkbox" id="breath"> Same mode, single-voice Beasts: let the theme breathe (hold its last note a bar: 6 bars instead of 4)</label>
@@ -108,16 +109,30 @@ const bytesOf = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 const COLORS = ['#4af626', '#ffb000', '#3fd0ff', '#ff5ea8', '#c9a0ff', '#ffffff'];
 
 // the drum pattern, phrased by the section: a firmer kick on the first bar of each pair, a lighter
-// one on the second, and a snare fill on the last beat of every section
-function withDrums(song, sectionBars) {
+// one on the second, and a fill into every section that grows with the Beast's tier
+const FILLS = {
+  A: { name: 'two snares', beats: 1, tiers: '5' },
+  B: { name: 'sixteenth-note snare run', beats: 1, tiers: '4' },
+  C: { name: 'two-beat snare build', beats: 2, tiers: '3' },
+  D: { name: 'tom roll into a crash', beats: 2, tiers: '1-2' },
+};
+const fillFor = (tier) => (tier >= 5 ? 'A' : tier === 4 ? 'B' : tier === 3 ? 'C' : 'D');
+// notes for one fill, relative to the start of its region (1 or 2 beats before the section end)
+function fillNotes(f) {
+  if (f === 'A') return [[0, 120, 38, 88], [240, 120, 38, 106]];
+  if (f === 'B') return [0, 1, 2, 3].map((k) => [k * 120, 90, 38, 72 + k * 12]);
+  if (f === 'C') return [[0, 120, 36, 100], [0, 120, 38, 80], [240, 120, 38, 88], ...[0, 1, 2, 3].map((k) => [480 + k * 120, 90, 38, 92 + k * 8])];
+  return [50, 50, 48, 48, 47, 45, 43, 41].map((key, k) => [k * 120, 110, key, 84 + k * 4]).concat([[840, 120, 36, 110]]); // toms high to low, a kick on the last sixteenth
+}
+function withDrums(song, sectionBars, tier) {
   const end = Math.max(song.length_ticks || 0, ...song.notes.map((n) => n[0] + n[1]));
   const bars = Math.ceil(end / 1920) * 1920, sec = (sectionBars || 4) * 1920, drums = [];
+  const f = fillFor(tier), region = FILLS[f].beats * 480;
   for (let t = 0; t < bars; t += 240) {
     const rel = t % sec, bar = Math.floor(rel / 1920), b = (rel % 1920) / 480, onBeat = t % 480 === 0;
-    if (rel >= sec - 480) {                                   // fill into the next section
-      if (onBeat) for (let k = 0; k < 4; k++) drums.push([t + k * 120, 90, 38, 72 + k * 12, 9]);
-      continue;
-    }
+    if (rel === sec - region) for (const [st, d, key, v] of fillNotes(f)) drums.push([t + st, d, key, v, 9]);
+    if (rel >= sec - region) continue;                        // the fill replaces the groove here
+    if (f === 'D' && rel === 0) { drums.push([t, 480, 49, 104, 9]); drums.push([t, 120, 36, 120, 9]); continue; } // crash on each section's downbeat
     if (onBeat && b === 0) drums.push([t, 120, 36, bar % 2 === 0 ? 120 : 92, 9]);
     if (onBeat && b === 2) drums.push([t, 120, 38, bar % 2 === 0 ? 92 : 84, 9]);
     drums.push([t, 60, 42, onBeat ? 70 : 50, 9]);
@@ -152,6 +167,8 @@ function show() {
   $('art').src = b.art;
   drawRoll($('rollA'), b.v1.midi); drawRoll($('rollB'), b.v11.midi); drawRoll($('rollC'), b[key('v11m')].midi);
   metricsTable();
+  const f = fillFor(b.tier);
+  $('fillNote').textContent = 'Fill ' + f + ' (tier ' + FILLS[f].tiers + '): ' + FILLS[f].name;
   setInstrument();
 }
 function stop() { if (synth) synth.stopMIDI(); playing = false; $('play').textContent = '▶ Play'; }
@@ -160,7 +177,7 @@ function play() {
   if (!synth) synth = TinyChipBank.install(new WebAudioTinySynth({ quality: 1, useReverb: 0, voices: 64 }));
   synth.getAudioContext().resume();
   const k = key(version), midi = BEASTS[current][k].midi, song = v1lib.smf.parse(midi);
-  const file = $('drums').checked ? v1lib.midi.write(withDrums(song, BEASTS[current].bars[k])) : bytesOf(midi);
+  const file = $('drums').checked ? v1lib.midi.write(withDrums(song, BEASTS[current].bars[k], BEASTS[current].tier)) : bytesOf(midi);
   synth.loadMIDI(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength));
   synth.loopEnd = Math.ceil(synth.maxTick / synth.song.timebase) * synth.song.timebase;
   synth.setLoop(1);

@@ -1,5 +1,5 @@
 // Generates the onchain TinyChip runtime: tinychip.js with BANK filled in from the full bank
-// (tinysynth-chip.js). Each essential preset's operators get the bank's loudness gain folded into the
+// (tinysynth-chip.js). Each essential preset's operators get the bank's loudness gain (and any mix trim) folded into the
 // levels you hear (g 0 outputs and g > 10 amplitude modulators, as TinyChipBank.install applies it),
 // and fields equal to TinySynth's defaults are left out (the runtime fills them back).
 import { readFileSync } from 'node:fs';
@@ -20,7 +20,7 @@ export function loadBank() {
 export function bankData(bank = loadBank()) {
   const presets = {};
   for (const id of ESSENTIALS) {
-    const pr = bank.PRESETS[id], k = bank.LOUDNESS[id] ?? 1;
+    const pr = bank.PRESETS[id], k = (bank.LOUDNESS[id] ?? 1) * ((bank.MIX_TRIM || {})[id] ?? 1); // loudness match x mix trim
     presets[id] = pr.p.map((o) => {
       const op = { ...o };
       if ((op.g ?? 0) === 0 || op.g > 10) op.v = (op.v ?? DEFAULTS.v) * k;

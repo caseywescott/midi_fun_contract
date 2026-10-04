@@ -256,13 +256,18 @@
   // phrase per preset, through tinysynth's own output chain, matched to the pack's median.
   const LOUDNESS = [0.835, 1.21, 0.939, 0.872, 1.084, 0.872, 0.851, 1.273, 0.851, 1.069, 0.845, 0.937, 1.543, 2.088, 1.908, 1.344, 2.135, 1.417, 0.976, 3.116, 0.627, 0.941, 0.876, 1.209, 0.668, 0.701, 1.639, 0.644, 1.191, 1.165, 0.943, 1.577, 1.088, 1.234, 0.964, 0.94, 0.951, 1.182, 1.455, 1.373, 1.172, 0.964, 0.715, 1.273, 1.066, 0.508, 0.656, 0.645, 1.17, 1.6, 0.872, 0.837, 1.053, 1.115, 2.124, 1.09, 1.119, 0.966, 0.649, 1.227, 0.883, 1.062, 0.85, 1.136, 1.057, 1.161, 0.861, 0.909, 1.004, 1.166, 0.715, 1.657, 1.346, 0.969, 1.488, 1.137, 0.701, 1.167, 0.615, 1.393, 0.99, 1.042, 0.995, 1.426, 0.6, 0.676, 0.845, 0.866, 0.809, 0.872, 1.175, 0.745, 1.352, 0.586, 0.659, 0.617, 0.472, 0.811, 1.111, 1.806];
 
+  // Mix trims on top of the loudness match (kept apart so loudness.mjs can re-run without undoing
+  // them). Loudness is matched solo; in a full texture a low triangle carries more than its solo
+  // K-weighted level suggests (the weighting discounts lows), so Triangle Bass sits 3 dB under.
+  const MIX_TRIM = { 20: 0.708 };                           // 20 Triangle Bass (NES): -3 dB
+
   // tinysynth's operator defaults (its setTimbre fills these; slots above 127 are set directly)
   const DEFAULTS = { g: 0, w: 'sine', t: 1, f: 0, v: 0.5, a: 0, h: 0.01, d: 0.01, s: 0, r: 0.05, p: 1, q: 1, k: 0 };
 
   function install(synth, { gains = LOUDNESS, programBase = 0, drums = true } = {}) {
     registerWaves(synth);
     for (const pr of P) {
-      const k = gains[pr.program] ?? 1;
+      const k = (gains[pr.program] ?? 1) * (MIX_TRIM[pr.program] ?? 1);
       const ops = pr.p.map((o) => ((o.g ?? 0) === 0 || o.g > 10 ? { ...DEFAULTS, ...o, v: o.v * k } : { ...DEFAULTS, ...o }));
       const n = programBase + pr.program;
       if (n <= 127) { synth.setTimbre(0, n, ops); synth.program[n].name = pr.name; }
@@ -277,5 +282,5 @@
     return synth;
   }
 
-  root.TinyChipBank = { install, PRESETS: P, LOUDNESS, DRUMS, WAVES: ['nP06', 'nP12', 'nP25', 'nP37', 'nP50', 'nTRI', 'nSAW', 'nVRS', 'nWV1', 'nWV2', 'nFDS', 'nN16', 'nSID', 'nTI4', 'nTI5', 'nTIB', 'nPC1', 'nPC2', 'nMTP', 'nNOI', 'nMET'] };
+  root.TinyChipBank = { install, PRESETS: P, LOUDNESS, MIX_TRIM, DRUMS, WAVES: ['nP06', 'nP12', 'nP25', 'nP37', 'nP50', 'nTRI', 'nSAW', 'nVRS', 'nWV1', 'nWV2', 'nFDS', 'nN16', 'nSID', 'nTI4', 'nTI5', 'nTIB', 'nPC1', 'nPC2', 'nMTP', 'nNOI', 'nMET'] };
 })(typeof window !== 'undefined' ? window : globalThis);

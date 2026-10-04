@@ -1135,28 +1135,6 @@
   },
   {
    "drum": true,
-   "slot": 35,
-   "operators": [
-    {
-     "route": 0,
-     "wave": "Triangle",
-     "volume": 6059,
-     "ratio": 0,
-     "offset_hz": 1400000,
-     "attack": 20,
-     "hold": 0,
-     "decay": 600,
-     "sustain": 0,
-     "release": 300,
-     "pitch_ratio": 2800,
-     "pitch_time": 300,
-     "key_scale": 0,
-     "filter": null
-    }
-   ]
-  },
-  {
-   "drum": true,
    "slot": 36,
    "operators": [
     {
@@ -1179,28 +1157,6 @@
   },
   {
    "drum": true,
-   "slot": 37,
-   "operators": [
-    {
-     "route": 0,
-     "wave": "MetallicNoise",
-     "volume": 2370,
-     "ratio": 0,
-     "offset_hz": 17600000,
-     "attack": 10,
-     "hold": 0,
-     "decay": 120,
-     "sustain": 0,
-     "release": 200,
-     "pitch_ratio": 10000,
-     "pitch_time": 10000,
-     "key_scale": 0,
-     "filter": null
-    }
-   ]
-  },
-  {
-   "drum": true,
    "slot": 38,
    "operators": [
     {
@@ -1212,82 +1168,6 @@
      "attack": 20,
      "hold": 0,
      "decay": 500,
-     "sustain": 0,
-     "release": 300,
-     "pitch_ratio": 10000,
-     "pitch_time": 10000,
-     "key_scale": 0,
-     "filter": null
-    },
-    {
-     "route": 0,
-     "wave": "Square",
-     "volume": 1644,
-     "ratio": 0,
-     "offset_hz": 2000000,
-     "attack": 20,
-     "hold": 0,
-     "decay": 250,
-     "sustain": 0,
-     "release": 300,
-     "pitch_ratio": 5500,
-     "pitch_time": 300,
-     "key_scale": 0,
-     "filter": null
-    }
-   ]
-  },
-  {
-   "drum": true,
-   "slot": 39,
-   "operators": [
-    {
-     "route": 0,
-     "wave": "WhiteNoise",
-     "volume": 4330,
-     "ratio": 0,
-     "offset_hz": 4400000,
-     "attack": 20,
-     "hold": 0,
-     "decay": 350,
-     "sustain": 0,
-     "release": 300,
-     "pitch_ratio": 10000,
-     "pitch_time": 10000,
-     "key_scale": 0,
-     "filter": null
-    },
-    {
-     "route": 0,
-     "wave": "Square",
-     "volume": 1644,
-     "ratio": 0,
-     "offset_hz": 2000000,
-     "attack": 20,
-     "hold": 0,
-     "decay": 250,
-     "sustain": 0,
-     "release": 300,
-     "pitch_ratio": 5500,
-     "pitch_time": 300,
-     "key_scale": 0,
-     "filter": null
-    }
-   ]
-  },
-  {
-   "drum": true,
-   "slot": 40,
-   "operators": [
-    {
-     "route": 0,
-     "wave": "WhiteNoise",
-     "volume": 4330,
-     "ratio": 0,
-     "offset_hz": 3520000,
-     "attack": 20,
-     "hold": 0,
-     "decay": 450,
      "sustain": 0,
      "release": 300,
      "pitch_ratio": 10000,
@@ -1374,28 +1254,6 @@
      "release": 300,
      "pitch_ratio": 6000,
      "pitch_time": 500,
-     "key_scale": 0,
-     "filter": null
-    }
-   ]
-  },
-  {
-   "drum": true,
-   "slot": 44,
-   "operators": [
-    {
-     "route": 0,
-     "wave": "MetallicNoise",
-     "volume": 2054,
-     "ratio": 0,
-     "offset_hz": 57200000,
-     "attack": 10,
-     "hold": 0,
-     "decay": 200,
-     "sustain": 0,
-     "release": 200,
-     "pitch_ratio": 10000,
-     "pitch_time": 10000,
      "key_scale": 0,
      "filter": null
     }
@@ -1528,72 +1386,6 @@
      "release": 300,
      "pitch_ratio": 6000,
      "pitch_time": 500,
-     "key_scale": 0,
-     "filter": null
-    }
-   ]
-  },
-  {
-   "drum": true,
-   "slot": 51,
-   "operators": [
-    {
-     "route": 0,
-     "wave": "MetallicNoise",
-     "volume": 1580,
-     "ratio": 0,
-     "offset_hz": 48400000,
-     "attack": 10,
-     "hold": 0,
-     "decay": 1200,
-     "sustain": 0,
-     "release": 200,
-     "pitch_ratio": 10000,
-     "pitch_time": 10000,
-     "key_scale": 0,
-     "filter": null
-    }
-   ]
-  },
-  {
-   "drum": true,
-   "slot": 57,
-   "operators": [
-    {
-     "route": 0,
-     "wave": "WhiteNoise",
-     "volume": 2598,
-     "ratio": 0,
-     "offset_hz": 7000000,
-     "attack": 20,
-     "hold": 0,
-     "decay": 2800,
-     "sustain": 0,
-     "release": 500,
-     "pitch_ratio": 10000,
-     "pitch_time": 10000,
-     "key_scale": 0,
-     "filter": null
-    }
-   ]
-  },
-  {
-   "drum": true,
-   "slot": 59,
-   "operators": [
-    {
-     "route": 0,
-     "wave": "MetallicNoise",
-     "volume": 1580,
-     "ratio": 0,
-     "offset_hz": 44000000,
-     "attack": 10,
-     "hold": 0,
-     "decay": 1400,
-     "sustain": 0,
-     "release": 200,
-     "pitch_ratio": 10000,
-     "pitch_time": 10000,
      "key_scale": 0,
      "filter": null
     }

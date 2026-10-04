@@ -93,11 +93,17 @@ export function timbreOperators(ops, trim = 1) {
   return out;
 }
 
-/** The settings: quality 1 and no reverb, as the Beast page plays; the class's default volume. */
+/** The drum notes the self-contained Beast MIDI plays (src/full_midi.js: groove and fills A-D). */
+export const BEAST_DRUMS = [36, 38, 41, 42, 43, 45, 46, 47, 48, 49, 50];
+
+/**
+ * The settings: quality 1 and no reverb, as the Beast page plays; the class's default volume. Only
+ * the drum notes Beast MIDI plays: every timbre costs gas in each token_uri.
+ */
 export function beastSynthSettings(data = bankData()) {
   const timbres = [];
   for (const id of ESSENTIALS) timbres.push({ drum: false, slot: id, operators: timbreOperators(data.presets[id], TIMBRE_TRIM[id] ?? 1) });
-  for (const key of Object.keys(data.drums).map(Number).sort((a, b) => a - b)) {
+  for (const key of BEAST_DRUMS) {
     timbres.push({ drum: true, slot: key, operators: timbreOperators(data.drums[key]) });
   }
   return { quality: 1, reverb: 0, master_vol: 40, voices: 64, waves: [], timbres };

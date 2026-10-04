@@ -102,6 +102,7 @@ pub mod BeastMidiProvider {
     };
     use core::num::traits::Zero;
     use core::poseidon::poseidon_hash_span;
+    use midi_provider::synth::{ISynthSettingsProvider, SynthSettings};
     use midi_provider::{IMidiProvider, bytes_to_byte_array};
     use starknet::ContractAddress;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
@@ -134,6 +135,17 @@ pub mod BeastMidiProvider {
         ) -> ByteArray {
             let (beast, report) = read_live_state(self, token_address, token_id);
             bytes_to_byte_array(v3_score_full_smf_bytes(beast, report.live).span())
+        }
+    }
+
+    #[abi(embed_v0)]
+    impl SynthSettingsProviderImpl of ISynthSettingsProvider<ContractState> {
+        /// The Beast sound settings (`crate::synth_settings`), the same for every Beast for now.
+        /// Validates the token ID's format only: no calls, so it costs no more than building the
+        /// value.
+        fn get_settings(self: @ContractState, token_id: u256) -> SynthSettings {
+            decode_v3_token_id(token_id);
+            crate::synth_settings::beast_synth_settings()
         }
     }
 

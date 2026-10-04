@@ -107,3 +107,15 @@ pub fn default_settings() -> SynthSettings {
         quality: 1, reverb: 30, master_vol: 40, voices: 64, waves: [].span(), timbres: [].span(),
     }
 }
+
+/// Optional companion to `IMidiProvider`: the sound settings a provider's MIDI is written for.
+/// A caller building an onchain-tinysynth page passes them with the MIDI:
+/// `midi_segment(provider.get_midi(token_id), provider.get_settings(token_id))`.
+/// The settings may depend on the token (a provider can give rare tokens other sounds) but, like
+/// the MIDI, never on anything the caller passes besides the token ID.
+#[starknet::interface]
+pub trait ISynthSettingsProvider<T> {
+    /// `SynthSettings` for `token_id` of the collection this provider serves. May revert for an
+    /// invalid token ID; never reverts because live state is unavailable.
+    fn get_settings(self: @T, token_id: u256) -> SynthSettings;
+}

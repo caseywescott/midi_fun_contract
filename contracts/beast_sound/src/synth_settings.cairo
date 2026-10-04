@@ -6,8 +6,8 @@ use midi_provider::synth::{Operator, SynthSettings, Timbre, Waveform};
 
 /// Poseidon hash of the settings' Serde, as the generator computes it (tests check Cairo agrees).
 pub const BEAST_SYNTH_SETTINGS_SERDE_HASH: felt252 =
-    0xb986f1709f5ad0dac5263cb7b97ca3b8f19b0db8484b6bd8f47b1a8c6cdfe7;
-/// Quality 1, reverb 0, volume 40, 64 voices; 39 timbres, one operator per line.
+    0x72a552ba31c2b443c8c5f897954f958474db33472407ae90b83ff1badd29ba0;
+/// Quality 1, reverb 0, volume 40, 64 voices; 31 timbres, one operator per line.
 #[cairofmt::skip]
 pub fn beast_synth_settings() -> SynthSettings {
     let timbres = array![
@@ -175,40 +175,14 @@ pub fn beast_synth_settings() -> SynthSettings {
                 .span(),
         },
         Timbre {
-            drum: true, slot: 35, operators: array![
-                op(0, Waveform::Triangle, 6059, 0, 1400000, 20, 0, 600, 0, 300, 2800, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
             drum: true, slot: 36, operators: array![
                 op(0, Waveform::Triangle, 6059, 0, 1600000, 20, 0, 600, 0, 300, 2800, 300, 0),
             ]
                 .span(),
         },
         Timbre {
-            drum: true, slot: 37, operators: array![
-                op(0, Waveform::MetallicNoise, 2370, 0, 17600000, 10, 0, 120, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
             drum: true, slot: 38, operators: array![
                 op(0, Waveform::WhiteNoise, 4330, 0, 2640000, 20, 0, 500, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Square, 1644, 0, 2000000, 20, 0, 250, 0, 300, 5500, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 39, operators: array![
-                op(0, Waveform::WhiteNoise, 4330, 0, 4400000, 20, 0, 350, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Square, 1644, 0, 2000000, 20, 0, 250, 0, 300, 5500, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 40, operators: array![
-                op(0, Waveform::WhiteNoise, 4330, 0, 3520000, 20, 0, 450, 0, 300, 10000, 10000, 0),
                 op(0, Waveform::Square, 1644, 0, 2000000, 20, 0, 250, 0, 300, 5500, 300, 0),
             ]
                 .span(),
@@ -228,12 +202,6 @@ pub fn beast_synth_settings() -> SynthSettings {
         Timbre {
             drum: true, slot: 43, operators: array![
                 op(0, Waveform::Triangle, 4783, 0, 1050000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 44, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 57200000, 10, 0, 200, 0, 200, 10000, 10000, 0),
             ]
                 .span(),
         },
@@ -270,24 +238,6 @@ pub fn beast_synth_settings() -> SynthSettings {
         Timbre {
             drum: true, slot: 50, operators: array![
                 op(0, Waveform::Triangle, 4783, 0, 2000000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 51, operators: array![
-                op(0, Waveform::MetallicNoise, 1580, 0, 48400000, 10, 0, 1200, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 57, operators: array![
-                op(0, Waveform::WhiteNoise, 2598, 0, 7000000, 20, 0, 2800, 0, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 59, operators: array![
-                op(0, Waveform::MetallicNoise, 1580, 0, 44000000, 10, 0, 1400, 0, 200, 10000, 10000, 0),
             ]
                 .span(),
         },

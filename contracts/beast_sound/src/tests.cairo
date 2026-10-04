@@ -4,6 +4,7 @@ use beast_music::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, encode_v3_token_id, v3_score_full_midi,
 };
 use core::dict::{Felt252Dict, Felt252DictTrait};
+use midi_provider::synth::{ISynthSettingsProviderDispatcher, ISynthSettingsProviderDispatcherTrait};
 use midi_provider::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
 use starknet::syscalls::deploy_syscall;
 use starknet::{ClassHash, ContractAddress};
@@ -515,4 +516,23 @@ fn beast_synth_settings_pass_the_class_checks() {
     for d in array![36_u8, 38, 41, 42, 43, 45, 46, 47, 48, 49, 50] {
         assert!(programs.get(d.into() + 256), "drum missing");
     }
+}
+
+#[test]
+fn get_settings_serves_the_beast_settings() {
+    let w = setup();
+    let settings = ISynthSettingsProviderDispatcher { contract_address: w.midi.contract_address };
+    let token_id = encode_v3_token_id(sorrow_peak_warlock());
+    // The token ID's format only: an unminted token gets the same settings.
+    assert_eq!(settings.get_settings(token_id), crate::synth_settings::beast_synth_settings());
+    w.nft.mint(token_id, 1);
+    assert_eq!(settings.get_settings(token_id), crate::synth_settings::beast_synth_settings());
+}
+
+#[test]
+#[should_panic(expected: ('invalid token id', 'ENTRYPOINT_FAILED'))]
+fn get_settings_rejects_invalid_token_ids() {
+    let w = setup();
+    ISynthSettingsProviderDispatcher { contract_address: w.midi.contract_address }
+        .get_settings(1_u256 * 0x10000000000000000000000000000000);
 }

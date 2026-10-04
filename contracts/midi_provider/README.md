@@ -31,12 +31,51 @@ itself, and composes.
 | Read everything inside the one `get_midi` call and cache nothing. | Every input then comes from the same state snapshot. |
 | Keep extra public views on the same `(token_address, token_id)` pattern, or take only the token ID. | Callers never need collection-specific state. |
 
+## Sound settings (`synth`)
+
+onchain-tinysynth (loothero's class library) plays a MIDI file exactly as written and takes its
+sounds from a `SynthSettings` value: `midi_segment(midi, settings)`. A provider whose MIDI is written
+for particular sounds also implements:
+
+```cairo
+#[starknet::interface]
+pub trait ISynthSettingsProvider<T> {
+    fn get_settings(self: @T, token_id: u256) -> SynthSettings;
+}
+```
+
+so the NFT's `token_uri` needs only the provider's address and the token ID:
+
+```cairo
+let midi = IMidiProviderDispatcher { contract_address: provider }.get_midi(token_id);
+let settings = ISynthSettingsProviderDispatcher { contract_address: provider }.get_settings(token_id);
+let mut uri = ...; // JSON head, image
+uri.append(@synth.animation_url_segment());
+uri.append(@synth.midi_segment(midi, settings));
+```
+
+- `synth::SynthSettings` and its parts mirror `onchain_tinysynth::types` (at 973f4cf) field for field,
+  so the value deserializes straight into the class's types (that package needs Cairo 2.20, this
+  workspace 2.11; once they match, the mirror becomes a re-export). A caller using the class's own
+  types can declare the same interface with them.
+- The settings may depend on the token, never on anything else the caller passes, and follow the
+  same revert rules as `get_midi`. A provider without one leaves the caller on the class's
+  `default_settings()` (General MIDI sounds).
+- It is a separate interface, so an `IMidiProvider` (and a mock of it) stays two functions.
+
+`BeastMidiProvider` serves the TinyChip settings (`beast_sound::synth_settings`). Checked end to end
+in a copy of onchain-tinysynth: its `validate` accepts them, `midi_segment` runs through the declared
+class by library call, and a Beasts-layout `token_uri` built in Cairo plays in Chrome with every
+timbre installed, its MIDI and SETTINGS byte-identical to the JS references
+(`scripts/tinysynth_e2e/`).
+
 ## Instruments
 
-The TinySynth page orchestrates a bare score (no program change, nothing on channel 10) with its
-own defaults: a chip lead on every channel and a drum pattern. A score with any program change or
-percussion plays exactly as written with TinySynth's General MIDI set. See
-`offchain/beast-sound/onchain/README.md` for the orchestration table.
+A bare score (no program change, nothing on channel 10) gets the TinySynth page's own
+orchestration: a chip lead on every channel and a drum pattern. onchain-tinysynth adds nothing, so
+providers for it write their instruments into the MIDI (`BeastMidiProvider` does: a program change
+and pan per voice and a drum track) and serve the sounds those programs select with
+`get_settings`. See `offchain/beast-sound/onchain/README.md` for the orchestration table.
 
 ## Providers
 

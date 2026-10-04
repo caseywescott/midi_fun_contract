@@ -1,4 +1,4 @@
-Built copies from PR #3 (`offchain/beast-sound/onchain/dist/` on `pr1-rebased`, commit d8f8fa2), used by
+Built copies from PR #3 (`offchain/beast-sound/onchain/dist/` on `pr1-rebased`, commit after the Triangle Bass trim), used by
 `beatsync-demo.mjs`:
 
 - `tinychip.min.js`: the onchain TinyChip runtime (20 essentials, chip kit, orchestration `tinychip-2`).

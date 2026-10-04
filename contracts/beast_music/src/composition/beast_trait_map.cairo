@@ -6,7 +6,7 @@
 
 use crate::composition::counterpoint::mode_to_id;
 use crate::composition::stretto::{default_stretto_plan, stretto_lag};
-use crate::midi::types::Modes;
+use crate::modes::Modes;
 
 pub const BEAST_PREFIX_COUNT: u8 = 69;
 pub const BEAST_PREFIX1_COUNT: u8 = 69;

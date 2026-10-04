@@ -5,6 +5,7 @@ edition = "2024_07"
 cairo-version = "2.11.4"
 
 [dependencies]
+midi = { path = "../midi" }
 starknet = "2.11.4"
 
 [dev-dependencies]

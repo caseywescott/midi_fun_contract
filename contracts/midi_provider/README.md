@@ -84,8 +84,9 @@ and pan per voice and a drum track) and serve the sounds those programs select w
 | `beast_sound::provider::BeastMidiProvider` (`contracts/beast_sound`) | One Beasts V3 NFT, set at deploy | Engine v1 Beast themes; reads rank, species count, kills and Death Mountain defeats itself. |
 | `midi_provider::examples::scale::ScaleMidiProvider` (this package) | Any one collection, set at deploy | Example: a two-bar pentatonic loop from `poseidon(token_address, token_id)` with its own GM instruments (marimba, fingered bass) and hi-hat. |
 
-`bytes_to_byte_array(Span<u8>)` packs bytes 31 per word with felt arithmetic and deserializes them,
-which is several times cheaper than `append_byte` per byte.
+`bytes_to_byte_array(Span<u8>)` (from the `midi` package, re-exported here) packs bytes 31 per word
+with felt arithmetic and deserializes them, which is several times cheaper than `append_byte` per
+byte. `ScaleMidiProvider` writes its file with `midi::smf::TrackWriter`.
 
 ## Versioning
 
@@ -97,5 +98,5 @@ provider returns for the same state.
 
 ```bash
 scarb build
-scarb test   # bytes_to_byte_array at every length 0..100, ScaleMidiProvider
+scarb test   # ScaleMidiProvider (behavior and pinned bytes)
 ```

@@ -1,6 +1,6 @@
 pub mod composition;
 pub mod lcg;
-pub mod midi;
+pub mod modes;
 pub mod rng;
 
 #[cfg(test)]

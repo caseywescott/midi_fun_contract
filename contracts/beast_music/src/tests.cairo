@@ -5,8 +5,8 @@ use crate::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, beast_has_sound, beast_sound_seed, build_v3_beast_form,
     decode_v3_token_id, encode_v3_token_id, genesis_token_id, map_v3_beast_to_composition_params,
     standalone_sound_seed, type_tier_family, v3_music_state_hash, v3_name_variant_id,
-    v3_params_hash, v3_rank_tier, v3_score_full_smf_bytes, v3_score_instructions, v3_score_midi,
-    v3_score_notes, v3_score_smf_bytes,
+    v3_params_hash, v3_rank_tier, v3_score_full_midi, v3_score_full_smf_bytes,
+    v3_score_instructions, v3_score_midi, v3_score_notes, v3_score_smf_bytes,
 };
 
 // "Sorrow Peak Warlock": live mainnet rank-1 Warlock (legacy token #52918).
@@ -479,4 +479,51 @@ fn full_midi_parity_fixture() {
         );
         i += 1;
     }
+}
+
+/// Every byte both SMF writers produce, pinned: 50 Beasts (every third species, tiers, types and
+/// rarity flags varied) in two live states, bare and self-contained. Guards refactors of the
+/// writers (the `midi` package) and the composer.
+#[test]
+#[ignore]
+#[available_gas(100000000000)]
+fn smf_golden() {
+    let mut acc: Array<felt252> = array![];
+    let mut id: u64 = 1;
+    while id <= 75 {
+        let named = id % 4 != 0; // every fourth unnamed (no prefix or suffix)
+        let b = PackableBeastV3 {
+            id,
+            prefix: if named {
+                (id % 69 + 1).try_into().unwrap()
+            } else {
+                0
+            },
+            suffix: if named {
+                (id % 18 + 1).try_into().unwrap()
+            } else {
+                0
+            },
+            level: (id * 3).try_into().unwrap(),
+            health: (id * 13).try_into().unwrap(),
+            shiny: (id % 2).try_into().unwrap(),
+            animated: if id % 3 == 1 {
+                1
+            } else {
+                0
+            },
+            tier: (((id - 1) / 5) % 5 + 1).try_into().unwrap(),
+            beast_type: (((id - 1) / 25) % 3).try_into().unwrap(),
+        };
+        for live in array![calm(), veteran()] {
+            acc.append(core::poseidon::poseidon_hash_span(v3_score_midi(b, live).span()));
+            acc.append(core::poseidon::poseidon_hash_span(v3_score_full_midi(b, live).span()));
+        }
+        id += 3;
+    }
+    assert_eq!(acc.len(), 100);
+    assert_eq!(
+        core::poseidon::poseidon_hash_span(acc.span()),
+        478308863243473630947055420231075905601752077247812321115335780403900633002,
+    );
 }

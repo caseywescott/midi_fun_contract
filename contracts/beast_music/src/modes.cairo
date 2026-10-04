@@ -1,6 +1,4 @@
-/// =========================================
-/// ================ PATTERNS ===============
-/// =========================================
+//! Scale modes (Koji's pattern table). The Beast composer realizes Dorian, Aeolian and Phrygian.
 
 #[derive(Copy, Drop, Serde)]
 pub enum Modes {

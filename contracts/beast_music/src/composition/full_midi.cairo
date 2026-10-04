@@ -14,40 +14,8 @@
 //! section's downbeat). Drum hits are note-ons only (one-shots), written with running status.
 
 use core::dict::{Felt252Dict, Felt252DictTrait};
+use midi::smf::{TrackWriterTrait, smf_bytes};
 use crate::composition::beast_score::BeastForm;
-
-const TAG_MTHD: u32 = 0x4D546864;
-const TAG_MTRK: u32 = 0x4D54726B;
-
-fn push_u32_be(ref out: Array<u8>, v: u32) {
-    out.append(((v / 0x1000000) % 256).try_into().unwrap());
-    out.append(((v / 0x10000) % 256).try_into().unwrap());
-    out.append(((v / 0x100) % 256).try_into().unwrap());
-    out.append((v % 256).try_into().unwrap());
-}
-
-fn push_vlq(ref out: Array<u8>, v: u32) {
-    if v >= 0x200000 {
-        out.append((0x80 + (v / 0x200000) % 128).try_into().unwrap());
-    }
-    if v >= 0x4000 {
-        out.append((0x80 + (v / 0x4000) % 128).try_into().unwrap());
-    }
-    if v >= 0x80 {
-        out.append((0x80 + (v / 0x80) % 128).try_into().unwrap());
-    }
-    out.append((v % 128).try_into().unwrap());
-}
-
-fn push_chunk(ref out: Array<u8>, tag: u32, body: Span<u8>) {
-    push_u32_be(ref out, tag);
-    push_u32_be(ref out, body.len());
-    let mut i: u32 = 0;
-    while i < body.len() {
-        out.append(*body.at(i));
-        i += 1;
-    }
-}
 
 // role pools (TinyChip bank program numbers)
 fn pool(role: u8) -> Span<u8> {
@@ -300,9 +268,7 @@ pub fn drum_track(length: u32, sec: u32, tier: u8) -> Array<u8> {
         480
     };
     let fill_kick0 = f == 2; // only fill C has a kick at its start
-    let mut data: Array<u8> = array![];
-    let mut t: u32 = 0;
-    let mut first = true;
+    let mut track = TrackWriterTrait::with_running_status();
     let mut u: u32 = 0;
     while u < length {
         let rel = u % sec;
@@ -363,33 +329,15 @@ pub fn drum_track(length: u32, sec: u32, tier: u8) -> Array<u8> {
                 hits.append((42, hv));
             }
         }
-        let mut i: u32 = 0;
-        while i < hits.len() {
-            let (k, vel) = *hits.at(i);
-            push_vlq(ref data, u - t);
-            if first {
-                data.append(0x99);
-                first = false;
-            }
-            data.append(k);
-            data.append(vel);
-            t = u;
-            i += 1;
+        for (k, vel) in hits {
+            track.note_on(u, 9, k, vel);
         }
         u += 120;
     }
-    if first {
+    if track.is_empty() {
         return array![];
     }
-    push_vlq(ref data, if length > t {
-        length - t
-    } else {
-        0
-    });
-    data.append(0xFF);
-    data.append(0x2F);
-    data.append(0);
-    data
+    track.finish_at(length)
 }
 
 /// The whole self-contained file: tempo track (End-of-Track at the form length), one track per
@@ -402,49 +350,26 @@ pub fn beast_form_to_full_smf_bytes(form: @BeastForm, tempo_us: u32, tier: u8) -
     let sections: u32 = (*form.section_count).into();
     let sec = length / sections;
 
-    let mut tracks: Array<Array<u8>> = array![];
-    let mut tempo_track: Array<u8> = array![0, 0xFF, 0x51, 0x03];
-    tempo_track.append(((tempo_us / 0x10000) % 256).try_into().unwrap());
-    tempo_track.append(((tempo_us / 0x100) % 256).try_into().unwrap());
-    tempo_track.append((tempo_us % 256).try_into().unwrap());
-    push_vlq(ref tempo_track, length);
-    tempo_track.append(0xFF);
-    tempo_track.append(0x2F);
-    tempo_track.append(0);
-    tracks.append(tempo_track);
+    let mut tempo = TrackWriterTrait::new();
+    tempo.tempo(0, tempo_us);
+    let mut tracks: Array<Array<u8>> = array![tempo.finish_at(length)];
 
     let mut v: u32 = 0;
     while v <= max_voice {
         let ch: u8 = (v % 16).try_into().unwrap();
-        let mut track: Array<u8> = array![
-            0, 0xC0 + ch, *programs.at(v), 0, 0xB0 + ch, 10, *pans.at(v),
-        ];
-        let mut t: u32 = 0;
+        let mut track = TrackWriterTrait::new();
+        track.program(0, ch, *programs.at(v));
+        track.control(0, ch, 10, *pans.at(v));
         let mut any = false;
-        let mut j: u32 = 0;
-        while j < events.len() {
-            let e = *events.at(j);
-            if e.voice_id == v {
+        for e in events {
+            if *e.voice_id == v {
                 any = true;
-                push_vlq(ref track, e.time - t);
-                track.append(0x90 + ch);
-                track.append(e.pitch);
-                track.append(e.velocity);
-                let off = e.time + e.duration;
-                push_vlq(ref track, off - e.time);
-                track.append(0x80 + ch);
-                track.append(e.pitch);
-                track.append(64);
-                t = off;
+                track.note_on(*e.time, ch, *e.pitch, *e.velocity);
+                track.note_off(*e.time + *e.duration, ch, *e.pitch, 64);
             }
-            j += 1;
         }
         if any {
-            track.append(0);
-            track.append(0xFF);
-            track.append(0x2F);
-            track.append(0);
-            tracks.append(track);
+            tracks.append(track.finish());
         }
         v += 1;
     }
@@ -453,16 +378,5 @@ pub fn beast_form_to_full_smf_bytes(form: @BeastForm, tempo_us: u32, tier: u8) -
         tracks.append(drums);
     }
 
-    let mut out: Array<u8> = array![];
-    let n: u32 = tracks.len();
-    let header: Array<u8> = array![
-        0, 1, ((n / 256) % 256).try_into().unwrap(), (n % 256).try_into().unwrap(), 0x01, 0xE0,
-    ];
-    push_chunk(ref out, TAG_MTHD, header.span());
-    let mut k: u32 = 0;
-    while k < tracks.len() {
-        push_chunk(ref out, TAG_MTRK, tracks.at(k).span());
-        k += 1;
-    }
-    out
+    smf_bytes(1, 480, tracks.span())
 }

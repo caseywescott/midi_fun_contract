@@ -7,6 +7,7 @@
 #[starknet::contract]
 pub mod ScaleMidiProvider {
     use core::poseidon::poseidon_hash_span;
+    use midi::smf::{TrackWriterTrait, smf_bytes};
     use starknet::ContractAddress;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
     use crate::{IMidiProvider, bytes_to_byte_array};
@@ -31,18 +32,18 @@ pub mod ScaleMidiProvider {
     #[abi(embed_v0)]
     impl ScaleMidiProviderImpl of IMidiProvider<ContractState> {
         fn get_midi(self: @ContractState, token_id: u256) -> ByteArray {
-            midi(self.collection.read(), token_id)
+            compose(self.collection.read(), token_id)
         }
 
         fn get_midi_for(
             self: @ContractState, token_address: ContractAddress, token_id: u256,
         ) -> ByteArray {
             assert(token_address == self.collection.read(), 'unsupported collection');
-            midi(token_address, token_id)
+            compose(token_address, token_id)
         }
     }
 
-    fn midi(token_address: ContractAddress, token_id: u256) -> ByteArray {
+    fn compose(token_address: ContractAddress, token_id: u256) -> ByteArray {
         let seed: u256 = poseidon_hash_span(
             array![token_address.into(), token_id.low.into(), token_id.high.into()].span(),
         )
@@ -55,37 +56,6 @@ pub mod ScaleMidiProvider {
         (degree / 5) * 12 + *steps.at(degree % 5)
     }
 
-    #[derive(Drop)]
-    struct Track {
-        bytes: Array<u8>,
-        last: u32,
-    }
-
-    fn push_vlq(ref out: Array<u8>, v: u32) {
-        if v >= 0x4000 {
-            out.append((0x80 + (v / 0x4000) % 128).try_into().unwrap());
-        }
-        if v >= 0x80 {
-            out.append((0x80 + (v / 0x80) % 128).try_into().unwrap());
-        }
-        out.append((v % 128).try_into().unwrap());
-    }
-
-    fn event(ref track: Track, time: u32, status: u8, data1: u8, data2: u8) {
-        push_vlq(ref track.bytes, time - track.last);
-        track.last = time;
-        track.bytes.append(status);
-        track.bytes.append(data1);
-        track.bytes.append(data2);
-    }
-
-    fn push_u32_be(ref out: Array<u8>, v: u32) {
-        out.append(((v / 0x1000000) % 256).try_into().unwrap());
-        out.append(((v / 0x10000) % 256).try_into().unwrap());
-        out.append(((v / 0x100) % 256).try_into().unwrap());
-        out.append((v % 256).try_into().unwrap());
-    }
-
     /// Format 0, one track: tempo, two program changes, then melody, bass and hi-hat.
     pub fn scale_smf(seed: u256) -> Array<u8> {
         let bpm: u32 = 96 + (seed % 48).try_into().unwrap();
@@ -93,12 +63,10 @@ pub mod ScaleMidiProvider {
         let tonic: u32 = 48 + ((seed / 48) % 12).try_into().unwrap();
         let mut walk: u256 = seed / 576;
 
-        let mut track = Track { bytes: array![], last: 0 };
-        track.bytes.append_span(array![0, 0xFF, 0x51, 0x03].span());
-        track.bytes.append(((tempo_us / 0x10000) % 256).try_into().unwrap());
-        track.bytes.append(((tempo_us / 0x100) % 256).try_into().unwrap());
-        track.bytes.append((tempo_us % 256).try_into().unwrap());
-        track.bytes.append_span(array![0, 0xC0, MARIMBA, 0, 0xC1, FINGERED_BASS].span());
+        let mut track = TrackWriterTrait::new();
+        track.tempo(0, tempo_us);
+        track.program(0, 0, MARIMBA);
+        track.program(0, 1, FINGERED_BASS);
 
         let mut degree: u32 = 5;
         let mut bass: u8 = 0;
@@ -107,7 +75,7 @@ pub mod ScaleMidiProvider {
             let t = step * STEP;
             if step % 4 == 0 {
                 if step > 0 {
-                    event(ref track, t, 0x81, bass, 64);
+                    track.note_off(t, 1, bass, 64);
                 }
                 let root = if step % 8 == 0 {
                     tonic - 12
@@ -115,10 +83,10 @@ pub mod ScaleMidiProvider {
                     tonic - 5
                 };
                 bass = root.try_into().unwrap();
-                event(ref track, t, 0x91, bass, 90);
+                track.note_on(t, 1, bass, 90);
             }
             if step % 2 == 0 {
-                event(ref track, t, 0x99, CLOSED_HAT, 70);
+                track.note_on(t, 9, CLOSED_HAT, 70);
             }
             // A random walk over the scale, kept inside two octaves.
             let move_: u32 = (walk % 5).try_into().unwrap();
@@ -132,20 +100,11 @@ pub mod ScaleMidiProvider {
                     degree
                 };
             let note: u8 = (tonic + 12 + pentatonic(degree)).try_into().unwrap();
-            event(ref track, t, 0x90, note, 100);
-            event(ref track, t + STEP - 40, 0x80, note, 64);
+            track.note_on(t, 0, note, 100);
+            track.note_off(t + STEP - 40, 0, note, 64);
             step += 1;
         }
-        event(ref track, STEPS * STEP, 0x81, bass, 64);
-        track.bytes.append_span(array![0, 0xFF, 0x2F, 0].span());
-
-        let mut out: Array<u8> = array![];
-        push_u32_be(ref out, 0x4D546864); // MThd
-        push_u32_be(ref out, 6);
-        out.append_span(array![0, 0, 0, 1, (PPQN / 256).try_into().unwrap(), 0xE0].span());
-        push_u32_be(ref out, 0x4D54726B); // MTrk
-        push_u32_be(ref out, track.bytes.len());
-        out.append_span(track.bytes.span());
-        out
+        track.note_off(STEPS * STEP, 1, bass, 64);
+        smf_bytes(0, PPQN.try_into().unwrap(), array![track.finish()].span())
     }
 }

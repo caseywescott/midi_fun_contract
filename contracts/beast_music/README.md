@@ -1,7 +1,8 @@
 # beast_music
 
 The Beast Sound composer on its own: the part of the `koji` music library that Beasts V3 sound
-actually uses, extracted into a standalone Cairo package with no dependencies.
+actually uses, extracted into a standalone Cairo package. Its one dependency is `contracts/midi`
+(Standard MIDI File writing and felt packing).
 
 | | `koji` (repo root) | `beast_music` |
 |---|---|---|
@@ -15,14 +16,15 @@ of `koji`.
 
 | Module | Contents |
 |---|---|
-| `composition::beast_v3_sound` | Token ID decoding, live state, the v1 mapping, MIDI / BSN1 / BSI1 writers (whole file) |
+| `composition::beast_v3_sound` | Token ID decoding, live state, the v1 mapping, the bare score as MIDI (on `midi::smf`), BSN1 / BSI1 writers |
+| `composition::full_midi` | The self-contained MIDI for onchain-tinysynth: programs, pan, drum track (on `midi::smf`) |
 | `composition::beast_trait_map` | Traits and live stats to composition parameters (whole file) |
 | `composition::beast_score` | Theme, sections, form and its length; `note_events_valid` for tests |
 | `composition::countersubject` | The invertible countersubject |
 | `composition::melodic_canon` | Degree-to-key realization, `NoteEvent` |
 | `composition::articulation` | Articulation plans |
 | `composition::counterpoint`, `canon_rules`, `invertible_counterpoint`, `stretto` | The few interval and canon helpers the above call |
-| `midi::output`, `midi::types` (`Modes` only), `lcg`, `rng` | Felt packing, the mode enum, the seeded random source |
+| `modes`, `lcg`, `rng` | The mode enum, the seeded random source |
 
 Everything else in `koji` (Barry Harris, harmonic walk and jazz harmony, ornamentation v2,
 motif/form, timeline and tiling rhythm, canon variants, the general MIDI toolkit, engine v2) is
@@ -46,6 +48,10 @@ functions, types and imports were then removed until the package built with no w
   node ../../scripts/beast_v3_parity.mjs /tmp/parity.txt
   ```
 - `contracts/beast_sound`'s 16 tests pass on it unchanged.
+
+`smf_golden` (ignored; `scarb test -- --include-ignored --filter smf_golden`) pins every byte both
+SMF writers produce for 50 Beasts in two live states; it held unchanged when the writers moved onto
+the `midi` package.
 
 ## Keeping it in sync
 

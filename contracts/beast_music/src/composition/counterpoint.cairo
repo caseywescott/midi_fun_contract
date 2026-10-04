@@ -6,7 +6,7 @@
 //! Mode handling supports a single fixed mode/world or a per-note timeline aligned
 //! to cantus indices.
 
-use crate::midi::types::Modes;
+use crate::modes::Modes;
 
 /// Sentinel pitch for rests on the tile grid (no sounding note at this index).
 pub const REST_PITCH: u8 = 255;

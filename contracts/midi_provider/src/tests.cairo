@@ -1,29 +1,7 @@
 use starknet::ContractAddress;
 use starknet::syscalls::deploy_syscall;
 use crate::examples::scale::ScaleMidiProvider;
-use crate::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait, bytes_to_byte_array};
-
-fn byte_at(i: usize) -> u8 {
-    ((i * 37 + 11) % 256).try_into().unwrap()
-}
-
-#[test]
-fn bytes_to_byte_array_matches_append_byte() {
-    // Every pending length (0..30) and the full-word boundaries around 31 and 62.
-    let mut n: usize = 0;
-    while n <= 100 {
-        let mut bytes: Array<u8> = array![];
-        let mut expected: ByteArray = Default::default();
-        let mut i: usize = 0;
-        while i < n {
-            bytes.append(byte_at(i));
-            expected.append_byte(byte_at(i));
-            i += 1;
-        }
-        assert_eq!(bytes_to_byte_array(bytes.span()), expected);
-        n += 1;
-    }
-}
+use crate::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
 
 fn collection() -> ContractAddress {
     'COLLECTION'.try_into().unwrap()
@@ -77,4 +55,25 @@ fn scale_provider_get_midi_for_is_get_midi_with_the_collection_checked() {
 #[should_panic(expected: ('unsupported collection', 'ENTRYPOINT_FAILED'))]
 fn scale_provider_rejects_other_collections() {
     deploy_scale().get_midi_for('OTHER'.try_into().unwrap(), 1);
+}
+
+/// ScaleMidiProvider's bytes for 20 tokens, pinned (guards the `midi` package refactor).
+#[test]
+fn scale_provider_golden() {
+    let mut acc: Array<felt252> = array![];
+    let mut id: u256 = 0;
+    while id < 20 {
+        let mut felts: Array<felt252> = array![];
+        crate::examples::scale::ScaleMidiProvider::scale_smf(
+            core::poseidon::poseidon_hash_span(array![collection().into(), id.low.into()].span())
+                .into(),
+        )
+            .serialize(ref felts);
+        acc.append(core::poseidon::poseidon_hash_span(felts.span()));
+        id += 1;
+    }
+    assert_eq!(
+        core::poseidon::poseidon_hash_span(acc.span()),
+        726557155786871684621583427530199419803863225234542968548791562625825227122,
+    );
 }

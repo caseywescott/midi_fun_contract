@@ -32,6 +32,7 @@
 //! holds its Genesis Beast `(id, 0, 0)` (see `genesis_token_id`).
 
 use core::poseidon::poseidon_hash_span;
+use midi::smf::{TrackWriterTrait, smf_bytes};
 use crate::composition::beast_score::{BeastForm, beast_params_hash, build_beast_form};
 use crate::composition::beast_trait_map::{
     ARTICULATION_ACCENT, ARTICULATION_NORMAL, ARTICULATION_PORTATO, ARTICULATION_TENUTO,
@@ -41,7 +42,7 @@ use crate::composition::beast_trait_map::{
 };
 use crate::composition::counterpoint::mode_to_id;
 use crate::composition::stretto::{default_stretto_plan, stretto_lag};
-use crate::midi::types::Modes;
+use crate::modes::Modes;
 
 pub const BEAST_V3_ENGINE_VERSION: u32 = 1;
 
@@ -538,112 +539,37 @@ pub fn v3_params_hash(beast: PackableBeastV3, live: BeastV3LiveState) -> felt252
 // note starts), so tracks need no sorting: the encoder walks the event list once per voice.
 // Byte-identical to `toMidiFile` in web/beast_sound/engine.js.
 
-fn push_u32_be(ref out: Array<u8>, v: u32) {
-    out.append(((v / 0x1000000) % 256).try_into().unwrap());
-    out.append(((v / 0x10000) % 256).try_into().unwrap());
-    out.append(((v / 0x100) % 256).try_into().unwrap());
-    out.append((v % 256).try_into().unwrap());
-}
-
-fn push_vlq(ref out: Array<u8>, v: u32) {
-    // Up to 4 bytes covers every delta below 2^28 ticks.
-    if v >= 0x200000 {
-        out.append((0x80 + (v / 0x200000) % 128).try_into().unwrap());
-    }
-    if v >= 0x4000 {
-        out.append((0x80 + (v / 0x4000) % 128).try_into().unwrap());
-    }
-    if v >= 0x80 {
-        out.append((0x80 + (v / 0x80) % 128).try_into().unwrap());
-    }
-    out.append((v % 128).try_into().unwrap());
-}
-
-fn push_chunk(ref out: Array<u8>, tag: u32, body: Span<u8>) {
-    push_u32_be(ref out, tag);
-    push_u32_be(ref out, body.len());
-    let mut i: u32 = 0;
-    while i < body.len() {
-        out.append(*body.at(i));
-        i += 1;
-    }
-}
-
-const TAG_MTHD: u32 = 0x4D546864;
-const TAG_MTRK: u32 = 0x4D54726B;
-
 pub fn beast_form_to_smf_bytes(form: @BeastForm, tempo_us: u32) -> Array<u8> {
     let events = form.events.span();
     let mut max_voice: u32 = 0;
-    let mut i: u32 = 0;
-    while i < events.len() {
-        let v = *events.at(i).voice_id;
-        if v > max_voice {
-            max_voice = v;
+    for e in events {
+        if *e.voice_id > max_voice {
+            max_voice = *e.voice_id;
         }
-        i += 1;
     }
 
-    let mut tracks: Array<Array<u8>> = array![];
-    let mut tempo_track: Array<u8> = array![0, 0xFF, 0x51, 0x03];
-    tempo_track.append(((tempo_us / 0x10000) % 256).try_into().unwrap());
-    tempo_track.append(((tempo_us / 0x100) % 256).try_into().unwrap());
-    tempo_track.append((tempo_us % 256).try_into().unwrap());
-    // End of Track at the form's full length (closing rest included), so the file is as long as the
-    // form
-    push_vlq(ref tempo_track, *form.length_ticks);
-    tempo_track.append(0xFF);
-    tempo_track.append(0x2F);
-    tempo_track.append(0);
-    tracks.append(tempo_track);
+    // End of Track at the form's full length (closing rest included), so the file is as long as
+    // the form
+    let mut tempo = TrackWriterTrait::new();
+    tempo.tempo(0, tempo_us);
+    let mut tracks: Array<Array<u8>> = array![tempo.finish_at(*form.length_ticks)];
 
     let mut v: u32 = 0;
     while v <= max_voice {
-        let mut track: Array<u8> = array![];
-        let mut t: u32 = 0;
-        let mut any = false;
-        let status_on: u8 = (0x90 + v % 16).try_into().unwrap();
-        let status_off: u8 = (0x80 + v % 16).try_into().unwrap();
-        let mut j: u32 = 0;
-        while j < events.len() {
-            let e = *events.at(j);
-            if e.voice_id == v {
-                any = true;
-                push_vlq(ref track, e.time - t);
-                track.append(status_on);
-                track.append(e.pitch);
-                track.append(e.velocity);
-                let off = e.time + e.duration;
-                push_vlq(ref track, off - e.time);
-                track.append(status_off);
-                track.append(e.pitch);
-                track.append(64);
-                t = off;
+        let ch: u8 = (v % 16).try_into().unwrap();
+        let mut track = TrackWriterTrait::new();
+        for e in events {
+            if *e.voice_id == v {
+                track.note_on(*e.time, ch, *e.pitch, *e.velocity);
+                track.note_off(*e.time + *e.duration, ch, *e.pitch, 64);
             }
-            j += 1;
         }
-        if any {
-            track.append(0);
-            track.append(0xFF);
-            track.append(0x2F);
-            track.append(0);
-            tracks.append(track);
+        if !track.is_empty() {
+            tracks.append(track.finish());
         }
         v += 1;
     }
-
-    let mut out: Array<u8> = array![];
-    let n: u32 = tracks.len();
-    let header: Array<u8> = array![
-        0, 1, ((n / 256) % 256).try_into().unwrap(), (n % 256).try_into().unwrap(), 0x01, 0xE0,
-    ];
-    push_chunk(ref out, TAG_MTHD, header.span());
-    let mut k: u32 = 0;
-    while k < tracks.len() {
-        push_chunk(ref out, TAG_MTRK, tracks.at(k).span());
-        k += 1;
-    }
-    out
+    smf_bytes(1, 480, tracks.span())
 }
 
 /// Canonical score as Standard MIDI File bytes.
@@ -654,7 +580,7 @@ pub fn v3_score_smf_bytes(beast: PackableBeastV3, live: BeastV3LiveState) -> Arr
 }
 
 /// Canonical score as a Standard MIDI File, packed 31 bytes per felt with the byte length first
-/// (`crate::midi::output::to_felt252_array` layout).
+/// (`midi::pack::to_felt252_array` layout).
 /// The self-contained file for a generic player: programs and pan at tick 0 and a drum track
 /// (crate::composition::full_midi).
 pub fn v3_score_full_smf_bytes(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<u8> {
@@ -664,11 +590,11 @@ pub fn v3_score_full_smf_bytes(beast: PackableBeastV3, live: BeastV3LiveState) -
 }
 
 pub fn v3_score_full_midi(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<felt252> {
-    crate::midi::output::to_felt252_array(v3_score_full_smf_bytes(beast, live))
+    midi::pack::to_felt252_array(v3_score_full_smf_bytes(beast, live).span())
 }
 
 pub fn v3_score_midi(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<felt252> {
-    crate::midi::output::to_felt252_array(v3_score_smf_bytes(beast, live))
+    midi::pack::to_felt252_array(v3_score_smf_bytes(beast, live).span())
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -808,7 +734,7 @@ pub fn beast_form_to_bsn_bytes(form: @BeastForm, params: BeastCompositionParams)
 pub fn v3_score_notes(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<felt252> {
     let params = map_v3_beast_to_composition_params(beast, live);
     let form = build_beast_form(params, beast_sound_seed(beast.id, beast.prefix, beast.suffix));
-    crate::midi::output::to_felt252_array(beast_form_to_bsn_bytes(@form, params))
+    midi::pack::to_felt252_array(beast_form_to_bsn_bytes(@form, params).span())
 }
 
 // ─────────────────────────────────────────────────────────────

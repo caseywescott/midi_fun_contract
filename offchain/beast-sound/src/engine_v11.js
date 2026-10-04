@@ -12,6 +12,12 @@
 //                a sequence of the theme's opening bar (its rhythm and shape, a step lower or higher
 //                each bar), then a half cadence onto the dominant of the next section's key (for the
 //                last section, the first section's key, so the loop leads back in). Voice-checked.
+//   5. Key plan  sections move around the circle of fifths instead of v1's fixed shifts (which
+//                include a tritone): the Beast's tier sets how far they may roam (tier 5: one
+//                fifth, I-V-IV; tier 1: four fifths, a third relation), its type picks the sharp or
+//                flat side. With three or more sections the last is within a fifth of home, so the
+//                loop returns smoothly; two-section Beasts alternate home with the dominant (tiers
+//                3-5) or a third-related key (tiers 1-2). Never a tritone.
 //   + Dynamics   each phrase rises toward its highest note; bar downbeats are accented.
 //
 //   const v11 = createEngineV11(engine);
@@ -72,6 +78,26 @@ export function createEngineV11(engine) {
     return d;
   }
 
+  // ── key plan: circle-of-fifths offsets per section, distance from the tier ──
+  const REACH = { 1: 4, 2: 3, 3: 2, 4: 1, 5: 1 };            // tier -> furthest key, in fifths from home
+  function fifthsPlan(n, reach) {
+    if (n <= 1) return [0];
+    if (n === 2) return [0, reach >= 3 ? reach : 1];        // close Beasts visit the dominant; far ones a mediant
+    if (n === 3) return reach >= 2 ? [0, reach, 1] : [0, 1, -1]; // out to the furthest key, back via the dominant
+    const out = [0, 1, reach];
+    while (out.length < n - 1) out.push(Math.max(1, out[out.length - 1] - 1)); // drift back toward home
+    out.push(reach >= 2 ? 1 : -1);                         // last section a fifth from home: the loop returns
+    return out;
+  }
+  function keyPlan(p) {
+    const reach = REACH[p.tier] ?? 1, side = p.weakness === 1 ? -1 : 1;  // flat side for one type, sharp for the others
+    return fifthsPlan(p.section_count, reach).map((f) => {
+      const st = (((f * side * 7) % 12) + 12) % 12;          // fifths -> semitones above home
+      return { fifths: f * side, shift: st > 6 ? st - 12 : st }; // nearest register: -5..+6 (never 6 by construction)
+    });
+  }
+  const sectionTonic = (p, plan, s) => I.transposedTonic(p.tonic_keynum, plan[s % plan.length].shift);
+
   const IC = (a, b) => Math.abs(a - b) % 12;
   const dissonant = (ic) => ic === 1 || ic === 2 || ic === 6 || ic === 10 || ic === 11;
   const perfect = (ic) => ic === 0 || ic === 7;
@@ -97,10 +123,10 @@ export function createEngineV11(engine) {
     return best;
   }
 
-  function buildSection(p, theme, slots, s, offset, csSeed, sectionTicks, seed) {
-    const tonic = I.transposedTonic(p.tonic_keynum, I.sectionTonicShift(p, s));
+  function buildSection(p, theme, slots, s, offset, csSeed, sectionTicks, seed, plan) {
+    const tonic = sectionTonic(p, plan, s);
     const next = s + 1 < p.section_count ? s + 1 : 0;
-    const nextTonic = I.transposedTonic(p.tonic_keynum, I.sectionTonicShift(p, next));
+    const nextTonic = sectionTonic(p, plan, next);
     const mode = I.canonicalToMelodic(p.mode_id);
     const out = [], ends = [];
     const realize = (d) => I.realize(d, tonic, mode);
@@ -219,9 +245,10 @@ export function createEngineV11(engine) {
     const csSeed = I.H(p.name_variant_id, p.species_id);
     let events = [];
     const seed = Number(BigInt(f.seeds.motif_seed) % 4294967291n);
-    for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * f.section_ticks, csSeed, f.section_ticks, seed));
+    const plan = keyPlan(p);
+    for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * f.section_ticks, csSeed, f.section_ticks, seed, plan));
     events = shape(events, p).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
-    return { ...r, form: { ...f, theme, events }, v11: { cells: [...new Set(slots.map((x) => x.group))].length } };
+    return { ...r, form: { ...f, theme, events }, v11: { keyPlan: plan } };
   }
 
   // numbers for the comparison: rhythm, consonance, texture, cadence
@@ -267,5 +294,7 @@ export function createEngineV11(engine) {
     };
   }
 
-  return { render, metrics, CELLS, FAMILY };
+  // v1's section shifts, for comparison
+  const v1KeyPlan = (p) => Array.from({ length: p.section_count }, (_, s) => ({ shift: I.sectionTonicShift(p, s) }));
+  return { render, metrics, keyPlan, v1KeyPlan, CELLS, FAMILY, REACH };
 }

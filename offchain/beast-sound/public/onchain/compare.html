@@ -161,7 +161,7 @@ function withDrums(song, sectionBars, tier) {
     const rel = t % sec, bar = Math.floor(rel / 1920), second = bar % 2 === 1, b = (rel % 1920) / 480, onBeat = t % 480 === 0;
     const inFill = rel >= sec - region;
     if (rel === sec - region) for (const [st, d, key, v] of fill) drums.push([t + st, d, key, v, 9]);
-    if (f === 'D' && rel === 0) drums.push([t, 480, 49, 100, 9]);                      // crash on each section's downbeat (fill D)
+    if (f === 'D' && rel === 0) drums.push([t, 960, 49, 76, 9]);                       // a soft cymbal on each section's downbeat (fill D)
     // kick: beat 1 (firmer on the first bar of a pair), a pickup on the and of 3 in the second bar,
     // and beat 3 under the fill unless the fill brings its own kick there
     if (b === 0) drums.push([t, 120, 36, second ? 104 : 122, 9]);
@@ -193,6 +193,15 @@ function betterKit(s) {
   s.setTimbre(1, 42, hat(0.014, 0.17));
   s.setTimbre(1, 44, hat(0.02, 0.13));
   s.setTimbre(1, 46, hat(0.085, 0.15));
+  // a cymbal, not a noise burst: bright metallic shimmer with a long soft tail (the stock chip crash
+  // is plain noise and reads as a snare on the downbeat)
+  const cymbal = [
+    { w: 'nMET', t: 0, f: 440 * 23, v: 0.08, a: 0.002, h: 0, d: 0.3, s: 0, r: 0.25 },
+    { w: 'nMET', t: 0, f: 440 * 31, v: 0.05, a: 0.002, h: 0, d: 0.22, s: 0, r: 0.2 },
+    { w: 'n0', t: 0, f: 440 * 7, v: 0.03, a: 0.003, h: 0, d: 0.12, s: 0, r: 0.1 },
+  ];
+  s.setTimbre(1, 49, cymbal);
+  s.setTimbre(1, 57, cymbal);
 }
 function drawRoll(canvas, midi, tick) {
   const s = v1lib.smf.parse(midi), ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;

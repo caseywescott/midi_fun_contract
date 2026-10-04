@@ -21,6 +21,10 @@
 //                Option { keys: 'mode' }: the same plan as diatonic transposition instead: every
 //                section stays in the home key and mode, and the theme starts on the planned scale
 //                degree (V = degree 5 of the home scale, no new sharps or flats).
+//                Option { keys: 'chords' }: home key and mode throughout, with a chord progression
+//                per tier played by an added bass voice; the other voices prefer its chord tones on
+//                the beat (the melody moves a step only to avoid clashing with the bass). Tiers form
+//                a ladder: more chords, faster chord changes and a busier bass from tier 5 to 1.
 //   + Dynamics   each phrase rises toward its highest note; bar downbeats are accented.
 //
 //   const v11 = createEngineV11(engine);
@@ -102,6 +106,16 @@ export function createEngineV11(engine) {
   }
   const sectionTonic = (p, plan, s) => I.transposedTonic(p.tonic_keynum, plan[s % plan.length].shift);
 
+  // ── tier harmony (keys: 'chords'): progression in scale degrees, chord length, bass figure ──
+  const TIER_HARMONY = {
+    5: { prog: [0, 4], unit: 2 * BAR, bass: 'whole' },                      // I V: tonic and dominant only
+    4: { prog: [0, 3, 4, 0], unit: BAR, bass: 'whole' },                    // I IV V I
+    3: { prog: [0, 5, 3, 4], unit: BAR, bass: 'half' },                     // I vi IV V
+    2: { prog: [0, 3, 6, 2, 5, 1, 4], unit: BAR, bass: 'arp' },             // the diatonic circle of fifths
+    1: { prog: [0, 2, 5, 3, 1, 6, 4, 4], unit: BAR / 2, bass: 'walk' },     // I iii vi IV ii vii° V V, two per bar
+  };
+  let chordAt = null;   // set while a 'chords' section is built: time -> Set of chord pitch classes
+
   const IC = (a, b) => Math.abs(a - b) % 12;
   const dissonant = (ic) => ic === 1 || ic === 2 || ic === 6 || ic === 10 || ic === 11;
   const perfect = (ic) => ic === 0 || ic === 7;
@@ -118,16 +132,17 @@ export function createEngineV11(engine) {
         // parallel 5ths / 8ves against the note this voice and that voice had before
         if (prevSame && perfect(ic)) {
           const before = placed.find((r) => r.voice_id === q.voice_id && r.time <= prevSame.time && r.time + r.duration > prevSame.time);
-          if (before && IC(prevSame.pitch, before.pitch) === ic && prevSame.pitch !== pitch) score += 8;
+          if (before && IC(prevSame.pitch, before.pitch) === ic && prevSame.pitch !== pitch) score += 14;
         }
       }
       if (prevSame && Math.abs(pitch - prevSame.pitch) > 9) score += 3;    // no wild leaps
+      if (chordAt && time % TU === 0 && !chordAt(time).has(pitch % 12)) score += 3; // chord tones on the beat
       if (!best || score < best.score) best = { pitch, score, adj };
     }
     return best;
   }
 
-  function buildSection(p, theme, slots, s, offset, csSeed, sectionTicks, seed, plan, diatonic) {
+  function buildSection(p, theme, slots, s, offset, csSeed, sectionTicks, seed, plan, diatonic, chords) {
     const next = s + 1 < p.section_count ? s + 1 : 0;
     const mode = I.canonicalToMelodic(p.mode_id);
     // modulating: each section has its own tonic. diatonic: one home tonic, the theme moved by scale degrees
@@ -142,6 +157,47 @@ export function createEngineV11(engine) {
       const nt = sectionTonic(p, plan, next);
       return (isBass ? [7] : [7, 11, 2]).map((k) => (nt + k) % 12);
     };
+    // tier chords: the progression across the section, the bass placed first so every voice hears it
+    let harmony = null;
+    if (chords) {
+      const h = TIER_HARMONY[p.tier] ?? TIER_HARMONY[5], units = Math.max(1, Math.ceil(sectionTicks / h.unit)); // the last chord may be shorter
+      const themeEnd = theme.degrees.length * TU, at = (t) => Math.min(units - 1, Math.floor(t / h.unit));
+      // fixed chords: the theme's cadence on I, a pre-dominant (ii for tiers 1-2, IV for 3-4), V to end
+      const fixed = new Map([[0, 0], [at(themeEnd - 2 * TU), 0]]);   // start on I
+      if (units >= 3 && p.tier <= 4) fixed.set(units - 2, p.tier <= 2 ? 1 : 3);
+      fixed.set(units - 1, 4);
+      // walk the progression; after a fixed chord carry on from its place in the cycle; never repeat a chord
+      const roots = [];
+      let pos = 0;
+      for (let i = 0; i < units; i++) {
+        if (fixed.has(i)) {
+          roots.push(fixed.get(i));
+          const k = h.prog.indexOf(fixed.get(i));
+          if (k >= 0) pos = k + 1;
+          continue;
+        }
+        let r = h.prog[pos++ % h.prog.length];
+        if (i > 0 && r === roots[i - 1]) r = h.prog[pos++ % h.prog.length];
+        if (fixed.get(i + 1) === r) r = h.prog[pos++ % h.prog.length];
+        roots.push(r);
+      }
+      const triad = (r) => new Set([0, 2, 4].map((k) => I.realize(r + k, home, mode) % 12));
+      const sets = roots.map(triad);
+      chordAt = (t) => sets[at(t - offset)];
+      harmony = { roots, unit: h.unit };
+      const bv = p.voice_count + (p.use_countersubject ? 1 : 0), low = (d) => I.realize(d - 7, home, mode);
+      roots.forEach((r, i) => {
+        const t0 = offset + i * h.unit, nextRoot = roots[(i + 1) % roots.length];
+        const notes = h.bass === 'whole' ? [[0, h.unit, r]]
+          : h.bass === 'half' ? [[0, h.unit / 2, r], [h.unit / 2, h.unit / 2, r + 4]]
+            : h.bass === 'arp' ? [[0, TU, r], [TU, TU, r + 2], [2 * TU, TU, r + 4], [3 * TU, TU, r + 2]]
+              : [[0, TU, r], [TU, TU / 2, r + 2], [TU + TU / 2, TU / 2, nextRoot > r ? nextRoot - 1 : nextRoot + 1]]; // walk: root, the third, a step into the next root
+        for (const [st, d, deg] of notes) {
+          const time = t0 + st, end = Math.min(time + d, offset + sectionTicks);  // clipped at the section end
+          if (end - time >= 120) out.push({ time, duration: end - time, pitch: low(deg), velocity: 90, voice_id: bv, section: s, role: 'bass' });
+        }
+      });
+    }
     for (let v = 0; v < p.voice_count; v++) {
       const entry = v === 0 ? 0 : v * p.stretto_lag * TU, off = [0, -4, 3][v] ?? -8;
       const map = (d) => (p.use_inversion && v === 1 ? 4 - d : d + off);
@@ -151,7 +207,8 @@ export function createEngineV11(engine) {
         const base = p.use_inversion && v === 1 ? 4 - sl.degree : sl.degree + off;
         const time = offset + entry + sl.time;
         let pitch;
-        if (v === 0) pitch = realize(base);
+        if (v === 0 && !chords) pitch = realize(base);
+        else if (v === 0) pitch = choosePitch([[0, realize(base)], [2, realize(base + 1)], [-2, realize(base - 1)]], time, sl.duration, out, prev).pitch; // the melody moves only to avoid the bass
         else {
           const cands = [0, 1, -1, 2, -2].map((a) => [a, realize(base + a)]);
           pitch = choosePitch(cands, time, sl.duration, out, prev).pitch;
@@ -183,6 +240,8 @@ export function createEngineV11(engine) {
       const head = x.head || slots.filter((sl) => sl.group === 0);
       episode(out, x, head, dir, sectionEnd, offset, realize, domPcs(x.off === bass), s);
     }
+    chordAt = null;
+    if (harmony) out.harmony = harmony;
     return out;
   }
 
@@ -250,6 +309,7 @@ export function createEngineV11(engine) {
   }
 
   function render(beast, live, { keys = 'modulate' } = {}) {
+    const chords = keys === 'chords';
     const r = engine.render(beast, live), p = r.params, f = r.form;
     const theme = { ...f.theme, degrees: cadenceTheme(f.theme.degrees) };
     const slots = themeRhythm(p, theme.degrees, f.seeds.motif_seed);
@@ -257,9 +317,16 @@ export function createEngineV11(engine) {
     let events = [];
     const seed = Number(BigInt(f.seeds.motif_seed) % 4294967291n);
     const plan = keyPlan(p);
-    for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * f.section_ticks, csSeed, f.section_ticks, seed, plan, keys === 'mode'));
+    // chords: every section starts on I in the home key (the progression carries the motion)
+    const sectionPlan = chords ? plan.map((k) => ({ ...k, degrees: 0 })) : plan;
+    let harmony = null;
+    for (let s = 0; s < p.section_count; s++) {
+      const sec = buildSection(p, theme, slots, s, s * f.section_ticks, csSeed, f.section_ticks, seed, sectionPlan, keys === 'mode' || chords, chords);
+      if (sec.harmony && !harmony) harmony = sec.harmony;
+      events.push(...sec);
+    }
     events = shape(events, p).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
-    return { ...r, form: { ...f, theme, events }, v11: { keyPlan: plan, keys } };
+    return { ...r, form: { ...f, theme, events }, v11: { keyPlan: plan, keys, harmony } };
   }
 
   // numbers for the comparison: rhythm, consonance, texture, cadence
@@ -307,5 +374,5 @@ export function createEngineV11(engine) {
 
   // v1's section shifts, for comparison
   const v1KeyPlan = (p) => Array.from({ length: p.section_count }, (_, s) => ({ shift: I.sectionTonicShift(p, s) }));
-  return { render, metrics, keyPlan, v1KeyPlan, CELLS, FAMILY, REACH };
+  return { render, metrics, keyPlan, v1KeyPlan, CELLS, FAMILY, REACH, TIER_HARMONY };
 }

@@ -32,12 +32,21 @@ const b64 = (u8) => Buffer.from(u8).toString('base64');
 
 const NOTE = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];
 const keys = (p, plan) => plan.map((k) => NOTE[((p.tonic_keynum + k.shift) % 12 + 12) % 12]).join(' → ');
+// Roman numerals with the chord quality the mode gives each degree
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+function numeral(p, r) {
+  const I = engine.internals, home = I.transposedTonic(p.tonic_keynum, 0), mode = I.canonicalToMelodic(p.mode_id);
+  const root = I.realize(r, home, mode), third = (I.realize(r + 2, home, mode) - root) % 12, fifth = (I.realize(r + 4, home, mode) - root) % 12;
+  const n = ROMAN[((r % 7) + 7) % 7];
+  return third === 4 ? (fifth === 8 ? n + '+' : n) : (fifth === 6 ? n.toLowerCase() + '°' : n.toLowerCase());
+}
+const BARS = (u) => (u >= 3840 ? 'one chord per 2 bars' : u >= 1920 ? 'one chord per bar' : 'two chords per bar');
 function entry(name, beast, live, art) {
-  const r1 = engine.render(beast, live), r2 = v11.render(beast, live), r3 = v11.render(beast, live, { keys: 'mode' }), len = engine.formLength(r1.form);
+  const r1 = engine.render(beast, live), r2 = v11.render(beast, live), r3 = v11.render(beast, live, { keys: 'chords' }), len = engine.formLength(r1.form);
   const home = NOTE[((r1.params.tonic_keynum % 12) + 12) % 12];
   return {
     name, art, voices: r1.params.voice_count, sections: r1.params.section_count, tier: r1.params.tier,
-    keys: { v1: keys(r1.params, v11.v1KeyPlan(r1.params)), v11: keys(r2.params, r2.v11.keyPlan), v11m: 'all in ' + home + ', starting on degree ' + r3.v11.keyPlan.map((k) => ((k.degrees % 7) + 7) % 7 + 1).join(' → '), reach: v11.REACH[r1.params.tier] },
+    keys: { v1: keys(r1.params, v11.v1KeyPlan(r1.params)), v11: keys(r2.params, r2.v11.keyPlan), v11m: 'all in ' + home + ': ' + r3.v11.harmony.roots.map((x) => numeral(r3.params, x)).join(' – ') + ' (' + BARS(r3.v11.harmony.unit) + ', every section)', reach: v11.REACH[r1.params.tier] },
     v1: { midi: b64(engine.eventsToMidi(r1.form.events, r1.params.tempo_us, len)), m: v11.metrics(r1.form.events, r1.form) },
     v11: { midi: b64(engine.eventsToMidi(r2.form.events, r2.params.tempo_us, len)), m: v11.metrics(r2.form.events, r2.form) },
     v11m: { midi: b64(engine.eventsToMidi(r3.form.events, r3.params.tempo_us, len)), m: v11.metrics(r3.form.events, r3.form) },
@@ -68,7 +77,17 @@ function keyStats(planOf) {
 }
 const KEYS = { v1: keyStats((b, l) => v11.v1KeyPlan(engine.render(b, l).params)), v11: keyStats((b, l) => v11.render(b, l).v11.keyPlan) };
 KEYS.v11m = { avg: '0 (one key)', tritones: 0, moves: KEYS.v11.moves };
-const SUM = { v1: summary((b, l) => { const r = engine.render(b, l); return v11.metrics(r.form.events, r.form); }), v11: summary((b, l) => { const r = v11.render(b, l); return v11.metrics(r.form.events, r.form); }), v11m: summary((b, l) => { const r = v11.render(b, l, { keys: 'mode' }); return v11.metrics(r.form.events, r.form); }), n: Object.keys(cache).length };
+const SUM = { v1: summary((b, l) => { const r = engine.render(b, l); return v11.metrics(r.form.events, r.form); }), v11: summary((b, l) => { const r = v11.render(b, l); return v11.metrics(r.form.events, r.form); }), v11m: summary((b, l) => { const r = v11.render(b, l, { keys: 'chords' }); return v11.metrics(r.form.events, r.form); }), n: Object.keys(cache).length };
+// the tier ladder (same mode + tier chords), across the cached Beasts
+const LADDER = {};
+for (const { beast, live } of Object.values(cache)) {
+  const r = v11.render(beast, live, { keys: 'chords' }), h = r.v11.harmony, t = (LADDER[r.params.tier] ||= { n: 0, chords: 0, changes: 0, bass: 0 });
+  const bars = r.form.section_ticks / 1920;
+  t.n++; t.chords += new Set(h.roots).size; t.changes += h.roots.filter((x, i) => x !== h.roots[(i + 1) % h.roots.length]).length / bars;
+  t.bass += r.form.events.filter((e) => e.role === 'bass').length / (bars * r.form.sections.length);
+}
+const TH = v11.TIER_HARMONY, RN0 = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
+const ladderRows = [5, 4, 3, 2, 1].filter((t) => LADDER[t]).map((t) => `<tr><td>Tier ${t}</td><td>${TH[t].prog.map((x) => RN0[x]).join(' – ')}</td><td>${(LADDER[t].chords / LADDER[t].n).toFixed(1)}</td><td>${(LADDER[t].changes / LADDER[t].n).toFixed(1)}</td><td>${(LADDER[t].bass / LADDER[t].n).toFixed(1)}</td><td>${TH[t].bass === 'whole' ? 'whole notes' : TH[t].bass === 'half' ? 'root, fifth' : TH[t].bass === 'arp' ? 'arpeggio' : 'walking'}</td></tr>`).join('');
 
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Beast Composer A/B</title>
@@ -115,7 +134,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
 <li><b>Rhythm:</b> the theme is built from 4-beat rhythm cells (long notes, dotted rhythms, short runs) picked by the Beast's motif seed, with a family per Beast type; the kill-driven ornament density decides how many passing notes appear.</li>
 <li><b>No silent bars:</b> from the end of its theme until the next section, every voice plays an episode: the theme's opening bar in sequence (a step higher or lower each bar), then a half cadence onto the dominant of the next section's key. The last section leads back into the first, so the loop flows on.</li>
 <li><b>Related keys:</b> sections move around the circle of fifths instead of v1's fixed shifts, which often jump a tritone. The Beast's tier sets how far they roam: tiers 4–5 stay within one fifth (I, V, IV), tier 3 two, tier 2 three, tier 1 four (a third relation such as C → E). Its type picks the sharp or flat side, and the last section comes back within a fifth of home, so the loop returns smoothly.</li>
-<li><b>Same mode (third button):</b> the same plan as diatonic transposition: every section stays in the home key and mode, and the theme starts on the planned scale degree (V = degree 5 of the home scale), so no new sharps or flats appear.</li>
+<li><b>Same mode + tier chords (third button):</b> the whole Beast stays in its home key and mode, and each tier has its own chord progression, played by an added bass voice. The other voices lean on its chord tones on the beat (the melody moves a step only to avoid clashing with the bass). From tier 5 to tier 1 there are more chords, faster chord changes and a busier bass, so a rarer Beast sounds harmonically richer. Every section starts on I, the theme's cadence lands on I and the section ends on V, leading into the next.</li>
 <li><b>Voices:</b> every note is checked against every voice sounding with it. Thirds and sixths are preferred; clashes on the beat, unisons and parallel 5ths/8ves are avoided by moving a note a step or two.</li>
 </ul>
 <div class="layout">
@@ -126,7 +145,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
       <div class="choices" role="group" aria-label="Composer">
         <button type="button" data-v="v1" aria-pressed="true">v1 (onchain today)</button>
         <button type="button" data-v="v11" aria-pressed="false">v1.1: keys change</button>
-        <button type="button" data-v="v11m" aria-pressed="false">v1.1: same mode</button>
+        <button type="button" data-v="v11m" aria-pressed="false">v1.1: same mode + tier chords</button>
       </div>
       <div class="controls">
         <button type="button" id="play">▶ Play</button>
@@ -144,7 +163,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
     <div class="roll">
       <div>v1</div><canvas id="rollA" width="1600" height="300" class="on"></canvas>
       <div>v1.1: keys change</div><canvas id="rollB" width="1600" height="300" class="b"></canvas>
-      <div>v1.1: same mode</div><canvas id="rollC" width="1600" height="300" class="c"></canvas>
+      <div>v1.1: same mode + tier chords (bottom line: the bass)</div><canvas id="rollC" width="1600" height="300" class="c"></canvas>
     </div>
     <div class="tablewrap"><table id="mt"></table></div>
   </div>
@@ -154,8 +173,14 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
 <tr><th></th><th>Key moves: avg distance in 5ths</th><th>Tritone key moves</th><th>Silent time</th><th>Note lengths per score</th><th>Clashes between voices</th><th>Clashes on the beat</th><th>Unisons / octaves</th><th>Parallel 5ths/8ves per score</th><th>Ends on the tonic</th></tr>
 <tr><td>v1</td><td>${KEYS.v1.avg}</td><td>${KEYS.v1.tritones} of ${KEYS.v1.moves}</td><td>${SUM.v1.silent}%</td><td>${SUM.v1.durations}</td><td>${SUM.v1.clash}%</td><td>${SUM.v1.clashOnBeat}%</td><td>${SUM.v1.octave}%</td><td>${SUM.v1.parallels}</td><td>${SUM.v1.cadence}%</td></tr>
 <tr><td class="b">v1.1: keys change</td><td class="b">${KEYS.v11.avg}</td><td class="b">${KEYS.v11.tritones} of ${KEYS.v11.moves}</td><td class="b">${SUM.v11.silent}%</td><td class="b">${SUM.v11.durations}</td><td class="b">${SUM.v11.clash}%</td><td class="b">${SUM.v11.clashOnBeat}%</td><td class="b">${SUM.v11.octave}%</td><td class="b">${SUM.v11.parallels}</td><td class="b">${SUM.v11.cadence}%</td></tr>
-<tr><td class="c">v1.1: same mode</td><td class="c">${KEYS.v11m.avg}</td><td class="c">${KEYS.v11m.tritones} of ${KEYS.v11m.moves}</td><td class="c">${SUM.v11m.silent}%</td><td class="c">${SUM.v11m.durations}</td><td class="c">${SUM.v11m.clash}%</td><td class="c">${SUM.v11m.clashOnBeat}%</td><td class="c">${SUM.v11m.octave}%</td><td class="c">${SUM.v11m.parallels}</td><td class="c">${SUM.v11m.cadence}%</td></tr>
+<tr><td class="c">v1.1: same mode + tier chords</td><td class="c">${KEYS.v11m.avg}</td><td class="c">${KEYS.v11m.tritones} of ${KEYS.v11m.moves}</td><td class="c">${SUM.v11m.silent}%</td><td class="c">${SUM.v11m.durations}</td><td class="c">${SUM.v11m.clash}%</td><td class="c">${SUM.v11m.clashOnBeat}%</td><td class="c">${SUM.v11m.octave}%</td><td class="c">${SUM.v11m.parallels}</td><td class="c">${SUM.v11m.cadence}%</td></tr>
 </table></div>
+<h2>Tier chords (third version)</h2>
+<div class="tablewrap"><table>
+<tr><th></th><th>Progression (scale degrees)</th><th>Different chords per section</th><th>Chord changes per bar</th><th>Bass notes per bar</th><th>Bass</th></tr>
+${ladderRows}
+</table></div>
+<p class="note">Chord names here are for a major mode; on each Beast the table above shows them with the quality its mode gives (a minor Beast's I is i). Fixed chords (I at the theme's cadence, ii or IV before the end, V last) shift the cycle, so a section's actual chords are listed per Beast.</p>
 <p class="note">Clashes: seconds, sevenths and tritones between voices sounding together, as a share of all voice pairs (multi-voice Beasts). Silent time: share of the form in rests of a beat or more with no note sounding (shorter gaps are articulation). Both versions loop on the same form length; v1 rests for the closing bars, v1.1 fills them. Instruments: one TinyChip preset for every voice (pick any of the 100), or Auto, the onchain orchestration worked out from v1's score and applied to every version; chip drums.</p>
 </main>
 <script>${inline(midiModules.map((m) => m.js).join('\n'))}</script>
@@ -199,7 +224,7 @@ function drawRoll(canvas, midi, tick) {
 function metricsTable() {
   const a = BEASTS[current].v1.m, b = BEASTS[current].v11.m, c = BEASTS[current].v11m.m;
   const row = (label, k, f = (x) => x) => '<tr><td>' + label + '</td><td>' + f(a[k]) + '</td><td class="b">' + f(b[k]) + '</td><td class="c">' + f(c[k]) + '</td></tr>';
-  $('mt').innerHTML = '<tr><th>This Beast</th><th>v1</th><th>v1.1: keys change</th><th>v1.1: same mode</th></tr>' + '<tr><td>Keys by section (tier ' + BEASTS[current].tier + ': up to ' + BEASTS[current].keys.reach + ' fifth' + (BEASTS[current].keys.reach > 1 ? 's' : '') + ' away)</td><td>' + BEASTS[current].keys.v1 + '</td><td class="b">' + BEASTS[current].keys.v11 + '</td><td class="c">' + BEASTS[current].keys.v11m + '</td></tr>'
+  $('mt').innerHTML = '<tr><th>This Beast</th><th>v1</th><th>v1.1: keys change</th><th>v1.1: same mode + tier chords</th></tr>' + '<tr><td>Keys and chords (tier ' + BEASTS[current].tier + ': up to ' + BEASTS[current].keys.reach + ' fifth' + (BEASTS[current].keys.reach > 1 ? 's' : '') + ' away)</td><td>' + BEASTS[current].keys.v1 + '</td><td class="b">' + BEASTS[current].keys.v11 + '</td><td class="c">' + BEASTS[current].keys.v11m + '</td></tr>'
     + row('Notes', 'notes') + row('Silent time', 'silentPct', (x) => x + '%') + row('Note lengths', 'durations')
     + (a.voices > 1 ? row('Clashes between voices', 'clashPct', (x) => x + '%') + row('Clashes on the beat', 'clashOnBeatPct', (x) => x + '%') + row('Unisons / octaves', 'octavePct', (x) => x + '%') + row('Parallel 5ths/8ves', 'parallels') : '')
     + row('Ends on the tonic', 'cadence', (x) => (x ? 'yes' : 'no'));
@@ -243,8 +268,8 @@ function setInstrument() {
     if (!playing) return;
     TinyChip.attach(synth, { bare: true, channels: [], events: [] }); // installs the onchain runtime's presets at 129+
     for (const ch of channels) synth.send([0xc0 | ch, 129 + roles[ch]]);
-    // a voice v1.1 has that v1 lacks (none today) keeps the lead's preset
-    for (let ch = 0; ch < 16; ch++) if (ch !== 9 && !(ch in roles)) synth.send([0xc0 | ch, 129 + roles[channels[channels.length - 1]]]);
+    // a voice v1.1 has that v1 lacks (the tier-chords bass) plays Triangle Bass
+    for (let ch = 0; ch < 16; ch++) if (ch !== 9 && !(ch in roles)) synth.send([0xc0 | ch, 129 + 20]); // the added bass voice: Triangle Bass
     return;
   }
   const v = INSPIRED[val];

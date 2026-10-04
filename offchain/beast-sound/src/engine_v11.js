@@ -26,6 +26,13 @@
 //                pairs are accented (the first bar of each pair stronger). { breath: true } (with
 //                even): a single-voice Beast with a 3-bar theme holds its final tonic one bar more,
 //                a 4-bar phrase, then a 2-bar episode (6 bars instead of 4).
+//                Option { traj: true }: Beast data mapped to musical function by layer (identity,
+//                current state, trajectory; see trajectory()): the episodes rise when kills
+//                outnumber defeats and fall when defeats lead; later sections develop by the dominant
+//                history (kills: tighter stretto, faster motion; defeats: inversion, calmer motion;
+//                balanced: sequence); the second name prefix picks the ornament vocabulary (trills
+//                or passing notes) while kills set the amount; level and health set voice spacing;
+//                rank sets prominence (a ranking shuffle changes only this layer).
 //   + Dynamics   each phrase rises toward its highest note; bar downbeats are accented.
 //
 //   const v11 = createEngineV11(engine);
@@ -132,7 +139,17 @@ export function createEngineV11(engine) {
     return best;
   }
 
-  function buildSection(p, theme, slots, s, offset, csSeed, sectionTicks, seed, plan, diatonic) {
+  function buildSection(p, theme, slots, s, offset, csSeed, sectionTicks, seed, plan, diatonic, tr) {
+    // development: sections after the first follow the Beast's dominant history
+    const dev = tr && s > 0 ? tr.development : null;
+    const lag = dev === 'stretto' ? Math.max(1, p.stretto_lag - 1) : p.stretto_lag;
+    if (dev === 'stretto') slots = slots.flatMap((sl) => (sl.duration >= 960 ? [{ ...sl, duration: sl.duration / 2 }, { ...sl, time: sl.time + sl.duration / 2, duration: sl.duration / 2, degree: sl.degree + 1 }] : [sl])); // faster: long notes split, the second a step up
+    if (dev === 'inversion') {
+      const d0 = slots[0].degree;
+      slots = slots.filter((sl) => sl.src !== 'p' && sl.src !== 't').map((sl, i, arr) => ({ ...sl, degree: 2 * d0 - sl.degree, duration: (arr[i + 1] ? arr[i + 1].time : sl.time + sl.duration) - sl.time })); // mirrored, passing notes absorbed: calmer
+      slots[slots.length - 1].degree = 0;                       // still cadences on the tonic
+    }
+    const offs = tr ? OFFSETS[tr.spacing] : OFFSETS.normal;
     const next = s + 1 < p.section_count ? s + 1 : 0;
     const mode = I.canonicalToMelodic(p.mode_id);
     // modulating: each section has its own tonic. diatonic: one home tonic, the theme moved by scale degrees
@@ -148,7 +165,7 @@ export function createEngineV11(engine) {
       return (isBass ? [7] : [7, 11, 2]).map((k) => (nt + k) % 12);
     };
     for (let v = 0; v < p.voice_count; v++) {
-      const entry = v === 0 ? 0 : v * p.stretto_lag * TU, off = [0, -4, 3][v] ?? -8;
+      const entry = v === 0 ? 0 : v * lag * TU, off = offs[v] ?? offs[3];
       const map = (d) => (p.use_inversion && v === 1 ? 4 - d : d + off);
       ends.push({ v, map, off });
       let prev = null;
@@ -182,7 +199,7 @@ export function createEngineV11(engine) {
     }
     // episodes: every voice fills from the end of its line to the next section
     const sectionEnd = offset + sectionTicks;
-    const dir = (seed >>> 3) & 1 ? -1 : 1;
+    const dir = tr ? (tr.direction || (s % 2 ? -1 : 1)) : (seed >>> 3) & 1 ? -1 : 1;
     const bass = Math.min(...ends.map((x) => x.off ?? 99)) ;
     for (const x of ends) {
       const head = x.head || slots.filter((sl) => sl.group === 0);
@@ -237,16 +254,17 @@ export function createEngineV11(engine) {
   }
 
   // phrase arc per voice and section, accents on bar downbeats, articulation by profile, under the ceiling
-  function shape(events, p, sectionTicks, pairs) {
+  function shape(events, p, sectionTicks, pairs, prominence = 0) {
     const ceil = p.velocity_ceiling || 127, groups = {};
     for (const e of events) (groups[e.voice_id + ':' + e.section] ||= []).push(e);
     for (const g of Object.values(groups)) {
       const lo = Math.min(...g.map((e) => e.pitch)), hi = Math.max(...g.map((e) => e.pitch)), lead = g[0].voice_id === 0;
       for (const e of g) {
-        let v = (lead ? 80 : 70) + Math.round(16 * (hi > lo ? (e.pitch - lo) / (hi - lo) : 0.5));
+        // prominence (rank): the lead stands further out from the other voices
+        let v = (lead ? 80 + 4 * prominence : 70 - 2 * prominence) + Math.round(16 * (hi > lo ? (e.pitch - lo) / (hi - lo) : 0.5));
         if ((e.time % BAR) === 0) {
           // bar pairs: the first bar of each pair (counted from the section start) leans harder
-          v += pairs ? (Math.floor((e.time % sectionTicks) / BAR) % 2 === 0 ? 12 : 4) : 8;
+          v += (pairs ? (Math.floor((e.time % sectionTicks) / BAR) % 2 === 0 ? 12 : 4) : 8) + (lead ? 2 * prominence : 0);
         }
         e.velocity = Math.max(1, Math.min(ceil, v));
         if (p.articulation_profile === 1) e.duration = Math.max(60, Math.floor(e.duration / 2));
@@ -257,10 +275,19 @@ export function createEngineV11(engine) {
     return events;
   }
 
-  function render(beast, live, { keys = 'modulate', even = false, breath = false } = {}) {
-    const r = engine.render(beast, live), p = r.params, f = r.form;
+  function render(beast, live, { keys = 'modulate', even = false, breath = false, traj = false } = {}) {
+    // traj: rank is current state only, so the structure is composed with a neutral rank (v1 lets the
+    // crown and top ranks add ornament, accents and a voice); the real rank sets prominence alone
+    const structural = traj ? { ...live, rank: Math.max(2, live.species_count || 2), species_count: live.species_count || 1 } : live;
+    const r = engine.render(beast, structural), p = r.params, f = r.form;
+    if (traj) r.live = { ...live };
     const theme = { ...f.theme, degrees: cadenceTheme(f.theme.degrees) };
-    const slots = themeRhythm(p, theme.degrees, f.seeds.motif_seed);
+    const tr = traj ? trajectory(r, live) : null;
+    let slots = themeRhythm(p, theme.degrees, f.seeds.motif_seed);
+    // ornament vocabulary (second name prefix): a trill (upper neighbour and back) replaces a passing note
+    if (tr && tr.trill) slots = slots.flatMap((sl, i) => (sl.src === 'p' && sl.duration >= 240
+      ? [{ ...sl, src: 't', duration: sl.duration / 2, degree: slots[i - 1].degree + 1 }, { ...sl, src: 't', time: sl.time + sl.duration / 2, duration: sl.duration / 2, degree: slots[i - 1].degree }]
+      : [sl]));
     // breath: a lone 3-bar theme holds its final tonic one bar longer (a 4-bar phrase)
     const breathed = even && breath && p.voice_count === 1 && theme.degrees.length === 12;
     if (breathed) slots[slots.length - 1] = { ...slots[slots.length - 1], duration: slots[slots.length - 1].duration + BAR };
@@ -276,10 +303,10 @@ export function createEngineV11(engine) {
     let events = [];
     const seed = Number(BigInt(f.seeds.motif_seed) % 4294967291n);
     const plan = keyPlan(p);
-    for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * ticks, csSeed, ticks, seed, plan, keys === 'mode'));
-    events = shape(events, p, ticks, even).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
+    for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * ticks, csSeed, ticks, seed, plan, keys === 'mode', tr));
+    events = shape(events, p, ticks, even, tr ? tr.prominence : 0).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
     const sections = f.sections.map((x, i) => ({ ...x, start: i * ticks }));
-    return { ...r, form: { ...f, theme, events, section_ticks: ticks, sections }, v11: { keyPlan: plan, keys, even, breathed } };
+    return { ...r, form: { ...f, theme, events, section_ticks: ticks, sections }, v11: { keyPlan: plan, keys, even, breathed, trajectory: tr } };
   }
 
   // numbers for the comparison: rhythm, consonance, texture, cadence
@@ -325,7 +352,28 @@ export function createEngineV11(engine) {
     };
   }
 
+  // ── trajectory: Beast data -> musical function ──
+  //   direction    kills vs defeats             episodes rise (+1), fall (-1) or alternate (0)
+  //   development  dominant history (buckets)   'stretto' | 'inversion' | 'sequence' for sections 2+
+  //   spacing      level and health             'wide' | 'normal' | 'close'
+  //   prominence   rank (crown 3, top 1% 2, top 5% 1, else 0)
+  //   trill        second name prefix policy    trills instead of passing notes
+  function trajectory(r, realLive) {
+    const p = r.params, k = r.live.adventurers_killed, d = r.live.scars, b = r.beast;
+    const st = { ...p._state, ...(realLive ? engine.musicState(realLive) : {}) }; // rank from the real stats
+    const kb = st.kill_bucket, db = st.defeat_bucket;
+    return {
+      direction: k > d ? 1 : k < d ? -1 : 0,
+      development: kb >= db + 2 ? 'stretto' : db >= 1 && db >= kb ? 'inversion' : 'sequence',
+      spacing: b.level >= 100 || b.health >= 500 ? 'wide' : b.level < 20 && b.health < 120 ? 'close' : 'normal',
+      prominence: st.is_crown ? 3 : st.rank_tier <= 1 ? 2 : st.rank_tier === 2 ? 1 : 0,
+      trill: !!(p._ornament && p._ornament.allow_trill),
+      ornamentDensity: p.ornament_density,
+    };
+  }
+  const OFFSETS = { wide: [0, -4, 7, -11], normal: [0, -4, 3, -8], close: [0, -2, 2, -5] };
+
   // v1's section shifts, for comparison
   const v1KeyPlan = (p) => Array.from({ length: p.section_count }, (_, s) => ({ shift: I.sectionTonicShift(p, s) }));
-  return { render, metrics, keyPlan, v1KeyPlan, CELLS, FAMILY, REACH };
+  return { render, metrics, keyPlan, v1KeyPlan, trajectory, CELLS, FAMILY, REACH };
 }

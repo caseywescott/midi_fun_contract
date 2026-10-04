@@ -21,6 +21,9 @@ const TINY_NOTICE = '/*! webaudio-tinysynth (c) g200kg, Apache License 2.0; Prov
 const chipRuntime = readFileSync(here + 'pr3-tinychip/tinychip.min.js', 'utf8').trim();
 const chipBank = readFileSync(here + 'pr3-tinychip/tinychip-bank.min.js', 'utf8').trim();
 const midiModules = loadBuiltModules(['midi', 'smf']);
+// the composer itself (engine v1 + the v1.1 prototype), so the history scrubber can re-render live
+const composer = (await build({ stdin: { contents: "import { engine } from './src/index.js'; import { createEngineV11 } from './src/engine_v11.js'; window.BS11 = { engine, v11: createEngineV11(engine) };", resolveDir: here + '..', loader: 'js' }, bundle: true, minify: true, format: 'iife', platform: 'browser', write: false, logLevel: 'error' })).outputFiles[0].text;
+const V11M = { keys: 'mode', even: true, traj: true };
 const bankCtx = {}; vm.runInNewContext(chipBank, bankCtx);
 const PRESETS = bankCtx.TinyChipBank.PRESETS.map(({ program, name, category, inspired }) => ({ program, name, category, inspired }));
 
@@ -34,11 +37,12 @@ const NOTE = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B�
 const keys = (p, plan) => plan.map((k) => NOTE[((p.tonic_keynum + k.shift) % 12 + 12) % 12]).join(' → ');
 function entry(name, beast, live, art) {
   const r1 = engine.render(beast, live), r2 = v11.render(beast, live), len = engine.formLength(r1.form);
-  const r3 = v11.render(beast, live, { keys: 'mode', even: true }), r4 = v11.render(beast, live, { keys: 'mode', even: true, breath: true });
+  const r3 = v11.render(beast, live, V11M), r4 = v11.render(beast, live, { ...V11M, breath: true });
   const midiOf = (r) => b64(engine.eventsToMidi(r.form.events, r.params.tempo_us, engine.formLength(r.form)));
   const home = NOTE[((r1.params.tonic_keynum % 12) + 12) % 12];
   return {
     name, art, voices: r1.params.voice_count, sections: r1.params.section_count, tier: r1.params.tier,
+    beast, live: { ...r1.live },
     keys: { v1: keys(r1.params, v11.v1KeyPlan(r1.params)), v11: keys(r2.params, r2.v11.keyPlan), v11m: 'all in ' + home + ', starting on degree ' + r3.v11.keyPlan.map((k) => ((k.degrees % 7) + 7) % 7 + 1).join(' → '), reach: v11.REACH[r1.params.tier] },
     v1: { midi: b64(engine.eventsToMidi(r1.form.events, r1.params.tempo_us, len)), m: v11.metrics(r1.form.events, r1.form) },
     v11: { midi: midiOf(r2), m: v11.metrics(r2.form.events, r2.form) },
@@ -73,7 +77,7 @@ function keyStats(planOf) {
 }
 const KEYS = { v1: keyStats((b, l) => v11.v1KeyPlan(engine.render(b, l).params)), v11: keyStats((b, l) => v11.render(b, l).v11.keyPlan) };
 KEYS.v11m = { avg: '0 (one key)', tritones: 0, moves: KEYS.v11.moves };
-const SUM = { v1: summary((b, l) => { const r = engine.render(b, l); return v11.metrics(r.form.events, r.form); }), v11: summary((b, l) => { const r = v11.render(b, l); return v11.metrics(r.form.events, r.form); }), v11m: summary((b, l) => { const r = v11.render(b, l, { keys: 'mode', even: true }); return v11.metrics(r.form.events, r.form); }), n: Object.keys(cache).length };
+const SUM = { v1: summary((b, l) => { const r = engine.render(b, l); return v11.metrics(r.form.events, r.form); }), v11: summary((b, l) => { const r = v11.render(b, l); return v11.metrics(r.form.events, r.form); }), v11m: summary((b, l) => { const r = v11.render(b, l, V11M); return v11.metrics(r.form.events, r.form); }), n: Object.keys(cache).length };
 
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Beast Composer A/B</title>
@@ -102,6 +106,7 @@ canvas.on.c{border-color:var(--c)}td.c{color:var(--c)}.cc{color:var(--c)}
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 label.check{display:flex;gap:8px;align-items:center;font-size:20px}
 label.field{display:grid;gap:6px;font-size:18px;color:var(--dim)}
+input[type=range]{width:100%;accent-color:var(--c)}
 .roll{display:grid;gap:6px}.roll div{font-size:17px;color:var(--dim)}
 canvas{width:100%;height:150px;background:var(--card);border:1px solid var(--line);display:block}
 canvas{opacity:.55}canvas.on{border-color:var(--g);opacity:1}canvas.on.b{border-color:var(--b)}
@@ -121,6 +126,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
 <li><b>No silent bars:</b> from the end of its theme until the next section, every voice plays an episode: the theme's opening bar in sequence (a step higher or lower each bar), then a half cadence onto the dominant of the next section's key. The last section leads back into the first, so the loop flows on.</li>
 <li><b>Related keys:</b> sections move around the circle of fifths instead of v1's fixed shifts, which often jump a tritone. The Beast's tier sets how far they roam: tiers 4–5 stay within one fifth (I, V, IV), tier 3 two, tier 2 three, tier 1 four (a third relation such as C → E). Its type picks the sharp or flat side, and the last section comes back within a fifth of home, so the loop returns smoothly.</li>
 <li><b>Same mode, even phrases (third button):</b> the same plan as diatonic transposition: every section stays in the home key and mode, and the theme starts on the planned scale degree (V = degree 5 of the home scale), so no new sharps or flats appear. Sections are an even number of bars by <em>shortening</em>: the episode is 1 or 2 bars, whichever makes the section even (4, 6 or 8 bars), so there is never more repetition than v1.1's other versions, and the theme and canon are untouched. The first bar of each pair is accented, and the drums mark the pairs and fill into each section. The checkbox lets a single-voice Beast's theme breathe instead (6 bars).</li>
+<li><b>History (third version):</b> Beast data mapped to musical function by layer. Identity (species, name, type, tier) fixes the tune, mode, rhythm family and harmonic reach. Trajectory: when kills outnumber defeats the bridges climb, when defeats lead they sink; later sections develop by the dominant history (kills: tighter stretto and faster motion; defeats: inversion and calmer motion; balanced: sequence); the second name prefix picks the ornament vocabulary (trills or passing notes) and kills set how much. Current state: level and health set how widely the voices spread; rank sets how far the lead stands out, so a ranking shuffle changes prominence, never the tune. Try the history scrubber.</li>
 <li><b>Voices:</b> every note is checked against every voice sounding with it. Thirds and sixths are preferred; clashes on the beat, unisons and parallel 5ths/8ves are avoided by moving a note a step or two.</li>
 </ul>
 <div class="layout">
@@ -131,7 +137,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
       <div class="choices" role="group" aria-label="Composer">
         <button type="button" data-v="v1" aria-pressed="true">v1 (onchain today)</button>
         <button type="button" data-v="v11" aria-pressed="false">v1.1: keys change</button>
-        <button type="button" data-v="v11m" aria-pressed="false">v1.1: same mode, even phrases</button>
+        <button type="button" data-v="v11m" aria-pressed="false">v1.1: same mode, even phrases, history</button>
       </div>
       <div class="controls">
         <button type="button" id="play">▶ Play</button>
@@ -148,10 +154,18 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
       </div>
       <span class="note">Switch while it plays to hear the difference: the new version starts from the top.</span>
     </fieldset>
+    <fieldset><legend>History scrubber (third version)</legend>
+      <span class="note">Change this Beast's history and hear the same tune take a different path. Identity (tune, mode, rhythm family, tier) never changes.</span>
+      <label class="field">Kills: <b id="killsV"></b><input type="range" id="kills" min="0" max="11" step="1"></label>
+      <label class="field">Defeats: <b id="scarsV"></b><input type="range" id="scars" min="0" max="10" step="1"></label>
+      <label class="field">Rank <select id="rank"><option value="crown">Crown (rank 1)</option><option value="1">Top 1%</option><option value="5">Top 5%</option><option value="20">Top 20%</option><option value="rest">The rest</option></select></label>
+      <div class="controls"><button type="button" id="real">Real stats</button></div>
+      <span class="note" id="trajNote"></span>
+    </fieldset>
     <div class="roll">
       <div>v1</div><canvas id="rollA" width="1600" height="300" class="on"></canvas>
       <div>v1.1: keys change</div><canvas id="rollB" width="1600" height="300" class="b"></canvas>
-      <div>v1.1: same mode, even phrases</div><canvas id="rollC" width="1600" height="300" class="c"></canvas>
+      <div>v1.1: same mode, even phrases, history <span id="custom" class="cc"></span></div><canvas id="rollC" width="1600" height="300" class="c"></canvas>
     </div>
     <div class="tablewrap"><table id="mt"></table></div>
   </div>
@@ -161,7 +175,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
 <tr><th></th><th>Key moves: avg distance in 5ths</th><th>Tritone key moves</th><th>Silent time</th><th>Note lengths per score</th><th>Clashes between voices</th><th>Clashes on the beat</th><th>Unisons / octaves</th><th>Parallel 5ths/8ves per score</th><th>Ends on the tonic</th></tr>
 <tr><td>v1</td><td>${KEYS.v1.avg}</td><td>${KEYS.v1.tritones} of ${KEYS.v1.moves}</td><td>${SUM.v1.silent}%</td><td>${SUM.v1.durations}</td><td>${SUM.v1.clash}%</td><td>${SUM.v1.clashOnBeat}%</td><td>${SUM.v1.octave}%</td><td>${SUM.v1.parallels}</td><td>${SUM.v1.cadence}%</td></tr>
 <tr><td class="b">v1.1: keys change</td><td class="b">${KEYS.v11.avg}</td><td class="b">${KEYS.v11.tritones} of ${KEYS.v11.moves}</td><td class="b">${SUM.v11.silent}%</td><td class="b">${SUM.v11.durations}</td><td class="b">${SUM.v11.clash}%</td><td class="b">${SUM.v11.clashOnBeat}%</td><td class="b">${SUM.v11.octave}%</td><td class="b">${SUM.v11.parallels}</td><td class="b">${SUM.v11.cadence}%</td></tr>
-<tr><td class="c">v1.1: same mode, even phrases</td><td class="c">${KEYS.v11m.avg}</td><td class="c">${KEYS.v11m.tritones} of ${KEYS.v11m.moves}</td><td class="c">${SUM.v11m.silent}%</td><td class="c">${SUM.v11m.durations}</td><td class="c">${SUM.v11m.clash}%</td><td class="c">${SUM.v11m.clashOnBeat}%</td><td class="c">${SUM.v11m.octave}%</td><td class="c">${SUM.v11m.parallels}</td><td class="c">${SUM.v11m.cadence}%</td></tr>
+<tr><td class="c">v1.1: same mode, even phrases, history</td><td class="c">${KEYS.v11m.avg}</td><td class="c">${KEYS.v11m.tritones} of ${KEYS.v11m.moves}</td><td class="c">${SUM.v11m.silent}%</td><td class="c">${SUM.v11m.durations}</td><td class="c">${SUM.v11m.clash}%</td><td class="c">${SUM.v11m.clashOnBeat}%</td><td class="c">${SUM.v11m.octave}%</td><td class="c">${SUM.v11m.parallels}</td><td class="c">${SUM.v11m.cadence}%</td></tr>
 </table></div>
 <p class="note">Clashes: seconds, sevenths and tritones between voices sounding together, as a share of all voice pairs (multi-voice Beasts). Silent time: share of the form in rests of a beat or more with no note sounding (shorter gaps are articulation). Both versions loop on the same form length; v1 rests for the closing bars, v1.1 fills them. Instruments: one TinyChip preset for every voice (pick any of the 100), or Auto, the onchain orchestration worked out from v1's score and applied to every version; chip drums.</p>
 </main>
@@ -169,6 +183,7 @@ ul{margin:8px 0 0;padding-left:22px;font-size:19px;color:var(--dim)}li{margin:4p
 <script>${TINY_NOTICE}\n${inline(tiny)}</script>
 <script>${inline(chipBank)}</script>
 <script>${inline(chipRuntime)}</script>
+<script>${inline(composer)}</script>
 <script>
 const BEASTS = ${JSON.stringify(data)};
 // the data key for a version: the third button plays the breath variant when it is ticked and exists
@@ -228,7 +243,7 @@ function drawRoll(canvas, midi, tick) {
 function metricsTable() {
   const a = BEASTS[current].v1.m, b = BEASTS[current].v11.m, c = BEASTS[current][key('v11m')].m, bars = BEASTS[current].bars;
   const row = (label, k, f = (x) => x) => '<tr><td>' + label + '</td><td>' + f(a[k]) + '</td><td class="b">' + f(b[k]) + '</td><td class="c">' + f(c[k]) + '</td></tr>';
-  $('mt').innerHTML = '<tr><th>This Beast</th><th>v1</th><th>v1.1: keys change</th><th>v1.1: same mode, even phrases</th></tr>' + '<tr><td>Keys by section (tier ' + BEASTS[current].tier + ': up to ' + BEASTS[current].keys.reach + ' fifth' + (BEASTS[current].keys.reach > 1 ? 's' : '') + ' away)</td><td>' + BEASTS[current].keys.v1 + '</td><td class="b">' + BEASTS[current].keys.v11 + '</td><td class="c">' + BEASTS[current].keys.v11m + '</td></tr>'
+  $('mt').innerHTML = '<tr><th>This Beast</th><th>v1</th><th>v1.1: keys change</th><th>v1.1: same mode, even phrases, history</th></tr>' + '<tr><td>Keys by section (tier ' + BEASTS[current].tier + ': up to ' + BEASTS[current].keys.reach + ' fifth' + (BEASTS[current].keys.reach > 1 ? 's' : '') + ' away)</td><td>' + BEASTS[current].keys.v1 + '</td><td class="b">' + BEASTS[current].keys.v11 + '</td><td class="c">' + BEASTS[current].keys.v11m + '</td></tr>'
     + '<tr><td>Bars per section</td><td>' + bars.v1 + '</td><td class="b">' + bars.v11 + '</td><td class="c">' + bars[key('v11m')] + '</td></tr>'
     + row('Notes', 'notes') + row('Silent time', 'silentPct', (x) => x + '%') + row('Note lengths', 'durations')
     + (a.voices > 1 ? row('Clashes between voices', 'clashPct', (x) => x + '%') + row('Clashes on the beat', 'clashOnBeatPct', (x) => x + '%') + row('Unisons / octaves', 'octavePct', (x) => x + '%') + row('Parallel 5ths/8ves', 'parallels') : '')
@@ -284,6 +299,47 @@ function setInstrument() {
   if (playing) for (let ch = 0; ch < 16; ch++) if (ch !== 9) synth.send([0xc0 | ch, +val]);
 }
 function stepPreset(d) { const sel = $('preset'), n = sel.options.length; sel.selectedIndex = (sel.selectedIndex + d + n) % n; setInstrument(); }
+// ── history scrubber: re-render the third version with a changed history ──
+const KILL_STEPS = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024], SCAR_STEPS = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512];
+const nearest = (steps, x) => steps.reduce((bi, v, i) => (Math.abs(v - x) < Math.abs(steps[bi] - x) ? i : bi), 0);
+const rankOf = (l) => (l.rank === 1 ? 'crown' : !l.rank || !l.species_count ? 'rest' : (l.rank * 100 / l.species_count) <= 1 ? '1' : (l.rank * 100 / l.species_count) <= 5 ? '5' : (l.rank * 100 / l.species_count) <= 20 ? '20' : 'rest');
+const ORIGINAL = {};
+function scrubbedLive() {
+  const B = BEASTS[current], l = { ...B.live }, count = l.species_count || 1000;
+  l.adventurers_killed = KILL_STEPS[+$('kills').value]; l.scars = SCAR_STEPS[+$('scars').value];
+  const r = $('rank').value;
+  l.rank = r === 'crown' ? 1 : r === 'rest' ? Math.max(2, Math.ceil(count * 0.5)) : Math.max(2, Math.floor(count * (+r) / 100));
+  if (!l.species_count) l.species_count = count;
+  return l;
+}
+function describe(t, r) {
+  return r.form.sections.length + ' section' + (r.form.sections.length > 1 ? 's' : '') + ' · bridges ' + (t.direction > 0 ? 'climb' : t.direction < 0 ? 'sink' : 'alternate')
+    + ' · development: ' + (r.form.sections.length < 2 ? 'none (one section)' : t.development === 'stretto' ? 'tighter stretto, faster' : t.development === 'inversion' ? 'inversion, calmer' : 'sequence')
+    + ' · ornaments: ' + (t.trill ? 'trills' : 'passing notes') + ', density ' + t.ornamentDensity + ' · spacing ' + t.spacing + ' · prominence ' + t.prominence + '/3';
+}
+function rescore() {
+  const B = BEASTS[current], live = scrubbedLive();
+  if (!ORIGINAL[current]) ORIGINAL[current] = { v11m: B.v11m, v11mb: B.v11mb, bars: { ...B.bars } };
+  const enc = (r) => { const u8 = BS11.engine.eventsToMidi(r.form.events, r.params.tempo_us, BS11.engine.formLength(r.form)); let s = ''; for (const x of u8) s += String.fromCharCode(x); return { midi: btoa(s), m: BS11.v11.metrics(r.form.events, r.form) }; };
+  const r = BS11.v11.render(B.beast, live, { keys: 'mode', even: true, traj: true }), rb = BS11.v11.render(B.beast, live, { keys: 'mode', even: true, traj: true, breath: true });
+  B.v11m = enc(r); B.bars.v11m = r.form.section_ticks / 1920;
+  if (rb.v11.breathed) { B.v11mb = enc(rb); B.bars.v11mb = rb.form.section_ticks / 1920; }
+  const real = live.adventurers_killed === B.live.adventurers_killed && live.scars === B.live.scars && rankOf(live) === rankOf(B.live);
+  $('custom').textContent = real ? '' : '(scrubbed history)';
+  $('trajNote').textContent = describe(r.v11.trajectory, r);
+  $('killsV').textContent = live.adventurers_killed; $('scarsV').textContent = live.scars;
+  show();
+  if (playing && version === 'v11m') { stop(); play(); }
+}
+function loadHistory() {
+  const l = BEASTS[current].live;
+  $('kills').value = nearest(KILL_STEPS, l.adventurers_killed); $('scars').value = nearest(SCAR_STEPS, l.scars); $('rank').value = rankOf(l);
+  $('killsV').textContent = l.adventurers_killed; $('scarsV').textContent = l.scars;
+  const o = ORIGINAL[current]; if (o) { Object.assign(BEASTS[current], { v11m: o.v11m, v11mb: o.v11mb, bars: o.bars }); delete ORIGINAL[current]; }
+  $('custom').textContent = '';
+  const r = BS11.v11.render(BEASTS[current].beast, l, { keys: 'mode', even: true, traj: true });
+  $('trajNote').textContent = describe(r.v11.trajectory, r);
+}
 function setVersion(v) {
   const was = playing && $('keep').checked; stop(); version = v;
   document.querySelectorAll('[data-v]').forEach((x) => x.setAttribute('aria-pressed', x.dataset.v === v));
@@ -299,13 +355,17 @@ function setVersion(v) {
   requestAnimationFrame(tickLoop);
 })();
 $('play').addEventListener('click', () => (playing ? stop() : play()));
-$('beast').addEventListener('change', (e) => { const was = playing; stop(); current = +e.target.value; show(); if (was) play(); });
+$('beast').addEventListener('change', (e) => { const was = playing; stop(); const prev = current; current = +e.target.value; if (ORIGINAL[prev]) { const o = ORIGINAL[prev]; Object.assign(BEASTS[prev], { v11m: o.v11m, v11mb: o.v11mb, bars: o.bars }); delete ORIGINAL[prev]; } loadHistory(); show(); if (was) play(); });
 $('drums').addEventListener('change', () => { if (playing) { stop(); play(); } });
+['kills', 'scars'].forEach((id) => $(id).addEventListener('input', () => { $(id + 'V').textContent = (id === 'kills' ? KILL_STEPS : SCAR_STEPS)[+$(id).value]; }));
+['kills', 'scars', 'rank'].forEach((id) => $(id).addEventListener('change', rescore));
+$('real').addEventListener('click', () => { const was = playing && version === 'v11m'; loadHistory(); show(); if (was) { stop(); play(); } });
 $('breath').addEventListener('change', () => { show(); if (playing && version === 'v11m') { stop(); play(); } });
 $('preset').addEventListener('change', setInstrument);
 $('prev').addEventListener('click', () => stepPreset(-1));
 $('next').addEventListener('click', () => stepPreset(1));
 document.querySelectorAll('[data-v]').forEach((btn) => btn.addEventListener('click', () => setVersion(btn.dataset.v)));
+loadHistory();
 show();
 setInstrument();
 </script></body></html>`;

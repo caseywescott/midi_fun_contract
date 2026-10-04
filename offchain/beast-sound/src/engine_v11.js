@@ -18,6 +18,9 @@
 //                flat side. With three or more sections the last is within a fifth of home, so the
 //                loop returns smoothly; two-section Beasts alternate home with the dominant (tiers
 //                3-5) or a third-related key (tiers 1-2). Never a tritone.
+//                Option { keys: 'mode' }: the same plan as diatonic transposition instead: every
+//                section stays in the home key and mode, and the theme starts on the planned scale
+//                degree (V = degree 5 of the home scale, no new sharps or flats).
 //   + Dynamics   each phrase rises toward its highest note; bar downbeats are accented.
 //
 //   const v11 = createEngineV11(engine);
@@ -93,7 +96,8 @@ export function createEngineV11(engine) {
     const reach = REACH[p.tier] ?? 1, side = p.weakness === 1 ? -1 : 1;  // flat side for one type, sharp for the others
     return fifthsPlan(p.section_count, reach).map((f) => {
       const st = (((f * side * 7) % 12) + 12) % 12;          // fifths -> semitones above home
-      return { fifths: f * side, shift: st > 6 ? st - 12 : st }; // nearest register: -5..+6 (never 6 by construction)
+      const dg = (((f * side * 4) % 7) + 7) % 7;             // fifths -> scale degrees (a diatonic 5th is 4 steps)
+      return { fifths: f * side, shift: st > 6 ? st - 12 : st, degrees: dg > 3 ? dg - 7 : dg }; // nearest register
     });
   }
   const sectionTonic = (p, plan, s) => I.transposedTonic(p.tonic_keynum, plan[s % plan.length].shift);
@@ -123,13 +127,21 @@ export function createEngineV11(engine) {
     return best;
   }
 
-  function buildSection(p, theme, slots, s, offset, csSeed, sectionTicks, seed, plan) {
-    const tonic = sectionTonic(p, plan, s);
+  function buildSection(p, theme, slots, s, offset, csSeed, sectionTicks, seed, plan, diatonic) {
     const next = s + 1 < p.section_count ? s + 1 : 0;
-    const nextTonic = sectionTonic(p, plan, next);
     const mode = I.canonicalToMelodic(p.mode_id);
+    // modulating: each section has its own tonic. diatonic: one home tonic, the theme moved by scale degrees
+    const home = I.transposedTonic(p.tonic_keynum, 0);
+    const tonic = diatonic ? home : sectionTonic(p, plan, s);
+    const shift = diatonic ? plan[s % plan.length].degrees : 0, nextShift = diatonic ? plan[next % plan.length].degrees : 0;
     const out = [], ends = [];
-    const realize = (d) => I.realize(d, tonic, mode);
+    const realize = (d) => I.realize(d + shift, tonic, mode);
+    // the half cadence's target: the next section's dominant chord (bass: its 5th), as pitch classes
+    const domPcs = (isBass) => {
+      if (diatonic) return (isBass ? [4] : [4, 6, 1]).map((k) => I.realize(nextShift + k, home, mode) % 12);
+      const nt = sectionTonic(p, plan, next);
+      return (isBass ? [7] : [7, 11, 2]).map((k) => (nt + k) % 12);
+    };
     for (let v = 0; v < p.voice_count; v++) {
       const entry = v === 0 ? 0 : v * p.stretto_lag * TU, off = [0, -4, 3][v] ?? -8;
       const map = (d) => (p.use_inversion && v === 1 ? 4 - d : d + off);
@@ -169,14 +181,14 @@ export function createEngineV11(engine) {
     const bass = Math.min(...ends.map((x) => x.off ?? 99)) ;
     for (const x of ends) {
       const head = x.head || slots.filter((sl) => sl.group === 0);
-      episode(out, x, head, dir, x.off === bass, sectionEnd, offset, realize, nextTonic, s);
+      episode(out, x, head, dir, sectionEnd, offset, realize, domPcs(x.off === bass), s);
     }
     return out;
   }
 
   // From the end of a voice's line to the section end: fill to the barline stepping toward the
   // sequence, then sequence bars of the head motif, then a half cadence on the next key's dominant.
-  function episode(out, x, head, dir, isBass, end, offset, realize, nextTonic, s) {
+  function episode(out, x, head, dir, end, offset, realize, pcs, s) {
     let prev = x.last, t = prev.time + prev.duration;
     if (end - t < 240) return;
     const place = (time, duration, cands, role) => {
@@ -205,10 +217,9 @@ export function createEngineV11(engine) {
     // 3. half cadence into the next section: two steps, then the next key's dominant chord tone, held
     const left = end - t;
     if (left <= 0) return;
-    const pcs = isBass ? [7] : [7, 11, 2];            // the 5th (bass); 5th, leading tone or 2nd above
     const dominant = (from) => {
       const c = [];
-      for (let m = from - 9; m <= from + 9; m++) if (pcs.includes(((m - nextTonic) % 12 + 12) % 12)) c.push([Math.abs(m - from) / 2, m]);
+      for (let m = from - 9; m <= from + 9; m++) if (pcs.includes(((m % 12) + 12) % 12)) c.push([Math.abs(m - from) / 2, m]);
       return c.length ? c : [[0, from]];
     };
     if (left >= BAR) {
@@ -238,7 +249,7 @@ export function createEngineV11(engine) {
     return events;
   }
 
-  function render(beast, live) {
+  function render(beast, live, { keys = 'modulate' } = {}) {
     const r = engine.render(beast, live), p = r.params, f = r.form;
     const theme = { ...f.theme, degrees: cadenceTheme(f.theme.degrees) };
     const slots = themeRhythm(p, theme.degrees, f.seeds.motif_seed);
@@ -246,9 +257,9 @@ export function createEngineV11(engine) {
     let events = [];
     const seed = Number(BigInt(f.seeds.motif_seed) % 4294967291n);
     const plan = keyPlan(p);
-    for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * f.section_ticks, csSeed, f.section_ticks, seed, plan));
+    for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * f.section_ticks, csSeed, f.section_ticks, seed, plan, keys === 'mode'));
     events = shape(events, p).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
-    return { ...r, form: { ...f, theme, events }, v11: { keyPlan: plan } };
+    return { ...r, form: { ...f, theme, events }, v11: { keyPlan: plan, keys } };
   }
 
   // numbers for the comparison: rhythm, consonance, texture, cadence

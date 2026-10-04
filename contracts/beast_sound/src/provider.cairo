@@ -1,11 +1,12 @@
 //! BeastMidiProvider: a Beasts V3 token's theme behind the generic `IMidiProvider` interface.
 //!
 //! `get_midi(token_id)` needs nothing else (`get_midi_for(token_address, token_id)` also checks the
-//! collection). The provider validates the token, decodes the static traits from the token ID, reads the live state itself and runs the
-//! existing composer (`beast_music::composition::beast_v3_sound`, engine v1), so the MIDI is
-//! byte-identical to `v3_score_full_midi` for the same state: the score plus a program change and
-//! pan on every voice at tick 0 and a drum track on channel 10, so a player that adds nothing
-//! (onchain-tinysynth) plays it as intended.
+//! collection). The provider validates the token, decodes the static traits from the token ID,
+//! reads the live state itself and runs the existing composer
+//! (`beast_music::composition::beast_v3_sound`, engine v1), so the MIDI is byte-identical to
+//! `v3_score_full_midi` for the same state: the score plus a program change and pan on every voice
+//! at tick 0 and a drum track on channel 10, so a player that adds nothing (onchain-tinysynth)
+//! plays it as intended.
 //!
 //! Live state, all read inside one entry-point call (one state snapshot, nothing cached):
 //!
@@ -95,12 +96,12 @@ pub trait IBeastMidiProvider<T> {
 
 #[starknet::contract]
 pub mod BeastMidiProvider {
-    use core::num::traits::Zero;
-    use core::poseidon::poseidon_hash_span;
     use beast_music::composition::beast_v3_sound::{
         BEAST_V3_ENGINE_VERSION, BeastV3LiveState, GENESIS_SPECIES_MAX, PackableBeastV3,
         decode_v3_token_id, v3_score_full_smf_bytes,
     };
+    use core::num::traits::Zero;
+    use core::poseidon::poseidon_hash_span;
     use midi_provider::{IMidiProvider, bytes_to_byte_array};
     use starknet::ContractAddress;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};

@@ -3,6 +3,7 @@
 use beast_music::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, encode_v3_token_id, v3_score_full_midi,
 };
+use core::dict::{Felt252Dict, Felt252DictTrait};
 use midi_provider::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
 use starknet::syscalls::deploy_syscall;
 use starknet::{ClassHash, ContractAddress};
@@ -453,4 +454,65 @@ fn rejects_unminted_tokens() {
 fn get_midi_rejects_unminted_tokens() {
     let w = setup();
     w.midi.get_midi(encode_v3_token_id(sorrow_peak_warlock()));
+}
+
+#[test]
+fn beast_synth_settings_serialize_as_generated() {
+    let mut felts: Array<felt252> = array![];
+    crate::synth_settings::beast_synth_settings().serialize(ref felts);
+    assert_eq!(
+        core::poseidon::poseidon_hash_span(felts.span()),
+        crate::synth_settings::BEAST_SYNTH_SETTINGS_SERDE_HASH,
+    );
+}
+
+/// The checks onchain-tinysynth's `settings::validate` applies (at 973f4cf), so `midi_segment`
+/// accepts these settings: slots, operator counts, routes, built-in waves only, no filters and the
+/// interim engine limits on volume, ratio, sustain, pitch ratio and key scaling.
+#[test]
+fn beast_synth_settings_pass_the_class_checks() {
+    let s = crate::synth_settings::beast_synth_settings();
+    assert!(s.quality <= 1 && s.voices >= 1 && s.waves.len() == 0);
+    assert!(s.timbres.len() <= 175);
+    let mut programs: Felt252Dict<bool> = Default::default();
+    for t in s.timbres {
+        let key: felt252 = (*t.slot).into() + if *t.drum {
+            256
+        } else {
+            0
+        };
+        assert!(!programs.get(key), "slot twice");
+        programs.insert(key, true);
+        if *t.drum {
+            assert!(*t.slot >= 35 && *t.slot <= 81);
+        } else {
+            assert!(*t.slot <= 127);
+        }
+        let n = t.operators.len();
+        assert!(n >= 1 && n <= 8);
+        let mut i: u32 = 0;
+        for o in t.operators {
+            let route: u32 = (*o.route).into();
+            if route >= 1 && route <= 10 {
+                assert!(route <= i, "FM target");
+            } else if route >= 11 {
+                assert!(route <= 18 && route - 10 <= i, "AM target");
+            }
+            match *o.wave {
+                midi_provider::synth::Waveform::Custom(_) => panic!("custom wave"),
+                _ => {},
+            }
+            assert!(o.filter.is_none());
+            assert!(*o.volume <= 1_000_000 && *o.ratio <= 640_000 && *o.sustain <= 1_000_000);
+            assert!(*o.pitch_ratio <= 160_000 && *o.key_scale >= -80_000 && *o.key_scale <= 80_000);
+            i += 1;
+        }
+    }
+    // The 20 programs the self-contained MIDI selects and the drum notes it plays.
+    for p in array![0_u8, 1, 2, 3, 4, 12, 15, 18, 20, 21, 23, 28, 33, 34, 38, 50, 51, 53, 54, 61] {
+        assert!(programs.get(p.into()), "program missing");
+    }
+    for d in array![36_u8, 38, 41, 42, 43, 45, 46, 47, 48, 49, 50] {
+        assert!(programs.get(d.into() + 256), "drum missing");
+    }
 }

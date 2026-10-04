@@ -9,6 +9,7 @@ use beast_music::composition::beast_trait_map::BeastCompositionParams;
 use beast_music::composition::beast_v3_sound::BeastV3LiveState;
 
 pub mod provider;
+pub mod synth_settings;
 
 #[starknet::interface]
 pub trait IBeastSoundComposer<T> {
@@ -25,9 +26,7 @@ pub trait IBeastSoundComposer<T> {
     fn get_score_notes(self: @T, token_id: u256, live: BeastV3LiveState) -> Array<felt252>;
     /// BSI1 instruction stream (62-bit instructions, 4 per felt): any music, not only grid canons.
     /// Decode with decodeBsi (offchain/beast-sound/src/bsi.js) or the library's notes module.
-    fn get_score_instructions(
-        self: @T, token_id: u256, live: BeastV3LiveState,
-    ) -> Array<felt252>;
+    fn get_score_instructions(self: @T, token_id: u256, live: BeastV3LiveState) -> Array<felt252>;
 }
 
 #[starknet::contract]
@@ -35,8 +34,8 @@ pub mod BeastSoundComposer {
     use beast_music::composition::beast_trait_map::BeastCompositionParams;
     use beast_music::composition::beast_v3_sound::{
         BeastV3LiveState, beast_has_sound, build_v3_beast_form, decode_v3_token_id,
-        map_v3_beast_to_composition_params, v3_music_state_hash, v3_score_instructions, v3_score_midi,
-        v3_score_notes,
+        map_v3_beast_to_composition_params, v3_music_state_hash, v3_score_instructions,
+        v3_score_midi, v3_score_notes,
     };
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
 

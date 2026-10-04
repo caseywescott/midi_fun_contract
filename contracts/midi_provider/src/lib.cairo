@@ -12,6 +12,7 @@
 use starknet::ContractAddress;
 
 pub mod examples;
+pub mod synth;
 
 #[starknet::interface]
 pub trait IMidiProvider<T> {

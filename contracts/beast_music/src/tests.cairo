@@ -375,31 +375,108 @@ fn full_midi_parity_fixture() {
         (sorrow_peak_warlock(), calm()),
         (sorrow_peak_warlock(), veteran()),
         (
-            PackableBeastV3 { id: 6, prefix: 10, suffix: 3, level: 40, health: 300, shiny: 0, animated: 0, tier: 2, beast_type: 0 },
-            BeastV3LiveState { adventurers_killed: 20, scars: 2, summit_held_seconds: 0, rank: 4, species_count: 300 },
+            PackableBeastV3 {
+                id: 6,
+                prefix: 10,
+                suffix: 3,
+                level: 40,
+                health: 300,
+                shiny: 0,
+                animated: 0,
+                tier: 2,
+                beast_type: 0,
+            },
+            BeastV3LiveState {
+                adventurers_killed: 20,
+                scars: 2,
+                summit_held_seconds: 0,
+                rank: 4,
+                species_count: 300,
+            },
         ),
         (
-            PackableBeastV3 { id: 11, prefix: 30, suffix: 9, level: 70, health: 120, shiny: 1, animated: 0, tier: 3, beast_type: 0 },
-            BeastV3LiveState { adventurers_killed: 5, scars: 9, summit_held_seconds: 0, rank: 50, species_count: 900 },
+            PackableBeastV3 {
+                id: 11,
+                prefix: 30,
+                suffix: 9,
+                level: 70,
+                health: 120,
+                shiny: 1,
+                animated: 0,
+                tier: 3,
+                beast_type: 0,
+            },
+            BeastV3LiveState {
+                adventurers_killed: 5,
+                scars: 9,
+                summit_held_seconds: 0,
+                rank: 50,
+                species_count: 900,
+            },
         ),
         (
-            PackableBeastV3 { id: 16, prefix: 44, suffix: 12, level: 12, health: 80, shiny: 0, animated: 1, tier: 4, beast_type: 0 },
-            BeastV3LiveState { adventurers_killed: 1, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 0 },
+            PackableBeastV3 {
+                id: 16,
+                prefix: 44,
+                suffix: 12,
+                level: 12,
+                health: 80,
+                shiny: 0,
+                animated: 1,
+                tier: 4,
+                beast_type: 0,
+            },
+            BeastV3LiveState {
+                adventurers_killed: 1, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 0,
+            },
         ),
         (
-            PackableBeastV3 { id: 21, prefix: 0, suffix: 0, level: 3, health: 40, shiny: 0, animated: 0, tier: 5, beast_type: 0 },
-            BeastV3LiveState { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 0 },
+            PackableBeastV3 {
+                id: 21,
+                prefix: 0,
+                suffix: 0,
+                level: 3,
+                health: 40,
+                shiny: 0,
+                animated: 0,
+                tier: 5,
+                beast_type: 0,
+            },
+            BeastV3LiveState {
+                adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 0,
+            },
         ),
         (
-            PackableBeastV3 { id: 53, prefix: 69, suffix: 18, level: 255, health: 1023, shiny: 1, animated: 1, tier: 1, beast_type: 2 },
-            BeastV3LiveState { adventurers_killed: 500, scars: 63, summit_held_seconds: 0, rank: 1, species_count: 1243 },
+            PackableBeastV3 {
+                id: 53,
+                prefix: 69,
+                suffix: 18,
+                level: 255,
+                health: 1023,
+                shiny: 1,
+                animated: 1,
+                tier: 1,
+                beast_type: 2,
+            },
+            BeastV3LiveState {
+                adventurers_killed: 500,
+                scars: 63,
+                summit_held_seconds: 0,
+                rank: 1,
+                species_count: 1243,
+            },
         ),
     ];
     let mut i: u32 = 0;
     while i < cases.len() {
         let (b, live) = *cases.at(i);
         let midi = crate::composition::beast_v3_sound::v3_score_full_midi(b, live);
-        println!("FULL case={} len={} hash={}", i, *midi.at(0), core::poseidon::poseidon_hash_span(midi.span()));
+        println!(
+            "FULL case={} len={} hash={}",
+            i,
+            *midi.at(0),
+            core::poseidon::poseidon_hash_span(midi.span()),
+        );
         i += 1;
     }
 }

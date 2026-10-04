@@ -4,7 +4,8 @@
 //! On top of the score: a program change and a pan (CC10) on every voice at tick 0, and a drum
 //! track on channel 10. Programs come from role pools (the TinyChip orchestration's) and are
 //! TinyChip bank numbers, so sound settings that install those presets in the same slots are
-//! selected by the file. Byte-identical to `beastFullMidi` in offchain/beast-sound/src/full_midi.js.
+//! selected by the file. Byte-identical to `beastFullMidi` in
+//! offchain/beast-sound/src/full_midi.js.
 //!
 //! Instruments: the highest voice leads (brighter leads above 120 BPM), the lowest is a bass (or
 //! keys above E3), the voices between are pads when they rest a lot and keys when they move; no
@@ -191,12 +192,24 @@ pub fn voice_setup(form: @BeastForm, tempo_us: u32) -> (Array<u8>, Array<u8>) {
     while i < nvo {
         let id = *order.at(i);
         let program = if i == nvo - 1 {
-            pick(if tempo_us < 500000 { 1 } else { 0 }, hash % 4, ref used)
+            pick(if tempo_us < 500000 {
+                1
+            } else {
+                0
+            }, hash % 4, ref used)
         } else if i == 0 {
-            pick(if *sums.at(id) < 52 * *counts.at(id) { 2 } else { 3 }, h4 % 4, ref used)
+            pick(if *sums.at(id) < 52 * *counts.at(id) {
+                2
+            } else {
+                3
+            }, h4 % 4, ref used)
         } else {
             let span: u64 = (*lasts.at(id) - *firsts.at(id) + 480).into();
-            pick(if 4800 * *counts.at(id) < 7 * span { 4 } else { 3 }, (h8 + i) % 4, ref used)
+            pick(if 4800 * *counts.at(id) < 7 * span {
+                4
+            } else {
+                3
+            }, (h8 + i) % 4, ref used)
         };
         progs.insert(id.into(), program);
         i += 1;
@@ -220,7 +233,11 @@ pub fn voice_setup(form: @BeastForm, tempo_us: u32) -> (Array<u8>, Array<u8>) {
     while v <= max_voice {
         out_p.append(progs.get(v.into()));
         let pv = pans.get(v.into());
-        out_pan.append(if pv == 0 && *counts.at(v) == 0 { 64 } else { pv });
+        out_pan.append(if pv == 0 && *counts.at(v) == 0 {
+            64
+        } else {
+            pv
+        });
         v += 1;
     }
     (out_p, out_pan)
@@ -247,14 +264,26 @@ fn fill_notes(f: u8) -> Span<(u32, u8, u8)> {
         array![(0, 38, 72), (120, 38, 84), (240, 38, 96), (360, 38, 108)].span()
     } else if f == 2 {
         array![
-            (0, 36, 100), (0, 38, 80), (240, 38, 88), (480, 38, 92), (600, 38, 100), (720, 38, 108),
+            (0, 36, 100),
+            (0, 38, 80),
+            (240, 38, 88),
+            (480, 38, 92),
+            (600, 38, 100),
+            (720, 38, 108),
             (840, 38, 116),
         ]
             .span()
     } else {
         array![
-            (0, 50, 84), (120, 50, 88), (240, 48, 92), (360, 48, 96), (480, 47, 100), (600, 45, 104),
-            (720, 43, 108), (840, 41, 112), (840, 36, 110),
+            (0, 50, 84),
+            (120, 50, 88),
+            (240, 48, 92),
+            (360, 48, 96),
+            (480, 47, 100),
+            (600, 45, 104),
+            (720, 43, 108),
+            (840, 41, 112),
+            (840, 36, 110),
         ]
             .span()
     }
@@ -265,7 +294,11 @@ fn fill_notes(f: u8) -> Span<(u32, u8, u8)> {
 pub fn drum_track(length: u32, sec: u32, tier: u8) -> Array<u8> {
     let f = fill_for(tier);
     let notes = fill_notes(f);
-    let region: u32 = if f >= 2 { 960 } else { 480 };
+    let region: u32 = if f >= 2 {
+        960
+    } else {
+        480
+    };
     let fill_kick0 = f == 2; // only fill C has a kick at its start
     let mut data: Array<u8> = array![];
     let mut t: u32 = 0;
@@ -294,7 +327,11 @@ pub fn drum_track(length: u32, sec: u32, tier: u8) -> Array<u8> {
             let second = bar % 2 == 1;
             let q = rel % 1920;
             if q == 0 {
-                hits.append((36, if second { 104 } else { 122 }));
+                hits.append((36, if second {
+                    104
+                } else {
+                    122
+                }));
             }
             if !in_fill && second && q == 1200 {
                 hits.append((36, 86));
@@ -303,7 +340,11 @@ pub fn drum_track(length: u32, sec: u32, tier: u8) -> Array<u8> {
                 hits.append((36, 100));
             }
             if !in_fill && q == 960 {
-                hits.append((38, if second { 88 } else { 94 }));
+                hits.append((38, if second {
+                    88
+                } else {
+                    94
+                }));
             }
             let open = !in_fill && second && q == 1680;
             let mut hv: u8 = if q == 0 {
@@ -340,7 +381,11 @@ pub fn drum_track(length: u32, sec: u32, tier: u8) -> Array<u8> {
     if first {
         return array![];
     }
-    push_vlq(ref data, if length > t { length - t } else { 0 });
+    push_vlq(ref data, if length > t {
+        length - t
+    } else {
+        0
+    });
     data.append(0xFF);
     data.append(0x2F);
     data.append(0);
@@ -371,7 +416,9 @@ pub fn beast_form_to_full_smf_bytes(form: @BeastForm, tempo_us: u32, tier: u8) -
     let mut v: u32 = 0;
     while v <= max_voice {
         let ch: u8 = (v % 16).try_into().unwrap();
-        let mut track: Array<u8> = array![0, 0xC0 + ch, *programs.at(v), 0, 0xB0 + ch, 10, *pans.at(v)];
+        let mut track: Array<u8> = array![
+            0, 0xC0 + ch, *programs.at(v), 0, 0xB0 + ch, 10, *pans.at(v),
+        ];
         let mut t: u32 = 0;
         let mut any = false;
         let mut j: u32 = 0;

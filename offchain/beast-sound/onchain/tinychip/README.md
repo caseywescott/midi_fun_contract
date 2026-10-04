@@ -82,9 +82,40 @@ The previous version stored all 100 presets: 14.2 KB, 612 felts.
 - **Outside the page:** `TinyChipBank.install(synth, { programBase, drums })` works on any tinysynth
   instance.
 
+## onchain-tinysynth sound settings
+
+loothero's onchain-tinysynth plays a MIDI file exactly as written and takes its sounds from a
+`SynthSettings` value passed to `midi_segment(midi, settings)`. `synth_settings.mjs` builds that
+value from the same bank data as the runtime:
+
+- **Timbres:** the 20 essentials as custom timbres in their own program slots (bank numbers 0-61;
+  the self-contained Beast MIDI selects them with ordinary program changes) and the chip kit on its
+  19 drum notes: 39 timbres, 85 operators, 4,295 bytes of `SETTINGS`. Quality 1 and no reverb, as
+  the page plays; master volume 40, the class's default.
+- **Interim waves:** the class rejects custom waves until its issue #2, so each sampled chip wave is
+  rebuilt from TinySynth's own (table in `synth_settings.mjs`). The 25% pulse is exact in
+  magnitude spectrum (two squares), the 12.5% pulse close (three), and the NES triangle a smooth
+  triangle plus its step error (a saw 32 times faster). Every timbre is loudness-matched to its
+  original: tonal timbres within 0.21 dB, noise drums within the noise's own render-to-render
+  spread. Brightness (spectral centroid) stays within 0.7-1.3x except the triangle voices (0.4-0.6x,
+  the steps are only approximated) and the triangle kick and toms (0.25x, cleaner than the
+  4-bit originals). Once custom waves land, the waves become `SynthSettings.waves` and the
+  operators go back to one per wave.
+- **Cairo:** `contracts/beast_sound/src/synth_settings.cairo` (`beast_synth_settings()`) is generated
+  from the same function, with the types mirrored in `midi_provider::synth`; a test checks its
+  Serde hash against the generator's, and its Serde matches onchain-tinysynth's own fixture
+  serializer.
+
+```bash
+node onchain/tinychip/synth_settings.mjs onchain/tinychip/beast_synth_settings.json  # JSON, for preview.mjs --settings
+node onchain/tinychip/synth_settings.mjs --cairo                                      # regenerate the Cairo
+PLAYWRIGHT_CORE=... node onchain/tinychip/interim_check.mjs <onchain-tinysynth>/tests/vendor/webaudio-tinysynth-b198d6c.min.js
+```
+
 ## Tests
 
 | Test | What it checks |
 |---|---|
 | `test/tinychip.test.mjs` | Runtime matches the bank; orchestration determinism, roles and spread over the gallery; bare scores; Bank Select with and without the full bank; untouched MIDI |
+| `onchain/tinychip/interim_check.mjs` | The SynthSettings timbres against TinyChip's own presets and drums, rendered in Chrome through onchain-tinysynth's engine: loudness within 0.5 dB (noise timbres 1 dB), brightness reported |
 | `onchain/browser-check.mjs` | Real pages in Chrome. With `TINYCHIP_ONCHAIN` on, bare scores report `tinychip-2` and each note channel plays 129 + its orchestrated preset; off, `1` and program 128 |

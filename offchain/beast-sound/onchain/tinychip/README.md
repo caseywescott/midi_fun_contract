@@ -94,8 +94,11 @@ value from the same bank data as the runtime:
   the Triangle Lead, bank 0, on every voice, until the preset set is chosen) as custom timbres in
   their own program slots, and the chip kit on the 11 drum notes Beast MIDI plays: 12 timbres, 14
   operators and two waves (34 samples), 928 bytes of `SETTINGS`. Quality 1, the class's default reverb
-  (30) and volume (40). `beastSynthSettings(data, programs, drums)` builds any of the 20 essentials,
-  and `interim_check.mjs` checks all 20.
+  (30) and volume (40). A mega (shiny) Beast's settings (`BEAST_MEGA_PROGRAMS`) add its mega leads,
+  Robot Hero Lead (50) and N163 Brass Wave (65): 14 timbres, 1,273 bytes. `--cairo` writes both
+  (`beast_synth_settings`, `beast_mega_synth_settings`); `BeastMidiProvider.get_settings` picks by the
+  shiny flag. `beastSynthSettings(data, programs, drums)` builds any of the 20 essentials, and
+  `interim_check.mjs` checks all 20.
 - **Sampled waves:** every pitched chip wave the selected presets and drums use is a custom wave
   (`WaveDef::Samples`), so a preset added to `BEAST_PROGRAMS` gets its exact wave with nothing else
   to change. Each table is one cycle of the wave from `tinysynth-chip.js`'s own `registerWaves`, one

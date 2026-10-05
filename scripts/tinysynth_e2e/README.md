@@ -13,27 +13,27 @@ printf 'mod beast_e2e_fixtures;\nmod test_beast_e2e;\n' >> /tmp/ots_e2e/tests/li
 (cd /tmp/ots_e2e && snforge test test_beast_e2e)
 ```
 
-Results at e1b0d54 (within 0.1M of e4e6108's; the bracketed figures were not re-measured), L2 gas: composer v1.1 MIDI, every voice on the
-Triangle Lead, 12 timbres with the 50% pulse and the NES triangle as sampled waves (928 bytes of
-`SETTINGS`, reverb 30). In brackets, the same with the chip waves approximated by built-in waves
-(894 bytes):
+Results at e1b0d54, L2 gas: composer v1.1 MIDI as `get_midi` plays it (every voice on the Triangle
+Lead; the heavy Beast is mega, so its lead plays Robot Hero Lead or N163 Brass Wave, with the octave
+double and the mega groove), with the settings `get_settings` serves: 928 bytes of `SETTINGS` for
+the Warlock, 1,273 for the mega Beast (its two mega leads added), reverb 30:
 
 | Test | Gas |
 |---|---|
-| `beast_build` (fixtures only: settings Serde, two MIDI files) | 1.6M (1.6M) |
-| `beast_settings_validate` | 1.1M (1.1M) |
-| `beast_encode_settings` | 6.2M (5.8M) |
-| `beast_lc_midi_segment_warlock` (1,501-byte MIDI, library call) | 38.0M (37.4M) |
-| `beast_lc_midi_segment_heaviest` (8,236-byte MIDI) | 135.1M (134.8M) |
-| the same with the class's `default_settings()` | 120.5M |
-| `beast_direct_midi_segment_heaviest` (crate function, no library call) | 130.1M (129.8M) |
-| `beast_token_uri_heaviest` (Beasts-layout `token_uri`, crate functions) | 148.2M (147.9M) |
+| `beast_build` (fixtures only: both settings' Serde, two MIDI files) | 1.8M |
+| `beast_settings_validate` (both settings) | 2.6M |
+| `beast_encode_settings` | 6.2M |
+| `beast_lc_midi_segment_warlock` (1,501-byte MIDI, library call) | 38.0M |
+| `beast_lc_midi_segment_heaviest` (10,182-byte mega MIDI, mega settings) | 168.1M |
+| the same with the class's `default_settings()` | 148.5M |
+| `beast_direct_midi_segment_heaviest` (crate function, no library call) | 161.7M |
+| `beast_token_uri_heaviest` (Beasts-layout `token_uri`, crate functions) | 181.0M |
 
-One call to the provider's `get_midi` (cairo-test estimate, Cairo 2.20.1; 2.11.4 in brackets) is
-about 0.43B for the heaviest Beast (0.51B), 0.25B for a named rank-1 Warlock (0.29B) and 0.06B for
-a genesis Warlock (0.07B); `get_sound` adds under 1M for the settings. With `midi_segment`, a whole
-`token_uri` is then roughly 0.6B at worst, 0.3B for the named Warlock and 0.1B for the genesis one.
-(`heaviest_score_matches_composer` composes three times: `get_midi`, the composer and
+One call to the provider's `get_midi` (cairo-test estimate, Cairo 2.20.1) is about 0.46B for the
+heaviest Beast (a mega Beast; 0.43B before the mega arrangement), 0.25B for a named rank-1 Warlock
+and 0.06B for a genesis Warlock; `get_sound` adds under 1M for the settings. With `midi_segment`, a
+whole `token_uri` is then roughly 0.65B at worst, 0.3B for the named Warlock and 0.1B for the
+genesis one. (`heaviest_score_matches_composer` composes three times: `get_midi`, the composer and
 `get_midi_for`.) All 400 cached gallery Beasts' v1.1 files pass onchain-midi-player's `check_midi`
 (mean 1,881 bytes, largest 8,648; checked at 973f4cf).
 

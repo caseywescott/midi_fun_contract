@@ -13,6 +13,7 @@
 use core::dict::{Felt252Dict, Felt252DictTrait};
 use midi::smf::{TrackWriterTrait, smf_bytes};
 use crate::composition::beast_score::BeastForm;
+use crate::composition::melodic_canon::NoteEvent;
 
 /// The program every voice plays: TinyChip's Triangle Lead (bank 0) for now, until the preset set
 /// and its orchestration are chosen.
@@ -104,7 +105,7 @@ fn fill_notes(f: u8) -> Span<(u32, u8, u8)> {
 
 /// The drum track body (channel 10, running status) for a form of `length` ticks in sections of
 /// `sec`, ending with End-of-Track at `length`. Empty when there is nothing to play.
-pub fn drum_track(length: u32, sec: u32, tier: u8) -> Array<u8> {
+pub fn drum_track(length: u32, sec: u32, tier: u8, mega: bool) -> Array<u8> {
     let f = fill_for(tier);
     let notes = fill_notes(f);
     let region: u32 = if f >= 2 {
@@ -120,8 +121,13 @@ pub fn drum_track(length: u32, sec: u32, tier: u8) -> Array<u8> {
         let fill_start = sec - region;
         let in_fill = rel >= fill_start;
         let mut hits: Array<(u8, u8)> = array![];
-        if f == 3 && rel == 0 {
-            hits.append((49, 76));
+        // a cymbal on each section's downbeat (fill D, and every mega Beast)
+        if rel == 0 && (mega || f == 3) {
+            hits.append((49, if mega {
+                96
+            } else {
+                76
+            }));
         }
         if in_fill {
             let mut i: u32 = 0;
@@ -132,6 +138,14 @@ pub fn drum_track(length: u32, sec: u32, tier: u8) -> Array<u8> {
                 }
                 i += 1;
             }
+        }
+        if mega && u % 240 != 0 {
+            // mega: sixteenth-note hats
+            hits.append((42, if in_fill {
+                32
+            } else {
+                44
+            }));
         }
         if u % 240 == 0 {
             let bar = rel / 1920;
@@ -146,6 +160,9 @@ pub fn drum_track(length: u32, sec: u32, tier: u8) -> Array<u8> {
             }
             if !in_fill && second && q == 1200 {
                 hits.append((36, 86));
+            }
+            if mega && !in_fill && !second && q == 720 {
+                hits.append((36, 92)); // mega: the and of 2
             }
             if in_fill && q == 960 && !(fill_kick0 && rel == fill_start) {
                 hits.append((36, 100));
@@ -185,28 +202,122 @@ pub fn drum_track(length: u32, sec: u32, tier: u8) -> Array<u8> {
     track.finish_at(length)
 }
 
+/// The mega lead presets: Robot Hero Lead (50) and N163 Brass Wave (65), reserved for mega Beasts.
+pub const MEGA_LEADS: [u8; 2] = [50, 65];
+
+/// Which of MEGA_LEADS a mega Beast's lead plays (the octave double plays the other): fixed by its
+/// species and name.
+pub fn mega_lead_pick(species_id: u64, name_variant_id: u32) -> u32 {
+    ((species_id + name_variant_id.into()) % 2).try_into().unwrap()
+}
+
 /// The whole self-contained file: tempo track (End-of-Track at the form length), one track per
-/// voice (program and pan at tick 0, then the notes), and the drum track.
-pub fn beast_form_to_full_smf_bytes(form: @BeastForm, tempo_us: u32, tier: u8) -> Array<u8> {
+/// voice (program and pan at tick 0, then the notes), and the drum track. `mega` (the Beast's shiny
+/// flag) adds the mega arrangement: the lead voice (the highest mean pitch, ties to the higher
+/// voice id) on MEGA_LEADS[lead_pick], its octave double on its own channel with the other mega
+/// lead, panned opposite and three quarters as loud, and the mega drum groove.
+pub fn beast_form_to_full_smf_bytes(
+    form: @BeastForm, tempo_us: u32, tier: u8, mega: bool, lead_pick: u32,
+) -> Array<u8> {
     let events = form.events.span();
-    let (programs, pans) = voice_setup(form);
-    let max_voice: u32 = programs.len() - 1;
+    let (base_programs, base_pans) = voice_setup(form);
+    let max_voice: u32 = base_programs.len() - 1;
     let length = form.length_ticks;
     let sections: u32 = form.section_count.into();
     let sec = length / sections;
+
+    // the lead: the highest mean pitch (cross-multiplied), ties to the higher voice id
+    let mut lead: u32 = 0;
+    let mut lead_sum: u64 = 0;
+    let mut lead_n: u64 = 0;
+    let mut found = false;
+    let mut v: u32 = 0;
+    while v <= max_voice {
+        let mut sum: u64 = 0;
+        let mut n: u64 = 0;
+        for e in events {
+            if e.voice_id == v {
+                sum += e.pitch.into();
+                n += 1;
+            }
+        }
+        if n > 0 && (!found || sum * lead_n >= lead_sum * n) {
+            lead = v;
+            lead_sum = sum;
+            lead_n = n;
+            found = true;
+        }
+        v += 1;
+    }
+    let mut programs: Array<u8> = array![];
+    let mut pans: Array<u8> = array![];
+    let mut v: u32 = 0;
+    while v <= max_voice {
+        programs
+            .append(
+                if mega && v == lead {
+                    *MEGA_LEADS.span().at(lead_pick)
+                } else {
+                    *base_programs.at(v)
+                },
+            );
+        pans.append(*base_pans.at(v));
+        v += 1;
+    }
+    // mega: the lead an octave up on its own channel
+    let dbl = max_voice + 1;
+    let mut doubled: Array<NoteEvent> = array![];
+    if mega {
+        programs.append(*MEGA_LEADS.span().at(1 - lead_pick));
+        let lp: u32 = (*base_pans.at(lead)).into();
+        pans.append(if 128 - lp > 127 {
+            127
+        } else {
+            (128 - lp).try_into().unwrap()
+        });
+        for e in events {
+            if e.voice_id == lead && e.pitch + 12 <= 127 {
+                let vel: u32 = e.velocity.into() * 3 / 4;
+                doubled
+                    .append(
+                        NoteEvent {
+                            time: e.time,
+                            duration: e.duration,
+                            pitch: e.pitch + 12,
+                            velocity: if vel < 1 {
+                                1
+                            } else {
+                                vel.try_into().unwrap()
+                            },
+                            voice_id: dbl,
+                        },
+                    );
+            }
+        }
+    }
+    let last_voice = if mega {
+        dbl
+    } else {
+        max_voice
+    };
 
     let mut tempo = TrackWriterTrait::new();
     tempo.tempo(0, tempo_us);
     let mut tracks: Array<Array<u8>> = array![tempo.finish_at(length)];
 
     let mut v: u32 = 0;
-    while v <= max_voice {
+    while v <= last_voice {
         let ch: u8 = (v % 16).try_into().unwrap();
         let mut track = TrackWriterTrait::new();
         track.program(0, ch, *programs.at(v));
         track.control(0, ch, 10, *pans.at(v));
         let mut any = false;
-        for e in events {
+        let source = if v == dbl {
+            doubled.span()
+        } else {
+            events
+        };
+        for e in source {
             if e.voice_id == v {
                 any = true;
                 track.note_on(e.time, ch, e.pitch, e.velocity);
@@ -218,7 +329,7 @@ pub fn beast_form_to_full_smf_bytes(form: @BeastForm, tempo_us: u32, tier: u8) -
         }
         v += 1;
     }
-    let drums = drum_track(length, sec, tier);
+    let drums = drum_track(length, sec, tier, mega);
     if drums.len() > 0 {
         tracks.append(drums);
     }

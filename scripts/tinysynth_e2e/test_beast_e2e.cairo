@@ -3,7 +3,7 @@
 use onchain_midi_player::interface::IOnchainTinySynthDispatcherTrait;
 use onchain_midi_player::settings::validate;
 use crate::beast_e2e_fixtures::{
-    HEAVIEST_LEN, WARLOCK_LEN, beast_settings, heaviest_midi, warlock_midi,
+    HEAVIEST_LEN, WARLOCK_LEN, beast_mega_settings, beast_settings, heaviest_midi, warlock_midi,
 };
 use crate::helpers::{beasts_token_uri, class};
 
@@ -18,6 +18,7 @@ fn beast_build() {
 #[test]
 fn beast_settings_validate() {
     validate(@beast_settings());
+    validate(@beast_mega_settings());
 }
 
 #[test]
@@ -28,7 +29,7 @@ fn beast_lc_midi_segment_warlock() {
 
 #[test]
 fn beast_lc_midi_segment_heaviest() {
-    let seg = class().midi_segment(heaviest_midi(), beast_settings());
+    let seg = class().midi_segment(heaviest_midi(), beast_mega_settings());
     assert(seg.len() > HEAVIEST_LEN, 'segment');
 }
 
@@ -36,7 +37,7 @@ fn beast_lc_midi_segment_heaviest() {
 fn beast_token_uri_heaviest() {
     let uri = beasts_token_uri(
         @"\"name\":\"Beast\"", @"<svg xmlns='http://www.w3.org/2000/svg'/>", heaviest_midi(),
-        @beast_settings(),
+        @beast_mega_settings(),
     );
     assert(uri.len() > 0, 'uri');
 }
@@ -60,7 +61,7 @@ fn beast_lc_midi_segment_heaviest_default_settings() {
 
 #[test]
 fn beast_direct_midi_segment_heaviest() {
-    let seg = onchain_midi_player::segment::midi_segment(heaviest_midi(), @beast_settings());
+    let seg = onchain_midi_player::segment::midi_segment(heaviest_midi(), @beast_mega_settings());
     assert(seg.len() > HEAVIEST_LEN, 'segment');
 }
 

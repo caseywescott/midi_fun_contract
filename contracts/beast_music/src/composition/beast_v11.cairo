@@ -1186,12 +1186,20 @@ pub fn v11_form(score: @V11Score) -> BeastForm {
 }
 
 /// The v1.1 score as the self-contained file for onchain-midi-player (programs, pan, drums:
-/// crate::composition::full_midi).
+/// crate::composition::full_midi), with the mega arrangement when the Beast is mega (shiny):
+/// what BeastMidiProvider.get_midi returns. Byte-identical to `beastSoundMidi` in
+/// offchain/beast-sound/src/full_midi.js.
 pub fn v11_score_full_smf_bytes(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<u8> {
     let score = build_v11_score(beast, live);
     let form = v11_form(@score);
     crate::composition::full_midi::beast_form_to_full_smf_bytes(
-        @form, score.params.tempo_us, score.params.tier,
+        @form,
+        score.params.tempo_us,
+        score.params.tier,
+        beast.shiny == 1,
+        crate::composition::full_midi::mega_lead_pick(
+            score.params.species_id, score.params.name_variant_id,
+        ),
     )
 }
 

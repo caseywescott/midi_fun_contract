@@ -1,12 +1,13 @@
 // Parity: composer v1.1 (offchain/beast-sound/src/engine_v11.js with the compare page's options:
 // same mode, even phrases, history) against Cairo (contracts/beast_music: beast_v11, v11_parity_fixture).
-// Compares each case's note count, section length, events hash and self-contained MIDI hash.
+// Compares each case's note count, section length, events hash and self-contained MIDI hash (with the
+// mega arrangement for shiny Beasts, as get_midi plays it).
 //   (cd contracts/beast_music && scarb test -- --include-ignored --filter v11_parity_fixture | grep V11 > /tmp/v11.txt)
 //   node scripts/v11_parity.mjs /tmp/v11.txt
 import { readFileSync } from 'node:fs';
 import { engine as E, poseidonHashMany } from '../offchain/beast-sound/src/index.js';
 import { createEngineV11 } from '../offchain/beast-sound/src/engine_v11.js';
-import { beastFullMidi } from '../offchain/beast-sound/src/full_midi.js';
+import { beastSoundMidi } from '../offchain/beast-sound/src/full_midi.js';
 
 const v11 = createEngineV11(E), OPTIONS = { keys: 'mode', even: true, traj: true };
 
@@ -32,7 +33,7 @@ export function v11Case(id) {
 const lines = readFileSync(process.argv[2], 'utf8').split('\n').filter((l) => l.startsWith('V11 '));
 if (lines.length !== 75) throw new Error(`expected 75 V11 lines, got ${lines.length}`);
 let failures = 0;
-const branches = { stretto: 0, inversion: 0, sequence: 0, rise: 0, fall: 0, alternate: 0, wide: 0, normal: 0, close: 0, trill: 0, countersubject: 0 };
+const branches = { mega: 0, stretto: 0, inversion: 0, sequence: 0, rise: 0, fall: 0, alternate: 0, wide: 0, normal: 0, close: 0, trill: 0, countersubject: 0 };
 for (const line of lines) {
   const cairo = Object.fromEntries(line.trim().split(/\s+/).slice(1).map((kv) => kv.split('=')));
   const [beast, live] = v11Case(Number(cairo.case));
@@ -42,8 +43,9 @@ for (const line of lines) {
   branches[t.spacing]++;
   if (t.trill) branches.trill++;
   if (r.params.use_countersubject) branches.countersubject++;
+  if (beast.shiny) branches.mega++;
   const flat = [...r.form.events].sort((a, b) => a.voice_id - b.voice_id || a.time - b.time).flatMap((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id].map(BigInt));
-  const midi = E.bytesToFelts(beastFullMidi(r, E.formLength));
+  const midi = E.bytesToFelts(beastSoundMidi(r, E.formLength)); // mega arrangement for shiny Beasts
   const js = {
     notes: String(r.form.events.length), ticks: String(r.form.section_ticks),
     events: poseidonHashMany(flat).toString(), midi_len: String(midi[0]), midi: poseidonHashMany(midi).toString(),

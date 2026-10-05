@@ -131,6 +131,9 @@ export function beastInstruments(result) {
 /** The mega lead presets: Robot Hero Lead (50) and N163 Brass Wave (65), reserved for mega Beasts. */
 export const MEGA_LEADS = [50, 65];
 
+/** Which of MEGA_LEADS a mega Beast's lead plays (the double plays the other): fixed by its species and name. */
+export const megaLeadPick = (p) => (Number(p.species_id) + Number(p.name_variant_id)) % 2;
+
 /**
  * Mega (the shiny flag) arrangement options, all off by default (the output is then unchanged):
  *   lead    the lead voice plays one of MEGA_LEADS (picked by the score hash); with double, the
@@ -139,6 +142,13 @@ export const MEGA_LEADS = [50, 65];
  *   groove  the mega drum groove (drumEvents)
  */
 export const MEGA_ALL = { lead: true, double: true, groove: true };
+
+/**
+ * What BeastMidiProvider.get_midi plays for a rendered Beast: the self-contained MIDI, with the mega
+ * arrangement (MEGA_ALL) when the Beast is mega (its shiny flag). Byte-identical to Cairo's
+ * v11_score_full_smf_bytes for a composer v1.1 render.
+ */
+export const beastSoundMidi = (result, formLength) => beastFullMidi(result, formLength, result.beast.shiny ? MEGA_ALL : {});
 
 /**
  * A rendered Beast (engine.render or engine_v11's render) -> self-contained SMF bytes.
@@ -156,7 +166,7 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
   for (const [, , pitch, , v] of notes) { const s = (st[v] ||= { sum: 0, n: 0 }); s.sum += pitch; s.n += 1; }
   const ids = Object.keys(st).map(Number);
   const lead = ids.reduce((a, b) => (st[b].sum * st[a].n > st[a].sum * st[b].n || (st[b].sum * st[a].n === st[a].sum * st[b].n && b > a) ? b : a));
-  const pickLead = Number(BigInt(f.score_hash ?? 0) % 2n);
+  const pickLead = megaLeadPick(p);
   if (mega.lead) setup[lead].program = MEGA_LEADS[pickLead];
   if (mega.double) {
     const ch = Math.max(...ids) + 1;

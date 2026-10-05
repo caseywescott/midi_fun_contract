@@ -148,8 +148,7 @@ pub mod BeastMidiProvider {
         /// Validates the token ID's format only: no calls, so it costs no more than building the
         /// value.
         fn get_settings(self: @ContractState, token_id: u256) -> TinySynthSettings {
-            decode_v3_token_id(token_id);
-            settings()
+            settings(decode_v3_token_id(token_id))
         }
     }
 
@@ -159,9 +158,8 @@ pub mod BeastMidiProvider {
         /// once.
         fn get_sound(self: @ContractState, token_id: u256) -> TinySynthSound {
             // `midi` validates the token ID, so the settings need no second check.
-            TinySynthSound {
-                midi: midi(self, self.collection.read(), token_id), settings: settings(),
-            }
+            let midi = midi(self, self.collection.read(), token_id);
+            TinySynthSound { midi, settings: settings(decode_v3_token_id(token_id)) }
         }
     }
 
@@ -190,8 +188,14 @@ pub mod BeastMidiProvider {
     }
 
     /// The Beast sound settings.
-    fn settings() -> TinySynthSettings {
-        crate::synth_settings::beast_synth_settings()
+    /// The sounds the Beast's MIDI selects: a mega (shiny) Beast's lead and octave double play the
+    /// mega leads, so its settings carry those timbres too.
+    fn settings(beast: PackableBeastV3) -> TinySynthSettings {
+        if beast.shiny == 1 {
+            crate::synth_settings::beast_mega_synth_settings()
+        } else {
+            crate::synth_settings::beast_synth_settings()
+        }
     }
 
     fn read_live_state(

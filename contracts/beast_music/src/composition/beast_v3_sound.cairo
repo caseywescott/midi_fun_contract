@@ -576,7 +576,9 @@ pub fn v3_score_smf_bytes(beast: PackableBeastV3, live: BeastV3LiveState) -> Arr
 pub fn v3_score_full_smf_bytes(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<u8> {
     let params = map_v3_beast_to_composition_params(beast, live);
     let form = build_beast_form(params, beast_sound_seed(beast.id, beast.prefix, beast.suffix));
-    crate::composition::full_midi::beast_form_to_full_smf_bytes(@form, params.tempo_us, params.tier)
+    crate::composition::full_midi::beast_form_to_full_smf_bytes(
+        @form, params.tempo_us, params.tier, false, 0,
+    )
 }
 
 pub fn v3_score_full_midi(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<felt252> {

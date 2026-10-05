@@ -508,6 +508,60 @@ fn get_settings_serves_the_beast_settings() {
 }
 
 #[test]
+fn beast_mega_synth_settings_serialize_as_generated() {
+    let mut felts: Array<felt252> = array![];
+    crate::synth_settings::beast_mega_synth_settings().serialize(ref felts);
+    assert_eq!(
+        core::poseidon::poseidon_hash_span(felts.span()),
+        crate::synth_settings::BEAST_MEGA_SYNTH_SETTINGS_SERDE_HASH,
+    );
+}
+
+/// A mega Beast's settings pass the class's checks and add the two mega leads to everything a
+/// normal Beast's settings carry.
+#[test]
+fn beast_mega_synth_settings_add_the_mega_leads() {
+    let mega = crate::synth_settings::beast_mega_synth_settings();
+    midi_provider::synth::validate(@mega);
+    let normal = crate::synth_settings::beast_synth_settings();
+    let mut slots: Felt252Dict<bool> = Default::default();
+    for t in mega.timbres {
+        slots.insert(t.slot.into() + if t.drum {
+            256
+        } else {
+            0
+        }, true);
+    }
+    for t in normal.timbres {
+        assert!(slots.get(t.slot.into() + if t.drum {
+            256
+        } else {
+            0
+        }), "normal timbre missing");
+    }
+    for p in beast_music::composition::full_midi::MEGA_LEADS.span() {
+        assert!(slots.get((*p).into()), "mega lead missing");
+    }
+    assert_eq!(mega.timbres.len(), normal.timbres.len() + 2);
+}
+
+#[test]
+fn get_settings_serves_mega_settings_to_shiny_beasts() {
+    let w = setup();
+    let settings = ISynthSettingsProviderDispatcher { contract_address: w.midi.contract_address };
+    let shiny = PackableBeastV3 { shiny: 1, ..sorrow_peak_warlock() };
+    let plain = PackableBeastV3 { shiny: 0, ..sorrow_peak_warlock() };
+    assert_eq!(
+        settings.get_settings(encode_v3_token_id(shiny)),
+        crate::synth_settings::beast_mega_synth_settings(),
+    );
+    assert_eq!(
+        settings.get_settings(encode_v3_token_id(plain)),
+        crate::synth_settings::beast_synth_settings(),
+    );
+}
+
+#[test]
 #[should_panic(expected: ('invalid token id', 'ENTRYPOINT_FAILED'))]
 fn get_settings_rejects_invalid_token_ids() {
     let w = setup();

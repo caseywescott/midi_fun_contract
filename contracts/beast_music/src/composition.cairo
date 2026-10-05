@@ -1,6 +1,7 @@
 pub mod articulation;
 pub mod beast_score;
 pub mod beast_trait_map;
+pub mod beast_v11;
 pub mod beast_v3_sound;
 pub mod canon_rules;
 pub mod counterpoint;

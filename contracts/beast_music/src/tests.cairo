@@ -527,3 +527,239 @@ fn smf_golden() {
         3137908298401046002331382199627435306166740134066761377290858018804337104822,
     );
 }
+
+/// v1.1 parity cases, mirrored in scripts/v11_parity.mjs: every species, its live state rotating
+/// through six that reach every history branch (calm; kills ahead; defeats ahead; heavy; even with
+/// no species count; a four-section sequence), names, level, health and rarity flags varied.
+fn v11_case(id: u64) -> (PackableBeastV3, BeastV3LiveState) {
+    let named = id % 3 != 0;
+    let levels: Array<u16> = array![5, 40, 120, 255];
+    let healths: Array<u16> = array![80, 150, 600, 1023];
+    let b = PackableBeastV3 {
+        id,
+        prefix: if named {
+            (id % 69 + 1).try_into().unwrap()
+        } else {
+            0
+        },
+        suffix: if named {
+            (id % 18 + 1).try_into().unwrap()
+        } else {
+            0
+        },
+        level: *levels.at((id % 4).try_into().unwrap()),
+        health: *healths.at(((id / 3) % 4).try_into().unwrap()),
+        shiny: (id % 2).try_into().unwrap(),
+        animated: ((id / 5) % 2).try_into().unwrap(),
+        tier: (((id - 1) % 25) / 5 + 1).try_into().unwrap(),
+        beast_type: ((id - 1) / 25).try_into().unwrap(),
+    };
+    let k = id % 6;
+    let live = if k == 0 {
+        BeastV3LiveState {
+            adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 500, species_count: 954,
+        }
+    } else if k == 1 {
+        BeastV3LiveState {
+            adventurers_killed: 40, scars: 9, summit_held_seconds: 0, rank: 1, species_count: 954,
+        }
+    } else if k == 2 {
+        BeastV3LiveState {
+            adventurers_killed: 3, scars: 30, summit_held_seconds: 0, rank: 50, species_count: 954,
+        }
+    } else if k == 3 {
+        BeastV3LiveState {
+            adventurers_killed: 500,
+            scars: 63,
+            summit_held_seconds: 0,
+            rank: 0,
+            species_count: 1243,
+        }
+    } else if k == 4 {
+        BeastV3LiveState {
+            adventurers_killed: 7, scars: 7, summit_held_seconds: 0, rank: 2, species_count: 0,
+        }
+    } else {
+        BeastV3LiveState {
+            adventurers_killed: 8, scars: 20, summit_held_seconds: 0, rank: 10, species_count: 954,
+        }
+    };
+    (b, live)
+}
+
+/// Prints the V11 lines for cases `lo..=hi`. One Cairo VM run keeps everything it allocates until
+/// it ends, so the fixture runs in batches of 4 (about 3 GB each; 75 cases in one run needed about
+/// 41 GB).
+fn v11_parity_range(lo: u64, hi: u64) {
+    let mut id: u64 = lo;
+    while id <= hi {
+        let (b, live) = v11_case(id);
+        let score = crate::composition::beast_v11::build_v11_score(b, live);
+        // voice by voice (each voice is chronological), so the hash does not depend on how voices
+        // interleave
+        let mut max_voice: u32 = 0;
+        for e in score.events.span() {
+            if *e.voice_id > max_voice {
+                max_voice = *e.voice_id;
+            }
+        }
+        let mut flat: Array<felt252> = array![];
+        let mut v: u32 = 0;
+        while v <= max_voice {
+            for e in score.events.span() {
+                if *e.voice_id == v {
+                    flat.append((*e.time).into());
+                    flat.append((*e.duration).into());
+                    flat.append((*e.pitch).into());
+                    flat.append((*e.velocity).into());
+                    flat.append((*e.voice_id).into());
+                }
+            }
+            v += 1;
+        }
+        let midi = crate::composition::beast_v11::v11_score_full_midi(b, live);
+        println!(
+            "V11 case={} notes={} ticks={} events={} midi_len={} midi={}",
+            id,
+            score.events.len(),
+            score.section_ticks,
+            core::poseidon::poseidon_hash_span(flat.span()),
+            *midi.at(0),
+            core::poseidon::poseidon_hash_span(midi.span()),
+        );
+        id += 1;
+    }
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_00() {
+    v11_parity_range(1, 4);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_01() {
+    v11_parity_range(5, 8);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_02() {
+    v11_parity_range(9, 12);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_03() {
+    v11_parity_range(13, 16);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_04() {
+    v11_parity_range(17, 20);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_05() {
+    v11_parity_range(21, 24);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_06() {
+    v11_parity_range(25, 28);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_07() {
+    v11_parity_range(29, 32);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_08() {
+    v11_parity_range(33, 36);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_09() {
+    v11_parity_range(37, 40);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_10() {
+    v11_parity_range(41, 44);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_11() {
+    v11_parity_range(45, 48);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_12() {
+    v11_parity_range(49, 52);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_13() {
+    v11_parity_range(53, 56);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_14() {
+    v11_parity_range(57, 60);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_15() {
+    v11_parity_range(61, 64);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_16() {
+    v11_parity_range(65, 68);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_17() {
+    v11_parity_range(69, 72);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn v11_parity_fixture_18() {
+    v11_parity_range(73, 75);
+}

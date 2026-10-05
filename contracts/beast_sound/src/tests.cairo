@@ -1,7 +1,8 @@
 //! BeastMidiProvider against mock Beasts NFT and Death Mountain contracts.
 
+use beast_music::composition::beast_v11::v11_score_full_midi;
 use beast_music::composition::beast_v3_sound::{
-    BeastV3LiveState, PackableBeastV3, encode_v3_token_id, v3_score_full_midi,
+    BeastV3LiveState, PackableBeastV3, encode_v3_token_id,
 };
 use core::dict::{Felt252Dict, Felt252DictTrait};
 use midi_provider::synth::{ISynthSettingsProviderDispatcher, ISynthSettingsProviderDispatcherTrait};
@@ -187,7 +188,7 @@ fn set_state(w: World, b: PackableBeastV3, live: BeastV3LiveState) -> u256 {
 
 /// The existing composer's `[byte_len, 31-byte chunks]` as a ByteArray.
 fn composer_midi(b: PackableBeastV3, live: BeastV3LiveState) -> ByteArray {
-    let packed = v3_score_full_midi(b, live);
+    let packed = v11_score_full_midi(b, live);
     let len: u32 = (*packed.at(0)).try_into().unwrap();
     let full = len / 31;
     let mut serialized: Array<felt252> = array![full.into()];

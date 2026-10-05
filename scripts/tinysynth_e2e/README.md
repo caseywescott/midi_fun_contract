@@ -11,22 +11,23 @@ printf 'mod beast_e2e_fixtures;\nmod test_beast_e2e;\n' >> /tmp/ots_e2e/tests/li
 (cd /tmp/ots_e2e && snforge test test_beast_e2e)
 ```
 
-Results at 973f4cf (L2 gas), with every voice on the Triangle Lead and 12 timbres (894 bytes of
-`SETTINGS`, reverb 30):
+Results at 973f4cf (L2 gas): composer v1.1 MIDI, every voice on the Triangle Lead, 12 timbres (894
+bytes of `SETTINGS`, reverb 30):
 
 | Test | Gas |
 |---|---|
-| `beast_build` (fixtures only: settings Serde, two MIDI files) | 1.3M |
+| `beast_build` (fixtures only: settings Serde, two MIDI files) | 1.6M |
 | `beast_settings_validate` | 1.1M |
 | `beast_encode_settings` | 5.8M |
-| `beast_lc_midi_segment_warlock` (1,246-byte MIDI, library call) | 33.7M |
-| `beast_lc_midi_segment_heaviest` (5,066-byte MIDI) | 88.9M |
-| the same with the class's `default_settings()` | 75.1M |
-| `beast_token_uri_heaviest` (Beasts-layout `token_uri`, crate functions) | 98.7M |
+| `beast_lc_midi_segment_warlock` (1,501-byte MIDI, library call) | 37.4M |
+| `beast_lc_midi_segment_heaviest` (8,236-byte MIDI) | 134.8M |
+| the same with the class's `default_settings()` | 120.5M |
+| `beast_token_uri_heaviest` (Beasts-layout `token_uri`, crate functions) | 143.5M |
 
-The settings add about 14M to the heaviest Beast's segment (65M with all 20 presets and 19 drums).
-The provider's `get_midi` for that Beast is about 337M (beast_sound
-`heaviest_score_matches_composer`), so a whole `token_uri` is roughly 0.44B at worst.
+The provider's `get_midi` for the heaviest Beast is about 1.0B (beast_sound
+`heaviest_score_matches_composer` composes twice: 2.05B), so a whole `token_uri` is roughly 1.15B at
+worst; a named rank-1 Warlock about 0.6B, a genesis Warlock about 0.17B. All 400 cached gallery Beasts'
+v1.1 files pass onchain-tinysynth's `check_midi` (mean 1,881 bytes, largest 8,648).
 
 `beast_token_uri_warlock_print` (ignored) prints a Warlock `token_uri`. Decoded, its page plays in
 Chrome with the TinyChip timbres installed; the token-uri-inspector skill's `split_page.mjs` gives

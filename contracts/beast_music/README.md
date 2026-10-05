@@ -17,6 +17,7 @@ of `koji`.
 | Module | Contents |
 |---|---|
 | `composition::beast_v3_sound` | Token ID decoding, live state, the v1 mapping, the bare score as MIDI (on `midi::smf`), BSN1 / BSI1 writers |
+| `composition::beast_v11` | Composer v1.1 (same mode, even phrases, history): cadence, rhythm cells, voice-checked followers, episodes, diatonic key plan, even sections, trajectory; what `BeastMidiProvider` plays |
 | `composition::full_midi` | The self-contained MIDI for onchain-tinysynth: programs, pan, drum track (on `midi::smf`) |
 | `composition::beast_trait_map` | Traits and live stats to composition parameters (whole file) |
 | `composition::beast_score` | Theme, sections, form and its length; `note_events_valid` for tests |
@@ -52,6 +53,25 @@ functions, types and imports were then removed until the package built with no w
 `smf_golden` (ignored; `scarb test -- --include-ignored --filter smf_golden`) pins every byte both
 SMF writers produce for 50 Beasts in two live states; it held unchanged when the writers moved onto
 the `midi` package.
+
+### Composer v1.1
+
+`composition::beast_v11` is byte-identical to `createEngineV11(engine).render(beast, live, { keys:
+'mode', even: true, traj: true })` (offchain/beast-sound/src/engine_v11.js, the options chosen on the
+compare page). The parity fixture is 75 cases (every species; live states reaching every history
+branch: stretto, inversion and sequence development, rising, falling and alternating episodes, all
+three spacings, trills, countersubjects), compared on notes, section length and the self-contained
+MIDI. A Cairo VM run keeps what it allocates until it ends, so it runs in 19 batches of 4, one at a
+time, with a memory watchdog (about 5 GB peak for the heaviest batch):
+
+```bash
+sh ../../scripts/v11_parity_cairo.sh /tmp/v11.txt && node ../../scripts/v11_parity.mjs /tmp/v11.txt
+```
+
+Gas: composing is dominated by the voice checks (every follower, countersubject and episode note
+against what sounds with it); notes are kept in chronological runs so each check binary-searches
+instead of scanning the section. One `get_midi` for the heaviest Beast is about 1.0B L2 gas (v1:
+0.44B), the named rank-1 Warlock about 0.58B, a genesis Warlock about 0.13B.
 
 ## Keeping it in sync
 

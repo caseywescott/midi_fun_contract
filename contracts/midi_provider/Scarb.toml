@@ -6,7 +6,7 @@ edition = "2025_12"
 [dependencies]
 midi = { path = "../midi" }
 # TinySynthSettings, TinySynthSound, ISoundProvider and settings::validate (Provable-Games/onchain-midi-player).
-onchain_midi_player = { git = "https://github.com/Provable-Games/onchain-midi-player", rev = "e1b0d54757d5545824fffb6c9913bc673f6c5a9e" }
+onchain_midi_player = { git = "https://github.com/Provable-Games/onchain-midi-player", rev = "38d76ce6120d964502891c16445ce083bf1bfedd" }
 starknet = "2.20.1"
 
 [dev-dependencies]

@@ -5,7 +5,7 @@ through loothero's class in a copy of its repo, as the Beasts NFT's `token_uri` 
 
 ```bash
 git clone https://github.com/Provable-Games/onchain-midi-player /tmp/ots_e2e
-git -C /tmp/ots_e2e checkout e1b0d54757d5545824fffb6c9913bc673f6c5a9e   # the rev midi_provider pins (scarb 2.20.1, snforge 0.64.0)
+git -C /tmp/ots_e2e checkout 38d76ce6120d964502891c16445ce083bf1bfedd   # the rev midi_provider pins (scarb 2.20.1, snforge 0.64.0)
 (cd offchain/beast-sound && npm install)                                  # fixtures.mjs imports the JS engine
 node scripts/tinysynth_e2e/fixtures.mjs /tmp/ots_e2e/tests/beast_e2e_fixtures.cairo
 cp scripts/tinysynth_e2e/test_beast_e2e.cairo /tmp/ots_e2e/tests/
@@ -13,7 +13,7 @@ printf 'mod beast_e2e_fixtures;\nmod test_beast_e2e;\n' >> /tmp/ots_e2e/tests/li
 (cd /tmp/ots_e2e && snforge test test_beast_e2e)
 ```
 
-Results at e1b0d54 (within 0.1M of e4e6108's; the bracketed figures were not re-measured), L2 gas: composer v1.1 MIDI, every voice on the
+Results at 38d76ce (the same as at e1b0d54; the bracketed figures were not re-measured), L2 gas: composer v1.1 MIDI, every voice on the
 Triangle Lead, 12 timbres with the 50% pulse and the NES triangle as sampled waves (928 bytes of
 `SETTINGS`, reverb 30). In brackets, the same with the chip waves approximated by built-in waves
 (894 bytes):

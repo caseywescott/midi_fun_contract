@@ -1,10 +1,10 @@
 // Build public/onchain/mega.html: a Beast normal against mega (the shiny flag), A/B, as
-// onchain-tinysynth plays it: the self-contained MIDI (src/full_midi.js, with the mega arrangement
-// options) through the class's pinned engine with the Beast SynthSettings timbres installed. The
+// onchain-midi-player plays it: the self-contained MIDI (src/full_midi.js, with the mega arrangement
+// options) through the class's pinned engine with the Beast TinySynthSettings timbres installed. The
 // score comes from composer v1.1 with the compare page's chosen options (same mode, even phrases,
 // history: src/engine_v11.js) or engine v1 (onchain today); the Beasts and their live states are the
 // compare page's (the Warlock with demo stats, then the gallery).
-//   node onchain/mega-demo.mjs <onchain-tinysynth>/tests/vendor/webaudio-tinysynth-<ref>.min.js
+//   node onchain/mega-demo.mjs <onchain-midi-player>/tests/vendor/webaudio-tinysynth-<ref>.min.js
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -16,14 +16,14 @@ const engineFile = process.argv[2];
 if (!engineFile) { console.error('usage: node onchain/mega-demo.mjs <webaudio-tinysynth engine .min.js>'); process.exit(2); }
 const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
 const tiny = readFileSync(engineFile, 'utf8');
-const NOTICE = '/*! webaudio-tinysynth (c) g200kg, Apache License 2.0; Provable Games fork as pinned by onchain-tinysynth, https://github.com/Provable-Games/webaudio-tinysynth */';
+const NOTICE = '/*! webaudio-tinysynth (c) g200kg, Apache License 2.0; Provable Games fork as pinned by onchain-midi-player, https://github.com/Provable-Games/webaudio-tinysynth */';
 const composer = (await build({
   stdin: { contents: "import { engine, beastName } from './src/index.js'; import { createEngineV11 } from './src/engine_v11.js'; import { beastFullMidi } from './src/full_midi.js'; window.BS = { engine, v11: createEngineV11(engine), beastName, beastFullMidi };", resolveDir: here + '..', loader: 'js' },
   bundle: true, minify: true, format: 'iife', platform: 'browser', write: false, logLevel: 'error',
 })).outputFiles[0].text;
 const W = { Sine: 'sine', Square: 'square', Sawtooth: 'sawtooth', Triangle: 'triangle', WhiteNoise: 'n0', MetallicNoise: 'n1' };
 const settings = beastSynthSettings();
-// Custom(i) plays settings.waves[i] (Samples), registered under the name onchain-tinysynth's player gives it
+// Custom(i) plays settings.waves[i] (Samples), registered under the name onchain-midi-player's player gives it
 const waves = settings.waves.map((w) => w.Samples.map((v) => v / 128));
 const timbres = settings.timbres.map((t) => [t.drum ? 1 : 0, t.slot, t.operators.map((o) => ({ g: o.route, w: typeof o.wave === 'string' ? W[o.wave] : 'nS' + o.wave.Custom, v: o.volume / 1e4, t: o.ratio / 1e4, f: o.offset_hz / 1e4, a: o.attack / 1e4, h: o.hold / 1e4, d: o.decay / 1e4, s: o.sustain / 1e4, r: o.release / 1e4, p: o.pitch_ratio / 1e4, q: o.pitch_time / 1e4, k: o.key_scale / 1e4 }))]);
 
@@ -57,7 +57,7 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 #info{font:12px/1.6 ui-monospace,monospace;color:var(--mut);white-space:pre-wrap;margin:0}
 </style></head><body><main>
 <h1>Beast Mega A/B</h1>
-<p class="sub">Normal against mega (the shiny flag; Normal plays every Beast unshiny, Mega shiny), as onchain-tinysynth plays it: the self-contained MIDI through the class's engine with the Beast sound settings (every voice on the Triangle Lead for now, reverb 30). Switch while playing to compare.</p>
+<p class="sub">Normal against mega (the shiny flag; Normal plays every Beast unshiny, Mega shiny), as onchain-midi-player plays it: the self-contained MIDI through the class's engine with the Beast sound settings (every voice on the Triangle Lead for now, reverb 30). Switch while playing to compare.</p>
 <div class="card"><div class="row">
 <div><label for="beast">Beast</label><select id="beast"></select></div>
 <div><label for="composer">Composer</label><select id="composer"><option value="v11m" selected>v1.1: same mode, even phrases, history (compare page)</option><option value="v1">v1 (onchain today)</option></select></div>

@@ -36,7 +36,7 @@ let file: Array<u8> = smf_bytes(
 | `note_on`, `note_off`, `program`, `control` | Channel messages (0-based channels; 9 is GM percussion) |
 | `message`, `message1` | Any channel message with two or one data bytes |
 | `meta`, `tempo` | Meta events; Set Tempo in microseconds per quarter |
-| `finish()` / `finish_at(time)` | Closes the track with End of Track at the last event, or at `time` if later: a player that loops to the latest End of Track (onchain-tinysynth) loops there |
+| `finish()` / `finish_at(time)` | Closes the track with End of Track at the last event, or at `time` if later: a player that loops to the latest End of Track (onchain-midi-player) loops there |
 | `smf_bytes(format, division, tracks)` | `MThd` plus one `MTrk` per body |
 | `push_vlq`, `push_chunk`, `push_u32_be` | The primitives, for writers of their own |
 

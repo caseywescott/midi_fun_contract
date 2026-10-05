@@ -1,8 +1,8 @@
-// How close the SynthSettings timbres (synth_settings.mjs: built-in waves, and the sampled waves
-// registered as onchain-tinysynth's player does) come to TinyChip's own presets and drums (sampled
+// How close the TinySynthSettings timbres (synth_settings.mjs: built-in waves, and the sampled waves
+// registered as onchain-midi-player's player does) come to TinyChip's own presets and drums (sampled
 // chip waves), rendered offline in Chrome through one TinySynth engine:
 //   PLAYWRIGHT_CORE=/path/to/node_modules/playwright-core node onchain/tinychip/interim_check.mjs <engine.min.js>
-//   (onchain-tinysynth's pinned engine: tests/vendor/webaudio-tinysynth-<ref>.min.js in its repo;
+//   (onchain-midi-player's pinned engine: tests/vendor/webaudio-tinysynth-<ref>.min.js in its repo;
 //   CHROME=/path/to/chrome to override the browser; default: macOS Google Chrome)
 //
 // Each preset plays loudness.mjs's phrase (E3 B3 E4 B4 E5, 0.3 s each, velocity 100), each drum four
@@ -29,7 +29,7 @@ const W = { Sine: 'sine', Square: 'square', Sawtooth: 'sawtooth', Triangle: 'tri
 const data = bankData();
 // every essential, not only the ones the settings carry now, so any can be chosen
 const settings = beastSynthSettings(data, ESSENTIALS, BEAST_DRUMS);
-// Custom(i) plays wave i as onchain-tinysynth's player registers it (player/settings.js waveName)
+// Custom(i) plays wave i as onchain-midi-player's player registers it (player/settings.js waveName)
 const tinysynth = (ops) => ops.map((o) => ({ g: o.route, w: typeof o.wave === 'string' ? W[o.wave] : 'nS' + o.wave.Custom, v: o.volume / 1e4, t: o.ratio / 1e4, f: o.offset_hz / 1e4, a: o.attack / 1e4, h: o.hold / 1e4, d: o.decay / 1e4, s: o.sustain / 1e4, r: o.release / 1e4, p: o.pitch_ratio / 1e4, q: o.pitch_time / 1e4, k: o.key_scale / 1e4 }));
 const items = settings.timbres.map((t) => ({
   drum: t.drum, slot: t.slot, noise: t.operators.some((o) => o.wave === 'WhiteNoise' || o.wave === 'MetallicNoise'),

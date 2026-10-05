@@ -18,7 +18,7 @@ of `koji`.
 |---|---|
 | `composition::beast_v3_sound` | Token ID decoding, live state, the v1 mapping, the bare score as MIDI (on `midi::smf`), BSN1 / BSI1 writers |
 | `composition::beast_v11` | Composer v1.1 (same mode, even phrases, history): cadence, rhythm cells, voice-checked followers, episodes, diatonic key plan, even sections, trajectory; what `BeastMidiProvider` plays |
-| `composition::full_midi` | The self-contained MIDI for onchain-tinysynth: programs, pan, drum track (on `midi::smf`) |
+| `composition::full_midi` | The self-contained MIDI for onchain-midi-player: programs, pan, drum track (on `midi::smf`) |
 | `composition::beast_trait_map` | Traits and live stats to composition parameters (whole file) |
 | `composition::beast_score` | Theme, sections, form and its length; `note_events_valid` for tests |
 | `composition::countersubject` | The invertible countersubject |

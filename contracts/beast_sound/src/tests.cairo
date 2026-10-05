@@ -7,7 +7,7 @@ use beast_music::composition::beast_v3_sound::{
 use core::dict::{Felt252Dict, Felt252DictTrait};
 use midi_provider::synth::{
     ISoundProviderDispatcher, ISoundProviderDispatcherTrait, ISynthSettingsProviderDispatcher,
-    ISynthSettingsProviderDispatcherTrait, TokenSound,
+    ISynthSettingsProviderDispatcherTrait, TinySynthSound,
 };
 use midi_provider::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
 use starknet::syscalls::deploy_syscall;
@@ -471,7 +471,7 @@ fn beast_synth_settings_serialize_as_generated() {
     );
 }
 
-/// onchain-tinysynth's own `settings::validate` (the checks `midi_segment` applies) accepts the
+/// onchain-midi-player's own `settings::validate` (the checks `midi_segment` applies) accepts the
 /// settings, and they cover the program the self-contained MIDI selects and every drum note it
 /// plays.
 #[test]
@@ -515,7 +515,7 @@ fn get_settings_rejects_invalid_token_ids() {
         .get_settings(1_u256 * 0x10000000000000000000000000000000);
 }
 
-/// onchain-tinysynth's `ISoundProvider` rule: `get_sound` is `get_midi` and `get_settings` in one
+/// onchain-midi-player's `ISoundProvider` rule: `get_sound` is `get_midi` and `get_settings` in one
 /// call, for a minted Beast with live state.
 #[test]
 fn get_sound_is_get_midi_and_get_settings() {
@@ -526,7 +526,7 @@ fn get_sound_is_get_midi_and_get_settings() {
     let sound = ISoundProviderDispatcher { contract_address: address }.get_sound(token_id);
     let settings = ISynthSettingsProviderDispatcher { contract_address: address }
         .get_settings(token_id);
-    assert_eq!(sound, TokenSound { midi: w.midi.get_midi(token_id), settings });
+    assert_eq!(sound, TinySynthSound { midi: w.midi.get_midi(token_id), settings });
     assert_eq!(sound.midi, composer_midi(b, live(40, 8, 1, 954)));
 }
 

@@ -33,14 +33,14 @@ itself, and composes.
 
 ## Sound settings (`synth`)
 
-onchain-tinysynth (loothero's class library) plays a MIDI file exactly as written and takes its
-sounds from a `SynthSettings` value: `midi_segment(midi, settings)`. A provider whose MIDI is written
+onchain-midi-player (loothero's class library) plays a MIDI file exactly as written and takes its
+sounds from a `TinySynthSettings` value: `midi_segment(midi, settings)`. A provider whose MIDI is written
 for particular sounds also implements:
 
 ```cairo
 #[starknet::interface]
 pub trait ISynthSettingsProvider<T> {
-    fn get_settings(self: @T, token_id: u256) -> SynthSettings;
+    fn get_settings(self: @T, token_id: u256) -> TinySynthSettings;
 }
 ```
 
@@ -54,9 +54,9 @@ uri.append(@synth.animation_url_segment());
 uri.append(@synth.midi_segment(midi, settings));
 ```
 
-- `synth` re-exports the class's own types (`SynthSettings`, `Timbre`, `Operator`, `Waveform`,
-  `WaveDef`, `Filter`, `FilterKind`, `FIXED_POINT_SCALE`, `TokenSound`), its `ISoundProvider` with
-  dispatchers, and `settings::{default_settings, validate}` from the `onchain_tinysynth` package,
+- `synth` re-exports the class's own types (`TinySynthSettings`, `Timbre`, `Operator`, `Waveform`,
+  `WaveDef`, `Filter`, `FilterKind`, `FIXED_POINT_SCALE`, `TinySynthSound`), its `ISoundProvider` with
+  dispatchers, and `settings::{default_settings, validate}` from the `onchain_midi_player` package,
   pinned by commit in this package's `Scarb.toml`. There is no copy to drift: a value is the
   class's own type.
 - The settings may depend on the token, never on anything else the caller passes, and follow the
@@ -67,28 +67,28 @@ uri.append(@synth.midi_segment(midi, settings));
 ### One call: `ISoundProvider`
 
 A provider can also implement the class's
-[sound provider interface](https://github.com/Provable-Games/onchain-tinysynth/blob/main/README.md#sound-provider-interface), one
+[sound provider interface](https://github.com/Provable-Games/onchain-midi-player/blob/main/docs/sound-provider.md), one
 function that returns the MIDI and the settings together, so the NFT makes one call:
 
 ```cairo
 #[starknet::interface]
 pub trait ISoundProvider<T> {
-    fn get_sound(self: @T, token_id: u256) -> TokenSound; // TokenSound { midi, settings }
+    fn get_sound(self: @T, token_id: u256) -> TinySynthSound; // TinySynthSound { midi, settings }
 }
 
 let sound = ISoundProviderDispatcher { contract_address: provider }.get_sound(token_id);
 uri.append(@synth.midi_segment(sound.midi, sound.settings));
 ```
 
-`get_sound(id)` must equal `TokenSound { midi: get_midi(id), settings: get_settings(id) }` (a
+`get_sound(id)` must equal `TinySynthSound { midi: get_midi(id), settings: get_settings(id) }` (a
 provider without `ISynthSettingsProvider` pairs its MIDI with `default_settings()`), with the same
 revert rules as `get_midi`; the rest of the
-[provider contract](https://github.com/Provable-Games/onchain-tinysynth/blob/main/README.md#the-provider-contract) applies. It adds a
+[provider contract](https://github.com/Provable-Games/onchain-midi-player/blob/main/docs/sound-provider.md#the-provider-contract) applies. It adds a
 function and changes nothing else: `IMidiProvider` and `ISynthSettingsProvider` keep their
 functions and selectors. `BeastMidiProvider` and `ScaleMidiProvider` implement it.
 
 `BeastMidiProvider` serves the TinyChip settings (`beast_sound::synth_settings`). Checked end to end
-in a copy of onchain-tinysynth: its `validate` accepts them, `midi_segment` runs through the declared
+in a copy of onchain-midi-player: its `validate` accepts them, `midi_segment` runs through the declared
 class by library call, and a Beasts-layout `token_uri` built in Cairo plays in Chrome with every
 timbre installed, its MIDI and SETTINGS byte-identical to the JS references
 (`scripts/tinysynth_e2e/`). `beast_sound`'s tests run the same `validate` on them.
@@ -96,7 +96,7 @@ timbre installed, its MIDI and SETTINGS byte-identical to the JS references
 ## Instruments
 
 A bare score (no program change, nothing on channel 10) gets the TinySynth page's own
-orchestration: a chip lead on every channel and a drum pattern. onchain-tinysynth adds nothing, so
+orchestration: a chip lead on every channel and a drum pattern. onchain-midi-player adds nothing, so
 providers for it write their instruments into the MIDI (`BeastMidiProvider` does: a program change
 and pan per voice and a drum track) and serve the sounds those programs select with
 `get_settings`. See `offchain/beast-sound/onchain/README.md` for the orchestration table.
@@ -120,7 +120,7 @@ provider returns for the same state.
 
 ## Build and test
 
-Needs Cairo 2.20 (scarb 2.20.1, `contracts/.tool-versions`), as `onchain_tinysynth` does.
+Needs Cairo 2.20 (scarb 2.20.1, `contracts/.tool-versions`), as `onchain_midi_player` does.
 
 ```bash
 scarb build

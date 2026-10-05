@@ -1,13 +1,13 @@
-// TinyChip as onchain-tinysynth SynthSettings: the presets the self-contained Beast MIDI selects
+// TinyChip as onchain-midi-player TinySynthSettings: the presets the self-contained Beast MIDI selects
 // (BEAST_PROGRAMS, any of the 20 essentials) as custom timbres in their own program slots (bank
 // numbers) and the chip drum kit on channel 10's notes. One source of truth: everything comes from bankData(),
 // the same data the TinyChip runtime is built from.
 //
 // Sampled waves. Every pitched chip wave a selected preset or drum uses (the pulses, the NES 4-bit
 // triangle, the 4-bit saw, the Game Boy, VRC6, FDS, N163, SID, TIA and PC Engine shapes, the
-// short-LFSR tone; STEPS below) is sent as a custom wave (`SynthSettings.waves`,
+// short-LFSR tone; STEPS below) is sent as a custom wave (`TinySynthSettings.waves`,
 // `WaveDef::Samples`): one cycle of tinysynth-chip.js's own waveform, read from its registerWaves,
-// one sample per step as i8 (clamp(round(x * 128), -128, 127)). onchain-tinysynth's player
+// one sample per step as i8 (clamp(round(x * 128), -128, 127)). onchain-midi-player's player
 // registers each with the engine's setSampleWave, which plays it sample-and-hold at the note's pitch
 // like TinyChip's own looped buffer, so its operators keep their level (no gain) and their one wave,
 // `Custom(index)`. `waves` holds only the waves the selection uses, in STEPS order, so a preset
@@ -25,7 +25,7 @@
 // A vibrato modulator on a split carrier is repeated for each part (FM depth follows the target's
 // frequency, so every part bends by the same ratio). A sampled wave is never split.
 //
-//   node onchain/tinychip/synth_settings.mjs [out.json]   the settings as JSON (onchain-tinysynth's
+//   node onchain/tinychip/synth_settings.mjs [out.json]   the settings as JSON (onchain-midi-player's
 //                                                         scripts/preview.mjs --settings)
 //   node onchain/tinychip/synth_settings.mjs --cairo      regenerates contracts/beast_sound/src/synth_settings.cairo
 import { writeFileSync } from 'node:fs';
@@ -59,7 +59,7 @@ const fx = (x) => Math.round(x * SCALE);
 
 /**
  * The pitched chip waves sent as samples, in tinysynth-chip.js's WAVES order (the order of
- * `SynthSettings.waves`), each with its steps per cycle: its waveform is constant on each step, so
+ * `TinySynthSettings.waves`), each with its steps per cycle: its waveform is constant on each step, so
  * one sample per step is the exact wave (chipTables checks it).
  */
 export const STEPS = {
@@ -93,13 +93,13 @@ export function chipTables(names) {
   return out;
 }
 
-/** The pitched chip waves these TinyChip operator lists use, as `SynthSettings.waves` names in order. */
+/** The pitched chip waves these TinyChip operator lists use, as `TinySynthSettings.waves` names in order. */
 export function sampledWaves(opLists) {
   const used = new Set(opLists.flat().map((o) => o.w));
   return Object.keys(STEPS).filter((w) => used.has(w));
 }
 
-/** One TinySynth operator (float fields) -> a SynthSettings Operator (fixed point). */
+/** One TinySynth operator (float fields) -> a TinySynthSettings Operator (fixed point). */
 function operator(o, route, wave, mul = 1, gain = 1) {
   return {
     route, wave,
@@ -110,7 +110,7 @@ function operator(o, route, wave, mul = 1, gain = 1) {
 }
 
 /**
- * A TinyChip preset or drum (operator list) -> SynthSettings operators, built-in waves expanded and
+ * A TinyChip preset or drum (operator list) -> TinySynthSettings operators, built-in waves expanded and
  * pitched chip waves as `Custom(i)`, `i` their index in `waves` (sampledWaves).
  */
 export function timbreOperators(ops, trim = 1, waves = []) {
@@ -145,7 +145,7 @@ export const BEAST_DRUMS = [36, 38, 41, 42, 43, 45, 46, 47, 48, 49, 50];
 /** The operator lists of the selected programs, then drums. */
 const selection = (data, programs, drums) => [...programs.map((id) => data.presets[id]), ...drums.map((key) => data.drums[key])];
 
-/** The `SynthSettings.waves` names of the selection, in order. */
+/** The `TinySynthSettings.waves` names of the selection, in order. */
 export const beastWaves = (data = bankData(), programs = BEAST_PROGRAMS, drums = BEAST_DRUMS) => sampledWaves(selection(data, programs, drums));
 
 /**
@@ -166,7 +166,7 @@ const WAVE_TAGS = ['Sine', 'Square', 'Sawtooth', 'Triangle', 'WhiteNoise', 'Meta
 const OP_FIELDS = ['volume', 'ratio', 'offset_hz', 'attack', 'hold', 'decay', 'sustain', 'release', 'pitch_ratio', 'pitch_time', 'key_scale'];
 const P = 2n ** 251n + 17n * 2n ** 192n + 1n;
 
-/** Cairo Serde of a SynthSettings (as onchain-tinysynth's scripts/gen_settings_fixtures.mjs serde()), as BigInts. */
+/** Cairo Serde of a TinySynthSettings (as onchain-midi-player's scripts/gen_settings_fixtures.mjs serde()), as BigInts. */
 export function serializeSettings(s) {
   const f = [s.quality, s.reverb, s.master_vol, s.voices, s.waves.length];
   for (const w of s.waves) {
@@ -194,26 +194,26 @@ export function settingsCairo(s, waveNames = beastWaves()) {
     return `        Timbre {\n            drum: ${t.drum}, slot: ${t.slot}, operators: array![\n    ${ops.join('\n    ')}\n            ]\n                .span(),\n        },`;
   });
   const waves = s.waves.map((w) => `        WaveDef::Samples(array![${w.Samples.join(', ')}].span()),`);
-  return `//! The Beast sound settings for onchain-tinysynth: the TinyChip presets Beast MIDI selects, in
+  return `//! The Beast sound settings for onchain-midi-player: the TinyChip presets Beast MIDI selects, in
 //! their own program slots, and its chip drum kit, with each pitched chip wave they use as a
 //! sampled custom wave. Generated by
 //! offchain/beast-sound/onchain/tinychip/synth_settings.mjs --cairo from the TinyChip bank; do not
 //! edit by hand.
-use midi_provider::synth::{Operator, SynthSettings, Timbre, WaveDef, Waveform};
+use midi_provider::synth::{Operator, TinySynthSettings, Timbre, WaveDef, Waveform};
 
 /// Poseidon hash of the settings' Serde, as the generator computes it (tests check Cairo agrees).
 pub const BEAST_SYNTH_SETTINGS_SERDE_HASH: felt252 =
     0x${hash.toString(16)};
 /// Quality ${s.quality}, reverb ${s.reverb}, volume ${s.master_vol}, ${s.voices} voices; waves: ${waveNames.join(', ') || 'none'}; ${s.timbres.length} timbres, one operator per line.
 #[cairofmt::skip]
-pub fn beast_synth_settings() -> SynthSettings {
+pub fn beast_synth_settings() -> TinySynthSettings {
     let waves = array![
 ${waves.join('\n')}
     ];
     let timbres = array![
 ${timbres.join('\n')}
     ];
-    SynthSettings {
+    TinySynthSettings {
         quality: ${s.quality},
         reverb: ${s.reverb},
         master_vol: ${s.master_vol},

@@ -3,6 +3,8 @@
 //! Everything comes from `poseidon(token_address, token_id)`: tempo, key and the melody. Unlike
 //! the Beast scores it chooses its own instruments (General MIDI marimba and fingered bass) and
 //! plays its own hi-hat on the percussion channel, so the sound page plays it exactly as written.
+//! Its General MIDI programs need no custom sounds, so `get_sound` pairs the MIDI with the class's
+//! `default_settings()`.
 
 #[starknet::contract]
 pub mod ScaleMidiProvider {
@@ -10,6 +12,7 @@ pub mod ScaleMidiProvider {
     use midi::smf::{TrackWriterTrait, smf_bytes};
     use starknet::ContractAddress;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+    use crate::synth::{ISoundProvider, TokenSound, default_settings};
     use crate::{IMidiProvider, bytes_to_byte_array};
 
     const PPQN: u32 = 480;
@@ -40,6 +43,15 @@ pub mod ScaleMidiProvider {
         ) -> ByteArray {
             assert(token_address == self.collection.read(), 'unsupported collection');
             compose(token_address, token_id)
+        }
+    }
+
+    #[abi(embed_v0)]
+    impl SoundProviderImpl of ISoundProvider<ContractState> {
+        fn get_sound(self: @ContractState, token_id: u256) -> TokenSound {
+            TokenSound {
+                midi: compose(self.collection.read(), token_id), settings: default_settings(),
+            }
         }
     }
 

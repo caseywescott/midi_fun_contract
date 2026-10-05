@@ -93,19 +93,20 @@ value from the same bank data as the runtime:
   their own program slots, and the chip kit on the 11 drum notes Beast MIDI plays: 12 timbres, 16
   operators, 894 bytes of `SETTINGS`. Quality 1, the class's default reverb (30) and volume (40).
   `timbreOperators` builds any of the 20 essentials, and `interim_check.mjs` checks all 20.
-- **Interim waves:** the class rejects custom waves until its issue #2, so each sampled chip wave is
-  rebuilt from TinySynth's own (table in `synth_settings.mjs`). The 25% pulse is exact in
+- **Interim waves:** these settings were written while the class rejected custom waves (it has
+  accepted them since page.9, issue #2), so each sampled chip wave is rebuilt from TinySynth's own
+  (table in `synth_settings.mjs`). The 25% pulse is exact in
   magnitude spectrum (two squares), the 12.5% pulse close (three), and the NES triangle a smooth
   triangle plus its step error (a saw 32 times faster). Every timbre is loudness-matched to its
   original: tonal timbres within 0.21 dB, noise drums within the noise's own render-to-render
   spread. Brightness (spectral centroid) stays within 0.7-1.3x except the triangle voices (0.4-0.6x,
   the steps are only approximated) and the triangle kick and toms (0.25x, cleaner than the
-  4-bit originals). Once custom waves land, the waves become `SynthSettings.waves` and the
-  operators go back to one per wave.
+  4-bit originals). Moving to custom waves makes the waves `SynthSettings.waves` and puts the
+  operators back to one per wave.
 - **Cairo:** `contracts/beast_sound/src/synth_settings.cairo` (`beast_synth_settings()`) is generated
-  from the same function, with the types mirrored in `midi_provider::synth`; a test checks its
-  Serde hash against the generator's, and its Serde matches onchain-tinysynth's own fixture
-  serializer.
+  from the same function, with onchain-tinysynth's own types (re-exported by
+  `midi_provider::synth`); tests check its Serde hash against the generator's and run the class's
+  `validate` on it, and its Serde matches onchain-tinysynth's own fixture serializer.
 
 ```bash
 node onchain/tinychip/synth_settings.mjs onchain/tinychip/beast_synth_settings.json  # JSON, for preview.mjs --settings

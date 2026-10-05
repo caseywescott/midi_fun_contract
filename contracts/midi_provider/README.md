@@ -54,20 +54,44 @@ uri.append(@synth.animation_url_segment());
 uri.append(@synth.midi_segment(midi, settings));
 ```
 
-- `synth::SynthSettings` and its parts mirror `onchain_tinysynth::types` (at 973f4cf) field for field,
-  so the value deserializes straight into the class's types (that package needs Cairo 2.20, this
-  workspace 2.11; once they match, the mirror becomes a re-export). A caller using the class's own
-  types can declare the same interface with them.
+- `synth` re-exports the class's own types (`SynthSettings`, `Timbre`, `Operator`, `Waveform`,
+  `WaveDef`, `Filter`, `FilterKind`, `FIXED_POINT_SCALE`, `TokenSound`), its `ISoundProvider` with
+  dispatchers, and `settings::{default_settings, validate}` from the `onchain_tinysynth` package,
+  pinned by commit in this package's `Scarb.toml`. There is no copy to drift: a value is the
+  class's own type.
 - The settings may depend on the token, never on anything else the caller passes, and follow the
   same revert rules as `get_midi`. A provider without one leaves the caller on the class's
   `default_settings()` (General MIDI sounds).
 - It is a separate interface, so an `IMidiProvider` (and a mock of it) stays two functions.
 
+### One call: `ISoundProvider`
+
+A provider can also implement the class's
+[sound provider interface](https://github.com/Provable-Games/onchain-tinysynth/blob/main/README.md#sound-provider-interface), one
+function that returns the MIDI and the settings together, so the NFT makes one call:
+
+```cairo
+#[starknet::interface]
+pub trait ISoundProvider<T> {
+    fn get_sound(self: @T, token_id: u256) -> TokenSound; // TokenSound { midi, settings }
+}
+
+let sound = ISoundProviderDispatcher { contract_address: provider }.get_sound(token_id);
+uri.append(@synth.midi_segment(sound.midi, sound.settings));
+```
+
+`get_sound(id)` must equal `TokenSound { midi: get_midi(id), settings: get_settings(id) }` (a
+provider without `ISynthSettingsProvider` pairs its MIDI with `default_settings()`), with the same
+revert rules as `get_midi`; the rest of the
+[provider contract](https://github.com/Provable-Games/onchain-tinysynth/blob/main/README.md#the-provider-contract) applies. It adds a
+function and changes nothing else: `IMidiProvider` and `ISynthSettingsProvider` keep their
+functions and selectors. `BeastMidiProvider` and `ScaleMidiProvider` implement it.
+
 `BeastMidiProvider` serves the TinyChip settings (`beast_sound::synth_settings`). Checked end to end
 in a copy of onchain-tinysynth: its `validate` accepts them, `midi_segment` runs through the declared
 class by library call, and a Beasts-layout `token_uri` built in Cairo plays in Chrome with every
 timbre installed, its MIDI and SETTINGS byte-identical to the JS references
-(`scripts/tinysynth_e2e/`).
+(`scripts/tinysynth_e2e/`). `beast_sound`'s tests run the same `validate` on them.
 
 ## Instruments
 
@@ -81,8 +105,8 @@ and pan per voice and a drum track) and serve the sounds those programs select w
 
 | Provider | Collections | Notes |
 |---|---|---|
-| `beast_sound::provider::BeastMidiProvider` (`contracts/beast_sound`) | One Beasts V3 NFT, set at deploy | Engine v1 Beast themes; reads rank, species count, kills and Death Mountain defeats itself. |
-| `midi_provider::examples::scale::ScaleMidiProvider` (this package) | Any one collection, set at deploy | Example: a two-bar pentatonic loop from `poseidon(token_address, token_id)` with its own GM instruments (marimba, fingered bass) and hi-hat. |
+| `beast_sound::provider::BeastMidiProvider` (`contracts/beast_sound`) | One Beasts V3 NFT, set at deploy | Engine v1 Beast themes, the TinyChip settings and `get_sound`; reads rank, species count, kills and Death Mountain defeats itself. |
+| `midi_provider::examples::scale::ScaleMidiProvider` (this package) | Any one collection, set at deploy | Example: a two-bar pentatonic loop from `poseidon(token_address, token_id)` with its own GM instruments (marimba, fingered bass) and hi-hat; `get_sound` pairs it with `default_settings()`. |
 
 `bytes_to_byte_array(Span<u8>)` (from the `midi` package, re-exported here) packs bytes 31 per word
 with felt arithmetic and deserializes them, which is several times cheaper than `append_byte` per
@@ -96,7 +120,9 @@ provider returns for the same state.
 
 ## Build and test
 
+Needs Cairo 2.20 (scarb 2.20.1, `contracts/.tool-versions`), as `onchain_tinysynth` does.
+
 ```bash
 scarb build
-scarb test   # ScaleMidiProvider (behavior and pinned bytes)
+scarb test   # ScaleMidiProvider (behavior, pinned bytes, get_sound)
 ```

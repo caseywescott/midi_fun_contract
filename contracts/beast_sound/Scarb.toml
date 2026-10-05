@@ -2,15 +2,14 @@
 name = "beast_sound"
 version = "0.1.0"
 edition = "2024_07"
-cairo-version = "=2.11.4"
 
 [dependencies]
 beast_music = { path = "../beast_music" }
 midi_provider = { path = "../midi_provider" }
-starknet = "2.11.4"
+starknet = "2.20.1"
 
 [dev-dependencies]
-cairo_test = "2.11.4"
+cairo_test = "2.20.1"
 
 [[target.starknet-contract]]
 sierra = true

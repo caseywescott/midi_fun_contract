@@ -1,6 +1,7 @@
 use starknet::ContractAddress;
 use starknet::syscalls::deploy_syscall;
 use crate::examples::scale::ScaleMidiProvider;
+use crate::synth::{ISoundProviderDispatcher, ISoundProviderDispatcherTrait, default_settings};
 use crate::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
 
 fn collection() -> ContractAddress {
@@ -55,6 +56,16 @@ fn scale_provider_get_midi_for_is_get_midi_with_the_collection_checked() {
 #[should_panic(expected: ('unsupported collection', 'ENTRYPOINT_FAILED'))]
 fn scale_provider_rejects_other_collections() {
     deploy_scale().get_midi_for('OTHER'.try_into().unwrap(), 1);
+}
+
+/// onchain-tinysynth's `ISoundProvider`: `get_sound` is the provider's MIDI with the class's
+/// default settings (its General MIDI programs need no custom sounds).
+#[test]
+fn scale_provider_get_sound_is_get_midi_with_default_settings() {
+    let p = deploy_scale();
+    let sound = ISoundProviderDispatcher { contract_address: p.contract_address }.get_sound(3);
+    assert_eq!(sound.midi, p.get_midi(3));
+    assert_eq!(sound.settings, default_settings());
 }
 
 /// ScaleMidiProvider's bytes for 20 tokens, pinned (guards the `midi` package refactor).

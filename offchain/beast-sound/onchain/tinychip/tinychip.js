@@ -1,5 +1,5 @@
 // TinyChip: chiptune orchestration for the onchain TinySynth page. 20 presets from the TinyChip bank
-// (the "essentials": pulse, triangle and saw voices), the chip drum kit, and the rules that give each
+// (the "essentials": pulse, triangle, saw and N163 voices), the chip drum kit, and the rules that give each
 // bare score its own instrumentation from what the score itself shows.
 //
 //   TinyChip.attach(synth, { bare, channels, events })   the hook the page player calls after loading
@@ -22,12 +22,14 @@
   const tri4 = (x) => { const s = Math.floor(x * 32); return ((s < 16 ? 15 - s : s - 16) / 7.5 - 1) * 0.6; };
   const saw4 = (x) => (Math.floor(x * 16) / 7.5 - 1) * 0.45;
   const pulse = (duty) => (x) => (x < duty ? 0.5 : -0.5);
+  const n163 = (x) => { const k = Math.floor(x * 32); return ((k < 16 ? k : 31 - k) * 0.6 + (k % 8 < 4 ? 4 : 0)) / 7.5 - 1; }; // Namco 163 brassy 4-bit
   function registerWaves(synth) {
     const ac = synth.getAudioContext(), sr = ac.sampleRate;
     const make = (fill) => { const b = ac.createBuffer(1, sr, sr), d = b.getChannelData(0); for (let i = 0; i < sr; i++) d[i] = fill(i); return b; };
     const cyc = (shape) => make((i) => shape(((i * 440) / sr) % 1)); // 440 cycles per second: pitch follows the note
     Object.assign(synth.noiseBuf, {
       nP12: cyc(pulse(0.125)), nP25: cyc(pulse(0.25)), nP50: cyc(pulse(0.5)), nTRI: cyc(tri4), nSAW: cyc(saw4),
+      nN16: cyc((x) => n163(x) * 0.5),
       nNOI: make((i) => LONG[i % 32767]), nMET: make((i) => SHORT[i % 93]),
     });
   }
@@ -43,17 +45,18 @@
   }
 
   // ── orchestration ────────────────────────────────────────────────
-  // Roles by register: the highest voice leads, the lowest is the bass (or keys, when it sits above
-  // E3), the voices between are pads when they rest a lot and keys when they move. A faster tempo
-  // than 120 BPM picks from the brighter leads. A hash of the notes (independent of their order) picks
+  // Roles by register: the highest voice leads, the lowest gets a full-bodied pluck (or a lighter one,
+  // when it sits above E3), the voices between are soft sustained leads when they rest a lot and light
+  // plucks when they move. A faster tempo than 120 BPM (shiny or animated) picks from the brighter
+  // leads, among them Robot Hero Lead and N163 Brass Wave. The set has no bass or pad presets. A hash of the notes (independent of their order) picks
   // within each pool, so every score gets its own set while the roles stay musical. Pools are bank
   // program numbers.
   const POOLS = {
     lead: [0, 2, 3, 1],       // Triangle Lead, Pulse 25% Lead, Square Lead, Pulse 12.5% Lead
-    bright: [50, 51, 53, 4],  // Robot Hero Lead, Vampire Hunter Lead, Hero Fanfare, 4-bit Saw Lead
-    bass: [20, 61, 23, 21],   // Triangle Bass, Sunsoft Saw Bass, 4-bit Saw Bass (drop), Pulse Bass
-    keys: [12, 15, 18, 38],   // Pulse 25% Pluck, Triangle Pluck, Chip Piano, Pulse Blip
-    pad: [28, 33, 54, 34],    // Pulse Swell, Triangle Pad, Bounty Hunter Pad, Octave Arp
+    bright: [50, 65, 4, 8],   // Robot Hero Lead, N163 Brass Wave, 4-bit Saw Lead, Fast Vibrato Lead
+    bass: [15, 18, 16, 14],   // Triangle Pluck, Chip Piano, 4-bit Saw Pluck, Square Pluck (the lowest voice)
+    keys: [12, 13, 17, 19],   // Pulse 25% Pluck, Pulse 12.5% Pluck, Chip Harp, Muted Pluck
+    pad: [7, 9, 6, 5],        // Soft Pulse 12.5%, Wide Delayed Vibrato, Pulse 25% Lead (dry), Square Lead (dry)
   };
   function orchestrate(events, channels, timebase) {
     const v = {}, quarter = timebase / 4;

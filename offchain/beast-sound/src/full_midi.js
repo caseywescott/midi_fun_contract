@@ -96,29 +96,35 @@ export function fullMidi(notes, tempo_us, endTick, setup, drums) {
   return new Uint8Array(header.concat(...tracks.map((d) => chunk('MTrk', d))));
 }
 
+/** The mega lead presets: Robot Hero Lead (50) and N163 Brass Wave (65), reserved for mega Beasts. */
+export const MEGA_LEADS = [50, 65];
+
 /**
  * Mega (the shiny flag) arrangement options, all off by default (the output is then unchanged):
- *   double  the lead doubled an octave up on its own channel (a bright preset, panned opposite),
- *           three quarters as loud
+ *   lead    the lead voice plays one of MEGA_LEADS (picked by the score hash); with double, the
+ *           octave copy plays the other
+ *   double  the lead doubled an octave up on its own channel (panned opposite), three quarters as loud
  *   groove  the mega drum groove (drumEvents)
  *   lift    the last section a whole step up (forms of two or more sections)
  */
-export const MEGA_ALL = { double: true, groove: true, lift: true };
+export const MEGA_ALL = { lead: true, double: true, groove: true, lift: true };
 
-/** A rendered Beast (engine.render) -> self-contained SMF bytes. */
+/** A rendered Beast (engine.render or engine_v11's render) -> self-contained SMF bytes. */
 export function beastFullMidi(result, formLength, mega = {}) {
   const f = result.form, p = result.params, length = formLength(f);
   const setup = voiceSetup(f.events);
   let notes = f.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]);
   const sec = f.section_ticks, sections = Math.round(length / sec);
+  // the lead: the voice with the highest mean pitch, ties by the higher voice id
+  const st = {};
+  for (const [, , pitch, , v] of notes) { const s = (st[v] ||= { sum: 0, n: 0 }); s.sum += pitch; s.n += 1; }
+  const ids = Object.keys(st).map(Number);
+  const lead = ids.reduce((a, b) => (st[b].sum * st[a].n > st[a].sum * st[b].n || (st[b].sum * st[a].n === st[a].sum * st[b].n && b > a) ? b : a));
+  const pickLead = Number(BigInt(f.score_hash ?? 0) % 2n);
+  if (mega.lead) setup[lead].program = MEGA_LEADS[pickLead];
   if (mega.double) {
-    // the lead: the voice with the highest mean pitch (voiceSetup's last), ties by voice id
-    const st = {};
-    for (const [, , pitch, , v] of notes) { const s = (st[v] ||= { sum: 0, n: 0 }); s.sum += pitch; s.n += 1; }
-    const ids = Object.keys(st).map(Number);
-    const lead = ids.reduce((a, b) => (st[b].sum * st[a].n > st[a].sum * st[b].n || (st[b].sum * st[a].n === st[a].sum * st[b].n && b > a) ? b : a));
     const ch = Math.max(...ids) + 1;
-    setup[ch] = { program: VOICE_PROGRAM, pan: 128 - setup[lead].pan > 127 ? 127 : 128 - setup[lead].pan };
+    setup[ch] = { program: mega.lead ? MEGA_LEADS[1 - pickLead] : VOICE_PROGRAM, pan: 128 - setup[lead].pan > 127 ? 127 : 128 - setup[lead].pan };
     for (const [t, d, pitch, vel, v] of notes.slice()) {
       if (v === lead && pitch + 12 <= 127) notes.push([t, d, pitch + 12, Math.max(1, Math.floor(vel * 3 / 4)), ch]);
     }

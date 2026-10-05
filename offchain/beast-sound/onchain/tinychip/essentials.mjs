@@ -7,7 +7,7 @@ import vm from 'node:vm';
 
 const here = new URL('.', import.meta.url);
 // The 20 essentials (bank program numbers). The orchestration pools in tinychip.js use all of them.
-export const ESSENTIALS = [0, 1, 2, 3, 4, 12, 15, 18, 20, 21, 23, 28, 33, 34, 38, 50, 51, 53, 54, 61];
+export const ESSENTIALS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19, 50, 65];
 const DEFAULTS = { g: 0, w: 'sine', t: 1, f: 0, v: 0.5, a: 0, h: 0.01, d: 0.01, s: 0, r: 0.05, p: 1, q: 1, k: 0 };
 const round = (x) => (typeof x === 'number' ? +x.toPrecision(6) : x);
 

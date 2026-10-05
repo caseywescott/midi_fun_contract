@@ -22,7 +22,8 @@ const composer = (await build({
   bundle: true, minify: true, format: 'iife', platform: 'browser', write: false, logLevel: 'error',
 })).outputFiles[0].text;
 const W = { Sine: 'sine', Square: 'square', Sawtooth: 'sawtooth', Triangle: 'triangle', WhiteNoise: 'n0', MetallicNoise: 'n1' };
-const settings = beastSynthSettings();
+// the placeholder program on every voice plus the mega leads, so the page can play both
+const settings = beastSynthSettings(undefined, [0, 50, 65]);
 // Custom(i) plays settings.waves[i] (Samples), registered under the name onchain-midi-player's player gives it
 const waves = settings.waves.map((w) => w.Samples.map((v) => v / 128));
 const timbres = settings.timbres.map((t) => [t.drum ? 1 : 0, t.slot, t.operators.map((o) => ({ g: o.route, w: typeof o.wave === 'string' ? W[o.wave] : 'nS' + o.wave.Custom, v: o.volume / 1e4, t: o.ratio / 1e4, f: o.offset_hz / 1e4, a: o.attack / 1e4, h: o.hold / 1e4, d: o.decay / 1e4, s: o.sustain / 1e4, r: o.release / 1e4, p: o.pitch_ratio / 1e4, q: o.pitch_time / 1e4, k: o.key_scale / 1e4 }))]);
@@ -66,7 +67,8 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 <div class="ctl"><button id="play">▶ Play</button><button id="stop" class="stop">■ Stop</button></div></div>
 <div class="card"><label>Mega ingredients</label><div class="chk">
 <label><input type="checkbox" id="o-shiny" checked><span>Shiny flag in the score<small>today's only audible effect: 120 → 126 BPM (same notes)</small></span></label>
-<label><input type="checkbox" id="o-double" checked><span>Octave doubling<small>the lead an octave up on a bright preset, panned opposite</small></span></label>
+<label><input type="checkbox" id="o-lead" checked><span>Mega lead preset<small>the lead on Robot Hero Lead (50) or N163 Brass Wave (65), picked per Beast</small></span></label>
+<label><input type="checkbox" id="o-double" checked><span>Octave doubling<small>the lead an octave up, panned opposite (with the mega lead: the other of 50 and 65)</small></span></label>
 <label><input type="checkbox" id="o-groove" checked><span>Mega groove<small>sixteenth hats, an extra kick, a crash on every section</small></span></label>
 <label><input type="checkbox" id="o-lift" checked><span>Final lift<small>the last section a whole step up, home again on the loop</small></span></label>
 </div></div>
@@ -85,7 +87,7 @@ function make() {
   const shiny = mega && $('o-shiny').checked ? 1 : 0;
   const beast = { ...x.beast, shiny };
   const r = $('composer').value === 'v1' ? BS.engine.render(beast, live) : BS.v11.render(beast, live, { keys: 'mode', even: true, traj: true });
-  const opts = mega ? { double: $('o-double').checked, groove: $('o-groove').checked, lift: $('o-lift').checked } : {};
+  const opts = mega ? { lead: $('o-lead').checked, double: $('o-double').checked, groove: $('o-groove').checked, lift: $('o-lift').checked } : {};
   const midi = BS.beastFullMidi(r, BS.engine.formLength, opts);
   const reverb = ${settings.reverb};
   $('info').textContent = (mega ? 'MEGA' : 'normal') + ' · ' + ($('composer').value === 'v1' ? 'v1' : 'v1.1') + ' · ' + r.form.events.length + ' notes · ' + (60000000 / r.params.tempo_us).toFixed(1) + ' BPM · ' + r.params.voice_count + ' voices · tier ' + r.params.tier + ' · ' + Math.round(BS.engine.formLength(r.form) / r.form.section_ticks) + ' sections · ' + midi.length + ' bytes MIDI · reverb ' + reverb;
@@ -111,7 +113,7 @@ $('play').onclick = start;
 $('stop').onclick = () => { if (synth) synth.stopMIDI(); playing = false; };
 $('normal').onclick = () => { mega = false; $('normal').classList.add('on'); $('mega').classList.remove('on'); refresh(); };
 $('mega').onclick = () => { mega = true; $('mega').classList.add('on'); $('normal').classList.remove('on'); refresh(); };
-for (const id of ['beast', 'composer', 'o-shiny', 'o-double', 'o-groove', 'o-lift']) $(id).onchange = refresh;
+for (const id of ['beast', 'composer', 'o-shiny', 'o-lead', 'o-double', 'o-groove', 'o-lift']) $(id).onchange = refresh;
 make();
 </script></body></html>`;
 writeFileSync(here + '../public/onchain/mega.html', html);

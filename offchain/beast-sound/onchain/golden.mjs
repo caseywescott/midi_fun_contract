@@ -2,6 +2,7 @@
 // byte for byte. MIDI comes from the JS engine (byte-identical to the Cairo composer and to
 // BeastMidiProvider); the art fixture is a real Beasts V3 token_uri (Sepolia, genesis Warlock).
 //   node onchain/golden.mjs
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { engine, encodeTokenId } from '../src/index.js';
@@ -217,4 +218,6 @@ fn baseline_today_warlock() {
 }
 `;
 writeFileSync(here + 'cairo/src/tests.cairo', tests);
+// scarb fmt lays out the generated arrays (CI checks fmt); without scarb, run it before committing
+try { execFileSync('scarb', ['fmt'], { cwd: here + 'cairo', stdio: 'ignore' }); } catch { console.warn('scarb fmt not run: run it in onchain/cairo before committing'); }
 console.log(`Warlock MIDI ${midiOf(warlock).length} B, heaviest ${midiOf(heaviest).length} B, max voice ${maxVoice}; wrote ${MIDI_LENGTHS.length + 4} token_uri cases`);

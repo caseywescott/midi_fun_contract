@@ -9,10 +9,12 @@ player works the same without it.
 | `tinysynth-chip.js` | The full bank: 100 presets (`TinyChipBank`) | Client add-on (`dist/tinychip-bank.min.js`, 13.6 KB) |
 | `essentials.mjs` | Fills the runtime's preset data from the full bank at build time | Build only |
 
-- **The 20 essentials** use five sampled chip waveforms: 12.5/25/50% pulse, the NES 4-bit triangle
-  and a 4-bit saw. They are the Triangle, Pulse and Square leads, 4-bit Saw Lead, plucks, Chip Piano,
-  four basses, three pads, Octave Arp, Pulse Blip and five NES-styled voices (Robot Hero Lead,
-  Vampire Hunter Lead, Hero Fanfare, Bounty Hunter Pad, Sunsoft Saw Bass).
+- **The 20 essentials** (chosen by ear, 2026-10-05) are programs 0–9 (the leads: Triangle, Pulse
+  12.5% and 25%, Square, 4-bit Saw, the dry Square and Pulse 25%, Soft Pulse 12.5%, Fast and Wide
+  Delayed Vibrato), 12–19 (the plucks: Pulse 25% and 12.5%, Square, Triangle, 4-bit Saw, Chip Harp,
+  Chip Piano, Muted), Robot Hero Lead (50) and N163 Brass Wave (65). They use six sampled chip
+  waveforms: 12.5/25/50% pulse, the NES 4-bit triangle, a 4-bit saw and the Namco 163 wave. There are
+  no bass or pad presets: low and sustained voices get plucks and soft leads.
 - **One source of truth.** The runtime's presets and drum kit are generated from the full bank, with
   each preset's loudness gain folded into its levels, so the 20 sound the same either way.
   `test/tinychip.test.mjs` checks every operator, drum and waveform against the bank.
@@ -30,10 +32,10 @@ health), rests (kills, ornaments) and tempo (shiny, animated).
 | Voice | Pool (bank program numbers) |
 |---|---|
 | Highest (the lead), tempo 120 BPM | Triangle Lead 0, Pulse 25% Lead 2, Square Lead 3, Pulse 12.5% Lead 1 |
-| Highest, faster than 120 BPM (shiny or animated) | Robot Hero Lead 50, Vampire Hunter Lead 51, Hero Fanfare 53, 4-bit Saw Lead 4 |
-| Lowest, mean pitch below E3 | Triangle Bass 20, Sunsoft Saw Bass 61, 4-bit Saw Bass 23, Pulse Bass 21 |
-| Lowest, higher than that | Keys: Pulse 25% Pluck 12, Triangle Pluck 15, Chip Piano 18, Pulse Blip 38 |
-| Between, resting a lot (under 0.7 notes per quarter) | Pads: Pulse Swell 28, Triangle Pad 33, Bounty Hunter Pad 54, Octave Arp 34 |
+| Highest, faster than 120 BPM (shiny or animated) | Robot Hero Lead 50, N163 Brass Wave 65, 4-bit Saw Lead 4, Fast Vibrato Lead 8 |
+| Lowest, mean pitch below E3 | Triangle Pluck 15, Chip Piano 18, 4-bit Saw Pluck 16, Square Pluck 14 |
+| Lowest, higher than that | Keys: Pulse 25% Pluck 12, Pulse 12.5% Pluck 13, Chip Harp 17, Muted Pluck 19 |
+| Between, resting a lot (under 0.7 notes per quarter) | Soft Pulse 12.5% 7, Wide Delayed Vibrato 9, Pulse 25% Lead (dry) 6, Square Lead (dry) 5 |
 | Between, moving | Keys |
 
 A hash of the notes picks within each pool (FNV-1a of each note, summed, so the order of notes on

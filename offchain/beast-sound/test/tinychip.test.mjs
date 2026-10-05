@@ -54,7 +54,7 @@ test('its presets, drum kit and waveforms match the full bank (loudness gains fo
     x.forEach((op, i) => { for (const k in y[i]) assert.ok(close(op[k], y[i][k]), `preset ${id} op ${i} ${k}: ${op[k]} vs ${y[i][k]}`); });
   }
   for (let key = 35; key <= 59; key++) assert.deepEqual(plain(a.drummap[key - 35].p), plain(b.drummap[key - 35].p), `drum ${key}`);
-  for (const w of ['nP12', 'nP25', 'nP50', 'nTRI', 'nSAW', 'nNOI', 'nMET']) assert.deepEqual(a.noiseBuf[w].getChannelData(), b.noiseBuf[w].getChannelData(), w);
+  for (const w of ['nP12', 'nP25', 'nP50', 'nTRI', 'nSAW', 'nN16', 'nNOI', 'nMET']) assert.deepEqual(a.noiseBuf[w].getChannelData(), b.noiseBuf[w].getChannelData(), w);
 });
 
 test('orchestration: deterministic, register roles, tempo picks the leads, no preset twice in a score', () => {

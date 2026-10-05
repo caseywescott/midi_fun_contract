@@ -24,9 +24,9 @@ bytes of `SETTINGS`, reverb 30):
 | the same with the class's `default_settings()` | 120.5M |
 | `beast_token_uri_heaviest` (Beasts-layout `token_uri`, crate functions) | 143.5M |
 
-The provider's `get_midi` for the heaviest Beast is about 1.0B (beast_sound
-`heaviest_score_matches_composer` composes twice: 2.05B), so a whole `token_uri` is roughly 1.15B at
-worst; a named rank-1 Warlock about 0.6B, a genesis Warlock about 0.17B. All 400 cached gallery Beasts'
+The provider's `get_midi` for the heaviest Beast is about 0.76B (beast_sound
+`heaviest_score_matches_composer` composes twice: 1.53B), so a whole `token_uri` is roughly 0.9B at
+worst; a named rank-1 Warlock about 0.5B, a genesis Warlock about 0.15B. All 400 cached gallery Beasts'
 v1.1 files pass onchain-tinysynth's `check_midi` (mean 1,881 bytes, largest 8,648).
 
 `beast_token_uri_warlock_print` (ignored) prints a Warlock `token_uri`. Decoded, its page plays in

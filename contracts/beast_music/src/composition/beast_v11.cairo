@@ -34,7 +34,7 @@ use crate::composition::beast_v3_sound::{
     map_v3_beast_to_composition_params, v3_music_state,
 };
 use crate::composition::countersubject::{default_countersubject_config, generate_countersubject};
-use crate::composition::melodic_canon::{NoteEvent, realize_degree};
+use crate::composition::melodic_canon::{NoteEvent, degree_to_keynum, mode_scale};
 
 const TU: u32 = 480;
 const BAR: u32 = 1920;
@@ -311,149 +311,181 @@ fn offsets(spacing: u8) -> Span<i32> {
     }
 }
 
-fn interval_class(a: u8, b: u8) -> u32 {
-    let d: u32 = if a > b {
-        (a - b).into()
-    } else {
-        (b - a).into()
-    };
-    d % 12
+/// The placed notes on a 120-tick grid: (voice, cell) -> index into the section's notes + 1. Every
+/// onset and length the voice checks see is a multiple of 120 ticks (asserted), and a voice's notes
+/// never overlap, so a voice has at most one note per cell.
+const CELL: u32 = 120;
+
+fn cell_key(voice: u32, cell: u32) -> felt252 {
+    (voice * 0x100000 + cell).into()
 }
 
-fn dissonant(ic: u32) -> bool {
-    ic == 1 || ic == 2 || ic == 6 || ic == 10 || ic == 11
-}
+/// Reserved grid keys per voice (no section reaches these cells): the start and end tick of the
+/// voice's placed notes so far, plus 1 (0: nothing placed yet).
+const SPAN_START: u32 = 0xFFFFE;
+const SPAN_END: u32 = 0xFFFFF;
 
-/// First index in `placed[lo..hi)` (one run: chronological, non-overlapping notes, so end times
-/// rise too) whose note ends after `t`.
-fn first_ending_after(placed: Span<NoteEvent>, lo: u32, hi: u32, t: u32) -> u32 {
-    let mut a = lo;
-    let mut b = hi;
-    while a < b {
-        let mid = (a + b) / 2;
-        let e = *placed.at(mid);
-        if e.time + e.duration > t {
-            b = mid;
-        } else {
-            a = mid + 1;
-        }
+/// Appends a note to the section and records it on the grid.
+fn put(ref out: Array<NoteEvent>, ref grid: Felt252Dict<u32>, e: NoteEvent) {
+    assert(e.time % CELL == 0 && e.duration % CELL == 0 && e.duration > 0, 'v11: off grid');
+    out.append(e);
+    let idx = out.len();
+    let sk = cell_key(e.voice_id, SPAN_START);
+    let ek = cell_key(e.voice_id, SPAN_END);
+    let end = grid.get(ek);
+    if end == 0 || e.time + 1 < grid.get(sk) {
+        grid.insert(sk, e.time + 1);
     }
-    a
+    if e.time + e.duration + 1 > end {
+        grid.insert(ek, e.time + e.duration + 1);
+    }
+    let mut c = e.time / CELL;
+    let last = (e.time + e.duration) / CELL;
+    while c < last {
+        grid.insert(cell_key(e.voice_id, c), idx);
+        c += 1;
+    }
+}
+
+/// Interval kinds by interval class (|a - b| % 12): 0 consonant, 1 dissonant (2nds, tritone,
+/// 7ths), 2 unison or octave, 3 perfect fifth.
+fn interval_kinds() -> Span<u8> {
+    array![2, 1, 1, 0, 0, 0, 1, 3, 0, 0, 1, 1].span()
+}
+
+fn ic32(a: u32, b: u32) -> u32 {
+    (if a > b {
+        a - b
+    } else {
+        b - a
+    }) % 12
 }
 
 /// The candidate (base score, pitch) with the lowest score against everything placed so far in the
 /// section; the first wins a tie. Scores in quarter points.
 ///
-/// `placed` is a sequence of runs starting at `starts` (a voice's line, the countersubject, a
-/// voice's episode), each chronological with no overlaps, so the notes sounding with the new one
-/// are found by binary search in each run, and "the note before" (what an overlapping voice played
-/// when this voice played `prev`, for the parallel-5ths check) is that voice's one note covering
-/// the time, the first in placement order. Both are looked up once per call, not per candidate; the
-/// score is a sum, so this gives exactly the scores of checking every placed note per candidate.
+/// The notes sounding with the new one are read off the grid (each voice's cells across the new
+/// note), and so is "the note before" (what that voice played when this voice played `prev`, for
+/// the parallel-5ths check), together with that pair's interval: all once per call, not per
+/// candidate.
+/// The score is a sum, so this gives exactly the scores of checking every placed note per
+/// candidate.
 fn choose_pitch(
     cands: Span<(i32, u8)>,
     time: u32,
     duration: u32,
     placed: Span<NoteEvent>,
-    starts: Span<u32>,
+    ref grid: Felt252Dict<u32>,
+    voices: u32,
+    self_voice: u32,
     prev: Option<NoteEvent>,
 ) -> u8 {
-    let n = placed.len();
+    let (has_prev, prev_pitch, prev_cell): (bool, u32, u32) = match prev {
+        Option::Some(ps) => (true, ps.pitch.into(), ps.time / CELL),
+        Option::None => (false, 0, 0),
+    };
+    // overlapping notes: (pitch, strong beat, interval class of prev against that voice's note
+    // before, or 12 when there is none)
+    let mut ov: Array<(u32, bool, u32)> = array![];
     let end = time + duration;
-    let mut ov: Array<NoteEvent> = array![];
-    let mut j: u32 = 0;
-    while j < starts.len() {
-        let lo = *starts.at(j);
-        let hi = if j + 1 < starts.len() {
-            *starts.at(j + 1)
+    let mut u: u32 = 0;
+    while u < voices {
+        // the voice's own earlier notes end before this one starts; another voice is looked at only
+        // where its placed notes and this note's span meet
+        let s1 = grid.get(cell_key(u, SPAN_END));
+        let s0 = grid.get(cell_key(u, SPAN_START));
+        let lo = if s0 > 0 && s0 - 1 > time {
+            s0 - 1
         } else {
-            n
+            time
         };
-        let mut i = first_ending_after(placed, lo, hi, time);
-        while i < hi && *placed.at(i).time < end {
-            ov.append(*placed.at(i));
-            i += 1;
+        let hi = if s1 > 0 && s1 - 1 < end {
+            s1 - 1
+        } else {
+            end
+        };
+        let mut c = lo / CELL;
+        let c1 = if u == self_voice || s1 == 0 || lo >= hi {
+            0
+        } else {
+            (hi - 1) / CELL
+        };
+        if u == self_voice || s1 == 0 || lo >= hi {
+            c = 1;
         }
-        j += 1;
+        while c <= c1 {
+            let idx = grid.get(cell_key(u, c));
+            if idx == 0 {
+                c += 1;
+            } else {
+                let q = *placed.at(idx - 1);
+                c = (q.time + q.duration) / CELL; // jump past this note
+                let strong = (if time > q.time {
+                    time
+                } else {
+                    q.time
+                }) % TU == 0;
+                let before_ic: u32 = if has_prev {
+                    let b = grid.get(cell_key(u, prev_cell));
+                    if b != 0 {
+                        ic32(prev_pitch, (*placed.at(b - 1).pitch).into())
+                    } else {
+                        12
+                    }
+                } else {
+                    12
+                };
+                ov.append((q.pitch.into(), strong, before_ic));
+            }
+        }
+        u += 1;
     }
     let ov = ov.span();
-    // per overlapping note: 0 not looked up, 1 nothing before, 2 + pitch
-    let mut before: Felt252Dict<u16> = Default::default();
+    let kinds = interval_kinds();
     let mut best_pitch: u8 = 0;
     let mut best_score: i32 = 0;
     let mut first = true;
     for (base, pitch) in cands {
-        let pitch = *pitch;
+        let p: u32 = (*pitch).into();
         let mut score = *base;
-        let mut i: u32 = 0;
-        while i < ov.len() {
-            let q = *ov.at(i);
-            let ic = interval_class(pitch, q.pitch);
-            let strong = (if time > q.time {
-                time
-            } else {
-                q.time
-            }) % TU == 0;
-            if dissonant(ic) {
+        for item in ov {
+            let (qp, strong, before_ic) = *item;
+            let ic = ic32(p, qp);
+            let kind = *kinds.at(ic);
+            if kind == 1 {
                 score += if strong {
                     40
                 } else {
                     8
                 };
-            } else if ic == 0 {
-                score += if pitch == q.pitch {
+            } else if kind == 2 {
+                score += if p == qp {
                     24
                 } else {
                     16
                 };
-            } else if ic == 7 {
+                // parallel octaves/unisons with what this voice and that voice had before
+                if before_ic == ic && prev_pitch != p {
+                    score += 32;
+                }
+            } else if kind == 3 {
                 score += 2;
-            }
-            // parallel 5ths / 8ves against what this voice and that voice had before
-            if let Option::Some(ps) = prev {
-                if ic == 0 || ic == 7 {
-                    let key: felt252 = i.into();
-                    let mut st = before.get(key);
-                    if st == 0 {
-                        st = 1;
-                        let mut j: u32 = 0;
-                        while j < starts.len() {
-                            let lo = *starts.at(j);
-                            let hi = if j + 1 < starts.len() {
-                                *starts.at(j + 1)
-                            } else {
-                                n
-                            };
-                            if lo < hi && *placed.at(lo).voice_id == q.voice_id {
-                                let k = first_ending_after(placed, lo, hi, ps.time);
-                                if k < hi && *placed.at(k).time <= ps.time {
-                                    st = 2 + (*placed.at(k).pitch).into();
-                                    break;
-                                }
-                            }
-                            j += 1;
-                        }
-                        before.insert(key, st);
-                    }
-                    if st >= 2 {
-                        let bp: u8 = (st - 2).try_into().unwrap();
-                        if interval_class(ps.pitch, bp) == ic && ps.pitch != pitch {
-                            score += 32;
-                        }
-                    }
+                // parallel fifths
+                if before_ic == ic && prev_pitch != p {
+                    score += 32;
                 }
             }
-            i += 1;
         }
-        if let Option::Some(ps) = prev {
-            let leap: i32 = abs_i32(pitch.into() - ps.pitch.into());
-            if leap > 9 {
-                score += 12;
-            }
+        if has_prev && (if p > prev_pitch {
+            p - prev_pitch
+        } else {
+            prev_pitch - p
+        }) > 9 {
+            score += 12; // no wild leaps
         }
         if first || score < best_score {
             best_score = score;
-            best_pitch = pitch;
+            best_pitch = *pitch;
             first = false;
         }
     }
@@ -479,11 +511,48 @@ fn map_degree(m: VoiceMap, d: i32) -> i32 {
 struct Realizer {
     shift: i32,
     tonic: u8,
-    mode: u8,
+    /// The mode's scale (`mode_scale`), looked up once per section: for the composer's diatonic
+    /// modes `realize_degree(7, ..)` is exactly `degree_to_keynum` with it.
+    scale: Span<u8>,
+    /// `degree_to_keynum(d + shift, ..)` for d in [-TABLE_LO, TABLE_HI), computed once per section;
+    /// 0xFFFF where that would panic (computed directly instead, so it still panics there).
+    table: Span<u16>,
+}
+
+const TABLE_LO: i32 = 48;
+const TABLE_HI: i32 = 48;
+
+fn realizer(shift: i32, tonic: u8, scale: Span<u8>) -> Realizer {
+    let mut table: Array<u16> = array![];
+    let mut d = -TABLE_LO;
+    while d < TABLE_HI {
+        let du = d + shift + 70;
+        let v: u16 = if du < 0 {
+            0xFFFF
+        } else {
+            let du: u32 = du.try_into().unwrap();
+            let total: u32 = tonic.into() + 12 * (du / 7) + (*scale.at(du % 7)).into();
+            if total < 120 || total - 120 > 255 {
+                0xFFFF
+            } else {
+                (total - 120).try_into().unwrap()
+            }
+        };
+        table.append(v);
+        d += 1;
+    }
+    Realizer { shift, tonic, scale, table: table.span() }
 }
 
 fn realize(r: Realizer, d: i32) -> u8 {
-    realize_degree(7, d + r.shift, r.tonic, r.mode)
+    if d >= -TABLE_LO && d < TABLE_HI {
+        let i: u32 = (d + TABLE_LO).try_into().unwrap();
+        let v = *r.table.at(i);
+        if v != 0xFFFF {
+            return v.try_into().unwrap();
+        }
+    }
+    degree_to_keynum(d + r.shift, r.tonic, r.scale)
 }
 
 /// Candidates a step or two around a degree (mapped by the voice), scored by distance.
@@ -499,16 +568,17 @@ fn near(r: Realizer, m: VoiceMap, deg: i32) -> Array<(i32, u8)> {
 
 fn place(
     ref out: Array<NoteEvent>,
-    starts: Span<u32>,
+    ref grid: Felt252Dict<u32>,
+    voices: u32,
     ref prev: Option<NoteEvent>,
     time: u32,
     duration: u32,
     cands: Span<(i32, u8)>,
     voice: u32,
 ) {
-    let pitch = choose_pitch(cands, time, duration, out.span(), starts, prev);
+    let pitch = choose_pitch(cands, time, duration, out.span(), ref grid, voices, voice, prev);
     let e = NoteEvent { time, duration, pitch, velocity: 90, voice_id: voice };
-    out.append(e);
+    put(ref out, ref grid, e);
     prev = Option::Some(e);
 }
 
@@ -543,7 +613,8 @@ fn dominant(from: u8, pcs: Span<u8>) -> Array<(i32, u8)> {
 /// sequence, then sequence bars of the head motif, then a half cadence on the next key's dominant.
 fn episode(
     ref out: Array<NoteEvent>,
-    starts: Span<u32>,
+    ref grid: Felt252Dict<u32>,
+    voices: u32,
     voice: u32,
     m: VoiceMap,
     last: NoteEvent,
@@ -591,7 +662,16 @@ fn episode(
         } else {
             0
         };
-        place(ref out, starts, ref prev, t, d, near(r, m, target1 - dir * back).span(), voice);
+        place(
+            ref out,
+            ref grid,
+            voices,
+            ref prev,
+            t,
+            d,
+            near(r, m, target1 - dir * back).span(),
+            voice,
+        );
         t += d;
     }
     // 2. sequence: the head motif, a step further each bar
@@ -601,7 +681,8 @@ fn episode(
         for h in head {
             place(
                 ref out,
-                starts,
+                ref grid,
+                voices,
                 ref prev,
                 t + *h.time,
                 *h.duration,
@@ -619,17 +700,33 @@ fn episode(
     let left = end - t;
     let sb: i32 = (seq_bars + 1).try_into().unwrap();
     if left >= BAR {
-        place(ref out, starts, ref prev, t, TU, near(r, m, head0 + dir * sb).span(), voice);
         place(
-            ref out, starts, ref prev, t + TU, TU, near(r, m, head0 + dir * sb - dir).span(), voice,
+            ref out, ref grid, voices, ref prev, t, TU, near(r, m, head0 + dir * sb).span(), voice,
+        );
+        place(
+            ref out,
+            ref grid,
+            voices,
+            ref prev,
+            t + TU,
+            TU,
+            near(r, m, head0 + dir * sb - dir).span(),
+            voice,
         );
         let from = prev.unwrap().pitch;
         place(
-            ref out, starts, ref prev, t + 2 * TU, left - 2 * TU, dominant(from, pcs).span(), voice,
+            ref out,
+            ref grid,
+            voices,
+            ref prev,
+            t + 2 * TU,
+            left - 2 * TU,
+            dominant(from, pcs).span(),
+            voice,
         );
     } else {
         let from = prev.unwrap().pitch;
-        place(ref out, starts, ref prev, t, left, dominant(from, pcs).span(), voice);
+        place(ref out, ref grid, voices, ref prev, t, left, dominant(from, pcs).span(), voice);
     }
 }
 
@@ -716,11 +813,17 @@ fn build_section(
     };
     let mode = canonical_to_melodic_mode(*p.mode_id);
     let home = transposed_tonic(*p.tonic_keynum, 0);
-    let r = Realizer { shift: *plan.at(s % plan.len()), tonic: home, mode };
+    let scale = mode_scale(mode);
+    let r = realizer(*plan.at(s % plan.len()), home, scale);
     let next_shift = *plan.at(next % plan.len());
     let mut out: Array<NoteEvent> = array![];
-    // where each run of `out` starts: every voice line, the countersubject and every episode
-    let mut starts: Array<u32> = array![];
+    let mut grid: Felt252Dict<u32> = Default::default();
+    // canon voices, then the countersubject's voice id
+    let voices = *p.voice_count + if *p.use_countersubject {
+        1
+    } else {
+        0
+    };
     // per voice: its map, offset and last note (the countersubject last, with offset 99)
     let mut maps: Array<VoiceMap> = array![];
     let mut offs_used: Array<i32> = array![];
@@ -734,7 +837,6 @@ fn build_section(
             *offs.at(3)
         };
         let m = VoiceMap { invert: *p.use_inversion && v == 1, off };
-        starts.append(out.len());
         let mut prev: Option<NoteEvent> = Option::None;
         for sl in slots {
             let base = map_degree(m, *sl.degree);
@@ -749,10 +851,12 @@ fn build_section(
                     (12, realize(r, base + 2)),
                     (12, realize(r, base - 2)),
                 ];
-                choose_pitch(cands.span(), time, *sl.duration, out.span(), starts.span(), prev)
+                choose_pitch(
+                    cands.span(), time, *sl.duration, out.span(), ref grid, voices, v, prev,
+                )
             };
             let e = NoteEvent { time, duration: *sl.duration, pitch, velocity: 90, voice_id: v };
-            out.append(e);
+            put(ref out, ref grid, e);
             prev = Option::Some(e);
         }
         maps.append(m);
@@ -766,16 +870,17 @@ fn build_section(
         let cs = generate_countersubject(
             theme, @default_countersubject_config(), cs_seed, 7, mode, home, TU,
         );
-        starts.append(out.len());
         let mut prev: Option<NoteEvent> = Option::None;
         let mut i: u32 = 0;
         let ident = VoiceMap { invert: false, off: 0 };
         for d in cs.degrees.span() {
             let time = offset + i * TU;
             let cands = near(r, ident, *d);
-            let pitch = choose_pitch(cands.span(), time, TU, out.span(), starts.span(), prev);
+            let pitch = choose_pitch(
+                cands.span(), time, TU, out.span(), ref grid, voices, *p.voice_count, prev,
+            );
             let e = NoteEvent { time, duration: TU, pitch, velocity: 90, voice_id: *p.voice_count };
-            out.append(e);
+            put(ref out, ref grid, e);
             prev = Option::Some(e);
             if i < 4 {
                 cs_head.append(Slot { time: i * TU, duration: TU, src: 0, group: 0, degree: *d });
@@ -808,7 +913,7 @@ fn build_section(
         }
     }
     // the half cadence's target: the next section's dominant chord (bass: its 5th)
-    let next_r = Realizer { shift: next_shift, tonic: home, mode };
+    let next_r = realizer(next_shift, home, scale);
     let dom_bass: Array<u8> = array![realize(next_r, 4) % 12];
     let dom_chord: Array<u8> = array![
         realize(next_r, 4) % 12, realize(next_r, 6) % 12, realize(next_r, 1) % 12,
@@ -827,10 +932,10 @@ fn build_section(
         } else {
             dom_chord.span()
         };
-        starts.append(out.len());
         episode(
             ref out,
-            starts.span(),
+            ref grid,
+            voices,
             x,
             *maps.at(x),
             *lasts.at(x),

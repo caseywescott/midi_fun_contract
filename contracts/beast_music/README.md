@@ -69,9 +69,13 @@ sh ../../scripts/v11_parity_cairo.sh /tmp/v11.txt && node ../../scripts/v11_pari
 ```
 
 Gas: composing is dominated by the voice checks (every follower, countersubject and episode note
-against what sounds with it); notes are kept in chronological runs so each check binary-searches
-instead of scanning the section. One `get_midi` for the heaviest Beast is about 1.0B L2 gas (v1:
-0.44B), the named rank-1 Warlock about 0.58B, a genesis Warlock about 0.13B.
+against what sounds with it). Placed notes sit on a 120-tick grid per voice (every onset and length
+the checks see is a multiple of 120, asserted), with each voice's placed span, so a check reads only
+the cells where other voices sound; the overlaps and the parallel-5ths "note before" are looked up
+once per note, not per candidate; scale degrees are realized once per section into a table. None of
+this changes a note (the 75-case parity is rerun after each change). One `get_midi` for the heaviest
+Beast is about 0.76B L2 gas (v1: 0.44B; the first port: over 2B), the named rank-1 Warlock about
+0.44B, a genesis Warlock about 0.1B.
 
 ## Keeping it in sync
 

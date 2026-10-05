@@ -121,8 +121,8 @@ export function createEngineV11(engine) {
     out.push(reach >= 2 ? 1 : -1);                         // last section a fifth from home: the loop returns
     return out;
   }
-  function keyPlan(p) {
-    const reach = REACH[p.tier] ?? 1, side = p.weakness === 1 ? -1 : 1;  // flat side for one type, sharp for the others
+  function keyPlan(p, flip = false) {
+    const reach = REACH[p.tier] ?? 1, side = (p.weakness === 1 ? -1 : 1) * (flip ? -1 : 1);  // flat side for one type, sharp for the others
     return fifthsPlan(p.section_count, reach).map((f) => {
       const st = (((f * side * 7) % 12) + 12) % 12;          // fifths -> semitones above home
       const dg = (((f * side * 4) % 7) + 7) % 7;             // fifths -> scale degrees (a diatonic 5th is 4 steps)
@@ -334,23 +334,27 @@ export function createEngineV11(engine) {
     return events;
   }
 
-  function render(beast, live, { keys = 'modulate', even = false, breath = false, traj = false, scale = 'mode', family = null } = {}) {
+  // override (prototypes: event tracks, drift, specials; absent = no change): { tr: fields replacing
+  // the trajectory's, sections: section count, rhythmSeed: re-picks the rhythm cells, flipSide:
+  // mirrors the key plan, tempo_us }
+  function render(beast, live, { keys = 'modulate', even = false, breath = false, traj = false, scale = 'mode', family = null, override = null } = {}) {
     FAM = family && FAMILIES[family] ? FAMILIES[family] : null;
     R = FAM ? scaleRealize(FAM.scale) : scale === 'wholetone' ? wholeTone : I.realize;
-    try { return renderWith(beast, live, { keys, even, breath, traj, scale, family: FAM ? family : null }); } finally { R = I.realize; FAM = null; }
+    try { return renderWith(beast, live, { keys, even, breath, traj, scale, family: FAM ? family : null, override: override || {} }); } finally { R = I.realize; FAM = null; }
   }
-  function renderWith(beast, live, { keys, even, breath, traj, scale, family }) {
+  function renderWith(beast, live, { keys, even, breath, traj, scale, family, override }) {
     // traj: rank is current state only, so the structure is composed with a neutral rank (v1 lets the
     // crown and top ranks add ornament, accents and a voice); the real rank sets prominence alone
     const swapped = traj ? { ...live, adventurers_killed: live.scars, scars: live.adventurers_killed } : live; // kills <-> defeats
     const structural = traj ? { ...swapped, rank: Math.max(2, live.species_count || 2), species_count: live.species_count || 1 } : live;
     const r = engine.render(beast, structural), f = r.form;
     // family: its tempo, and voices entering twice as far apart for the blooming plant forms
-    const p = FAM ? { ...r.params, tempo_us: Math.round(r.params.tempo_us / (FAM.tempo || 1)), stretto_lag: FAM.bloom ? r.params.stretto_lag * 2 : r.params.stretto_lag } : r.params;
+    const p0 = FAM ? { ...r.params, tempo_us: Math.round(r.params.tempo_us / (FAM.tempo || 1)), stretto_lag: FAM.bloom ? r.params.stretto_lag * 2 : r.params.stretto_lag } : r.params;
+    const p = override.sections || override.tempo_us ? { ...p0, ...(override.sections ? { section_count: override.sections } : {}), ...(override.tempo_us ? { tempo_us: override.tempo_us } : {}) } : p0;
     if (traj) r.live = { ...swapped };
     const theme = { ...f.theme, degrees: cadenceTheme(f.theme.degrees) };
-    const tr = traj ? trajectory(r, live) : null;
-    let slots = themeRhythm(p, theme.degrees, f.seeds.motif_seed);
+    const tr = traj ? Object.assign(trajectory(r, live), override.tr || {}) : null;
+    let slots = themeRhythm(p, theme.degrees, override.rhythmSeed ?? f.seeds.motif_seed);
     // ornament vocabulary (second name prefix): a trill (upper neighbour and back) replaces a passing note
     if (tr && tr.trill) slots = slots.flatMap((sl, i) => (sl.src === 'p' && sl.duration >= 240
       ? [{ ...sl, src: 't', duration: sl.duration / 2, degree: slots[i - 1].degree + 1 }, { ...sl, src: 't', time: sl.time + sl.duration / 2, duration: sl.duration / 2, degree: slots[i - 1].degree }]
@@ -374,10 +378,10 @@ export function createEngineV11(engine) {
     const csSeed = I.H(p.name_variant_id, p.species_id);
     let events = [];
     const seed = Number(BigInt(f.seeds.motif_seed) % 4294967291n);
-    const plan = keyPlan(p);
+    const plan = keyPlan(p, !!override.flipSide);
     for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * ticks, csSeed, ticks, seed, plan, keys === 'mode', tr));
     events = shape(events, p, ticks, even, tr ? tr.prominence : 0).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
-    const sections = f.sections.map((x, i) => ({ ...x, start: i * ticks }));
+    const sections = Array.from({ length: p.section_count }, (_, i) => ({ ...(f.sections[i] || f.sections[f.sections.length - 1]), start: i * ticks }));
     return { ...r, params: p, form: { ...f, theme, events, section_ticks: ticks, sections }, v11: { keyPlan: plan, keys, even, breathed, trajectory: tr, scale, family: family && { id: family, name: FAMILIES[family].name, mode: FAMILIES[family].mode } } };
   }
 

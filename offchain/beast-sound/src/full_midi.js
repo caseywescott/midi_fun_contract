@@ -154,13 +154,15 @@ export const beastSoundMidi = (result, formLength) => beastFullMidi(result, form
 
 /**
  * A rendered Beast (engine.render or engine_v11's render) -> self-contained SMF bytes.
- * `instruments`: 'placeholder' (VOICE_PROGRAM on every voice, what the Cairo writes) or 'beast'
- * (beastInstruments).
+ * `instruments`: 'placeholder' (VOICE_PROGRAM on every voice) or 'beast' (beastInstruments).
  */
-export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder' } = {}) {
+export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null } = {}) {
   const f = result.form, p = result.params, length = formLength(f);
   const setup = voiceSetup(f.events);
   if (instruments === 'beast') for (const [v, program] of Object.entries(beastInstruments(result))) if (setup[v]) setup[v].program = program;
+  // prototypes (src/lab.js): per-voice program overrides, and a drum generator in place of the
+  // groove ((length, sec, tier, mega) -> hits) or false for no drums
+  if (programs) for (const [v, program] of Object.entries(programs)) if (setup[v]) setup[v].program = program;
   const notes = f.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]);
   const sec = f.section_ticks;
   // the lead: the voice with the highest mean pitch, ties by the higher voice id
@@ -177,5 +179,6 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
       if (v === lead && pitch + 12 <= 127) notes.push([t, d, pitch + 12, Math.max(1, Math.floor(vel * 3 / 4)), ch]);
     }
   }
-  return fullMidi(notes, p.tempo_us, length, setup, drumEvents(length, sec, p.tier, !!mega.groove));
+  const hits = drums === false ? [] : (drums || drumEvents)(length, sec, p.tier, !!mega.groove);
+  return fullMidi(notes, p.tempo_us, length, setup, hits);
 }

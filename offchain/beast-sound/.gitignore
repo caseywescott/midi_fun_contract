@@ -2,3 +2,4 @@
 server/dist/player.js
 onchain/cairo/target
 onchain/.gallery-cache.json
+onchain/.events-cache.json

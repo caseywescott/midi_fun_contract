@@ -96,6 +96,38 @@ export function fullMidi(notes, tempo_us, endTick, setup, drums) {
   return new Uint8Array(header.concat(...tracks.map((d) => chunk('MTrk', d))));
 }
 
+/**
+ * Instruments by Beast (proposal, JS only): the Beast's type picks a family of three leads and three
+ * plucks, each family one wave character (Magic round: triangle and soft pulse; Hunter sharp: narrow
+ * pulses; Brute heavy: square and saw), the 18 non-mega presets used once each. Plucks list the
+ * family's fullest first (the bass role the set has no preset for).
+ */
+export const FAMILIES = [
+  { name: 'Magic', leads: [0, 9, 7], plucks: [15, 17, 13] },
+  { name: 'Hunter', leads: [2, 1, 8], plucks: [12, 19, 6] },
+  { name: 'Brute', leads: [3, 4, 5], plucks: [16, 14, 18] },
+];
+
+/**
+ * { voice_id: program } by musical role: the theme voice (0) leads with the family lead the species
+ * picks; the canon followers take the plucks, the lowest of them the fullest pluck and the others
+ * rotated by the name; the countersubject (voice id = voice_count) takes another of the family's leads.
+ */
+export function beastInstruments(result) {
+  const p = result.params, fam = FAMILIES[result.beast.beast_type] ?? FAMILIES[0];
+  const events = result.form.events, species = Number(p.species_id), name = Number(p.name_variant_id);
+  const st = {};
+  for (const e of events) { const s = (st[e.voice_id] ||= { sum: 0, n: 0 }); s.sum += e.pitch; s.n += 1; }
+  const lead = species % 3, out = { 0: fam.leads[lead] };
+  const cs = p.use_countersubject ? p.voice_count : -1;
+  if (st[cs]) out[cs] = fam.leads[(lead + 1 + (name % 2)) % 3];
+  const followers = Object.keys(st).map(Number).filter((v) => v !== 0 && v !== cs)
+    .sort((a, b) => (st[a].sum * st[b].n - st[b].sum * st[a].n) || a - b); // lowest first
+  const others = name % 2 ? [fam.plucks[2], fam.plucks[1]] : [fam.plucks[1], fam.plucks[2]];
+  followers.forEach((v, i) => { out[v] = i === 0 ? fam.plucks[0] : others[i - 1]; });
+  return out;
+}
+
 /** The mega lead presets: Robot Hero Lead (50) and N163 Brass Wave (65), reserved for mega Beasts. */
 export const MEGA_LEADS = [50, 65];
 
@@ -109,10 +141,15 @@ export const MEGA_LEADS = [50, 65];
  */
 export const MEGA_ALL = { lead: true, double: true, groove: true, lift: true };
 
-/** A rendered Beast (engine.render or engine_v11's render) -> self-contained SMF bytes. */
-export function beastFullMidi(result, formLength, mega = {}) {
+/**
+ * A rendered Beast (engine.render or engine_v11's render) -> self-contained SMF bytes.
+ * `instruments`: 'placeholder' (VOICE_PROGRAM on every voice, what the Cairo writes) or 'beast'
+ * (beastInstruments).
+ */
+export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder' } = {}) {
   const f = result.form, p = result.params, length = formLength(f);
   const setup = voiceSetup(f.events);
+  if (instruments === 'beast') for (const [v, program] of Object.entries(beastInstruments(result))) if (setup[v]) setup[v].program = program;
   let notes = f.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]);
   const sec = f.section_ticks, sections = Math.round(length / sec);
   // the lead: the voice with the highest mean pitch, ties by the higher voice id
@@ -124,7 +161,7 @@ export function beastFullMidi(result, formLength, mega = {}) {
   if (mega.lead) setup[lead].program = MEGA_LEADS[pickLead];
   if (mega.double) {
     const ch = Math.max(...ids) + 1;
-    setup[ch] = { program: mega.lead ? MEGA_LEADS[1 - pickLead] : VOICE_PROGRAM, pan: 128 - setup[lead].pan > 127 ? 127 : 128 - setup[lead].pan };
+    setup[ch] = { program: mega.lead ? MEGA_LEADS[1 - pickLead] : setup[lead].program, pan: 128 - setup[lead].pan > 127 ? 127 : 128 - setup[lead].pan };
     for (const [t, d, pitch, vel, v] of notes.slice()) {
       if (v === lead && pitch + 12 <= 127) notes.push([t, d, pitch + 12, Math.max(1, Math.floor(vel * 3 / 4)), ch]);
     }

@@ -9,6 +9,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { beastSynthSettings } from './tinychip/synth_settings.mjs';
+import { ESSENTIALS, loadBank } from './tinychip/essentials.mjs';
 import { decodeTokenId } from '../src/index.js';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
@@ -22,8 +23,9 @@ const composer = (await build({
   bundle: true, minify: true, format: 'iife', platform: 'browser', write: false, logLevel: 'error',
 })).outputFiles[0].text;
 const W = { Sine: 'sine', Square: 'square', Sawtooth: 'sawtooth', Triangle: 'triangle', WhiteNoise: 'n0', MetallicNoise: 'n1' };
-// the placeholder program on every voice plus the mega leads, so the page can play both
-const settings = beastSynthSettings(undefined, [0, 50, 65]);
+// all 20 presets, so the page can play the placeholder, the by-Beast instruments and the mega leads
+const settings = beastSynthSettings(undefined, ESSENTIALS);
+const PRESET_NAMES = Object.fromEntries(loadBank().PRESETS.filter((x) => ESSENTIALS.includes(x.program)).map((x) => [x.program, x.name]));
 // Custom(i) plays settings.waves[i] (Samples), registered under the name onchain-midi-player's player gives it
 const waves = settings.waves.map((w) => w.Samples.map((v) => v / 128));
 const timbres = settings.timbres.map((t) => [t.drum ? 1 : 0, t.slot, t.operators.map((o) => ({ g: o.route, w: typeof o.wave === 'string' ? W[o.wave] : 'nS' + o.wave.Custom, v: o.volume / 1e4, t: o.ratio / 1e4, f: o.offset_hz / 1e4, a: o.attack / 1e4, h: o.hold / 1e4, d: o.decay / 1e4, s: o.sustain / 1e4, r: o.release / 1e4, p: o.pitch_ratio / 1e4, q: o.pitch_time / 1e4, k: o.key_scale / 1e4 }))]);
@@ -50,7 +52,7 @@ const html = `<!doctype html>
 main{max-width:760px;margin:0 auto;padding:24px 16px 48px}h1{font-size:22px;margin:0 0 4px}p.sub{color:var(--mut);margin:0 0 20px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
 label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:520px){.row{grid-template-columns:1fr}}
+.row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}@media(max-width:520px){.row{grid-template-columns:1fr}}
 .ab{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ab button{padding:16px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 17px system-ui;cursor:pointer}
 .ab button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.ab button.mega.on{border-color:var(--acc2);background:color-mix(in srgb,var(--acc2) 18%,var(--bg))}
 .ctl{display:flex;gap:10px;margin-top:12px}.ctl button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--fg);color:var(--bg);font:600 15px system-ui;cursor:pointer}.ctl button.stop{background:var(--bg);color:var(--fg)}
@@ -61,6 +63,7 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 <p class="sub">Normal against mega (the shiny flag; Normal plays every Beast unshiny, Mega shiny), as onchain-midi-player plays it: the self-contained MIDI through the class's engine with the Beast sound settings (every voice on the Triangle Lead for now, reverb 30). Switch while playing to compare.</p>
 <div class="card"><div class="row">
 <div><label for="beast">Beast</label><select id="beast"></select></div>
+<div><label for="instruments">Instruments</label><select id="instruments"><option value="beast" selected>By Beast: type family, species lead (proposal)</option><option value="placeholder">All Triangle Lead (onchain today)</option></select></div>
 <div><label for="composer">Composer</label><select id="composer"><option value="v11m" selected>v1.1: same mode, even phrases, history (compare page)</option><option value="v1">v1 (onchain today)</option></select></div>
 </div></div>
 <div class="card"><div class="ab"><button id="normal" class="on">Normal</button><button id="mega" class="mega">Mega ✦</button></div>
@@ -77,7 +80,18 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 <script>${NOTICE}\n${inline(tiny)}</script>
 <script>${inline(composer)}</script>
 <script>
-const TIMBRES = ${JSON.stringify(timbres)}, WAVES = ${JSON.stringify(waves)};
+const TIMBRES = ${JSON.stringify(timbres)}, WAVES = ${JSON.stringify(waves)}, NAMES = ${JSON.stringify(PRESET_NAMES)};
+const TYPES = ['Magic', 'Hunter', 'Brute'];
+// the program each channel starts with, read back from the file itself
+function programsOf(u8) {
+  const out = {}; let p = 14; const n = (u8[10] << 8) | u8[11];
+  for (let k = 0; k < n; k++) {
+    const len = (u8[p + 4] << 24) | (u8[p + 5] << 16) | (u8[p + 6] << 8) | u8[p + 7];
+    for (let i = p + 8; i < p + 8 + len - 1; i++) if (u8[i - 1] === 0 && (u8[i] & 0xf0) === 0xc0 && !((u8[i] & 15) in out)) { out[u8[i] & 15] = u8[i + 1]; break; }
+    p += 8 + len;
+  }
+  return out;
+}
 const BEASTS = ${JSON.stringify(BEASTS)};
 const $ = (id) => document.getElementById(id);
 BEASTS.forEach((x, i) => $('beast').add(new Option(x.name + '  (tier ' + x.beast.tier + (x.beast.shiny ? ', shiny' : '') + ')', i)));
@@ -88,9 +102,12 @@ function make() {
   const beast = { ...x.beast, shiny };
   const r = $('composer').value === 'v1' ? BS.engine.render(beast, live) : BS.v11.render(beast, live, { keys: 'mode', even: true, traj: true });
   const opts = mega ? { lead: $('o-lead').checked, double: $('o-double').checked, groove: $('o-groove').checked, lift: $('o-lift').checked } : {};
-  const midi = BS.beastFullMidi(r, BS.engine.formLength, opts);
+  const midi = BS.beastFullMidi(r, BS.engine.formLength, opts, { instruments: $('instruments').value });
+  const pg = programsOf(midi), cs = r.params.use_countersubject ? r.params.voice_count : -1, dbl = Math.max(...Object.keys(pg).map(Number));
+  const roleOf = (v) => (v === 0 ? 'theme' : v === cs ? 'countersubject' : opts.double && v === dbl ? 'octave double' : 'follower ' + v);
+  const voicesLine = Object.entries(pg).map(([v, prog]) => roleOf(Number(v)) + ': ' + prog + ' ' + (NAMES[prog] || '')).join('\\n');
   const reverb = ${settings.reverb};
-  $('info').textContent = (mega ? 'MEGA' : 'normal') + ' · ' + ($('composer').value === 'v1' ? 'v1' : 'v1.1') + ' · ' + r.form.events.length + ' notes · ' + (60000000 / r.params.tempo_us).toFixed(1) + ' BPM · ' + r.params.voice_count + ' voices · tier ' + r.params.tier + ' · ' + Math.round(BS.engine.formLength(r.form) / r.form.section_ticks) + ' sections · ' + midi.length + ' bytes MIDI · reverb ' + reverb;
+  $('info').textContent = (mega ? 'MEGA' : 'normal') + ' · ' + ($('composer').value === 'v1' ? 'v1' : 'v1.1') + ' · ' + r.form.events.length + ' notes · ' + (60000000 / r.params.tempo_us).toFixed(1) + ' BPM · ' + r.params.voice_count + ' voices · tier ' + r.params.tier + ' · ' + Math.round(BS.engine.formLength(r.form) / r.form.section_ticks) + ' sections · ' + midi.length + ' bytes MIDI · reverb ' + reverb + '\\n' + TYPES[x.beast.beast_type] + ' family · species ' + x.beast.id + '\\n' + voicesLine;
   return { midi, reverb };
 }
 function ensure() {
@@ -113,7 +130,7 @@ $('play').onclick = start;
 $('stop').onclick = () => { if (synth) synth.stopMIDI(); playing = false; };
 $('normal').onclick = () => { mega = false; $('normal').classList.add('on'); $('mega').classList.remove('on'); refresh(); };
 $('mega').onclick = () => { mega = true; $('mega').classList.add('on'); $('normal').classList.remove('on'); refresh(); };
-for (const id of ['beast', 'composer', 'o-shiny', 'o-lead', 'o-double', 'o-groove', 'o-lift']) $(id).onchange = refresh;
+for (const id of ['beast', 'instruments', 'composer', 'o-shiny', 'o-lead', 'o-double', 'o-groove', 'o-lift']) $(id).onchange = refresh;
 make();
 </script></body></html>`;
 writeFileSync(here + '../public/onchain/mega.html', html);

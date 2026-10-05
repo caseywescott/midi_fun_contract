@@ -6,7 +6,7 @@ const { engine: E } = await import(bm + '/offchain/beast-sound/src/index.js');
 const { beastSoundMidi } = await import(bm + '/offchain/beast-sound/src/full_midi.js');
 const { createEngineV11 } = await import(bm + '/offchain/beast-sound/src/engine_v11.js');
 const v11 = createEngineV11(E), V11 = { keys: 'mode', even: true, traj: true }; // composer v1.1, as get_midi
-const { beastSynthSettings, serializeSettings, BEAST_MEGA_PROGRAMS } = await import(bm + '/offchain/beast-sound/onchain/tinychip/synth_settings.mjs');
+const { beastSynthSettings, serializeSettings, beastPrograms } = await import(bm + '/offchain/beast-sound/onchain/tinychip/synth_settings.mjs');
 const byteArraySerde = (bytes) => {
   const full = Math.floor(bytes.length / 31), f = [BigInt(full)];
   const word = (a, b) => { let w = 0n; for (let i = a; i < b; i++) w = w * 256n + BigInt(bytes[i]); return w; };
@@ -19,7 +19,8 @@ const W = { id: 1, prefix: 57, suffix: 15, level: 126, health: 229, shiny: 0, an
 const calm = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 500, species_count: 954 };
 const heavy = [{ id: 53, prefix: 69, suffix: 18, level: 255, health: 1023, shiny: 1, animated: 1, tier: 1, beast_type: 2 }, { adventurers_killed: 500, scars: 63, summit_held_seconds: 0, rank: 1, species_count: 1243 }];
 const warlock = beastSoundMidi(v11.render(W, calm, V11), E.formLength), heaviest = beastSoundMidi(v11.render(...heavy, V11), E.formLength);
-const s = serializeSettings(beastSynthSettings()), mega = serializeSettings(beastSynthSettings(undefined, BEAST_MEGA_PROGRAMS)); // the heavy Beast is mega (shiny)
+// the settings get_settings serves each: the Warlock is a Magic Beast, the heavy one a mega Brute
+const s = serializeSettings(beastSynthSettings(undefined, beastPrograms(W.beast_type, W.shiny === 1))), mega = serializeSettings(beastSynthSettings(undefined, beastPrograms(heavy[0].beast_type, heavy[0].shiny === 1)));
 writeFileSync(out, `//! Generated: Beast Sound end-to-end fixtures (settings Serde from BeastMidiProvider.get_settings, MIDI from get_midi).
 use onchain_midi_player::types::TinySynthSettings;
 

@@ -1,10 +1,11 @@
 // Self-contained Beast MIDI for a generic player (onchain-midi-player plays a file exactly as written:
 // every play resets each channel to program 0 and adds nothing). On top of the score itself:
 //
-//   instruments  a program change on every voice at tick 0: VOICE_PROGRAM (TinyChip's Triangle
-//                Lead) on every voice for now. Programs are TinyChip bank numbers, so sound
-//                settings that install that preset as a custom timbre in the same slot are
-//                selected by the file directly.
+//   instruments  a program change on every voice at tick 0. What get_midi plays (beastSoundMidi):
+//                the instruments by Beast (FAMILIES, beastInstruments); the plain writer's default
+//                puts VOICE_PROGRAM (TinyChip's Triangle Lead) on every voice. Programs are TinyChip
+//                bank numbers, so sound settings that install those presets as custom timbres in
+//                the same slots are selected by the file directly.
 //   pan          CC10 at tick 0, voices spread from left to right in voice order
 //   drums        channel 10: kick, half-time snare and eighth-note hats phrased in bar pairs, and
 //                a fill into every section that grows with the tier (A tier 5 two snares, B tier 4
@@ -97,7 +98,7 @@ export function fullMidi(notes, tempo_us, endTick, setup, drums) {
 }
 
 /**
- * Instruments by Beast (proposal, JS only): the Beast's type picks a family of three leads and three
+ * Instruments by Beast: the Beast's type picks a family of three leads and three
  * plucks, each family one wave character (Magic round: triangle and soft pulse; Hunter sharp: narrow
  * pulses; Brute heavy: square and saw), the 18 non-mega presets used once each. Plucks list the
  * family's fullest first (the bass role the set has no preset for).
@@ -144,11 +145,12 @@ export const megaLeadPick = (p) => (Number(p.species_id) + Number(p.name_variant
 export const MEGA_ALL = { lead: true, double: true, groove: true };
 
 /**
- * What BeastMidiProvider.get_midi plays for a rendered Beast: the self-contained MIDI, with the mega
- * arrangement (MEGA_ALL) when the Beast is mega (its shiny flag). Byte-identical to Cairo's
+ * What BeastMidiProvider.get_midi plays for a rendered Beast: the self-contained MIDI with the
+ * instruments by Beast (beastInstruments), and the mega arrangement (MEGA_ALL) when the Beast is mega
+ * (its shiny flag). Byte-identical to Cairo's
  * v11_score_full_smf_bytes for a composer v1.1 render.
  */
-export const beastSoundMidi = (result, formLength) => beastFullMidi(result, formLength, result.beast.shiny ? MEGA_ALL : {});
+export const beastSoundMidi = (result, formLength) => beastFullMidi(result, formLength, result.beast.shiny ? MEGA_ALL : {}, { instruments: 'beast' });
 
 /**
  * A rendered Beast (engine.render or engine_v11's render) -> self-contained SMF bytes.

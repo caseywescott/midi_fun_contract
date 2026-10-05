@@ -461,38 +461,54 @@ fn get_midi_rejects_unminted_tokens() {
     w.midi.get_midi(encode_v3_token_id(sorrow_peak_warlock()));
 }
 
+/// The six settings (each type's family, normal and mega) serialize to the hashes the generator
+/// computed.
 #[test]
 fn beast_synth_settings_serialize_as_generated() {
-    let mut felts: Array<felt252> = array![];
-    crate::synth_settings::beast_synth_settings().serialize(ref felts);
-    assert_eq!(
-        core::poseidon::poseidon_hash_span(felts.span()),
-        crate::synth_settings::BEAST_SYNTH_SETTINGS_SERDE_HASH,
-    );
+    for t in array![0_u8, 1, 2] {
+        for mega in array![false, true] {
+            let mut felts: Array<felt252> = array![];
+            crate::synth_settings::beast_synth_settings(t, mega).serialize(ref felts);
+            assert_eq!(
+                core::poseidon::poseidon_hash_span(felts.span()),
+                crate::synth_settings::beast_synth_settings_serde_hash(t, mega),
+            );
+        }
+    }
 }
 
-/// onchain-midi-player's own `settings::validate` (the checks `midi_segment` applies) accepts the
-/// settings, and they cover the program the self-contained MIDI selects and every drum note it
-/// plays.
+/// onchain-midi-player's own `settings::validate` (the checks `midi_segment` applies) accepts every
+/// settings value, and each carries everything its Beasts' MIDI can select: the family's leads and
+/// plucks, every drum note the groove and fills play, and the mega leads exactly when mega.
 #[test]
 fn beast_synth_settings_pass_the_class_checks() {
-    let s = crate::synth_settings::beast_synth_settings();
-    midi_provider::synth::validate(@s);
-    let mut programs: Felt252Dict<bool> = Default::default();
-    for t in s.timbres {
-        let key: felt252 = t.slot.into() + if t.drum {
-            256
-        } else {
-            0
-        };
-        programs.insert(key, true);
-    }
-    // The program the self-contained MIDI selects and the drum notes it plays.
-    assert!(
-        programs.get(beast_music::composition::full_midi::VOICE_PROGRAM.into()), "program missing",
-    );
-    for d in array![36_u8, 38, 41, 42, 43, 45, 46, 47, 48, 49, 50] {
-        assert!(programs.get(d.into() + 256), "drum missing");
+    for t in array![0_u8, 1, 2] {
+        for mega in array![false, true] {
+            let s = crate::synth_settings::beast_synth_settings(t, mega);
+            midi_provider::synth::validate(@s);
+            let mut slots: Felt252Dict<bool> = Default::default();
+            for tb in s.timbres {
+                let key: felt252 = tb.slot.into() + if tb.drum {
+                    256
+                } else {
+                    0
+                };
+                assert!(!slots.get(key), "slot twice");
+                slots.insert(key, true);
+            }
+            for p in beast_music::composition::full_midi::family_leads(t).span() {
+                assert!(slots.get((*p).into()), "family lead missing");
+            }
+            for p in beast_music::composition::full_midi::family_plucks(t).span() {
+                assert!(slots.get((*p).into()), "family pluck missing");
+            }
+            for d in array![36_u8, 38, 41, 42, 43, 45, 46, 47, 48, 49, 50] {
+                assert!(slots.get(d.into() + 256), "drum missing");
+            }
+            for p in beast_music::composition::full_midi::MEGA_LEADS.span() {
+                assert_eq!(slots.get((*p).into()), mega);
+            }
+        }
     }
 }
 
@@ -500,65 +516,28 @@ fn beast_synth_settings_pass_the_class_checks() {
 fn get_settings_serves_the_beast_settings() {
     let w = setup();
     let settings = ISynthSettingsProviderDispatcher { contract_address: w.midi.contract_address };
-    let token_id = encode_v3_token_id(sorrow_peak_warlock());
+    let b = sorrow_peak_warlock();
+    let token_id = encode_v3_token_id(b);
+    let expected = crate::synth_settings::beast_synth_settings(b.beast_type, b.shiny == 1);
     // The token ID's format only: an unminted token gets the same settings.
-    assert_eq!(settings.get_settings(token_id), crate::synth_settings::beast_synth_settings());
+    assert_eq!(settings.get_settings(token_id), expected);
     w.nft.mint(token_id, 1);
-    assert_eq!(settings.get_settings(token_id), crate::synth_settings::beast_synth_settings());
+    assert_eq!(settings.get_settings(token_id), expected);
 }
 
 #[test]
-fn beast_mega_synth_settings_serialize_as_generated() {
-    let mut felts: Array<felt252> = array![];
-    crate::synth_settings::beast_mega_synth_settings().serialize(ref felts);
-    assert_eq!(
-        core::poseidon::poseidon_hash_span(felts.span()),
-        crate::synth_settings::BEAST_MEGA_SYNTH_SETTINGS_SERDE_HASH,
-    );
-}
-
-/// A mega Beast's settings pass the class's checks and add the two mega leads to everything a
-/// normal Beast's settings carry.
-#[test]
-fn beast_mega_synth_settings_add_the_mega_leads() {
-    let mega = crate::synth_settings::beast_mega_synth_settings();
-    midi_provider::synth::validate(@mega);
-    let normal = crate::synth_settings::beast_synth_settings();
-    let mut slots: Felt252Dict<bool> = Default::default();
-    for t in mega.timbres {
-        slots.insert(t.slot.into() + if t.drum {
-            256
-        } else {
-            0
-        }, true);
-    }
-    for t in normal.timbres {
-        assert!(slots.get(t.slot.into() + if t.drum {
-            256
-        } else {
-            0
-        }), "normal timbre missing");
-    }
-    for p in beast_music::composition::full_midi::MEGA_LEADS.span() {
-        assert!(slots.get((*p).into()), "mega lead missing");
-    }
-    assert_eq!(mega.timbres.len(), normal.timbres.len() + 2);
-}
-
-#[test]
-fn get_settings_serves_mega_settings_to_shiny_beasts() {
+fn get_settings_serves_settings_by_type_and_shiny() {
     let w = setup();
     let settings = ISynthSettingsProviderDispatcher { contract_address: w.midi.contract_address };
-    let shiny = PackableBeastV3 { shiny: 1, ..sorrow_peak_warlock() };
-    let plain = PackableBeastV3 { shiny: 0, ..sorrow_peak_warlock() };
-    assert_eq!(
-        settings.get_settings(encode_v3_token_id(shiny)),
-        crate::synth_settings::beast_mega_synth_settings(),
-    );
-    assert_eq!(
-        settings.get_settings(encode_v3_token_id(plain)),
-        crate::synth_settings::beast_synth_settings(),
-    );
+    for t in array![0_u8, 1, 2] {
+        for shiny in array![0_u8, 1] {
+            let b = PackableBeastV3 { beast_type: t, shiny, ..sorrow_peak_warlock() };
+            assert_eq!(
+                settings.get_settings(encode_v3_token_id(b)),
+                crate::synth_settings::beast_synth_settings(t, shiny == 1),
+            );
+        }
+    }
 }
 
 #[test]

@@ -188,14 +188,11 @@ pub mod BeastMidiProvider {
     }
 
     /// The Beast sound settings.
-    /// The sounds the Beast's MIDI selects: a mega (shiny) Beast's lead and octave double play the
-    /// mega leads, so its settings carry those timbres too.
+    /// The sounds the Beast's MIDI can select: its type's family of presets and the drum kit, plus
+    /// the mega leads for a mega (shiny) Beast. Both come from the token ID, so no composition is
+    /// needed.
     fn settings(beast: PackableBeastV3) -> TinySynthSettings {
-        if beast.shiny == 1 {
-            crate::synth_settings::beast_mega_synth_settings()
-        } else {
-            crate::synth_settings::beast_synth_settings()
-        }
+        crate::synth_settings::beast_synth_settings(beast.beast_type, beast.shiny == 1)
     }
 
     fn read_live_state(

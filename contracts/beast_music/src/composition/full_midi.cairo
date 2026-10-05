@@ -202,6 +202,149 @@ pub fn drum_track(length: u32, sec: u32, tier: u8, mega: bool) -> Array<u8> {
     track.finish_at(length)
 }
 
+/// Instruments by Beast: the Beast's type picks a family of three leads and three plucks (the
+/// fullest pluck first), each family one wave character: Magic round (triangle, soft pulse), Hunter
+/// sharp (narrow pulses), Brute heavy (square, saw). TinyChip bank program numbers. Matches
+/// FAMILIES in offchain/beast-sound/src/full_midi.js.
+pub fn family_leads(beast_type: u8) -> [u8; 3] {
+    if beast_type == 1 {
+        [2, 1, 8]
+    } else if beast_type == 2 {
+        [3, 4, 5]
+    } else {
+        [0, 9, 7]
+    }
+}
+
+pub fn family_plucks(beast_type: u8) -> [u8; 3] {
+    if beast_type == 1 {
+        [12, 19, 6]
+    } else if beast_type == 2 {
+        [16, 14, 18]
+    } else {
+        [15, 17, 13]
+    }
+}
+
+/// What the instruments by Beast need to know about the Beast and its score.
+#[derive(Copy, Drop)]
+pub struct Voicing {
+    pub beast_type: u8,
+    pub species_id: u64,
+    pub name_variant_id: u32,
+    pub voice_count: u32,
+    pub use_countersubject: bool,
+}
+
+/// The program of every voice id 0..=max_voice by musical role (absent voices keep VOICE_PROGRAM):
+/// the theme voice (0) leads with the family lead the species picks; the canon followers take the
+/// plucks, the lowest of them (by mean pitch, cross-multiplied, ties to the lower voice id) the
+/// fullest and the others rotated by the name; the countersubject (voice id = voice_count) another
+/// family lead.
+/// Matches beastInstruments in offchain/beast-sound/src/full_midi.js.
+pub fn beast_voice_programs(
+    events: Span<NoteEvent>, max_voice: u32, voicing: Voicing,
+) -> Array<u8> {
+    let leads = family_leads(voicing.beast_type).span();
+    let plucks = family_plucks(voicing.beast_type).span();
+    let lead: u32 = (voicing.species_id % 3).try_into().unwrap();
+    let name_odd = voicing.name_variant_id % 2 == 1;
+    let cs: u32 = if voicing.use_countersubject {
+        voicing.voice_count
+    } else {
+        0xFFFFFFFF
+    };
+    let mut sums: Array<u64> = array![];
+    let mut counts: Array<u64> = array![];
+    let mut v: u32 = 0;
+    while v <= max_voice {
+        let mut sum: u64 = 0;
+        let mut n: u64 = 0;
+        for e in events {
+            if e.voice_id == v {
+                sum += e.pitch.into();
+                n += 1;
+            }
+        }
+        sums.append(sum);
+        counts.append(n);
+        v += 1;
+    }
+    // the followers, lowest mean pitch first (insertion order by voice id breaks ties)
+    let mut followers: Array<u32> = array![];
+    let mut v: u32 = 1;
+    while v <= max_voice {
+        if v != cs && *counts.at(v) > 0 {
+            followers.append(v);
+        }
+        v += 1;
+    }
+    let mut sorted: Array<u32> = array![];
+    let mut placed: Felt252Dict<bool> = Default::default();
+    let nf = followers.len();
+    let mut k: u32 = 0;
+    while k < nf {
+        let mut best: u32 = 0;
+        let mut have = false;
+        for f in followers.span() {
+            let f = *f;
+            if placed.get(f.into()) {
+                continue;
+            }
+            if !have {
+                best = f;
+                have = true;
+            } else {
+                let lhs = *sums.at(f) * *counts.at(best);
+                let rhs = *sums.at(best) * *counts.at(f);
+                if lhs < rhs || (lhs == rhs && f < best) {
+                    best = f;
+                }
+            }
+        }
+        placed.insert(best.into(), true);
+        sorted.append(best);
+        k += 1;
+    }
+    let mut programs: Felt252Dict<u8> = Default::default();
+    let mut assigned: Felt252Dict<bool> = Default::default();
+    programs.insert(0, *leads.at(lead));
+    assigned.insert(0, true);
+    if voicing.use_countersubject && cs <= max_voice && *counts.at(cs) > 0 {
+        let pick = (lead + 1 + if name_odd {
+            1
+        } else {
+            0
+        }) % 3;
+        programs.insert(cs.into(), *leads.at(pick));
+        assigned.insert(cs.into(), true);
+    }
+    let mut i: u32 = 0;
+    for f in sorted.span() {
+        let prog = if i == 0 {
+            *plucks.at(0)
+        } else if (i == 1) != name_odd {
+            *plucks.at(1)
+        } else {
+            *plucks.at(2)
+        };
+        programs.insert((*f).into(), prog);
+        assigned.insert((*f).into(), true);
+        i += 1;
+    }
+    let mut out: Array<u8> = array![];
+    let mut v: u32 = 0;
+    while v <= max_voice {
+        out.append(if assigned.get(v.into()) {
+            programs.get(v.into())
+        } else {
+            VOICE_PROGRAM
+        });
+        v += 1;
+    }
+    out
+}
+
 /// The mega lead presets: Robot Hero Lead (50) and N163 Brass Wave (65), reserved for mega Beasts.
 pub const MEGA_LEADS: [u8; 2] = [50, 65];
 
@@ -217,11 +360,16 @@ pub fn mega_lead_pick(species_id: u64, name_variant_id: u32) -> u32 {
 /// voice id) on MEGA_LEADS[lead_pick], its octave double on its own channel with the other mega
 /// lead, panned opposite and three quarters as loud, and the mega drum groove.
 pub fn beast_form_to_full_smf_bytes(
-    form: @BeastForm, tempo_us: u32, tier: u8, mega: bool, lead_pick: u32,
+    form: @BeastForm, tempo_us: u32, tier: u8, voicing: Option<Voicing>, mega: bool, lead_pick: u32,
 ) -> Array<u8> {
     let events = form.events.span();
-    let (base_programs, base_pans) = voice_setup(form);
-    let max_voice: u32 = base_programs.len() - 1;
+    let (placeholder, base_pans) = voice_setup(form);
+    let max_voice: u32 = placeholder.len() - 1;
+    // instruments by Beast, or VOICE_PROGRAM on every voice
+    let base_programs = match voicing {
+        Option::Some(vc) => beast_voice_programs(events, max_voice, vc),
+        Option::None => placeholder,
+    };
     let length = form.length_ticks;
     let sections: u32 = form.section_count.into();
     let sec = length / sections;

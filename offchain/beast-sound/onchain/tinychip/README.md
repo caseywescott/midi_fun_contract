@@ -90,14 +90,14 @@ loothero's onchain-midi-player plays a MIDI file exactly as written and takes it
 `TinySynthSettings` value passed to `midi_segment(midi, settings)`. `synth_settings.mjs` builds that
 value from the same bank data as the runtime:
 
-- **Timbres:** the programs the self-contained Beast MIDI selects (`BEAST_PROGRAMS`; for now only
-  the Triangle Lead, bank 0, on every voice, until the preset set is chosen) as custom timbres in
-  their own program slots, and the chip kit on the 11 drum notes Beast MIDI plays: 12 timbres, 14
-  operators and two waves (34 samples), 928 bytes of `SETTINGS`. Quality 1, the class's default reverb
-  (30) and volume (40). A mega (shiny) Beast's settings (`BEAST_MEGA_PROGRAMS`) add its mega leads,
-  Robot Hero Lead (50) and N163 Brass Wave (65): 14 timbres, 1,273 bytes. `--cairo` writes both
-  (`beast_synth_settings`, `beast_mega_synth_settings`); `BeastMidiProvider.get_settings` picks by the
-  shiny flag. `beastSynthSettings(data, programs, drums)` builds any of the 20 essentials, and
+- **Timbres:** what `BeastMidiProvider.get_settings` serves, by Beast type and shiny flag
+  (`beastPrograms`): the type's family from `src/full_midi.js` (Magic 0/9/7 + 15/17/13, Hunter
+  2/1/8 + 12/19/6, Brute 3/4/5 + 16/14/18) as custom timbres in their own program slots, the chip kit
+  on the 11 drum notes Beast MIDI plays, and for a mega (shiny) Beast the mega leads, Robot Hero Lead
+  (50) and N163 Brass Wave (65): 17 or 19 timbres, 1,346 to 1,783 bytes of `SETTINGS`. Quality 1, the
+  class's default reverb (30) and volume (40). `--cairo` writes all six with the lookup
+  `beast_synth_settings(beast_type, mega)`; the default run writes them as JSON in `settings/`.
+  `beastSynthSettings(data, programs, drums)` builds any of the 20 essentials, and
   `interim_check.mjs` checks all 20.
 - **Sampled waves:** every pitched chip wave the selected presets and drums use is a custom wave
   (`WaveDef::Samples`), so a preset added to `BEAST_PROGRAMS` gets its exact wave with nothing else

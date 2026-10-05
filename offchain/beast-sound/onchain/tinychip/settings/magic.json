@@ -7,6 +7,26 @@
   {
    "Samples": [
     64,
+    -64,
+    -64,
+    -64,
+    -64,
+    -64,
+    -64,
+    -64
+   ]
+  },
+  {
+   "Samples": [
+    64,
+    -64,
+    -64,
+    -64
+   ]
+  },
+  {
+   "Samples": [
+    64,
     -64
    ]
   },
@@ -45,42 +65,6 @@
     67,
     77
    ]
-  },
-  {
-   "Samples": [
-    -30,
-    -25,
-    -20,
-    -15,
-    -44,
-    -38,
-    -33,
-    -28,
-    11,
-    16,
-    21,
-    26,
-    -3,
-    3,
-    8,
-    13,
-    47,
-    42,
-    37,
-    32,
-    -8,
-    -13,
-    -18,
-    -23,
-    6,
-    1,
-    -4,
-    -9,
-    -49,
-    -54,
-    -59,
-    -64
-   ]
   }
  ],
  "timbres": [
@@ -91,7 +75,7 @@
     {
      "route": 0,
      "wave": {
-      "Custom": 1
+      "Custom": 3
      },
      "volume": 4593,
      "ratio": 10000,
@@ -126,14 +110,14 @@
   },
   {
    "drum": false,
-   "slot": 50,
+   "slot": 9,
    "operators": [
     {
      "route": 0,
      "wave": {
       "Custom": 0
      },
-     "volume": 3139,
+     "volume": 4490,
      "ratio": 10000,
      "offset_hz": 0,
      "attack": 30,
@@ -149,10 +133,10 @@
     {
      "route": 1,
      "wave": "Triangle",
-     "volume": 204,
+     "volume": 323,
      "ratio": 0,
-     "offset_hz": 80000,
-     "attack": 800,
+     "offset_hz": 50000,
+     "attack": 3500,
      "hold": 0,
      "decay": 100,
      "sustain": 10000,
@@ -166,20 +150,20 @@
   },
   {
    "drum": false,
-   "slot": 65,
+   "slot": 7,
    "operators": [
     {
      "route": 0,
      "wave": {
-      "Custom": 2
+      "Custom": 0
      },
-     "volume": 6966,
+     "volume": 5347,
      "ratio": 10000,
      "offset_hz": 0,
-     "attack": 150,
+     "attack": 30,
      "hold": 200,
-     "decay": 1000,
-     "sustain": 10000,
+     "decay": 2500,
+     "sustain": 5500,
      "release": 300,
      "pitch_ratio": 10000,
      "pitch_time": 10000,
@@ -205,13 +189,103 @@
    ]
   },
   {
+   "drum": false,
+   "slot": 15,
+   "operators": [
+    {
+     "route": 0,
+     "wave": {
+      "Custom": 3
+     },
+     "volume": 8736,
+     "ratio": 10000,
+     "offset_hz": 0,
+     "attack": 20,
+     "hold": 0,
+     "decay": 1800,
+     "sustain": 0,
+     "release": 300,
+     "pitch_ratio": 10000,
+     "pitch_time": 10000,
+     "key_scale": 0,
+     "filter": null
+    }
+   ]
+  },
+  {
+   "drum": false,
+   "slot": 17,
+   "operators": [
+    {
+     "route": 0,
+     "wave": {
+      "Custom": 1
+     },
+     "volume": 5668,
+     "ratio": 10000,
+     "offset_hz": 0,
+     "attack": 20,
+     "hold": 0,
+     "decay": 2200,
+     "sustain": 0,
+     "release": 300,
+     "pitch_ratio": 10000,
+     "pitch_time": 10000,
+     "key_scale": 0,
+     "filter": null
+    },
+    {
+     "route": 0,
+     "wave": {
+      "Custom": 0
+     },
+     "volume": 2551,
+     "ratio": 20000,
+     "offset_hz": 0,
+     "attack": 20,
+     "hold": 0,
+     "decay": 1200,
+     "sustain": 0,
+     "release": 300,
+     "pitch_ratio": 10000,
+     "pitch_time": 10000,
+     "key_scale": 0,
+     "filter": null
+    }
+   ]
+  },
+  {
+   "drum": false,
+   "slot": 13,
+   "operators": [
+    {
+     "route": 0,
+     "wave": {
+      "Custom": 0
+     },
+     "volume": 10440,
+     "ratio": 10000,
+     "offset_hz": 0,
+     "attack": 20,
+     "hold": 0,
+     "decay": 1200,
+     "sustain": 0,
+     "release": 300,
+     "pitch_ratio": 10000,
+     "pitch_time": 10000,
+     "key_scale": 0,
+     "filter": null
+    }
+   ]
+  },
+  {
    "drum": true,
    "slot": 36,
    "operators": [
     {
      "route": 0,
      "wave": {
-      "Custom": 1
+      "Custom": 3
      },
      "volume": 9500,
      "ratio": 0,
@@ -251,7 +325,7 @@
     {
      "route": 0,
      "wave": {
-      "Custom": 0
+      "Custom": 2
      },
      "volume": 2800,
      "ratio": 0,
@@ -275,7 +349,7 @@
     {
      "route": 0,
      "wave": {
-      "Custom": 1
+      "Custom": 3
      },
      "volume": 7500,
      "ratio": 0,
@@ -321,7 +395,7 @@
     {
      "route": 0,
      "wave": {
-      "Custom": 1
+      "Custom": 3
      },
      "volume": 7500,
      "ratio": 0,
@@ -345,7 +419,7 @@
     {
      "route": 0,
      "wave": {
-      "Custom": 1
+      "Custom": 3
      },
      "volume": 7500,
      "ratio": 0,
@@ -391,7 +465,7 @@
     {
      "route": 0,
      "wave": {
-      "Custom": 1
+      "Custom": 3
      },
      "volume": 7500,
      "ratio": 0,
@@ -415,7 +489,7 @@
     {
      "route": 0,
      "wave": {
-      "Custom": 1
+      "Custom": 3
      },
      "volume": 7500,
      "ratio": 0,
@@ -461,7 +535,7 @@
     {
      "route": 0,
      "wave": {
-      "Custom": 1
+      "Custom": 3
      },
      "volume": 7500,
      "ratio": 0,

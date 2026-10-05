@@ -25,11 +25,12 @@
 // A vibrato modulator on a split carrier is repeated for each part (FM depth follows the target's
 // frequency, so every part bends by the same ratio). A sampled wave is never split.
 //
-//   node onchain/tinychip/synth_settings.mjs [out.json]   the settings as JSON (onchain-midi-player's
+//   node onchain/tinychip/synth_settings.mjs              the six settings as JSON, settings/<family>[_mega].json (onchain-midi-player's
 //                                                         scripts/preview.mjs --settings)
 //   node onchain/tinychip/synth_settings.mjs --cairo      regenerates contracts/beast_sound/src/synth_settings.cairo
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { poseidonHashMany } from '../../src/index.js';
+import { FAMILIES } from '../../src/full_midi.js';
 import { fileURLToPath } from 'node:url';
 import { bankData, loadBank } from './essentials.mjs';
 
@@ -133,14 +134,16 @@ export function timbreOperators(ops, trim = 1, waves = []) {
   return out;
 }
 
-/**
- * The programs the self-contained Beast MIDI selects (src/full_midi.js VOICE_PROGRAM): the Triangle
- * Lead only for now, until the preset set is chosen. Any of the 20 essentials can be listed.
- */
-export const BEAST_PROGRAMS = [0];
+/** The mega leads: a mega (shiny) Beast's lead and its octave double play Robot Hero Lead (50) and N163 Brass Wave (65). */
+export const MEGA_LEAD_PROGRAMS = [50, 65];
 
-/** A mega (shiny) Beast's programs: the lead and its octave double play Robot Hero Lead (50) and N163 Brass Wave (65). */
-export const BEAST_MEGA_PROGRAMS = [...BEAST_PROGRAMS, 50, 65];
+/**
+ * The programs a Beast's settings carry: its type's family (src/full_midi.js FAMILIES: three leads,
+ * then three plucks; the MIDI picks among them by role, species and name), plus the mega leads when
+ * it is mega. The settings depend only on the type and the shiny flag (both in the token ID), so
+ * get_settings needs no composition.
+ */
+export const beastPrograms = (beastType, mega) => [...FAMILIES[beastType].leads, ...FAMILIES[beastType].plucks, ...(mega ? MEGA_LEAD_PROGRAMS : [])];
 
 /** The drum notes the self-contained Beast MIDI plays (src/full_midi.js: groove and fills A-D). */
 export const BEAST_DRUMS = [36, 38, 41, 42, 43, 45, 46, 47, 48, 49, 50];
@@ -149,14 +152,14 @@ export const BEAST_DRUMS = [36, 38, 41, 42, 43, 45, 46, 47, 48, 49, 50];
 const selection = (data, programs, drums) => [...programs.map((id) => data.presets[id]), ...drums.map((key) => data.drums[key])];
 
 /** The `TinySynthSettings.waves` names of the selection, in order. */
-export const beastWaves = (data = bankData(), programs = BEAST_PROGRAMS, drums = BEAST_DRUMS) => sampledWaves(selection(data, programs, drums));
+export const beastWaves = (data = bankData(), programs = beastPrograms(0, false), drums = BEAST_DRUMS) => sampledWaves(selection(data, programs, drums));
 
 /**
  * The settings: quality 1, the class's default reverb (30) and volume. Only the programs and drum
  * notes Beast MIDI plays (every timbre costs gas in each token_uri), and only the waves they use.
  * `programs` can be any of the 20 essentials (interim_check.mjs passes all of them).
  */
-export function beastSynthSettings(data = bankData(), programs = BEAST_PROGRAMS, drums = BEAST_DRUMS) {
+export function beastSynthSettings(data = bankData(), programs = beastPrograms(0, false), drums = BEAST_DRUMS) {
   const waves = beastWaves(data, programs, drums), tables = chipTables(waves);
   const timbres = [
     ...programs.map((id) => ({ drum: false, slot: id, operators: timbreOperators(data.presets[id], TIMBRE_TRIM[id] ?? 1, waves) })),
@@ -189,6 +192,16 @@ export function serializeSettings(s) {
 }
 
 /** The Cairo source of contracts/beast_sound/src/synth_settings.cairo. */
+/** A doc comment wrapped as scarb fmt wraps it (greedy, 100 columns). */
+const wrapDoc = (text, prefix = '///', width = 100) => {
+  const lines = []; let line = prefix;
+  for (const w of text.split(/\s+/).filter(Boolean)) {
+    if (line !== prefix && line.length + 1 + w.length > width) { lines.push(line); line = prefix; }
+    line += ' ' + w;
+  }
+  return [...lines, line].join('\n');
+};
+
 /** One generated settings function: its Serde hash constant, then the function itself. */
 function settingsFn(s, waveNames, fnName, hashName, doc) {
   const hash = poseidonHashMany(serializeSettings(s));
@@ -198,7 +211,7 @@ function settingsFn(s, waveNames, fnName, hashName, doc) {
     return `        Timbre {\n            drum: ${t.drum}, slot: ${t.slot}, operators: array![\n    ${ops.join('\n    ')}\n            ]\n                .span(),\n        },`;
   });
   const waves = s.waves.map((w) => `        WaveDef::Samples(array![${w.Samples.join(', ')}].span()),`);
-  return `/// Poseidon hash of \`${fnName}\`'s Serde, as the generator computes it (tests check Cairo agrees).
+  return `${wrapDoc(`Poseidon hash of \`${fnName}\`'s Serde, as the generator computes it (tests check Cairo agrees).`)}
 pub const ${hashName}: felt252 =
     0x${hash.toString(16)};
 /// ${doc} Quality ${s.quality}, reverb ${s.reverb}, volume ${s.master_vol}, ${s.voices} voices; waves: ${waveNames.join(', ') || 'none'}; ${s.timbres.length} timbres, one operator per line.
@@ -222,18 +235,41 @@ ${timbres.join('\n')}
 `;
 }
 
-/** contracts/beast_sound/src/synth_settings.cairo: the settings for every Beast, and for a mega Beast. */
-export function settingsCairo(normal = beastSynthSettings(), mega = beastSynthSettings(undefined, BEAST_MEGA_PROGRAMS)) {
-  return `//! The Beast sound settings for onchain-midi-player: the TinyChip presets Beast MIDI selects, in
-//! their own program slots, and its chip drum kit, with each pitched chip wave they use as a
-//! sampled custom wave. Generated by
-//! offchain/beast-sound/onchain/tinychip/synth_settings.mjs --cairo from the TinyChip bank; do not
-//! edit by hand.
+/** The six settings the provider serves: each type's family, normal and mega. */
+export const SETTINGS_VARIANTS = FAMILIES.flatMap((f, t) => [false, true].map((mega) => ({ type: t, mega, name: f.name.toLowerCase() + (mega ? '_mega' : '') })));
+
+/** contracts/beast_sound/src/synth_settings.cairo: the six settings and the lookups by type and mega. */
+export function settingsCairo() {
+  const fns = SETTINGS_VARIANTS.map((v) => settingsFn(beastSynthSettings(undefined, beastPrograms(v.type, v.mega)), beastWaves(undefined, beastPrograms(v.type, v.mega)),
+    `beast_synth_settings_${v.name}`, `SERDE_HASH_${v.name.toUpperCase()}`,
+    `${FAMILIES[v.type].name} Beasts${v.mega ? ' that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65)' : ''}.`));
+  const arm = (fn) => SETTINGS_VARIANTS.map((v) => `        (${v.type}, ${v.mega}) => ${fn(v)},`).join('\n');
+  return `//! The Beast sound settings for onchain-midi-player: for each Beast type, its family of TinyChip
+//! presets (the programs Beast MIDI selects, in their own program slots) and the chip drum kit,
+//! with each pitched chip wave they use as a sampled custom wave; a mega (shiny) Beast's also carry
+//! the mega leads. Generated by offchain/beast-sound/onchain/tinychip/synth_settings.mjs --cairo
+//! from the TinyChip bank; do not edit by hand.
 use midi_provider::synth::{Operator, Timbre, TinySynthSettings, WaveDef, Waveform};
 
-${settingsFn(normal, beastWaves(undefined, BEAST_PROGRAMS), 'beast_synth_settings', 'BEAST_SYNTH_SETTINGS_SERDE_HASH', 'Every Beast that is not mega.')}
-${settingsFn(mega, beastWaves(undefined, BEAST_MEGA_PROGRAMS), 'beast_mega_synth_settings', 'BEAST_MEGA_SYNTH_SETTINGS_SERDE_HASH', 'A mega (shiny) Beast: also its mega leads, Robot Hero Lead (50) and N163 Brass Wave (65).')}
+/// The settings for a Beast of \`beast_type\` (0 Magic, 1 Hunter, 2 Brute), mega or not: everything
+/// its MIDI can select.
+pub fn beast_synth_settings(beast_type: u8, mega: bool) -> TinySynthSettings {
+    match (beast_type, mega) {
+${arm((v) => `beast_synth_settings_${v.name}()`)}
+        _ => panic!("invalid type"),
+    }
+}
 
+/// The Poseidon hash of \`beast_synth_settings(beast_type, mega)\`'s Serde, as the generator computes
+/// it (tests check Cairo agrees).
+pub fn beast_synth_settings_serde_hash(beast_type: u8, mega: bool) -> felt252 {
+    match (beast_type, mega) {
+${arm((v) => `SERDE_HASH_${v.name.toUpperCase()}`)}
+        _ => panic!("invalid type"),
+    }
+}
+
+${fns.join('\n')}
 /// route, wave, then volume, ratio, offset_hz, attack, hold, decay, sustain, release, pitch_ratio,
 /// pitch_time, key_scale (fixed point); no filter.
 fn op(
@@ -272,16 +308,18 @@ fn op(
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const s = beastSynthSettings();
   if (process.argv[2] === '--cairo') {
     const out = fileURLToPath(new URL('../../../../contracts/beast_sound/src/synth_settings.cairo', import.meta.url));
-    const mega = beastSynthSettings(undefined, BEAST_MEGA_PROGRAMS);
-    writeFileSync(out, settingsCairo(s, mega));
-    console.log(`${out}: Serde hashes 0x${poseidonHashMany(serializeSettings(s)).toString(16)} (every Beast), 0x${poseidonHashMany(serializeSettings(mega)).toString(16)} (mega)`);
+    writeFileSync(out, settingsCairo());
+    console.log(`${out}: ${SETTINGS_VARIANTS.map((v) => v.name).join(', ')}`);
     process.exit(0);
   }
-  const out = process.argv[2] || 'beast_synth_settings.json';
-  writeFileSync(out, JSON.stringify(s, null, 1) + '\n');
-  const ops = s.timbres.reduce((n, t) => n + t.operators.length, 0);
-  console.log(`${out}: ${s.timbres.length} timbres (${BEAST_PROGRAMS.length} programs, ${s.timbres.length - BEAST_PROGRAMS.length} drums), ${ops} operators`);
+  // the six settings as JSON (onchain-midi-player's scripts/preview.mjs --settings)
+  const dir = fileURLToPath(new URL('./settings/', import.meta.url));
+  mkdirSync(dir, { recursive: true });
+  for (const v of SETTINGS_VARIANTS) {
+    const st = beastSynthSettings(undefined, beastPrograms(v.type, v.mega));
+    writeFileSync(dir + v.name + '.json', JSON.stringify(st, null, 1) + '\n');
+    console.log(`settings/${v.name}.json: ${st.timbres.length} timbres, ${st.waves.length} waves`);
+  }
 }

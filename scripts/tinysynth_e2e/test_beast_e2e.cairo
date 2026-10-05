@@ -10,7 +10,7 @@ use crate::helpers::{beasts_token_uri, class};
 #[test]
 fn beast_build() {
     let s = beast_settings();
-    assert(s.timbres.len() == 12, 'timbres');
+    assert(s.timbres.len() == 17, 'timbres'); // the Magic family's six presets and 11 drums
     assert(warlock_midi().len() == WARLOCK_LEN, 'warlock');
     assert(heaviest_midi().len() == HEAVIEST_LEN, 'heaviest');
 }

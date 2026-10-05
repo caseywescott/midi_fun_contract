@@ -501,21 +501,11 @@ pub fn v3_music_state_hash(beast: PackableBeastV3, live: BeastV3LiveState) -> fe
     };
     poseidon_hash_span(
         array![
-            'BEAST_MUSIC_STATE_V3',
-            beast_sound_seed(beast.id, beast.prefix, beast.suffix),
-            BEAST_V3_ENGINE_VERSION.into(),
-            beast.level.into(),
-            beast.health.into(),
-            beast.shiny.into(),
-            beast.animated.into(),
-            beast.tier.into(),
-            beast.beast_type.into(),
-            state.kill_bucket.into(),
-            state.defeat_bucket.into(),
-            state.summit_bucket.into(),
-            state.encounter_bucket.into(),
-            state.rank_tier.into(),
-            crown,
+            'BEAST_MUSIC_STATE_V3', beast_sound_seed(beast.id, beast.prefix, beast.suffix),
+            BEAST_V3_ENGINE_VERSION.into(), beast.level.into(), beast.health.into(),
+            beast.shiny.into(), beast.animated.into(), beast.tier.into(), beast.beast_type.into(),
+            state.kill_bucket.into(), state.defeat_bucket.into(), state.summit_bucket.into(),
+            state.encounter_bucket.into(), state.rank_tier.into(), crown,
         ]
             .span(),
     )

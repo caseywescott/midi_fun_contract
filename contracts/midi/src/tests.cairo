@@ -42,35 +42,14 @@ fn track_writes_deltas_and_end_of_track() {
     assert_eq!(
         t.finish_at(1920),
         array![
-            0,
-            0xFF,
-            0x51,
-            3,
-            0x07,
-            0xA1,
-            0x20, // tempo 500000
-            0,
-            0xC2,
-            33, // program
-            0,
-            0xB2,
-            10,
+            0, 0xFF, 0x51, 3, 0x07, 0xA1, 0x20, // tempo 500000
+            0, 0xC2, 33, // program
+            0, 0xB2, 10,
             64, // pan
-            0x83,
-            0x60,
-            0x92,
-            60,
-            100, // +480 note on
-            0x83,
-            0x60,
-            0x82,
-            60,
+            0x83, 0x60, 0x92, 60, 100, // +480 note on
+            0x83, 0x60, 0x82, 60,
             64, // +480 note off
-            0x87,
-            0x40,
-            0xFF,
-            0x2F,
-            0 // End of Track at 1920
+            0x87, 0x40, 0xFF, 0x2F, 0 // End of Track at 1920
         ],
     );
 }
@@ -98,37 +77,8 @@ fn running_status_omits_repeated_status_bytes() {
     assert_eq!(
         t.finish(),
         array![
-            0,
-            0x99,
-            36,
-            120,
-            0,
-            42,
-            80,
-            0x81,
-            0x70,
-            42,
-            52,
-            0,
-            0x89,
-            42,
-            0,
-            10,
-            36,
-            0,
-            0,
-            0xFF,
-            1,
-            1,
-            'a',
-            0,
-            0x89,
-            38,
-            0,
-            0,
-            0xFF,
-            0x2F,
-            0,
+            0, 0x99, 36, 120, 0, 42, 80, 0x81, 0x70, 42, 52, 0, 0x89, 42, 0, 10, 36, 0, 0, 0xFF, 1,
+            1, 'a', 0, 0x89, 38, 0, 0, 0xFF, 0x2F, 0,
         ],
     );
     // Without it, every status byte is written.
@@ -152,42 +102,10 @@ fn smf_bytes_writes_header_and_chunks() {
     assert_eq!(
         file,
         array![
-            0x4D,
-            0x54,
-            0x68,
-            0x64,
-            0,
-            0,
-            0,
-            6,
-            0,
-            1,
-            0,
-            2,
-            0x01,
-            0xE0, // MThd
-            0x4D,
-            0x54,
-            0x72,
-            0x6B,
-            0,
-            0,
-            0,
-            4,
-            0,
-            0xFF,
-            0x2F,
-            0, // MTrk
-            0x4D,
-            0x54,
-            0x72,
-            0x6B,
-            0,
-            0,
-            0,
-            2,
-            1,
-            2,
+            0x4D, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 1, 0, 2, 0x01, 0xE0, // MThd
+            0x4D, 0x54, 0x72,
+            0x6B, 0, 0, 0, 4, 0, 0xFF, 0x2F, 0, // MTrk
+            0x4D, 0x54, 0x72, 0x6B, 0, 0, 0, 2, 1, 2,
         ],
     );
 }

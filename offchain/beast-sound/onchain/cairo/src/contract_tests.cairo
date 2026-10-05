@@ -83,7 +83,8 @@ fn page_works_with_a_second_provider() {
     // ScaleMidiProvider knows nothing about Beasts; the page does not care.
     let provider = deploy(ScaleMidiProvider::TEST_CLASS_HASH, array![collection().into()]);
     let uri = page_for(provider).token_uri(members(), svg_b64(), collection(), 42);
-    let midi = IMidiProviderDispatcher { contract_address: provider }.get_midi_for(collection(), 42);
+    let midi = IMidiProviderDispatcher { contract_address: provider }
+        .get_midi_for(collection(), 42);
     assert_eq!(uri, token_uri(@members(), @svg_b64(), @midi));
 }
 

@@ -51,7 +51,8 @@ pub fn midi_html(midi: @ByteArray) -> ByteArray {
     d
 }
 
-// Base64 lives in b64.cairo: reads input as 31-byte words, 93 bytes per step, through a 12-bit table.
+// Base64 lives in b64.cairo: reads input as 31-byte words, 93 bytes per step, through a 12-bit
+// table.
 pub use b64::{append_base64, base64};
 
 /// The complete token_uri for already-composed MIDI. `members` is the JSON object body without

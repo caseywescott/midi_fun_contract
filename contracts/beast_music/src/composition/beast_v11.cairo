@@ -558,10 +558,8 @@ fn realize(r: Realizer, d: i32) -> u8 {
 /// Candidates a step or two around a degree (mapped by the voice), scored by distance.
 fn near(r: Realizer, m: VoiceMap, deg: i32) -> Array<(i32, u8)> {
     array![
-        (0, realize(r, map_degree(m, deg))),
-        (6, realize(r, map_degree(m, deg + 1))),
-        (6, realize(r, map_degree(m, deg - 1))),
-        (12, realize(r, map_degree(m, deg + 2))),
+        (0, realize(r, map_degree(m, deg))), (6, realize(r, map_degree(m, deg + 1))),
+        (6, realize(r, map_degree(m, deg - 1))), (12, realize(r, map_degree(m, deg + 2))),
         (12, realize(r, map_degree(m, deg - 2))),
     ]
 }
@@ -845,11 +843,8 @@ fn build_section(
                 realize(r, base)
             } else {
                 let cands = array![
-                    (0, realize(r, base)),
-                    (6, realize(r, base + 1)),
-                    (6, realize(r, base - 1)),
-                    (12, realize(r, base + 2)),
-                    (12, realize(r, base - 2)),
+                    (0, realize(r, base)), (6, realize(r, base + 1)), (6, realize(r, base - 1)),
+                    (12, realize(r, base + 2)), (12, realize(r, base - 2)),
                 ];
                 choose_pitch(cands.span(), time, sl.duration, out.span(), ref grid, voices, v, prev)
             };

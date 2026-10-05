@@ -59,12 +59,9 @@ pub fn smf_bytes(format: u16, division: u16, tracks: Span<Array<u8>>) -> Array<u
     assert(n < 0x10000, 'midi: too many tracks');
     let mut out: Array<u8> = array![];
     let header: Array<u8> = array![
-        (format / 256).try_into().unwrap(),
-        (format % 256).try_into().unwrap(),
-        (n / 256).try_into().unwrap(),
-        (n % 256).try_into().unwrap(),
-        (division / 256).try_into().unwrap(),
-        (division % 256).try_into().unwrap(),
+        (format / 256).try_into().unwrap(), (format % 256).try_into().unwrap(),
+        (n / 256).try_into().unwrap(), (n % 256).try_into().unwrap(),
+        (division / 256).try_into().unwrap(), (division % 256).try_into().unwrap(),
     ];
     push_chunk(ref out, MTHD, header.span());
     for track in tracks {

@@ -257,8 +257,7 @@ fn v3_score_notes_is_much_smaller_than_midi() {
 #[ignore]
 fn beast_v3_parity_fixture() {
     let cases: Array<(PackableBeastV3, BeastV3LiveState)> = array![
-        (sorrow_peak_warlock(), calm()),
-        (sorrow_peak_warlock(), veteran()),
+        (sorrow_peak_warlock(), calm()), (sorrow_peak_warlock(), veteran()),
         (
             PackableBeastV3 {
                 id: 29,
@@ -372,8 +371,7 @@ fn beast_v3_parity_fixture() {
 #[ignore]
 fn full_midi_parity_fixture() {
     let cases: Array<(PackableBeastV3, BeastV3LiveState)> = array![
-        (sorrow_peak_warlock(), calm()),
-        (sorrow_peak_warlock(), veteran()),
+        (sorrow_peak_warlock(), calm()), (sorrow_peak_warlock(), veteran()),
         (
             PackableBeastV3 {
                 id: 6,

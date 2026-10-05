@@ -24,13 +24,13 @@ pub fn voice_setup(form: @BeastForm) -> (Array<u8>, Array<u8>) {
     let events = form.events.span();
     let mut max_voice: u32 = 0;
     for e in events {
-        if *e.voice_id > max_voice {
-            max_voice = *e.voice_id;
+        if e.voice_id > max_voice {
+            max_voice = e.voice_id;
         }
     }
     let mut present: Felt252Dict<bool> = Default::default();
     for e in events {
-        present.insert((*e.voice_id).into(), true);
+        present.insert(e.voice_id.into(), true);
     }
     let mut ids: Array<u32> = array![];
     let mut v: u32 = 0;
@@ -203,8 +203,8 @@ pub fn beast_form_to_full_smf_bytes(form: @BeastForm, tempo_us: u32, tier: u8) -
     let events = form.events.span();
     let (programs, pans) = voice_setup(form);
     let max_voice: u32 = programs.len() - 1;
-    let length = *form.length_ticks;
-    let sections: u32 = (*form.section_count).into();
+    let length = form.length_ticks;
+    let sections: u32 = form.section_count.into();
     let sec = length / sections;
 
     let mut tempo = TrackWriterTrait::new();
@@ -219,10 +219,10 @@ pub fn beast_form_to_full_smf_bytes(form: @BeastForm, tempo_us: u32, tier: u8) -
         track.control(0, ch, 10, *pans.at(v));
         let mut any = false;
         for e in events {
-            if *e.voice_id == v {
+            if e.voice_id == v {
                 any = true;
-                track.note_on(*e.time, ch, *e.pitch, *e.velocity);
-                track.note_off(*e.time + *e.duration, ch, *e.pitch, 64);
+                track.note_on(e.time, ch, e.pitch, e.velocity);
+                track.note_off(e.time + e.duration, ch, e.pitch, 64);
             }
         }
         if any {

@@ -480,7 +480,7 @@ fn beast_synth_settings_pass_the_class_checks() {
     midi_provider::synth::validate(@s);
     let mut programs: Felt252Dict<bool> = Default::default();
     for t in s.timbres {
-        let key: felt252 = (*t.slot).into() + if *t.drum {
+        let key: felt252 = t.slot.into() + if t.drum {
             256
         } else {
             0

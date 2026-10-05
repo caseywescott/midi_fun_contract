@@ -73,7 +73,7 @@ pub impl LCGImpl of RNGTrait {
     fn value(self: @LCG) -> u32 {
         // Apply the LCG formula: next = (a * x + c) % m
         // where: a = multiplier, x = state, c = increment, m = modulus
-        ((*self.multiplier) * (*self.state) + (*self.increment)) % (*self.modulus)
+        (self.multiplier * self.state + self.increment) % self.modulus
     }
 
     /// Advances the generator to the next state and returns a new LCG instance
@@ -86,15 +86,15 @@ pub impl LCGImpl of RNGTrait {
     /// The new state becomes: (multiplier * current_state + increment) % modulus
     fn next(self: @LCG) -> LCG {
         // Calculate the next state using the LCG formula
-        let next_state = ((*self.multiplier) * (*self.state) + (*self.increment)) % (*self.modulus);
+        let next_state = (self.multiplier * self.state + self.increment) % self.modulus;
 
         // Create a new LCG instance with the updated state
         // but keep all other parameters the same
         let mut lcg = LCG {
             state: next_state,
-            multiplier: *self.multiplier,
-            increment: *self.increment,
-            modulus: *self.modulus,
+            multiplier: self.multiplier,
+            increment: self.increment,
+            modulus: self.modulus,
         };
         lcg
     }

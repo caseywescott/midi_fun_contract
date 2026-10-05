@@ -1,12 +1,12 @@
 [package]
 name = "midi_provider"
 version = "0.1.0"
-edition = "2024_07"
+edition = "2025_12"
 
 [dependencies]
 midi = { path = "../midi" }
 # SynthSettings, TokenSound, ISoundProvider and settings::validate (Provable-Games/onchain-tinysynth).
-onchain_tinysynth = { git = "https://github.com/Provable-Games/onchain-tinysynth", rev = "7033262bbbc1b81d397f6d8230a46693a7bdb5a4" }
+onchain_tinysynth = { git = "https://github.com/Provable-Games/onchain-tinysynth", rev = "e4e6108257f58a0b6caf76d5d611525851c92467" }
 starknet = "2.20.1"
 
 [dev-dependencies]

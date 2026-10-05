@@ -38,8 +38,8 @@ pub fn default_stretto_plan() -> StrettoPlan {
 /// Compute the stretto entry lag from a kill bucket value (0–7).
 /// Linearly interpolates base_lag → min_lag as bucket rises from 0 → 7.
 pub fn stretto_lag(plan: @StrettoPlan, kill_bucket: u8) -> u32 {
-    let base = *plan.base_lag;
-    let min = *plan.min_lag;
+    let base = plan.base_lag;
+    let min = plan.min_lag;
     if base <= min {
         return min;
     }

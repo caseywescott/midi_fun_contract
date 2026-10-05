@@ -17,7 +17,7 @@ NFT token_uri ──► MidiSoundPage.token_uri(members, svg_b64, token_address,
                             data:text/html;base64, [TinySynth + player][MIDI as base64][SVG]
 ```
 
-- `contracts/midi_provider`: the generic `IMidiProvider` interface, onchain-tinysynth's types and
+- `contracts/midi_provider`: the generic `IMidiProvider` interface, onchain-midi-player's types and
   `ISoundProvider` (re-exported), and a non-Beast example provider.
 - `contracts/beast_sound`: `BeastMidiProvider`, which validates the collection and token and reads
   the Beast's live state itself (see its README for sources and missing-state behavior).

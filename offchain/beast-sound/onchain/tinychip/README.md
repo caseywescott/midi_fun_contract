@@ -82,10 +82,10 @@ The previous version stored all 100 presets: 14.2 KB, 612 felts.
 - **Outside the page:** `TinyChipBank.install(synth, { programBase, drums })` works on any tinysynth
   instance.
 
-## onchain-tinysynth sound settings
+## onchain-midi-player sound settings
 
-loothero's onchain-tinysynth plays a MIDI file exactly as written and takes its sounds from a
-`SynthSettings` value passed to `midi_segment(midi, settings)`. `synth_settings.mjs` builds that
+loothero's onchain-midi-player plays a MIDI file exactly as written and takes its sounds from a
+`TinySynthSettings` value passed to `midi_segment(midi, settings)`. `synth_settings.mjs` builds that
 value from the same bank data as the runtime:
 
 - **Timbres:** the programs the self-contained Beast MIDI selects (`BEAST_PROGRAMS`; for now only
@@ -99,8 +99,8 @@ value from the same bank data as the runtime:
   to change. Each table is one cycle of the wave from `tinysynth-chip.js`'s own `registerWaves`, one
   i8 sample per step (`clamp(round(x * 128), -128, 127)`); `STEPS` in `synth_settings.mjs` lists the
   19 pitched waves and their steps per cycle, and the generator checks each one is exactly stepwise.
-  `SynthSettings.waves` holds only the waves the selection uses, in `STEPS` order, and each
-  operator's `Waveform::Custom(i)` points into it. onchain-tinysynth's player registers them with the
+  `TinySynthSettings.waves` holds only the waves the selection uses, in `STEPS` order, and each
+  operator's `Waveform::Custom(i)` points into it. onchain-midi-player's player registers them with the
   engine's `setSampleWave`, which plays a table sample-and-hold at the note's pitch as TinyChip's
   own looped buffer does, so the operators keep their original level and are no longer split. Today
   that is the 50% pulse (the snare) and the NES triangle (the Triangle Lead, kick and toms); all 20
@@ -114,14 +114,14 @@ value from the same bank data as the runtime:
   and the drums, `SETTINGS` is 2,927 bytes and 46 operators, against 4,180 bytes and 75 operators
   when the chip waves were approximated with built-in waves.
 - **Cairo:** `contracts/beast_sound/src/synth_settings.cairo` (`beast_synth_settings()`) is generated
-  from the same function, with onchain-tinysynth's own types (re-exported by
+  from the same function, with onchain-midi-player's own types (re-exported by
   `midi_provider::synth`); tests check its Serde hash against the generator's and run the class's
-  `validate` on it, and its Serde matches onchain-tinysynth's own fixture serializer.
+  `validate` on it, and its Serde matches onchain-midi-player's own fixture serializer.
 
 ```bash
 node onchain/tinychip/synth_settings.mjs onchain/tinychip/beast_synth_settings.json  # JSON, for preview.mjs --settings
 node onchain/tinychip/synth_settings.mjs --cairo                                      # regenerate the Cairo
-PLAYWRIGHT_CORE=... node onchain/tinychip/interim_check.mjs <onchain-tinysynth>/tests/vendor/webaudio-tinysynth-b198d6c.min.js
+PLAYWRIGHT_CORE=... node onchain/tinychip/interim_check.mjs <onchain-midi-player>/tests/vendor/webaudio-tinysynth-fc04dbe.min.js
 ```
 
 ## Tests
@@ -129,5 +129,5 @@ PLAYWRIGHT_CORE=... node onchain/tinychip/interim_check.mjs <onchain-tinysynth>/
 | Test | What it checks |
 |---|---|
 | `test/tinychip.test.mjs` | Runtime matches the bank; orchestration determinism, roles and spread over the gallery; bare scores; Bank Select with and without the full bank; untouched MIDI |
-| `onchain/tinychip/interim_check.mjs` | The SynthSettings timbres against TinyChip's own presets and drums, rendered in Chrome through onchain-tinysynth's engine: loudness within 0.5 dB (noise timbres 1 dB), brightness reported |
+| `onchain/tinychip/interim_check.mjs` | The TinySynthSettings timbres against TinyChip's own presets and drums, rendered in Chrome through onchain-midi-player's engine: loudness within 0.5 dB (noise timbres 1 dB), brightness reported |
 | `onchain/browser-check.mjs` | Real pages in Chrome. With `TINYCHIP_ONCHAIN` on, bare scores report `tinychip-2` and each note channel plays 129 + its orchestrated preset; off, `1` and program 128 |

@@ -58,7 +58,7 @@ fn scale_provider_rejects_other_collections() {
     deploy_scale().get_midi_for('OTHER'.try_into().unwrap(), 1);
 }
 
-/// onchain-tinysynth's `ISoundProvider`: `get_sound` is the provider's MIDI with the class's
+/// onchain-midi-player's `ISoundProvider`: `get_sound` is the provider's MIDI with the class's
 /// default settings (its General MIDI programs need no custom sounds).
 #[test]
 fn scale_provider_get_sound_is_get_midi_with_default_settings() {

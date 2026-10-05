@@ -178,7 +178,7 @@ pub impl TrackWriterImpl of TrackWriterTrait {
     }
 
     /// The track body, closed with End of Track at `time`, or at the last event if that is later.
-    /// A player that loops to the latest End of Track (onchain-tinysynth) then loops at `time`.
+    /// A player that loops to the latest End of Track (onchain-midi-player) then loops at `time`.
     fn finish_at(mut self: TrackWriter, time: u32) -> Array<u8> {
         let end = if time > self.time {
             time

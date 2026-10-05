@@ -1,4 +1,4 @@
-// Self-contained Beast MIDI for a generic player (onchain-tinysynth plays a file exactly as written:
+// Self-contained Beast MIDI for a generic player (onchain-midi-player plays a file exactly as written:
 // every play resets each channel to program 0 and adds nothing). On top of the score itself:
 //
 //   instruments  a program change on every voice at tick 0: VOICE_PROGRAM (TinyChip's Triangle

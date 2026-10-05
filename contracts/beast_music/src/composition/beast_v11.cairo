@@ -1185,7 +1185,7 @@ pub fn v11_form(score: @V11Score) -> BeastForm {
     }
 }
 
-/// The v1.1 score as the self-contained file for onchain-tinysynth (programs, pan, drums:
+/// The v1.1 score as the self-contained file for onchain-midi-player (programs, pan, drums:
 /// crate::composition::full_midi).
 pub fn v11_score_full_smf_bytes(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<u8> {
     let score = build_v11_score(beast, live);

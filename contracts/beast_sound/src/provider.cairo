@@ -2,13 +2,13 @@
 //!
 //! `get_midi(token_id)` needs nothing else (`get_midi_for(token_address, token_id)` also checks the
 //! collection), and `get_settings(token_id)` (`ISynthSettingsProvider`) gives the sounds the MIDI
-//! is written for. `get_sound(token_id)`, onchain-tinysynth's `ISoundProvider`, returns both in one
-//! call (`TokenSound { midi, settings }`, equal to `get_midi` and `get_settings`). The provider
-//! validates the token, decodes the static traits from the token ID, reads the live state itself
-//! and runs composer v1.1 (`beast_music::composition::beast_v11`: same
+//! is written for. `get_sound(token_id)`, onchain-midi-player's `ISoundProvider`, returns both in
+//! one call (`TinySynthSound { midi, settings }`, equal to `get_midi` and `get_settings`). The
+//! provider validates the token, decodes the static traits from the token ID, reads the live state
+//! itself and runs composer v1.1 (`beast_music::composition::beast_v11`: same
 //! mode, even phrases, history), so the MIDI is byte-identical to `v11_score_full_midi` for the
 //! same state: the score plus a program change and pan on every voice
-//! at tick 0 and a drum track on channel 10, so a player that adds nothing (onchain-tinysynth)
+//! at tick 0 and a drum track on channel 10, so a player that adds nothing (onchain-midi-player)
 //! plays it as intended.
 //!
 //! Live state, all read inside one entry-point call (one state snapshot, nothing cached):
@@ -106,7 +106,9 @@ pub mod BeastMidiProvider {
     };
     use core::num::traits::Zero;
     use core::poseidon::poseidon_hash_span;
-    use midi_provider::synth::{ISoundProvider, ISynthSettingsProvider, SynthSettings, TokenSound};
+    use midi_provider::synth::{
+        ISoundProvider, ISynthSettingsProvider, TinySynthSettings, TinySynthSound,
+    };
     use midi_provider::{IMidiProvider, bytes_to_byte_array};
     use starknet::ContractAddress;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
@@ -145,7 +147,7 @@ pub mod BeastMidiProvider {
         /// The Beast sound settings (`crate::synth_settings`), the same for every Beast for now.
         /// Validates the token ID's format only: no calls, so it costs no more than building the
         /// value.
-        fn get_settings(self: @ContractState, token_id: u256) -> SynthSettings {
+        fn get_settings(self: @ContractState, token_id: u256) -> TinySynthSettings {
             decode_v3_token_id(token_id);
             settings()
         }
@@ -155,9 +157,11 @@ pub mod BeastMidiProvider {
     impl SoundProviderImpl of ISoundProvider<ContractState> {
         /// `get_midi(token_id)` and `get_settings(token_id)` in one call, reading the live state
         /// once.
-        fn get_sound(self: @ContractState, token_id: u256) -> TokenSound {
+        fn get_sound(self: @ContractState, token_id: u256) -> TinySynthSound {
             // `midi` validates the token ID, so the settings need no second check.
-            TokenSound { midi: midi(self, self.collection.read(), token_id), settings: settings() }
+            TinySynthSound {
+                midi: midi(self, self.collection.read(), token_id), settings: settings(),
+            }
         }
     }
 
@@ -186,7 +190,7 @@ pub mod BeastMidiProvider {
     }
 
     /// The Beast sound settings.
-    fn settings() -> SynthSettings {
+    fn settings() -> TinySynthSettings {
         crate::synth_settings::beast_synth_settings()
     }
 

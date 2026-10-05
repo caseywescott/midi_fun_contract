@@ -1,4 +1,4 @@
-// Writes <copy of onchain-tinysynth>/tests/beast_e2e_fixtures.cairo: our settings' Serde and two
+// Writes <copy of onchain-midi-player>/tests/beast_e2e_fixtures.cairo: our settings' Serde and two
 // self-contained Beast MIDI files from composer v1.1 (Warlock calm, a heavy score) as ByteArray Serde.
 import { writeFileSync } from 'node:fs';
 const bm = new URL('../..', import.meta.url).pathname.replace(/\/$/, ''), out = process.argv[2];
@@ -21,13 +21,13 @@ const heavy = [{ id: 53, prefix: 69, suffix: 18, level: 255, health: 1023, shiny
 const warlock = beastFullMidi(v11.render(W, calm, V11), E.formLength), heaviest = beastFullMidi(v11.render(...heavy, V11), E.formLength);
 const s = serializeSettings(beastSynthSettings());
 writeFileSync(out, `//! Generated: Beast Sound end-to-end fixtures (settings Serde from BeastMidiProvider.get_settings, MIDI from get_midi).
-use onchain_tinysynth::types::SynthSettings;
+use onchain_midi_player::types::TinySynthSettings;
 
 pub const WARLOCK_LEN: u32 = ${warlock.length};
 pub const HEAVIEST_LEN: u32 = ${heaviest.length};
 pub const SETTINGS_FELTS: u32 = ${s.length};
 
-${fn('beast_settings', 'SynthSettings', s)}
+${fn('beast_settings', 'TinySynthSettings', s)}
 ${fn('warlock_midi', 'ByteArray', byteArraySerde(warlock))}
 ${fn('heaviest_midi', 'ByteArray', byteArraySerde(heaviest))}`);
 console.log(`settings ${s.length} felts, warlock ${warlock.length} B, heaviest ${heaviest.length} B`);

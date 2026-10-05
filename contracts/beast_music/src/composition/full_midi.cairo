@@ -1,4 +1,4 @@
-//! Self-contained Beast MIDI for a generic player (onchain-tinysynth plays a file exactly as
+//! Self-contained Beast MIDI for a generic player (onchain-midi-player plays a file exactly as
 //! written: every play resets each channel to program 0 and adds nothing).
 //!
 //! On top of the score: a program change and a pan (CC10) on every voice at tick 0, and a drum

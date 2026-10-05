@@ -13,20 +13,20 @@ printf 'mod beast_e2e_fixtures;\nmod test_beast_e2e;\n' >> /tmp/ots_e2e/tests/li
 (cd /tmp/ots_e2e && snforge test test_beast_e2e)
 ```
 
-Results at 7033262 (L2 gas): composer v1.1 MIDI, every voice on the Triangle Lead, 12 timbres (894
-bytes of `SETTINGS`, reverb 30). Unchanged from 973f4cf except `beast_token_uri_heaviest` (143.5M
-then); `beast_direct_midi_segment_heaviest` is newly listed:
+Results at 7033262 (L2 gas): composer v1.1 MIDI, every voice on the Triangle Lead, 12 timbres with
+the 50% pulse and the NES triangle as sampled waves (928 bytes of `SETTINGS`, reverb 30). In
+brackets, the same with the chip waves approximated by built-in waves (894 bytes):
 
 | Test | Gas |
 |---|---|
-| `beast_build` (fixtures only: settings Serde, two MIDI files) | 1.6M |
-| `beast_settings_validate` | 1.1M |
-| `beast_encode_settings` | 5.8M |
-| `beast_lc_midi_segment_warlock` (1,501-byte MIDI, library call) | 37.4M |
-| `beast_lc_midi_segment_heaviest` (8,236-byte MIDI) | 134.8M |
+| `beast_build` (fixtures only: settings Serde, two MIDI files) | 1.6M (1.6M) |
+| `beast_settings_validate` | 1.2M (1.1M) |
+| `beast_encode_settings` | 6.2M (5.8M) |
+| `beast_lc_midi_segment_warlock` (1,501-byte MIDI, library call) | 38.1M (37.4M) |
+| `beast_lc_midi_segment_heaviest` (8,236-byte MIDI) | 135.1M (134.8M) |
 | the same with the class's `default_settings()` | 120.5M |
-| `beast_direct_midi_segment_heaviest` (crate function, no library call) | 129.8M |
-| `beast_token_uri_heaviest` (Beasts-layout `token_uri`, crate functions) | 147.9M |
+| `beast_direct_midi_segment_heaviest` (crate function, no library call) | 130.1M (129.8M) |
+| `beast_token_uri_heaviest` (Beasts-layout `token_uri`, crate functions) | 148.2M (147.9M) |
 
 One call to the provider's `get_midi` (cairo-test estimate, Cairo 2.20.1; 2.11.4 in brackets) is
 about 0.43B for the heaviest Beast (0.51B), 0.25B for a named rank-1 Warlock (0.29B) and 0.06B for

@@ -3,7 +3,50 @@
  "reverb": 30,
  "master_vol": 40,
  "voices": 64,
- "waves": [],
+ "waves": [
+  {
+   "Samples": [
+    64,
+    -64
+   ]
+  },
+  {
+   "Samples": [
+    77,
+    67,
+    56,
+    46,
+    36,
+    26,
+    15,
+    5,
+    -5,
+    -15,
+    -26,
+    -36,
+    -46,
+    -56,
+    -67,
+    -77,
+    -77,
+    -67,
+    -56,
+    -46,
+    -36,
+    -26,
+    -15,
+    -5,
+    5,
+    15,
+    26,
+    36,
+    46,
+    56,
+    67,
+    77
+   ]
+  }
+ ],
  "timbres": [
   {
    "drum": false,
@@ -11,25 +54,11 @@
    "operators": [
     {
      "route": 0,
-     "wave": "Triangle",
-     "volume": 2929,
+     "wave": {
+      "Custom": 1
+     },
+     "volume": 4593,
      "ratio": 10000,
-     "offset_hz": 0,
-     "attack": 30,
-     "hold": 200,
-     "decay": 1000,
-     "sustain": 10000,
-     "release": 300,
-     "pitch_ratio": 10000,
-     "pitch_time": 10000,
-     "key_scale": 0,
-     "filter": null
-    },
-    {
-     "route": 0,
-     "wave": "Sawtooth",
-     "volume": 228,
-     "ratio": 320000,
      "offset_hz": 0,
      "attack": 30,
      "hold": 200,
@@ -56,22 +85,6 @@
      "pitch_time": 10000,
      "key_scale": 0,
      "filter": null
-    },
-    {
-     "route": 2,
-     "wave": "Triangle",
-     "volume": 175,
-     "ratio": 0,
-     "offset_hz": 60000,
-     "attack": 2000,
-     "hold": 0,
-     "decay": 100,
-     "sustain": 10000,
-     "release": 500,
-     "pitch_ratio": 10000,
-     "pitch_time": 10000,
-     "key_scale": 0,
-     "filter": null
     }
    ]
   },
@@ -81,8 +94,10 @@
    "operators": [
     {
      "route": 0,
-     "wave": "Triangle",
-     "volume": 6059,
+     "wave": {
+      "Custom": 1
+     },
+     "volume": 9500,
      "ratio": 0,
      "offset_hz": 1600000,
      "attack": 20,
@@ -119,8 +134,10 @@
     },
     {
      "route": 0,
-     "wave": "Square",
-     "volume": 1644,
+     "wave": {
+      "Custom": 0
+     },
+     "volume": 2800,
      "ratio": 0,
      "offset_hz": 2000000,
      "attack": 20,
@@ -141,8 +158,10 @@
    "operators": [
     {
      "route": 0,
-     "wave": "Triangle",
-     "volume": 4783,
+     "wave": {
+      "Custom": 1
+     },
+     "volume": 7500,
      "ratio": 0,
      "offset_hz": 900000,
      "attack": 20,
@@ -185,8 +204,10 @@
    "operators": [
     {
      "route": 0,
-     "wave": "Triangle",
-     "volume": 4783,
+     "wave": {
+      "Custom": 1
+     },
+     "volume": 7500,
      "ratio": 0,
      "offset_hz": 1050000,
      "attack": 20,
@@ -207,8 +228,10 @@
    "operators": [
     {
      "route": 0,
-     "wave": "Triangle",
-     "volume": 4783,
+     "wave": {
+      "Custom": 1
+     },
+     "volume": 7500,
      "ratio": 0,
      "offset_hz": 1250000,
      "attack": 20,
@@ -251,8 +274,10 @@
    "operators": [
     {
      "route": 0,
-     "wave": "Triangle",
-     "volume": 4783,
+     "wave": {
+      "Custom": 1
+     },
+     "volume": 7500,
      "ratio": 0,
      "offset_hz": 1450000,
      "attack": 20,
@@ -273,8 +298,10 @@
    "operators": [
     {
      "route": 0,
-     "wave": "Triangle",
-     "volume": 4783,
+     "wave": {
+      "Custom": 1
+     },
+     "volume": 7500,
      "ratio": 0,
      "offset_hz": 1700000,
      "attack": 20,
@@ -317,8 +344,10 @@
    "operators": [
     {
      "route": 0,
-     "wave": "Triangle",
-     "volume": 4783,
+     "wave": {
+      "Custom": 1
+     },
+     "volume": 7500,
      "ratio": 0,
      "offset_hz": 2000000,
      "attack": 20,

@@ -3,30 +3,27 @@
 // numbers) and the chip drum kit on channel 10's notes. One source of truth: everything comes from bankData(),
 // the same data the TinyChip runtime is built from.
 //
-// Interim waves. TinyChip's sampled chip waves (12.5/25/50% pulse, the NES 4-bit triangle, a 4-bit
-// saw, the two LFSR noises) are custom waves to onchain-tinysynth, which rejects them until its
-// issue #2 lands. Until then each is built from TinySynth's own waves at the same level:
+// Sampled waves. Every pitched chip wave a selected preset or drum uses (the pulses, the NES 4-bit
+// triangle, the 4-bit saw, the Game Boy, VRC6, FDS, N163, SID, TIA and PC Engine shapes, the
+// short-LFSR tone; STEPS below) is sent as a custom wave (`SynthSettings.waves`,
+// `WaveDef::Samples`): one cycle of tinysynth-chip.js's own waveform, read from its registerWaves,
+// one sample per step as i8 (clamp(round(x * 128), -128, 127)). onchain-tinysynth's player
+// registers each with the engine's setSampleWave, which plays it sample-and-hold at the note's pitch
+// like TinyChip's own looped buffer, so its operators keep their level (no gain) and their one wave,
+// `Custom(index)`. `waves` holds only the waves the selection uses, in STEPS order, so a preset
+// added later gets its exact wave with nothing else to change.
 //
-//   nP50  square                                  (TinyChip pulses swing +-0.5: half a unit square)
-//   nP25  square(f) x 0.707 + square(2f) x 0.5    the 25% pulse's exact magnitude spectrum: its odd
-//                                                 harmonics are a square's x sin(pi/4), its even ones
-//                                                 (2, 6, 10, ...) a square an octave up x 1/2
-//   nP12  square(f) x 0.53 + square(2f) x 0.354 + square(4f) x 0.25
-//                                                 even harmonics exact; the odd ones alternate
-//                                                 sin(pi/8) and sin(3pi/8), so the fundamental square
-//                                                 takes the level that matches their energy
-//   nTRI  triangle x 0.6 + sawtooth(32f) x 0.04  the NES triangle is a 16-level staircase: a smooth
-//                                                 triangle at its peak plus its step error, a saw 32
-//                                                 times faster (+-half a step) that keeps the buzz;
-//                                                 pitched operators only (on kicks and toms it
-//                                                 brightens far past the original)
-//   nSAW  sawtooth x 0.45                         the 4-bit saw's peak (smooth, without the steps)
+// The 50% pulse is a table too: TinySynth's square is band-limited, a duller wave than TinyChip's
+// (Square Lead brightness 0.87x against 0.96x as two samples).
+//
+// Built-in waves. The LFSR noises stay TinySynth's own, at the same level:
+//
 //   nNOI  white noise x 0.866                     same RMS as the +-0.5 LFSR noise
-//   nMET  metallic noise                          TinySynth's n1 already sits at 0.5 RMS
+//   nMET  metallic noise                          TinySynth's n1 already sits at 0.5 RMS (a 93-step
+//                                                 table would carry the LFSR's DC offset)
 //
 // A vibrato modulator on a split carrier is repeated for each part (FM depth follows the target's
-// frequency, so every part bends by the same ratio). Once issue #2 lands, WAVES below become
-// `SynthSettings.waves` (Samples) and every operator keeps its one wave.
+// frequency, so every part bends by the same ratio). A sampled wave is never split.
 //
 //   node onchain/tinychip/synth_settings.mjs [out.json]   the settings as JSON (onchain-tinysynth's
 //                                                         scripts/preview.mjs --settings)
@@ -34,7 +31,7 @@
 import { writeFileSync } from 'node:fs';
 import { poseidonHashMany } from '../../src/index.js';
 import { fileURLToPath } from 'node:url';
-import { bankData } from './essentials.mjs';
+import { bankData, loadBank } from './essentials.mjs';
 
 const SCALE = 10000;
 const DEFAULTS = { g: 0, w: 'sine', t: 1, f: 0, v: 0.5, a: 0, h: 0.01, d: 0.01, s: 0, r: 0.05, p: 1, q: 1, k: 0 };
@@ -42,11 +39,6 @@ const BUILTIN = { sine: 'Sine', square: 'Square', sawtooth: 'Sawtooth', triangle
 
 /** TinyChip wave -> [[built-in wave, frequency multiple, level multiple], ...] */
 export const INTERIM = {
-  nP50: [['Square', 1, 0.5]],
-  nP25: [['Square', 1, 0.5 * Math.SQRT1_2], ['Square', 2, 0.25]],
-  nP12: [['Square', 1, 0.5 * 0.53], ['Square', 2, 0.5 * 0.3536], ['Square', 4, 0.125]],
-  nTRI: [['Triangle', 1, 0.6], ['Sawtooth', 32, 0.04]],
-  nSAW: [['Sawtooth', 1, 0.45]],
   nNOI: [['WhiteNoise', 1, 0.866]],
   nMET: [['MetallicNoise', 1, 1]],
 };
@@ -57,11 +49,55 @@ export const INTERIM = {
 // through the pinned engine; onchain/tinychip/interim_check.mjs).
 export const BUILTIN_GAIN = { Square: 1.174, Sawtooth: 1.24, Triangle: 1.063, MetallicNoise: 0.79 };
 
-// Hero Fanfare layers a 12.5% pulse over a 25% pulse an octave down: their shared harmonics add up
-// with the square parts' phases, not the pulses', 0.6 dB louder; its output levels come down by that.
-export const TIMBRE_TRIM = { 53: 0.933 };
+// Per-preset level trims, for a timbre whose built-in waves sum louder or quieter than the chip
+// waves they stand in for. None is needed now: Hero Fanfare (53) had 0.933 while its pulses were
+// square stacks (their shared harmonics added up with the squares' phases, 0.6 dB louder), and its
+// exact pulse tables match TinyChip without it.
+export const TIMBRE_TRIM = {};
 
 const fx = (x) => Math.round(x * SCALE);
+
+/**
+ * The pitched chip waves sent as samples, in tinysynth-chip.js's WAVES order (the order of
+ * `SynthSettings.waves`), each with its steps per cycle: its waveform is constant on each step, so
+ * one sample per step is the exact wave (chipTables checks it).
+ */
+export const STEPS = {
+  nP06: 16, nP12: 8, nP25: 4, nP37: 8, nP50: 2, nTRI: 32, nSAW: 16, nVRS: 7, nWV1: 32, nWV2: 32,
+  nFDS: 64, nN16: 32, nSID: 510, nTI4: 15, nTI5: 31, nTIB: 31, nPC1: 32, nPC2: 32, nMTP: 93,
+};
+
+const q8 = (x) => Math.max(-128, Math.min(127, Math.round(x * 128)));
+
+/**
+ * One cycle of each named wave as i8 samples, from tinysynth-chip.js's own registerWaves: run with a
+ * sample rate of 440 x steps x 4, its 440-cycles-per-second buffer holds the cycle at four points
+ * per step. Each step's sample is the middle one; throws if the other points differ (not a step
+ * wave).
+ */
+export function chipTables(names) {
+  const bank = loadBank(), out = {}, K = 4;
+  for (const n of new Set(names.map((w) => STEPS[w]))) {
+    const sr = 440 * n * K, buffers = {};
+    const context = { sampleRate: sr, createBuffer: (_, len) => { const d = new Float64Array(len); return { getChannelData: () => d }; } };
+    bank.install({ noiseBuf: buffers, program: Array.from({ length: 128 }, () => ({})), setTimbre() {}, getAudioContext: () => context }, { drums: false });
+    for (const w of names.filter((x) => STEPS[x] === n)) {
+      const d = buffers[w].getChannelData(0);
+      out[w] = Array.from({ length: n }, (_, i) => {
+        const v = d[i * K + 2];
+        if (d[i * K + 1] !== v || d[i * K + 3] !== v) throw new Error(`${w}: not ${n} steps per cycle`);
+        return q8(v);
+      });
+    }
+  }
+  return out;
+}
+
+/** The pitched chip waves these TinyChip operator lists use, as `SynthSettings.waves` names in order. */
+export function sampledWaves(opLists) {
+  const used = new Set(opLists.flat().map((o) => o.w));
+  return Object.keys(STEPS).filter((w) => used.has(w));
+}
 
 /** One TinySynth operator (float fields) -> a SynthSettings Operator (fixed point). */
 function operator(o, route, wave, mul = 1, gain = 1) {
@@ -73,16 +109,20 @@ function operator(o, route, wave, mul = 1, gain = 1) {
   };
 }
 
-/** A TinyChip preset or drum (operator list) -> SynthSettings operators, interim waves expanded. */
-export function timbreOperators(ops, trim = 1) {
+/**
+ * A TinyChip preset or drum (operator list) -> SynthSettings operators, built-in waves expanded and
+ * pitched chip waves as `Custom(i)`, `i` their index in `waves` (sampledWaves).
+ */
+export function timbreOperators(ops, trim = 1, waves = []) {
   const out = [], parts = []; // parts[i]: 1-based indices in `out` of original operator i
   for (const raw of ops) {
     const o = { ...DEFAULTS, ...raw };
     if (o.g > 10) throw new Error('AM modulators are not mapped');
-    const split = INTERIM[o.w] || [[BUILTIN[o.w] || (() => { throw new Error('wave ' + o.w); })(), 1, 1]];
+    const custom = (w) => (waves.includes(w) ? { Custom: waves.indexOf(w) } : (() => { throw new Error(`wave ${w} not in waves`); })());
+    const split = o.w in STEPS ? [[custom(o.w), 1, 1]]
+      : INTERIM[o.w] || [[BUILTIN[o.w] || (() => { throw new Error('wave ' + o.w); })(), 1, 1]];
     if (o.g === 0) {
-      const used = o.t === 0 ? split.filter(([, mul]) => mul < 32) : split; // fixed-pitch: no step layer
-      parts.push(used.map(([w, mul, gain]) => (out.push(operator(o, 0, w, mul, gain * trim * (BUILTIN_GAIN[w] ?? 1))), out.length)));
+      parts.push(split.map(([w, mul, gain]) => (out.push(operator(o, 0, w, mul, gain * trim * (typeof w === 'string' ? BUILTIN_GAIN[w] ?? 1 : 1))), out.length)));
     } else {
       if (split.length > 1) throw new Error('split modulator');
       const [w] = split[0];
@@ -102,17 +142,24 @@ export const BEAST_PROGRAMS = [0];
 /** The drum notes the self-contained Beast MIDI plays (src/full_midi.js: groove and fills A-D). */
 export const BEAST_DRUMS = [36, 38, 41, 42, 43, 45, 46, 47, 48, 49, 50];
 
+/** The operator lists of the selected programs, then drums. */
+const selection = (data, programs, drums) => [...programs.map((id) => data.presets[id]), ...drums.map((key) => data.drums[key])];
+
+/** The `SynthSettings.waves` names of the selection, in order. */
+export const beastWaves = (data = bankData(), programs = BEAST_PROGRAMS, drums = BEAST_DRUMS) => sampledWaves(selection(data, programs, drums));
+
 /**
  * The settings: quality 1, the class's default reverb (30) and volume. Only the programs and drum
- * notes Beast MIDI plays: every timbre costs gas in each token_uri.
+ * notes Beast MIDI plays (every timbre costs gas in each token_uri), and only the waves they use.
+ * `programs` can be any of the 20 essentials (interim_check.mjs passes all of them).
  */
-export function beastSynthSettings(data = bankData()) {
-  const timbres = [];
-  for (const id of BEAST_PROGRAMS) timbres.push({ drum: false, slot: id, operators: timbreOperators(data.presets[id], TIMBRE_TRIM[id] ?? 1) });
-  for (const key of BEAST_DRUMS) {
-    timbres.push({ drum: true, slot: key, operators: timbreOperators(data.drums[key]) });
-  }
-  return { quality: 1, reverb: 30, master_vol: 40, voices: 64, waves: [], timbres };
+export function beastSynthSettings(data = bankData(), programs = BEAST_PROGRAMS, drums = BEAST_DRUMS) {
+  const waves = beastWaves(data, programs, drums), tables = chipTables(waves);
+  const timbres = [
+    ...programs.map((id) => ({ drum: false, slot: id, operators: timbreOperators(data.presets[id], TIMBRE_TRIM[id] ?? 1, waves) })),
+    ...drums.map((key) => ({ drum: true, slot: key, operators: timbreOperators(data.drums[key], 1, waves) })),
+  ];
+  return { quality: 1, reverb: 30, master_vol: 40, voices: 64, waves: waves.map((w) => ({ Samples: tables[w] })), timbres };
 }
 
 const WAVE_TAGS = ['Sine', 'Square', 'Sawtooth', 'Triangle', 'WhiteNoise', 'MetallicNoise'];
@@ -121,38 +168,48 @@ const P = 2n ** 251n + 17n * 2n ** 192n + 1n;
 
 /** Cairo Serde of a SynthSettings (as onchain-tinysynth's scripts/gen_settings_fixtures.mjs serde()), as BigInts. */
 export function serializeSettings(s) {
-  if (s.waves.length) throw new Error('custom waves are not serialized here');
-  const f = [s.quality, s.reverb, s.master_vol, s.voices, 0, s.timbres.length];
+  const f = [s.quality, s.reverb, s.master_vol, s.voices, s.waves.length];
+  for (const w of s.waves) {
+    if (!w.Samples) throw new Error('Harmonics waves are not serialized here');
+    f.push(1, w.Samples.length, ...w.Samples); // WaveDef::Samples is variant 1
+  }
+  f.push(s.timbres.length);
   for (const t of s.timbres) {
     f.push(t.drum ? 1 : 0, t.slot, t.operators.length);
     for (const o of t.operators) {
-      if (o.filter !== null || typeof o.wave !== 'string') throw new Error('filters and custom waves are not serialized here');
-      f.push(o.route, WAVE_TAGS.indexOf(o.wave), ...OP_FIELDS.map((k) => o[k]), 1); // Option::None is variant 1
+      if (o.filter !== null) throw new Error('filters are not serialized here');
+      const wave = typeof o.wave === 'string' ? [WAVE_TAGS.indexOf(o.wave)] : [6, o.wave.Custom]; // Waveform::Custom is variant 6
+      f.push(o.route, ...wave, ...OP_FIELDS.map((k) => o[k]), 1); // Option::None is variant 1
     }
   }
   return f.map((x) => ((BigInt(x) % P) + P) % P);
 }
 
 /** The Cairo source of contracts/beast_sound/src/synth_settings.cairo. */
-export function settingsCairo(s) {
+export function settingsCairo(s, waveNames = beastWaves()) {
   const hash = poseidonHashMany(serializeSettings(s));
   const timbres = s.timbres.map((t) => {
-    const ops = t.operators.map((o) => `            op(${o.route}, Waveform::${o.wave}, ${OP_FIELDS.map((k) => o[k]).join(', ')}),`);
+    const wave = (w) => (typeof w === 'string' ? w : `Custom(${w.Custom})`);
+    const ops = t.operators.map((o) => `            op(${o.route}, Waveform::${wave(o.wave)}, ${OP_FIELDS.map((k) => o[k]).join(', ')}),`);
     return `        Timbre {\n            drum: ${t.drum}, slot: ${t.slot}, operators: array![\n    ${ops.join('\n    ')}\n            ]\n                .span(),\n        },`;
   });
+  const waves = s.waves.map((w) => `        WaveDef::Samples(array![${w.Samples.join(', ')}].span()),`);
   return `//! The Beast sound settings for onchain-tinysynth: the TinyChip presets Beast MIDI selects, in
-//! their own program slots, and its chip drum kit, with interim built-in waves until the class
-//! supports custom waves (issue #2). Generated by
+//! their own program slots, and its chip drum kit, with each pitched chip wave they use as a sampled
+//! custom wave. Generated by
 //! offchain/beast-sound/onchain/tinychip/synth_settings.mjs --cairo from the TinyChip bank; do not
 //! edit by hand.
-use midi_provider::synth::{Operator, SynthSettings, Timbre, Waveform};
+use midi_provider::synth::{Operator, SynthSettings, Timbre, WaveDef, Waveform};
 
 /// Poseidon hash of the settings' Serde, as the generator computes it (tests check Cairo agrees).
 pub const BEAST_SYNTH_SETTINGS_SERDE_HASH: felt252 =
     0x${hash.toString(16)};
-/// Quality ${s.quality}, reverb ${s.reverb}, volume ${s.master_vol}, ${s.voices} voices; ${s.timbres.length} timbres, one operator per line.
+/// Quality ${s.quality}, reverb ${s.reverb}, volume ${s.master_vol}, ${s.voices} voices; waves: ${waveNames.join(', ') || 'none'}; ${s.timbres.length} timbres, one operator per line.
 #[cairofmt::skip]
 pub fn beast_synth_settings() -> SynthSettings {
+    let waves = array![
+${waves.join('\n')}
+    ];
     let timbres = array![
 ${timbres.join('\n')}
     ];
@@ -161,7 +218,7 @@ ${timbres.join('\n')}
         reverb: ${s.reverb},
         master_vol: ${s.master_vol},
         voices: ${s.voices},
-        waves: [].span(),
+        waves: waves.span(),
         timbres: timbres.span(),
     }
 }

@@ -137,9 +137,8 @@ export const MEGA_LEADS = [50, 65];
  *           octave copy plays the other
  *   double  the lead doubled an octave up on its own channel (panned opposite), three quarters as loud
  *   groove  the mega drum groove (drumEvents)
- *   lift    the last section a whole step up (forms of two or more sections)
  */
-export const MEGA_ALL = { lead: true, double: true, groove: true, lift: true };
+export const MEGA_ALL = { lead: true, double: true, groove: true };
 
 /**
  * A rendered Beast (engine.render or engine_v11's render) -> self-contained SMF bytes.
@@ -150,8 +149,8 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
   const f = result.form, p = result.params, length = formLength(f);
   const setup = voiceSetup(f.events);
   if (instruments === 'beast') for (const [v, program] of Object.entries(beastInstruments(result))) if (setup[v]) setup[v].program = program;
-  let notes = f.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]);
-  const sec = f.section_ticks, sections = Math.round(length / sec);
+  const notes = f.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]);
+  const sec = f.section_ticks;
   // the lead: the voice with the highest mean pitch, ties by the higher voice id
   const st = {};
   for (const [, , pitch, , v] of notes) { const s = (st[v] ||= { sum: 0, n: 0 }); s.sum += pitch; s.n += 1; }
@@ -165,10 +164,6 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
     for (const [t, d, pitch, vel, v] of notes.slice()) {
       if (v === lead && pitch + 12 <= 127) notes.push([t, d, pitch + 12, Math.max(1, Math.floor(vel * 3 / 4)), ch]);
     }
-  }
-  if (mega.lift && sections >= 2) {
-    const from = (sections - 1) * sec;
-    notes = notes.map((n) => (n[0] >= from && n[2] + 2 <= 127 ? [n[0], n[1], n[2] + 2, n[3], n[4]] : n));
   }
   return fullMidi(notes, p.tempo_us, length, setup, drumEvents(length, sec, p.tier, !!mega.groove));
 }

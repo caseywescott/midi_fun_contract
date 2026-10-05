@@ -73,7 +73,6 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 <label><input type="checkbox" id="o-lead" checked><span>Mega lead preset<small>the lead on Robot Hero Lead (50) or N163 Brass Wave (65), picked per Beast</small></span></label>
 <label><input type="checkbox" id="o-double" checked><span>Octave doubling<small>the lead an octave up, panned opposite (with the mega lead: the other of 50 and 65)</small></span></label>
 <label><input type="checkbox" id="o-groove" checked><span>Mega groove<small>sixteenth hats, an extra kick, a crash on every section</small></span></label>
-<label><input type="checkbox" id="o-lift" checked><span>Final lift<small>the last section a whole step up, home again on the loop</small></span></label>
 </div></div>
 <div class="card"><pre id="info"></pre></div>
 </main>
@@ -101,7 +100,7 @@ function make() {
   const shiny = mega && $('o-shiny').checked ? 1 : 0;
   const beast = { ...x.beast, shiny };
   const r = $('composer').value === 'v1' ? BS.engine.render(beast, live) : BS.v11.render(beast, live, { keys: 'mode', even: true, traj: true });
-  const opts = mega ? { lead: $('o-lead').checked, double: $('o-double').checked, groove: $('o-groove').checked, lift: $('o-lift').checked } : {};
+  const opts = mega ? { lead: $('o-lead').checked, double: $('o-double').checked, groove: $('o-groove').checked } : {};
   const midi = BS.beastFullMidi(r, BS.engine.formLength, opts, { instruments: $('instruments').value });
   const pg = programsOf(midi), cs = r.params.use_countersubject ? r.params.voice_count : -1, dbl = Math.max(...Object.keys(pg).map(Number));
   const roleOf = (v) => (v === 0 ? 'theme' : v === cs ? 'countersubject' : opts.double && v === dbl ? 'octave double' : 'follower ' + v);
@@ -130,7 +129,7 @@ $('play').onclick = start;
 $('stop').onclick = () => { if (synth) synth.stopMIDI(); playing = false; };
 $('normal').onclick = () => { mega = false; $('normal').classList.add('on'); $('mega').classList.remove('on'); refresh(); };
 $('mega').onclick = () => { mega = true; $('mega').classList.add('on'); $('normal').classList.remove('on'); refresh(); };
-for (const id of ['beast', 'instruments', 'composer', 'o-shiny', 'o-lead', 'o-double', 'o-groove', 'o-lift']) $(id).onchange = refresh;
+for (const id of ['beast', 'instruments', 'composer', 'o-shiny', 'o-lead', 'o-double', 'o-groove']) $(id).onchange = refresh;
 make();
 </script></body></html>`;
 writeFileSync(here + '../public/onchain/mega.html', html);

@@ -90,19 +90,29 @@ value from the same bank data as the runtime:
 
 - **Timbres:** the programs the self-contained Beast MIDI selects (`BEAST_PROGRAMS`; for now only
   the Triangle Lead, bank 0, on every voice, until the preset set is chosen) as custom timbres in
-  their own program slots, and the chip kit on the 11 drum notes Beast MIDI plays: 12 timbres, 16
-  operators, 894 bytes of `SETTINGS`. Quality 1, the class's default reverb (30) and volume (40).
-  `timbreOperators` builds any of the 20 essentials, and `interim_check.mjs` checks all 20.
-- **Interim waves:** these settings were written while the class rejected custom waves (it has
-  accepted them since page.9, issue #2), so each sampled chip wave is rebuilt from TinySynth's own
-  (table in `synth_settings.mjs`). The 25% pulse is exact in
-  magnitude spectrum (two squares), the 12.5% pulse close (three), and the NES triangle a smooth
-  triangle plus its step error (a saw 32 times faster). Every timbre is loudness-matched to its
-  original: tonal timbres within 0.21 dB, noise drums within the noise's own render-to-render
-  spread. Brightness (spectral centroid) stays within 0.7-1.3x except the triangle voices (0.4-0.6x,
-  the steps are only approximated) and the triangle kick and toms (0.25x, cleaner than the
-  4-bit originals). Moving to custom waves makes the waves `SynthSettings.waves` and puts the
-  operators back to one per wave.
+  their own program slots, and the chip kit on the 11 drum notes Beast MIDI plays: 12 timbres, 14
+  operators and two waves (34 samples), 928 bytes of `SETTINGS`. Quality 1, the class's default reverb
+  (30) and volume (40). `beastSynthSettings(data, programs, drums)` builds any of the 20 essentials,
+  and `interim_check.mjs` checks all 20.
+- **Sampled waves:** every pitched chip wave the selected presets and drums use is a custom wave
+  (`WaveDef::Samples`), so a preset added to `BEAST_PROGRAMS` gets its exact wave with nothing else
+  to change. Each table is one cycle of the wave from `tinysynth-chip.js`'s own `registerWaves`, one
+  i8 sample per step (`clamp(round(x * 128), -128, 127)`); `STEPS` in `synth_settings.mjs` lists the
+  19 pitched waves and their steps per cycle, and the generator checks each one is exactly stepwise.
+  `SynthSettings.waves` holds only the waves the selection uses, in `STEPS` order, and each
+  operator's `Waveform::Custom(i)` points into it. onchain-tinysynth's player registers them with the
+  engine's `setSampleWave`, which plays a table sample-and-hold at the note's pitch as TinyChip's
+  own looped buffer does, so the operators keep their original level and are no longer split. Today
+  that is the 50% pulse (the snare) and the NES triangle (the Triangle Lead, kick and toms); all 20
+  essentials use five (12.5%, 25% and 50% pulse, triangle, 4-bit saw). The 50% pulse is a table
+  too because TinySynth's square is band-limited, duller than TinyChip's (Square Lead brightness
+  0.87x as a square, 0.96x as two samples).
+- **Built-in waves:** the LFSR noises stay TinySynth's white and metallic noise.
+- **Loudness:** with exact tables, every essential and drum is within 0.04 dB of TinyChip's own
+  (tolerance 0.5 dB), noise drums within the noise's render-to-render spread. Brightness (spectral
+  centroid) is 0.57-1.03x for the essentials and 0.91-1.03x for the drums. With all 20 essentials
+  and the drums, `SETTINGS` is 2,927 bytes and 46 operators, against 4,180 bytes and 75 operators
+  when the chip waves were approximated with built-in waves.
 - **Cairo:** `contracts/beast_sound/src/synth_settings.cairo` (`beast_synth_settings()`) is generated
   from the same function, with onchain-tinysynth's own types (re-exported by
   `midi_provider::synth`); tests check its Serde hash against the generator's and run the class's

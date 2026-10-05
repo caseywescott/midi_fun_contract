@@ -1,5 +1,6 @@
-// How close the SynthSettings timbres (synth_settings.mjs, built-in waves) come to TinyChip's own
-// presets and drums (sampled chip waves), rendered offline in Chrome through one TinySynth engine:
+// How close the SynthSettings timbres (synth_settings.mjs: built-in waves, and the sampled waves
+// registered as onchain-tinysynth's player does) come to TinyChip's own presets and drums (sampled
+// chip waves), rendered offline in Chrome through one TinySynth engine:
 //   PLAYWRIGHT_CORE=/path/to/node_modules/playwright-core node onchain/tinychip/interim_check.mjs <engine.min.js>
 //   (onchain-tinysynth's pinned engine: tests/vendor/webaudio-tinysynth-<ref>.min.js in its repo;
 //   CHROME=/path/to/chrome to override the browser; default: macOS Google Chrome)
@@ -15,7 +16,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { bankData, ESSENTIALS } from './essentials.mjs';
-import { BEAST_DRUMS, TIMBRE_TRIM, timbreOperators } from './synth_settings.mjs';
+import { BEAST_DRUMS, beastSynthSettings } from './synth_settings.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const TOLERANCE_DB = 0.5, NOISE_TOLERANCE_DB = 1;
@@ -27,11 +28,9 @@ const D = { g: 0, w: 'sine', t: 1, f: 0, v: 0.5, a: 0, h: 0.01, d: 0.01, s: 0, r
 const W = { Sine: 'sine', Square: 'square', Sawtooth: 'sawtooth', Triangle: 'triangle', WhiteNoise: 'n0', MetallicNoise: 'n1' };
 const data = bankData();
 // every essential, not only the ones the settings carry now, so any can be chosen
-const settings = { timbres: [
-  ...ESSENTIALS.map((id) => ({ drum: false, slot: id, operators: timbreOperators(data.presets[id], TIMBRE_TRIM[id] ?? 1) })),
-  ...BEAST_DRUMS.map((key) => ({ drum: true, slot: key, operators: timbreOperators(data.drums[key]) })),
-] };
-const tinysynth = (ops) => ops.map((o) => ({ g: o.route, w: W[o.wave], v: o.volume / 1e4, t: o.ratio / 1e4, f: o.offset_hz / 1e4, a: o.attack / 1e4, h: o.hold / 1e4, d: o.decay / 1e4, s: o.sustain / 1e4, r: o.release / 1e4, p: o.pitch_ratio / 1e4, q: o.pitch_time / 1e4, k: o.key_scale / 1e4 }));
+const settings = beastSynthSettings(data, ESSENTIALS, BEAST_DRUMS);
+// Custom(i) plays wave i as onchain-tinysynth's player registers it (player/settings.js waveName)
+const tinysynth = (ops) => ops.map((o) => ({ g: o.route, w: typeof o.wave === 'string' ? W[o.wave] : 'nS' + o.wave.Custom, v: o.volume / 1e4, t: o.ratio / 1e4, f: o.offset_hz / 1e4, a: o.attack / 1e4, h: o.hold / 1e4, d: o.decay / 1e4, s: o.sustain / 1e4, r: o.release / 1e4, p: o.pitch_ratio / 1e4, q: o.pitch_time / 1e4, k: o.key_scale / 1e4 }));
 const items = settings.timbres.map((t) => ({
   drum: t.drum, slot: t.slot, noise: t.operators.some((o) => o.wave === 'WhiteNoise' || o.wave === 'MetallicNoise'),
   orig: (t.drum ? data.drums[t.slot] : data.presets[t.slot]).map((o) => ({ ...D, ...o })),
@@ -42,7 +41,7 @@ const waves = runtime.slice(runtime.indexOf('  function lfsr'), runtime.indexOf(
 
 const dir = mkdtempSync(join(tmpdir(), 'tinychip-interim-'));
 writeFileSync(join(dir, 'ts.js'), readFileSync(engine));
-writeFileSync(join(dir, 'items.js'), `window.ITEMS = ${JSON.stringify(items)};\n${waves}\nwindow.registerWaves = registerWaves;`);
+writeFileSync(join(dir, 'items.js'), `window.ITEMS = ${JSON.stringify(items)};\nwindow.SAMPLED = ${JSON.stringify(settings.waves.map((w) => w.Samples))};\n${waves}\nwindow.registerWaves = registerWaves;`);
 writeFileSync(join(dir, 'measure.html'), `<!doctype html><body><script src="ts.js"></script><script src="items.js"></script><script>
 window.addEventListener('unhandledrejection', (e) => e.preventDefault());
 function centroid(d, c0, SR) {
@@ -70,6 +69,7 @@ window.measure = async (which) => {
   const synth = new WebAudioTinySynth({ quality: 1, useReverb: 0, voices: 4096 });
   synth.setAudioContext(off, shelf);
   if (which === 'orig') registerWaves(synth);
+  else SAMPLED.forEach((s, i) => synth.setSampleWave('nS' + i, s.map((v) => v / 128)));
   ITEMS.forEach((it) => synth.setTimbre(it.drum ? 1 : 0, it.slot, it[which]));
   ITEMS.forEach((it, i) => {
     const t0 = 0.05 + i * SLOT;

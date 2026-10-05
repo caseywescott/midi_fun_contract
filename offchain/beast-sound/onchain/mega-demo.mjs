@@ -23,7 +23,9 @@ const composer = (await build({
 })).outputFiles[0].text;
 const W = { Sine: 'sine', Square: 'square', Sawtooth: 'sawtooth', Triangle: 'triangle', WhiteNoise: 'n0', MetallicNoise: 'n1' };
 const settings = beastSynthSettings();
-const timbres = settings.timbres.map((t) => [t.drum ? 1 : 0, t.slot, t.operators.map((o) => ({ g: o.route, w: W[o.wave], v: o.volume / 1e4, t: o.ratio / 1e4, f: o.offset_hz / 1e4, a: o.attack / 1e4, h: o.hold / 1e4, d: o.decay / 1e4, s: o.sustain / 1e4, r: o.release / 1e4, p: o.pitch_ratio / 1e4, q: o.pitch_time / 1e4, k: o.key_scale / 1e4 }))]);
+// Custom(i) plays settings.waves[i] (Samples), registered under the name onchain-tinysynth's player gives it
+const waves = settings.waves.map((w) => w.Samples.map((v) => v / 128));
+const timbres = settings.timbres.map((t) => [t.drum ? 1 : 0, t.slot, t.operators.map((o) => ({ g: o.route, w: typeof o.wave === 'string' ? W[o.wave] : 'nS' + o.wave.Custom, v: o.volume / 1e4, t: o.ratio / 1e4, f: o.offset_hz / 1e4, a: o.attack / 1e4, h: o.hold / 1e4, d: o.decay / 1e4, s: o.sustain / 1e4, r: o.release / 1e4, p: o.pitch_ratio / 1e4, q: o.pitch_time / 1e4, k: o.key_scale / 1e4 }))]);
 
 // the compare page's Beasts: the Warlock with its demo stats, then the gallery (most voices first)
 const fx = JSON.parse(readFileSync(here + 'fixtures/warlock_v3.json', 'utf8'));
@@ -73,7 +75,7 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 <script>${NOTICE}\n${inline(tiny)}</script>
 <script>${inline(composer)}</script>
 <script>
-const TIMBRES = ${JSON.stringify(timbres)};
+const TIMBRES = ${JSON.stringify(timbres)}, WAVES = ${JSON.stringify(waves)};
 const BEASTS = ${JSON.stringify(BEASTS)};
 const $ = (id) => document.getElementById(id);
 BEASTS.forEach((x, i) => $('beast').add(new Option(x.name + '  (tier ' + x.beast.tier + (x.beast.shiny ? ', shiny' : '') + ')', i)));
@@ -93,6 +95,7 @@ function ensure() {
   if (synth) return synth;
   synth = new WebAudioTinySynth({ quality: 1, useReverb: 1, voices: 64 });
   synth.setQuality(${settings.quality}); synth.setMasterVol(${settings.master_vol} / 100); synth.setVoices(${settings.voices});
+  WAVES.forEach((s, i) => synth.setSampleWave('nS' + i, s));
   for (const [drum, slot, ops] of TIMBRES) synth.setTimbre(drum, slot, ops.map((o) => ({ ...o })));
   return synth;
 }

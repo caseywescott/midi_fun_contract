@@ -100,7 +100,7 @@ pub impl TrackWriterImpl of TrackWriterTrait {
 
     /// Time of the last event written.
     fn time(self: @TrackWriter) -> u32 {
-        *self.time
+        self.time
     }
 
     fn is_empty(self: @TrackWriter) -> bool {

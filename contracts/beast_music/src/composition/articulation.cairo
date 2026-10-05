@@ -148,9 +148,9 @@ pub fn apply_articulation_plan(
             .append(
                 NoteEvent {
                     time: e.time,
-                    duration: articulation_duration(e.duration, art_safe, *plan.min_duration),
+                    duration: articulation_duration(e.duration, art_safe, plan.min_duration),
                     pitch: e.pitch,
-                    velocity: articulation_velocity(e.velocity, art_safe, *plan.velocity_ceiling),
+                    velocity: articulation_velocity(e.velocity, art_safe, plan.velocity_ceiling),
                     voice_id: e.voice_id,
                 },
             );

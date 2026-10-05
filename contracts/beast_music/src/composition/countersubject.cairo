@@ -156,7 +156,7 @@ pub fn generate_countersubject(
 
     let hw: i32 = REGISTER_BAND;
     let start_deg = nearest_safe_cs_degree(
-        *config.start_offset, *subject_degrees.at(0), *config.enforce_invertible, -hw, hw,
+        config.start_offset, *subject_degrees.at(0), config.enforce_invertible, -hw, hw,
     );
     let mut degrees: Array<i32> = ArrayTrait::new();
     degrees.append(start_deg);
@@ -169,17 +169,17 @@ pub fn generate_countersubject(
         let cs_cur = *degrees.at(degrees.len() - 1);
         let subject_next = *subject_degrees.at(p);
         let cands = cs_candidates(
-            cs_cur, subject_next, *config.max_step, *config.enforce_invertible, -hw, hw,
+            cs_cur, subject_next, config.max_step, config.enforce_invertible, -hw, hw,
         );
         // If invertibility is required, relax melodic step size before relaxing IC.
         let pool: Array<i32> = if cands.len() > 0 {
             cands
-        } else if *config.enforce_invertible {
+        } else if config.enforce_invertible {
             cs_candidates(cs_cur, subject_next, 14, true, -hw, hw)
         } else {
-            cs_candidates(cs_cur, subject_next, *config.max_step, false, -hw, hw)
+            cs_candidates(cs_cur, subject_next, config.max_step, false, -hw, hw)
         };
-        if *config.enforce_invertible {
+        if config.enforce_invertible {
             assert(pool.len() > 0, 'no ic cs candidate');
         }
         // Last-resort: allow any in-band step
@@ -187,7 +187,7 @@ pub fn generate_countersubject(
             pool
         } else {
             let mut fb: Array<i32> = ArrayTrait::new();
-            let max_s: i32 = (*config.max_step).try_into().unwrap();
+            let max_s: i32 = config.max_step.try_into().unwrap();
             let mut m: i32 = -max_s;
             loop {
                 if m > max_s {
@@ -223,11 +223,11 @@ pub fn generate_countersubject(
 pub fn countersubject_to_note_events(
     cs: @Countersubject, start_time: u32, voice_id: u32,
 ) -> Array<NoteEvent> {
-    let degs = cs.degrees;
-    let unit = *cs.time_unit;
-    let octave = *cs.octave;
-    let mode = *cs.mode_id;
-    let tonic = *cs.tonic_keynum;
+    let degs = @cs.degrees;
+    let unit = cs.time_unit;
+    let octave = cs.octave;
+    let mode = cs.mode_id;
+    let tonic = cs.tonic_keynum;
     let mut out: Array<NoteEvent> = ArrayTrait::new();
     let mut p: u32 = 0;
     loop {

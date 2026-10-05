@@ -543,8 +543,8 @@ pub fn beast_form_to_smf_bytes(form: @BeastForm, tempo_us: u32) -> Array<u8> {
     let events = form.events.span();
     let mut max_voice: u32 = 0;
     for e in events {
-        if *e.voice_id > max_voice {
-            max_voice = *e.voice_id;
+        if e.voice_id > max_voice {
+            max_voice = e.voice_id;
         }
     }
 
@@ -552,16 +552,16 @@ pub fn beast_form_to_smf_bytes(form: @BeastForm, tempo_us: u32) -> Array<u8> {
     // the form
     let mut tempo = TrackWriterTrait::new();
     tempo.tempo(0, tempo_us);
-    let mut tracks: Array<Array<u8>> = array![tempo.finish_at(*form.length_ticks)];
+    let mut tracks: Array<Array<u8>> = array![tempo.finish_at(form.length_ticks)];
 
     let mut v: u32 = 0;
     while v <= max_voice {
         let ch: u8 = (v % 16).try_into().unwrap();
         let mut track = TrackWriterTrait::new();
         for e in events {
-            if *e.voice_id == v {
-                track.note_on(*e.time, ch, *e.pitch, *e.velocity);
-                track.note_off(*e.time + *e.duration, ch, *e.pitch, 64);
+            if e.voice_id == v {
+                track.note_on(e.time, ch, e.pitch, e.velocity);
+                track.note_off(e.time + e.duration, ch, e.pitch, 64);
             }
         }
         if !track.is_empty() {
@@ -667,7 +667,7 @@ pub fn beast_form_to_bsn_bytes(form: @BeastForm, params: BeastCompositionParams)
     let events = form.events.span();
     assert(events.len() > 0, 'empty score');
     let grid: u32 = crate::composition::beast_score::BEAST_TIME_UNIT;
-    let duration = *events.at(0).duration;
+    let duration = events.at(0).duration;
 
     // Pass 1: validate the grid assumptions and count runs.
     let mut runs: u32 = 0;
@@ -724,7 +724,7 @@ pub fn beast_form_to_bsn_bytes(form: @BeastForm, params: BeastCompositionParams)
     }
     // Trailer (after the runs, so older decoders ignore it): the form length in beats, so a client
     // rebuilds the exact MIDI file, End of Track included.
-    let length_ticks = *form.length_ticks;
+    let length_ticks = form.length_ticks;
     assert(length_ticks % grid == 0, 'bsn length off grid');
     bw_push(ref w, length_ticks / grid, 12);
     bw_finish(w)
@@ -778,7 +778,7 @@ pub fn beast_form_to_bsi_felts(form: @BeastForm, tempo_us: u32) -> Array<felt252
     let count: u32 = events.len() + 2;
     assert(count < 0x1000000, 'bsi too long');
     assert(tempo_us < 0x1000000, 'bsi bad tempo');
-    let length_ticks = *form.length_ticks;
+    let length_ticks = form.length_ticks;
     assert(length_ticks < 0x1000000, 'bsi bad length');
     let mut out: Array<felt252> = array![];
     let mut acc: felt252 = 0;

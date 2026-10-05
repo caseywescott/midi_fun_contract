@@ -599,20 +599,20 @@ fn v11_parity_range(lo: u64, hi: u64) {
         // interleave
         let mut max_voice: u32 = 0;
         for e in score.events.span() {
-            if *e.voice_id > max_voice {
-                max_voice = *e.voice_id;
+            if e.voice_id > max_voice {
+                max_voice = e.voice_id;
             }
         }
         let mut flat: Array<felt252> = array![];
         let mut v: u32 = 0;
         while v <= max_voice {
             for e in score.events.span() {
-                if *e.voice_id == v {
-                    flat.append((*e.time).into());
-                    flat.append((*e.duration).into());
-                    flat.append((*e.pitch).into());
-                    flat.append((*e.velocity).into());
-                    flat.append((*e.voice_id).into());
+                if e.voice_id == v {
+                    flat.append(e.time.into());
+                    flat.append(e.duration.into());
+                    flat.append(e.pitch.into());
+                    flat.append(e.velocity.into());
+                    flat.append(e.voice_id.into());
                 }
             }
             v += 1;

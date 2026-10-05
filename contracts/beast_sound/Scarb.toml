@@ -1,7 +1,7 @@
 [package]
 name = "beast_sound"
 version = "0.1.0"
-edition = "2024_07"
+edition = "2025_12"
 
 [dependencies]
 beast_music = { path = "../beast_music" }

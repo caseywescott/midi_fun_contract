@@ -143,7 +143,7 @@ fn theme_rhythm(
     p: @BeastCompositionParams, degrees: Span<i32>, motif_seed: felt252,
 ) -> Array<Slot> {
     let groups = degrees.len() / 4;
-    let fam = family(*p.weakness);
+    let fam = family(p.weakness);
     let seed: u256 = motif_seed.into();
     let mut h: u32 = (seed % 4294967291).try_into().unwrap();
     let mut slots: Array<Slot> = array![];
@@ -156,7 +156,7 @@ fn theme_rhythm(
             *fam.at(h % 2)
         } else {
             let n = *fam.at(h % 4);
-            if has_passing(n) && (h / 256) % 8 >= (*p.ornament_density).into() + 2 {
+            if has_passing(n) && (h / 256) % 8 >= p.ornament_density.into() + 2 {
                 0
             } else {
                 n
@@ -186,9 +186,9 @@ fn theme_rhythm(
     while i < n {
         let mut s = *slots.at(i);
         if s.src == SRC_PASSING {
-            let a = *slots.at(i - 1).degree;
+            let a = slots.at(i - 1).degree;
             let b = if i + 1 < n {
-                *slots.at(i + 1).degree
+                slots.at(i + 1).degree
             } else {
                 0
             };
@@ -284,13 +284,13 @@ fn fifths_plan(n: u32, r: i32) -> Array<i32> {
 
 /// Scale-degree shift per section (a diatonic fifth is 4 steps), in the nearest register.
 fn degree_plan(p: @BeastCompositionParams) -> Array<i32> {
-    let side: i32 = if *p.weakness == 1 {
+    let side: i32 = if p.weakness == 1 {
         -1
     } else {
         1
     };
     let mut out: Array<i32> = array![];
-    for f in fifths_plan((*p.section_count).into(), reach(*p.tier)) {
+    for f in fifths_plan(p.section_count.into(), reach(p.tier)) {
         let dg = (f * side * 4 + 700) % 7;
         out.append(if dg > 3 {
             dg - 7
@@ -428,7 +428,7 @@ fn choose_pitch(
                 let before_ic: u32 = if has_prev {
                     let b = grid.get(cell_key(u, prev_cell));
                     if b != 0 {
-                        ic32(prev_pitch, (*placed.at(b - 1).pitch).into())
+                        ic32(prev_pitch, (placed.at(b - 1).pitch).into())
                     } else {
                         12
                     }
@@ -630,7 +630,7 @@ fn episode(
     if t + 240 > end {
         return;
     }
-    let head0 = *head.at(0).degree;
+    let head0 = head.at(0).degree;
     let next_bar = offset + ((t - offset + BAR - 1) / BAR) * BAR;
     let full_bars = if end >= next_bar {
         (end - next_bar) / BAR
@@ -684,9 +684,9 @@ fn episode(
                 ref grid,
                 voices,
                 ref prev,
-                t + *h.time,
-                *h.duration,
-                near(r, m, *h.degree + dir * ki).span(),
+                t + h.time,
+                h.duration,
+                near(r, m, h.degree + dir * ki).span(),
                 voice,
             );
         }
@@ -748,13 +748,13 @@ fn build_section(
         DEV_SEQUENCE
     };
     let lag: u32 = if s > 0 && dev == DEV_STRETTO {
-        if *p.stretto_lag > 2 {
-            *p.stretto_lag - 1
+        if p.stretto_lag > 2 {
+            p.stretto_lag - 1
         } else {
             1
         }
     } else {
-        *p.stretto_lag
+        p.stretto_lag
     };
     let mut slots: Array<Slot> = array![];
     if s > 0 && dev == DEV_STRETTO {
@@ -774,10 +774,10 @@ fn build_section(
         }
     } else if s > 0 && dev == DEV_INVERSION {
         // mirrored around the first degree, passing notes absorbed: calmer; still ends on the tonic
-        let d0 = *slots_in.at(0).degree;
+        let d0 = slots_in.at(0).degree;
         let mut kept: Array<Slot> = array![];
         for sl in slots_in {
-            if *sl.src != SRC_PASSING && *sl.src != SRC_TRILL {
+            if sl.src != SRC_PASSING && sl.src != SRC_TRILL {
                 kept.append(*sl);
             }
         }
@@ -786,7 +786,7 @@ fn build_section(
         while i < n {
             let sl = *kept.at(i);
             let end = if i + 1 < n {
-                *kept.at(i + 1).time
+                kept.at(i + 1).time
             } else {
                 sl.time + sl.duration
             };
@@ -805,21 +805,21 @@ fn build_section(
     }
     let slots = slots.span();
     let offs = offsets(tr.spacing);
-    let sc: u32 = (*p.section_count).into();
+    let sc: u32 = p.section_count.into();
     let next = if s + 1 < sc {
         s + 1
     } else {
         0
     };
-    let mode = canonical_to_melodic_mode(*p.mode_id);
-    let home = transposed_tonic(*p.tonic_keynum, 0);
+    let mode = canonical_to_melodic_mode(p.mode_id);
+    let home = transposed_tonic(p.tonic_keynum, 0);
     let scale = mode_scale(mode);
     let r = realizer(*plan.at(s % plan.len()), home, scale);
     let next_shift = *plan.at(next % plan.len());
     let mut out: Array<NoteEvent> = array![];
     let mut grid: Felt252Dict<u32> = Default::default();
     // canon voices, then the countersubject's voice id
-    let voices = *p.voice_count + if *p.use_countersubject {
+    let voices = p.voice_count + if p.use_countersubject {
         1
     } else {
         0
@@ -829,18 +829,18 @@ fn build_section(
     let mut offs_used: Array<i32> = array![];
     let mut lasts: Array<NoteEvent> = array![];
     let mut v: u32 = 0;
-    while v < *p.voice_count {
+    while v < p.voice_count {
         let entry = v * lag * TU;
         let off = if v < 4 {
             *offs.at(v)
         } else {
             *offs.at(3)
         };
-        let m = VoiceMap { invert: *p.use_inversion && v == 1, off };
+        let m = VoiceMap { invert: p.use_inversion && v == 1, off };
         let mut prev: Option<NoteEvent> = Option::None;
         for sl in slots {
-            let base = map_degree(m, *sl.degree);
-            let time = offset + entry + *sl.time;
+            let base = map_degree(m, sl.degree);
+            let time = offset + entry + sl.time;
             let pitch = if v == 0 {
                 realize(r, base)
             } else {
@@ -851,11 +851,9 @@ fn build_section(
                     (12, realize(r, base + 2)),
                     (12, realize(r, base - 2)),
                 ];
-                choose_pitch(
-                    cands.span(), time, *sl.duration, out.span(), ref grid, voices, v, prev,
-                )
+                choose_pitch(cands.span(), time, sl.duration, out.span(), ref grid, voices, v, prev)
             };
-            let e = NoteEvent { time, duration: *sl.duration, pitch, velocity: 90, voice_id: v };
+            let e = NoteEvent { time, duration: sl.duration, pitch, velocity: 90, voice_id: v };
             put(ref out, ref grid, e);
             prev = Option::Some(e);
         }
@@ -865,7 +863,7 @@ fn build_section(
         v += 1;
     }
     let mut cs_head: Array<Slot> = array![];
-    if *p.use_countersubject {
+    if p.use_countersubject {
         // v1's countersubject in steady quarters against the rhythmic subject, voice-checked
         let cs = generate_countersubject(
             theme, @default_countersubject_config(), cs_seed, 7, mode, home, TU,
@@ -877,9 +875,9 @@ fn build_section(
             let time = offset + i * TU;
             let cands = near(r, ident, *d);
             let pitch = choose_pitch(
-                cands.span(), time, TU, out.span(), ref grid, voices, *p.voice_count, prev,
+                cands.span(), time, TU, out.span(), ref grid, voices, p.voice_count, prev,
             );
-            let e = NoteEvent { time, duration: TU, pitch, velocity: 90, voice_id: *p.voice_count };
+            let e = NoteEvent { time, duration: TU, pitch, velocity: 90, voice_id: p.voice_count };
             put(ref out, ref grid, e);
             prev = Option::Some(e);
             if i < 4 {
@@ -908,7 +906,7 @@ fn build_section(
     }
     let mut head: Array<Slot> = array![];
     for sl in slots {
-        if *sl.group == 0 {
+        if sl.group == 0 {
             head.append(*sl);
         }
     }
@@ -921,7 +919,7 @@ fn build_section(
     let nvo = lasts.len();
     let mut x: u32 = 0;
     while x < nvo {
-        let is_cs = *p.use_countersubject && x == nvo - 1;
+        let is_cs = p.use_countersubject && x == nvo - 1;
         let h = if is_cs {
             cs_head.span()
         } else {
@@ -1009,26 +1007,26 @@ fn trajectory(
 fn shape(
     ref events: Array<NoteEvent>, p: @BeastCompositionParams, section_ticks: u32, prominence: u32,
 ) {
-    let ceil: u32 = if *p.velocity_ceiling == 0 {
+    let ceil: u32 = if p.velocity_ceiling == 0 {
         127
     } else {
-        (*p.velocity_ceiling).into()
+        p.velocity_ceiling.into()
     };
     let mut lo: Felt252Dict<u8> = Default::default();
     let mut hi: Felt252Dict<u8> = Default::default();
     let mut seen: Felt252Dict<bool> = Default::default();
     for e in events.span() {
-        let key: felt252 = ((*e.voice_id) * 4096 + *e.time / section_ticks).into();
+        let key: felt252 = (e.voice_id * 4096 + e.time / section_ticks).into();
         if !seen.get(key) {
             seen.insert(key, true);
-            lo.insert(key, *e.pitch);
-            hi.insert(key, *e.pitch);
+            lo.insert(key, e.pitch);
+            hi.insert(key, e.pitch);
         } else {
-            if *e.pitch < lo.get(key) {
-                lo.insert(key, *e.pitch);
+            if e.pitch < lo.get(key) {
+                lo.insert(key, e.pitch);
             }
-            if *e.pitch > hi.get(key) {
-                hi.insert(key, *e.pitch);
+            if e.pitch > hi.get(key) {
+                hi.insert(key, e.pitch);
             }
         }
     }
@@ -1066,14 +1064,14 @@ fn shape(
         } else {
             v
         }).try_into().unwrap();
-        let duration = if *p.articulation_profile == 1 {
+        let duration = if p.articulation_profile == 1 {
             let x = e.duration / 2;
             if x > 60 {
                 x
             } else {
                 60
             }
-        } else if *p.articulation_profile == 5 {
+        } else if p.articulation_profile == 5 {
             let x = e.duration * 3 / 4;
             if x > 60 {
                 x
@@ -1122,7 +1120,7 @@ pub fn build_v11_score(beast: PackableBeastV3, live: BeastV3LiveState) -> V11Sco
             let sl = *slots.at(i);
             if sl.src == SRC_PASSING && sl.duration >= 240 {
                 let half = sl.duration / 2;
-                let before = *slots.at(i - 1).degree;
+                let before = slots.at(i - 1).degree;
                 out.append(Slot { src: SRC_TRILL, duration: half, degree: before + 1, ..sl });
                 out
                     .append(
@@ -1144,8 +1142,8 @@ pub fn build_v11_score(beast: PackableBeastV3, live: BeastV3LiveState) -> V11Sco
     // even: the canon's end plus an episode of 1 or 2 bars, whichever makes the section even
     let mut theme_end: u32 = 0;
     for sl in slots.span() {
-        if *sl.time + *sl.duration > theme_end {
-            theme_end = *sl.time + *sl.duration;
+        if sl.time + sl.duration > theme_end {
+            theme_end = sl.time + sl.duration;
         }
     }
     let canon_end = theme_end + (p.voice_count - 1) * p.stretto_lag * TU;
@@ -1184,11 +1182,11 @@ pub fn build_v11_score(beast: PackableBeastV3, live: BeastV3LiveState) -> V11Sco
 /// The v1.1 score as a form for the MIDI writers (no score hash: the self-contained writer does not
 /// use it).
 pub fn v11_form(score: @V11Score) -> BeastForm {
-    let sc = *score.params.section_count;
+    let sc = score.params.section_count;
     let mut events: Array<NoteEvent> = array![];
     events.append_span(score.events.span());
     BeastForm {
-        events, score_hash: 0, section_count: sc, length_ticks: sc.into() * *score.section_ticks,
+        events, score_hash: 0, section_count: sc, length_ticks: sc.into() * score.section_ticks,
     }
 }
 

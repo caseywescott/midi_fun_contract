@@ -17,7 +17,8 @@ NFT token_uri ──► MidiSoundPage.token_uri(members, svg_b64, token_address,
                             data:text/html;base64, [TinySynth + player][MIDI as base64][SVG]
 ```
 
-- `contracts/midi_provider`: the generic `IMidiProvider` interface and a non-Beast example provider.
+- `contracts/midi_provider`: the generic `IMidiProvider` interface, onchain-tinysynth's types and
+  `ISoundProvider` (re-exported), and a non-Beast example provider.
 - `contracts/beast_sound`: `BeastMidiProvider`, which validates the collection and token and reads
   the Beast's live state itself (see its README for sources and missing-state behavior).
 - `cairo/` (`beast_sound_page`): `MidiSoundPage`, configured with one provider at deploy.
@@ -168,7 +169,7 @@ The MIDI was 816, 2,991 and 3,716 bytes in those three states.
 | Class | Sierra felts | CASM felts (limit 81,920) |
 |---|---:|---:|
 | `MidiSoundPage` | 26,462 | 24,202 (15,828 with the PR encoder) |
-| `BeastMidiProvider` | 9,623 | 22,574 |
+| `BeastMidiProvider` (composer v1.1, Cairo 2.20.1) | 23,103 | 49,648 |
 | `beasts_nft`, patched (unpatched) | 33,046 (32,753) | 74,927 (74,062) |
 
 ### Assembly alone (cairo-test estimate)

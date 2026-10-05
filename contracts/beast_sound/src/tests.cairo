@@ -5,7 +5,10 @@ use beast_music::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, encode_v3_token_id,
 };
 use core::dict::{Felt252Dict, Felt252DictTrait};
-use midi_provider::synth::{ISynthSettingsProviderDispatcher, ISynthSettingsProviderDispatcherTrait};
+use midi_provider::synth::{
+    ISoundProviderDispatcher, ISoundProviderDispatcherTrait, ISynthSettingsProviderDispatcher,
+    ISynthSettingsProviderDispatcherTrait, TokenSound,
+};
 use midi_provider::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
 use starknet::syscalls::deploy_syscall;
 use starknet::{ClassHash, ContractAddress};
@@ -468,14 +471,13 @@ fn beast_synth_settings_serialize_as_generated() {
     );
 }
 
-/// The checks onchain-tinysynth's `settings::validate` applies (at 973f4cf), so `midi_segment`
-/// accepts these settings: slots, operator counts, routes, built-in waves only, no filters and the
-/// interim engine limits on volume, ratio, sustain, pitch ratio and key scaling.
+/// onchain-tinysynth's own `settings::validate` (the checks `midi_segment` applies) accepts the
+/// settings, and they cover the program the self-contained MIDI selects and every drum note it
+/// plays.
 #[test]
 fn beast_synth_settings_pass_the_class_checks() {
     let s = crate::synth_settings::beast_synth_settings();
-    assert!(s.quality <= 1 && s.voices >= 1 && s.waves.len() == 0);
-    assert!(s.timbres.len() <= 175);
+    midi_provider::synth::validate(@s);
     let mut programs: Felt252Dict<bool> = Default::default();
     for t in s.timbres {
         let key: felt252 = (*t.slot).into() + if *t.drum {
@@ -483,32 +485,7 @@ fn beast_synth_settings_pass_the_class_checks() {
         } else {
             0
         };
-        assert!(!programs.get(key), "slot twice");
         programs.insert(key, true);
-        if *t.drum {
-            assert!(*t.slot >= 35 && *t.slot <= 81);
-        } else {
-            assert!(*t.slot <= 127);
-        }
-        let n = t.operators.len();
-        assert!(n >= 1 && n <= 8);
-        let mut i: u32 = 0;
-        for o in t.operators {
-            let route: u32 = (*o.route).into();
-            if route >= 1 && route <= 10 {
-                assert!(route <= i, "FM target");
-            } else if route >= 11 {
-                assert!(route <= 18 && route - 10 <= i, "AM target");
-            }
-            match *o.wave {
-                midi_provider::synth::Waveform::Custom(_) => panic!("custom wave"),
-                _ => {},
-            }
-            assert!(o.filter.is_none());
-            assert!(*o.volume <= 1_000_000 && *o.ratio <= 640_000 && *o.sustain <= 1_000_000);
-            assert!(*o.pitch_ratio <= 160_000 && *o.key_scale >= -80_000 && *o.key_scale <= 80_000);
-            i += 1;
-        }
     }
     // The program the self-contained MIDI selects and the drum notes it plays.
     assert!(
@@ -536,4 +513,27 @@ fn get_settings_rejects_invalid_token_ids() {
     let w = setup();
     ISynthSettingsProviderDispatcher { contract_address: w.midi.contract_address }
         .get_settings(1_u256 * 0x10000000000000000000000000000000);
+}
+
+/// onchain-tinysynth's `ISoundProvider` rule: `get_sound` is `get_midi` and `get_settings` in one
+/// call, for a minted Beast with live state.
+#[test]
+fn get_sound_is_get_midi_and_get_settings() {
+    let w = setup();
+    let b = sorrow_peak_warlock();
+    let token_id = set_state(w, b, live(40, 8, 1, 954));
+    let address = w.midi.contract_address;
+    let sound = ISoundProviderDispatcher { contract_address: address }.get_sound(token_id);
+    let settings = ISynthSettingsProviderDispatcher { contract_address: address }
+        .get_settings(token_id);
+    assert_eq!(sound, TokenSound { midi: w.midi.get_midi(token_id), settings });
+    assert_eq!(sound.midi, composer_midi(b, live(40, 8, 1, 954)));
+}
+
+#[test]
+#[should_panic(expected: ('ERC721: invalid token ID', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn get_sound_rejects_unminted_tokens() {
+    let w = setup();
+    ISoundProviderDispatcher { contract_address: w.midi.contract_address }
+        .get_sound(encode_v3_token_id(sorrow_peak_warlock()));
 }

@@ -1,8 +1,11 @@
 //! BeastMidiProvider: a Beasts V3 token's theme behind the generic `IMidiProvider` interface.
 //!
 //! `get_midi(token_id)` needs nothing else (`get_midi_for(token_address, token_id)` also checks the
-//! collection). The provider validates the token, decodes the static traits from the token ID,
-//! reads the live state itself and runs composer v1.1 (`beast_music::composition::beast_v11`: same
+//! collection), and `get_settings(token_id)` (`ISynthSettingsProvider`) gives the sounds the MIDI
+//! is written for. `get_sound(token_id)`, onchain-tinysynth's `ISoundProvider`, returns both in one
+//! call (`TokenSound { midi, settings }`, equal to `get_midi` and `get_settings`). The provider
+//! validates the token, decodes the static traits from the token ID, reads the live state itself
+//! and runs composer v1.1 (`beast_music::composition::beast_v11`: same
 //! mode, even phrases, history), so the MIDI is byte-identical to `v11_score_full_midi` for the
 //! same state: the score plus a program change and pan on every voice
 //! at tick 0 and a drum track on channel 10, so a player that adds nothing (onchain-tinysynth)
@@ -103,7 +106,7 @@ pub mod BeastMidiProvider {
     };
     use core::num::traits::Zero;
     use core::poseidon::poseidon_hash_span;
-    use midi_provider::synth::{ISynthSettingsProvider, SynthSettings};
+    use midi_provider::synth::{ISoundProvider, ISynthSettingsProvider, SynthSettings, TokenSound};
     use midi_provider::{IMidiProvider, bytes_to_byte_array};
     use starknet::ContractAddress;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
@@ -127,15 +130,13 @@ pub mod BeastMidiProvider {
     #[abi(embed_v0)]
     impl MidiProviderImpl of IMidiProvider<ContractState> {
         fn get_midi(self: @ContractState, token_id: u256) -> ByteArray {
-            let (beast, report) = read_live_state(self, self.collection.read(), token_id);
-            bytes_to_byte_array(v11_score_full_smf_bytes(beast, report.live).span())
+            midi(self, self.collection.read(), token_id)
         }
 
         fn get_midi_for(
             self: @ContractState, token_address: ContractAddress, token_id: u256,
         ) -> ByteArray {
-            let (beast, report) = read_live_state(self, token_address, token_id);
-            bytes_to_byte_array(v11_score_full_smf_bytes(beast, report.live).span())
+            midi(self, token_address, token_id)
         }
     }
 
@@ -146,7 +147,17 @@ pub mod BeastMidiProvider {
         /// value.
         fn get_settings(self: @ContractState, token_id: u256) -> SynthSettings {
             decode_v3_token_id(token_id);
-            crate::synth_settings::beast_synth_settings()
+            settings()
+        }
+    }
+
+    #[abi(embed_v0)]
+    impl SoundProviderImpl of ISoundProvider<ContractState> {
+        /// `get_midi(token_id)` and `get_settings(token_id)` in one call, reading the live state
+        /// once.
+        fn get_sound(self: @ContractState, token_id: u256) -> TokenSound {
+            // `midi` validates the token ID, so the settings need no second check.
+            TokenSound { midi: midi(self, self.collection.read(), token_id), settings: settings() }
         }
     }
 
@@ -166,6 +177,17 @@ pub mod BeastMidiProvider {
         fn get_engine_version(self: @ContractState) -> u32 {
             BEAST_V3_ENGINE_VERSION
         }
+    }
+
+    /// The token's composer v1.1 MIDI from its live state, after checking the collection.
+    fn midi(self: @ContractState, token_address: ContractAddress, token_id: u256) -> ByteArray {
+        let (beast, report) = read_live_state(self, token_address, token_id);
+        bytes_to_byte_array(v11_score_full_smf_bytes(beast, report.live).span())
+    }
+
+    /// The Beast sound settings.
+    fn settings() -> SynthSettings {
+        crate::synth_settings::beast_synth_settings()
     }
 
     fn read_live_state(

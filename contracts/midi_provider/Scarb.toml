@@ -2,14 +2,15 @@
 name = "midi_provider"
 version = "0.1.0"
 edition = "2024_07"
-cairo-version = "2.11.4"
 
 [dependencies]
 midi = { path = "../midi" }
-starknet = "2.11.4"
+# SynthSettings, TokenSound, ISoundProvider and settings::validate (Provable-Games/onchain-tinysynth).
+onchain_tinysynth = { git = "https://github.com/Provable-Games/onchain-tinysynth", rev = "7033262bbbc1b81d397f6d8230a46693a7bdb5a4" }
+starknet = "2.20.1"
 
 [dev-dependencies]
-cairo_test = "2.11.4"
+cairo_test = "2.20.1"
 
 [lib]
 

@@ -32,7 +32,7 @@ provider: the page does, and the provider only calls the NFT's state getters
 
 ## Deploy (separate step, not done here)
 
-1. Declare and deploy `BeastMidiProvider` (`contracts/beast_sound`, scarb 2.11.4). Constructor:
+1. Declare and deploy `BeastMidiProvider` (`contracts/beast_sound`, scarb 2.20.1). Constructor:
    the Beasts NFT address.
 2. Declare and deploy `MidiSoundPage` (`onchain/cairo`). Constructor: the provider address.
 3. Upgrade or redeploy `beasts_nft` with the patch.

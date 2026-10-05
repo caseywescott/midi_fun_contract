@@ -3,11 +3,37 @@ name: Tests
 on: [push, pull_request]
 
 jobs:
-  check:
+  # The root koji library (scarb 2.11.4, as in /.tool-versions).
+  koji:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: software-mansion/setup-scarb@v1
         with:
-          scarb-version: "2.6.3"
+          scarb-version: "2.11.4"
+      - run: scarb test
+
+  # The Beast Sound packages (scarb 2.20.1, as in contracts/.tool-versions and
+  # offchain/beast-sound/onchain/cairo/.tool-versions). The parity fixtures are #[ignore]d here:
+  # they need several GB per batch; run them locally (contracts/beast_music/README.md).
+  contracts:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - contracts/midi
+          - contracts/beast_music
+          - contracts/midi_provider
+          - contracts/beast_sound
+          - offchain/beast-sound/onchain/cairo
+    defaults:
+      run:
+        working-directory: ${{ matrix.package }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: software-mansion/setup-scarb@v1
+        with:
+          scarb-version: "2.20.1"
+      - run: scarb fmt --check
       - run: scarb test

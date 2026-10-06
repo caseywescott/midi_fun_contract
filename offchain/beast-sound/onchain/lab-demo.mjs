@@ -58,7 +58,7 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 .ab button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.ab button.mega.on{border-color:var(--acc2);background:color-mix(in srgb,var(--acc2) 18%,var(--bg))}
 .ctl{display:flex;gap:10px;margin-top:12px}.ctl button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--fg);color:var(--bg);font:600 15px system-ui;cursor:pointer}.ctl button.stop{background:var(--bg);color:var(--fg)}
 .chk{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}@media(max-width:520px){.chk{grid-template-columns:1fr}}.chk label{display:flex;gap:8px;align-items:flex-start;color:var(--fg);font-size:14px;margin:0}.chk small{display:block;color:var(--mut);font-size:12px}
-#info{font:12px/1.6 ui-monospace,monospace;color:var(--mut);white-space:pre-wrap;margin:0}
+#roll{width:100%;height:220px;display:block;border-radius:8px;background:color-mix(in srgb,var(--fg) 4%,var(--card))}.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:13px}.legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}#info{font:12px/1.6 ui-monospace,monospace;color:var(--mut);white-space:pre-wrap;margin:0}
 button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:600 13px system-ui;cursor:pointer}.offer{margin:12px 0 8px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px;font-size:14px;line-height:1.45}.offer b{font-size:15px}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}input[type=text],input[type=number]{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:13px ui-monospace,monospace}.tabs button{padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 14px system-ui;cursor:pointer}.tabs button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.panel{display:none}.panel.on{display:block}input[type=range]{width:100%}.note{font-size:13px;color:var(--mut);margin:8px 0 0}.beastcard{display:grid;grid-template-columns:125px 1fr;gap:16px;align-items:center}#art{width:125px;height:175px;border-radius:8px;object-fit:contain;background:#000}@media(max-width:420px){.beastcard{grid-template-columns:96px 1fr}#art{width:96px;height:134px}}\n</style></head><body><main>
 <h1>Beast Sound Lab</h1>
 <p class="sub">Composer v1.1 prototypes, played as onchain-midi-player plays a token_uri (the self-contained MIDI, the class's engine, the TinyChip timbres). Pick a Beast, sample its tracks by name and seed, then play; changes apply while playing.</p>
@@ -89,6 +89,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <label><input type="checkbox" id="y-avalanche" checked><span>Avalanche<small>a two-octave sixteenth run down to end each section</small></span></label>
 <label><input type="checkbox" id="y-stomp"><span>Stomp<small>three-quarter speed, kick every beat, bass an octave down (instead of rock)</small></span></label>
 </div><p class="note">Ideas for a Yeti special (species 68); picking this tab selects a Yeti.</p></div></div>
+<div class="card"><canvas id="roll" width="1600" height="440"></canvas><div id="legend" class="legend"></div><p class="note" id="clock"></p></div>
 <div class="card"><pre id="info"></pre></div>
 </main>
 <script>${NOTICE}\n${inline(tiny)}</script>
@@ -247,6 +248,76 @@ function programsOf(u8) {
     p += 8 + len; }
   return out;
 }
+// ── piano roll: the self-contained MIDI as played (notes by channel, drums on the bottom strip),
+// bar lines with bar numbers and seconds on top, and a playhead that follows the synth ──
+const ROLL_COLORS = ['#7a3cff', '#e0a800', '#1fb6a6', '#ff5c8a', '#4a90e2', '#f07b2a', '#8bc34a', '#c06bd6'];
+let rollData = null;
+function notesOf(u8) { // SMF notes [start, length, pitch, velocity, channel] in ticks
+  const tpq = (u8[12] << 8) | u8[13], n = (u8[10] << 8) | u8[11], out = [];
+  let p = 14, len = 0;
+  const vlq = (st) => { let v = 0, b; do { b = u8[st.i++]; v = (v << 7) | (b & 127); } while (b & 128); return v; };
+  for (let k = 0; k < n; k++) {
+    const L = (u8[p + 4] << 24) | (u8[p + 5] << 16) | (u8[p + 6] << 8) | u8[p + 7], st = { i: p + 8 }, end = p + 8 + L, on = {};
+    let t = 0, rs = 0;
+    while (st.i < end) {
+      t += vlq(st);
+      let s0 = u8[st.i];
+      if (s0 & 128) { st.i++; if (s0 < 0xf0) rs = s0; } else s0 = rs;
+      if (s0 === 0xff) { st.i++; st.i += vlq(st); continue; }
+      if (s0 === 0xf0 || s0 === 0xf7) { st.i += vlq(st); continue; }
+      const hi = s0 & 0xf0, ch = s0 & 15, a = u8[st.i++], c = hi === 0xc0 || hi === 0xd0 ? 0 : u8[st.i++];
+      if (hi === 0x90 && c > 0) (on[ch * 128 + a] ||= []).push([t, c]);
+      else if (hi === 0x80 || hi === 0x90) { const q = on[ch * 128 + a]; if (q && q.length) { const [t0, v] = q.shift(); out.push([t0, Math.max(1, t - t0), a, v, ch]); } }
+    }
+    for (const [key, q] of Object.entries(on)) for (const [t0, v] of q) out.push([t0, tpq / 8, key % 128, v, Math.floor(key / 128)]); // hits with no note-off (drums)
+    len = Math.max(len, t); p = end;
+  }
+  return { tpq, notes: out, len };
+}
+function drawRoll(tick) {
+  const c = $('roll'), ctx = c.getContext('2d'), W = c.width, H = c.height, d = rollData;
+  ctx.clearRect(0, 0, W, H);
+  if (!d || !d.notes.length) return;
+  const fg = getComputedStyle(document.body).color, top = 58, drumKeys = [...new Set(d.notes.filter((x) => x[4] === 9).map((x) => x[2]))].sort((a, b) => b - a), drumH = drumKeys.length ? Math.min(90, 14 * drumKeys.length + 8) : 0, mH = H - top - drumH - 6;
+  const pitched = d.notes.filter((x) => x[4] !== 9), lo = Math.min(...pitched.map((x) => x[2])) - 1, hi = Math.max(...pitched.map((x) => x[2])) + 1;
+  const X = (t) => t / d.len * W, bar = d.tpq * 4, secPerTick = 60 / tempo.bpm / d.tpq;
+  ctx.font = '20px system-ui'; ctx.textBaseline = 'top';
+  const bars = Math.ceil(d.len / bar), every = bars > 48 ? 4 : bars > 24 ? 2 : 1;
+  for (let b = 0; b <= bars; b++) {
+    const x = X(b * bar);
+    ctx.globalAlpha = b % 4 === 0 ? 0.28 : 0.12; ctx.fillStyle = fg; ctx.fillRect(x, top - 6, 1.5, H - top + 6);
+    if (b < bars && b % every === 0) { ctx.globalAlpha = 0.75; ctx.fillText(String(b + 1), x + 4, 2); }
+  }
+  // seconds along the top, right of the bar numbers' row
+  ctx.globalAlpha = 0.5; ctx.textAlign = 'right'; ctx.font = '18px system-ui';
+  const total = d.len * secPerTick, step = total > 60 ? 10 : 5;
+  for (let sct = step; sct < total; sct += step) { const x = X(sct / secPerTick); ctx.fillRect(x, top - 10, 1, 6); ctx.fillText(sct + 's', x - 3, 28); }
+  ctx.textAlign = 'left';
+  for (const [t, dur, pitch, vel, ch] of d.notes) {
+    ctx.fillStyle = ch === 9 ? fg : ROLL_COLORS[ch % ROLL_COLORS.length];
+    ctx.globalAlpha = (ch === 9 ? 0.25 : 0.35) + 0.6 * (vel / 127);
+    if (ch === 9) { const rh = (drumH - 8) / drumKeys.length; ctx.fillRect(X(t), H - drumH + 4 + drumKeys.indexOf(pitch) * rh, 5, Math.max(3, rh - 2)); continue; }
+    const rowH = mH / (hi - lo + 1);
+    ctx.fillRect(X(t), top + (hi - pitch) * rowH, Math.max(3, X(dur) - 1.5), Math.max(3, rowH - 1));
+  }
+  ctx.globalAlpha = 1;
+  if (tick != null) { ctx.fillStyle = fg; ctx.fillRect(X(tick), 0, 3, H); }
+  const fmt = (x) => Math.floor(x / 60) + ':' + String(Math.floor(x % 60)).padStart(2, '0');
+  $('clock').textContent = (tick != null ? fmt(tick * secPerTick) + ' / ' : '') + fmt(total) + ' \u00b7 ' + bars + ' bars at ' + Math.round(tempo.bpm) + ' BPM, looping';
+}
+function setRoll(midi) {
+  rollData = notesOf(midi);
+  const pg = programsOf(midi), chans = [...new Set(rollData.notes.map((x) => x[4]))].sort((a, b) => a - b);
+  $('legend').innerHTML = chans.map((ch) => '<span><i style="background:' + (ch === 9 ? 'var(--mut)' : ROLL_COLORS[ch % ROLL_COLORS.length]) + '"></i>ch' + (ch + 1) + ' ' + (ch === 9 ? 'drums' : (pg[ch] !== undefined ? (NAMES[pg[ch]] || 'program ' + pg[ch]) : '')) + '</span>').join('');
+  drawRoll(null);
+}
+(function rollLoop() {
+  if (playing && synth && rollData && synth.tick2Time) {
+    const t = synth.playTick - (synth.playTime - synth.actx.currentTime) / synth.tick2Time, loop = synth.loopEnd || synth.maxTick;
+    drawRoll(t < 0 ? 0 : t % loop);
+  }
+  requestAnimationFrame(rollLoop);
+})();
 function make() {
   const x = BEASTS[+$('beast').value], b = curBeast();
   let args = {}, head = '', out;
@@ -269,6 +340,7 @@ function make() {
   saveHash();
   const midi = out.midi;
   tempo = tempoOf(midi);
+  setRoll(midi);
   const pg = programsOf(midi);
   const ch = Object.entries(pg).map(([c, p]) => 'ch' + (+c + 1) + ' ' + p + ' ' + (NAMES[p] || '')).join(' \u00b7 ');
   $('info').textContent = head + '\\n' + TYPES[b.beast_type] + ' \u00b7 ' + midi.length + ' bytes MIDI\\n' + ch;
@@ -313,7 +385,7 @@ $('bpm-auto').onclick = () => setBpm(null);
 $('drift-on').onchange = () => { $('tday').disabled = !$('drift-on').checked; refresh(); };
 $('tday').oninput = () => { $('tdayv').textContent = age(+$('tday').value); refresh(); };
 $('play').onclick = start;
-$('stop').onclick = () => { if (synth) synth.stopMIDI(); playing = false; stopFollowing(); };
+$('stop').onclick = () => { if (synth) synth.stopMIDI(); playing = false; stopFollowing(); drawRoll(null); };
 $('speed').onchange = () => renderArt(playing);
 $('beast').onchange = refresh;
 $('day').oninput = () => { $('dayv').textContent = age(+$('day').value); refresh(); };

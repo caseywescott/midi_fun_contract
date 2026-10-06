@@ -2,6 +2,8 @@
 // v1.1 and the self-contained MIDI, through onchain-midi-player's pinned engine with all 20 TinyChip
 // timbres: event tracks (from each Beast's real Death Mountain records, onchain/.events-cache.json),
 // the scale-start progression, the never-ending drift, and Yeti specials.
+// Every Beast's card is shown animated and tempo-synced (onchain/lab-sprites.mjs: its species GIF as a PNG
+// sprite sheet stepped on the beat, the card's loops on whole beats, restarted at each pass as heard).
 //   node onchain/events-cache.mjs && node onchain/lab-demo.mjs <onchain-midi-player>/tests/vendor/webaudio-tinysynth-<ref>.min.js
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +11,7 @@ import { build } from 'esbuild';
 import { beastSynthSettings } from './tinychip/synth_settings.mjs';
 import { ESSENTIALS, loadBank } from './tinychip/essentials.mjs';
 import { decodeTokenId } from '../src/index.js';
+import { spriteKey, spriteSheet } from './lab-sprites.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const engineFile = process.argv[2];
@@ -32,10 +35,12 @@ const gallery = JSON.parse(readFileSync(here + '../public/onchain/gallery.json',
 const events = JSON.parse(readFileSync(here + '.events-cache.json', 'utf8'));
 const plain = (b) => Object.fromEntries(Object.entries(b).map(([k, v]) => [k, typeof v === 'bigint' ? Number(v) : v]));
 const BEASTS = [
-  { name: fx.name + ' (demo stats)', art: 'data:image/svg+xml;base64,' + fx.svg_b64, beast: plain(decodeTokenId(BigInt(fx.token_id))), live: { adventurers_killed: 412, scars: 7, summit_held_seconds: 0, rank: 3, species_count: 1243 }, events: events.warlock },
+  { name: fx.name + ' (demo stats)', art: 'data:image/svg+xml;base64,' + fx.svg_b64, sp: spriteKey(decodeTokenId(BigInt(fx.token_id))), beast: plain(decodeTokenId(BigInt(fx.token_id))), live: { adventurers_killed: 412, scars: 7, summit_held_seconds: 0, rank: 3, species_count: 1243 }, events: events.warlock },
   ...gallery.map((g) => ({ g, ...cache[g.token] })).sort((a, b) => (b.g.voices ?? 0) - (a.g.voices ?? 0) || (b.g.notes ?? 0) - (a.g.notes ?? 0))
-    .map(({ g, beast, live }) => ({ name: g.name + ' #' + g.token, art: 'beasts/' + g.token + '.svg', beast: plain(beast), live, events: events[g.token] })),
+    .map(({ g, beast, live }) => ({ name: g.name + ' #' + g.token, art: 'beasts/' + g.token + '.svg', sp: spriteKey(beast), beast: plain(beast), live, events: events[g.token] })),
 ];
+// Every Beast is shown animated: its species GIF (shiny variant for shiny Beasts) as a PNG sprite sheet.
+const SPRITES = Object.fromEntries([...new Set(BEASTS.map((x) => x.sp))].sort().map((k) => { const { n, w, png } = spriteSheet(k); return [k, { n, w, png }]; }));
 
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -58,7 +63,9 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 <h1>Beast Sound Lab</h1>
 <p class="sub">Four prototypes on composer v1.1, played as onchain-midi-player plays a token_uri (the self-contained MIDI, the class's engine, the TinyChip timbres). Pick a Beast, a tab, then play; changes apply while playing.</p>
 <div class="card beastcard"><img id="art" alt="" width="125" height="175"><div><label for="beast">Beast</label><select id="beast"></select>
-<div class="ctl"><button id="play">&#9654; Play</button><button id="stop" class="stop">&#9632; Stop</button></div></div></div>
+<div class="ctl"><button id="play">&#9654; Play</button><button id="stop" class="stop">&#9632; Stop</button></div>
+<label for="speed" style="margin-top:12px">Art speed (one sprite frame per)</label><select id="speed"><option value="auto" selected>Auto: eighth note, quarter above 150 BPM</option><option value="0.5">Eighth note</option><option value="1">Quarter note</option><option value="2">Half note</option></select>
+<p class="note" id="artinfo"></p></div></div>
 <div class="card"><div class="tabs"><button id="t-track" class="on">Event tracks</button><button id="t-progression">Progression</button><button id="t-drift">Drift</button><button id="t-yeti">Yeti</button></div>
 <div id="p-track" class="panel on" style="margin-top:14px"><div class="row" style="grid-template-columns:2fr 1fr"><div><label for="track">Track (Beasts V3 change_track)</label><select id="track"></select></div><div><label for="variation">Variation</label><select id="variation"><option value="0">Original (free)</option><option value="1">Variation 1 (1 $SKULL)</option><option value="2">Variation 2 (1 $SKULL)</option><option value="3">Variation 3 (1 $SKULL)</option></select></div></div>
 <p class="note">Origin: the Beast with no history. Each kill or defeat in its Death Mountain record makes a track: kills get the inverted development and rising episodes, defeats a tighter stretto, falling episodes and softer notes; the event's seed makes the rest of the choices. Beasts with no events get an example kill and defeat.</p></div>
@@ -80,14 +87,118 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 <script>
 const TIMBRES = ${JSON.stringify(timbres)}, WAVES = ${JSON.stringify(waves)}, NAMES = ${JSON.stringify(PRESET_NAMES)};
 const BEASTS = ${JSON.stringify(BEASTS)};
+const SPRITES = ${JSON.stringify(SPRITES)};
 const L = BS.lab, $ = (id) => document.getElementById(id);
 const TYPES = ['Magic', 'Hunter', 'Brute'];
 let mode = 'track', synth = null, playing = false, reroll = 0;
 BEASTS.forEach((x, i) => $('beast').add(new Option(x.name + '  (tier ' + x.beast.tier + (x.beast.id === 68 ? ', YETI' : '') + ')', i)));
 const day = (ts) => ts ? new Date(ts * 1000).toISOString().slice(0, 10) : 'undated';
-function showArt() { $('art').src = BEASTS[+$('beast').value].art; $('art').alt = BEASTS[+$('beast').value].name; }
+// ── Tempo-synced art (loothero's "BPM animation sync", as in Provable-Games/beast-sound-check) ──
+// Every Beast is shown animated: the card's art element is replaced by its species GIF as a PNG
+// sprite sheet in a nested <svg> viewport, stepped by a discrete SMIL <animate> whose frame is a
+// note value (by default an eighth, a quarter above 150 BPM). The card's own SMIL loops run on
+// whole beats (keep-alive 4, shiny rim rotation 16, logo pulse 8). Like the onchain player, the art
+// restarts (a fresh blob URL, so a new animation timeline) when tick 0 of each pass is heard.
+let tempo = { bpm: 120, tpq: 480, tempos: 0, pass: 0 }, artRun = 0, artShown = 0;
+const svgText = {};
+function tempoOf(u8) { // the MIDI's tempo meta (FF 51 03, microseconds per quarter) and ticks per quarter
+  let uspq = 500000, n = 0;
+  for (let i = 14; i + 5 < u8.length; i++) if (u8[i] === 0xff && u8[i + 1] === 0x51 && u8[i + 2] === 3) { if (!n++) uspq = (u8[i + 3] << 16) | (u8[i + 4] << 8) | u8[i + 5]; i += 5; }
+  return { bpm: 60e6 / uspq, tpq: (u8[12] << 8) | u8[13], tempos: n, pass: 0 };
+}
+function cardSvg(i) { // the card SVG text: the Warlock's data URI, or the gallery card fetched once
+  const x = BEASTS[i];
+  if (!svgText[i]) {
+    svgText[i] = x.art.startsWith('data:') ? Promise.resolve(new TextDecoder().decode(Uint8Array.from(atob(x.art.slice(x.art.indexOf(',') + 1)), (c) => c.charCodeAt(0))))
+      : fetch(x.art).then((r) => { if (!r.ok) throw new Error(x.art + ': HTTP ' + r.status); return r.text(); });
+    svgText[i].catch(() => { delete svgText[i]; });
+  }
+  return svgText[i];
+}
+const CARD_BEATS = { '2.2s': 4, '6s': 16, '3s': 8 }; // the card's loops, as in beast-sound-check's "Card synced"
+const secs = (v) => String(+v.toFixed(6)) + 's';
+function beatsPerFrame(bpm) { const v = $('speed').value; return v === 'auto' ? (bpm > 150 ? 1 : 0.5) : +v; }
+function artTiming(i) {
+  const sp = SPRITES[BEASTS[i].sp], beat = 60 / tempo.bpm, bpf = beatsPerFrame(tempo.bpm);
+  return { key: BEASTS[i].sp, frames: sp.n, bpm: +tempo.bpm.toFixed(2), beatsPerFrame: bpf, frameMs: +(beat * bpf * 1000).toFixed(1), dur: secs(sp.n * beat * bpf), beat };
+}
+// The synced SVG. phase (seconds into the pass) starts every loop that far in (a negative begin),
+// for a change made while playing.
+function syncSvg(svg, i, phase) {
+  const sp = SPRITES[BEASTS[i].sp], t = artTiming(i), begin = phase > 0 ? " begin='-" + secs(phase) + "'" : '';
+  svg = svg.replace(/<(animate|animateTransform)\\b([^>]*?) dur='([^']+)'/g, (m, tag, pre, d) => {
+    const beats = CARD_BEATS[d] || Math.max(1, Math.round(parseFloat(d) / t.beat));
+    return '<' + tag + pre + " dur='" + secs(beats * t.beat) + "'" + begin;
+  });
+  const sprite = (x, y, w, h) => "<svg x='" + x + "' y='" + y + "' width='" + w + "' height='" + h + "' viewBox='0 0 " + sp.w + ' ' + sp.w + "'><image x='0' y='0' width='" + sp.n * sp.w + "' height='" + sp.w
+    + "' style='image-rendering:pixelated; image-rendering:-moz-crisp-edges; -ms-interpolation-mode:nearest-neighbor;' href='data:image/png;base64," + sp.png + "'><animate attributeName='x' values='"
+    + Array.from({ length: sp.n }, (_, k) => k ? -k * sp.w : 0).join(';') + "' dur='" + t.dur + "' calcMode='discrete' repeatCount='indefinite'" + begin + "/></image></svg>";
+  const attr = (s, a) => (new RegExp('\\\\b' + a + "='([^']*)'").exec(s) || [])[1];
+  const fo = /<foreignObject\\b[^>]*>[\\s\\S]*?<\\/foreignObject>/.exec(svg) || /<image\\b[^>]*href='data:image\\/(?:gif|png)[^']*'[^>]*?(?:\\/>|>\\s*<\\/image>)/.exec(svg);
+  if (!fo) throw new Error('no art element in the card SVG');
+  const el = fo[0], head = el.slice(0, el.indexOf('>'));
+  return svg.slice(0, fo.index) + sprite(attr(head, 'x') || 0, attr(head, 'y') || 0, attr(head, 'width') || 128, attr(head, 'height') || 128) + svg.slice(fo.index + el.length);
+}
+let artKey = '';
+// Shows the art for the current Beast, tempo and speed as a fresh blob URL, swapped in once decoded.
+// live: playing, so start the loops at the pass position heard now.
+async function renderArt(live, force) {
+  const i = +$('beast').value, x = BEASTS[i], t = artTiming(i), key = i + '|' + t.dur;
+  if (!force && !live && key === artKey) return;
+  artKey = key;
+  const n = ++artRun;
+  let svg = null, phase = 0;
+  try { svg = await cardSvg(i); } catch (e) { console.warn(e); }
+  if (n !== artRun) return;
+  if (live && synth) { // seconds since tick 0 of the pass being heard
+    const ctx = synth.getAudioContext(), st = synth.getPlayStatus().startTime;
+    phase = ctx.currentTime - (ctx.outputLatency || 0) - st;
+    if (tempo.pass > 0) phase = ((phase % tempo.pass) + tempo.pass) % tempo.pass;
+  }
+  let url = x.art;
+  try { if (svg) url = URL.createObjectURL(new Blob([syncSvg(svg, i, phase)], { type: 'image/svg+xml' })); }
+  catch (e) { console.warn(e); }
+  const img = new Image();
+  img.id = 'art'; img.alt = x.name; img.width = 125; img.height = 175;
+  img.onload = img.onerror = () => {
+    if (n < artShown) { if (url.startsWith('blob:')) URL.revokeObjectURL(url); return; }
+    artShown = n;
+    const old = $('art');
+    old.replaceWith(img);
+    if (old.src.startsWith('blob:')) URL.revokeObjectURL(old.src);
+  };
+  img.src = url;
+  const note = { 0.5: 'eighth note', 1: 'quarter note', 2: 'half note' }[t.beatsPerFrame];
+  window.LAB_ART = { ...t, synced: url.startsWith('blob:') };
+  $('artinfo').textContent = 'Art: species ' + (x.beast.shiny ? x.beast.id + ' shiny' : x.beast.id) + ', ' + t.frames + ' frames, one per ' + note + ' (' + t.frameMs + ' ms) at ' + t.bpm + ' BPM'
+    + (tempo.tempos > 1 ? ' (first of ' + tempo.tempos + ' tempos)' : '') + '; loop ' + t.dur + '; card loops 4, 16 and 8 beats.' + (url.startsWith('blob:') ? '' : ' (card art not found; showing it unsynced)');
+}
+// Restart the art at tick 0 of each pass as heard (getPlayStatus().startTime plus outputLatency),
+// polling startTime every 50 ms as onchain-midi-player's player does; a pass start already past is skipped.
+let followRun = 0, followTimer = 0, followPoll = 0;
+function stopFollowing() { followRun++; clearTimeout(followTimer); clearInterval(followPoll); followTimer = 0; }
+function followPasses(s) {
+  stopFollowing();
+  const current = followRun, ctx = s.getAudioContext();
+  let synced;
+  const sync = (first) => {
+    if (current !== followRun || followTimer) return;
+    const latest = s.getPlayStatus().startTime, lag = ctx.outputLatency || 0;
+    if (latest === synced) return;
+    const delay = latest == null ? 0 : latest - ctx.currentTime + lag;
+    synced = latest;
+    if (!first && (latest == null || delay < 0)) return;
+    followTimer = setTimeout(() => {
+      followTimer = 0;
+      if (current !== followRun) return;
+      if (first || ctx.currentTime - latest - lag < 0.05) renderArt(false, true);
+      sync();
+    }, Math.max(0, delay * 1000));
+  };
+  sync(true);
+  followPoll = setInterval(() => sync(), 50);
+}
 function fillTracks() {
-  showArt();
   const x = BEASTS[+$('beast').value], ev = (x.events && x.events.events) || [];
   $('track').innerHTML = '';
   $('track').add(new Option('Origin (always available)', 'o'));
@@ -125,6 +236,7 @@ function make() {
     head = 'Yeti ideas: ' + Object.entries(args.ideas).filter(([, on]) => on).map(([k]) => k).join(' + ') + (b.id !== 68 ? ' (on a non-Yeti)' : '');
   }
   const out = L.labMidi(mode, b, x.live, args, BS.engine, BS.v11), midi = out.midi;
+  tempo = tempoOf(midi);
   const pg = programsOf(midi);
   const ch = Object.entries(pg).map(([c, p]) => 'ch' + (+c + 1) + ' ' + p + ' ' + (NAMES[p] || '')).join(' \u00b7 ');
   $('info').textContent = head + '\\n' + TYPES[b.beast_type] + ' \u00b7 ' + midi.length + ' bytes MIDI\\n' + ch;
@@ -143,8 +255,10 @@ function start() {
   s.getAudioContext().resume(); s.stopMIDI();
   s.loadMIDI(midi.buffer.slice(midi.byteOffset, midi.byteOffset + midi.length));
   s.setLoop(1); s.setLoopEnd(s.getPlayStatus().maxTick); s.playMIDI(); playing = true;
+  tempo.pass = s.getPlayStatus().maxTick / tempo.tpq * 60 / tempo.bpm;
+  followPasses(s);
 }
-function refresh() { if (playing) start(); else make(); }
+function refresh() { if (playing) start(); else { make(); renderArt(false); } }
 function tab(m) {
   mode = m; for (const t of ['track', 'progression', 'drift', 'yeti']) { $('t-' + t).classList.toggle('on', t === m); $('p-' + t).classList.toggle('on', t === m); }
   if (m === 'yeti' && BEASTS[+$('beast').value].beast.id !== 68) { const i = BEASTS.findIndex((x) => x.beast.id === 68); if (i >= 0) { $('beast').value = i; fillTracks(); } }
@@ -152,13 +266,14 @@ function tab(m) {
 }
 for (const t of ['track', 'progression', 'drift', 'yeti']) $('t-' + t).onclick = () => tab(t);
 $('play').onclick = start;
-$('stop').onclick = () => { if (synth) synth.stopMIDI(); playing = false; };
+$('stop').onclick = () => { if (synth) synth.stopMIDI(); playing = false; stopFollowing(); };
+$('speed').onchange = () => renderArt(playing);
 $('beast').onchange = () => { fillTracks(); refresh(); };
 $('level').oninput = () => { $('levelv').textContent = $('level').value; refresh(); };
 $('day').oninput = () => { $('dayv').textContent = $('day').value; refresh(); };
 $('reroll').onclick = () => { reroll++; refresh(); };
 for (const id of ['track', 'variation', 'y-rock', 'y-yodel', 'y-avalanche', 'y-stomp']) $(id).onchange = refresh;
-fillTracks(); make();
+fillTracks(); refresh();
 </script></body></html>`;
 writeFileSync(here + '../public/onchain/lab.html', html);
 console.log('public/onchain/lab.html', html.length, 'bytes');

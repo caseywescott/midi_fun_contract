@@ -377,8 +377,10 @@ export function channelPick(events, count, seed) {
 }
 
 // ── flourishes that grow with age: the one layer that accumulates ─────────────────────────────────
-// The theme voice gains ornaments in 16ths as the Beast ages: the share of eligible theme notes that
-// carry one rises from 0 toward FLOURISH_CAP (about two-thirds of it by the first year). Each note has a
+// Every playing voice gains ornaments in 16ths as the Beast ages: the share of a voice's eligible notes
+// that carry one rises from 0 toward FLOURISH_CAP on the theme and FLOURISH_CAP_OTHERS on the other voices
+// (about two-thirds of it by the first year), with one flourish per beat across the whole texture so they
+// trade off between voices; the lowest voice takes no trills or turns (they muddy a bass line). Each note has a
 // fixed hash threshold and shape, so a note keeps its flourish once it has one (while the composition is
 // the same). Eligible: theme notes a quarter or longer running straight into the next one; one per beat;
 // none in a section's last (cadence) bar; no added note a minor second or major seventh against another
@@ -390,13 +392,17 @@ export function channelPick(events, count, seed) {
 //   passing      the last 16th fills a third ahead with the step between
 //   anticipation the last 16th arrives early on the next pitch (a step ahead; now the rarest)
 // The track's ornament style (the name's suffix, as in v1.1) doubles the weight of trills or suspensions.
-export const FLOURISH_CAP = 0.12, FLOURISH_YEAR = 365;
-export const flourishShare = (day) => (day > 0 ? FLOURISH_CAP * (1 - Math.exp(-day / FLOURISH_YEAR)) : 0);
+export const FLOURISH_CAP = 0.08, FLOURISH_CAP_OTHERS = 0.04, FLOURISH_YEAR = 365;
+export const flourishShare = (day, cap = FLOURISH_CAP) => (day > 0 ? cap * (1 - Math.exp(-day / FLOURISH_YEAR)) : 0);
 export const FLOURISH_SHAPES = ['trill', 'mordent', 'turn', 'suspension', 'passing', 'anticipation'];
 export function addFlourishes(form, day, key, style = {}) {
   const share = flourishShare(day), S = 120, BEAT = 480, BAR = 1920;
   const ev = form.events.map((e) => ({ ...e }));
-  const theme = ev.filter((e) => e.voice_id === 0).sort((a, b) => a.time - b.time);
+  const byVoice = {};
+  for (const e of ev) (byVoice[e.voice_id] ||= []).push(e);
+  for (const v of Object.keys(byVoice)) byVoice[v].sort((a, b) => a.time - b.time);
+  const mean = (v) => byVoice[v].reduce((a, e) => a + e.pitch, 0) / byVoice[v].length;
+  const lowest = Object.keys(byVoice).map(Number).reduce((a, b) => (mean(b) < mean(a) ? b : a));
   const cnt = Array(12).fill(0);
   for (const e of ev) cnt[e.pitch % 12]++;
   const pcs = new Set(cnt.map((c, i) => [c, i]).filter(([c]) => c > 0).sort((a, b) => b[0] - a[0]).slice(0, 7).map(([, i]) => i));
@@ -404,20 +410,25 @@ export function addFlourishes(form, day, key, style = {}) {
   const step = (q, dir) => { for (let x = q + dir; Math.abs(x - q) <= 2; x += dir) if (inScale(x)) return x; return null; };
   // a brief rub is what ornaments do; only a minor second or a major seventh against another voice is out
   const harsh = (a, b) => [1, 11].includes(((a - b) % 12 + 12) % 12);
-  const clear = (t, dur, q) => !ev.some((o) => o.voice_id !== 0 && o.role !== 'flourish' && o.time < t + dur && o.time + o.duration > t && harsh(o.pitch, q));
+  const against = (self, t, dur, q, bad) => !ev.some((o) => o.voice_id !== self && o.time < t + dur && o.time + o.duration > t && bad(o.pitch, q));
   // the neighbour notes of a trill, mordent or turn rub for longer, so they also avoid the tritone
   const soft = (a, b) => [1, 6, 11].includes(((a - b) % 12 + 12) % 12);
-  const calm = (t, dur, q) => !ev.some((o) => o.voice_id !== 0 && o.role !== 'flourish' && o.time < t + dur && o.time + o.duration > t && soft(o.pitch, q));
   const beats = new Set(), added = [], touched = new Set();
-  const W = { trill: style.allow_trill ? 4 : 2, mordent: 2, turn: 4, suspension: style.allow_suspension ? 6 : 3, passing: 2, anticipation: 1 };
-  // notes in the order they unlock (lowest threshold first), so a flourish that appeared earlier keeps its
-  // place and later ones only take what is still free: the set only grows with age
-  const order = theme.slice(0, -1).map((e, i) => ({ i, h: H('BEAST_FLOURISH', key, i), orig: { time: e.time, duration: e.duration } }))
-    .map((x) => ({ ...x, th: Number(x.h % 10000n) / 10000 })).filter((x) => x.th < share).sort((a, b) => a.th - b.th || a.i - b.i);
-  for (const { i, h, orig } of order) {
-    const e = theme[i], nx = theme[i + 1];
-    if (touched.has(e) || touched.has(nx) || e.time !== orig.time || e.duration !== orig.duration || orig.duration < BEAT || nx.time !== orig.time + orig.duration) continue;
+  // notes in the order they unlock (lowest threshold first) across all voices, so a flourish that appeared
+  // earlier keeps its place and later ones only take what is still free: the set only grows with age
+  const order = [];
+  for (const [v, list] of Object.entries(byVoice)) {
+    const cap = +v === 0 ? FLOURISH_CAP : FLOURISH_CAP_OTHERS, vs = flourishShare(day, cap);
+    // th / cap: when this note unlocks on the shared age curve, comparable across voices with different caps
+    list.slice(0, -1).forEach((e, i) => { const h = H('BEAST_FLOURISH', key, +v, i), th = Number(h % 10000n) / 10000; if (th < vs) order.push({ v: +v, i, h, th: th / cap, orig: { time: e.time, duration: e.duration } }); });
+  }
+  order.sort((a, b) => a.th - b.th || a.v - b.v || a.i - b.i);
+  for (const { v, i, h, orig } of order) {
+    const list = byVoice[v], e = list[i], nx = list[i + 1], low = v === lowest && Object.keys(byVoice).length > 1;
+    const W = { trill: low ? 0 : style.allow_trill ? 4 : 2, mordent: 2, turn: low ? 0 : 4, suspension: style.allow_suspension ? 6 : 3, passing: 2, anticipation: 1 };
+    if (e.role === 'flourish' || touched.has(e) || touched.has(nx) || e.time !== orig.time || e.duration !== orig.duration || orig.duration < BEAT || nx.time !== orig.time + orig.duration) continue;
     if (e.time % form.section_ticks >= form.section_ticks - BAR || nx.time % form.section_ticks >= form.section_ticks - BAR) continue;
+    const clear = (t, dur, q) => against(v, t, dur, q, harsh), calm = (t, dur, q) => against(v, t, dur, q, soft);
     const iv = nx.pitch - e.pitch, up = step(e.pitch, 1), down = step(e.pitch, -1);
     const ok = {
       trill: up !== null, mordent: down !== null,
@@ -426,7 +437,7 @@ export function addFlourishes(form, day, key, style = {}) {
       passing: Math.abs(iv) === 3 || Math.abs(iv) === 4,
       anticipation: Math.abs(iv) === 1 || Math.abs(iv) === 2,
     };
-    const cands = FLOURISH_SHAPES.filter((x) => ok[x]);
+    const cands = FLOURISH_SHAPES.filter((x) => ok[x] && W[x] > 0);
     if (!cands.length) continue;
     let roll = Number((h / 10000n) % 1000n) % cands.reduce((a, x) => a + W[x], 0), shape = cands[0];
     for (const x of cands) { if (roll < W[x]) { shape = x; break; } roll -= W[x]; }
@@ -443,18 +454,18 @@ export function addFlourishes(form, day, key, style = {}) {
     if (shape === 'suspension') {
       if (!clear(nx.time, 2 * S, e.pitch)) continue;
       e.duration += 2 * S; nx.time += 2 * S; nx.duration -= 2 * S; touched.add(nx);
-      added.push({ time: e.time, pitch: e.pitch, shape, at: nx.time - 2 * S });
+      added.push({ voice: v, time: e.time, pitch: e.pitch, shape, at: nx.time - 2 * S });
     } else {
       if (!notes.every(([t, q]) => (q === e.pitch ? true : ['trill', 'mordent', 'turn'].includes(shape) ? calm(t, S, q) : clear(t, S, q)))) continue;
       if (cutStart) { e.time += cutStart; e.duration -= cutStart; }
       if (cutEnd) e.duration -= cutEnd;
       notes.forEach(([t, q], k) => ev.push({ ...e, time: t, duration: S, pitch: q, velocity: Math.max(1, (cutStart ? e.velocity : e.velocity - 10) - (k ? 8 : 0)), role: 'flourish' }));
-      added.push({ time: notes[0][0], pitch: notes[0][1], shape, notes });
+      added.push({ voice: v, time: notes[0][0], pitch: notes[0][1], shape, notes });
     }
     bs.forEach((x) => beats.add(x)); touched.add(e);
   }
   ev.sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
-  return { form: { ...form, events: ev.filter((x) => x.duration > 0) }, added, eligible: theme.length - 1, share };
+  return { form: { ...form, events: ev.filter((x) => x.duration > 0) }, added, share };
 }
 
 export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null } = {}, E, v11) {
@@ -498,15 +509,16 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   let drums = d.knob === 3 ? (length, sec, tier, mega) => drumEvents(length, sec, tier >= 5 ? 4 : tier + 1, mega) : null;
   const p = { ...r.params, ...(override.params || {}) };
   let out = r, playing = null, fl = null;
-  if (flourishDay) { fl = addFlourishes(r.form, flourishDay, H('BEAST_FLOURISH_KEY', entityHash(b), name, seed ?? 0n), orn); out = { ...r, form: fl.form }; }
   if (full) {
     const count = channels === 'rarity' ? channelCount(seed, b.tier) : Math.min(6, Math.max(3, +channels));
-    playing = channelPick(out.form.events.filter((e) => e.role !== 'flourish'), count, d.v === 2 && d.rotate !== null ? d.rotate : seed);
+    playing = channelPick(out.form.events, count, d.v === 2 && d.rotate !== null ? d.rotate : seed);
     out = { ...out, form: { ...out.form, events: out.form.events.filter((e) => playing.includes(e.voice_id)) } };
     if (!playing.includes('drums')) drums = false;
   }
+  // flourishes on the voices that play (after the channel filter)
+  if (flourishDay) { fl = addFlourishes(out.form, flourishDay, H('BEAST_FLOURISH_KEY', entityHash(b), name, seed ?? 0n), orn); out = { ...out, form: fl.form }; }
   const info = { key: keyName(p), voices: p.voice_count, sections: p.section_count, tempo: Math.round(60e6 / (override.tempo_us || p.tempo_us)), ...r.v11.trajectory,
-    flourishes: fl ? { count: fl.added.length, share: fl.share, notes: fl.added.flatMap((x) => (x.notes ? x.notes.map(([time, pitch]) => ({ time, pitch })) : [{ time: x.time, pitch: x.pitch }])), shapes: fl.added.reduce((m, x) => ((m[x.shape] = (m[x.shape] || 0) + 1), m), {}) } : null,
+    flourishes: fl ? { count: fl.added.length, share: fl.share, notes: fl.added.flatMap((x) => (x.notes ? x.notes.map(([time, pitch]) => ({ voice: x.voice, time, pitch })) : [{ voice: x.voice, time: x.time, pitch: x.pitch }])), voices: [...new Set(fl.added.map((x) => x.voice))].length, shapes: fl.added.reduce((m, x) => ((m[x.shape] = (m[x.shape] || 0) + 1), m), {}) } : null,
     channels: playing ? playing.map((c, i) => (i === 1 && c !== 4 && c !== 'drums' ? 'low voice' : CHANNEL_NAMES[c])) : null };
   return { midi: beastFullMidi(out, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums, mix }), drift: d, result: out, info };
 }

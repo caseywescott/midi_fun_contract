@@ -71,7 +71,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div id="p-tracks" class="panel on" style="margin-top:14px">
 <label for="name">Special name: <b id="namev">Genesis Track</b></label>
 <div class="row" style="grid-template-columns:1fr 96px;align-items:center"><input type="range" id="name" min="0" max="1242" value="0"><input type="number" id="namen" min="0" max="1242" value="0"></div>
-<label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="drift-on"> Drift on top: day <b id="tdayv">1</b></label><label style="margin-top:4px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="fl-on"> Flourishes grow with age: trills, mordents, turns, suspensions, passing notes and anticipations in 16ths on the theme, 0% on day 1 rising toward 12% of its notes</label>
+<label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="drift-on"> Drift on top: day <b id="tdayv">1</b></label><label style="margin-top:4px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="fl-on"> Flourishes grow with age: trills, mordents, turns, suspensions, passing notes and anticipations in 16ths across the voices, 0% on day 1 rising toward 8% of the theme’s notes and 4% of the others’, one per beat</label>
 <input type="range" id="tday" min="1" max="1242" value="1" disabled>
 <select id="dv" style="margin-top:6px"><option value="v2" selected>Layered drift: monthly rhythm, weekly channel rotation, a daily key-plan, episode or tempo change</option><option value="v1">One-knob drift (v1: one small change a day)</option></select>
 <label for="seed" style="margin-top:10px">Seed (block hash; empty = none)</label><input type="text" id="seed" spellcheck="false" placeholder="0x…">
@@ -304,7 +304,7 @@ function drawRoll(tick) {
     ctx.globalAlpha = (ch === 9 ? 0.25 : 0.35) + 0.6 * (vel / 127);
     if (ch === 9) { const rh = (drumH - 8) / drumKeys.length; ctx.fillRect(X(t), H - drumH + 4 + drumKeys.indexOf(pitch) * rh, 5, Math.max(3, rh - 2)); continue; }
     const rowH = mH / (hi - lo + 1), y = top + (hi - pitch) * rowH, w = Math.max(3, X(dur) - 1.5), h = Math.max(3, rowH - 1);
-    if (ch === 0 && d.marks && d.marks.has(t + ':' + pitch)) { ctx.globalAlpha = 1; ctx.fillStyle = '#ff2d2d'; ctx.fillRect(X(t) - 1, y - 1, Math.max(8, w + 2), h + 2); ctx.strokeStyle = fg; ctx.lineWidth = 2; ctx.strokeRect(X(t) - 4, y - 4, Math.max(8, w + 2) + 6, h + 8); continue; } // a flourish
+    if (d.marks && d.marks.has(ch + ':' + t + ':' + pitch)) { ctx.globalAlpha = 1; ctx.fillStyle = '#ff2d2d'; ctx.fillRect(X(t) - 1, y - 1, Math.max(8, w + 2), h + 2); ctx.strokeStyle = fg; ctx.lineWidth = 2; ctx.strokeRect(X(t) - 4, y - 4, Math.max(8, w + 2) + 6, h + 8); continue; } // a flourish
     ctx.fillRect(X(t), y, w, h);
   }
   ctx.globalAlpha = 1;
@@ -314,7 +314,7 @@ function drawRoll(tick) {
 }
 function setRoll(midi, marks) {
   rollData = notesOf(midi);
-  rollData.marks = new Set((marks || []).map((m) => m.time + ':' + m.pitch));
+  rollData.marks = new Set((marks || []).map((m) => ((m.voice || 0) & 15) + ':' + m.time + ':' + m.pitch));
   const pg = programsOf(midi), chans = [...new Set(rollData.notes.map((x) => x[4]))].sort((a, b) => a - b);
   $('legend').innerHTML = chans.map((ch) => '<span><i style="background:' + (ch === 9 ? 'var(--mut)' : ROLL_COLORS[ch % ROLL_COLORS.length]) + '"></i>ch' + (ch + 1) + ' ' + (ch === 9 ? 'drums' : (pg[ch] !== undefined ? (NAMES[pg[ch]] || 'program ' + pg[ch]) : '')) + '</span>').join('') + (rollData.marks.size ? '<span><i style="background:#ff2d2d;outline:2px solid var(--fg);outline-offset:1px"></i>flourish (16th)</span>' : '');
   drawRoll(null);
@@ -336,7 +336,7 @@ function make() {
     const f = out.info;
     if (bpmSet === null) $('bpm').value = f.tempo;
     $('bpmv').textContent = f.tempo + ' BPM' + (bpmSet === null ? ' (auto)' : '');
-    head = trackName() + (args.name ? '' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 no seed' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (f.flourishes ? ' \u00b7 ' + f.flourishes.count + ' flourish' + (f.flourishes.count === 1 ? '' : 'es') + (f.flourishes.count ? ': ' + Object.entries(f.flourishes.shapes).map(([k, n]) => n + ' ' + k + (n > 1 ? (k.endsWith('s') ? 'es' : 's') : '')).join(', ') : '') + ' (day ' + flourishDay + ': ' + (100 * f.flourishes.share).toFixed(1) + '% of eligible theme notes)' : '') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
+    head = trackName() + (args.name ? '' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 no seed' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (f.flourishes ? ' \u00b7 ' + f.flourishes.count + ' flourish' + (f.flourishes.count === 1 ? '' : 'es') + (f.flourishes.count ? ' on ' + f.flourishes.voices + ' voice' + (f.flourishes.voices > 1 ? 's' : '') + ': ' + Object.entries(f.flourishes.shapes).map(([k, n]) => n + ' ' + k + (n > 1 ? (k.endsWith('s') ? 'es' : 's') : '')).join(', ') : '') + ' (day ' + flourishDay + ': ' + (100 * f.flourishes.share).toFixed(1) + '% of the theme\u2019s notes, ' + (100 * f.flourishes.share / 2).toFixed(1) + '% of the others\u2019)' : '') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
   } else if (mode === 'drift') {
     args = { epoch: +$('day').value };
     head = 'day ' + args.epoch + ': ' + L.drift(b, args.epoch).label;

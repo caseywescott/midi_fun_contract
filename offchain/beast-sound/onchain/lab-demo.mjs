@@ -72,6 +72,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <label for="name">Special name: <b id="namev">Genesis Track</b></label>
 <div class="row" style="grid-template-columns:1fr 96px;align-items:center"><input type="range" id="name" min="0" max="1242" value="0"><input type="number" id="namen" min="0" max="1242" value="0"></div>
 <label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="drift-on"> Drift on top: day <b id="tdayv">1</b></label><input type="range" id="tday" min="1" max="1242" value="1" disabled>
+<select id="dv" style="margin-top:6px"><option value="v2" selected>Layered drift: monthly rhythm, weekly channel rotation, a daily key-plan, episode or tempo change</option><option value="v1">One-knob drift (v1: one small change a day)</option></select>
 <label for="seed" style="margin-top:10px">Seed (block hash; empty = none)</label><input type="text" id="seed" spellcheck="false" placeholder="0x…">
 <div class="ctl"><button id="newseed" class="stop">New hash</button><button id="noseed" class="stop">No seed</button><button id="sample">Random sample</button></div>
 <div class="row" style="grid-template-columns:1fr 1fr;margin-top:12px"><div><label for="theme">Motif</label><select id="theme"><option value="species" selected>Species motif in every track</option><option value="name">Each name re-seeds the motif (v1.1 today)</option></select></div>
@@ -113,7 +114,7 @@ const devName = (t) => t.development + ', episodes ' + (t.direction > 0 ? 'risin
 function saveHash() {
   // every tab's state, so a link plays what is heard (the Tracks fields stay, the other tabs add theirs)
   const q = { b: curBeast().id, n: $('name').value, s: $('seed').value.trim(), shiny: $('shiny').checked ? 1 : 0, theme: $('theme').value, gkey: $('gkey').value, ch: $('chan').value, ...(bpmSet ? { bpm: bpmSet } : {}) };
-  if ($('drift-on').checked) q.tday = $('tday').value;
+  if ($('drift-on').checked) { q.tday = $('tday').value; q.dv = $('dv').value; }
   if (mode !== 'tracks') q.tab = mode;
   if (mode === 'drift') q.day = $('day').value;
   if (mode === 'yeti') q.yeti = ['y-rock', 'y-yodel', 'y-avalanche', 'y-stomp'].filter((id) => $(id).checked).map((id) => id.slice(2)).join('.');
@@ -130,6 +131,7 @@ function loadHash() {
   if (q.get('ch')) $('chan').value = q.get('ch');
   if (+q.get('bpm')) bpmSet = Math.min(200, Math.max(60, +q.get('bpm')));
   if (q.has('tday')) { $('drift-on').checked = true; $('tday').disabled = false; $('tday').value = q.get('tday'); $('tdayv').textContent = age(+$('tday').value); }
+  if (q.get('dv')) $('dv').value = q.get('dv');
   if (q.has('day')) { $('day').value = q.get('day'); $('dayv').textContent = age(+$('day').value); }
   if (q.has('yeti')) { const on = q.get('yeti').split('.'); for (const k of ['rock', 'yodel', 'avalanche', 'stomp']) $('y-' + k).checked = on.includes(k); }
   return ['drift', 'yeti'].includes(q.get('tab')) ? q.get('tab') : 'tracks';
@@ -250,7 +252,7 @@ function make() {
   let args = {}, head = '', out;
   if (mode === 'tracks') {
     const seed = seedOf(), epoch = $('drift-on').checked ? +$('tday').value : null;
-    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value, bpm: bpmSet };
+    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value, bpm: bpmSet, driftMode: $('dv').value };
     out = L.labMidi('sample', b, x.live, args, BS.engine, BS.v11);
     const f = out.info;
     if (bpmSet === null) $('bpm').value = f.tempo;
@@ -301,7 +303,7 @@ $('seed').onchange = refresh;
 $('newseed').onclick = () => { $('seed').value = randHash(); refresh(); };
 $('noseed').onclick = () => { $('seed').value = ''; refresh(); };
 $('sample').onclick = () => { const a = new Uint32Array(1); crypto.getRandomValues(a); $('name').value = $('namen').value = String(1 + (a[0] % 1242)); $('seed').value = randHash(); showName(); refresh(); };
-for (const id of ['theme', 'gkey', 'shiny', 'chan']) $(id).onchange = refresh;
+for (const id of ['theme', 'gkey', 'shiny', 'chan', 'dv']) $(id).onchange = refresh;
 const setBpm = (v) => { bpmSet = v === null ? null : Math.min(200, Math.max(60, Math.round(v))); if (bpmSet !== null) $('bpm').value = bpmSet; refresh(); };
 $('bpm').onchange = () => setBpm(+$('bpm').value);
 $('bpm').oninput = () => { $('bpmv').textContent = $('bpm').value + ' BPM'; };

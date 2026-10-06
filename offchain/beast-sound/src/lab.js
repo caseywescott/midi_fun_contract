@@ -148,6 +148,24 @@ export function drift(b, epoch) {
   return { knob: knob < 4 ? knob : null, label: knob < 4 ? DRIFT_KNOBS[knob] : 'as written' };
 }
 
+// ── layered drift (v2): every change audible, on three clocks, so a track evolves over years ──────
+// The month (30 days) may re-pick the rhythm cells (2 months in 3; the first month plays as written);
+// the week may rotate which channels play, keeping the count and the theme and low voice (3 weeks in 4;
+// needs the full six channels); the day turns one more knob: the key plan the other way, the episode
+// directions swapped, or the tempo nudged -4, -2, +2 or +4 BPM. Nothing accumulates: a day's version is
+// a pure function of the track and the day number.
+export const DRIFT2_DAY = ['key plan turns the other way', 'episode directions swap', 'tempo -4 BPM', 'tempo -2 BPM', 'tempo +2 BPM', 'tempo +4 BPM'];
+export function drift2(b, day) {
+  const k = entityHash(b), month = Math.floor((day - 1) / 30), week = Math.floor((day - 1) / 7);
+  const m = low32(H('BEAST_DRIFT2_M', k, month)), w = low32(H('BEAST_DRIFT2_W', k, week)), dk = low32(H('BEAST_DRIFT2_D', k, day)) % 6;
+  const rhythm = month > 0 && m % 3 !== 0 ? H('BEAST_DRIFT2_RHYTHM', k, month) : null;
+  const rotate = w % 4 !== 0 ? H('BEAST_DRIFT2_ROT', k, week) : null;
+  const delta = [0, 0, -4, -2, 2, 4][dk];
+  const label = [rhythm !== null ? 'month ' + (month + 1) + ': new rhythm' : 'month ' + (month + 1) + ': rhythm as written',
+    rotate !== null ? 'week ' + (week + 1) + ': channels rotate' : 'week ' + (week + 1) + ': channels as picked', 'day: ' + DRIFT2_DAY[dk]].join(' \u00b7 ');
+  return { v: 2, rhythm, rotate, dayKnob: dk, delta, label };
+}
+
 export function driftMidi(b, live, epoch, E, v11) {
   const d = drift(b, epoch), override = {};
   const base = v11.render(b, live, V11), tr = base.v11.trajectory;
@@ -358,7 +376,7 @@ export function channelPick(events, count, seed) {
   return [...new Set([0, low])].concat(rest).slice(0, count);
 }
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null } = {}, E, v11) {
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1' } = {}, E, v11) {
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
   const g = genesisBeast(b), nm = nameFromVariant(name);
   const t = seed === null || seed === undefined ? null : trackTreatment(seed);
@@ -380,19 +398,28 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   if (bpm) override.tempo_us = Math.round(60e6 / bpm); // the page's tempo control
   override.tr.trill = !!orn.allow_trill;
   if (full) override.params = { ...(override.params || {}), use_countersubject: true };
-  const d = epoch === null || epoch === undefined ? { knob: null, label: 'off' } : drift(b, epoch);
+  const off = epoch === null || epoch === undefined;
+  const d = off ? { knob: null, label: 'off' } : driftMode === 'v2' ? drift2(b, epoch) : drift(b, epoch);
+  if (d.v === 2 && d.rhythm !== null) override.rhythmSeed = d.rhythm;
   const base = v11.render(cb, neutral, { ...V11, override });
   const tr = base.v11.trajectory;
+  let again = d.knob === 0 || d.knob === 1 || d.knob === 2;
   if (d.knob === 0) override.flipSide = !override.flipSide;
   if (d.knob === 1) override.tr = { ...override.tr, direction: tr.direction === 0 ? 1 : -tr.direction };
   if (d.knob === 2) override.tr = { ...override.tr, trill: !tr.trill };
-  const r = d.knob === null || d.knob === 3 ? base : v11.render(cb, neutral, { ...V11, override });
+  if (d.v === 2) {
+    again = true;
+    if (d.dayKnob === 0) override.flipSide = !override.flipSide;
+    else if (d.dayKnob === 1) override.tr = { ...override.tr, direction: tr.direction === 0 ? 1 : -tr.direction };
+    else override.tempo_us = Math.round(60e6 / (60e6 / (override.tempo_us || base.params.tempo_us) + d.delta));
+  }
+  const r = again ? v11.render(cb, neutral, { ...V11, override }) : base;
   let drums = d.knob === 3 ? (length, sec, tier, mega) => drumEvents(length, sec, tier >= 5 ? 4 : tier + 1, mega) : null;
   const p = { ...r.params, ...(override.params || {}) };
   let out = r, playing = null;
   if (full) {
     const count = channels === 'rarity' ? channelCount(seed, b.tier) : Math.min(6, Math.max(3, +channels));
-    playing = channelPick(r.form.events, count, seed);
+    playing = channelPick(r.form.events, count, d.v === 2 && d.rotate !== null ? d.rotate : seed);
     out = { ...r, form: { ...r.form, events: r.form.events.filter((e) => playing.includes(e.voice_id)) } };
     if (!playing.includes('drums')) drums = false;
   }

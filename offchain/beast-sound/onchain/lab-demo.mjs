@@ -59,7 +59,7 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 .ctl{display:flex;gap:10px;margin-top:12px}.ctl button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--fg);color:var(--bg);font:600 15px system-ui;cursor:pointer}.ctl button.stop{background:var(--bg);color:var(--fg)}
 .chk{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}@media(max-width:520px){.chk{grid-template-columns:1fr}}.chk label{display:flex;gap:8px;align-items:flex-start;color:var(--fg);font-size:14px;margin:0}.chk small{display:block;color:var(--mut);font-size:12px}
 #info{font:12px/1.6 ui-monospace,monospace;color:var(--mut);white-space:pre-wrap;margin:0}
-button:disabled{opacity:.45;cursor:default}.offer{margin:12px 0 8px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px;font-size:14px;line-height:1.45}.offer b{font-size:15px}.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}@media(max-width:420px){.tabs{grid-template-columns:repeat(2,1fr)}}input[type=text],input[type=number]{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:13px ui-monospace,monospace}.tabs button{padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 14px system-ui;cursor:pointer}.tabs button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.panel{display:none}.panel.on{display:block}input[type=range]{width:100%}.note{font-size:13px;color:var(--mut);margin:8px 0 0}.beastcard{display:grid;grid-template-columns:125px 1fr;gap:16px;align-items:center}#art{width:125px;height:175px;border-radius:8px;object-fit:contain;background:#000}@media(max-width:420px){.beastcard{grid-template-columns:96px 1fr}#art{width:96px;height:134px}}\n</style></head><body><main>
+button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:600 13px system-ui;cursor:pointer}.offer{margin:12px 0 8px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px;font-size:14px;line-height:1.45}.offer b{font-size:15px}.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}@media(max-width:420px){.tabs{grid-template-columns:repeat(2,1fr)}}input[type=text],input[type=number]{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:13px ui-monospace,monospace}.tabs button{padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 14px system-ui;cursor:pointer}.tabs button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.panel{display:none}.panel.on{display:block}input[type=range]{width:100%}.note{font-size:13px;color:var(--mut);margin:8px 0 0}.beastcard{display:grid;grid-template-columns:125px 1fr;gap:16px;align-items:center}#art{width:125px;height:175px;border-radius:8px;object-fit:contain;background:#000}@media(max-width:420px){.beastcard{grid-template-columns:96px 1fr}#art{width:96px;height:134px}}\n</style></head><body><main>
 <h1>Beast Sound Lab</h1>
 <p class="sub">Composer v1.1 prototypes, played as onchain-midi-player plays a token_uri (the self-contained MIDI, the class's engine, the TinyChip timbres). Pick a Beast, sample its tracks by name and seed, then play; changes apply while playing.</p>
 <div class="card beastcard"><img id="art" alt="" width="125" height="175"><div><label for="beast">Beast</label><select id="beast"></select>
@@ -75,6 +75,8 @@ button:disabled{opacity:.45;cursor:default}.offer{margin:12px 0 8px;padding:10px
 <div class="ctl"><button id="newseed" class="stop">New hash</button><button id="noseed" class="stop">No seed</button><button id="sample">Random sample</button></div>
 <div class="row" style="grid-template-columns:1fr 1fr;margin-top:12px"><div><label for="theme">Motif</label><select id="theme"><option value="species" selected>Species motif in every track</option><option value="name">Each name re-seeds the motif (v1.1 today)</option></select></div>
 <div><label for="gkey">Genesis key</label><select id="gkey"><option value="rule" selected>v1.1 rule: Phrygian, tonic = id mod 12</option><option value="spread">Spread: a canonical name's key per species</option><option value="proposed">Proposed: spread key + suggested tempo</option></select></div></div>
+<label for="bpm" style="margin-top:12px">Tempo: <b id="bpmv">auto</b></label>
+<div class="row" style="grid-template-columns:1fr auto auto auto;align-items:center;gap:8px"><input type="range" id="bpm" min="60" max="200" step="1" value="120"><button id="bpm-down" class="mini">−4</button><button id="bpm-up" class="mini">+4</button><button id="bpm-auto" class="mini">Auto</button></div>
 <label for="chan" style="margin-top:12px">Channels</label><select id="chan"><option value="rarity" selected>Rarity: the seed picks 3–6 (6 is 1 in 25); Genesis by tier</option><option value="tier">By tier (v1.1: 4/4/3/2/2 voices)</option><option value="3">Force 3</option><option value="4">Force 4</option><option value="5">Force 5</option><option value="6">Force 6 (rare)</option></select>
 <label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="drift-on"> Drift on top: day <b id="tdayv">0</b></label><input type="range" id="tday" min="0" max="30" value="0" disabled>
 <p class="note">Name 0 is the species' Genesis Track, the base every Beast of the species starts with. Names 1–1242 are the 69 × 18 prefix/suffix pairs: the prefix sets the key, mode and register, the suffix the ornament style. The seed (in the auction, the block hash of the previous purchase) sets the development, episode direction, sections, spacing, which side the theme sits and the rhythm, and how many of the six channels play (four canon voices, countersubject, drums; same presets): most tracks 3–5, 1 in 25 all 6. The theme and the lowest voice always play. Every Beast of a species shares the notes; shiny only adds the mega sound. The address bar keeps the current sample, so a link plays it again.</p></div>
@@ -102,6 +104,7 @@ const L = BS.lab, $ = (id) => document.getElementById(id);
 const TYPES = ['Magic', 'Hunter', 'Brute'];
 let mode = 'tracks', synth = null, playing = false, reroll = 0;
 const CARD = ${JSON.stringify(CARD)}, PREFIXES = ${JSON.stringify(PREFIXES)}, SUFFIXES = ${JSON.stringify(SUFFIXES)};
+let bpmSet = null; // null = the track's own tempo
 const randHash = () => { const a = new Uint8Array(31); crypto.getRandomValues(a); return '0x' + [...a].map((x) => x.toString(16).padStart(2, '0')).join(''); };
 const curBeast = () => ({ ...BEASTS[+$('beast').value].beast, shiny: $('shiny').checked ? 1 : 0 });
 const spKey = () => curBeast().id + (curBeast().shiny ? 's' : '');
@@ -109,7 +112,7 @@ const nameText = (n) => { if (!n) return ''; const f = L.nameFromVariant(n); ret
 const trackName = () => { const n = +$('name').value; return (n ? nameText(n) + ' ' : '') + BEASTS[+$('beast').value].name; };
 const seedOf = () => { const v = $('seed').value.trim(); if (!v) return null; try { return BigInt(v.startsWith('0x') ? v : '0x' + v); } catch { return null; } };
 const devName = (t) => t.development + ', episodes ' + (t.direction > 0 ? 'rising' : t.direction < 0 ? 'falling' : 'alternating') + ', ' + t.sections + ' sections, ' + t.spacing + ' spacing' + (t.trill ? ', trills' : '');
-function saveHash() { try { history.replaceState(null, '', '#' + new URLSearchParams({ b: curBeast().id, n: $('name').value, s: $('seed').value.trim(), shiny: $('shiny').checked ? 1 : 0, theme: $('theme').value, gkey: $('gkey').value, ch: $('chan').value }).toString()); } catch {} }
+function saveHash() { try { history.replaceState(null, '', '#' + new URLSearchParams({ b: curBeast().id, n: $('name').value, s: $('seed').value.trim(), shiny: $('shiny').checked ? 1 : 0, theme: $('theme').value, gkey: $('gkey').value, ch: $('chan').value, ...(bpmSet ? { bpm: bpmSet } : {}) }).toString()); } catch {} }
 function loadHash() {
   const q = new URLSearchParams(location.hash.slice(1));
   if (q.get('b')) $('beast').value = String(Math.min(75, Math.max(1, +q.get('b') || 1)) - 1);
@@ -119,6 +122,7 @@ function loadHash() {
   if (q.get('theme')) $('theme').value = q.get('theme');
   if (q.get('gkey')) $('gkey').value = q.get('gkey');
   if (q.get('ch')) $('chan').value = q.get('ch');
+  if (+q.get('bpm')) bpmSet = Math.min(200, Math.max(60, +q.get('bpm')));
 }
 function showName() { const n = +$('name').value; $('namev').textContent = n ? '#' + n + ' ' + nameText(n) : 'Genesis Track'; }
 BEASTS.forEach((x, i) => $('beast').add(new Option(x.beast.id + '. ' + x.name + '  (tier ' + x.beast.tier + ' ' + TYPES[x.beast.beast_type] + ')', i)));
@@ -236,9 +240,11 @@ function make() {
   let args = {}, head = '', out;
   if (mode === 'tracks') {
     const seed = seedOf(), epoch = $('drift-on').checked ? +$('tday').value : null;
-    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value };
+    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value, bpm: bpmSet };
     out = L.labMidi('sample', b, x.live, args, BS.engine, BS.v11);
     const f = out.info;
+    if (bpmSet === null) $('bpm').value = f.tempo;
+    $('bpmv').textContent = f.tempo + ' BPM' + (bpmSet === null ? ' (auto)' : '');
     head = trackName() + (args.name ? '' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 no seed' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
     saveHash();
   } else if (mode === 'progression') {
@@ -292,6 +298,12 @@ $('newseed').onclick = () => { $('seed').value = randHash(); refresh(); };
 $('noseed').onclick = () => { $('seed').value = ''; refresh(); };
 $('sample').onclick = () => { const a = new Uint32Array(1); crypto.getRandomValues(a); $('name').value = $('namen').value = String(1 + (a[0] % 1242)); $('seed').value = randHash(); showName(); refresh(); };
 for (const id of ['theme', 'gkey', 'shiny', 'chan']) $(id).onchange = refresh;
+const setBpm = (v) => { bpmSet = v === null ? null : Math.min(200, Math.max(60, Math.round(v))); if (bpmSet !== null) $('bpm').value = bpmSet; refresh(); };
+$('bpm').onchange = () => setBpm(+$('bpm').value);
+$('bpm').oninput = () => { $('bpmv').textContent = $('bpm').value + ' BPM'; };
+$('bpm-down').onclick = () => setBpm(+$('bpm').value - 4);
+$('bpm-up').onclick = () => setBpm(+$('bpm').value + 4);
+$('bpm-auto').onclick = () => setBpm(null);
 $('drift-on').onchange = () => { $('tday').disabled = !$('drift-on').checked; refresh(); };
 $('tday').oninput = () => { $('tdayv').textContent = $('tday').value; refresh(); };
 $('play').onclick = start;

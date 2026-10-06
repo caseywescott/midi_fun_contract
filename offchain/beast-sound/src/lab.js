@@ -358,7 +358,7 @@ export function channelPick(events, count, seed) {
   return [...new Set([0, low])].concat(rest).slice(0, count);
 }
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier' } = {}, E, v11) {
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null } = {}, E, v11) {
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
   const g = genesisBeast(b), nm = nameFromVariant(name);
   const t = seed === null || seed === undefined ? null : trackTreatment(seed);
@@ -377,6 +377,7 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     override.params = { mode_id: kp.mode_id, tonic_keynum: kp.tonic_keynum, register_band: kp.register_band };
   }
   if (!name && genesisKey === 'proposed') override.tempo_us = Math.round(60e6 / genesisTempo(b));
+  if (bpm) override.tempo_us = Math.round(60e6 / bpm); // the page's tempo control
   override.tr.trill = !!orn.allow_trill;
   if (full) override.params = { ...(override.params || {}), use_countersubject: true };
   const d = epoch === null || epoch === undefined ? { knob: null, label: 'off' } : drift(b, epoch);

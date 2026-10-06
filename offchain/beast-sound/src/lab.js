@@ -402,26 +402,32 @@ export function channelPick(events, count, seed) {
   return [...new Set([0, low])].concat(rest).slice(0, count);
 }
 
-// ── ties: repeated notes in the lower voices held instead of struck again ──────────────────────────
-// One pass per voice (not the theme, whose rhythm is the motif): a note that repeats the pitch of the one
+// ── ties: repeated notes in the inner voices held instead of struck again ──────────────────────────
+// Only when 3 or more pitched voices play, and only on inner voices: never the bass (lowest mean pitch),
+// the topline (highest) or the theme (its rhythm is the motif). One pass per voice: a note that repeats the pitch of the one
 // before it, starting where it ends and in the same section, extends it instead, up to a bar per tied
 // note. Mode 'weak' ties only a repeat that would strike off the strong beats (1 and 3), so the pulse is
 // still re-struck; 'all' ties every repeat. Cheap (linear in the notes) and the same rule ports to Cairo as
 // a merge while writing the voice.
 export const TIE_MAX = 1920;
 export function tieRepeats(form, mode = 'weak') {
-  const keep = [], last = {};
+  const keep = [], last = {}, st = {};
   let tied = 0;
+  for (const e of form.events) { const x = (st[e.voice_id] ||= { sum: 0, n: 0 }); x.sum += e.pitch; x.n++; }
+  const vs = Object.keys(st).map(Number), avg = (v) => st[v].sum / st[v].n;
+  if (vs.length < 3) return { form, tied: 0, voices: [] };
+  const bass = vs.reduce((a, b) => (avg(b) < avg(a) ? b : a)), top = vs.reduce((a, b) => (avg(b) > avg(a) ? b : a));
+  const inner = new Set(vs.filter((v) => v !== 0 && v !== bass && v !== top));
   for (const e of [...form.events].sort((a, b) => a.voice_id - b.voice_id || a.time - b.time)) {
     const prev = last[e.voice_id];
-    if (e.voice_id !== 0 && prev && prev.pitch === e.pitch && prev.time + prev.duration === e.time && prev.section === e.section
+    if (inner.has(e.voice_id) && prev && prev.pitch === e.pitch && prev.time + prev.duration === e.time && prev.section === e.section
       && Math.floor(prev.time / form.section_ticks) === Math.floor(e.time / form.section_ticks) && prev.duration + e.duration <= TIE_MAX && (mode === 'all' || e.time % 960 !== 0)) {
       prev.duration += e.duration; tied++; continue;
     }
     const c = { ...e }; keep.push(c); last[e.voice_id] = c;
   }
   keep.sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
-  return { form: { ...form, events: keep }, tied };
+  return { form: { ...form, events: keep }, tied, voices: [...inner] };
 }
 
 // ── flourishes that grow with age: the one layer that accumulates ─────────────────────────────────

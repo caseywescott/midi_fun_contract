@@ -50,11 +50,12 @@ export const INTERIM = {
 // through the pinned engine; onchain/tinychip/interim_check.mjs).
 export const BUILTIN_GAIN = { Square: 1.174, Sawtooth: 1.24, Triangle: 1.063, MetallicNoise: 0.79 };
 
-// Per-preset level trims, for a timbre whose built-in waves sum louder or quieter than the chip
-// waves they stand in for. None is needed now: Hero Fanfare (53) had 0.933 while its pulses were
-// square stacks (their shared harmonics added up with the squares' phases, 0.6 dB louder), and its
-// exact pulse tables match TinyChip without it.
-export const TIMBRE_TRIM = {};
+// Per-preset level trims. Pulse 12.5% Pluck (13) is cut to 0.55 (-5.2 dB): its attack peaked 5.5 dB
+// over the median of the 20 presets (the same note, in Chrome through the pinned engine) and its narrow
+// pulse is the brightest wave in the set, so it read as too loud wherever it played (a Magic pluck, the
+// Yeti's avalanche). (Hero Fanfare (53) once had 0.933 while its pulses were square stacks; its exact
+// pulse tables match TinyChip without it.)
+export const TIMBRE_TRIM = { 13: 0.55 };
 
 const fx = (x) => Math.round(x * SCALE);
 

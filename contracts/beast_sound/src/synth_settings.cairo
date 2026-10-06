@@ -36,7 +36,7 @@ pub fn beast_synth_settings_serde_hash(beast_type: u8, mega: bool) -> felt252 {
 /// Poseidon hash of `beast_synth_settings_magic`'s Serde, as the generator computes it (tests check
 /// Cairo agrees).
 pub const SERDE_HASH_MAGIC: felt252 =
-    0x741ac573ae80a65affeba94315a58ac4250fdc2bcf84f319ada51d3b9bc5eb2;
+    0x28713c4bf5be02bf7b18baa5a1790a4b31b6c5c76101adddae4f574d924dd16;
 /// Magic Beasts. Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI; 17 timbres, one operator per line.
 #[cairofmt::skip]
 pub fn beast_synth_settings_magic() -> TinySynthSettings {
@@ -83,7 +83,7 @@ pub fn beast_synth_settings_magic() -> TinySynthSettings {
         },
         Timbre {
             drum: false, slot: 13, operators: array![
-                op(0, Waveform::Custom(0), 10440, 10000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(0), 5742, 10000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
@@ -168,7 +168,7 @@ pub fn beast_synth_settings_magic() -> TinySynthSettings {
 /// Poseidon hash of `beast_synth_settings_magic_mega`'s Serde, as the generator computes it (tests
 /// check Cairo agrees).
 pub const SERDE_HASH_MAGIC_MEGA: felt252 =
-    0x79bfffedf2d19cc52b795f01cd517d5bb79dbcef0732cedb7cd907027cb05bc;
+    0x1814910a79522de7f708c99b400eded534438ed9d6312aae6f7d0581c8f02a4;
 /// Magic Beasts that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65). Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI, nN16; 19 timbres, one operator per line.
 #[cairofmt::skip]
 pub fn beast_synth_settings_magic_mega() -> TinySynthSettings {
@@ -216,7 +216,7 @@ pub fn beast_synth_settings_magic_mega() -> TinySynthSettings {
         },
         Timbre {
             drum: false, slot: 13, operators: array![
-                op(0, Waveform::Custom(0), 10440, 10000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(0), 5742, 10000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },

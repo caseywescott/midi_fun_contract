@@ -42,7 +42,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div class="ctl" style="margin-top:6px"><button id="reroll" class="stop" style="display:none">Another unlock order</button></div>
 <p class="note">Level 0 is the Beast's own scale in its type's feel. Each $SKULL unlock reveals more: with 3 levels, the theme, then the canon and the full palette, then the countersubject and the drums, the same for every Beast. With 5 levels, one layer at a time in an order fixed per Beast (onchain, the unlock transaction's block hash).</p></div>
 <div id="p-drift" class="panel" style="margin-top:14px"><label for="day">Day (epoch): <b id="dayv">0</b></label><input type="range" id="day" min="0" max="30" value="0">
-<p class="note">A never-ending track: each epoch (a day of blocks, seeded by the epoch's first block hash, readable once 10 blocks old) turns at most one small knob; most days it plays as written.</p></div>
+<p class="note">This tab plays the plain v1.1 Beast, not the Tracks sample: Genesis traits with no history (one section; the tier's voices and countersubject; v1.1's genesis key; shiny adds its tempo bump and the mega sound). For drift on a sampled track, use "Drift on top" in Tracks. A never-ending track: each epoch (a day of blocks, seeded by the epoch's first block hash, readable once 10 blocks old) turns at most one small knob; most days it plays as written.</p></div>
 <div id="p-yeti" class="panel" style="margin-top:14px"><div class="chk">
 <label><input type="checkbox" id="y-rock" checked><span>Rock groove<small>175 BPM, kick 1 and 3, snare backbeat, crash and tom fill each section</small></span></label>
 <label><input type="checkbox" id="y-yodel"><span>Yodel<small>the lead leaps an octave on every other note</small></span></label>
@@ -92,7 +92,16 @@ const nameText = (n) => { if (!n) return ''; const f = L.nameFromVariant(n); ret
 const trackName = () => { const n = +$('name').value; return (n ? nameText(n) + ' ' : '') + BEASTS[+$('beast').value].name; };
 const seedOf = () => { const v = $('seed').value.trim(); if (!v) return null; try { return BigInt(v.startsWith('0x') ? v : '0x' + v); } catch { return null; } };
 const devName = (t) => t.development + ', episodes ' + (t.direction > 0 ? 'rising' : t.direction < 0 ? 'falling' : 'alternating') + ', ' + t.sections + ' sections, ' + t.spacing + ' spacing' + (t.trill ? ', trills' : '');
-function saveHash() { try { history.replaceState(null, '', '#' + new URLSearchParams({ b: curBeast().id, n: $('name').value, s: $('seed').value.trim(), shiny: $('shiny').checked ? 1 : 0, theme: $('theme').value, gkey: $('gkey').value, ch: $('chan').value, ...(bpmSet ? { bpm: bpmSet } : {}) }).toString()); } catch {} }
+function saveHash() {
+  // every tab's state, so a link plays what is heard (the Tracks fields stay, the other tabs add theirs)
+  const q = { b: curBeast().id, n: $('name').value, s: $('seed').value.trim(), shiny: $('shiny').checked ? 1 : 0, theme: $('theme').value, gkey: $('gkey').value, ch: $('chan').value, ...(bpmSet ? { bpm: bpmSet } : {}) };
+  if ($('drift-on').checked) q.tday = $('tday').value;
+  if (mode !== 'tracks') q.tab = mode;
+  if (mode === 'drift') q.day = $('day').value;
+  if (mode === 'progression') { q.levels = $('levels').value; q.level = $('level').value; }
+  if (mode === 'yeti') q.yeti = ['y-rock', 'y-yodel', 'y-avalanche', 'y-stomp'].filter((id) => $(id).checked).map((id) => id.slice(2)).join('.');
+  try { history.replaceState(null, '', '#' + new URLSearchParams(q).toString()); } catch {}
+}
 function loadHash() {
   const q = new URLSearchParams(location.hash.slice(1));
   if (q.get('b')) $('beast').value = String(Math.min(75, Math.max(1, +q.get('b') || 1)) - 1);
@@ -103,6 +112,12 @@ function loadHash() {
   if (q.get('gkey')) $('gkey').value = q.get('gkey');
   if (q.get('ch')) $('chan').value = q.get('ch');
   if (+q.get('bpm')) bpmSet = Math.min(200, Math.max(60, +q.get('bpm')));
+  if (q.has('tday')) { $('drift-on').checked = true; $('tday').disabled = false; $('tday').value = q.get('tday'); $('tdayv').textContent = $('tday').value; }
+  if (q.has('day')) { $('day').value = q.get('day'); $('dayv').textContent = $('day').value; }
+  if (q.get('levels')) { $('levels').value = q.get('levels'); $('level').max = q.get('levels'); $('levelmax').textContent = q.get('levels'); $('reroll').style.display = q.get('levels') === '5' ? '' : 'none'; }
+  if (q.has('level')) { $('level').value = q.get('level'); $('levelv').textContent = $('level').value; }
+  if (q.has('yeti')) { const on = q.get('yeti').split('.'); for (const k of ['rock', 'yodel', 'avalanche', 'stomp']) $('y-' + k).checked = on.includes(k); }
+  return ['progression', 'drift', 'yeti'].includes(q.get('tab')) ? q.get('tab') : 'tracks';
 }
 function showName() { const n = +$('name').value; $('namev').textContent = n ? '#' + n + ' ' + nameText(n) : 'Genesis Track'; }
 BEASTS.forEach((x, i) => $('beast').add(new Option(x.beast.id + '. ' + x.name + '  (tier ' + x.beast.tier + ' ' + TYPES[x.beast.beast_type] + ')', i)));
@@ -226,7 +241,6 @@ function make() {
     if (bpmSet === null) $('bpm').value = f.tempo;
     $('bpmv').textContent = f.tempo + ' BPM' + (bpmSet === null ? ' (auto)' : '');
     head = trackName() + (args.name ? '' : ' (Genesis Track)') + ' · ' + f.key + ' · ' + f.tempo + ' BPM · ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\n' + devName(f) + (seed === null ? ' · no seed' : ' · seed 0x' + seed.toString(16).slice(0, 12) + '…') + (epoch !== null ? ' · drift day ' + epoch + ': ' + out.drift.label : '');
-    saveHash();
   } else if (mode === 'progression') {
     const seed = L.H('UNLOCK', L.entityHash(b), reroll), lvl = +$('level').value;
     const three = $('levels').value === '3';
@@ -241,6 +255,7 @@ function make() {
     head = 'Yeti ideas: ' + Object.entries(args.ideas).filter(([, on]) => on).map(([k]) => k).join(' + ') + (b.id !== 68 ? ' (on a non-Yeti)' : '');
   }
   if (!out) out = L.labMidi(mode, b, x.live, args, BS.engine, BS.v11);
+  saveHash();
   const midi = out.midi;
   tempo = tempoOf(midi);
   const pg = programsOf(midi);
@@ -295,5 +310,5 @@ $('levels').onchange = () => { const max = $('levels').value; $('level').max = m
 $('day').oninput = () => { $('dayv').textContent = $('day').value; refresh(); };
 $('reroll').onclick = () => { reroll++; refresh(); };
 for (const id of ['y-rock', 'y-yodel', 'y-avalanche', 'y-stomp']) $(id).onchange = refresh;
-loadHash(); showName(); refresh();
+{ const t = loadHash(); showName(); if (t !== 'tracks') tab(t); else refresh(); }
 </script></body></html>

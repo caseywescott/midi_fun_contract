@@ -252,20 +252,68 @@ export function trackTreatment(seed) {
 
 /** The MIDI of the selected track (seed null = the origin), with the drift of `epoch` (null = none). */
 export function ownedTrackMidi(b, live, seed, epoch, E, v11) {
-  const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count };
+  return trackMidi(b, live, seed, epoch, E, v11, false);
+}
+
+// ── species tracks with a per-Beast auction (loothero, 6 Oct) ──────────────────────────────────────
+// Every Beast of a species starts with the same base track: the composition sees only the species
+// (a canonical name, level and health per species; no kills, defeats, rank, shiny or animated), so all
+// Warlocks play the same notes at the same tempo. Shiny keeps the mega layer as a sound on top.
+// Each Beast then has one track on offer at a time, sold by a gradual Dutch auction; a purchase needs a
+// free slot ($SKULL raises capacity), and the next offer is seeded from the purchase block's hash
+// (readable 10 blocks later), the token and the purchase index. A bought track keeps the species theme
+// and instruments; its seed picks a key and mode (the prefix table) and an ornament style (the suffix
+// table), which used to come from the Beast's name, plus the development, episode direction, sections,
+// spacing, side and rhythm.
+export const BASE_LEVEL = 50, BASE_HEALTH = 200;
+export function speciesBeast(b) {
+  return { ...b, prefix: ((b.id - 1) % 69) + 1, suffix: ((b.id - 1) % 18) + 1, level: BASE_LEVEL, health: BASE_HEALTH, shiny: 0, animated: 0 };
+}
+/** A bought track's choices: the treatment plus the key and ornament style taken from the name tables. */
+export function speciesTrackTreatment(seed) {
   const t = trackTreatment(seed);
+  if (!t) return null;
+  const k = low32(H('BEAST_TRACK_KEY', seed));
+  return { ...t, prefix: 1 + (k % 69), suffix: 1 + ((k >>> 8) % 18) };
+}
+const MODE_NAMES = { 4: 'Dorian', 5: 'Phrygian', 6: 'Locrian', 7: 'Aeolian', 8: 'harmonic minor', 26: 'Dorian #4' };
+const PC = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+export const keyName = (p) => PC[p.tonic_keynum % 12] + ' ' + (MODE_NAMES[p.mode_id] || 'mode ' + p.mode_id);
+
+export function speciesTrackMidi(b, live, seed, epoch, E, v11) {
+  return trackMidi(b, live, seed, epoch, E, v11, true);
+}
+
+function trackMidi(b, live, seed, epoch, E, v11, species) {
+  const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count };
+  const t = species ? speciesTrackTreatment(seed) : trackTreatment(seed);
+  const cb = species ? speciesBeast(b) : b;
   const override = { voice_count: TIER_VOICES[b.tier] ?? 2, sections: t ? t.sections : TIER_SECTIONS[b.tier] ?? 2 };
   if (t) Object.assign(override, { rhythmSeed: t.rhythmSeed, flipSide: t.flipSide, tr: { development: t.development, direction: t.direction, trill: t.trill, spacing: t.spacing } });
+  if (t && species) {
+    // the key and ornament style a Beast with that name would have, on the species' theme
+    const kp = E.mapV3({ ...cb, prefix: t.prefix, suffix: t.suffix }, neutral);
+    override.params = { mode_id: kp.mode_id, tonic_keynum: kp.tonic_keynum, register_band: kp.register_band, ornament_density: kp.ornament_density, _ornament: kp._ornament };
+    override.tr.trill = !!kp._ornament.allow_trill;
+  }
+  const shown = t && species ? { ...t, trill: override.tr.trill } : t;
   const d = epoch === null || epoch === undefined ? { knob: null, label: 'off' } : drift(b, epoch);
-  const base = v11.render(b, neutral, { ...V11, override });
+  const base = v11.render(cb, neutral, { ...V11, override });
   const tr = base.v11.trajectory;
   if (d.knob === 0) override.flipSide = !override.flipSide;
   if (d.knob === 1) override.tr = { ...(override.tr || {}), direction: tr.direction === 0 ? 1 : -tr.direction };
   if (d.knob === 2) override.tr = { ...(override.tr || {}), trill: !tr.trill };
-  const r = d.knob === null || d.knob === 3 ? base : v11.render(b, neutral, { ...V11, override });
+  const r = d.knob === null || d.knob === 3 ? base : v11.render(cb, neutral, { ...V11, override });
   const drums = d.knob === 3 ? (length, sec, tier, mega) => drumEvents(length, sec, tier >= 5 ? 4 : tier + 1, mega) : null;
-  return { midi: beastFullMidi(r, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums }), treatment: t, drift: d, result: r };
+  const key = override.params ? keyName({ ...r.params, ...override.params }) : keyName(r.params);
+  return { midi: beastFullMidi(r, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums }), drift: d, result: r, key, treatment: shown };
 }
+
+/** A simulated per-Beast auction: the offer's seed chain and a gradual Dutch auction price. */
+export const GDA = { start: 100, floor: 5, halfLifeHours: 12 };
+export const gdaPrice = (hours) => Math.max(GDA.floor, Math.round(GDA.start * Math.pow(0.5, hours / GDA.halfLifeHours)));
+/** Offer n's seed: n = 0 from the launch block, then from the block of purchase n - 1. */
+export const offerSeed = (tokenKey, n, blockHash) => H('BEAST_TRACK_OFFER', blockHash, tokenKey, n);
 
 // ── one entry point for the page ──────────────────────────────────────────────────────────────
 export function labMidi(mode, b, live, args, E, v11) {
@@ -280,6 +328,7 @@ export function labMidi(mode, b, live, args, E, v11) {
   }
   if (mode === 'drift') return driftMidi(b, live, args.epoch, E, v11);
   if (mode === 'tracks') return ownedTrackMidi(b, live, args.seed, args.epoch, E, v11);
+  if (mode === 'species') return speciesTrackMidi(b, live, args.seed, args.epoch, E, v11);
   if (mode === 'yeti') return { midi: yetiMidi(b, live, args.ideas, E, v11) };
   throw new Error('mode ' + mode);
 }

@@ -336,7 +336,7 @@ export function createEngineV11(engine) {
 
   // override (prototypes: event tracks, drift, specials; absent = no change): { tr: fields replacing
   // the trajectory's, sections: section count, rhythmSeed: re-picks the rhythm cells, flipSide:
-  // mirrors the key plan, tempo_us, voice_count }
+  // mirrors the key plan, tempo_us, voice_count, params: fields replacing the params' (a track's key) }
   function render(beast, live, { keys = 'modulate', even = false, breath = false, traj = false, scale = 'mode', family = null, override = null } = {}) {
     FAM = family && FAMILIES[family] ? FAMILIES[family] : null;
     R = FAM ? scaleRealize(FAM.scale) : scale === 'wholetone' ? wholeTone : I.realize;
@@ -350,7 +350,7 @@ export function createEngineV11(engine) {
     const r = engine.render(beast, structural), f = r.form;
     // family: its tempo, and voices entering twice as far apart for the blooming plant forms
     const p0 = FAM ? { ...r.params, tempo_us: Math.round(r.params.tempo_us / (FAM.tempo || 1)), stretto_lag: FAM.bloom ? r.params.stretto_lag * 2 : r.params.stretto_lag } : r.params;
-    const p = override.sections || override.tempo_us || override.voice_count ? { ...p0, ...(override.sections ? { section_count: override.sections } : {}), ...(override.tempo_us ? { tempo_us: override.tempo_us } : {}), ...(override.voice_count ? { voice_count: override.voice_count } : {}) } : p0;
+    const p = override.sections || override.tempo_us || override.voice_count || override.params ? { ...p0, ...(override.params || {}), ...(override.sections ? { section_count: override.sections } : {}), ...(override.tempo_us ? { tempo_us: override.tempo_us } : {}), ...(override.voice_count ? { voice_count: override.voice_count } : {}) } : p0;
     if (traj) r.live = { ...swapped };
     const theme = { ...f.theme, degrees: cadenceTheme(f.theme.degrees) };
     const tr = traj ? Object.assign(trajectory(r, live), override.tr || {}) : null;

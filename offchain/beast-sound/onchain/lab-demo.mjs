@@ -59,7 +59,7 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 .ctl{display:flex;gap:10px;margin-top:12px}.ctl button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--fg);color:var(--bg);font:600 15px system-ui;cursor:pointer}.ctl button.stop{background:var(--bg);color:var(--fg)}
 .chk{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}@media(max-width:520px){.chk{grid-template-columns:1fr}}.chk label{display:flex;gap:8px;align-items:flex-start;color:var(--fg);font-size:14px;margin:0}.chk small{display:block;color:var(--mut);font-size:12px}
 #info{font:12px/1.6 ui-monospace,monospace;color:var(--mut);white-space:pre-wrap;margin:0}
-.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}@media(max-width:520px){.tabs{grid-template-columns:repeat(3,1fr)}}.tabs button{padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 14px system-ui;cursor:pointer}.tabs button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.panel{display:none}.panel.on{display:block}input[type=range]{width:100%}.note{font-size:13px;color:var(--mut);margin:8px 0 0}.beastcard{display:grid;grid-template-columns:125px 1fr;gap:16px;align-items:center}#art{width:125px;height:175px;border-radius:8px;object-fit:contain;background:#000}@media(max-width:420px){.beastcard{grid-template-columns:96px 1fr}#art{width:96px;height:134px}}\n</style></head><body><main>
+button:disabled{opacity:.45;cursor:default}.offer{margin:12px 0 8px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px;font-size:14px;line-height:1.45}.offer b{font-size:15px}.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}@media(max-width:520px){.tabs{grid-template-columns:repeat(3,1fr)}}.tabs button{padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 14px system-ui;cursor:pointer}.tabs button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.panel{display:none}.panel.on{display:block}input[type=range]{width:100%}.note{font-size:13px;color:var(--mut);margin:8px 0 0}.beastcard{display:grid;grid-template-columns:125px 1fr;gap:16px;align-items:center}#art{width:125px;height:175px;border-radius:8px;object-fit:contain;background:#000}@media(max-width:420px){.beastcard{grid-template-columns:96px 1fr}#art{width:96px;height:134px}}\n</style></head><body><main>
 <h1>Beast Sound Lab</h1>
 <p class="sub">Five prototypes on composer v1.1, played as onchain-midi-player plays a token_uri (the self-contained MIDI, the class's engine, the TinyChip timbres). Pick a Beast, a tab, then play; changes apply while playing.</p>
 <div class="card beastcard"><img id="art" alt="" width="125" height="175"><div><label for="beast">Beast</label><select id="beast"></select>
@@ -69,11 +69,12 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 <div class="card"><div class="tabs"><button id="t-tracks" class="on">Tracks</button><button id="t-track">Event tracks</button><button id="t-progression">Progression</button><button id="t-drift">Drift</button><button id="t-yeti">Yeti</button></div>
 <div id="p-tracks" class="panel on" style="margin-top:14px">
 <div class="row" style="grid-template-columns:1fr 1fr"><div><label>Track slots</label><b id="slots">0 of 1 used</b></div><div><label>Spent</label><b id="spent">0 $SKULL · 0 $CORPSE</b></div></div>
-<div class="ctl"><button id="buy-slot" class="stop">+1 slot (1 $SKULL)</button><button id="buy-track">Buy a track (10 $CORPSE)</button></div>
-<label for="owned" style="margin-top:12px">Playing (Beasts V3 change_track)</label><select id="owned"></select>
-<div class="ctl" style="margin-top:6px"><button id="discard" class="stop">Discard selected track (frees its slot)</button></div>
+<div class="offer" id="offer"></div>
+<div class="ctl"><button id="preview" class="stop">Preview the offer</button><button id="buy-track">Buy</button></div>
+<div class="ctl" style="margin-top:6px"><button id="buy-slot" class="stop">+1 slot (1 $SKULL)</button><button id="discard" class="stop">Discard selected track</button></div>
+<label for="owned" style="margin-top:12px">Playing (Beasts V3 select_track)</label><select id="owned"></select>
 <label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="drift-on"> Drift on top: day <b id="tdayv">0</b></label><input type="range" id="tday" min="0" max="30" value="0" disabled>
-<p class="note">loothero's model: every Beast plays its origin track out of the box (its traits only: the tier's full voices and sections, no kills or defeats). $SKULL opens track slots; $CORPSE buys a track into a free slot, seeded with fresh entropy (here random; onchain a block hash at least 10 blocks old, the token and the purchase index), so you can't know what you'll get. Kills and defeats earn the tokens and never change the music. Prices are placeholders.</p></div>
+<p class="note">loothero's model: every Beast of a species starts with the same base track (all Warlocks play the same notes; shiny adds the mega sound on top). Each Beast has one new track on offer at a time, sold by a gradual Dutch auction (here 1 second = 1 hour: 100 $CORPSE halving every 12 h, floor 5). Buying needs a free slot ($SKULL adds one). The next offer is forged from the purchase block's hash, readable 10 blocks later, so nobody knows it in advance, but anyone can hear an offer before buying. A bought track keeps the species theme and instruments; its seed picks a key and mode, an ornament style, the development, direction, sections, spacing and rhythm. Prices are placeholders.</p></div>
 <div id="p-track" class="panel" style="margin-top:14px"><div class="row" style="grid-template-columns:2fr 1fr"><div><label for="track">Track (Beasts V3 change_track)</label><select id="track"></select></div><div><label for="variation">Variation</label><select id="variation"><option value="0">Original (free)</option><option value="1">Variation 1 (1 $SKULL)</option><option value="2">Variation 2 (1 $SKULL)</option><option value="3">Variation 3 (1 $SKULL)</option></select></div></div>
 <p class="note">Origin: the Beast with no history. Each kill or defeat in its Death Mountain record makes a track: kills get the inverted development and rising episodes, defeats a tighter stretto, falling episodes and softer notes; the event's seed makes the rest of the choices. Beasts with no events get an example kill and defeat.</p></div>
 <div id="p-progression" class="panel" style="margin-top:14px"><label for="levels">Levels</label><select id="levels"><option value="3" selected>3 levels, loothero's order: THEME &gt; CANON + PALETTE &gt; COUNTERSUBJECT + DRUMS</option><option value="5">5 levels, a random order per Beast</option></select>
@@ -99,23 +100,43 @@ const SPRITES = ${JSON.stringify(SPRITES)};
 const L = BS.lab, $ = (id) => document.getElementById(id);
 const TYPES = ['Magic', 'Hunter', 'Brute'];
 let mode = 'tracks', synth = null, playing = false, reroll = 0;
-const OWN = {}; // per Beast: { capacity, tracks: [seed], selected: -1 (origin) or index }
+const OWN = {}; // per Beast: { capacity, tracks: [{ seed, n }], selected: -1 base | i | 'offer', offer: { n, seed, opened } | null, forging: ms }
 let spentSkull = 0, spentCorpse = 0;
-const own = () => (OWN[$('beast').value] ||= { capacity: 1, tracks: [], selected: -1 });
-const freshSeed = () => { const a = new Uint8Array(31); crypto.getRandomValues(a); return BigInt('0x' + [...a].map((x) => x.toString(16).padStart(2, '0')).join('')); };
-const describe = (t) => t.development + ', episodes ' + (t.direction > 0 ? 'rising' : t.direction < 0 ? 'falling' : 'alternating') + ', ' + t.sections + ' sections, ' + t.spacing + ' spacing' + (t.trill ? ', trills' : '');
+const randHash = () => { const a = new Uint8Array(31); crypto.getRandomValues(a); return BigInt('0x' + [...a].map((x) => x.toString(16).padStart(2, '0')).join('')); };
+const tokenKey = () => BigInt($('beast').value) + 1n;
+const own = () => (OWN[$('beast').value] ||= { capacity: 1, tracks: [], selected: -1, offer: { n: 0, seed: L.offerSeed(tokenKey(), 0, randHash()), opened: Date.now() }, forging: 0 });
+const hoursOpen = (o) => (Date.now() - o.offer.opened) / 1000;
+const devName = (t) => t.development + ', episodes ' + (t.direction > 0 ? 'rising' : t.direction < 0 ? 'falling' : 'alternating') + ', ' + t.sections + ' sections, ' + t.spacing + ' spacing' + (t.trill ? ', trills' : '');
+const KEYS = {}, keyOf = (seed) => (KEYS[$('beast').value + ':' + seed] ??= L.labMidi('species', BEASTS[+$('beast').value].beast, BEASTS[+$('beast').value].live, { seed, epoch: null }, BS.engine, BS.v11).key);
+const speciesName = () => BEASTS[+$('beast').value].name.split(/ [#(]/)[0].split(' ').pop();
+const describe = (seed) => keyOf(seed) + ' \u00b7 ' + devName(L.speciesTrackTreatment(seed));
+function fillOffer() {
+  const o = own(), full = o.tracks.length >= o.capacity;
+  if (!o.offer) { const left = Math.max(0, Math.ceil((o.forging - Date.now()) / 1000)); $('offer').innerHTML = '<b>Forging the next track\u2026</b><br>waiting for the purchase block to be 10 blocks old (' + left + ' s)'; $('buy-track').disabled = $('preview').disabled = true; $('buy-track').textContent = 'Forging\u2026'; return; }
+  const price = L.gdaPrice(hoursOpen(o));
+  $('offer').innerHTML = '<b>On offer: track #' + (o.offer.n + 1) + '</b> \u00b7 ' + Math.floor(hoursOpen(o)) + ' h into the auction<br>' + describe(o.offer.seed) + '<br>Price now <b>' + price + ' $CORPSE</b>' + (price <= L.GDA.floor ? ' (floor)' : '');
+  $('preview').disabled = false; $('preview').textContent = o.selected === 'offer' ? 'Previewing' : 'Preview the offer';
+  $('buy-track').disabled = full; $('buy-track').textContent = full ? 'Slots full: add a slot' : 'Buy for ' + price + ' $CORPSE';
+}
 function fillOwned() {
   const o = own();
   $('owned').innerHTML = '';
-  $('owned').add(new Option('Origin (always available)', '-1'));
-  o.tracks.forEach((seed, i) => $('owned').add(new Option('Track ' + (i + 1) + ': ' + describe(L.trackTreatment(seed)), String(i))));
+  $('owned').add(new Option('Base track (every ' + speciesName() + ')', '-1'));
+  o.tracks.forEach((t, i) => $('owned').add(new Option('Track #' + (t.n + 1) + ': ' + describe(t.seed), String(i))));
+  if (o.offer) $('owned').add(new Option('Offer preview: track #' + (o.offer.n + 1), 'offer'));
   $('owned').value = String(o.selected);
   $('slots').textContent = o.tracks.length + ' of ' + o.capacity + ' used';
   $('spent').textContent = spentSkull + ' $SKULL \u00b7 ' + spentCorpse + ' $CORPSE';
-  $('buy-track').disabled = o.tracks.length >= o.capacity;
-  $('buy-track').textContent = o.tracks.length >= o.capacity ? 'Slots full: add a slot' : 'Buy a track (10 $CORPSE)';
-  $('discard').disabled = o.selected < 0;
+  $('discard').disabled = typeof o.selected !== 'number' || o.selected < 0;
+  fillOffer();
 }
+setInterval(() => {
+  if (mode !== 'tracks') return;
+  const o = own();
+  if (!o.offer && Date.now() >= o.forging) { o.offer = { n: o.nextN, seed: L.offerSeed(tokenKey(), o.nextN, o.pendingHash), opened: Date.now() }; fillOwned(); }
+  else fillOffer();
+}, 1000);
+
 BEASTS.forEach((x, i) => $('beast').add(new Option(x.name + '  (tier ' + x.beast.tier + (x.beast.id === 68 ? ', YETI' : '') + ')', i)));
 const day = (ts) => ts ? new Date(ts * 1000).toISOString().slice(0, 10) : 'undated';
 // ── Tempo-synced art (loothero's "BPM animation sync", as in Provable-Games/beast-sound-check) ──
@@ -241,9 +262,9 @@ function make() {
   const x = BEASTS[+$('beast').value], b = x.beast;
   let args = {}, head = '';
   if (mode === 'tracks') {
-    const o = own(), seed = o.selected >= 0 ? o.tracks[o.selected] : null, epoch = $('drift-on').checked ? +$('tday').value : null;
+    const o = own(), sel = o.selected, seed = sel === 'offer' ? o.offer.seed : sel >= 0 ? o.tracks[sel].seed : null, epoch = $('drift-on').checked ? +$('tday').value : null;
     args = { seed, epoch };
-    head = (seed === null ? 'origin track (traits only)' : 'track ' + (o.selected + 1) + ': ' + describe(L.trackTreatment(seed)) + ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + L.drift(b, epoch).label : '');
+    head = (seed === null ? 'base track of every ' + speciesName() + ' (species only)' : (sel === 'offer' ? 'previewing the offer, track #' + (o.offer.n + 1) : 'track #' + (o.tracks[sel].n + 1)) + ': ' + describe(seed) + ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + L.drift(b, epoch).label : '');
   } else if (mode === 'track') {
     const v = $('track').value, ev = (x.events && x.events.events) || [], variation = +$('variation').value;
     let track, event = null;
@@ -265,7 +286,7 @@ function make() {
     args = { ideas: { rock: $('y-rock').checked && !$('y-stomp').checked, yodel: $('y-yodel').checked, avalanche: $('y-avalanche').checked, stomp: $('y-stomp').checked } };
     head = 'Yeti ideas: ' + Object.entries(args.ideas).filter(([, on]) => on).map(([k]) => k).join(' + ') + (b.id !== 68 ? ' (on a non-Yeti)' : '');
   }
-  const out = L.labMidi(mode, b, x.live, args, BS.engine, BS.v11), midi = out.midi;
+  const out = L.labMidi(mode === 'tracks' ? 'species' : mode, b, x.live, args, BS.engine, BS.v11), midi = out.midi;
   tempo = tempoOf(midi);
   const pg = programsOf(midi);
   const ch = Object.entries(pg).map(([c, p]) => 'ch' + (+c + 1) + ' ' + p + ' ' + (NAMES[p] || '')).join(' \u00b7 ');
@@ -296,9 +317,17 @@ function tab(m) {
 }
 for (const t of ['tracks', 'track', 'progression', 'drift', 'yeti']) $('t-' + t).onclick = () => tab(t);
 $('buy-slot').onclick = () => { own().capacity++; spentSkull++; fillOwned(); };
-$('buy-track').onclick = () => { const o = own(); if (o.tracks.length >= o.capacity) return; o.tracks.push(freshSeed()); o.selected = o.tracks.length - 1; spentCorpse += 10; fillOwned(); refresh(); };
-$('discard').onclick = () => { const o = own(); if (o.selected < 0) return; o.tracks.splice(o.selected, 1); o.selected = -1; fillOwned(); refresh(); };
-$('owned').onchange = () => { own().selected = +$('owned').value; fillOwned(); refresh(); };
+$('buy-track').onclick = () => {
+  const o = own(); if (!o.offer || o.tracks.length >= o.capacity) return;
+  spentCorpse += L.gdaPrice(hoursOpen(o));
+  o.tracks.push({ seed: o.offer.seed, n: o.offer.n }); o.selected = o.tracks.length - 1;
+  // the next offer comes from this purchase block's hash, readable 10 blocks later (~3 s here)
+  o.nextN = o.offer.n + 1; o.pendingHash = randHash(); o.offer = null; o.forging = Date.now() + 3000;
+  fillOwned(); refresh();
+};
+$('preview').onclick = () => { const o = own(); if (!o.offer) return; o.selected = 'offer'; fillOwned(); if (playing) refresh(); else $('play').click(); };
+$('discard').onclick = () => { const o = own(); if (typeof o.selected !== 'number' || o.selected < 0) return; o.tracks.splice(o.selected, 1); o.selected = -1; fillOwned(); refresh(); };
+$('owned').onchange = () => { const v = $('owned').value; own().selected = v === 'offer' ? 'offer' : +v; fillOwned(); refresh(); };
 $('drift-on').onchange = () => { $('tday').disabled = !$('drift-on').checked; refresh(); };
 $('tday').oninput = () => { $('tdayv').textContent = $('tday').value; refresh(); };
 $('play').onclick = start;

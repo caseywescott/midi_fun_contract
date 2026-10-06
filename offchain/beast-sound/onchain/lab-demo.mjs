@@ -316,7 +316,7 @@ function setRoll(midi, marks) {
   rollData = notesOf(midi);
   rollData.marks = new Set((marks || []).map((m) => m.time + ':' + m.pitch));
   const pg = programsOf(midi), chans = [...new Set(rollData.notes.map((x) => x[4]))].sort((a, b) => a - b);
-  $('legend').innerHTML = chans.map((ch) => '<span><i style="background:' + (ch === 9 ? 'var(--mut)' : ROLL_COLORS[ch % ROLL_COLORS.length]) + '"></i>ch' + (ch + 1) + ' ' + (ch === 9 ? 'drums' : (pg[ch] !== undefined ? (NAMES[pg[ch]] || 'program ' + pg[ch]) : '')) + '</span>').join('') + (rollData.marks.size ? '<span><i style="background:#ffd23f"></i>flourish (16th)</span>' : '');
+  $('legend').innerHTML = chans.map((ch) => '<span><i style="background:' + (ch === 9 ? 'var(--mut)' : ROLL_COLORS[ch % ROLL_COLORS.length]) + '"></i>ch' + (ch + 1) + ' ' + (ch === 9 ? 'drums' : (pg[ch] !== undefined ? (NAMES[pg[ch]] || 'program ' + pg[ch]) : '')) + '</span>').join('') + (rollData.marks.size ? '<span><i style="background:#ff2d2d;outline:2px solid var(--fg);outline-offset:1px"></i>flourish (16th)</span>' : '');
   drawRoll(null);
 }
 (function rollLoop() {

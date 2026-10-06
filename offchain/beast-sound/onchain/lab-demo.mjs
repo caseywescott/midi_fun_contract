@@ -69,9 +69,10 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 <div class="card"><div class="tabs"><button id="t-track" class="on">Event tracks</button><button id="t-progression">Progression</button><button id="t-drift">Drift</button><button id="t-yeti">Yeti</button></div>
 <div id="p-track" class="panel on" style="margin-top:14px"><div class="row" style="grid-template-columns:2fr 1fr"><div><label for="track">Track (Beasts V3 change_track)</label><select id="track"></select></div><div><label for="variation">Variation</label><select id="variation"><option value="0">Original (free)</option><option value="1">Variation 1 (1 $SKULL)</option><option value="2">Variation 2 (1 $SKULL)</option><option value="3">Variation 3 (1 $SKULL)</option></select></div></div>
 <p class="note">Origin: the Beast with no history. Each kill or defeat in its Death Mountain record makes a track: kills get the inverted development and rising episodes, defeats a tighter stretto, falling episodes and softer notes; the event's seed makes the rest of the choices. Beasts with no events get an example kill and defeat.</p></div>
-<div id="p-progression" class="panel" style="margin-top:14px"><label for="level">Unlocked layers: <b id="levelv">0</b> of 5</label><input type="range" id="level" min="0" max="5" value="0">
-<div class="ctl" style="margin-top:6px"><button id="reroll" class="stop">Another unlock order</button></div>
-<p class="note">Level 0 is the Beast's own scale in its type's feel. Each $SKULL unlock reveals a layer (the theme first, then the rest in an order fixed per Beast; onchain, the unlock transaction's block hash).</p></div>
+<div id="p-progression" class="panel" style="margin-top:14px"><label for="levels">Levels</label><select id="levels"><option value="3" selected>3 levels, loothero's order: THEME &gt; CANON + PALETTE &gt; COUNTERSUBJECT + DRUMS</option><option value="5">5 levels, a random order per Beast</option></select>
+<label for="level" style="margin-top:10px">Unlocked: <b id="levelv">0</b> of <b id="levelmax">3</b></label><input type="range" id="level" min="0" max="3" value="0">
+<div class="ctl" style="margin-top:6px"><button id="reroll" class="stop" style="display:none">Another unlock order</button></div>
+<p class="note">Level 0 is the Beast's own scale in its type's feel. Each $SKULL unlock reveals more: with 3 levels, the theme, then the canon and the full palette, then the countersubject and the drums, the same for every Beast. With 5 levels, one layer at a time in an order fixed per Beast (onchain, the unlock transaction's block hash).</p></div>
 <div id="p-drift" class="panel" style="margin-top:14px"><label for="day">Day (epoch): <b id="dayv">0</b></label><input type="range" id="day" min="0" max="30" value="0">
 <p class="note">A never-ending track: each epoch (a day of blocks, seeded by the epoch's first block hash, readable once 10 blocks old) turns at most one small knob; most days it plays as written.</p></div>
 <div id="p-yeti" class="panel" style="margin-top:14px"><div class="chk">
@@ -225,9 +226,10 @@ function make() {
     head = 'track_id 0x' + L.encodeTrack(track).toString(16) + (track.kind ? ' \u00b7 ' + (track.kind === 1 ? 'kill' : 'defeat') + ' #' + (track.index + 1) + ', variation ' + track.variation + (event && (event.seed !== '0' || event.adventurer_id !== '0') ? ' \u00b7 seeded from the record' : ' \u00b7 seeded from the Beast, index and time (record has no detail)') : ' \u00b7 origin');
   } else if (mode === 'progression') {
     const seed = L.H('UNLOCK', L.entityHash(b), reroll), lvl = +$('level').value;
-    args = { unlocked: lvl, seed };
-    const order = L.unlockOrder(seed);
-    head = 'unlock order: ' + order.map((n, i) => (i < lvl ? n.toUpperCase() : n)).join(' > ') + (lvl === 0 ? ' \u00b7 now: the scale' : '');
+    const three = $('levels').value === '3';
+    args = { unlocked: lvl, seed, three };
+    if (three) head = 'levels: ' + L.THREE_LEVELS.map((g, i) => (i < lvl ? g.map((n) => n.toUpperCase()) : g).join(' + ')).join(' > ') + (lvl === 0 ? ' \u00b7 now: the scale' : '');
+    else { const order = L.unlockOrder(seed); head = 'unlock order: ' + order.map((n, i) => (i < lvl ? n.toUpperCase() : n)).join(' > ') + (lvl === 0 ? ' \u00b7 now: the scale' : ''); }
   } else if (mode === 'drift') {
     args = { epoch: +$('day').value };
     head = 'day ' + args.epoch + ': ' + L.drift(b, args.epoch).label;
@@ -270,6 +272,7 @@ $('stop').onclick = () => { if (synth) synth.stopMIDI(); playing = false; stopFo
 $('speed').onchange = () => renderArt(playing);
 $('beast').onchange = () => { fillTracks(); refresh(); };
 $('level').oninput = () => { $('levelv').textContent = $('level').value; refresh(); };
+$('levels').onchange = () => { const max = $('levels').value; $('level').max = max; if (+$('level').value > +max) $('level').value = max; $('levelmax').textContent = max; $('levelv').textContent = $('level').value; $('reroll').style.display = max === '5' ? '' : 'none'; refresh(); };
 $('day').oninput = () => { $('dayv').textContent = $('day').value; refresh(); };
 $('reroll').onclick = () => { reroll++; refresh(); };
 for (const id of ['track', 'variation', 'y-rock', 'y-yodel', 'y-avalanche', 'y-stomp']) $(id).onchange = refresh;

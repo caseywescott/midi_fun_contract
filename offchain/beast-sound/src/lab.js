@@ -82,6 +82,19 @@ const reshape = (r, shape) => {
 // ── progression: from the Beast's scale to the full composition ───────────────────────────────
 export const LAYERS = ['theme', 'canon', 'countersubject', 'drums', 'palette'];
 
+/**
+ * The three-level progression in loothero's favourite order, THEME > CANON > PALETTE >
+ * COUNTERSUBJECT > DRUMS, the same for every Beast: level 1 the theme, level 2 the canon and the
+ * palette (the ensemble arrives), level 3 the countersubject and the drums (the groove lands last).
+ */
+export const PREFERRED_ORDER = ['theme', 'canon', 'palette', 'countersubject', 'drums'];
+export const THREE_LEVELS = [['theme'], ['canon', 'palette'], ['countersubject', 'drums']];
+
+/** The layers unlocked at `level`: three levels in the preferred order, or one layer per level in a seeded order. */
+export function unlockedLayers(level, { three = true, seed = 0n } = {}) {
+  return three ? THREE_LEVELS.slice(0, level).flat() : unlockOrder(seed).slice(0, level);
+}
+
 /** The order a Beast unlocks its layers: the theme first, the rest shuffled by the seed. */
 export function unlockOrder(seed) {
   const rest = LAYERS.slice(1), out = ['theme'];
@@ -107,12 +120,12 @@ function scaleResult(full, E) {
 }
 
 /** The MIDI for a Beast with `unlocked` layers (0 = just its scale). */
-export function progressionMidi(full, E, unlocked, seed) {
+export function progressionMidi(full, E, unlocked, seed, three = false) {
   if (unlocked === 0) {
     const r = scaleResult(full, E);
     return beastFullMidi(r, E.formLength, {}, { instruments: 'beast', drums: false });
   }
-  const have = new Set(unlockOrder(seed).slice(0, unlocked));
+  const have = new Set(unlockedLayers(unlocked, { three, seed }));
   const p = full.params, cs = p.use_countersubject ? p.voice_count : -1;
   const keep = (v) => v === 0 || (v === cs ? have.has('countersubject') : have.has('canon'));
   const r = { ...full, form: { ...full.form, events: full.form.events.filter((e) => keep(e.voice_id)) } };
@@ -222,7 +235,7 @@ export function labMidi(mode, b, live, args, E, v11) {
   }
   if (mode === 'progression') {
     const full = v11.render(b, live, V11);
-    return { midi: progressionMidi(full, E, args.unlocked, args.seed), order: unlockOrder(args.seed) };
+    return { midi: progressionMidi(full, E, args.unlocked, args.seed, !!args.three), order: args.three ? PREFERRED_ORDER : unlockOrder(args.seed) };
   }
   if (mode === 'drift') return driftMidi(b, live, args.epoch, E, v11);
   if (mode === 'yeti') return { midi: yetiMidi(b, live, args.ideas, E, v11) };

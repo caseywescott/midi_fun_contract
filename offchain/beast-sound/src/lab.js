@@ -317,10 +317,20 @@ function trackMidi(b, live, seed, epoch, E, v11, species) {
 // theme sits and the rhythm cells. With theme 'species' every track keeps the species' motif (the
 // Genesis Track's theme); with 'name' the name also re-seeds the motif, as v1.1 does today.
 // genesisKey 'rule' is v1.1's genesis key (every species Phrygian, tonic = id mod 12); 'spread' gives
-// each species the key of a canonical name instead, for comparing while the 75 Genesis Tracks are tuned.
+// each species the key of a canonical name instead; 'proposed' adds genesisTempo (the Genesis Track
+// table's starting point), for comparing while the 75 Genesis Tracks are tuned.
 export const NAME_COUNT = 69 * 18;
 export const nameFromVariant = (n) => (n === 0 ? { prefix: 0, suffix: 0 } : { prefix: Math.floor((n - 1) / 18) + 1, suffix: ((n - 1) % 18) + 1 });
 export const genesisBeast = (b) => ({ ...b, prefix: 0, suffix: 0, level: BASE_LEVEL, health: BASE_HEALTH, shiny: 0, animated: 0 });
+
+/** A starting tempo for a species' Genesis Track (v1.1 plays every one at 120 BPM): Hunters quick,
+ *  Magic moderate, Brutes heavy; big tiers slower, small tiers quicker; a step by species to separate
+ *  neighbours. A suggestion to tune by ear in the Genesis Track table. */
+export function genesisTempo(b) {
+  return [104, 124, 92][b.beast_type] + [-8, -4, 0, 4, 8][b.tier - 1] + [-4, 0, 4][b.id % 3];
+}
+/** The spread key: a canonical name's key per species (prefix (id - 1) mod 69 + 1). */
+export const spreadKeyBeast = (g) => ({ ...g, prefix: ((g.id - 1) % 69) + 1, suffix: ((g.id - 1) % 18) + 1 });
 
 export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null } = {}, E, v11) {
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
@@ -334,10 +344,11 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     const kp = E.mapV3({ ...g, ...nm }, neutral);
     override.params = { mode_id: kp.mode_id, tonic_keynum: kp.tonic_keynum, register_band: kp.register_band, ornament_density: kp.ornament_density, _ornament: kp._ornament };
     orn = kp._ornament;
-  } else if (!name && genesisKey === 'spread') {
-    const kp = E.mapV3({ ...g, prefix: ((b.id - 1) % 69) + 1, suffix: ((b.id - 1) % 18) + 1 }, neutral);
+  } else if (!name && (genesisKey === 'spread' || genesisKey === 'proposed')) {
+    const kp = E.mapV3(spreadKeyBeast(g), neutral);
     override.params = { mode_id: kp.mode_id, tonic_keynum: kp.tonic_keynum, register_band: kp.register_band };
   }
+  if (!name && genesisKey === 'proposed') override.tempo_us = Math.round(60e6 / genesisTempo(b));
   override.tr.trill = !!orn.allow_trill;
   const d = epoch === null || epoch === undefined ? { knob: null, label: 'off' } : drift(b, epoch);
   const base = v11.render(cb, neutral, { ...V11, override });
@@ -348,7 +359,7 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   const r = d.knob === null || d.knob === 3 ? base : v11.render(cb, neutral, { ...V11, override });
   const drums = d.knob === 3 ? (length, sec, tier, mega) => drumEvents(length, sec, tier >= 5 ? 4 : tier + 1, mega) : null;
   const p = { ...r.params, ...(override.params || {}) };
-  const info = { key: keyName(p), voices: p.voice_count, sections: p.section_count, tempo: Math.round(60e6 / p.tempo_us), ...r.v11.trajectory };
+  const info = { key: keyName(p), voices: p.voice_count, sections: p.section_count, tempo: Math.round(60e6 / (override.tempo_us || p.tempo_us)), ...r.v11.trajectory };
   return { midi: beastFullMidi(r, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums }), drift: d, result: r, info };
 }
 

@@ -45,7 +45,7 @@ const PREFIXES = Array.from({ length: 69 }, (_, k) => beastName({ id: 1, prefix:
 const SUFFIXES = Array.from({ length: 18 }, (_, k) => beastName({ id: 1, prefix: 1, suffix: k + 1 }).split(' ').slice(-2, -1)[0]);
 // The Genesis tab's list: every species' Genesis Track with the lab's defaults (name 0, seed 0), the
 // same settings the page plays it with (GENESIS_DEFAULTS below)
-const GENESIS_DEFAULTS = { name: 0, seed: 0n, theme: 'species', genesisKey: 'rule', channels: 'rarity', mix: 'balanced', ties: 'weak', topLead: true };
+const GENESIS_DEFAULTS = { name: 0, seed: 0n, theme: 'species', genesisKey: 'spread', channels: 'rarity', mix: 'balanced', ties: 'weak', topLead: true };
 const V11E = createEngineV11(ENGINE);
 const GENESIS = BEASTS.map((x) => { const o = LAB.labMidi('sample', x.beast, x.live, GENESIS_DEFAULTS, ENGINE, V11E); return { key: o.info.key, ch: o.info.channels.length, secs: Math.round(o.result.form.section_ticks * o.result.form.sections.length / 480 * 60 / o.info.tempo) }; });
 const SPRITES = Object.fromEntries(BEASTS.flatMap((x) => [String(x.beast.id), x.beast.id + 's']).map((k) => { const { n, w, png } = spriteSheet(k); return [k, { n, w, png }]; }));
@@ -86,7 +86,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <label for="seed" style="margin-top:10px">Seed (a block hash; 0 = the Genesis seed)</label><input type="text" id="seed" spellcheck="false" value="0" placeholder="0">
 <div class="ctl"><button id="newseed" class="stop">New hash</button><button id="noseed" class="stop">Seed 0 (Genesis)</button><button id="sample">Random sample</button></div>
 <div class="row" style="grid-template-columns:1fr 1fr;margin-top:12px"><div><label for="theme">Motif</label><select id="theme"><option value="species" selected>Species motif in every track</option><option value="name">Each name re-seeds the motif (v1.1 today)</option></select></div>
-<div><label for="gkey">Genesis key</label><select id="gkey"><option value="rule" selected>v1.1 rule: Phrygian, tonic = id mod 12</option><option value="spread">Spread: a canonical name's key per species</option><option value="proposed">Proposed: spread key + suggested tempo</option></select></div></div>
+<div><label for="gkey">Genesis key</label><select id="gkey"><option value="spread" selected>Spread: a canonical name's key per species (the Genesis proposal)</option><option value="rule">v1.1 rule: Phrygian, tonic = id mod 12</option><option value="proposed">Proposed: spread key + suggested tempo</option></select></div></div>
 <label for="bpm" style="margin-top:12px">Tempo: <b id="bpmv">auto</b></label>
 <div class="row" style="grid-template-columns:1fr auto auto auto;align-items:center;gap:8px"><input type="range" id="bpm" min="60" max="200" step="1" value="120"><button id="bpm-down" class="mini">−4</button><button id="bpm-up" class="mini">+4</button><button id="bpm-auto" class="mini">Auto</button></div>
 <label for="mix" style="margin-top:12px">Mix</label><select id="mix"><option value="balanced" selected>Balanced: leads down, plucks up, panning halved (prototype)</option><option value="">v1.1 (what get_midi plays today)</option></select>
@@ -118,7 +118,7 @@ const SPRITES = ${JSON.stringify(SPRITES)};
 const L = BS.lab, $ = (id) => document.getElementById(id);
 const TYPES = ['Magic', 'Hunter', 'Brute'];
 let mode = 'tracks', synth = null, playing = false;
-const GENESIS = ${JSON.stringify(GENESIS)}, GDEF = { name: 0, seed: 0n, theme: 'species', genesisKey: 'rule', channels: 'rarity', mix: 'balanced', ties: 'weak', topLead: true };
+const GENESIS = ${JSON.stringify(GENESIS)}, GDEF = { name: 0, seed: 0n, theme: 'species', genesisKey: 'spread', channels: 'rarity', mix: 'balanced', ties: 'weak', topLead: true };
 let playAll = false, advanceTimer = 0;
 // a day count as an age since launch: day 365 is a year in
 const age = (d) => { const y = Math.floor(d / 365), m = Math.floor((d % 365) / 30.42); return d + ' (' + (y ? y + ' yr ' : '') + m + ' mo)'; };

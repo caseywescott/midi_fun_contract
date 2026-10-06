@@ -226,6 +226,47 @@ export function yetiMidi(b, live, ideas, E, v11) {
   return beastFullMidi(r, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', programs, drums });
 }
 
+// ── owned tracks: the origin plus tracks bought with $CORPSE into slots opened with $SKULL ─────────
+// loothero's model: every Beast plays its origin track out of the box; $SKULL raises how many tracks
+// it can carry, $CORPSE buys a track into a free slot, seeded with fresh entropy (onchain: a block
+// hash at least 10 blocks old, the token and the purchase index). Kills and defeats never touch the
+// music: they earn the tokens. The provider only reads the selected track's seed.
+export const TIER_SECTIONS = { 1: 4, 2: 4, 3: 3, 4: 2, 5: 2 };
+export const TIER_VOICES = { 1: 4, 2: 4, 3: 3, 4: 2, 5: 2 };
+const DEVELOPMENTS = ['inversion', 'stretto', 'sequence'];
+
+/** What a track does: null for the origin, else the treatment its seed picks. */
+export function trackTreatment(seed) {
+  if (seed === null || seed === undefined) return null;
+  const s = low32(H('BEAST_TRACK', seed)), t = low32(H('BEAST_TRACK_2', seed));
+  return {
+    development: DEVELOPMENTS[s % 3],
+    direction: [1, -1, 0][(s >>> 2) % 3],
+    sections: 2 + ((s >>> 4) % 3),
+    trill: ((s >>> 6) & 1) === 1,
+    spacing: ['wide', 'normal', 'close'][(s >>> 7) % 3],
+    flipSide: ((s >>> 9) & 1) === 1,
+    rhythmSeed: BigInt(t) * 0x10000000n + BigInt(s),
+  };
+}
+
+/** The MIDI of the selected track (seed null = the origin), with the drift of `epoch` (null = none). */
+export function ownedTrackMidi(b, live, seed, epoch, E, v11) {
+  const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count };
+  const t = trackTreatment(seed);
+  const override = { voice_count: TIER_VOICES[b.tier] ?? 2, sections: t ? t.sections : TIER_SECTIONS[b.tier] ?? 2 };
+  if (t) Object.assign(override, { rhythmSeed: t.rhythmSeed, flipSide: t.flipSide, tr: { development: t.development, direction: t.direction, trill: t.trill, spacing: t.spacing } });
+  const d = epoch === null || epoch === undefined ? { knob: null, label: 'off' } : drift(b, epoch);
+  const base = v11.render(b, neutral, { ...V11, override });
+  const tr = base.v11.trajectory;
+  if (d.knob === 0) override.flipSide = !override.flipSide;
+  if (d.knob === 1) override.tr = { ...(override.tr || {}), direction: tr.direction === 0 ? 1 : -tr.direction };
+  if (d.knob === 2) override.tr = { ...(override.tr || {}), trill: !tr.trill };
+  const r = d.knob === null || d.knob === 3 ? base : v11.render(b, neutral, { ...V11, override });
+  const drums = d.knob === 3 ? (length, sec, tier, mega) => drumEvents(length, sec, tier >= 5 ? 4 : tier + 1, mega) : null;
+  return { midi: beastFullMidi(r, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums }), treatment: t, drift: d, result: r };
+}
+
 // ── one entry point for the page ──────────────────────────────────────────────────────────────
 export function labMidi(mode, b, live, args, E, v11) {
   if (mode === 'track') {
@@ -238,6 +279,7 @@ export function labMidi(mode, b, live, args, E, v11) {
     return { midi: progressionMidi(full, E, args.unlocked, args.seed, !!args.three), order: args.three ? PREFERRED_ORDER : unlockOrder(args.seed) };
   }
   if (mode === 'drift') return driftMidi(b, live, args.epoch, E, v11);
+  if (mode === 'tracks') return ownedTrackMidi(b, live, args.seed, args.epoch, E, v11);
   if (mode === 'yeti') return { midi: yetiMidi(b, live, args.ideas, E, v11) };
   throw new Error('mode ' + mode);
 }

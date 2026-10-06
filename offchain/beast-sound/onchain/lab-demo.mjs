@@ -71,7 +71,8 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div id="p-tracks" class="panel on" style="margin-top:14px">
 <label for="name">Special name: <b id="namev">Genesis Track</b></label>
 <div class="row" style="grid-template-columns:1fr 96px;align-items:center"><input type="range" id="name" min="0" max="1242" value="0"><input type="number" id="namen" min="0" max="1242" value="0"></div>
-<label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="drift-on"> Drift on top: day <b id="tdayv">1</b></label><input type="range" id="tday" min="1" max="1242" value="1" disabled>
+<label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="drift-on"> Drift on top: day <b id="tdayv">1</b></label><label style="margin-top:4px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="fl-on"> Flourishes grow with age: 16th-note ornaments on the theme, 0% on day 1 rising toward 12% of its notes</label>
+<input type="range" id="tday" min="1" max="1242" value="1" disabled>
 <select id="dv" style="margin-top:6px"><option value="v2" selected>Layered drift: monthly rhythm, weekly channel rotation, a daily key-plan, episode or tempo change</option><option value="v1">One-knob drift (v1: one small change a day)</option></select>
 <label for="seed" style="margin-top:10px">Seed (block hash; empty = none)</label><input type="text" id="seed" spellcheck="false" placeholder="0x…">
 <div class="ctl"><button id="newseed" class="stop">New hash</button><button id="noseed" class="stop">No seed</button><button id="sample">Random sample</button></div>
@@ -116,7 +117,9 @@ const devName = (t) => t.development + ', episodes ' + (t.direction > 0 ? 'risin
 function saveHash() {
   // every tab's state, so a link plays what is heard (the Tracks fields stay, the other tabs add theirs)
   const q = { b: curBeast().id, n: $('name').value, s: $('seed').value.trim(), shiny: $('shiny').checked ? 1 : 0, theme: $('theme').value, gkey: $('gkey').value, ch: $('chan').value, mix: $('mix').value || 'v11', ...(bpmSet ? { bpm: bpmSet } : {}) };
-  if ($('drift-on').checked) { q.tday = $('tday').value; q.dv = $('dv').value; }
+  if ($('drift-on').checked || $('fl-on').checked) q.tday = $('tday').value;
+  if ($('drift-on').checked) q.dv = $('dv').value;
+  if ($('fl-on').checked) q.fl = 1;
   if (mode !== 'tracks') q.tab = mode;
   if (mode === 'drift') q.day = $('day').value;
   if (mode === 'yeti') q.yeti = ['y-rock', 'y-yodel', 'y-avalanche', 'y-stomp'].filter((id) => $(id).checked).map((id) => id.slice(2)).join('.');
@@ -132,7 +135,8 @@ function loadHash() {
   if (q.get('gkey')) $('gkey').value = q.get('gkey');
   if (q.get('ch')) $('chan').value = q.get('ch');
   if (+q.get('bpm')) bpmSet = Math.min(200, Math.max(60, +q.get('bpm')));
-  if (q.has('tday')) { $('drift-on').checked = true; $('tday').disabled = false; $('tday').value = q.get('tday'); $('tdayv').textContent = age(+$('tday').value); }
+  if (q.get('fl') === '1') $('fl-on').checked = true;
+  if (q.has('tday')) { $('drift-on').checked = q.has('dv') || !q.has('fl'); $('tday').disabled = false; $('tday').value = q.get('tday'); $('tdayv').textContent = age(+$('tday').value); }
   if (q.get('dv')) $('dv').value = q.get('dv');
   if (q.get('mix')) $('mix').value = q.get('mix') === 'v11' ? '' : q.get('mix');
   if (q.has('day')) { $('day').value = q.get('day'); $('dayv').textContent = age(+$('day').value); }
@@ -299,18 +303,20 @@ function drawRoll(tick) {
     ctx.fillStyle = ch === 9 ? fg : ROLL_COLORS[ch % ROLL_COLORS.length];
     ctx.globalAlpha = (ch === 9 ? 0.25 : 0.35) + 0.6 * (vel / 127);
     if (ch === 9) { const rh = (drumH - 8) / drumKeys.length; ctx.fillRect(X(t), H - drumH + 4 + drumKeys.indexOf(pitch) * rh, 5, Math.max(3, rh - 2)); continue; }
-    const rowH = mH / (hi - lo + 1);
-    ctx.fillRect(X(t), top + (hi - pitch) * rowH, Math.max(3, X(dur) - 1.5), Math.max(3, rowH - 1));
+    const rowH = mH / (hi - lo + 1), y = top + (hi - pitch) * rowH, w = Math.max(3, X(dur) - 1.5), h = Math.max(3, rowH - 1);
+    if (ch === 0 && d.marks && d.marks.has(t + ':' + pitch)) { ctx.globalAlpha = 1; ctx.fillStyle = '#ff2d2d'; ctx.fillRect(X(t) - 1, y - 1, Math.max(8, w + 2), h + 2); ctx.strokeStyle = fg; ctx.lineWidth = 2; ctx.strokeRect(X(t) - 4, y - 4, Math.max(8, w + 2) + 6, h + 8); continue; } // a flourish
+    ctx.fillRect(X(t), y, w, h);
   }
   ctx.globalAlpha = 1;
   if (tick != null) { ctx.fillStyle = fg; ctx.fillRect(X(tick), 0, 3, H); }
   const fmt = (x) => Math.floor(x / 60) + ':' + String(Math.floor(x % 60)).padStart(2, '0');
   $('clock').textContent = (tick != null ? fmt(tick * secPerTick) + ' / ' : '') + fmt(total) + ' \u00b7 ' + bars + ' bars at ' + Math.round(tempo.bpm) + ' BPM, looping';
 }
-function setRoll(midi) {
+function setRoll(midi, marks) {
   rollData = notesOf(midi);
+  rollData.marks = new Set((marks || []).map((m) => m.time + ':' + m.pitch));
   const pg = programsOf(midi), chans = [...new Set(rollData.notes.map((x) => x[4]))].sort((a, b) => a - b);
-  $('legend').innerHTML = chans.map((ch) => '<span><i style="background:' + (ch === 9 ? 'var(--mut)' : ROLL_COLORS[ch % ROLL_COLORS.length]) + '"></i>ch' + (ch + 1) + ' ' + (ch === 9 ? 'drums' : (pg[ch] !== undefined ? (NAMES[pg[ch]] || 'program ' + pg[ch]) : '')) + '</span>').join('');
+  $('legend').innerHTML = chans.map((ch) => '<span><i style="background:' + (ch === 9 ? 'var(--mut)' : ROLL_COLORS[ch % ROLL_COLORS.length]) + '"></i>ch' + (ch + 1) + ' ' + (ch === 9 ? 'drums' : (pg[ch] !== undefined ? (NAMES[pg[ch]] || 'program ' + pg[ch]) : '')) + '</span>').join('') + (rollData.marks.size ? '<span><i style="background:#ffd23f"></i>flourish (16th)</span>' : '');
   drawRoll(null);
 }
 (function rollLoop() {
@@ -324,13 +330,13 @@ function make() {
   const x = BEASTS[+$('beast').value], b = curBeast();
   let args = {}, head = '', out;
   if (mode === 'tracks') {
-    const seed = seedOf(), epoch = $('drift-on').checked ? +$('tday').value : null;
-    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value, bpm: bpmSet, driftMode: $('dv').value, mix: $('mix').value || null };
+    const seed = seedOf(), epoch = $('drift-on').checked ? +$('tday').value : null, flourishDay = $('fl-on').checked ? +$('tday').value : null;
+    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value, bpm: bpmSet, driftMode: $('dv').value, mix: $('mix').value || null, flourishDay };
     out = L.labMidi('sample', b, x.live, args, BS.engine, BS.v11);
     const f = out.info;
     if (bpmSet === null) $('bpm').value = f.tempo;
     $('bpmv').textContent = f.tempo + ' BPM' + (bpmSet === null ? ' (auto)' : '');
-    head = trackName() + (args.name ? '' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 no seed' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
+    head = trackName() + (args.name ? '' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 no seed' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (f.flourishes ? ' \u00b7 ' + f.flourishes.count + ' flourish' + (f.flourishes.count === 1 ? '' : 'es') + ' (day ' + flourishDay + ': ' + (100 * f.flourishes.share).toFixed(1) + '% of eligible theme notes)' : '') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
   } else if (mode === 'drift') {
     args = { epoch: +$('day').value };
     head = 'day ' + args.epoch + ': ' + L.drift(b, args.epoch).label;
@@ -342,7 +348,7 @@ function make() {
   saveHash();
   const midi = out.midi;
   tempo = tempoOf(midi);
-  setRoll(midi);
+  setRoll(midi, out.info && out.info.flourishes ? out.info.flourishes.notes : null);
   const pg = programsOf(midi);
   const ch = Object.entries(pg).map(([c, p]) => 'ch' + (+c + 1) + ' ' + p + ' ' + (NAMES[p] || '')).join(' \u00b7 ');
   $('info').textContent = head + '\\n' + TYPES[b.beast_type] + ' \u00b7 ' + midi.length + ' bytes MIDI\\n' + ch;
@@ -384,7 +390,7 @@ $('bpm').oninput = () => { $('bpmv').textContent = $('bpm').value + ' BPM'; };
 $('bpm-down').onclick = () => setBpm(+$('bpm').value - 4);
 $('bpm-up').onclick = () => setBpm(+$('bpm').value + 4);
 $('bpm-auto').onclick = () => setBpm(null);
-$('drift-on').onchange = () => { $('tday').disabled = !$('drift-on').checked; refresh(); };
+$('drift-on').onchange = $('fl-on').onchange = () => { $('tday').disabled = !$('drift-on').checked && !$('fl-on').checked; refresh(); };
 $('tday').oninput = () => { $('tdayv').textContent = age(+$('tday').value); refresh(); };
 $('play').onclick = start;
 $('stop').onclick = () => { if (synth) synth.stopMIDI(); playing = false; stopFollowing(); drawRoll(null); };

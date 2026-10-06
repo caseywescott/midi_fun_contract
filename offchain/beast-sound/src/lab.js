@@ -376,7 +376,51 @@ export function channelPick(events, count, seed) {
   return [...new Set([0, low])].concat(rest).slice(0, count);
 }
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null } = {}, E, v11) {
+// ── flourishes that grow with age: the one layer that accumulates ─────────────────────────────────
+// The theme voice gains 16th-note ornaments as the Beast ages: the share of eligible theme notes that
+// carry one rises from 0 toward FLOURISH_CAP (about two-thirds of it by the first year). Each note has a
+// fixed hash threshold, so a note keeps its flourish once it has one (while the composition is the same).
+// Eligible: theme notes a quarter or longer that run straight into the next one, at most one per beat,
+// never in a section's last (cadence) bar, never a minor second or major seventh against another voice.
+// The shape follows the melody: a third ahead gets a passing 16th, a repeated note a neighbour 16th, a
+// step ahead an anticipation; the 16th replaces the last 16th of the note, a little softer.
+export const FLOURISH_CAP = 0.12, FLOURISH_YEAR = 365;
+export const flourishShare = (day) => (day > 0 ? FLOURISH_CAP * (1 - Math.exp(-day / FLOURISH_YEAR)) : 0);
+export function addFlourishes(form, day, key) {
+  const share = flourishShare(day), S = 120, BEAT = 480, BAR = 1920;
+  const ev = form.events.map((e) => ({ ...e }));
+  const theme = ev.filter((e) => e.voice_id === 0).sort((a, b) => a.time - b.time);
+  const cnt = Array(12).fill(0);
+  for (const e of ev) cnt[e.pitch % 12]++;
+  const pcs = new Set(cnt.map((c, i) => [c, i]).filter(([c]) => c > 0).sort((a, b) => b[0] - a[0]).slice(0, 7).map(([, i]) => i));
+  const inScale = (q) => pcs.has(((q % 12) + 12) % 12);
+  const step = (q, dir) => { for (let x = q + dir; Math.abs(x - q) <= 2; x += dir) if (inScale(x)) return x; return null; };
+  // a weak-16th passing or neighbour note may rub briefly (that is what they do); only the harshest
+  // intervals against another voice, a minor second or a major seventh, rule a flourish out
+  const clash = (a, b) => [1, 11].includes(((a - b) % 12 + 12) % 12);
+  const beats = new Set(), added = [];
+  for (let i = 0; i + 1 < theme.length; i++) {
+    const e = theme[i], nx = theme[i + 1];
+    if (e.duration < BEAT || nx.time !== e.time + e.duration) continue;
+    const t = e.time + e.duration - S, beat = Math.floor(t / BEAT);
+    if (beats.has(beat) || t % form.section_ticks >= form.section_ticks - BAR) continue;
+    if (Number(H('BEAST_FLOURISH', key, i) % 10000n) / 10000 >= share) continue;
+    const iv = nx.pitch - e.pitch;
+    let q = null, shape = '';
+    if (Math.abs(iv) === 3 || Math.abs(iv) === 4) { q = step(e.pitch, Math.sign(iv)); shape = 'passing'; if (q !== null && (q - e.pitch) * (nx.pitch - q) <= 0) q = null; }
+    else if (iv === 0) { q = step(e.pitch, i % 2 ? 1 : -1); shape = 'neighbour'; }
+    else if (Math.abs(iv) <= 2) { q = nx.pitch; shape = 'anticipation'; }
+    if (q === null) continue;
+    if (ev.some((o) => o.voice_id !== 0 && o.time <= t && o.time + o.duration > t && clash(o.pitch, q))) continue;
+    e.duration -= S;
+    const f = { ...e, time: t, duration: S, pitch: q, velocity: Math.max(1, e.velocity - 12), role: 'flourish' };
+    ev.push(f); added.push({ time: t, pitch: q, shape }); beats.add(beat);
+  }
+  ev.sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
+  return { form: { ...form, events: ev }, added, eligible: theme.length - 1, share };
+}
+
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null } = {}, E, v11) {
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
   const g = genesisBeast(b), nm = nameFromVariant(name);
   const t = seed === null || seed === undefined ? null : trackTreatment(seed);
@@ -416,14 +460,16 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   const r = again ? v11.render(cb, neutral, { ...V11, override }) : base;
   let drums = d.knob === 3 ? (length, sec, tier, mega) => drumEvents(length, sec, tier >= 5 ? 4 : tier + 1, mega) : null;
   const p = { ...r.params, ...(override.params || {}) };
-  let out = r, playing = null;
+  let out = r, playing = null, fl = null;
+  if (flourishDay) { fl = addFlourishes(r.form, flourishDay, H('BEAST_FLOURISH_KEY', entityHash(b), name, seed ?? 0n)); out = { ...r, form: fl.form }; }
   if (full) {
     const count = channels === 'rarity' ? channelCount(seed, b.tier) : Math.min(6, Math.max(3, +channels));
-    playing = channelPick(r.form.events, count, d.v === 2 && d.rotate !== null ? d.rotate : seed);
-    out = { ...r, form: { ...r.form, events: r.form.events.filter((e) => playing.includes(e.voice_id)) } };
+    playing = channelPick(out.form.events.filter((e) => e.role !== 'flourish'), count, d.v === 2 && d.rotate !== null ? d.rotate : seed);
+    out = { ...out, form: { ...out.form, events: out.form.events.filter((e) => playing.includes(e.voice_id)) } };
     if (!playing.includes('drums')) drums = false;
   }
   const info = { key: keyName(p), voices: p.voice_count, sections: p.section_count, tempo: Math.round(60e6 / (override.tempo_us || p.tempo_us)), ...r.v11.trajectory,
+    flourishes: fl ? { count: fl.added.length, share: fl.share, notes: fl.added } : null,
     channels: playing ? playing.map((c, i) => (i === 1 && c !== 4 && c !== 'drums' ? 'low voice' : CHANNEL_NAMES[c])) : null };
   return { midi: beastFullMidi(out, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums, mix }), drift: d, result: out, info };
 }

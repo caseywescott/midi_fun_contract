@@ -75,8 +75,9 @@ button:disabled{opacity:.45;cursor:default}.offer{margin:12px 0 8px;padding:10px
 <div class="ctl"><button id="newseed" class="stop">New hash</button><button id="noseed" class="stop">No seed</button><button id="sample">Random sample</button></div>
 <div class="row" style="grid-template-columns:1fr 1fr;margin-top:12px"><div><label for="theme">Motif</label><select id="theme"><option value="species" selected>Species motif in every track</option><option value="name">Each name re-seeds the motif (v1.1 today)</option></select></div>
 <div><label for="gkey">Genesis key</label><select id="gkey"><option value="rule" selected>v1.1 rule: Phrygian, tonic = id mod 12</option><option value="spread">Spread: a canonical name's key per species</option><option value="proposed">Proposed: spread key + suggested tempo</option></select></div></div>
+<label for="chan" style="margin-top:12px">Channels</label><select id="chan"><option value="rarity" selected>Rarity: the seed picks 3–6 (6 is 1 in 25); Genesis by tier</option><option value="tier">By tier (v1.1: 4/4/3/2/2 voices)</option><option value="3">Force 3</option><option value="4">Force 4</option><option value="5">Force 5</option><option value="6">Force 6 (rare)</option></select>
 <label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="drift-on"> Drift on top: day <b id="tdayv">0</b></label><input type="range" id="tday" min="0" max="30" value="0" disabled>
-<p class="note">Name 0 is the species' Genesis Track, the base every Beast of the species starts with. Names 1–1242 are the 69 × 18 prefix/suffix pairs: the prefix sets the key, mode and register, the suffix the ornament style. The seed (in the auction, the block hash of the previous purchase) sets the development, episode direction, sections, spacing, which side the theme sits and the rhythm. Every Beast of a species shares the notes; shiny only adds the mega sound. The address bar keeps the current sample, so a link plays it again.</p></div>
+<p class="note">Name 0 is the species' Genesis Track, the base every Beast of the species starts with. Names 1–1242 are the 69 × 18 prefix/suffix pairs: the prefix sets the key, mode and register, the suffix the ornament style. The seed (in the auction, the block hash of the previous purchase) sets the development, episode direction, sections, spacing, which side the theme sits and the rhythm, and how many of the six channels play (four canon voices, countersubject, drums; same presets): most tracks 3–5, 1 in 25 all 6. The theme and the lowest voice always play. Every Beast of a species shares the notes; shiny only adds the mega sound. The address bar keeps the current sample, so a link plays it again.</p></div>
 <div id="p-progression" class="panel" style="margin-top:14px"><label for="levels">Levels</label><select id="levels"><option value="3" selected>3 levels, loothero's order: THEME &gt; CANON + PALETTE &gt; COUNTERSUBJECT + DRUMS</option><option value="5">5 levels, a random order per Beast</option></select>
 <label for="level" style="margin-top:10px">Unlocked: <b id="levelv">0</b> of <b id="levelmax">3</b></label><input type="range" id="level" min="0" max="3" value="0">
 <div class="ctl" style="margin-top:6px"><button id="reroll" class="stop" style="display:none">Another unlock order</button></div>
@@ -108,7 +109,7 @@ const nameText = (n) => { if (!n) return ''; const f = L.nameFromVariant(n); ret
 const trackName = () => { const n = +$('name').value; return (n ? nameText(n) + ' ' : '') + BEASTS[+$('beast').value].name; };
 const seedOf = () => { const v = $('seed').value.trim(); if (!v) return null; try { return BigInt(v.startsWith('0x') ? v : '0x' + v); } catch { return null; } };
 const devName = (t) => t.development + ', episodes ' + (t.direction > 0 ? 'rising' : t.direction < 0 ? 'falling' : 'alternating') + ', ' + t.sections + ' sections, ' + t.spacing + ' spacing' + (t.trill ? ', trills' : '');
-function saveHash() { try { history.replaceState(null, '', '#' + new URLSearchParams({ b: curBeast().id, n: $('name').value, s: $('seed').value.trim(), shiny: $('shiny').checked ? 1 : 0, theme: $('theme').value, gkey: $('gkey').value }).toString()); } catch {} }
+function saveHash() { try { history.replaceState(null, '', '#' + new URLSearchParams({ b: curBeast().id, n: $('name').value, s: $('seed').value.trim(), shiny: $('shiny').checked ? 1 : 0, theme: $('theme').value, gkey: $('gkey').value, ch: $('chan').value }).toString()); } catch {} }
 function loadHash() {
   const q = new URLSearchParams(location.hash.slice(1));
   if (q.get('b')) $('beast').value = String(Math.min(75, Math.max(1, +q.get('b') || 1)) - 1);
@@ -117,6 +118,7 @@ function loadHash() {
   $('shiny').checked = q.get('shiny') === '1';
   if (q.get('theme')) $('theme').value = q.get('theme');
   if (q.get('gkey')) $('gkey').value = q.get('gkey');
+  if (q.get('ch')) $('chan').value = q.get('ch');
 }
 function showName() { const n = +$('name').value; $('namev').textContent = n ? '#' + n + ' ' + nameText(n) : 'Genesis Track'; }
 BEASTS.forEach((x, i) => $('beast').add(new Option(x.beast.id + '. ' + x.name + '  (tier ' + x.beast.tier + ' ' + TYPES[x.beast.beast_type] + ')', i)));
@@ -234,10 +236,10 @@ function make() {
   let args = {}, head = '', out;
   if (mode === 'tracks') {
     const seed = seedOf(), epoch = $('drift-on').checked ? +$('tday').value : null;
-    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch };
+    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value };
     out = L.labMidi('sample', b, x.live, args, BS.engine, BS.v11);
     const f = out.info;
-    head = trackName() + (args.name ? '' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + f.voices + ' voices\\n' + devName(f) + (seed === null ? ' \u00b7 no seed' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
+    head = trackName() + (args.name ? '' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 no seed' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
     saveHash();
   } else if (mode === 'progression') {
     const seed = L.H('UNLOCK', L.entityHash(b), reroll), lvl = +$('level').value;
@@ -289,7 +291,7 @@ $('seed').onchange = refresh;
 $('newseed').onclick = () => { $('seed').value = randHash(); refresh(); };
 $('noseed').onclick = () => { $('seed').value = ''; refresh(); };
 $('sample').onclick = () => { const a = new Uint32Array(1); crypto.getRandomValues(a); $('name').value = $('namen').value = String(1 + (a[0] % 1242)); $('seed').value = randHash(); showName(); refresh(); };
-for (const id of ['theme', 'gkey', 'shiny']) $(id).onchange = refresh;
+for (const id of ['theme', 'gkey', 'shiny', 'chan']) $(id).onchange = refresh;
 $('drift-on').onchange = () => { $('tday').disabled = !$('drift-on').checked; refresh(); };
 $('tday').oninput = () => { $('tdayv').textContent = $('tday').value; refresh(); };
 $('play').onclick = start;

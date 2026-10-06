@@ -332,12 +332,40 @@ export function genesisTempo(b) {
 /** The spread key: a canonical name's key per species (prefix (id - 1) mod 69 + 1). */
 export const spreadKeyBeast = (g) => ({ ...g, prefix: ((g.id - 1) % 69) + 1, suffix: ((g.id - 1) % 18) + 1 });
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null } = {}, E, v11) {
+// ── channel rarity (loothero, 6 Oct): the same presets, a filter on which channels play ──────────
+// Every track is composed with the full six channels (four canon voices, the countersubject, drums);
+// the seed decides how many play: most tracks 3-5, a rare one all 6. The theme voice and the lowest
+// canon voice (the foundation) always play; the seed picks the rest. A Genesis Track (no seed) plays a
+// fixed count by tier, so 6 only ever comes from a bought track. Muting never adds a clash (the voices
+// that remain are the ones composed together); the mega double, when shiny, rides on the lead.
+export const CHANNEL_ODDS = [[3, 30], [4, 40], [5, 26], [6, 4]]; // percent: 6 channels is 1 track in 25
+export const GENESIS_CHANNELS = { 1: 5, 2: 5, 3: 4, 4: 3, 5: 3 };
+export const CHANNEL_NAMES = { 0: 'theme', 1: 'voice 2', 2: 'voice 3', 3: 'voice 4', 4: 'countersubject', drums: 'drums' };
+export function channelCount(seed, tier) {
+  if (seed === null || seed === undefined) return GENESIS_CHANNELS[tier] ?? 3;
+  let roll = Number(H('BEAST_CHANNELS', seed) % 100n);
+  for (const [count, pct] of CHANNEL_ODDS) { if (roll < pct) return count; roll -= pct; }
+  return 3;
+}
+/** Which channels play: the theme (voice 0), the lowest canon voice, then a seeded order of the rest. */
+export function channelPick(events, count, seed) {
+  const st = {};
+  for (const e of events) if (e.voice_id <= 3) { const s = (st[e.voice_id] ||= { sum: 0, n: 0 }); s.sum += e.pitch; s.n++; }
+  const canon = Object.keys(st).map(Number), low = canon.reduce((a, b) => (st[b].sum / st[b].n < st[a].sum / st[a].n ? b : a));
+  const rest = [...canon.filter((v) => v !== 0 && v !== low), 4, 'drums'];
+  if (seed === null || seed === undefined) rest.sort((a, b) => ['drums', 4, 1, 2, 3].indexOf(a) - ['drums', 4, 1, 2, 3].indexOf(b)); // Genesis: drums, then the countersubject
+  else for (let i = rest.length - 1, h = H('BEAST_CHANNEL_ORDER', seed); i > 0; i--, h /= 7n) { const j = Number(h % BigInt(i + 1)); [rest[i], rest[j]] = [rest[j], rest[i]]; }
+  return [...new Set([0, low])].concat(rest).slice(0, count);
+}
+
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier' } = {}, E, v11) {
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
   const g = genesisBeast(b), nm = nameFromVariant(name);
   const t = seed === null || seed === undefined ? null : trackTreatment(seed);
   const cb = name && theme === 'name' ? { ...g, ...nm } : g; // the Beast the composer sees (theme, register)
-  const override = { voice_count: TIER_VOICES[b.tier] ?? 2, sections: t ? t.sections : TIER_SECTIONS[b.tier] ?? 2, tr: {} };
+  // channels 'tier': v1.1's voices for the tier; 'rarity' or a forced count 3-6: the full six, filtered
+  const full = channels !== 'tier';
+  const override = { voice_count: full ? 4 : TIER_VOICES[b.tier] ?? 2, sections: t ? t.sections : TIER_SECTIONS[b.tier] ?? 2, tr: {} };
   if (t) Object.assign(override, { rhythmSeed: t.rhythmSeed, flipSide: t.flipSide, tr: { development: t.development, direction: t.direction, spacing: t.spacing } });
   let orn = E.mapV3(cb, neutral)._ornament;
   if (name && theme === 'species') { // the name's key and ornament style on the species' theme
@@ -350,6 +378,7 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   }
   if (!name && genesisKey === 'proposed') override.tempo_us = Math.round(60e6 / genesisTempo(b));
   override.tr.trill = !!orn.allow_trill;
+  if (full) override.params = { ...(override.params || {}), use_countersubject: true };
   const d = epoch === null || epoch === undefined ? { knob: null, label: 'off' } : drift(b, epoch);
   const base = v11.render(cb, neutral, { ...V11, override });
   const tr = base.v11.trajectory;
@@ -357,10 +386,18 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   if (d.knob === 1) override.tr = { ...override.tr, direction: tr.direction === 0 ? 1 : -tr.direction };
   if (d.knob === 2) override.tr = { ...override.tr, trill: !tr.trill };
   const r = d.knob === null || d.knob === 3 ? base : v11.render(cb, neutral, { ...V11, override });
-  const drums = d.knob === 3 ? (length, sec, tier, mega) => drumEvents(length, sec, tier >= 5 ? 4 : tier + 1, mega) : null;
+  let drums = d.knob === 3 ? (length, sec, tier, mega) => drumEvents(length, sec, tier >= 5 ? 4 : tier + 1, mega) : null;
   const p = { ...r.params, ...(override.params || {}) };
-  const info = { key: keyName(p), voices: p.voice_count, sections: p.section_count, tempo: Math.round(60e6 / (override.tempo_us || p.tempo_us)), ...r.v11.trajectory };
-  return { midi: beastFullMidi(r, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums }), drift: d, result: r, info };
+  let out = r, playing = null;
+  if (full) {
+    const count = channels === 'rarity' ? channelCount(seed, b.tier) : Math.min(6, Math.max(3, +channels));
+    playing = channelPick(r.form.events, count, seed);
+    out = { ...r, form: { ...r.form, events: r.form.events.filter((e) => playing.includes(e.voice_id)) } };
+    if (!playing.includes('drums')) drums = false;
+  }
+  const info = { key: keyName(p), voices: p.voice_count, sections: p.section_count, tempo: Math.round(60e6 / (override.tempo_us || p.tempo_us)), ...r.v11.trajectory,
+    channels: playing ? playing.map((c, i) => (i === 1 && c !== 4 && c !== 'drums' ? 'low voice' : CHANNEL_NAMES[c])) : null };
+  return { midi: beastFullMidi(out, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums }), drift: d, result: out, info };
 }
 
 /** A simulated per-Beast auction: the offer's seed chain and a gradual Dutch auction price. */

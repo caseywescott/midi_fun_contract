@@ -32,9 +32,9 @@ const gallery = JSON.parse(readFileSync(here + '../public/onchain/gallery.json',
 const events = JSON.parse(readFileSync(here + '.events-cache.json', 'utf8'));
 const plain = (b) => Object.fromEntries(Object.entries(b).map(([k, v]) => [k, typeof v === 'bigint' ? Number(v) : v]));
 const BEASTS = [
-  { name: fx.name + ' (demo stats)', beast: plain(decodeTokenId(BigInt(fx.token_id))), live: { adventurers_killed: 412, scars: 7, summit_held_seconds: 0, rank: 3, species_count: 1243 }, events: events.warlock },
+  { name: fx.name + ' (demo stats)', art: 'data:image/svg+xml;base64,' + fx.svg_b64, beast: plain(decodeTokenId(BigInt(fx.token_id))), live: { adventurers_killed: 412, scars: 7, summit_held_seconds: 0, rank: 3, species_count: 1243 }, events: events.warlock },
   ...gallery.map((g) => ({ g, ...cache[g.token] })).sort((a, b) => (b.g.voices ?? 0) - (a.g.voices ?? 0) || (b.g.notes ?? 0) - (a.g.notes ?? 0))
-    .map(({ g, beast, live }) => ({ name: g.name + ' #' + g.token, beast: plain(beast), live, events: events[g.token] })),
+    .map(({ g, beast, live }) => ({ name: g.name + ' #' + g.token, art: 'beasts/' + g.token + '.svg', beast: plain(beast), live, events: events[g.token] })),
 ];
 
 const html = `<!doctype html>
@@ -54,11 +54,11 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 .ctl{display:flex;gap:10px;margin-top:12px}.ctl button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--fg);color:var(--bg);font:600 15px system-ui;cursor:pointer}.ctl button.stop{background:var(--bg);color:var(--fg)}
 .chk{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}@media(max-width:520px){.chk{grid-template-columns:1fr}}.chk label{display:flex;gap:8px;align-items:flex-start;color:var(--fg);font-size:14px;margin:0}.chk small{display:block;color:var(--mut);font-size:12px}
 #info{font:12px/1.6 ui-monospace,monospace;color:var(--mut);white-space:pre-wrap;margin:0}
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.tabs button{padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 14px system-ui;cursor:pointer}.tabs button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.panel{display:none}.panel.on{display:block}input[type=range]{width:100%}.note{font-size:13px;color:var(--mut);margin:8px 0 0}\n</style></head><body><main>
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.tabs button{padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 14px system-ui;cursor:pointer}.tabs button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.panel{display:none}.panel.on{display:block}input[type=range]{width:100%}.note{font-size:13px;color:var(--mut);margin:8px 0 0}.beastcard{display:grid;grid-template-columns:125px 1fr;gap:16px;align-items:center}#art{width:125px;height:175px;border-radius:8px;object-fit:contain;background:#000}@media(max-width:420px){.beastcard{grid-template-columns:96px 1fr}#art{width:96px;height:134px}}\n</style></head><body><main>
 <h1>Beast Sound Lab</h1>
 <p class="sub">Four prototypes on composer v1.1, played as onchain-midi-player plays a token_uri (the self-contained MIDI, the class's engine, the TinyChip timbres). Pick a Beast, a tab, then play; changes apply while playing.</p>
-<div class="card"><label for="beast">Beast</label><select id="beast"></select>
-<div class="ctl"><button id="play">&#9654; Play</button><button id="stop" class="stop">&#9632; Stop</button></div></div>
+<div class="card beastcard"><img id="art" alt="" width="125" height="175"><div><label for="beast">Beast</label><select id="beast"></select>
+<div class="ctl"><button id="play">&#9654; Play</button><button id="stop" class="stop">&#9632; Stop</button></div></div></div>
 <div class="card"><div class="tabs"><button id="t-track" class="on">Event tracks</button><button id="t-progression">Progression</button><button id="t-drift">Drift</button><button id="t-yeti">Yeti</button></div>
 <div id="p-track" class="panel on" style="margin-top:14px"><div class="row" style="grid-template-columns:2fr 1fr"><div><label for="track">Track (Beasts V3 change_track)</label><select id="track"></select></div><div><label for="variation">Variation</label><select id="variation"><option value="0">Original (free)</option><option value="1">Variation 1 (1 $SKULL)</option><option value="2">Variation 2 (1 $SKULL)</option><option value="3">Variation 3 (1 $SKULL)</option></select></div></div>
 <p class="note">Origin: the Beast with no history. Each kill or defeat in its Death Mountain record makes a track: kills get the inverted development and rising episodes, defeats a tighter stretto, falling episodes and softer notes; the event's seed makes the rest of the choices. Beasts with no events get an example kill and defeat.</p></div>
@@ -85,7 +85,9 @@ const TYPES = ['Magic', 'Hunter', 'Brute'];
 let mode = 'track', synth = null, playing = false, reroll = 0;
 BEASTS.forEach((x, i) => $('beast').add(new Option(x.name + '  (tier ' + x.beast.tier + (x.beast.id === 68 ? ', YETI' : '') + ')', i)));
 const day = (ts) => ts ? new Date(ts * 1000).toISOString().slice(0, 10) : 'undated';
+function showArt() { $('art').src = BEASTS[+$('beast').value].art; $('art').alt = BEASTS[+$('beast').value].name; }
 function fillTracks() {
+  showArt();
   const x = BEASTS[+$('beast').value], ev = (x.events && x.events.events) || [];
   $('track').innerHTML = '';
   $('track').add(new Option('Origin (always available)', 'o'));

@@ -75,6 +75,7 @@ export function fullMidi(notes, tempo_us, endTick, setup, drums) {
   const voices = [...new Set(notes.map((n) => n[4]))].sort((a, b) => a - b);
   for (const v of voices) {
     const ch = v & 15, data = [0, 0xc0 | ch, setup[v].program, 0, 0xb0 | ch, 10, setup[v].pan];
+    if (setup[v].vol !== undefined) data.push(0, 0xb0 | ch, 7, setup[v].vol); // channel volume (lab mixes only)
     const msgs = [];
     for (const [time, duration, pitch, velocity] of notes.filter((n) => n[4] === v)) {
       msgs.push([time, 0x90 | ch, pitch, velocity]);
@@ -156,7 +157,7 @@ export const beastSoundMidi = (result, formLength) => beastFullMidi(result, form
  * A rendered Beast (engine.render or engine_v11's render) -> self-contained SMF bytes.
  * `instruments`: 'placeholder' (VOICE_PROGRAM on every voice) or 'beast' (beastInstruments).
  */
-export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null } = {}) {
+export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null, mix = null } = {}) {
   const f = result.form, p = result.params, length = formLength(f);
   const setup = voiceSetup(f.events);
   if (instruments === 'beast') for (const [v, program] of Object.entries(beastInstruments(result))) if (setup[v]) setup[v].program = program;
@@ -172,12 +173,21 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
   const lead = ids.reduce((a, b) => (st[b].sum * st[a].n > st[a].sum * st[b].n || (st[b].sum * st[a].n === st[a].sum * st[b].n && b > a) ? b : a));
   const pickLead = megaLeadPick(p);
   if (mega.lead) setup[lead].program = MEGA_LEADS[pickLead];
+  let doubleCh = -1;
   if (mega.double) {
     const ch = Math.max(...ids) + 1;
+    doubleCh = ch;
     setup[ch] = { program: mega.lead ? MEGA_LEADS[1 - pickLead] : setup[lead].program, pan: 128 - setup[lead].pan > 127 ? 127 : 128 - setup[lead].pan };
     for (const [t, d, pitch, vel, v] of notes.slice()) {
       if (v === lead && pitch + 12 <= 127) notes.push([t, d, pitch + 12, Math.max(1, Math.floor(vel * 3 / 4)), ch]);
     }
+  }
+  // mix 'balanced' (a lab prototype, off by default so get_midi is unchanged): the leads (theme,
+  // countersubject, mega double) at channel volume 64 and the plucks at 127, about 12 dB closer, and
+  // the panning halved, so a sparse channel set keeps every voice audible
+  if (mix === 'balanced') {
+    const cs = p.use_countersubject ? p.voice_count : -1;
+    for (const [v, st] of Object.entries(setup)) { const lead = +v === 0 || +v === cs || +v === doubleCh; st.vol = lead ? 64 : 127; st.pan = Math.round(64 + (st.pan - 64) / 2); }
   }
   const hits = drums === false ? [] : (drums || drumEvents)(length, sec, p.tier, !!mega.groove);
   return fullMidi(notes, p.tempo_us, length, setup, hits);

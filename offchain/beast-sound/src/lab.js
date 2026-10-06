@@ -402,6 +402,28 @@ export function channelPick(events, count, seed) {
   return [...new Set([0, low])].concat(rest).slice(0, count);
 }
 
+// ── ties: repeated notes in the lower voices held instead of struck again ──────────────────────────
+// One pass per voice (not the theme, whose rhythm is the motif): a note that repeats the pitch of the one
+// before it, starting where it ends and in the same section, extends it instead, up to a bar per tied
+// note. Mode 'weak' ties only a repeat that would strike off the strong beats (1 and 3), so the pulse is
+// still re-struck; 'all' ties every repeat. Cheap (linear in the notes) and the same rule ports to Cairo as
+// a merge while writing the voice.
+export const TIE_MAX = 1920;
+export function tieRepeats(form, mode = 'weak') {
+  const keep = [], last = {};
+  let tied = 0;
+  for (const e of [...form.events].sort((a, b) => a.voice_id - b.voice_id || a.time - b.time)) {
+    const prev = last[e.voice_id];
+    if (e.voice_id !== 0 && prev && prev.pitch === e.pitch && prev.time + prev.duration === e.time && prev.section === e.section
+      && Math.floor(prev.time / form.section_ticks) === Math.floor(e.time / form.section_ticks) && prev.duration + e.duration <= TIE_MAX && (mode === 'all' || e.time % 960 !== 0)) {
+      prev.duration += e.duration; tied++; continue;
+    }
+    const c = { ...e }; keep.push(c); last[e.voice_id] = c;
+  }
+  keep.sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
+  return { form: { ...form, events: keep }, tied };
+}
+
 // ── flourishes that grow with age: the one layer that accumulates ─────────────────────────────────
 // Every playing voice gains ornaments in 16ths as the Beast ages: the share of a voice's eligible notes
 // that carry one rises from 0 toward FLOURISH_CAP on the theme and FLOURISH_CAP_OTHERS on the other voices
@@ -494,7 +516,7 @@ export function addFlourishes(form, day, key, style = {}) {
   return { form: { ...form, events: ev.filter((x) => x.duration > 0) }, added, share };
 }
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null } = {}, E, v11) {
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false } = {}, E, v11) {
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
   const g = genesisBeast(b), nm = nameFromVariant(name);
   const t = seed === null || seed === undefined ? null : trackTreatment(seed);
@@ -541,9 +563,12 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     out = { ...out, form: { ...out.form, events: out.form.events.filter((e) => playing.includes(e.voice_id)) } };
     if (!playing.includes('drums')) drums = false;
   }
+  let tied = null;
+  if (ties) { const t2 = tieRepeats(out.form, ties === 'all' ? 'all' : 'weak'); tied = t2.tied; out = { ...out, form: t2.form }; }
   // flourishes on the voices that play (after the channel filter)
   if (flourishDay) { fl = addFlourishes(out.form, flourishDay, H('BEAST_FLOURISH_KEY', entityHash(b), name, seed ?? 0n), orn); out = { ...out, form: fl.form }; }
   const info = { key: keyName(p), voices: p.voice_count, sections: p.section_count, tempo: Math.round(60e6 / (override.tempo_us || p.tempo_us)), ...r.v11.trajectory,
+    tied,
     flourishes: fl ? { count: fl.added.length, share: fl.share, notes: fl.added.flatMap((x) => (x.notes ? x.notes.map(([time, pitch]) => ({ voice: x.voice, time, pitch })) : [{ voice: x.voice, time: x.time, pitch: x.pitch }])), voices: [...new Set(fl.added.map((x) => x.voice))].length, shapes: fl.added.reduce((m, x) => ((m[x.shape] = (m[x.shape] || 0) + 1), m), {}) } : null,
     channels: playing ? playing.map((c, i) => (i === 1 && c !== 4 && c !== 'drums' ? 'low voice' : CHANNEL_NAMES[c])) : null };
   return { midi: beastFullMidi(out, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums, mix }), drift: d, result: out, info };

@@ -320,6 +320,8 @@ export function speciesTrackTreatment(seed) {
   const k = low32(H('BEAST_TRACK_KEY', seed));
   return { ...t, prefix: 1 + (k % 69), suffix: 1 + ((k >>> 8) % 18) };
 }
+/** Each mode's scale as semitone offsets from the tonic, as named. */
+export const MODE_SCALES = { 4: [0, 2, 3, 5, 7, 9, 10], 5: [0, 1, 3, 5, 7, 8, 10], 6: [0, 1, 3, 5, 6, 8, 10], 7: [0, 2, 3, 5, 7, 8, 10], 8: [0, 2, 3, 5, 7, 8, 11], 26: [0, 2, 3, 6, 7, 9, 10] };
 const MODE_NAMES = { 4: 'Dorian', 5: 'Phrygian', 6: 'Locrian', 7: 'Aeolian', 8: 'harmonic minor', 26: 'Dorian #4' };
 const PC = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 export const keyName = (p) => PC[p.tonic_keynum % 12] + ' ' + (MODE_NAMES[p.mode_id] || 'mode ' + p.mode_id);
@@ -542,6 +544,9 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   } else if (!name && (genesisKey === 'spread' || genesisKey === 'proposed')) {
     const kp = E.mapV3(spreadKeyBeast(g), neutral);
     override.params = { mode_id: kp.mode_id, tonic_keynum: kp.tonic_keynum, register_band: kp.register_band };
+    // the mode as named: the engine realizes only Aeolian, Dorian and Phrygian (Locrian plays as Phrygian,
+    // harmonic minor as Aeolian, Dorian #4 as Dorian), so the Genesis spread passes the real scale
+    if (MODE_SCALES[kp.mode_id]) override.scale = MODE_SCALES[kp.mode_id];
   }
   if (!name && genesisKey === 'proposed') override.tempo_us = Math.round(60e6 / genesisTempo(b));
   if (bpm) override.tempo_us = Math.round(60e6 / bpm); // the page's tempo control

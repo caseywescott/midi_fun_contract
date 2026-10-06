@@ -47,7 +47,7 @@ const SUFFIXES = Array.from({ length: 18 }, (_, k) => beastName({ id: 1, prefix:
 // same settings the page plays it with (GENESIS_DEFAULTS below)
 const GENESIS_DEFAULTS = { name: 0, seed: 0n, theme: 'species', genesisKey: 'spread', channels: 'rarity', mix: 'balanced', ties: 'weak', topLead: true };
 const V11E = createEngineV11(ENGINE);
-const GENESIS = BEASTS.map((x) => { const o = LAB.labMidi('sample', x.beast, x.live, GENESIS_DEFAULTS, ENGINE, V11E); return { key: o.info.key, ch: o.info.channels.length, secs: Math.round(o.result.form.section_ticks * o.result.form.sections.length / 480 * 60 / o.info.tempo) }; });
+const GENESIS = BEASTS.map((x) => { const o = LAB.labMidi('sample', x.beast, x.live, GENESIS_DEFAULTS, ENGINE, V11E), r = LAB.labMidi('sample', x.beast, x.live, { ...GENESIS_DEFAULTS, genesisKey: 'rule' }, ENGINE, V11E); return { key: o.info.key, ruleKey: r.info.key, ch: o.info.channels.length, secs: Math.round(o.result.form.section_ticks * o.result.form.sections.length / 480 * 60 / o.info.tempo) }; });
 const SPRITES = Object.fromEntries(BEASTS.flatMap((x) => [String(x.beast.id), x.beast.id + 's']).map((k) => { const { n, w, png } = spriteSheet(k); return [k, { n, w, png }]; }));
 
 const html = `<!doctype html>
@@ -97,6 +97,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div id="p-drift" class="panel" style="margin-top:14px"><label for="day">Day (epoch): <b id="dayv">1</b></label><input type="range" id="day" min="1" max="1242" value="1">
 <p class="note">This tab plays the plain v1.1 Beast, not the Tracks sample: Genesis traits with no history (one section; the tier's voices and countersubject; v1.1's genesis key; shiny adds its tempo bump and the mega sound). For drift on a sampled track, use "Drift on top" in Tracks. A never-ending track: each epoch (a day of blocks, seeded by the epoch's first block hash, readable once 10 blocks old) turns at most one small knob; most days it plays as written.</p></div>
 <div id="p-genesis" class="panel" style="margin-top:14px">
+<label style="display:flex;gap:8px;align-items:center;color:var(--fg);margin-bottom:10px"><input type="checkbox" id="gspread" checked> Spread keys: each species its own key and mode, played as named (off = v1.1, every species Phrygian)</label>
 <div class="ctl" style="margin-top:0"><button id="gall">&#9654; Play all 75 (one loop each)</button><button id="gprev" class="stop">&#9664; Previous</button><button id="gnext" class="stop">Next &#9654;</button></div>
 <p class="note">Every species' Genesis Track (special name 0, seed 0) exactly as the lab plays it by default, the proposal in the Genesis Tracks doc. Tap a row to play it; Play all steps through the 75, one full loop each. The Shiny box above adds the mega sound.</p>
 <div class="glist" id="glist"></div></div>
@@ -138,6 +139,7 @@ function saveHash() {
   if ($('drift-on').checked) q.dv = $('dv').value;
   if ($('fl-on').checked) q.fl = 1;
   if (mode !== 'tracks') q.tab = mode;
+  if (mode === 'genesis' && !$('gspread').checked) q.gsp = 0;
   if (mode === 'drift') q.day = $('day').value;
   if (mode === 'yeti') q.yeti = ['y-rock', 'y-yodel', 'y-avalanche', 'y-stomp'].filter((id) => $(id).checked).map((id) => id.slice(2)).join('.');
   try { history.replaceState(null, '', '#' + new URLSearchParams(q).toString()); } catch {}
@@ -155,6 +157,7 @@ function loadHash() {
   if (q.get('fl') === '1') $('fl-on').checked = true;
   if (q.has('tday')) { $('drift-on').checked = q.has('dv') || !q.has('fl'); $('tday').disabled = false; $('tday').value = q.get('tday'); $('tdayv').textContent = age(+$('tday').value); }
   if (q.get('dv')) $('dv').value = q.get('dv');
+  if (q.get('gsp') === '0') $('gspread').checked = false;
   if (q.has('top')) $('toplead').checked = q.get('top') === '1';
   if (q.get('tie')) $('ties').value = q.get('tie') === 'off' ? '' : q.get('tie');
   if (q.get('mix')) $('mix').value = q.get('mix') === 'v11' ? '' : q.get('mix');
@@ -357,7 +360,7 @@ function make() {
     $('bpmv').textContent = f.tempo + ' BPM' + (bpmSet === null ? ' (auto)' : '');
     head = trackName() + (args.name ? '' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 seed 0 (Genesis)' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (f.tied ? ' \u00b7 ' + f.tied + ' repeats tied' : '') + (f.flourishes ? ' \u00b7 ' + f.flourishes.count + ' flourish' + (f.flourishes.count === 1 ? '' : 'es') + (f.flourishes.count ? ' on ' + f.flourishes.voices + ' voice' + (f.flourishes.voices > 1 ? 's' : '') + ': ' + Object.entries(f.flourishes.shapes).map(([k, n]) => n + ' ' + k + (n > 1 ? (k.endsWith('s') ? 'es' : 's') : '')).join(', ') : '') + ' (day ' + flourishDay + ': ' + (100 * f.flourishes.share).toFixed(1) + '% of the theme\u2019s notes, ' + (100 * f.flourishes.share / 2).toFixed(1) + '% of the others\u2019)' : '') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
   } else if (mode === 'genesis') {
-    out = L.labMidi('sample', b, x.live, GDEF, BS.engine, BS.v11);
+    out = L.labMidi('sample', b, x.live, { ...GDEF, genesisKey: $('gspread').checked ? 'spread' : 'rule' }, BS.engine, BS.v11);
     const f = out.info;
     head = x.name + ' Genesis Track (name 0, seed 0) \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + f.channels.length + ' channels: ' + f.channels.join(', ') + (playAll ? ' \u00b7 playing all: ' + (+$('beast').value + 1) + ' of 75' : '');
     document.querySelectorAll('.grow').forEach((r) => r.classList.toggle('on', r.dataset.i === $('beast').value));
@@ -402,7 +405,7 @@ function genesisGo(i) {
   const row = document.querySelector('.grow[data-i="' + i + '"]'); if (row) row.scrollIntoView({ block: 'nearest' });
 }
 function fillGenesis() {
-  $('glist').innerHTML = BEASTS.map((x, i) => '<div class="grow" data-i="' + i + '"><span class="n">#' + x.beast.id + '</span><div><b>' + x.name + '</b><br><small>tier ' + x.beast.tier + ' ' + TYPES[x.beast.beast_type] + ' \u00b7 ' + GENESIS[i].key + ' \u00b7 ' + GENESIS[i].ch + ' channels \u00b7 ' + GENESIS[i].secs + ' s</small></div><span>&#9654;</span></div>').join('');
+  $('glist').innerHTML = BEASTS.map((x, i) => '<div class="grow" data-i="' + i + '"><span class="n">#' + x.beast.id + '</span><div><b>' + x.name + '</b><br><small>tier ' + x.beast.tier + ' ' + TYPES[x.beast.beast_type] + ' \u00b7 ' + ($('gspread').checked ? GENESIS[i].key : GENESIS[i].ruleKey) + ' \u00b7 ' + GENESIS[i].ch + ' channels \u00b7 ' + GENESIS[i].secs + ' s</small></div><span>&#9654;</span></div>').join('');
   document.querySelectorAll('.grow').forEach((r) => (r.onclick = () => { playAll = false; genesisGo(+r.dataset.i); }));
 }
 function refresh() { if (playing) start(); else { make(); renderArt(false); } }
@@ -413,6 +416,7 @@ function tab(m) {
   refresh();
 }
 for (const t of ['tracks', 'genesis', 'drift', 'yeti']) $('t-' + t).onclick = () => tab(t);
+$('gspread').onchange = () => { fillGenesis(); refresh(); };
 $('gall').onclick = () => { playAll = true; genesisGo(0); };
 $('gnext').onclick = () => genesisGo(Math.min(74, +$('beast').value + 1));
 $('gprev').onclick = () => genesisGo(Math.max(0, +$('beast').value - 1));
@@ -450,8 +454,7 @@ $('speed').onchange = () => renderArt(playing);
 $('beast').onchange = refresh;
 $('day').oninput = () => { $('dayv').textContent = age(+$('day').value); refresh(); };
 for (const id of ['y-rock', 'y-yodel', 'y-avalanche', 'y-stomp']) $(id).onchange = refresh;
-fillGenesis();
-{ const t = loadHash(); showName(); if (t !== 'tracks') tab(t); else refresh(); }
+{ const t = loadHash(); fillGenesis(); showName(); if (t !== 'tracks') tab(t); else refresh(); }
 </script></body></html>`;
 writeFileSync(here + '../public/onchain/lab.html', html);
 console.log('public/onchain/lab.html', html.length, 'bytes');

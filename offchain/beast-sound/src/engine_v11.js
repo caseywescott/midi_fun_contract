@@ -336,10 +336,12 @@ export function createEngineV11(engine) {
 
   // override (prototypes: event tracks, drift, specials; absent = no change): { tr: fields replacing
   // the trajectory's, sections: section count, rhythmSeed: re-picks the rhythm cells, flipSide:
-  // mirrors the key plan, tempo_us, voice_count, params: fields replacing the params' (a track's key) }
+  // mirrors the key plan, tempo_us, voice_count, params: fields replacing the params' (a track's key),
+  // scale: seven semitone offsets realized in place of the mode }
   function render(beast, live, { keys = 'modulate', even = false, breath = false, traj = false, scale = 'mode', family = null, override = null } = {}) {
     FAM = family && FAMILIES[family] ? FAMILIES[family] : null;
-    R = FAM ? scaleRealize(FAM.scale) : scale === 'wholetone' ? wholeTone : I.realize;
+    // override.scale: seven semitone offsets that replace the mode's realization (a lab prototype; absent = unchanged)
+    R = override && override.scale ? scaleRealize(override.scale) : FAM ? scaleRealize(FAM.scale) : scale === 'wholetone' ? wholeTone : I.realize;
     try { return renderWith(beast, live, { keys, even, breath, traj, scale, family: FAM ? family : null, override: override || {} }); } finally { R = I.realize; FAM = null; }
   }
   function renderWith(beast, live, { keys, even, breath, traj, scale, family, override }) {

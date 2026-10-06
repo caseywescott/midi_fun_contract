@@ -181,7 +181,7 @@
      "wave": {
       "Custom": 2
      },
-     "volume": 12810,
+     "volume": 9992,
      "ratio": 10000,
      "offset_hz": 0,
      "attack": 20,
@@ -205,7 +205,7 @@
      "wave": {
       "Custom": 0
      },
-     "volume": 8014,
+     "volume": 5610,
      "ratio": 10000,
      "offset_hz": 0,
      "attack": 20,

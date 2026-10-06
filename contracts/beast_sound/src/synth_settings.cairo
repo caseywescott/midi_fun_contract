@@ -36,7 +36,7 @@ pub fn beast_synth_settings_serde_hash(beast_type: u8, mega: bool) -> felt252 {
 /// Poseidon hash of `beast_synth_settings_magic`'s Serde, as the generator computes it (tests check
 /// Cairo agrees).
 pub const SERDE_HASH_MAGIC: felt252 =
-    0x28713c4bf5be02bf7b18baa5a1790a4b31b6c5c76101adddae4f574d924dd16;
+    0x262e5597e7815983b98d2d9c4a94108ed93f7c292b8a3840b417455e7519e61;
 /// Magic Beasts. Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI; 17 timbres, one operator per line.
 #[cairofmt::skip]
 pub fn beast_synth_settings_magic() -> TinySynthSettings {
@@ -70,20 +70,20 @@ pub fn beast_synth_settings_magic() -> TinySynthSettings {
         },
         Timbre {
             drum: false, slot: 15, operators: array![
-                op(0, Waveform::Custom(3), 8736, 10000, 0, 20, 0, 1800, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(3), 6814, 10000, 0, 20, 0, 1800, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
         Timbre {
             drum: false, slot: 17, operators: array![
-                op(0, Waveform::Custom(1), 5668, 10000, 0, 20, 0, 2200, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Custom(0), 2551, 20000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(1), 3968, 10000, 0, 20, 0, 2200, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(0), 1785, 20000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
         Timbre {
             drum: false, slot: 13, operators: array![
-                op(0, Waveform::Custom(0), 5742, 10000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(0), 5324, 10000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
@@ -168,7 +168,7 @@ pub fn beast_synth_settings_magic() -> TinySynthSettings {
 /// Poseidon hash of `beast_synth_settings_magic_mega`'s Serde, as the generator computes it (tests
 /// check Cairo agrees).
 pub const SERDE_HASH_MAGIC_MEGA: felt252 =
-    0x1814910a79522de7f708c99b400eded534438ed9d6312aae6f7d0581c8f02a4;
+    0x23de58ed5cc16d761f4092383d23f98b9a5db1849eb5949c88fc5788e41135a;
 /// Magic Beasts that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65). Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI, nN16; 19 timbres, one operator per line.
 #[cairofmt::skip]
 pub fn beast_synth_settings_magic_mega() -> TinySynthSettings {
@@ -203,20 +203,20 @@ pub fn beast_synth_settings_magic_mega() -> TinySynthSettings {
         },
         Timbre {
             drum: false, slot: 15, operators: array![
-                op(0, Waveform::Custom(3), 8736, 10000, 0, 20, 0, 1800, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(3), 6814, 10000, 0, 20, 0, 1800, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
         Timbre {
             drum: false, slot: 17, operators: array![
-                op(0, Waveform::Custom(1), 5668, 10000, 0, 20, 0, 2200, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Custom(0), 2551, 20000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(1), 3968, 10000, 0, 20, 0, 2200, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(0), 1785, 20000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
         Timbre {
             drum: false, slot: 13, operators: array![
-                op(0, Waveform::Custom(0), 5742, 10000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(0), 5324, 10000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
@@ -315,7 +315,7 @@ pub fn beast_synth_settings_magic_mega() -> TinySynthSettings {
 /// Poseidon hash of `beast_synth_settings_hunter`'s Serde, as the generator computes it (tests
 /// check Cairo agrees).
 pub const SERDE_HASH_HUNTER: felt252 =
-    0x26c98a755b00a80d6ffec622597db2af05c3ce50de7f5f06d4b9d04b2717526;
+    0x6757f16a5c576c48f5ca9038489187670184572205057181845e7e858e2ffc8;
 /// Hunter Beasts. Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI; 17 timbres, one operator per line.
 #[cairofmt::skip]
 pub fn beast_synth_settings_hunter() -> TinySynthSettings {
@@ -349,13 +349,13 @@ pub fn beast_synth_settings_hunter() -> TinySynthSettings {
         },
         Timbre {
             drum: false, slot: 12, operators: array![
-                op(0, Waveform::Custom(1), 7715, 10000, 0, 20, 0, 1400, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(1), 5246, 10000, 0, 20, 0, 1400, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
         Timbre {
             drum: false, slot: 19, operators: array![
-                op(0, Waveform::Custom(0), 17138, 10000, 0, 20, 0, 500, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(0), 6684, 10000, 0, 20, 0, 500, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
@@ -446,7 +446,7 @@ pub fn beast_synth_settings_hunter() -> TinySynthSettings {
 /// Poseidon hash of `beast_synth_settings_hunter_mega`'s Serde, as the generator computes it (tests
 /// check Cairo agrees).
 pub const SERDE_HASH_HUNTER_MEGA: felt252 =
-    0x365dae40d6b25875215a4938098bd5471e4588d6e9b5625c7120b6de4dbd66c;
+    0x613355ee6a854f648ae2773236db4cecd3331084b8282925e67d40665a6b852;
 /// Hunter Beasts that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65). Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI, nN16; 19 timbres, one operator per line.
 #[cairofmt::skip]
 pub fn beast_synth_settings_hunter_mega() -> TinySynthSettings {
@@ -481,13 +481,13 @@ pub fn beast_synth_settings_hunter_mega() -> TinySynthSettings {
         },
         Timbre {
             drum: false, slot: 12, operators: array![
-                op(0, Waveform::Custom(1), 7715, 10000, 0, 20, 0, 1400, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(1), 5246, 10000, 0, 20, 0, 1400, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
         Timbre {
             drum: false, slot: 19, operators: array![
-                op(0, Waveform::Custom(0), 17138, 10000, 0, 20, 0, 500, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(0), 6684, 10000, 0, 20, 0, 500, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
@@ -592,7 +592,7 @@ pub fn beast_synth_settings_hunter_mega() -> TinySynthSettings {
 /// Poseidon hash of `beast_synth_settings_brute`'s Serde, as the generator computes it (tests check
 /// Cairo agrees).
 pub const SERDE_HASH_BRUTE: felt252 =
-    0x59d16be06db2d632655b0e5e7d75f03ea6822771d920c973f9a038276afbbb4;
+    0x2b60e54acfca3bcdec9f2ef3af961303e775dfd9b276e6e21e43d04a041250c;
 /// Brute Beasts. Quality 1, reverb 30, volume 40, 64 voices; waves: nP50, nTRI, nSAW; 17 timbres, one operator per line.
 #[cairofmt::skip]
 pub fn beast_synth_settings_brute() -> TinySynthSettings {
@@ -624,13 +624,13 @@ pub fn beast_synth_settings_brute() -> TinySynthSettings {
         },
         Timbre {
             drum: false, slot: 16, operators: array![
-                op(0, Waveform::Custom(2), 12810, 10000, 0, 20, 0, 1300, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(2), 9992, 10000, 0, 20, 0, 1300, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
         Timbre {
             drum: false, slot: 14, operators: array![
-                op(0, Waveform::Custom(0), 8014, 10000, 0, 20, 0, 1000, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(0), 5610, 10000, 0, 20, 0, 1000, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
@@ -721,7 +721,7 @@ pub fn beast_synth_settings_brute() -> TinySynthSettings {
 /// Poseidon hash of `beast_synth_settings_brute_mega`'s Serde, as the generator computes it (tests
 /// check Cairo agrees).
 pub const SERDE_HASH_BRUTE_MEGA: felt252 =
-    0xd6502b9c07eb1f3997e12501f8e4ade514979903f5c5f5e0187b4fa2e8420b;
+    0x1b7fdd21b0ce30bfd306ea036baa6dbc54203f482467955dffdb7d6de523ec5;
 /// Brute Beasts that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65). Quality 1, reverb 30, volume 40, 64 voices; waves: nP50, nTRI, nSAW, nN16; 19 timbres, one operator per line.
 #[cairofmt::skip]
 pub fn beast_synth_settings_brute_mega() -> TinySynthSettings {
@@ -754,13 +754,13 @@ pub fn beast_synth_settings_brute_mega() -> TinySynthSettings {
         },
         Timbre {
             drum: false, slot: 16, operators: array![
-                op(0, Waveform::Custom(2), 12810, 10000, 0, 20, 0, 1300, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(2), 9992, 10000, 0, 20, 0, 1300, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },
         Timbre {
             drum: false, slot: 14, operators: array![
-                op(0, Waveform::Custom(0), 8014, 10000, 0, 20, 0, 1000, 0, 300, 10000, 10000, 0),
+                op(0, Waveform::Custom(0), 5610, 10000, 0, 20, 0, 1000, 0, 300, 10000, 10000, 0),
             ]
                 .span(),
         },

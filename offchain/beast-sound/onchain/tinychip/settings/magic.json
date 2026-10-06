@@ -197,7 +197,7 @@
      "wave": {
       "Custom": 3
      },
-     "volume": 8736,
+     "volume": 6814,
      "ratio": 10000,
      "offset_hz": 0,
      "attack": 20,
@@ -221,7 +221,7 @@
      "wave": {
       "Custom": 1
      },
-     "volume": 5668,
+     "volume": 3968,
      "ratio": 10000,
      "offset_hz": 0,
      "attack": 20,
@@ -239,7 +239,7 @@
      "wave": {
       "Custom": 0
      },
-     "volume": 2551,
+     "volume": 1785,
      "ratio": 20000,
      "offset_hz": 0,
      "attack": 20,
@@ -263,7 +263,7 @@
      "wave": {
       "Custom": 0
      },
-     "volume": 5742,
+     "volume": 5324,
      "ratio": 10000,
      "offset_hz": 0,
      "attack": 20,

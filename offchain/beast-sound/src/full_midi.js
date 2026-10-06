@@ -157,7 +157,7 @@ export const beastSoundMidi = (result, formLength) => beastFullMidi(result, form
  * A rendered Beast (engine.render or engine_v11's render) -> self-contained SMF bytes.
  * `instruments`: 'placeholder' (VOICE_PROGRAM on every voice) or 'beast' (beastInstruments).
  */
-export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null, mix = null, topLead = false } = {}) {
+export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null, mix = null, topLead = false, notLead = [] } = {}) {
   const f = result.form, p = result.params, length = formLength(f);
   const setup = voiceSetup(f.events);
   if (instruments === 'beast') for (const [v, program] of Object.entries(beastInstruments(result))) if (setup[v]) setup[v].program = program;
@@ -169,7 +169,8 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
   // the lead: the voice with the highest mean pitch, ties by the higher voice id
   const st = {};
   for (const [, , pitch, , v] of notes) { const s = (st[v] ||= { sum: 0, n: 0 }); s.sum += pitch; s.n += 1; }
-  const ids = Object.keys(st).map(Number);
+  // notLead (lab specials): voices never taken for the lead, e.g. the Yeti's avalanche run above the melody
+  const ids = Object.keys(st).map(Number).filter((v) => !notLead.includes(v));
   const lead = ids.reduce((a, b) => (st[b].sum * st[a].n > st[a].sum * st[b].n || (st[b].sum * st[a].n === st[a].sum * st[b].n && b > a) ? b : a));
   // topLead (a lab prototype, off by default so get_midi is unchanged): the topline never plays a pluck;
   // when the highest voice drew one, it takes the family's lead no other voice plays
@@ -184,7 +185,7 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
   if (mega.lead) setup[lead].program = MEGA_LEADS[pickLead];
   let doubleCh = -1;
   if (mega.double) {
-    const ch = Math.max(...ids) + 1;
+    const ch = Math.max(...Object.keys(st).map(Number)) + 1; // past every voice, a skipped one included
     doubleCh = ch;
     setup[ch] = { program: mega.lead ? MEGA_LEADS[1 - pickLead] : setup[lead].program, pan: 128 - setup[lead].pan > 127 ? 127 : 128 - setup[lead].pan };
     for (const [t, d, pitch, vel, v] of notes.slice()) {

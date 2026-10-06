@@ -233,7 +233,7 @@ export function yetiMidi(b, live, ideas, E, v11) {
     // note's pitch class two octaves above the home tonic's register down to it, so the run is in key and
     // on the chord, whatever the section closes on; a bare unison or fifth is filled out to the triad the
     // chord the key's scale gives it
-    const ch = maxV + 2, top = r.params.tonic_keynum + 36, I = E.internals;
+    const ch = maxV + 2, top = r.params.tonic_keynum + 24, I = E.internals; // two octaves down to the tonic's octave above the home register, around the melody
     const mode = I.canonicalToMelodic(r.params.mode_id), home = I.transposedTonic(r.params.tonic_keynum, 0);
     const scale = Array.from({ length: 7 }, (_, d) => I.realize(d, home, mode) % 12);
     for (let s = 0; s < sections; s++) {
@@ -267,7 +267,7 @@ export function yetiMidi(b, live, ideas, E, v11) {
   r = { ...r, form: { ...r.form, events } };
   if (stompDouble) programs[stompDouble.ch] = beastInstruments(r)[stompDouble.low] ?? 16;
   const drums = ideas.rock ? (length, s2) => rockDrums(length, s2) : ideas.stomp ? stompDrums : null;
-  return beastFullMidi(r, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', programs, drums });
+  return beastFullMidi(r, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', programs, drums, notLead: ideas.avalanche ? [maxV + 2] : [] });
 }
 
 // ── owned tracks: the origin plus tracks bought with $CORPSE into slots opened with $SKULL ─────────

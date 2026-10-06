@@ -1,7 +1,7 @@
 // Build public/onchain/lab.html: the Beast Sound lab on composer v1.1 and the self-contained MIDI, through
 // onchain-midi-player's pinned engine with all 20 TinyChip timbres. Pick a Beast (one of the 75 species);
 // the Tracks tab samples its tracks by special name (0 = the Genesis Track, 1-1242 the prefix/suffix
-// pairs) and seed (a block hash); the other tabs are the scale-start progression, the never-ending drift
+// pairs) and seed (a block hash); the other tabs are the never-ending drift
 // and Yeti specials (src/lab.js).
 // Every card is shown animated and tempo-synced (onchain/lab-sprites.mjs: the species GIF as a PNG sprite
 // sheet stepped on the beat, the card's loops on whole beats, restarted at each pass as heard).
@@ -59,7 +59,7 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 .ctl{display:flex;gap:10px;margin-top:12px}.ctl button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--fg);color:var(--bg);font:600 15px system-ui;cursor:pointer}.ctl button.stop{background:var(--bg);color:var(--fg)}
 .chk{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}@media(max-width:520px){.chk{grid-template-columns:1fr}}.chk label{display:flex;gap:8px;align-items:flex-start;color:var(--fg);font-size:14px;margin:0}.chk small{display:block;color:var(--mut);font-size:12px}
 #info{font:12px/1.6 ui-monospace,monospace;color:var(--mut);white-space:pre-wrap;margin:0}
-button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:600 13px system-ui;cursor:pointer}.offer{margin:12px 0 8px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px;font-size:14px;line-height:1.45}.offer b{font-size:15px}.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}@media(max-width:420px){.tabs{grid-template-columns:repeat(2,1fr)}}input[type=text],input[type=number]{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:13px ui-monospace,monospace}.tabs button{padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 14px system-ui;cursor:pointer}.tabs button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.panel{display:none}.panel.on{display:block}input[type=range]{width:100%}.note{font-size:13px;color:var(--mut);margin:8px 0 0}.beastcard{display:grid;grid-template-columns:125px 1fr;gap:16px;align-items:center}#art{width:125px;height:175px;border-radius:8px;object-fit:contain;background:#000}@media(max-width:420px){.beastcard{grid-template-columns:96px 1fr}#art{width:96px;height:134px}}\n</style></head><body><main>
+button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:600 13px system-ui;cursor:pointer}.offer{margin:12px 0 8px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px;font-size:14px;line-height:1.45}.offer b{font-size:15px}.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}input[type=text],input[type=number]{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:13px ui-monospace,monospace}.tabs button{padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 14px system-ui;cursor:pointer}.tabs button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.panel{display:none}.panel.on{display:block}input[type=range]{width:100%}.note{font-size:13px;color:var(--mut);margin:8px 0 0}.beastcard{display:grid;grid-template-columns:125px 1fr;gap:16px;align-items:center}#art{width:125px;height:175px;border-radius:8px;object-fit:contain;background:#000}@media(max-width:420px){.beastcard{grid-template-columns:96px 1fr}#art{width:96px;height:134px}}\n</style></head><body><main>
 <h1>Beast Sound Lab</h1>
 <p class="sub">Composer v1.1 prototypes, played as onchain-midi-player plays a token_uri (the self-contained MIDI, the class's engine, the TinyChip timbres). Pick a Beast, sample its tracks by name and seed, then play; changes apply while playing.</p>
 <div class="card beastcard"><img id="art" alt="" width="125" height="175"><div><label for="beast">Beast</label><select id="beast"></select>
@@ -67,11 +67,11 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div class="ctl"><button id="play">&#9654; Play</button><button id="stop" class="stop">&#9632; Stop</button></div>
 <label for="speed" style="margin-top:12px">Art speed (one sprite frame per)</label><select id="speed"><option value="auto" selected>Auto: eighth note, quarter above 150 BPM</option><option value="0.5">Eighth note</option><option value="1">Quarter note</option><option value="2">Half note</option></select>
 <p class="note" id="artinfo"></p></div></div>
-<div class="card"><div class="tabs"><button id="t-tracks" class="on">Tracks</button><button id="t-progression">Progression</button><button id="t-drift">Drift</button><button id="t-yeti">Yeti</button></div>
+<div class="card"><div class="tabs"><button id="t-tracks" class="on">Tracks</button><button id="t-drift">Drift</button><button id="t-yeti">Yeti</button></div>
 <div id="p-tracks" class="panel on" style="margin-top:14px">
 <label for="name">Special name: <b id="namev">Genesis Track</b></label>
 <div class="row" style="grid-template-columns:1fr 96px;align-items:center"><input type="range" id="name" min="0" max="1242" value="0"><input type="number" id="namen" min="0" max="1242" value="0"></div>
-<label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="drift-on"> Drift on top: day <b id="tdayv">0</b></label><input type="range" id="tday" min="0" max="30" value="0" disabled>
+<label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="drift-on"> Drift on top: day <b id="tdayv">1</b></label><input type="range" id="tday" min="1" max="1242" value="1" disabled>
 <label for="seed" style="margin-top:10px">Seed (block hash; empty = none)</label><input type="text" id="seed" spellcheck="false" placeholder="0x…">
 <div class="ctl"><button id="newseed" class="stop">New hash</button><button id="noseed" class="stop">No seed</button><button id="sample">Random sample</button></div>
 <div class="row" style="grid-template-columns:1fr 1fr;margin-top:12px"><div><label for="theme">Motif</label><select id="theme"><option value="species" selected>Species motif in every track</option><option value="name">Each name re-seeds the motif (v1.1 today)</option></select></div>
@@ -80,11 +80,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div class="row" style="grid-template-columns:1fr auto auto auto;align-items:center;gap:8px"><input type="range" id="bpm" min="60" max="200" step="1" value="120"><button id="bpm-down" class="mini">−4</button><button id="bpm-up" class="mini">+4</button><button id="bpm-auto" class="mini">Auto</button></div>
 <label for="chan" style="margin-top:12px">Channels</label><select id="chan"><option value="rarity" selected>Rarity: the seed picks 3–6 (6 is 1 in 25); Genesis by tier</option><option value="tier">By tier (v1.1: 4/4/3/2/2 voices)</option><option value="3">Force 3</option><option value="4">Force 4</option><option value="5">Force 5</option><option value="6">Force 6 (rare)</option></select>
 <p class="note">Name 0 is the species' Genesis Track, the base every Beast of the species starts with. Names 1–1242 are the 69 × 18 prefix/suffix pairs: the prefix sets the key, mode and register, the suffix the ornament style. The seed (in the auction, the block hash of the previous purchase) sets the development, episode direction, sections, spacing, which side the theme sits and the rhythm, and how many of the six channels play (four canon voices, countersubject, drums; same presets): most tracks 3–5, 1 in 25 all 6. The theme and the lowest voice always play. Every Beast of a species shares the notes; shiny only adds the mega sound. The address bar keeps the current sample, so a link plays it again.</p></div>
-<div id="p-progression" class="panel" style="margin-top:14px"><label for="levels">Levels</label><select id="levels"><option value="3" selected>3 levels, loothero's order: THEME &gt; CANON + PALETTE &gt; COUNTERSUBJECT + DRUMS</option><option value="5">5 levels, a random order per Beast</option></select>
-<label for="level" style="margin-top:10px">Unlocked: <b id="levelv">0</b> of <b id="levelmax">3</b></label><input type="range" id="level" min="0" max="3" value="0">
-<div class="ctl" style="margin-top:6px"><button id="reroll" class="stop" style="display:none">Another unlock order</button></div>
-<p class="note">Level 0 is the Beast's own scale in its type's feel. Each $SKULL unlock reveals more: with 3 levels, the theme, then the canon and the full palette, then the countersubject and the drums, the same for every Beast. With 5 levels, one layer at a time in an order fixed per Beast (onchain, the unlock transaction's block hash).</p></div>
-<div id="p-drift" class="panel" style="margin-top:14px"><label for="day">Day (epoch): <b id="dayv">0</b></label><input type="range" id="day" min="0" max="30" value="0">
+<div id="p-drift" class="panel" style="margin-top:14px"><label for="day">Day (epoch): <b id="dayv">1</b></label><input type="range" id="day" min="1" max="1242" value="1">
 <p class="note">This tab plays the plain v1.1 Beast, not the Tracks sample: Genesis traits with no history (one section; the tier's voices and countersubject; v1.1's genesis key; shiny adds its tempo bump and the mega sound). For drift on a sampled track, use "Drift on top" in Tracks. A never-ending track: each epoch (a day of blocks, seeded by the epoch's first block hash, readable once 10 blocks old) turns at most one small knob; most days it plays as written.</p></div>
 <div id="p-yeti" class="panel" style="margin-top:14px"><div class="chk">
 <label><input type="checkbox" id="y-rock" checked><span>Rock groove<small>175 BPM, kick 1 and 3, snare backbeat, crash and tom fill each section</small></span></label>
@@ -102,7 +98,9 @@ const BEASTS = ${JSON.stringify(BEASTS)};
 const SPRITES = ${JSON.stringify(SPRITES)};
 const L = BS.lab, $ = (id) => document.getElementById(id);
 const TYPES = ['Magic', 'Hunter', 'Brute'];
-let mode = 'tracks', synth = null, playing = false, reroll = 0;
+let mode = 'tracks', synth = null, playing = false;
+// a day count as an age since launch: day 365 is a year in
+const age = (d) => { const y = Math.floor(d / 365), m = Math.floor((d % 365) / 30.42); return d + ' (' + (y ? y + ' yr ' : '') + m + ' mo)'; };
 const CARD = ${JSON.stringify(CARD)}, PREFIXES = ${JSON.stringify(PREFIXES)}, SUFFIXES = ${JSON.stringify(SUFFIXES)};
 let bpmSet = null; // null = the track's own tempo
 const randHash = () => { const a = new Uint8Array(31); crypto.getRandomValues(a); return '0x' + [...a].map((x) => x.toString(16).padStart(2, '0')).join(''); };
@@ -118,7 +116,6 @@ function saveHash() {
   if ($('drift-on').checked) q.tday = $('tday').value;
   if (mode !== 'tracks') q.tab = mode;
   if (mode === 'drift') q.day = $('day').value;
-  if (mode === 'progression') { q.levels = $('levels').value; q.level = $('level').value; }
   if (mode === 'yeti') q.yeti = ['y-rock', 'y-yodel', 'y-avalanche', 'y-stomp'].filter((id) => $(id).checked).map((id) => id.slice(2)).join('.');
   try { history.replaceState(null, '', '#' + new URLSearchParams(q).toString()); } catch {}
 }
@@ -132,12 +129,10 @@ function loadHash() {
   if (q.get('gkey')) $('gkey').value = q.get('gkey');
   if (q.get('ch')) $('chan').value = q.get('ch');
   if (+q.get('bpm')) bpmSet = Math.min(200, Math.max(60, +q.get('bpm')));
-  if (q.has('tday')) { $('drift-on').checked = true; $('tday').disabled = false; $('tday').value = q.get('tday'); $('tdayv').textContent = $('tday').value; }
-  if (q.has('day')) { $('day').value = q.get('day'); $('dayv').textContent = $('day').value; }
-  if (q.get('levels')) { $('levels').value = q.get('levels'); $('level').max = q.get('levels'); $('levelmax').textContent = q.get('levels'); $('reroll').style.display = q.get('levels') === '5' ? '' : 'none'; }
-  if (q.has('level')) { $('level').value = q.get('level'); $('levelv').textContent = $('level').value; }
+  if (q.has('tday')) { $('drift-on').checked = true; $('tday').disabled = false; $('tday').value = q.get('tday'); $('tdayv').textContent = age(+$('tday').value); }
+  if (q.has('day')) { $('day').value = q.get('day'); $('dayv').textContent = age(+$('day').value); }
   if (q.has('yeti')) { const on = q.get('yeti').split('.'); for (const k of ['rock', 'yodel', 'avalanche', 'stomp']) $('y-' + k).checked = on.includes(k); }
-  return ['progression', 'drift', 'yeti'].includes(q.get('tab')) ? q.get('tab') : 'tracks';
+  return ['drift', 'yeti'].includes(q.get('tab')) ? q.get('tab') : 'tracks';
 }
 function showName() { const n = +$('name').value; $('namev').textContent = n ? '#' + n + ' ' + nameText(n) : 'Genesis Track'; }
 BEASTS.forEach((x, i) => $('beast').add(new Option(x.beast.id + '. ' + x.name + '  (tier ' + x.beast.tier + ' ' + TYPES[x.beast.beast_type] + ')', i)));
@@ -261,12 +256,6 @@ function make() {
     if (bpmSet === null) $('bpm').value = f.tempo;
     $('bpmv').textContent = f.tempo + ' BPM' + (bpmSet === null ? ' (auto)' : '');
     head = trackName() + (args.name ? '' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 no seed' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
-  } else if (mode === 'progression') {
-    const seed = L.H('UNLOCK', L.entityHash(b), reroll), lvl = +$('level').value;
-    const three = $('levels').value === '3';
-    args = { unlocked: lvl, seed, three };
-    if (three) head = 'levels: ' + L.THREE_LEVELS.map((g, i) => (i < lvl ? g.map((n) => n.toUpperCase()) : g).join(' + ')).join(' > ') + (lvl === 0 ? ' \u00b7 now: the scale' : '');
-    else { const order = L.unlockOrder(seed); head = 'unlock order: ' + order.map((n, i) => (i < lvl ? n.toUpperCase() : n)).join(' > ') + (lvl === 0 ? ' \u00b7 now: the scale' : ''); }
   } else if (mode === 'drift') {
     args = { epoch: +$('day').value };
     head = 'day ' + args.epoch + ': ' + L.drift(b, args.epoch).label;
@@ -301,11 +290,11 @@ function start() {
 }
 function refresh() { if (playing) start(); else { make(); renderArt(false); } }
 function tab(m) {
-  mode = m; for (const t of ['tracks', 'progression', 'drift', 'yeti']) { $('t-' + t).classList.toggle('on', t === m); $('p-' + t).classList.toggle('on', t === m); }
+  mode = m; for (const t of ['tracks', 'drift', 'yeti']) { $('t-' + t).classList.toggle('on', t === m); $('p-' + t).classList.toggle('on', t === m); }
   if (m === 'yeti' && BEASTS[+$('beast').value].beast.id !== 68) { const i = BEASTS.findIndex((x) => x.beast.id === 68); if (i >= 0) $('beast').value = i; }
   refresh();
 }
-for (const t of ['tracks', 'progression', 'drift', 'yeti']) $('t-' + t).onclick = () => tab(t);
+for (const t of ['tracks', 'drift', 'yeti']) $('t-' + t).onclick = () => tab(t);
 $('name').oninput = () => { $('namen').value = $('name').value; showName(); refresh(); };
 $('namen').onchange = () => { $('name').value = String(Math.min(1242, Math.max(0, Math.round(+$('namen').value) || 0))); $('namen').value = $('name').value; showName(); refresh(); };
 $('seed').onchange = refresh;
@@ -320,15 +309,12 @@ $('bpm-down').onclick = () => setBpm(+$('bpm').value - 4);
 $('bpm-up').onclick = () => setBpm(+$('bpm').value + 4);
 $('bpm-auto').onclick = () => setBpm(null);
 $('drift-on').onchange = () => { $('tday').disabled = !$('drift-on').checked; refresh(); };
-$('tday').oninput = () => { $('tdayv').textContent = $('tday').value; refresh(); };
+$('tday').oninput = () => { $('tdayv').textContent = age(+$('tday').value); refresh(); };
 $('play').onclick = start;
 $('stop').onclick = () => { if (synth) synth.stopMIDI(); playing = false; stopFollowing(); };
 $('speed').onchange = () => renderArt(playing);
 $('beast').onchange = refresh;
-$('level').oninput = () => { $('levelv').textContent = $('level').value; refresh(); };
-$('levels').onchange = () => { const max = $('levels').value; $('level').max = max; if (+$('level').value > +max) $('level').value = max; $('levelmax').textContent = max; $('levelv').textContent = $('level').value; $('reroll').style.display = max === '5' ? '' : 'none'; refresh(); };
-$('day').oninput = () => { $('dayv').textContent = $('day').value; refresh(); };
-$('reroll').onclick = () => { reroll++; refresh(); };
+$('day').oninput = () => { $('dayv').textContent = age(+$('day').value); refresh(); };
 for (const id of ['y-rock', 'y-yodel', 'y-avalanche', 'y-stomp']) $(id).onchange = refresh;
 { const t = loadHash(); showName(); if (t !== 'tracks') tab(t); else refresh(); }
 </script></body></html>`;

@@ -182,7 +182,7 @@ export const YETI = 68;
 export const YETI_IDEAS = {
   rock: 'Rock groove: 175 BPM, kick on 1 and 3, snare backbeat, eighth hats, crash and tom fill at every section (the #301 groove)',
   yodel: 'Yodel: the lead leaps an octave on every other note of each beat pair, chest voice to head voice',
-  avalanche: 'Avalanche: each section ends in a two-octave sixteenth-note run down on the Pulse 12.5% Pluck, landing on a crash',
+  avalanche: 'Avalanche: each section ends in a two-octave sixteenth-note arpeggio down through the closing chord on the Pulse 12.5% Pluck, landing on a crash',
   stomp: 'Stomp: three-quarter speed, a kick on every beat, the bass doubled an octave down',
 };
 
@@ -228,11 +228,37 @@ export function yetiMidi(b, live, ideas, E, v11) {
     stompDouble = { ch, low }; // plays the low voice's own preset, an octave down
   }
   if (ideas.avalanche) {
-    // the last half bar of each section: a run down two octaves in sixteenths, then rest
-    const ch = maxV + 2, I = E.internals, mode = I.canonicalToMelodic(r.params.mode_id), tonic = I.transposedTonic(r.params.tonic_keynum, 0);
+    // the last half bar of each section: an arpeggio down two octaves in sixteenths through the chord
+    // that is sounding there (the pitch classes of the other voices in that half bar), from the bass
+    // note's pitch class two octaves above the home tonic's register down to it, so the run is in key and
+    // on the chord, whatever the section closes on; a bare unison or fifth is filled out to the triad the
+    // chord the key's scale gives it
+    const ch = maxV + 2, top = r.params.tonic_keynum + 36, I = E.internals;
+    const mode = I.canonicalToMelodic(r.params.mode_id), home = I.transposedTonic(r.params.tonic_keynum, 0);
+    const scale = Array.from({ length: 7 }, (_, d) => I.realize(d, home, mode) % 12);
     for (let s = 0; s < sections; s++) {
-      const start = s * sec + sec - 960;
-      for (let i = 0; i < 8; i++) events.push({ time: start + i * 120, duration: 110, pitch: I.realize(14 + 7 - i * 2, tonic, mode), velocity: 112 - i * 4, voice_id: ch, role: 'avalanche' });
+      const end = s * sec + sec, start = end - 960;
+      const window = events.filter((e) => e.voice_id < ch && e.time < end && e.time + e.duration > start);
+      if (!window.length) continue;
+      // what sounds at the close (the last beat), falling back on the whole half bar
+      const closing = window.filter((e) => e.time + e.duration > end - 480);
+      const pcs = [...new Set((closing.length ? closing : window).map((e) => e.pitch % 12))], heard = [...new Set(window.map((e) => e.pitch % 12))];
+      // the chord: the key's triad that holds the most of what is sounding, preferring a perfect fifth (no
+      // diminished triad) and then the tonic, V, IV, VI, III, II, VII; a lone fifth in the bass reads as the
+      // chord above it (Eb alone in Ab Phrygian is the tonic chord, Ab-Cb-Eb)
+      const triad = (d) => [0, 2, 4].map((k) => scale[(d + k) % 7]);
+      const perfect = (d) => ((triad(d)[2] - triad(d)[0] + 12) % 12) === 7;
+      const pref = [0, 4, 3, 5, 2, 1, 6];
+      const cover = (d, set) => set.filter((q) => triad(d).includes(q)).length;
+      const best = pref.slice().sort((a, c) => cover(c, pcs) - cover(a, pcs) || cover(c, heard) - cover(a, heard) || perfect(c) - perfect(a) || pref.indexOf(a) - pref.indexOf(c))[0];
+      const root = scale[best], chord = triad(best); // the run uses the triad only, never a passing note
+      let hi = top - (((top - root) % 12) + 12) % 12; // the highest pitch class of the root at or below top
+      const run = [];
+      for (let q = hi; q >= hi - 24; q--) if (chord.includes(q % 12)) run.push(q);
+      const n = Math.min(run.length, 8), picked = run.length <= 8 ? run : run.filter((_, k) => k % Math.ceil(run.length / 8) === 0 || k === run.length - 1).slice(-8);
+      if (picked[picked.length - 1] !== hi - 24) picked.push(hi - 24);
+      const notes = picked.slice(-Math.min(picked.length, 8)), t0 = end - notes.length * 120;
+      notes.forEach((q, i) => events.push({ time: t0 + i * 120, duration: 110, pitch: q, velocity: 112 - i * 4, voice_id: ch, role: 'avalanche' }));
     }
     programs[ch] = 13; // Pulse 12.5% Pluck: a bright, icy run
   }

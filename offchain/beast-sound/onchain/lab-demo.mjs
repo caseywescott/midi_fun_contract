@@ -88,7 +88,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div id="p-yeti" class="panel" style="margin-top:14px"><div class="chk">
 <label><input type="checkbox" id="y-rock" checked><span>Rock groove<small>175 BPM, kick 1 and 3, snare backbeat, crash and tom fill each section</small></span></label>
 <label><input type="checkbox" id="y-yodel"><span>Yodel<small>the lead leaps an octave on every other note</small></span></label>
-<label><input type="checkbox" id="y-avalanche" checked><span>Avalanche<small>a two-octave sixteenth run down to end each section</small></span></label>
+<label><input type="checkbox" id="y-avalanche" checked><span>Avalanche<small>a two-octave sixteenth arpeggio down through the closing chord to end each section</small></span></label>
 <label><input type="checkbox" id="y-stomp"><span>Stomp<small>three-quarter speed, kick every beat, bass an octave down (instead of rock)</small></span></label>
 </div><p class="note">Ideas for a Yeti special (species 68); picking this tab selects a Yeti.</p></div></div>
 <div class="card"><canvas id="roll" width="1600" height="440"></canvas><div id="legend" class="legend"></div><p class="note" id="clock"></p></div>

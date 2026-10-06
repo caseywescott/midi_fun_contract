@@ -81,6 +81,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <label for="bpm" style="margin-top:12px">Tempo: <b id="bpmv">auto</b></label>
 <div class="row" style="grid-template-columns:1fr auto auto auto;align-items:center;gap:8px"><input type="range" id="bpm" min="60" max="200" step="1" value="120"><button id="bpm-down" class="mini">−4</button><button id="bpm-up" class="mini">+4</button><button id="bpm-auto" class="mini">Auto</button></div>
 <label for="mix" style="margin-top:12px">Mix</label><select id="mix"><option value="balanced" selected>Balanced: leads down, plucks up, panning halved (prototype)</option><option value="">v1.1 (what get_midi plays today)</option></select>
+<label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="toplead" checked> Topline never a pluck: the highest voice takes the family's free lead (v1.1 can give it a pluck)</label>
 <label for="ties" style="margin-top:12px">Repeated notes in the inner voices (3 or more voices; never the bass, topline or theme)</label><select id="ties"><option value="weak" selected>Tie off the strong beats (re-strike on 1 and 3)</option><option value="all">Tie every repeat (up to a bar)</option><option value="">Strike every repeat (v1.1)</option></select>
 <label for="chan" style="margin-top:12px">Channels</label><select id="chan"><option value="rarity" selected>Rarity: the seed picks 3–6 (6 is 1 in 25); Genesis by tier</option><option value="tier">By tier (v1.1: 4/4/3/2/2 voices)</option><option value="3">Force 3</option><option value="4">Force 4</option><option value="5">Force 5</option><option value="6">Force 6 (rare)</option></select>
 <p class="note">Name 0 is the species' Genesis Track, the base every Beast of the species starts with. Names 1–1242 are the 69 × 18 prefix/suffix pairs: the prefix sets the key, mode and register, the suffix the ornament style. The seed (in the auction, the block hash of the previous purchase) sets the development, episode direction, sections, spacing, which side the theme sits and the rhythm, and how many of the six channels play (four canon voices, countersubject, drums; same presets): most tracks 3–5, 1 in 25 all 6. The theme and the lowest voice always play. Every Beast of a species shares the notes; shiny only adds the mega sound. The address bar keeps the current sample, so a link plays it again.</p></div>
@@ -117,7 +118,7 @@ const seedOf = () => { const v = $('seed').value.trim(); if (!v) return null; tr
 const devName = (t) => t.development + ', episodes ' + (t.direction > 0 ? 'rising' : t.direction < 0 ? 'falling' : 'alternating') + ', ' + t.sections + ' sections, ' + t.spacing + ' spacing' + (t.trill ? ', trills' : '');
 function saveHash() {
   // every tab's state, so a link plays what is heard (the Tracks fields stay, the other tabs add theirs)
-  const q = { b: curBeast().id, n: $('name').value, s: $('seed').value.trim(), shiny: $('shiny').checked ? 1 : 0, theme: $('theme').value, gkey: $('gkey').value, ch: $('chan').value, mix: $('mix').value || 'v11', tie: $('ties').value || 'off', ...(bpmSet ? { bpm: bpmSet } : {}) };
+  const q = { b: curBeast().id, n: $('name').value, s: $('seed').value.trim(), shiny: $('shiny').checked ? 1 : 0, theme: $('theme').value, gkey: $('gkey').value, ch: $('chan').value, mix: $('mix').value || 'v11', tie: $('ties').value || 'off', top: $('toplead').checked ? 1 : 0, ...(bpmSet ? { bpm: bpmSet } : {}) };
   if ($('drift-on').checked || $('fl-on').checked) q.tday = $('tday').value;
   if ($('drift-on').checked) q.dv = $('dv').value;
   if ($('fl-on').checked) q.fl = 1;
@@ -139,6 +140,7 @@ function loadHash() {
   if (q.get('fl') === '1') $('fl-on').checked = true;
   if (q.has('tday')) { $('drift-on').checked = q.has('dv') || !q.has('fl'); $('tday').disabled = false; $('tday').value = q.get('tday'); $('tdayv').textContent = age(+$('tday').value); }
   if (q.get('dv')) $('dv').value = q.get('dv');
+  if (q.has('top')) $('toplead').checked = q.get('top') === '1';
   if (q.get('tie')) $('ties').value = q.get('tie') === 'off' ? '' : q.get('tie');
   if (q.get('mix')) $('mix').value = q.get('mix') === 'v11' ? '' : q.get('mix');
   if (q.has('day')) { $('day').value = q.get('day'); $('dayv').textContent = age(+$('day').value); }
@@ -333,7 +335,7 @@ function make() {
   let args = {}, head = '', out;
   if (mode === 'tracks') {
     const seed = seedOf(), epoch = $('drift-on').checked ? +$('tday').value : null, flourishDay = $('fl-on').checked ? +$('tday').value : null;
-    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value, bpm: bpmSet, driftMode: $('dv').value, mix: $('mix').value || null, flourishDay, ties: $('ties').value || false };
+    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value, bpm: bpmSet, driftMode: $('dv').value, mix: $('mix').value || null, flourishDay, ties: $('ties').value || false, topLead: $('toplead').checked };
     out = L.labMidi('sample', b, x.live, args, BS.engine, BS.v11);
     const f = out.info;
     if (bpmSet === null) $('bpm').value = f.tempo;
@@ -385,7 +387,7 @@ $('seed').onchange = refresh;
 $('newseed').onclick = () => { $('seed').value = randHash(); refresh(); };
 $('noseed').onclick = () => { $('seed').value = ''; refresh(); };
 $('sample').onclick = () => { const a = new Uint32Array(1); crypto.getRandomValues(a); $('name').value = $('namen').value = String(1 + (a[0] % 1242)); $('seed').value = randHash(); showName(); refresh(); };
-for (const id of ['theme', 'gkey', 'shiny', 'chan', 'dv', 'mix', 'ties']) $(id).onchange = refresh;
+for (const id of ['theme', 'gkey', 'shiny', 'chan', 'dv', 'mix', 'ties', 'toplead']) $(id).onchange = refresh;
 const setBpm = (v) => { bpmSet = v === null ? null : Math.min(200, Math.max(60, Math.round(v))); if (bpmSet !== null) $('bpm').value = bpmSet; refresh(); };
 $('bpm').onchange = () => setBpm(+$('bpm').value);
 $('bpm').oninput = () => { $('bpmv').textContent = $('bpm').value + ' BPM'; };

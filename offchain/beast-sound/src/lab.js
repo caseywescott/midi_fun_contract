@@ -522,7 +522,7 @@ export function addFlourishes(form, day, key, style = {}) {
   return { form: { ...form, events: ev.filter((x) => x.duration > 0) }, added, share };
 }
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false } = {}, E, v11) {
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false } = {}, E, v11) {
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
   const g = genesisBeast(b), nm = nameFromVariant(name);
   const t = seed === null || seed === undefined ? null : trackTreatment(seed);
@@ -577,7 +577,7 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     tied,
     flourishes: fl ? { count: fl.added.length, share: fl.share, notes: fl.added.flatMap((x) => (x.notes ? x.notes.map(([time, pitch]) => ({ voice: x.voice, time, pitch })) : [{ voice: x.voice, time: x.time, pitch: x.pitch }])), voices: [...new Set(fl.added.map((x) => x.voice))].length, shapes: fl.added.reduce((m, x) => ((m[x.shape] = (m[x.shape] || 0) + 1), m), {}) } : null,
     channels: playing ? playing.map((c, i) => (i === 1 && c !== 4 && c !== 'drums' ? 'low voice' : CHANNEL_NAMES[c])) : null };
-  return { midi: beastFullMidi(out, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums, mix }), drift: d, result: out, info };
+  return { midi: beastFullMidi(out, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums, mix, topLead }), drift: d, result: out, info };
 }
 
 /** A simulated per-Beast auction: the offer's seed chain and a gradual Dutch auction price. */

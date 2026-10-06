@@ -157,7 +157,7 @@ export const beastSoundMidi = (result, formLength) => beastFullMidi(result, form
  * A rendered Beast (engine.render or engine_v11's render) -> self-contained SMF bytes.
  * `instruments`: 'placeholder' (VOICE_PROGRAM on every voice) or 'beast' (beastInstruments).
  */
-export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null, mix = null } = {}) {
+export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null, mix = null, topLead = false } = {}) {
   const f = result.form, p = result.params, length = formLength(f);
   const setup = voiceSetup(f.events);
   if (instruments === 'beast') for (const [v, program] of Object.entries(beastInstruments(result))) if (setup[v]) setup[v].program = program;
@@ -171,6 +171,15 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
   for (const [, , pitch, , v] of notes) { const s = (st[v] ||= { sum: 0, n: 0 }); s.sum += pitch; s.n += 1; }
   const ids = Object.keys(st).map(Number);
   const lead = ids.reduce((a, b) => (st[b].sum * st[a].n > st[a].sum * st[b].n || (st[b].sum * st[a].n === st[a].sum * st[b].n && b > a) ? b : a));
+  // topLead (a lab prototype, off by default so get_midi is unchanged): the topline never plays a pluck;
+  // when the highest voice drew one, it takes the family's lead no other voice plays
+  if (topLead && instruments === 'beast' && setup[lead]) {
+    const fam = FAMILIES[result.beast.beast_type] ?? FAMILIES[0];
+    if (fam.plucks.includes(setup[lead].program)) {
+      const used = new Set(Object.values(setup).map((x) => x.program));
+      setup[lead].program = fam.leads.find((l) => !used.has(l)) ?? fam.leads[(Number(p.species_id) + 1) % 3];
+    }
+  }
   const pickLead = megaLeadPick(p);
   if (mega.lead) setup[lead].program = MEGA_LEADS[pickLead];
   let doubleCh = -1;
@@ -187,7 +196,8 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
   // the panning halved, so a sparse channel set keeps every voice audible
   if (mix === 'balanced') {
     const cs = p.use_countersubject ? p.voice_count : -1;
-    for (const [v, st] of Object.entries(setup)) { const lead = +v === 0 || +v === cs || +v === doubleCh; st.vol = lead ? 64 : 127; st.pan = Math.round(64 + (st.pan - 64) / 2); }
+    const fam = FAMILIES[result.beast.beast_type] ?? FAMILIES[0];
+    for (const [v, st] of Object.entries(setup)) { const lead = +v === 0 || +v === cs || +v === doubleCh || fam.leads.includes(st.program) || MEGA_LEADS.includes(st.program); st.vol = lead ? 64 : 127; st.pan = Math.round(64 + (st.pan - 64) / 2); }
   }
   const hits = drums === false ? [] : (drums || drumEvents)(length, sec, p.tier, !!mega.groove);
   return fullMidi(notes, p.tempo_us, length, setup, hits);

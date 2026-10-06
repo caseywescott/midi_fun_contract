@@ -309,6 +309,49 @@ function trackMidi(b, live, seed, epoch, E, v11, species) {
   return { midi: beastFullMidi(r, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums }), drift: d, result: r, key, treatment: shown };
 }
 
+// ── the sampler (loothero, 6 Oct): a Beast (species), a special name 0-1242 and a seed (a block hash) ──
+// Name 0 is the species' Genesis Track, the base every Beast of the species starts with. Names 1-1242
+// are the 69 x 18 prefix/suffix pairs (name variant id = 1 + (prefix - 1) * 18 + (suffix - 1)): a name
+// sets the key, mode and register (prefix) and the ornament style (suffix), as it does for a named Beast
+// in v1.1. The seed sets the treatment: development, episode direction, sections, spacing, which side the
+// theme sits and the rhythm cells. With theme 'species' every track keeps the species' motif (the
+// Genesis Track's theme); with 'name' the name also re-seeds the motif, as v1.1 does today.
+// genesisKey 'rule' is v1.1's genesis key (every species Phrygian, tonic = id mod 12); 'spread' gives
+// each species the key of a canonical name instead, for comparing while the 75 Genesis Tracks are tuned.
+export const NAME_COUNT = 69 * 18;
+export const nameFromVariant = (n) => (n === 0 ? { prefix: 0, suffix: 0 } : { prefix: Math.floor((n - 1) / 18) + 1, suffix: ((n - 1) % 18) + 1 });
+export const genesisBeast = (b) => ({ ...b, prefix: 0, suffix: 0, level: BASE_LEVEL, health: BASE_HEALTH, shiny: 0, animated: 0 });
+
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null } = {}, E, v11) {
+  const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
+  const g = genesisBeast(b), nm = nameFromVariant(name);
+  const t = seed === null || seed === undefined ? null : trackTreatment(seed);
+  const cb = name && theme === 'name' ? { ...g, ...nm } : g; // the Beast the composer sees (theme, register)
+  const override = { voice_count: TIER_VOICES[b.tier] ?? 2, sections: t ? t.sections : TIER_SECTIONS[b.tier] ?? 2, tr: {} };
+  if (t) Object.assign(override, { rhythmSeed: t.rhythmSeed, flipSide: t.flipSide, tr: { development: t.development, direction: t.direction, spacing: t.spacing } });
+  let orn = E.mapV3(cb, neutral)._ornament;
+  if (name && theme === 'species') { // the name's key and ornament style on the species' theme
+    const kp = E.mapV3({ ...g, ...nm }, neutral);
+    override.params = { mode_id: kp.mode_id, tonic_keynum: kp.tonic_keynum, register_band: kp.register_band, ornament_density: kp.ornament_density, _ornament: kp._ornament };
+    orn = kp._ornament;
+  } else if (!name && genesisKey === 'spread') {
+    const kp = E.mapV3({ ...g, prefix: ((b.id - 1) % 69) + 1, suffix: ((b.id - 1) % 18) + 1 }, neutral);
+    override.params = { mode_id: kp.mode_id, tonic_keynum: kp.tonic_keynum, register_band: kp.register_band };
+  }
+  override.tr.trill = !!orn.allow_trill;
+  const d = epoch === null || epoch === undefined ? { knob: null, label: 'off' } : drift(b, epoch);
+  const base = v11.render(cb, neutral, { ...V11, override });
+  const tr = base.v11.trajectory;
+  if (d.knob === 0) override.flipSide = !override.flipSide;
+  if (d.knob === 1) override.tr = { ...override.tr, direction: tr.direction === 0 ? 1 : -tr.direction };
+  if (d.knob === 2) override.tr = { ...override.tr, trill: !tr.trill };
+  const r = d.knob === null || d.knob === 3 ? base : v11.render(cb, neutral, { ...V11, override });
+  const drums = d.knob === 3 ? (length, sec, tier, mega) => drumEvents(length, sec, tier >= 5 ? 4 : tier + 1, mega) : null;
+  const p = { ...r.params, ...(override.params || {}) };
+  const info = { key: keyName(p), voices: p.voice_count, sections: p.section_count, tempo: Math.round(60e6 / p.tempo_us), ...r.v11.trajectory };
+  return { midi: beastFullMidi(r, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums }), drift: d, result: r, info };
+}
+
 /** A simulated per-Beast auction: the offer's seed chain and a gradual Dutch auction price. */
 export const GDA = { start: 100, floor: 5, halfLifeHours: 12 };
 export const gdaPrice = (hours) => Math.max(GDA.floor, Math.round(GDA.start * Math.pow(0.5, hours / GDA.halfLifeHours)));
@@ -329,6 +372,7 @@ export function labMidi(mode, b, live, args, E, v11) {
   if (mode === 'drift') return driftMidi(b, live, args.epoch, E, v11);
   if (mode === 'tracks') return ownedTrackMidi(b, live, args.seed, args.epoch, E, v11);
   if (mode === 'species') return speciesTrackMidi(b, live, args.seed, args.epoch, E, v11);
+  if (mode === 'sample') return sampleTrackMidi(b, live, args, E, v11);
   if (mode === 'yeti') return { midi: yetiMidi(b, live, args.ideas, E, v11) };
   throw new Error('mode ' + mode);
 }

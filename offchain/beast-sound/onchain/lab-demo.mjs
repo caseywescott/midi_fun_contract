@@ -78,7 +78,8 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div class="card"><div class="tabs"><button id="t-tracks" class="on">Tracks</button><button id="t-genesis">Genesis</button><button id="t-drift">Drift</button><button id="t-yeti">Yeti</button></div>
 <div id="p-tracks" class="panel on" style="margin-top:14px">
 <label for="name">Special name: <b id="namev">Genesis Track</b></label>
-<div class="row" style="grid-template-columns:1fr 96px;align-items:center"><input type="range" id="name" min="0" max="1242" value="0"><input type="number" id="namen" min="0" max="1242" value="0"></div>
+<div class="row" style="grid-template-columns:auto 1fr auto 84px;align-items:center;gap:8px"><button id="name-down" class="mini" title="Previous name (\u2190)">\u2212</button><input type="range" id="name" min="0" max="1242" value="0"><button id="name-up" class="mini" title="Next name (\u2192)">+</button><input type="number" id="namen" min="0" max="1242" value="0"></div>
+<p class="note" style="margin-top:4px">\u2212 / + (or the \u2190 \u2192 keys) step one name and play it.</p>
 <label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="drift-on"> Drift on top: day <b id="tdayv">1</b></label><label style="margin-top:4px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="fl-on"> Flourishes grow with age: trills, mordents, turns, suspensions, passing notes and anticipations in 16ths across the voices, 0% on day 1 rising toward 8% of the theme’s notes and 4% of the others’, one per beat</label>
 <input type="range" id="tday" min="1" max="1242" value="1" disabled>
 <select id="dv" style="margin-top:6px"><option value="v2" selected>Layered drift: monthly rhythm, weekly channel rotation, a daily key-plan, episode or tempo change</option><option value="v1">One-knob drift (v1: one small change a day)</option></select>
@@ -416,6 +417,19 @@ $('gall').onclick = () => { playAll = true; genesisGo(0); };
 $('gnext').onclick = () => genesisGo(Math.min(74, +$('beast').value + 1));
 $('gprev').onclick = () => genesisGo(Math.max(0, +$('beast').value - 1));
 $('name').oninput = () => { $('namen').value = $('name').value; showName(); refresh(); };
+// step the special name by one and play it (buttons, or the arrow keys on the Tracks tab; on the
+// Genesis tab the arrow keys step the Beast)
+function stepName(d) { const v = Math.min(1242, Math.max(0, +$('name').value + d)); $('name').value = $('namen').value = String(v); showName(); if (playing) refresh(); else start(); }
+$('name-down').onclick = () => stepName(-1);
+$('name-up').onclick = () => stepName(1);
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  const t = e.target, tag = t && t.tagName;
+  if ((tag === 'INPUT' && t.type !== 'range' && t.type !== 'checkbox') || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  const d = e.key === 'ArrowRight' ? 1 : -1;
+  if (mode === 'tracks') { e.preventDefault(); stepName(d); }
+  else if (mode === 'genesis') { e.preventDefault(); playAll = false; genesisGo(Math.min(74, Math.max(0, +$('beast').value + d))); }
+});
 $('namen').onchange = () => { $('name').value = String(Math.min(1242, Math.max(0, Math.round(+$('namen').value) || 0))); $('namen').value = $('name').value; showName(); refresh(); };
 $('seed').onchange = refresh;
 $('newseed').onclick = () => { $('seed').value = randHash(); refresh(); };

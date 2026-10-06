@@ -354,7 +354,7 @@ function trackMidi(b, live, seed, epoch, E, v11, species) {
 }
 
 // ── the sampler (loothero, 6 Oct): a Beast (species), a special name 0-1242 and a seed (a block hash) ──
-// Name 0 is the species' Genesis Track, the base every Beast of the species starts with. Names 1-1242
+// Name 0 with seed 0 is the species' Genesis Track, the base every Beast of the species starts with. Names 1-1242
 // are the 69 x 18 prefix/suffix pairs (name variant id = 1 + (prefix - 1) * 18 + (suffix - 1)): a name
 // sets the key, mode and register (prefix) and the ornament style (suffix), as it does for a named Beast
 // in v1.1. The seed sets the treatment: development, episode direction, sections, spacing, which side the
@@ -523,6 +523,9 @@ export function addFlourishes(form, day, key, style = {}) {
 }
 
 export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false } = {}, E, v11) {
+  // seed 0 is the Genesis seed (0 is never a block hash): the Genesis rules, no seeded treatment, the
+  // tier's fixed channel count, so the OG track of a species (name 0, seed 0) is known exactly
+  if (seed === 0n || seed === 0) seed = null;
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
   const g = genesisBeast(b), nm = nameFromVariant(name);
   const t = seed === null || seed === undefined ? null : trackTreatment(seed);

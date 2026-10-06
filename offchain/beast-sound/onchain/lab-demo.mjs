@@ -74,8 +74,8 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="drift-on"> Drift on top: day <b id="tdayv">1</b></label><label style="margin-top:4px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="fl-on"> Flourishes grow with age: trills, mordents, turns, suspensions, passing notes and anticipations in 16ths across the voices, 0% on day 1 rising toward 8% of the theme’s notes and 4% of the others’, one per beat</label>
 <input type="range" id="tday" min="1" max="1242" value="1" disabled>
 <select id="dv" style="margin-top:6px"><option value="v2" selected>Layered drift: monthly rhythm, weekly channel rotation, a daily key-plan, episode or tempo change</option><option value="v1">One-knob drift (v1: one small change a day)</option></select>
-<label for="seed" style="margin-top:10px">Seed (block hash; empty = none)</label><input type="text" id="seed" spellcheck="false" placeholder="0x…">
-<div class="ctl"><button id="newseed" class="stop">New hash</button><button id="noseed" class="stop">No seed</button><button id="sample">Random sample</button></div>
+<label for="seed" style="margin-top:10px">Seed (a block hash; 0 = the Genesis seed)</label><input type="text" id="seed" spellcheck="false" value="0" placeholder="0">
+<div class="ctl"><button id="newseed" class="stop">New hash</button><button id="noseed" class="stop">Seed 0 (Genesis)</button><button id="sample">Random sample</button></div>
 <div class="row" style="grid-template-columns:1fr 1fr;margin-top:12px"><div><label for="theme">Motif</label><select id="theme"><option value="species" selected>Species motif in every track</option><option value="name">Each name re-seeds the motif (v1.1 today)</option></select></div>
 <div><label for="gkey">Genesis key</label><select id="gkey"><option value="rule" selected>v1.1 rule: Phrygian, tonic = id mod 12</option><option value="spread">Spread: a canonical name's key per species</option><option value="proposed">Proposed: spread key + suggested tempo</option></select></div></div>
 <label for="bpm" style="margin-top:12px">Tempo: <b id="bpmv">auto</b></label>
@@ -114,7 +114,7 @@ const curBeast = () => ({ ...BEASTS[+$('beast').value].beast, shiny: $('shiny').
 const spKey = () => curBeast().id + (curBeast().shiny ? 's' : '');
 const nameText = (n) => { if (!n) return ''; const f = L.nameFromVariant(n); return PREFIXES[f.prefix - 1] + ' ' + SUFFIXES[f.suffix - 1]; };
 const trackName = () => { const n = +$('name').value; return (n ? nameText(n) + ' ' : '') + BEASTS[+$('beast').value].name; };
-const seedOf = () => { const v = $('seed').value.trim(); if (!v) return null; try { return BigInt(v.startsWith('0x') ? v : '0x' + v); } catch { return null; } };
+const seedOf = () => { const v = $('seed').value.trim(); if (!v) return null; try { const x = BigInt(/^0x/i.test(v) || /[a-f]/i.test(v) ? (v.startsWith('0x') ? v : '0x' + v) : v); return x === 0n ? null : x; } catch { return null; } }; // 0 = the Genesis seed
 const devName = (t) => t.development + ', episodes ' + (t.direction > 0 ? 'rising' : t.direction < 0 ? 'falling' : 'alternating') + ', ' + t.sections + ' sections, ' + t.spacing + ' spacing' + (t.trill ? ', trills' : '');
 function saveHash() {
   // every tab's state, so a link plays what is heard (the Tracks fields stay, the other tabs add theirs)
@@ -131,7 +131,7 @@ function loadHash() {
   const q = new URLSearchParams(location.hash.slice(1));
   if (q.get('b')) $('beast').value = String(Math.min(75, Math.max(1, +q.get('b') || 1)) - 1);
   if (q.get('n')) $('name').value = $('namen').value = String(Math.min(1242, Math.max(0, +q.get('n') || 0)));
-  if (q.has('s')) $('seed').value = q.get('s');
+  if (q.has('s')) $('seed').value = q.get('s') || '0';
   $('shiny').checked = q.get('shiny') === '1';
   if (q.get('theme')) $('theme').value = q.get('theme');
   if (q.get('gkey')) $('gkey').value = q.get('gkey');
@@ -340,7 +340,7 @@ function make() {
     const f = out.info;
     if (bpmSet === null) $('bpm').value = f.tempo;
     $('bpmv').textContent = f.tempo + ' BPM' + (bpmSet === null ? ' (auto)' : '');
-    head = trackName() + (args.name ? '' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 no seed' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (f.tied ? ' \u00b7 ' + f.tied + ' repeats tied' : '') + (f.flourishes ? ' \u00b7 ' + f.flourishes.count + ' flourish' + (f.flourishes.count === 1 ? '' : 'es') + (f.flourishes.count ? ' on ' + f.flourishes.voices + ' voice' + (f.flourishes.voices > 1 ? 's' : '') + ': ' + Object.entries(f.flourishes.shapes).map(([k, n]) => n + ' ' + k + (n > 1 ? (k.endsWith('s') ? 'es' : 's') : '')).join(', ') : '') + ' (day ' + flourishDay + ': ' + (100 * f.flourishes.share).toFixed(1) + '% of the theme\u2019s notes, ' + (100 * f.flourishes.share / 2).toFixed(1) + '% of the others\u2019)' : '') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
+    head = trackName() + (args.name ? '' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 seed 0 (Genesis)' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (f.tied ? ' \u00b7 ' + f.tied + ' repeats tied' : '') + (f.flourishes ? ' \u00b7 ' + f.flourishes.count + ' flourish' + (f.flourishes.count === 1 ? '' : 'es') + (f.flourishes.count ? ' on ' + f.flourishes.voices + ' voice' + (f.flourishes.voices > 1 ? 's' : '') + ': ' + Object.entries(f.flourishes.shapes).map(([k, n]) => n + ' ' + k + (n > 1 ? (k.endsWith('s') ? 'es' : 's') : '')).join(', ') : '') + ' (day ' + flourishDay + ': ' + (100 * f.flourishes.share).toFixed(1) + '% of the theme\u2019s notes, ' + (100 * f.flourishes.share / 2).toFixed(1) + '% of the others\u2019)' : '') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
   } else if (mode === 'drift') {
     args = { epoch: +$('day').value };
     head = 'day ' + args.epoch + ': ' + L.drift(b, args.epoch).label;
@@ -385,7 +385,7 @@ $('name').oninput = () => { $('namen').value = $('name').value; showName(); refr
 $('namen').onchange = () => { $('name').value = String(Math.min(1242, Math.max(0, Math.round(+$('namen').value) || 0))); $('namen').value = $('name').value; showName(); refresh(); };
 $('seed').onchange = refresh;
 $('newseed').onclick = () => { $('seed').value = randHash(); refresh(); };
-$('noseed').onclick = () => { $('seed').value = ''; refresh(); };
+$('noseed').onclick = () => { $('seed').value = '0'; refresh(); };
 $('sample').onclick = () => { const a = new Uint32Array(1); crypto.getRandomValues(a); $('name').value = $('namen').value = String(1 + (a[0] % 1242)); $('seed').value = randHash(); showName(); refresh(); };
 for (const id of ['theme', 'gkey', 'shiny', 'chan', 'dv', 'mix', 'ties', 'toplead']) $(id).onchange = refresh;
 const setBpm = (v) => { bpmSet = v === null ? null : Math.min(200, Math.max(60, Math.round(v))); if (bpmSet !== null) $('bpm').value = bpmSet; refresh(); };

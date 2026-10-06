@@ -88,7 +88,6 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div id="p-drift" class="panel" style="margin-top:14px"><label for="day">Day (epoch): <b id="dayv">1</b></label><input type="range" id="day" min="1" max="1242" value="1">
 <p class="note">This tab plays the plain v1.1 Beast, not the Tracks sample: Genesis traits with no history (one section; the tier's voices and countersubject; v1.1's genesis key; shiny adds its tempo bump and the mega sound). For drift on a sampled track, use "Drift on top" in Tracks. A never-ending track: each epoch (a day of blocks, seeded by the epoch's first block hash, readable once 10 blocks old) turns at most one small knob; most days it plays as written.</p></div>
 <div id="p-yeti" class="panel" style="margin-top:14px"><div class="chk">
-<label><input type="checkbox" id="y-stride" checked><span>Stride<small>more note lengths: dotted steps, snaps, shuffles, stomps, gallops, pushes; the mix from the Yeti's tier and Brute type, leaned by the ideas below</small></span></label>
 <label><input type="checkbox" id="y-rock" checked><span>Rock groove<small>175 BPM, kick 1 and 3, snare backbeat, crash and tom fill each section</small></span></label>
 <label><input type="checkbox" id="y-yodel"><span>Yodel<small>the lead leaps an octave on every other note</small></span></label>
 <label><input type="checkbox" id="y-avalanche" checked><span>Avalanche<small>a two-octave sixteenth arpeggio down through the closing chord to end each section</small></span></label>
@@ -125,7 +124,7 @@ function saveHash() {
   if ($('fl-on').checked) q.fl = 1;
   if (mode !== 'tracks') q.tab = mode;
   if (mode === 'drift') q.day = $('day').value;
-  if (mode === 'yeti') q.yeti = ['y-stride', 'y-rock', 'y-yodel', 'y-avalanche', 'y-stomp'].filter((id) => $(id).checked).map((id) => id.slice(2)).join('.');
+  if (mode === 'yeti') q.yeti = ['y-rock', 'y-yodel', 'y-avalanche', 'y-stomp'].filter((id) => $(id).checked).map((id) => id.slice(2)).join('.');
   try { history.replaceState(null, '', '#' + new URLSearchParams(q).toString()); } catch {}
 }
 function loadHash() {
@@ -145,7 +144,7 @@ function loadHash() {
   if (q.get('tie')) $('ties').value = q.get('tie') === 'off' ? '' : q.get('tie');
   if (q.get('mix')) $('mix').value = q.get('mix') === 'v11' ? '' : q.get('mix');
   if (q.has('day')) { $('day').value = q.get('day'); $('dayv').textContent = age(+$('day').value); }
-  if (q.has('yeti')) { const on = q.get('yeti').split('.'); for (const k of ['stride', 'rock', 'yodel', 'avalanche', 'stomp']) $('y-' + k).checked = on.includes(k); }
+  if (q.has('yeti')) { const on = q.get('yeti').split('.'); for (const k of ['rock', 'yodel', 'avalanche', 'stomp']) $('y-' + k).checked = on.includes(k); }
   return ['drift', 'yeti'].includes(q.get('tab')) ? q.get('tab') : 'tracks';
 }
 function showName() { const n = +$('name').value; $('namev').textContent = n ? '#' + n + ' ' + nameText(n) : 'Genesis Track'; }
@@ -346,7 +345,7 @@ function make() {
     args = { epoch: +$('day').value };
     head = 'day ' + args.epoch + ': ' + L.drift(b, args.epoch).label;
   } else {
-    args = { ideas: { stride: $('y-stride').checked, rock: $('y-rock').checked && !$('y-stomp').checked, yodel: $('y-yodel').checked, avalanche: $('y-avalanche').checked, stomp: $('y-stomp').checked } };
+    args = { ideas: { rock: $('y-rock').checked && !$('y-stomp').checked, yodel: $('y-yodel').checked, avalanche: $('y-avalanche').checked, stomp: $('y-stomp').checked } };
     head = 'Yeti ideas: ' + Object.entries(args.ideas).filter(([, on]) => on).map(([k]) => k).join(' + ') + (b.id !== 68 ? ' (on a non-Yeti)' : '');
   }
   if (!out) out = L.labMidi(mode, b, x.live, args, BS.engine, BS.v11);
@@ -402,7 +401,7 @@ $('stop').onclick = () => { if (synth) synth.stopMIDI(); playing = false; stopFo
 $('speed').onchange = () => renderArt(playing);
 $('beast').onchange = refresh;
 $('day').oninput = () => { $('dayv').textContent = age(+$('day').value); refresh(); };
-for (const id of ['y-stride', 'y-rock', 'y-yodel', 'y-avalanche', 'y-stomp']) $(id).onchange = refresh;
+for (const id of ['y-rock', 'y-yodel', 'y-avalanche', 'y-stomp']) $(id).onchange = refresh;
 { const t = loadHash(); showName(); if (t !== 'tracks') tab(t); else refresh(); }
 </script></body></html>`;
 writeFileSync(here + '../public/onchain/lab.html', html);

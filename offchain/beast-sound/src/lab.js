@@ -180,6 +180,7 @@ export function driftMidi(b, live, epoch, E, v11) {
 // ── specials: the Yeti (species 68) ───────────────────────────────────────────────────────────
 export const YETI = 68;
 export const YETI_IDEAS = {
+  stride: 'Stride: more note lengths (dotted steps, snaps, shuffles, stomps, gallops, pushes), the mix set by the Yeti\'s tier and Brute type and leaned by the other ideas',
   rock: 'Rock groove: 175 BPM, kick on 1 and 3, snare backbeat, eighth hats, crash and tom fill at every section (the #301 groove)',
   yodel: 'Yodel: the lead leaps an octave on every other note of each beat pair, chest voice to head voice',
   avalanche: 'Avalanche: each section ends in a two-octave sixteenth-note arpeggio down through the closing chord on the Pulse 12.5% Pluck, landing on a crash',
@@ -207,10 +208,52 @@ const stompDrums = (length, sec, tier, mega) => {
   return base.sort((a, b) => a[0] - b[0]);
 };
 
+/**
+ * Stride: more note lengths in the Yeti's melody. Consecutive notes of a voice are re-timed as a pair
+ * (same pitches, same total length, so the bar lines stay): a dotted step (dotted quarter + eighth), a snap
+ * (eighth + dotted quarter), a shuffle (two-thirds + one-third), a stomp (the first note re-struck as two
+ * eighths), a gallop (dotted eighth + 16th), a hold-stomp (a long note re-struck on its last eighth) or a push
+ * (a syncopated pair of dotted quarters). The Yeti's traits set the mix: its tier how often a pair changes
+ * (40% + 5% per tier), its Brute type heavier steps (dotted, hold-stomp); the other ideas lean it: rock
+ * pushes (and no shuffle), stomp stomps, yodel snaps. Section ends and cadences are left alone.
+ */
+export function yetiStride(events, b, ideas) {
+  const key = entityHash(b), brute = b.beast_type === 2, rate = 40 + 5 * b.tier, out = [], byV = {};
+  for (const e of events) (byV[e.voice_id] ||= []).push({ ...e });
+  for (const list of Object.values(byV)) {
+    list.sort((x, y) => x.time - y.time);
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i], n = list[i + 1];
+      out.push(a);
+      if (!n || n.section !== a.section || a.role === 'cadence' || n.role === 'cadence' || n.time !== a.time + a.duration) continue;
+      const h = low32(H('YETI_STRIDE', key, a.voice_id, i));
+      if (h % 100 >= rate) continue;
+      const da = a.duration, db = n.duration, c = [];
+      if (da === 480 && db === 480) c.push(['dotted', brute ? 3 : 2], ['snap', ideas.yodel ? 3 : 2], ['shuffle', ideas.rock ? 0 : 2], ['stomp', ideas.stomp ? 3 : 1], ['gallop', 2]);
+      if (da >= 960) c.push(['holdstomp', ideas.stomp ? 3 : brute ? 2 : 1]);
+      if ((da === 480 && db >= 960) || (da >= 960 && db === 480)) c.push(['push', ideas.rock ? 3 : 2]);
+      const total = c.reduce((t, [, w]) => t + w, 0);
+      if (!total) continue;
+      let roll = (h >>> 8) % total, pick = c[0][0];
+      for (const [name, w] of c) { if (roll < w) { pick = name; break; } roll -= w; }
+      const shift = (dt) => { a.duration += dt; n.time += dt; n.duration -= dt; };
+      if (pick === 'dotted') shift(240);
+      else if (pick === 'snap') shift(-240);
+      else if (pick === 'shuffle') shift(160);
+      else if (pick === 'push') shift(da === 480 ? 240 : -240);
+      else if (pick === 'stomp') { a.duration = 240; out.push({ ...a, time: a.time + 240, duration: 240, velocity: Math.max(1, a.velocity - 8) }); }
+      else if (pick === 'gallop') { a.duration = 360; out.push({ ...a, time: a.time + 360, duration: 120, velocity: Math.max(1, a.velocity - 10) }); }
+      else if (pick === 'holdstomp') { a.duration = da - 240; out.push({ ...a, time: a.time + da - 240, duration: 240, velocity: Math.max(1, a.velocity - 6) }); }
+    }
+  }
+  return out.sort((x, y) => x.voice_id - y.voice_id || x.time - y.time);
+}
+
 export function yetiMidi(b, live, ideas, E, v11) {
   const opts = ideas.rock ? { ...V11, override: { tempo_us: 342857 } } : ideas.stomp ? { ...V11, override: { tempo_us: 666667 } } : V11;
   let r = v11.render(b, live, opts);
   let events = r.form.events.map((e) => ({ ...e }));
+  if (ideas.stride) events = yetiStride(events, b, ideas);
   const sec = r.form.section_ticks, sections = r.form.sections.length, maxV = Math.max(...events.map((e) => e.voice_id));
   const programs = {};
   let stompDouble = null;

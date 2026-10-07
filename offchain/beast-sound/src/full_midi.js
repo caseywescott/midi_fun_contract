@@ -200,10 +200,10 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
     const cs = p.use_countersubject ? p.voice_count : -1;
     const fam = FAMILIES[result.beast.beast_type] ?? FAMILIES[0];
     for (const [v, st] of Object.entries(setup)) { const lead = +v === 0 || +v === cs || +v === doubleCh || fam.leads.includes(st.program) || MEGA_LEADS.includes(st.program); st.vol = lead ? 64 : 127; st.pan = Math.round(64 + (st.pan - 64) / 2); }
-    // Pulse 25% Pluck (12) and 4-bit Saw Pluck (16) read too loud above the bass: full level while the
+    // Pulse 25% Pluck (12), 4-bit Saw Pluck (16) and Muted Pluck (19) read too loud above the bass: full level while the
     // voice's average pitch is at or below MIDI 52 (E3), easing down to -7 dB by MIDI 64 (E4) and above
     // (channel volume is squared, so dB = 40 log10(vol / 127))
-    for (const [v, x] of Object.entries(setup)) if ((x.program === 12 || x.program === 16) && voiceMean[v] !== undefined) {
+    for (const [v, x] of Object.entries(setup)) if ((x.program === 12 || x.program === 16 || x.program === 19) && voiceMean[v] !== undefined) {
       const k = Math.min(1, Math.max(0, (voiceMean[v] - 52) / 12));
       x.vol = Math.round(x.vol * Math.pow(10, (-7 * k) / 40));
     }

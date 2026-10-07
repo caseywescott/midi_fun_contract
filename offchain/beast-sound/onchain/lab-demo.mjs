@@ -67,7 +67,7 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 .ctl{display:flex;gap:10px;margin-top:12px}.ctl button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--fg);color:var(--bg);font:600 15px system-ui;cursor:pointer}.ctl button.stop{background:var(--bg);color:var(--fg)}
 .chk{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}@media(max-width:520px){.chk{grid-template-columns:1fr}}.chk label{display:flex;gap:8px;align-items:flex-start;color:var(--fg);font-size:14px;margin:0}.chk small{display:block;color:var(--mut);font-size:12px}
 #roll{width:100%;height:220px;display:block;border-radius:8px;background:color-mix(in srgb,var(--fg) 4%,var(--card))}.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:13px}.legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}#info{font:12px/1.6 ui-monospace,monospace;color:var(--mut);white-space:pre-wrap;margin:0}
-button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:600 13px system-ui;cursor:pointer}.offer{margin:12px 0 8px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px;font-size:14px;line-height:1.45}.offer b{font-size:15px}.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}@media(max-width:420px){.tabs{grid-template-columns:repeat(2,1fr)}}.glist{display:grid;gap:4px;margin-top:10px;max-height:520px;overflow:auto}.grow{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--bg)}.grow.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.grow b{font-size:14px}.grow small{color:var(--mut);font-size:12px}.grow span.n{color:var(--mut);font:12px ui-monospace,monospace}input[type=text],input[type=number]{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:13px ui-monospace,monospace}.tabs button{padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 14px system-ui;cursor:pointer}.tabs button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.panel{display:none}.panel.on{display:block}input[type=range]{width:100%}.note{font-size:13px;color:var(--mut);margin:8px 0 0}.beastcard{display:grid;grid-template-columns:125px 1fr;gap:16px;align-items:center}#art{width:125px;height:175px;border-radius:8px;object-fit:contain;background:#000}@media(max-width:420px){.beastcard{grid-template-columns:96px 1fr}#art{width:96px;height:134px}}\n</style></head><body><main>
+button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:600 13px system-ui;cursor:pointer}.offer{margin:12px 0 8px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px;font-size:14px;line-height:1.45}.offer b{font-size:15px}.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}@media(max-width:420px){.tabs{grid-template-columns:repeat(2,1fr)}}.swapbox{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px}.swaprow{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;margin-top:8px;font-size:14px}.now{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--acc) 12%,var(--bg));font-size:15px}.glist{display:grid;gap:4px;margin-top:10px;max-height:520px;overflow:auto}.grow{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--bg)}.grow.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.grow b{font-size:14px}.grow small{color:var(--mut);font-size:12px}.grow span.n{color:var(--mut);font:12px ui-monospace,monospace}input[type=text],input[type=number]{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:13px ui-monospace,monospace}.tabs button{padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 14px system-ui;cursor:pointer}.tabs button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.panel{display:none}.panel.on{display:block}input[type=range]{width:100%}.note{font-size:13px;color:var(--mut);margin:8px 0 0}.beastcard{display:grid;grid-template-columns:125px 1fr;gap:16px;align-items:center}#art{width:125px;height:175px;border-radius:8px;object-fit:contain;background:#000}@media(max-width:420px){.beastcard{grid-template-columns:96px 1fr}#art{width:96px;height:134px}}\n</style></head><body><main>
 <h1>Beast Sound Lab</h1>
 <p class="sub">Composer v1.1 prototypes, played as onchain-midi-player plays a token_uri (the self-contained MIDI, the class's engine, the TinyChip timbres). Pick a Beast, sample its tracks by name and seed, then play; changes apply while playing.</p>
 <div class="card beastcard"><img id="art" alt="" width="125" height="175"><div><label for="beast">Beast</label><select id="beast"></select>
@@ -97,15 +97,17 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div id="p-drift" class="panel" style="margin-top:14px"><label for="day">Day (epoch): <b id="dayv">1</b></label><input type="range" id="day" min="1" max="1242" value="1">
 <p class="note">This tab plays the plain v1.1 Beast, not the Tracks sample: Genesis traits with no history (one section; the tier's voices and countersubject; v1.1's genesis key; shiny adds its tempo bump and the mega sound). For drift on a sampled track, use "Drift on top" in Tracks. A never-ending track: each epoch (a day of blocks, seeded by the epoch's first block hash, readable once 10 blocks old) turns at most one small knob; most days it plays as written.</p></div>
 <div id="p-genesis" class="panel" style="margin-top:14px">
+<p class="now" id="gnow"></p>
 <label style="display:flex;gap:8px;align-items:center;color:var(--fg);margin-bottom:10px"><input type="checkbox" id="gspread" checked> Spread keys: each species its own key and mode, played as named (off = v1.1, every species Phrygian)</label>
 <label for="gmotif">Theme: <b id="gmotifv">#0, the species' own</b></label>
 <div class="row" style="grid-template-columns:auto 1fr auto auto auto;align-items:center;gap:8px;margin-bottom:6px"><button id="gm-down" class="mini" title="Previous theme (\u2193)">\u2212</button><input type="range" id="gmotif" min="0" max="1242" value="0"><button id="gm-up" class="mini" title="Next theme (\u2191)">+</button><button id="gm-reset" class="mini">Own theme</button><button id="gm-chosen" class="mini">Chosen</button></div>
 <p class="note" style="margin-top:0">Theme candidates 1\u20131242 swap only the motif (its pitches and rhythm); key, mode, instruments and channels stay the Genesis Track's. \u2212 / + or \u2191 \u2193 step the theme, \u2190 \u2192 the Beast. Each Beast keeps its own pick.</p>
 <p class="note" id="gpicks" style="margin-top:4px"></p>
-<label for="gtrack" style="margin-top:10px">Track: <b id="gtrackv">its own</b></label>
-<div class="row" style="grid-template-columns:1fr auto auto auto;align-items:center;gap:8px"><select id="gtrack"></select><button id="gt-use" class="mini" title="This Beast plays the chosen Beast's track">Use</button><button id="gt-swap" class="mini" title="The two Beasts trade tracks">Swap both</button><button id="gt-own" class="mini">Own track</button></div>
-<p class="note" style="margin-top:4px">A track is a Beast's whole Genesis Track: key, mode, theme (with its pick), structure and instruments. Swap both: each Beast plays the other's.</p>
-<p class="note" id="gswaps" style="margin-top:4px"></p>
+<div class="swapbox">
+<b>Swap music between two Beasts</b>
+<div class="row" style="grid-template-columns:1fr auto 1fr auto;align-items:center;gap:8px;margin-top:8px"><select id="swapA"></select><span style="font-size:20px">\u21c4</span><select id="swapB"></select><button id="swapgo" class="mini">Swap</button></div>
+<p class="note" style="margin-top:6px">Each Beast keeps its own name and card but plays the other Beast's Genesis music (its key, mode, theme, instruments and length).</p>
+<div id="swaplist"></div></div>
 <div class="ctl" style="margin-top:0"><button id="gall">&#9654; Play all 75 (one loop each)</button><button id="gprev" class="stop">&#9664; Previous</button><button id="gnext" class="stop">Next &#9654;</button></div>
 <p class="note">Every species' Genesis Track (special name 0, seed 0) exactly as the lab plays it by default, the proposal in the Genesis Tracks doc. Tap a row to play it; Play all steps through the 75, one full loop each. The Shiny box above adds the mega sound.</p>
 <div class="glist" id="glist"></div></div>
@@ -171,7 +173,7 @@ function loadHash() {
   if (q.has('tday')) { $('drift-on').checked = q.has('dv') || !q.has('fl'); $('tday').disabled = false; $('tday').value = q.get('tday'); $('tdayv').textContent = age(+$('tday').value); }
   if (q.get('dv')) $('dv').value = q.get('dv');
   if (q.get('gsp') === '0') $('gspread').checked = false;
-  if (q.get('gs')) for (const pr of q.get('gs').split(',')) { const [k, v] = pr.split('.').map(Number); if (k >= 1 && k <= 75 && v >= 1 && v <= 75 && k !== v) SWAPS[k] = v; }
+  if (q.get('gs')) for (const pr of q.get('gs').split(',')) { const [k, v] = pr.split('.').map(Number); if (k >= 1 && k <= 75 && v >= 1 && v <= 75 && k !== v) { SWAPS[k] = v; SWAPS[v] = k; } }
   if (q.get('gm')) for (const pr of q.get('gm').split(',')) { const [k, n] = pr.split('.').map(Number); if (k >= 1 && k <= 75 && n >= 0 && n <= 1242) PICKS[k] = n; }
   if (q.has('top')) $('toplead').checked = q.get('top') === '1';
   if (q.get('tie')) $('ties').value = q.get('tie') === 'off' ? '' : q.get('tie');
@@ -379,7 +381,7 @@ function make() {
     out = L.labMidi('sample', sb, x.live, { ...GDEF, genesisKey: $('gspread').checked ? 'spread' : 'rule', motif: PICKS[src] || 0 }, BS.engine, BS.v11);
     showPick(); showSwaps();
     const f = out.info;
-    head = (trackOf(b.id) !== b.id ? x.name + ' playing ' + BEASTS[trackOf(b.id) - 1].name + '\u2019s' : x.name) + ' Genesis Track (name 0, seed 0' + (PICKS[trackOf(b.id)] ? ', theme #' + PICKS[trackOf(b.id)] : '') + ') \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + f.channels.length + ' channels: ' + f.channels.join(', ') + (playAll ? ' \u00b7 playing all: ' + (+$('beast').value + 1) + ' of 75' : '');
+    head = (trackOf(b.id) !== b.id ? x.name + ' playing ' + BEASTS[trackOf(b.id) - 1].name + '\u2019s music (swapped): ' + BEASTS[trackOf(b.id) - 1].name + '\u2019s' : x.name) + ' Genesis Track (name 0, seed 0' + (PICKS[trackOf(b.id)] ? ', theme #' + PICKS[trackOf(b.id)] : '') + ') \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + f.channels.length + ' channels: ' + f.channels.join(', ') + (playAll ? ' \u00b7 playing all: ' + (+$('beast').value + 1) + ' of 75' : '');
     document.querySelectorAll('.grow').forEach((r) => r.classList.toggle('on', r.dataset.i === $('beast').value));
   } else if (mode === 'drift') {
     args = { epoch: +$('day').value };
@@ -430,29 +432,32 @@ function showPick() {
   const c = $('gcopy'); if (c) c.onclick = () => { try { navigator.clipboard.writeText($('gpicktext').textContent); c.textContent = 'Copied'; } catch { } };
   document.querySelectorAll('.grow').forEach((r) => { const k = trackOf(BEASTS[+r.dataset.i].beast.id), tag = r.querySelector('.pick'); if (tag) tag.textContent = PICKS[k] ? 'theme #' + PICKS[k] + ' \u00b7 ' : ''; });
 }
+const nm = (id) => BEASTS[id - 1].name;
 function showSwaps() {
   const me = BEASTS[+$('beast').value].beast.id, src = trackOf(me);
-  $('gtrack').value = String(src); $('gtrackv').textContent = src === me ? 'its own' : BEASTS[src - 1].name + '\u2019s';
-  const done = new Set(), parts = [];
-  for (const k of Object.keys(SWAPS).map(Number).sort((a, c) => a - c)) {
-    if (done.has(k)) continue; const v = SWAPS[k];
-    if (SWAPS[v] === k) { parts.push(BEASTS[k - 1].name + ' \u2194 ' + BEASTS[v - 1].name); done.add(v); }
-    else parts.push(BEASTS[k - 1].name + ' plays ' + BEASTS[v - 1].name + '\u2019s track');
-    done.add(k);
-  }
-  $('gswaps').innerHTML = parts.length ? 'Your swaps: <b id="gswaptext">' + parts.join(', ') + '</b> <button id="gscopy" class="mini">Copy</button> <button id="gsclear" class="mini">Clear all</button>' : 'No swaps: every Beast plays its own track.';
-  const c = $('gscopy'); if (c) c.onclick = () => { try { navigator.clipboard.writeText($('gswaptext').textContent + '  ' + location.href); c.textContent = 'Copied'; } catch { } };
-  const x = $('gsclear'); if (x) x.onclick = () => { for (const k of Object.keys(SWAPS)) delete SWAPS[k]; fillGenesis(); showPick(); showSwaps(); refresh(); };
+  $('gnow').innerHTML = 'Now playing: <b>' + nm(me) + '</b>' + (src === me ? ', its own music' : ', playing <b>' + nm(src) + '\u2019s</b> music (swapped)');
+  if (+$('swapA').value !== me && document.activeElement !== $('swapA') && document.activeElement !== $('swapB')) $('swapA').value = String(me);
+  if ($('swapB').value === $('swapA').value) $('swapB').value = String(+$('swapA').value % 75 + 1);
+  $('swapgo').disabled = $('swapA').value === $('swapB').value;
+  const pairs = Object.keys(SWAPS).map(Number).filter((k) => SWAPS[k] > k).sort((a, c) => a - c);
+  $('swaplist').innerHTML = pairs.length ? pairs.map((a) => { const b = SWAPS[a]; return '<div class="swaprow"><span><b>' + nm(a) + '</b> \u21c4 <b>' + nm(b) + '</b></span><button class="mini" data-play="' + a + '">\u25b6 ' + nm(a) + ' with ' + nm(b) + '\u2019s music</button><button class="mini" data-play="' + b + '">\u25b6 ' + nm(b) + ' with ' + nm(a) + '\u2019s music</button><button class="mini" data-undo="' + a + '">Undo</button></div>'; }).join('')
+    + '<div class="ctl" style="margin-top:10px"><button id="gscopy" class="stop">Copy swaps + link</button><button id="gsclear" class="stop">Undo all</button></div>'
+    : '<p class="note" style="margin-top:8px">No swaps yet: every Beast plays its own music.</p>';
+  document.querySelectorAll('[data-play]').forEach((x) => (x.onclick = () => { playAll = false; genesisGo(+x.dataset.play - 1); }));
+  document.querySelectorAll('[data-undo]').forEach((x) => (x.onclick = () => { unswap(+x.dataset.undo); afterSwap(); }));
+  const c = $('gscopy'); if (c) c.onclick = () => { const t = pairs.map((a) => nm(a) + ' \u21c4 ' + nm(SWAPS[a])).join(', '); try { navigator.clipboard.writeText('Swaps: ' + t + '\\n' + location.href); c.textContent = 'Copied'; } catch { } };
+  const x = $('gsclear'); if (x) x.onclick = () => { for (const k of Object.keys(SWAPS)) delete SWAPS[k]; afterSwap(); };
 }
-function setTrack(target, src) { if (src === target) delete SWAPS[target]; else SWAPS[target] = src; }
+function unswap(a) { const b = SWAPS[a]; delete SWAPS[a]; if (b && SWAPS[b] === a) delete SWAPS[b]; }
+function afterSwap() { fillGenesis(); showPick(); showSwaps(); if (playing) refresh(); else make(); }
 function setPick(n) {
   const id = trackOf(BEASTS[+$('beast').value].beast.id); n = Math.min(1242, Math.max(0, n));
   PICKS[id] = n;
   showPick(); if (playing) refresh(); else start();
 }
-function fillTrackSelect() { $('gtrack').innerHTML = BEASTS.map((x) => '<option value="' + x.beast.id + '">' + x.beast.id + '. ' + x.name + '</option>').join(''); }
+function fillTrackSelect() { const o = BEASTS.map((x) => '<option value="' + x.beast.id + '">' + x.beast.id + '. ' + x.name + '</option>').join(''); $('swapA').innerHTML = o; $('swapB').innerHTML = o; $('swapB').value = '16'; }
 function fillGenesis() {
-  $('glist').innerHTML = BEASTS.map((x, i) => '<div class="grow" data-i="' + i + '"><span class="n">#' + x.beast.id + '</span><div><b>' + x.name + '</b><br><small><span class="pick"></span>' + (trackOf(x.beast.id) !== x.beast.id ? 'plays ' + BEASTS[trackOf(x.beast.id) - 1].name + '\u2019s track \u00b7 ' : '') + 'tier ' + BEASTS[trackOf(x.beast.id) - 1].beast.tier + ' ' + TYPES[BEASTS[trackOf(x.beast.id) - 1].beast.beast_type] + ' \u00b7 ' + ($('gspread').checked ? GENESIS[trackOf(x.beast.id) - 1].key : GENESIS[trackOf(x.beast.id) - 1].ruleKey) + ' \u00b7 ' + GENESIS[trackOf(x.beast.id) - 1].ch + ' channels \u00b7 ' + GENESIS[trackOf(x.beast.id) - 1].secs + ' s</small></div><span>&#9654;</span></div>').join('');
+  $('glist').innerHTML = BEASTS.map((x, i) => '<div class="grow" data-i="' + i + '"><span class="n">#' + x.beast.id + '</span><div><b>' + x.name + '</b><br><small><span class="pick"></span>' + (trackOf(x.beast.id) !== x.beast.id ? '\u21c4 ' + BEASTS[trackOf(x.beast.id) - 1].name + '\u2019s music \u00b7 ' : '') + 'tier ' + BEASTS[trackOf(x.beast.id) - 1].beast.tier + ' ' + TYPES[BEASTS[trackOf(x.beast.id) - 1].beast.beast_type] + ' \u00b7 ' + ($('gspread').checked ? GENESIS[trackOf(x.beast.id) - 1].key : GENESIS[trackOf(x.beast.id) - 1].ruleKey) + ' \u00b7 ' + GENESIS[trackOf(x.beast.id) - 1].ch + ' channels \u00b7 ' + GENESIS[trackOf(x.beast.id) - 1].secs + ' s</small></div><span>&#9654;</span></div>').join('');
   document.querySelectorAll('.grow').forEach((r) => (r.onclick = () => { playAll = false; genesisGo(+r.dataset.i); }));
 }
 function refresh() { if (playing) start(); else { make(); renderArt(false); } }
@@ -469,9 +474,12 @@ $('gmotif').onchange = () => setPick(+$('gmotif').value);
 $('gm-down').onclick = () => setPick((PICKS[trackOf(BEASTS[+$('beast').value].beast.id)] || 0) - 1);
 $('gm-up').onclick = () => setPick((PICKS[trackOf(BEASTS[+$('beast').value].beast.id)] || 0) + 1);
 $('gm-reset').onclick = () => setPick(0);
-$('gt-use').onclick = () => { const me = BEASTS[+$('beast').value].beast.id; setTrack(me, +$('gtrack').value); fillGenesis(); showPick(); showSwaps(); if (playing) refresh(); else start(); };
-$('gt-swap').onclick = () => { const me = BEASTS[+$('beast').value].beast.id, other = +$('gtrack').value; if (other === me) return; const a = trackOf(me), c = trackOf(other); setTrack(me, c); setTrack(other, a); fillGenesis(); showPick(); showSwaps(); if (playing) refresh(); else start(); };
-$('gt-own').onclick = () => { const me = BEASTS[+$('beast').value].beast.id; setTrack(me, me); fillGenesis(); showPick(); showSwaps(); if (playing) refresh(); else start(); };
+$('swapA').onchange = $('swapB').onchange = () => { $('swapgo').disabled = $('swapA').value === $('swapB').value; };
+$('swapgo').onclick = () => {
+  const a = +$('swapA').value, b = +$('swapB').value; if (a === b) return;
+  unswap(a); unswap(b); SWAPS[a] = b; SWAPS[b] = a;
+  afterSwap(); playAll = false; genesisGo(a - 1);
+};
 $('gm-chosen').onclick = () => setPick(L.GENESIS_THEMES[trackOf(BEASTS[+$('beast').value].beast.id)] || 0);
 $('gall').onclick = () => { playAll = true; genesisGo(0); };
 $('gnext').onclick = () => genesisGo(Math.min(74, +$('beast').value + 1));

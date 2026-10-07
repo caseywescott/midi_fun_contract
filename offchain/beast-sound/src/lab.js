@@ -320,6 +320,10 @@ export function speciesTrackTreatment(seed) {
   const k = low32(H('BEAST_TRACK_KEY', seed));
   return { ...t, prefix: 1 + (k % 69), suffix: 1 + ((k >>> 8) % 18) };
 }
+/** The chosen Genesis themes (the user's picks, 7 Oct): species id -> theme candidate; absent = 0, its own. */
+export const GENESIS_THEMES = { 2: 3, 3: 6, 4: 1, 7: 5, 8: 419, 9: 1, 11: 6, 13: 1176, 14: 1, 15: 7, 17: 4, 19: 817, 20: 447, 21: 502, 22: 6, 23: 353, 25: 883, 26: 2, 27: 195, 28: 61, 29: 967, 30: 597, 31: 598, 32: 914, 33: 976, 34: 204, 35: 797, 36: 1011, 39: 210, 41: 808, 42: 575, 43: 7, 44: 582, 45: 847, 46: 1016, 48: 1087, 49: 6, 51: 6, 52: 1113, 53: 496, 54: 196, 55: 1075, 56: 1145, 57: 1180, 58: 559, 59: 1105, 60: 208, 61: 677, 62: 165, 63: 563, 64: 390, 65: 931, 66: 9, 67: 136, 68: 933, 69: 650, 70: 5, 71: 2, 72: 1104, 73: 1156, 74: 965, 75: 832 };
+/** Genesis mode overrides on the spread key (same tonic): species id -> mode id. Nue (33) is Phrygian. */
+export const GENESIS_MODES = { 33: 5 };
 /** Each mode's scale as semitone offsets from the tonic, as named. */
 export const MODE_SCALES = { 4: [0, 2, 3, 5, 7, 9, 10], 5: [0, 1, 3, 5, 7, 8, 10], 6: [0, 1, 3, 5, 6, 8, 10], 7: [0, 2, 3, 5, 7, 8, 10], 8: [0, 2, 3, 5, 7, 8, 11], 26: [0, 2, 3, 6, 7, 9, 10] };
 const MODE_NAMES = { 4: 'Dorian', 5: 'Phrygian', 6: 'Locrian', 7: 'Aeolian', 8: 'harmonic minor', 26: 'Dorian #4' };
@@ -533,6 +537,7 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   const t = seed === null || seed === undefined ? null : trackTreatment(seed);
   // motif (Genesis only): theme candidate N, the motif (pitches and rhythm) that special name N would
   // compose, on the Genesis Track's own key, ornament style and instruments; 0 = the species' own theme
+  if (motif === 'default') motif = GENESIS_THEMES[b.id] || 0;
   const cand = !name && motif > 0 ? nameFromVariant(Math.min(NAME_COUNT, motif)) : null;
   const cb = cand ? { ...g, ...cand } : name && theme === 'name' ? { ...g, ...nm } : g; // the Beast the composer sees (theme, register)
   // channels 'tier': v1.1's voices for the tier; 'rarity' or a forced count 3-6: the full six, filtered
@@ -551,6 +556,7 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     orn = kp._ornament;
   } else if (!name && (genesisKey === 'spread' || genesisKey === 'proposed')) {
     const kp = E.mapV3(spreadKeyBeast(g), neutral);
+    if (GENESIS_MODES[b.id] !== undefined) kp.mode_id = GENESIS_MODES[b.id]; // a chosen mode, same tonic
     override.params = { ...(override.params || {}), mode_id: kp.mode_id, tonic_keynum: kp.tonic_keynum, register_band: kp.register_band };
     // the mode as named: the engine realizes only Aeolian, Dorian and Phrygian (Locrian plays as Phrygian,
     // harmonic minor as Aeolian, Dorian #4 as Dorian), so the Genesis spread passes the real scale

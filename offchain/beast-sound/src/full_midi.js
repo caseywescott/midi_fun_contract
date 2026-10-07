@@ -170,6 +170,7 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
   const st = {};
   for (const [, , pitch, , v] of notes) { const s = (st[v] ||= { sum: 0, n: 0 }); s.sum += pitch; s.n += 1; }
   // notLead (lab specials): voices never taken for the lead, e.g. the Yeti's avalanche run above the melody
+  const voiceMean = Object.fromEntries(Object.entries(st).map(([v, x]) => [v, x.sum / x.n]));
   const ids = Object.keys(st).map(Number).filter((v) => !notLead.includes(v));
   const lead = ids.reduce((a, b) => (st[b].sum * st[a].n > st[a].sum * st[b].n || (st[b].sum * st[a].n === st[a].sum * st[b].n && b > a) ? b : a));
   // topLead (a lab prototype, off by default so get_midi is unchanged): the topline never plays a pluck;
@@ -199,6 +200,13 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
     const cs = p.use_countersubject ? p.voice_count : -1;
     const fam = FAMILIES[result.beast.beast_type] ?? FAMILIES[0];
     for (const [v, st] of Object.entries(setup)) { const lead = +v === 0 || +v === cs || +v === doubleCh || fam.leads.includes(st.program) || MEGA_LEADS.includes(st.program); st.vol = lead ? 64 : 127; st.pan = Math.round(64 + (st.pan - 64) / 2); }
+    // Pulse 25% Pluck (12) and 4-bit Saw Pluck (16) read too loud above the bass: full level while the
+    // voice's average pitch is at or below MIDI 52 (E3), easing down to -7 dB by MIDI 64 (E4) and above
+    // (channel volume is squared, so dB = 40 log10(vol / 127))
+    for (const [v, x] of Object.entries(setup)) if ((x.program === 12 || x.program === 16) && voiceMean[v] !== undefined) {
+      const k = Math.min(1, Math.max(0, (voiceMean[v] - 52) / 12));
+      x.vol = Math.round(x.vol * Math.pow(10, (-7 * k) / 40));
+    }
   }
   const hits = drums === false ? [] : (drums || drumEvents)(length, sec, p.tier, !!mega.groove);
   return fullMidi(notes, p.tempo_us, length, setup, hits);

@@ -524,26 +524,34 @@ export function addFlourishes(form, day, key, style = {}) {
   return { form: { ...form, events: ev.filter((x) => x.duration > 0) }, added, share };
 }
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false } = {}, E, v11) {
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0 } = {}, E, v11) {
   // seed 0 is the Genesis seed (0 is never a block hash): the Genesis rules, no seeded treatment, the
   // tier's fixed channel count, so the OG track of a species (name 0, seed 0) is known exactly
   if (seed === 0n || seed === 0) seed = null;
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
   const g = genesisBeast(b), nm = nameFromVariant(name);
   const t = seed === null || seed === undefined ? null : trackTreatment(seed);
-  const cb = name && theme === 'name' ? { ...g, ...nm } : g; // the Beast the composer sees (theme, register)
+  // motif (Genesis only): theme candidate N, the motif (pitches and rhythm) that special name N would
+  // compose, on the Genesis Track's own key, ornament style and instruments; 0 = the species' own theme
+  const cand = !name && motif > 0 ? nameFromVariant(Math.min(NAME_COUNT, motif)) : null;
+  const cb = cand ? { ...g, ...cand } : name && theme === 'name' ? { ...g, ...nm } : g; // the Beast the composer sees (theme, register)
   // channels 'tier': v1.1's voices for the tier; 'rarity' or a forced count 3-6: the full six, filtered
   const full = channels !== 'tier';
   const override = { voice_count: full ? 4 : TIER_VOICES[b.tier] ?? 2, sections: t ? t.sections : TIER_SECTIONS[b.tier] ?? 2, tr: {} };
   if (t) Object.assign(override, { rhythmSeed: t.rhythmSeed, flipSide: t.flipSide, tr: { development: t.development, direction: t.direction, spacing: t.spacing } });
   let orn = E.mapV3(cb, neutral)._ornament;
+  if (cand) { // everything but the theme stays the Genesis Track's (key, ornament style, instruments, countersubject seed)
+    const kg = E.mapV3(g, neutral);
+    override.params = { mode_id: kg.mode_id, tonic_keynum: kg.tonic_keynum, register_band: kg.register_band, ornament_density: kg.ornament_density, _ornament: kg._ornament, name_variant_id: 0 };
+    orn = kg._ornament;
+  }
   if (name && theme === 'species') { // the name's key and ornament style on the species' theme
     const kp = E.mapV3({ ...g, ...nm }, neutral);
     override.params = { mode_id: kp.mode_id, tonic_keynum: kp.tonic_keynum, register_band: kp.register_band, ornament_density: kp.ornament_density, _ornament: kp._ornament };
     orn = kp._ornament;
   } else if (!name && (genesisKey === 'spread' || genesisKey === 'proposed')) {
     const kp = E.mapV3(spreadKeyBeast(g), neutral);
-    override.params = { mode_id: kp.mode_id, tonic_keynum: kp.tonic_keynum, register_band: kp.register_band };
+    override.params = { ...(override.params || {}), mode_id: kp.mode_id, tonic_keynum: kp.tonic_keynum, register_band: kp.register_band };
     // the mode as named: the engine realizes only Aeolian, Dorian and Phrygian (Locrian plays as Phrygian,
     // harmonic minor as Aeolian, Dorian #4 as Dorian), so the Genesis spread passes the real scale
     if (MODE_SCALES[kp.mode_id]) override.scale = MODE_SCALES[kp.mode_id];

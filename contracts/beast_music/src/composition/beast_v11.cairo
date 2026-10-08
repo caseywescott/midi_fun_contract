@@ -68,6 +68,79 @@ struct Trajectory {
     trill: bool,
 }
 
+/// Overrides on the mapped parameters (engine_v11.js `override`), as the lab's Genesis Track uses
+/// them: `None` keeps the mapped value. The theme is still built from the mapped parameters; the
+/// rhythm, sections, voices and key use the overridden ones.
+#[derive(Copy, Drop)]
+pub struct V11Override {
+    pub voice_count: Option<u32>,
+    pub section_count: Option<u8>,
+    pub mode_id: Option<u8>,
+    pub tonic_keynum: Option<u8>,
+    pub register_band: Option<u8>,
+    pub ornament_density: Option<u8>,
+    pub name_variant_id: Option<u32>,
+    pub use_countersubject: Option<bool>,
+    /// Seven semitone offsets from the tonic, realized in place of the mode's scale.
+    pub scale: Option<Span<u8>>,
+    /// Trills in place of passing notes, in place of the name's ornament policy.
+    pub trill: Option<bool>,
+}
+
+/// No overrides: `build_v11_score_with(beast, live, no_override())` is `build_v11_score`.
+pub fn no_override() -> V11Override {
+    V11Override {
+        voice_count: Option::None,
+        section_count: Option::None,
+        mode_id: Option::None,
+        tonic_keynum: Option::None,
+        register_band: Option::None,
+        ornament_density: Option::None,
+        name_variant_id: Option::None,
+        use_countersubject: Option::None,
+        scale: Option::None,
+        trill: Option::None,
+    }
+}
+
+fn apply_override(p: BeastCompositionParams, ov: V11Override) -> BeastCompositionParams {
+    BeastCompositionParams {
+        voice_count: match ov.voice_count {
+            Option::Some(x) => x,
+            Option::None => p.voice_count,
+        },
+        section_count: match ov.section_count {
+            Option::Some(x) => x,
+            Option::None => p.section_count,
+        },
+        mode_id: match ov.mode_id {
+            Option::Some(x) => x,
+            Option::None => p.mode_id,
+        },
+        tonic_keynum: match ov.tonic_keynum {
+            Option::Some(x) => x,
+            Option::None => p.tonic_keynum,
+        },
+        register_band: match ov.register_band {
+            Option::Some(x) => x,
+            Option::None => p.register_band,
+        },
+        ornament_density: match ov.ornament_density {
+            Option::Some(x) => x,
+            Option::None => p.ornament_density,
+        },
+        name_variant_id: match ov.name_variant_id {
+            Option::Some(x) => x,
+            Option::None => p.name_variant_id,
+        },
+        use_countersubject: match ov.use_countersubject {
+            Option::Some(x) => x,
+            Option::None => p.use_countersubject,
+        },
+        ..p,
+    }
+}
+
 /// A v1.1 score: its events (in voice-then-time generation order, each voice chronological), the
 /// section length, and the parameters it was composed with.
 #[derive(Drop)]
@@ -738,6 +811,7 @@ fn build_section(
     section_ticks: u32,
     plan: Span<i32>,
     tr: Trajectory,
+    scale_override: Option<Span<u8>>,
 ) -> Array<NoteEvent> {
     // development: sections after the first follow the Beast's dominant history
     let dev = if s > 0 {
@@ -811,7 +885,10 @@ fn build_section(
     };
     let mode = canonical_to_melodic_mode(p.mode_id);
     let home = transposed_tonic(p.tonic_keynum, 0);
-    let scale = mode_scale(mode);
+    let scale = match scale_override {
+        Option::Some(sc) => sc,
+        Option::None => mode_scale(mode),
+    };
     let r = realizer(*plan.at(s % plan.len()), home, scale);
     let next_shift = *plan.at(next % plan.len());
     let mut out: Array<NoteEvent> = array![];
@@ -1083,6 +1160,13 @@ fn shape(
 
 /// The v1.1 score for a Beast and its live state.
 pub fn build_v11_score(beast: PackableBeastV3, live: BeastV3LiveState) -> V11Score {
+    build_v11_score_with(beast, live, no_override())
+}
+
+/// The v1.1 score with overrides on the mapped parameters (engine_v11.js `render` with `override`).
+pub fn build_v11_score_with(
+    beast: PackableBeastV3, live: BeastV3LiveState, ov: V11Override,
+) -> V11Score {
     // history: kills and defeats swapped; the structure is composed with a neutral rank (the real
     // rank sets only prominence)
     let swapped = BeastV3LiveState {
@@ -1100,11 +1184,15 @@ pub fn build_v11_score(beast: PackableBeastV3, live: BeastV3LiveState) -> V11Sco
             sc
         }, ..swapped,
     };
-    let p = map_v3_beast_to_composition_params(beast, structural);
+    let p0 = map_v3_beast_to_composition_params(beast, structural);
     let seeds = derive_beast_sound_seeds(beast_sound_seed(beast.id, beast.prefix, beast.suffix));
-    let theme_v1 = build_beast_theme(p, seeds.motif_seed);
+    let theme_v1 = build_beast_theme(p0, seeds.motif_seed);
     let theme = cadence_theme(theme_v1.degrees.span());
-    let tr = trajectory(beast, @p, swapped, structural, live);
+    let mut tr = trajectory(beast, @p0, swapped, structural, live);
+    if let Option::Some(t) = ov.trill {
+        tr.trill = t;
+    }
+    let p = apply_override(p0, ov);
     let mut slots = theme_rhythm(@p, theme.span(), seeds.motif_seed);
     if tr.trill {
         // a trill (upper neighbour and back) replaces each passing note of an eighth or longer
@@ -1166,6 +1254,7 @@ pub fn build_v11_score(beast: PackableBeastV3, live: BeastV3LiveState) -> V11Sco
             section_ticks,
             plan.span(),
             tr,
+            ov.scale,
         );
         events.append_span(sec.span());
         s += 1;

@@ -4,14 +4,17 @@
 //! collection), and `get_settings(token_id)` (`ISynthSettingsProvider`) gives the sounds the MIDI
 //! is written for. `get_sound(token_id)`, onchain-midi-player's `ISoundProvider`, returns both in
 //! one call (`TinySynthSound { midi, settings }`, equal to `get_midi` and `get_settings`). The
-//! provider validates the token, decodes the static traits from the token ID, reads the live state
-//! itself and runs composer v1.1 (`beast_music::composition::beast_v11`: same
-//! mode, even phrases, history), so the MIDI is byte-identical to `v11_score_full_midi` for the
-//! same state: the score plus a program change and pan on every voice
-//! at tick 0 and a drum track on channel 10, so a player that adds nothing (onchain-midi-player)
-//! plays it as intended.
+//! provider validates the token (collection, token ID, minted), decodes the static traits from the
+//! token ID and plays its species' Genesis Track (`beast_music::composition::genesis`): composer
+//! v1.1 with the Beast Sound lab's defaults (spread keys, the chosen themes, the default swaps, the
+//! tier's Genesis channels, weak-beat ties, no pluck on top, the balanced mix), the mega
+//! arrangement when the Beast is shiny. The MIDI is byte-identical to `genesis_midi` and to the
+//! lab's `genesisMidi` (scripts/genesis_parity.mjs): the score plus a program change, pan and
+//! volume on every voice at tick 0 and a drum track on channel 10, so a player that adds nothing
+//! (onchain-midi-player) plays it as intended.
 //!
-//! Live state, all read inside one entry-point call (one state snapshot, nothing cached):
+//! The Genesis Track does not depend on the live state; `get_live_state` still reports it, all read
+//! inside one entry-point call (one state snapshot, nothing cached):
 //!
 //! | Field | Source |
 //! |---|---|
@@ -73,7 +76,7 @@ pub enum StateSource {
     Retired,
 }
 
-/// The exact live state `get_midi` composes from, with each field's provenance.
+/// A Beast's live state, with each field's provenance.
 #[derive(Copy, Drop, Serde)]
 pub struct BeastLiveStateReport {
     pub live: BeastV3LiveState,
@@ -86,8 +89,8 @@ pub struct BeastLiveStateReport {
 
 #[starknet::interface]
 pub trait IBeastMidiProvider<T> {
-    /// The live state `get_midi(token_id)` composes from, and where each field
-    /// came from.
+    /// The Beast's live state, and where each field came from (the Genesis Track that
+    /// `get_midi(token_id)` plays does not use it).
     fn get_live_state(
         self: @T, token_address: ContractAddress, token_id: u256,
     ) -> BeastLiveStateReport;
@@ -99,11 +102,11 @@ pub trait IBeastMidiProvider<T> {
 
 #[starknet::contract]
 pub mod BeastMidiProvider {
-    use beast_music::composition::beast_v11::v11_score_full_smf_bytes;
     use beast_music::composition::beast_v3_sound::{
         BEAST_V3_ENGINE_VERSION, BeastV3LiveState, GENESIS_SPECIES_MAX, PackableBeastV3,
         decode_v3_token_id,
     };
+    use beast_music::composition::genesis::{genesis_smf_bytes, genesis_swap, species_type};
     use core::num::traits::Zero;
     use core::poseidon::poseidon_hash_span;
     use midi_provider::synth::{
@@ -181,18 +184,29 @@ pub mod BeastMidiProvider {
         }
     }
 
-    /// The token's composer v1.1 MIDI from its live state, after checking the collection.
+    /// The token's Genesis Track, after checking the collection, the token ID and that the token
+    /// is minted (`get_beast_rank` reverts otherwise).
     fn midi(self: @ContractState, token_address: ContractAddress, token_id: u256) -> ByteArray {
-        let (beast, report) = read_live_state(self, token_address, token_id);
-        bytes_to_byte_array(v11_score_full_smf_bytes(beast, report.live).span())
+        let collection = self.collection.read();
+        assert(token_address == collection, 'unsupported collection');
+        let beast = decode_v3_token_id(token_id);
+        IBeastsLiveStateDispatcher { contract_address: collection }.get_beast_rank(token_id);
+        bytes_to_byte_array(genesis_smf_bytes(beast).span())
     }
 
     /// The Beast sound settings.
     /// The sounds the Beast's MIDI can select: its type's family of presets and the drum kit, plus
     /// the mega leads for a mega (shiny) Beast. Both come from the token ID, so no composition is
     /// needed.
+    /// A swapped species plays its partner's Genesis Track, so it takes the partner's type.
     fn settings(beast: PackableBeastV3) -> TinySynthSettings {
-        crate::synth_settings::beast_synth_settings(beast.beast_type, beast.shiny == 1)
+        let src = genesis_swap(beast.id);
+        let beast_type = if src != beast.id && src <= GENESIS_SPECIES_MAX {
+            species_type(src)
+        } else {
+            beast.beast_type
+        };
+        crate::synth_settings::beast_synth_settings(beast_type, beast.shiny == 1)
     }
 
     fn read_live_state(

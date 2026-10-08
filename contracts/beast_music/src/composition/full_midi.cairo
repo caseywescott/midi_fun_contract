@@ -354,6 +354,24 @@ pub fn mega_lead_pick(species_id: u64, name_variant_id: u32) -> u32 {
     ((species_id + name_variant_id.into()) % 2).try_into().unwrap()
 }
 
+/// How the file is arranged on top of the score (the lab's Genesis Track; full_midi.js
+/// `beastFullMidi`
+/// options): `top_lead` (the highest voice never plays a pluck: it takes the family's lead no other
+/// voice plays), `balanced` (leads at channel volume 64 and plucks at 127, panning halved, the
+/// upper plucks softer above the bass) and `drums` (the drum track, or none).
+#[derive(Copy, Drop)]
+pub struct Arrangement {
+    pub top_lead: bool,
+    pub balanced: bool,
+    pub drums: bool,
+}
+
+/// The upper plucks' volume factor in basis points for a voice averaging MIDI 52 + i (i = 0..12;
+/// above, 12): 10000 * 10^(-7 i / 480). Matches PLUCK_ABOVE_BASS_BP in full_midi.js.
+const PLUCK_ABOVE_BASS_BP: [u32; 13] = [
+    10000, 9670, 9350, 9042, 8743, 8454, 8175, 7905, 7644, 7392, 7148, 6912, 6683,
+];
+
 /// The whole self-contained file: tempo track (End-of-Track at the form length), one track per
 /// voice (program and pan at tick 0, then the notes), and the drum track. `mega` (the Beast's shiny
 /// flag) adds the mega arrangement: the lead voice (the highest mean pitch, ties to the higher
@@ -361,6 +379,27 @@ pub fn mega_lead_pick(species_id: u64, name_variant_id: u32) -> u32 {
 /// lead, panned opposite and three quarters as loud, and the mega drum groove.
 pub fn beast_form_to_full_smf_bytes(
     form: @BeastForm, tempo_us: u32, tier: u8, voicing: Option<Voicing>, mega: bool, lead_pick: u32,
+) -> Array<u8> {
+    beast_form_to_full_smf_bytes_arranged(
+        form,
+        tempo_us,
+        tier,
+        voicing,
+        mega,
+        lead_pick,
+        Arrangement { top_lead: false, balanced: false, drums: true },
+    )
+}
+
+/// The same with an arrangement (`beast_form_to_full_smf_bytes` is the plain one, drums on).
+pub fn beast_form_to_full_smf_bytes_arranged(
+    form: @BeastForm,
+    tempo_us: u32,
+    tier: u8,
+    voicing: Option<Voicing>,
+    mega: bool,
+    lead_pick: u32,
+    arr: Arrangement,
 ) -> Array<u8> {
     let events = form.events.span();
     let (placeholder, base_pans) = voice_setup(form);
@@ -379,6 +418,8 @@ pub fn beast_form_to_full_smf_bytes(
     let mut lead_sum: u64 = 0;
     let mut lead_n: u64 = 0;
     let mut found = false;
+    let mut sums: Array<u64> = array![];
+    let mut counts: Array<u64> = array![];
     let mut v: u32 = 0;
     while v <= max_voice {
         let mut sum: u64 = 0;
@@ -389,6 +430,8 @@ pub fn beast_form_to_full_smf_bytes(
                 n += 1;
             }
         }
+        sums.append(sum);
+        counts.append(n);
         if n > 0 && (!found || sum * lead_n >= lead_sum * n) {
             lead = v;
             lead_sum = sum;
@@ -396,6 +439,36 @@ pub fn beast_form_to_full_smf_bytes(
             found = true;
         }
         v += 1;
+    }
+    // top_lead: when the highest voice drew a pluck, it takes the family's lead no voice plays
+    let mut lead_program: u8 = *base_programs.at(lead);
+    if arr.top_lead && found {
+        if let Option::Some(vc) = voicing {
+            let plucks = family_plucks(vc.beast_type).span();
+            let leads = family_leads(vc.beast_type).span();
+            if lead_program == *plucks.at(0)
+                || lead_program == *plucks.at(1)
+                || lead_program == *plucks.at(2) {
+                let mut pick: Option<u8> = Option::None;
+                for l in leads {
+                    let mut used = false;
+                    let mut u: u32 = 0;
+                    while u <= max_voice {
+                        if *counts.at(u) > 0 && *base_programs.at(u) == *l {
+                            used = true;
+                        }
+                        u += 1;
+                    }
+                    if !used && pick.is_none() {
+                        pick = Option::Some(*l);
+                    }
+                }
+                lead_program = match pick {
+                    Option::Some(l) => l,
+                    Option::None => *leads.at(((vc.species_id + 1) % 3).try_into().unwrap()),
+                };
+            }
+        }
     }
     let mut programs: Array<u8> = array![];
     let mut pans: Array<u8> = array![];
@@ -405,6 +478,8 @@ pub fn beast_form_to_full_smf_bytes(
             .append(
                 if mega && v == lead {
                     *MEGA_LEADS.span().at(lead_pick)
+                } else if v == lead {
+                    lead_program
                 } else {
                     *base_programs.at(v)
                 },
@@ -448,6 +523,58 @@ pub fn beast_form_to_full_smf_bytes(
     } else {
         max_voice
     };
+    // balanced: leads (theme, countersubject, mega double, any family or mega lead) at 64, plucks
+    // at 127; panning halved (64 + (pan - 64) / 2, rounded half up); the upper plucks softer above
+    // the bass
+    let mut vols: Array<u8> = array![];
+    if arr.balanced {
+        let (fl, cs) = match voicing {
+            Option::Some(vc) => (
+                family_leads(vc.beast_type),
+                if vc.use_countersubject {
+                    vc.voice_count
+                } else {
+                    0xFFFFFFFF
+                },
+            ),
+            Option::None => (family_leads(0), 0xFFFFFFFF),
+        };
+        let fl = fl.span();
+        let mut new_pans: Array<u8> = array![];
+        let mut v: u32 = 0;
+        while v <= last_voice {
+            let prog = *programs.at(v);
+            let is_lead = v == 0
+                || v == cs
+                || (mega && v == dbl)
+                || prog == *fl.at(0)
+                || prog == *fl.at(1)
+                || prog == *fl.at(2)
+                || prog == 50
+                || prog == 65;
+            let mut vol: u32 = if is_lead {
+                64
+            } else {
+                127
+            };
+            if (prog == 12 || prog == 16 || prog == 19) && v <= max_voice && *counts.at(v) > 0 {
+                let m: u64 = *sums.at(v) / *counts.at(v);
+                let i: u32 = if m <= 52 {
+                    0
+                } else if m >= 64 {
+                    12
+                } else {
+                    (m - 52).try_into().unwrap()
+                };
+                vol = (vol * *PLUCK_ABOVE_BASS_BP.span().at(i) + 5000) / 10000;
+            }
+            vols.append(vol.try_into().unwrap());
+            let pan: u32 = (*pans.at(v)).into();
+            new_pans.append(((pan + 65) / 2).try_into().unwrap());
+            v += 1;
+        }
+        pans = new_pans;
+    }
 
     let mut tempo = TrackWriterTrait::new();
     tempo.tempo(0, tempo_us);
@@ -459,6 +586,9 @@ pub fn beast_form_to_full_smf_bytes(
         let mut track = TrackWriterTrait::new();
         track.program(0, ch, *programs.at(v));
         track.control(0, ch, 10, *pans.at(v));
+        if arr.balanced {
+            track.control(0, ch, 7, *vols.at(v));
+        }
         let mut any = false;
         let source = if v == dbl {
             doubled.span()
@@ -477,9 +607,11 @@ pub fn beast_form_to_full_smf_bytes(
         }
         v += 1;
     }
-    let drums = drum_track(length, sec, tier, mega);
-    if drums.len() > 0 {
-        tracks.append(drums);
+    if arr.drums {
+        let drums = drum_track(length, sec, tier, mega);
+        if drums.len() > 0 {
+            tracks.append(drums);
+        }
     }
 
     smf_bytes(1, 480, tracks.span())

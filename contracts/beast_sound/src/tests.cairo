@@ -1,9 +1,9 @@
 //! BeastMidiProvider against mock Beasts NFT and Death Mountain contracts.
 
-use beast_music::composition::beast_v11::v11_score_full_midi;
 use beast_music::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, encode_v3_token_id,
 };
+use beast_music::composition::genesis::genesis_midi;
 use core::dict::{Felt252Dict, Felt252DictTrait};
 use midi_provider::synth::{
     ISoundProviderDispatcher, ISoundProviderDispatcherTrait, ISynthSettingsProviderDispatcher,
@@ -189,9 +189,9 @@ fn set_state(w: World, b: PackableBeastV3, live: BeastV3LiveState) -> u256 {
     token_id
 }
 
-/// The existing composer's `[byte_len, 31-byte chunks]` as a ByteArray.
-fn composer_midi(b: PackableBeastV3, live: BeastV3LiveState) -> ByteArray {
-    let packed = v11_score_full_midi(b, live);
+/// The Beast's Genesis Track (`[byte_len, 31-byte chunks]`) as a ByteArray.
+fn genesis_track(b: PackableBeastV3) -> ByteArray {
+    let packed = genesis_midi(b);
     let len: u32 = (*packed.at(0)).try_into().unwrap();
     let full = len / 31;
     let mut serialized: Array<felt252> = array![full.into()];
@@ -250,7 +250,7 @@ fn plain(id: u64, tier: u8, beast_type: u8, shiny: u8, animated: u8) -> Packable
     }
 }
 
-/// Tier 1, every voice, countersubject and inversion: the largest score the provider can make.
+/// Tier 1 and shiny: the most sections and channels, plus the mega double and drums.
 fn heaviest() -> PackableBeastV3 {
     PackableBeastV3 {
         id: 53,
@@ -268,13 +268,13 @@ fn heaviest() -> PackableBeastV3 {
 fn assert_parity(w: World, b: PackableBeastV3, l: BeastV3LiveState) {
     let token_id = set_state(w, b, l);
     let midi = w.midi.get_midi(token_id);
-    assert_eq!(midi, composer_midi(b, l));
+    assert_eq!(midi, genesis_track(b));
     // the collection-checked form returns the same bytes
     assert_eq!(w.midi.get_midi_for(w.nft.contract_address, token_id), midi);
 }
 
 #[test]
-fn genesis_warlock_matches_composer() {
+fn genesis_warlock_plays_its_genesis_track() {
     // Sepolia genesis Warlock 0x7006400010000000000000000001: unranked, species count 0 there.
     let b = genesis_warlock();
     assert_eq!(encode_v3_token_id(b), 0x7006400010000000000000000001);
@@ -282,32 +282,48 @@ fn genesis_warlock_matches_composer() {
 }
 
 #[test]
-fn named_warlock_matches_composer() {
-    assert_parity(setup(), sorrow_peak_warlock(), live(2, 12, 1, 954));
+fn named_warlock_plays_the_species_track() {
+    let w = setup();
+    let b = sorrow_peak_warlock();
+    assert_parity(w, b, live(2, 12, 1, 954));
+    // the name, level and health do not change it: the species' Genesis Track (not shiny here)
+    let token_id = encode_v3_token_id(b);
+    assert_eq!(
+        w.midi.get_midi(token_id), genesis_track(PackableBeastV3 { shiny: 0, ..genesis_warlock() }),
+    );
 }
 
 #[test]
-fn rarity_flags_match_composer() {
+fn shiny_plays_the_mega_arrangement() {
     let w = setup();
-    assert_parity(w, plain(47, 5, 1, 0, 0), live(0, 0, 600, 1100));
-    assert_parity(w, plain(48, 5, 1, 1, 0), live(0, 0, 600, 1100));
+    let normal = set_state(w, plain(47, 5, 1, 0, 0), live(0, 0, 600, 1100));
+    let shiny = set_state(w, plain(48, 5, 1, 1, 0), live(0, 0, 600, 1100));
+    assert_eq!(w.midi.get_midi(normal), genesis_track(plain(47, 5, 1, 0, 0)));
+    assert_eq!(w.midi.get_midi(shiny), genesis_track(plain(48, 5, 1, 1, 0)));
+    // animated does not change the track
     assert_parity(w, plain(49, 5, 1, 0, 1), live(0, 0, 600, 1100));
-    assert_parity(w, plain(50, 5, 1, 1, 1), live(0, 0, 600, 1100));
+    assert_eq!(genesis_track(plain(49, 5, 1, 0, 1)), genesis_track(plain(49, 5, 1, 0, 0)));
+    assert!(genesis_track(plain(49, 5, 1, 1, 0)) != genesis_track(plain(49, 5, 1, 0, 0)));
 }
 
 #[test]
-fn live_thresholds_match_composer() {
+fn harpy_and_pegasus_play_each_others_tracks() {
     let w = setup();
-    // kill buckets (sections, extra voice), scar bucket 3 (inversion), crown, rank tiers.
-    assert_parity(w, plain(29, 1, 1, 0, 0), live(1, 0, 40, 1200));
-    assert_parity(w, plain(30, 2, 1, 0, 0), live(16, 0, 300, 1200));
-    assert_parity(w, plain(31, 3, 1, 0, 0), live(5, 8, 2, 1200));
-    assert_parity(w, plain(32, 3, 1, 0, 0), live(0, 0, 1, 1200));
+    let harpy = plain(39, 4, 1, 0, 0);
+    let pegasus = plain(40, 4, 1, 0, 0);
+    assert_parity(w, harpy, live(0, 0, 3, 900));
+    assert_parity(w, pegasus, live(0, 0, 4, 900));
+    let h = w.midi.get_midi(encode_v3_token_id(harpy));
+    let p = w.midi.get_midi(encode_v3_token_id(pegasus));
+    assert!(h != p);
+    // each plays the other species' Genesis Track
+    assert_eq!(beast_music::composition::genesis::genesis_swap(39), 40);
+    assert_eq!(beast_music::composition::genesis::genesis_swap(40), 39);
 }
 
 #[test]
-fn community_species_matches_composer() {
-    // Agony Bane Gloomfang (species 76, Hunter, tier 3): kills from the NFT's stats cache.
+fn community_species_plays_its_genesis_track() {
+    // Agony Bane Gloomfang (species 76, Hunter, tier 3): its own tier and type, its own theme.
     let b = PackableBeastV3 {
         id: 76,
         prefix: 1,
@@ -323,35 +339,22 @@ fn community_species_matches_composer() {
 }
 
 #[test]
-fn heaviest_score_matches_composer() {
+fn heaviest_track_plays() {
     assert_parity(setup(), heaviest(), live(200, 63, 1, 1243));
 }
 
 #[test]
-fn live_state_changes_change_the_midi() {
+fn live_state_does_not_change_the_midi() {
     let w = setup();
     let b = sorrow_peak_warlock();
     let token_id = set_state(w, b, live(2, 0, 30, 954));
     let nft = w.nft.contract_address;
     let calm = w.midi.get_midi_for(nft, token_id);
-    assert_eq!(calm, composer_midi(b, live(2, 0, 30, 954)));
-
-    // Later Death Mountain defeats are scars: 9 collects = 8 defeats after the minting one,
-    // enough to invert the canon.
+    assert_eq!(calm, genesis_track(b));
     w.dm.set_collects(w.dm.contract_address, entity_hash(b), 9);
-    let scarred = w.midi.get_midi_for(nft, token_id);
-    assert!(scarred != calm);
-    assert_eq!(scarred, composer_midi(b, live(2, 8, 30, 954)));
-
-    // More kills: a new kill bucket.
     w.nft.set_kills(token_id, 40);
-    let hunted = w.midi.get_midi_for(nft, token_id);
-    assert!(hunted != scarred);
-    assert_eq!(hunted, composer_midi(b, live(40, 8, 30, 954)));
-
-    // Taking the species crown.
     w.nft.set_rank(token_id, 1);
-    assert_eq!(w.midi.get_midi_for(nft, token_id), composer_midi(b, live(40, 8, 1, 954)));
+    assert_eq!(w.midi.get_midi_for(nft, token_id), calm);
 }
 
 #[test]
@@ -396,9 +399,7 @@ fn missing_death_mountain_is_unavailable_not_zero() {
     assert_eq!(r.live.adventurers_killed, 0);
     assert_eq!(r.live.scars, 0);
     // Still composes (no revert inside token_uri), from the values it could read.
-    assert_eq!(
-        w.midi.get_midi_for(w.nft.contract_address, token_id), composer_midi(b, live(0, 0, 9, 954)),
-    );
+    assert_eq!(w.midi.get_midi_for(w.nft.contract_address, token_id), genesis_track(b));
 }
 
 #[test]
@@ -560,7 +561,7 @@ fn get_sound_is_get_midi_and_get_settings() {
     let settings = ISynthSettingsProviderDispatcher { contract_address: address }
         .get_settings(token_id);
     assert_eq!(sound, TinySynthSound { midi: w.midi.get_midi(token_id), settings });
-    assert_eq!(sound.midi, composer_midi(b, live(40, 8, 1, 954)));
+    assert_eq!(sound.midi, genesis_track(b));
 }
 
 #[test]

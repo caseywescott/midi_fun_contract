@@ -605,6 +605,21 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   return { midi: beastFullMidi(out, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums, mix, topLead }), drift: d, result: out, info };
 }
 
+// ── the Genesis Track, as the lab plays it by default (and as the Cairo port must match) ─────────
+/** Tier and type of a species: tiers in fives within each 25 (Magic 1-25, Hunter 26-50, Brute 51-75). */
+export const speciesTier = (id) => Math.floor(((id - 1) % 25) / 5) + 1;
+export const speciesType = (id) => Math.floor((id - 1) / 25);
+/** The default settings of a Genesis Track (name 0, seed 0): spread keys, the chosen themes, the species
+ *  motif, the tier's Genesis channels, the balanced mix, weak-beat ties on inner voices, no pluck on top. */
+export const GENESIS_DEFAULTS = { name: 0, seed: 0n, theme: 'species', genesisKey: 'spread', channels: 'rarity', mix: 'balanced', ties: 'weak', topLead: true, motif: 'default', trueV: false };
+/** The Genesis Track a Beast of `speciesId` plays: the default swaps applied (it plays its swap partner's
+ *  Genesis music), the mega sound when shiny. The reference for BeastMidiProvider.get_midi's Cairo. */
+export function genesisMidi(speciesId, shiny, E, v11, opts = {}) {
+  const src = GENESIS_SWAPS[speciesId] || speciesId;
+  const b = { id: src, prefix: 0, suffix: 0, level: 1, health: 100, shiny: shiny ? 1 : 0, animated: 0, tier: speciesTier(src), beast_type: speciesType(src) };
+  return sampleTrackMidi(b, { species_count: 1 }, { ...GENESIS_DEFAULTS, ...opts }, E, v11);
+}
+
 /** A simulated per-Beast auction: the offer's seed chain and a gradual Dutch auction price. */
 export const GDA = { start: 100, floor: 5, halfLifeHours: 12 };
 export const gdaPrice = (hours) => Math.max(GDA.floor, Math.round(GDA.start * Math.pow(0.5, hours / GDA.halfLifeHours)));

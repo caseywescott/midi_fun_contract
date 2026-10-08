@@ -157,6 +157,9 @@ export const beastSoundMidi = (result, formLength) => beastFullMidi(result, form
  * A rendered Beast (engine.render or engine_v11's render) -> self-contained SMF bytes.
  * `instruments`: 'placeholder' (VOICE_PROGRAM on every voice) or 'beast' (beastInstruments).
  */
+/** The upper plucks' volume factor in basis points for a voice averaging MIDI 52 + i (i = 0..12; above, 12). */
+export const PLUCK_ABOVE_BASS_BP = [10000, 9670, 9350, 9042, 8743, 8454, 8175, 7905, 7644, 7392, 7148, 6912, 6683];
+
 export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null, mix = null, topLead = false, notLead = [] } = {}) {
   const f = result.form, p = result.params, length = formLength(f);
   const setup = voiceSetup(f.events);
@@ -203,9 +206,11 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
     // Pulse 25% Pluck (12), 4-bit Saw Pluck (16) and Muted Pluck (19) read too loud above the bass: full level while the
     // voice's average pitch is at or below MIDI 52 (E3), easing down to -7 dB by MIDI 64 (E4) and above
     // (channel volume is squared, so dB = 40 log10(vol / 127))
-    for (const [v, x] of Object.entries(setup)) if ((x.program === 12 || x.program === 16 || x.program === 19) && voiceMean[v] !== undefined) {
-      const k = Math.min(1, Math.max(0, (voiceMean[v] - 52) / 12));
-      x.vol = Math.round(x.vol * Math.pow(10, (-7 * k) / 40));
+    // (integers, so Cairo can match it: the voice's mean pitch floored, a factor in basis points per MIDI
+    // note from 52 to 64, 10000 * 10^(-7 (m - 52) / 480), and the volume rounded half up)
+    for (const [v, x] of Object.entries(setup)) if ((x.program === 12 || x.program === 16 || x.program === 19) && st[v]) {
+      const m = Math.floor(st[v].sum / st[v].n), bp = PLUCK_ABOVE_BASS_BP[Math.min(12, Math.max(0, m - 52))];
+      x.vol = Math.floor((x.vol * bp + 5000) / 10000);
     }
   }
   const hits = drums === false ? [] : (drums || drumEvents)(length, sec, p.tier, !!mega.groove);

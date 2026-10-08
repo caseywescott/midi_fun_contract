@@ -45,7 +45,7 @@ const PREFIXES = Array.from({ length: 69 }, (_, k) => beastName({ id: 1, prefix:
 const SUFFIXES = Array.from({ length: 18 }, (_, k) => beastName({ id: 1, prefix: 1, suffix: k + 1 }).split(' ').slice(-2, -1)[0]);
 // The Genesis tab's list: every species' Genesis Track with the lab's defaults (name 0, seed 0), the
 // same settings the page plays it with (GENESIS_DEFAULTS below)
-const GENESIS_DEFAULTS = { name: 0, seed: 0n, theme: 'species', genesisKey: 'spread', channels: 'rarity', mix: 'balanced', ties: 'weak', topLead: true, motif: 'default' };
+const GENESIS_DEFAULTS = { name: 0, seed: 0n, theme: 'species', genesisKey: 'spread', channels: 'rarity', mix: 'balanced', ties: 'weak', topLead: true, motif: 'default', trueV: true };
 const V11E = createEngineV11(ENGINE);
 const GENESIS = BEASTS.map((x) => { const o = LAB.labMidi('sample', x.beast, x.live, GENESIS_DEFAULTS, ENGINE, V11E), r = LAB.labMidi('sample', x.beast, x.live, { ...GENESIS_DEFAULTS, genesisKey: 'rule' }, ENGINE, V11E); return { key: o.info.key, ruleKey: r.info.key, ch: o.info.channels.length, secs: Math.round(o.result.form.section_ticks * o.result.form.sections.length / 480 * 60 / o.info.tempo) }; });
 const SPRITES = Object.fromEntries(BEASTS.flatMap((x) => [String(x.beast.id), x.beast.id + 's']).map((k) => { const { n, w, png } = spriteSheet(k); return [k, { n, w, png }]; }));
@@ -89,6 +89,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div><label for="gkey">Genesis key</label><select id="gkey"><option value="spread" selected>Spread: a canonical name's key per species (the Genesis proposal)</option><option value="rule">v1.1 rule: Phrygian, tonic = id mod 12</option><option value="proposed">Proposed: spread key + suggested tempo</option></select></div></div>
 <label for="bpm" style="margin-top:12px">Tempo: <b id="bpmv">auto</b></label>
 <div class="row" style="grid-template-columns:1fr auto auto auto;align-items:center;gap:8px"><input type="range" id="bpm" min="60" max="200" step="1" value="120"><button id="bpm-down" class="mini">−4</button><button id="bpm-up" class="mini">+4</button><button id="bpm-auto" class="mini">Auto</button></div>
+<label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="truev" checked> Sections end on a true V (major dominant; off = v1.1)</label>
 <label for="mix" style="margin-top:12px">Mix</label><select id="mix"><option value="balanced" selected>Balanced: leads down, plucks up, panning halved (prototype)</option><option value="">v1.1 (what get_midi plays today)</option></select>
 <label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="toplead" checked> Topline never a pluck: the highest voice takes the family's free lead (v1.1 can give it a pluck)</label>
 <label for="ties" style="margin-top:12px">Repeated notes in the inner voices (3 or more voices; never the bass, topline or theme)</label><select id="ties"><option value="weak" selected>Tie off the strong beats (re-strike on 1 and 3)</option><option value="all">Tie every repeat (up to a bar)</option><option value="">Strike every repeat (v1.1)</option></select>
@@ -99,6 +100,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div id="p-genesis" class="panel" style="margin-top:14px">
 <p class="now" id="gnow"></p>
 <label style="display:flex;gap:8px;align-items:center;color:var(--fg);margin-bottom:10px"><input type="checkbox" id="gspread" checked> Spread keys: each species its own key and mode, played as named (off = v1.1, every species Phrygian)</label>
+<label style="display:flex;gap:8px;align-items:center;color:var(--fg);margin:-4px 0 10px"><input type="checkbox" id="gtruev" checked> Sections end on a true V (a major dominant chord; off = v1.1, the mode\u2019s own 5th-degree chord)</label>
 <label for="gmotif">Theme: <b id="gmotifv">#0, the species' own</b></label>
 <div class="row" style="grid-template-columns:auto 1fr auto auto auto;align-items:center;gap:8px;margin-bottom:6px"><button id="gm-down" class="mini" title="Previous theme (\u2193)">\u2212</button><input type="range" id="gmotif" min="0" max="1242" value="0"><button id="gm-up" class="mini" title="Next theme (\u2191)">+</button><button id="gm-reset" class="mini">Own theme</button><button id="gm-chosen" class="mini">Chosen</button></div>
 <p class="note" style="margin-top:0">Theme candidates 1\u20131242 swap only the motif (its pitches and rhythm); key, mode, instruments and channels stay the Genesis Track's. \u2212 / + or \u2191 \u2193 step the theme, \u2190 \u2192 the Beast. Each Beast keeps its own pick.</p>
@@ -153,6 +155,7 @@ function saveHash() {
   if ($('fl-on').checked) q.fl = 1;
   if (mode !== 'tracks') q.tab = mode;
   if (mode === 'genesis' && !$('gspread').checked) q.gsp = 0;
+  if (!$('truev').checked) q.tv = 0;
   { const enc = (m) => Object.keys(m).map(Number).sort((a, c) => a - c).map((k) => k + '.' + m[k]).join(','); const cur = enc(SWAPS); if (cur !== enc(L.GENESIS_SWAPS)) q.gs = cur || 'none'; }
   { const ids = Object.keys(PICKS).filter((k) => (PICKS[k] || 0) !== (L.GENESIS_THEMES[k] || 0)); if (ids.length) q.gm = ids.map((k) => k + '.' + (PICKS[k] || 0)).join(','); }
   if (mode === 'drift') q.day = $('day').value;
@@ -173,6 +176,7 @@ function loadHash() {
   if (q.has('tday')) { $('drift-on').checked = q.has('dv') || !q.has('fl'); $('tday').disabled = false; $('tday').value = q.get('tday'); $('tdayv').textContent = age(+$('tday').value); }
   if (q.get('dv')) $('dv').value = q.get('dv');
   if (q.get('gsp') === '0') $('gspread').checked = false;
+  if (q.get('tv') === '0') $('truev').checked = $('gtruev').checked = false;
   if (q.has('gs')) for (const k of Object.keys(SWAPS)) delete SWAPS[k];
   if (q.get('gs') && q.get('gs') !== 'none') for (const pr of q.get('gs').split(',')) { const [k, v] = pr.split('.').map(Number); if (k >= 1 && k <= 75 && v >= 1 && v <= 75 && k !== v) { SWAPS[k] = v; SWAPS[v] = k; } }
   if (q.get('gm')) for (const pr of q.get('gm').split(',')) { const [k, n] = pr.split('.').map(Number); if (k >= 1 && k <= 75 && n >= 0 && n <= 1242) PICKS[k] = n; }
@@ -371,7 +375,7 @@ function make() {
   let args = {}, head = '', out;
   if (mode === 'tracks') {
     const seed = seedOf(), epoch = $('drift-on').checked ? +$('tday').value : null, flourishDay = $('fl-on').checked ? +$('tday').value : null;
-    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value, bpm: bpmSet, driftMode: $('dv').value, mix: $('mix').value || null, flourishDay, ties: $('ties').value || false, topLead: $('toplead').checked, motif: 'default' };
+    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value, bpm: bpmSet, driftMode: $('dv').value, mix: $('mix').value || null, flourishDay, ties: $('ties').value || false, topLead: $('toplead').checked, motif: 'default', trueV: $('truev').checked };
     const gsrc = args.name === 0 && seed === null ? trackOf(b.id) : b.id; // a swapped Beast's Genesis Track is the other Beast's
     out = L.labMidi('sample', gsrc === b.id ? b : { ...BEASTS[gsrc - 1].beast, shiny: b.shiny }, x.live, args, BS.engine, BS.v11);
     const f = out.info;
@@ -380,7 +384,7 @@ function make() {
     head = trackName() + (args.name ? '' : gsrc !== b.id ? ' (playing ' + BEASTS[gsrc - 1].name + '\u2019s Genesis Track, swapped)' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 seed 0 (Genesis)' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (f.tied ? ' \u00b7 ' + f.tied + ' repeats tied' : '') + (f.flourishes ? ' \u00b7 ' + f.flourishes.count + ' flourish' + (f.flourishes.count === 1 ? '' : 'es') + (f.flourishes.count ? ' on ' + f.flourishes.voices + ' voice' + (f.flourishes.voices > 1 ? 's' : '') + ': ' + Object.entries(f.flourishes.shapes).map(([k, n]) => n + ' ' + k + (n > 1 ? (k.endsWith('s') ? 'es' : 's') : '')).join(', ') : '') + ' (day ' + flourishDay + ': ' + (100 * f.flourishes.share).toFixed(1) + '% of the theme\u2019s notes, ' + (100 * f.flourishes.share / 2).toFixed(1) + '% of the others\u2019)' : '') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
   } else if (mode === 'genesis') {
     const src = trackOf(b.id), sb = { ...BEASTS[src - 1].beast, shiny: b.shiny };
-    out = L.labMidi('sample', sb, x.live, { ...GDEF, genesisKey: $('gspread').checked ? 'spread' : 'rule', motif: PICKS[src] || 0 }, BS.engine, BS.v11);
+    out = L.labMidi('sample', sb, x.live, { ...GDEF, genesisKey: $('gspread').checked ? 'spread' : 'rule', motif: PICKS[src] || 0, trueV: $('gtruev').checked }, BS.engine, BS.v11);
     showPick(); showSwaps();
     const f = out.info;
     head = (trackOf(b.id) !== b.id ? x.name + ' playing ' + BEASTS[trackOf(b.id) - 1].name + '\u2019s music (swapped): ' + BEASTS[trackOf(b.id) - 1].name + '\u2019s' : x.name) + ' Genesis Track (name 0, seed 0' + (PICKS[trackOf(b.id)] ? ', theme #' + PICKS[trackOf(b.id)] : '') + ') \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + f.channels.length + ' channels: ' + f.channels.join(', ') + (playAll ? ' \u00b7 playing all: ' + (+$('beast').value + 1) + ' of 75' : '');
@@ -472,6 +476,8 @@ function tab(m) {
 }
 for (const t of ['tracks', 'genesis', 'drift', 'yeti']) $('t-' + t).onclick = () => tab(t);
 $('gspread').onchange = () => { fillGenesis(); showPick(); refresh(); };
+$('gtruev').onchange = () => { $('truev').checked = $('gtruev').checked; refresh(); };
+$('truev').onchange = () => { $('gtruev').checked = $('truev').checked; refresh(); };
 $('gmotif').oninput = () => { $('gmotifv').textContent = +$('gmotif').value ? '#' + $('gmotif').value : '#0, the species\u2019 own'; };
 $('gmotif').onchange = () => setPick(+$('gmotif').value);
 $('gm-down').onclick = () => setPick((PICKS[trackOf(BEASTS[+$('beast').value].beast.id)] || 0) - 1);

@@ -530,7 +530,7 @@ export function addFlourishes(form, day, key, style = {}) {
   return { form: { ...form, events: ev.filter((x) => x.duration > 0) }, added, share };
 }
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0 } = {}, E, v11) {
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0, trueV = false } = {}, E, v11) {
   // seed 0 is the Genesis seed (0 is never a block hash): the Genesis rules, no seeded treatment, the
   // tier's fixed channel count, so the OG track of a species (name 0, seed 0) is known exactly
   if (seed === 0n || seed === 0) seed = null;
@@ -566,6 +566,7 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   }
   if (!name && genesisKey === 'proposed') override.tempo_us = Math.round(60e6 / genesisTempo(b));
   if (bpm) override.tempo_us = Math.round(60e6 / bpm); // the page's tempo control
+  if (trueV) override.trueDominant = true; // section ends close on a real (major) V
   override.tr.trill = !!orn.allow_trill;
   if (full) override.params = { ...(override.params || {}), use_countersubject: true };
   const off = epoch === null || epoch === undefined;

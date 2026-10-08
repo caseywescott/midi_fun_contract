@@ -156,6 +156,7 @@ export function createEngineV11(engine) {
     return tonic + 12 * Math.floor(du / L) + S[du % L] - 120;
   };
   let FAM = null;       // set for the duration of a render
+  let TRUEV = false;    // override.trueDominant, for the duration of a render
 
   const IC = (a, b) => Math.abs(a - b) % 12;
   const dissonant = (ic) => ic === 1 || ic === 2 || ic === 6 || ic === 10 || ic === 11;
@@ -210,6 +211,10 @@ export function createEngineV11(engine) {
     }
     // the half cadence's target: the next section's dominant chord (bass: its 5th), as pitch classes
     const domPcs = (isBass) => {
+      // trueDominant (a lab prototype): a major triad a perfect fifth above the next section's first
+      // degree, the raised 7th included, so the modes without one (Aeolian, Dorian, Phrygian, Locrian) close
+      // on a real V instead of a minor, diminished or tritone chord
+      if (diatonic && TRUEV) { const r = (R(nextShift, home, mode) + 7) % 12; return (isBass ? [0] : [0, 4, 7]).map((k) => (r + k) % 12); }
       if (diatonic) return (isBass ? [4] : [4, 6, 1]).map((k) => R(nextShift + k, home, mode) % 12);
       const nt = sectionTonic(p, plan, next);
       return (isBass ? [7] : [7, 11, 2]).map((k) => (nt + k) % 12);
@@ -341,8 +346,9 @@ export function createEngineV11(engine) {
   function render(beast, live, { keys = 'modulate', even = false, breath = false, traj = false, scale = 'mode', family = null, override = null } = {}) {
     FAM = family && FAMILIES[family] ? FAMILIES[family] : null;
     // override.scale: seven semitone offsets that replace the mode's realization (a lab prototype; absent = unchanged)
+    TRUEV = !!(override && override.trueDominant);
     R = override && override.scale ? scaleRealize(override.scale) : FAM ? scaleRealize(FAM.scale) : scale === 'wholetone' ? wholeTone : I.realize;
-    try { return renderWith(beast, live, { keys, even, breath, traj, scale, family: FAM ? family : null, override: override || {} }); } finally { R = I.realize; FAM = null; }
+    try { return renderWith(beast, live, { keys, even, breath, traj, scale, family: FAM ? family : null, override: override || {} }); } finally { R = I.realize; FAM = null; TRUEV = false; }
   }
   function renderWith(beast, live, { keys, even, breath, traj, scale, family, override }) {
     // traj: rank is current state only, so the structure is composed with a neutral rank (v1 lets the

@@ -126,7 +126,7 @@ value from the same bank data as the runtime:
 ```bash
 node onchain/tinychip/synth_settings.mjs onchain/tinychip/beast_synth_settings.json  # JSON, for preview.mjs --settings
 node onchain/tinychip/synth_settings.mjs --cairo                                      # regenerate the Cairo
-PLAYWRIGHT_CORE=... node onchain/tinychip/interim_check.mjs <onchain-midi-player>/tests/vendor/webaudio-tinysynth-fc04dbe.min.js
+PLAYWRIGHT_CORE=... node onchain/tinychip/interim_check.mjs <onchain-midi-player>/tests/vendor/webaudio-tinysynth-4bf9829.min.js
 ```
 
 ## Tests

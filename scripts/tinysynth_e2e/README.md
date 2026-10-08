@@ -13,29 +13,35 @@ printf 'mod beast_e2e_fixtures;\nmod test_beast_e2e;\n' >> /tmp/ots_e2e/tests/li
 (cd /tmp/ots_e2e && snforge test test_beast_e2e)
 ```
 
-Results measured at e1b0d54 (PR #8 moved the pin to 38d76ce, where the e2e passes with the same gas; these figures were not re-measured), L2 gas: composer v1.1 MIDI as `get_midi` plays it (instruments by Beast; the
-heavy Beast is a mega Brute, so its lead plays Robot Hero Lead or N163 Brass Wave, with the octave
-double and the mega groove), with the settings `get_settings` serves each: the Magic family for the
-Warlock (17 timbres, 1,438 bytes of `SETTINGS`), the Brute family plus the mega leads for the heavy
-Beast (19 timbres, 1,691 bytes), reverb 30:
+Results at 38d76ce (2026-10-09, d565daf: `get_midi` plays the Genesis Track), L2 gas. The fixtures
+are the Genesis Tracks `get_midi` returns: the Warlock (#1, 4,726 bytes, Magic settings, 17 timbres)
+and the largest file, shiny #32 (7,197 bytes, mega Hunter settings, 19 timbres), reverb 30:
 
 | Test | Gas |
 |---|---|
 | `beast_build` (fixtures only: both settings' Serde, two MIDI files) | 2.2M |
 | `beast_settings_validate` (both settings) | 3.8M |
 | `beast_encode_settings` | 9.7M |
-| `beast_lc_midi_segment_warlock` (1,501-byte MIDI, library call) | 46.2M |
-| `beast_lc_midi_segment_heaviest` (10,182-byte mega MIDI, mega Brute settings) | 173.2M |
-| the same with the class's `default_settings()` | 148.5M |
-| `beast_direct_midi_segment_heaviest` (crate function, no library call) | 166.4M |
-| `beast_token_uri_heaviest` (Beasts-layout `token_uri`, crate functions) | 185.8M |
+| `beast_lc_midi_segment_warlock` (4,726-byte MIDI, library call) | 92.8M |
+| `beast_lc_midi_segment_heaviest` (7,197-byte mega MIDI, mega Hunter settings) | 133.4M |
+| the same with the class's `default_settings()` | 105.4M |
+| `beast_direct_midi_segment_heaviest` (crate function, no library call) | 128.0M |
+| `beast_token_uri_heaviest` (Beasts-layout `token_uri`, crate functions) | 145.8M |
 
-One call to the provider's `get_midi` (cairo-test estimate, Cairo 2.20.1) is about 0.47B for the
-heaviest Beast (a mega Beast), 0.26B for a named rank-1 Warlock and 0.06B for a genesis Warlock;
-`get_sound` adds under 1M for the settings. With `midi_segment`, a whole `token_uri` is then roughly
-0.65B at worst, 0.3B for the named Warlock and 0.1B for the genesis one. (`heaviest_score_matches_composer` composes three times: `get_midi`, the composer and
-`get_midi_for`.) All 400 cached gallery Beasts' v1.1 files pass onchain-midi-player's `check_midi`
-(mean 1,881 bytes, largest 8,648; checked at 973f4cf).
+One call to the provider's `get_midi`, over all 150 Genesis Tracks (75 species, normal and shiny;
+cairo-test estimate, Cairo 2.20.1, mock deploys subtracted; `gas_probe_*` and a one-off sweep in
+contracts/beast_sound/src/tests.cairo):
+
+| | min | median | max |
+|---|---|---|---|
+| normal | 0.131B (1.07M steps) | 0.247B (2.01M) | 0.385B (3.15M) |
+| shiny | 0.140B (1.13M) | 0.262B (2.12M) | 0.405B (3.29M, #28) |
+
+By tier (normal, median): tiers 1-2 0.36B, tier 3 0.25B, tiers 4-5 0.15B. Shiny adds about 0.02B.
+`get_sound` adds under 2M for the settings. A whole `token_uri` is then roughly 0.55B at worst
+(was 0.65B with v1.1), about 0.35B for a median Beast, 0.41B for the Warlock. Every Genesis Track
+composes all six channels before the tier's channel filter, so the cheapest tracks cost more than
+v1.1's genesis Warlock did (0.06B), and the most expensive cost less than v1.1's heaviest (0.47B).
 
 `beast_token_uri_warlock_print` (ignored) prints a Warlock `token_uri`. Decoded, its page plays in
 Chrome with the TinyChip timbres installed; the token-uri-inspector skill's `split_page.mjs` gives

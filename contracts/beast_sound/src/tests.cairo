@@ -571,3 +571,96 @@ fn get_sound_rejects_unminted_tokens() {
     ISoundProviderDispatcher { contract_address: w.midi.contract_address }
         .get_sound(encode_v3_token_id(sorrow_peak_warlock()));
 }
+
+// ── gas probes (ignored): cairo-test's estimate of one `get_midi` / `get_sound` call is the
+// probe minus `gas_probe_baseline` (mock deploys and minting). Run:
+//   scarb test -- --include-ignored --filter gas_probe
+fn gas_beast(id: u64, shiny: u8) -> PackableBeastV3 {
+    PackableBeastV3 {
+        id,
+        prefix: 0,
+        suffix: 0,
+        level: 1,
+        health: 100,
+        shiny,
+        animated: 0,
+        tier: beast_music::composition::genesis::species_tier(id),
+        beast_type: beast_music::composition::genesis::species_type(id),
+    }
+}
+
+fn gas_probe(b: PackableBeastV3, call: bool, sound: bool) {
+    let w = setup();
+    let token_id = set_state(w, b, live(0, 0, 1, 954));
+    if call {
+        if sound {
+            ISoundProviderDispatcher { contract_address: w.midi.contract_address }
+                .get_sound(token_id);
+        } else {
+            w.midi.get_midi(token_id);
+        }
+    }
+}
+
+#[test]
+#[ignore]
+fn gas_probe_baseline() {
+    gas_probe(gas_beast(32, 1), false, false);
+}
+
+/// The largest Genesis file: shiny #32 (7,197 bytes, 442 notes; shiny #28 costs slightly more).
+#[test]
+#[ignore]
+fn gas_probe_get_midi_32_shiny() {
+    gas_probe(gas_beast(32, 1), true, false);
+}
+
+#[test]
+#[ignore]
+fn gas_probe_get_sound_32_shiny() {
+    gas_probe(gas_beast(32, 1), true, true);
+}
+
+#[test]
+#[ignore]
+fn gas_probe_get_midi_32() {
+    gas_probe(gas_beast(32, 0), true, false);
+}
+
+#[test]
+#[ignore]
+fn gas_probe_get_midi_warlock() {
+    gas_probe(gas_beast(1, 0), true, false);
+}
+
+#[test]
+#[ignore]
+fn gas_probe_get_midi_warlock_shiny() {
+    gas_probe(gas_beast(1, 1), true, false);
+}
+
+/// The lightest: #21 (1,406 bytes, 74 notes).
+#[test]
+#[ignore]
+fn gas_probe_get_midi_21() {
+    gas_probe(gas_beast(21, 0), true, false);
+}
+
+/// The old v1.1 get_midi path (live state) on the old heaviest Beast, for comparison: crate call.
+#[test]
+#[ignore]
+fn gas_probe_direct_v11_heaviest() {
+    beast_music::composition::beast_v11::v11_score_full_smf_bytes(
+        heaviest(), live(200, 63, 1, 1243),
+    );
+}
+
+#[test]
+#[ignore]
+fn gas_probe_direct_genesis_32_shiny() {
+    beast_music::composition::genesis::genesis_smf_bytes(gas_beast(32, 1));
+}
+
+#[test]
+#[ignore]
+fn gas_probe_direct_nothing() {}

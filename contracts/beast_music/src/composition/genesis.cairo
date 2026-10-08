@@ -20,6 +20,7 @@
 //! Generated tables from lab.js (GENESIS_THEMES, GENESIS_SWAPS, GENESIS_MODES, MODE_SCALES); keep
 //! them in step with it (scripts/genesis_parity.mjs checks every species, normal and shiny).
 
+use core::dict::{Felt252Dict, Felt252DictTrait};
 use crate::composition::beast_score::BeastForm;
 use crate::composition::beast_v11::{V11Override, build_v11_score_with};
 use crate::composition::beast_v3_sound::{
@@ -118,24 +119,32 @@ fn neutral_live() -> BeastV3LiveState {
 }
 
 const DRUMS: u32 = 1000;
+/// Voice ids the composer uses (four canon voices and the countersubject).
+const MAX_VOICES: u32 = 5;
 
-fn voice_mean_less(events: Span<NoteEvent>, a: u32, b: u32) -> bool {
-    // mean(a) < mean(b), cross-multiplied
-    let (sa, na) = voice_sum(events, a);
-    let (sb, nb) = voice_sum(events, b);
-    sa * nb < sb * na
+/// Pitch sum and note count per voice 0..MAX_VOICES, in one pass.
+fn voice_stats(events: Span<NoteEvent>) -> (Array<u64>, Array<u64>) {
+    let mut s: Felt252Dict<u64> = Default::default();
+    let mut n: Felt252Dict<u64> = Default::default();
+    for e in events {
+        let k: felt252 = e.voice_id.into();
+        s.insert(k, s.get(k) + e.pitch.into());
+        n.insert(k, n.get(k) + 1);
+    }
+    let mut sums: Array<u64> = array![];
+    let mut counts: Array<u64> = array![];
+    let mut v: u32 = 0;
+    while v < MAX_VOICES {
+        sums.append(s.get(v.into()));
+        counts.append(n.get(v.into()));
+        v += 1;
+    }
+    (sums, counts)
 }
 
-fn voice_sum(events: Span<NoteEvent>, v: u32) -> (u64, u64) {
-    let mut s: u64 = 0;
-    let mut n: u64 = 0;
-    for e in events {
-        if e.voice_id == v {
-            s += e.pitch.into();
-            n += 1;
-        }
-    }
-    (s, n)
+/// mean(a) < mean(b), cross-multiplied.
+fn mean_less(sums: Span<u64>, counts: Span<u64>, a: u32, b: u32) -> bool {
+    *sums.at(a) * *counts.at(b) < *sums.at(b) * *counts.at(a)
 }
 
 fn contains(xs: Span<u32>, x: u32) -> bool {
@@ -150,12 +159,11 @@ fn contains(xs: Span<u32>, x: u32) -> bool {
 /// The Genesis channels (lab.js `channelPick` with no seed): the theme (voice 0), the lowest canon
 /// voice (0..=3, by mean pitch, the first on a tie), then drums, the countersubject (4) and the
 /// other canon voices in id order, the first `count` of them. DRUMS stands for the drum track.
-fn genesis_pick(events: Span<NoteEvent>, count: u32) -> Array<u32> {
+fn genesis_pick(sums: Span<u64>, counts: Span<u64>, count: u32) -> Array<u32> {
     let mut low: u32 = 0;
     let mut v: u32 = 1;
     while v <= 3 {
-        let (_, n) = voice_sum(events, v);
-        if n > 0 && voice_mean_less(events, v, low) {
+        if *counts.at(v) > 0 && mean_less(sums, counts, v, low) {
             low = v;
         }
         v += 1;
@@ -185,20 +193,19 @@ fn genesis_pick(events: Span<NoteEvent>, count: u32) -> Array<u32> {
 /// Repeated notes in the inner voices held instead of struck again (lab.js `tieRepeats`, 'weak'):
 /// with 3 or more voices, never the bass (lowest mean), the topline (highest) or the theme; a note
 /// that repeats the one before, starts where it ends, in the same section, off beats 1 and 3, and
-/// keeps the tied note within a bar extends it. Returns the events voice by voice, each
-/// chronological.
-fn tie_repeats(events: Span<NoteEvent>, section_ticks: u32) -> Array<NoteEvent> {
+/// keeps the tied note within a bar extends it. `picked` are the voices kept, `sums`/`counts` their
+/// pitch statistics. Returns the kept events voice by voice, each chronological.
+fn tie_repeats(
+    events: Span<NoteEvent>,
+    picked: Span<u32>,
+    sums: Span<u64>,
+    counts: Span<u64>,
+    section_ticks: u32,
+) -> Array<NoteEvent> {
     let mut voices: Array<u32> = array![];
-    let mut max_v: u32 = 0;
-    for e in events {
-        if e.voice_id > max_v {
-            max_v = e.voice_id;
-        }
-    }
     let mut v: u32 = 0;
-    while v <= max_v {
-        let (_, n) = voice_sum(events, v);
-        if n > 0 {
+    while v < MAX_VOICES {
+        if *counts.at(v) > 0 && contains(picked, v) {
             voices.append(v);
         }
         v += 1;
@@ -206,10 +213,10 @@ fn tie_repeats(events: Span<NoteEvent>, section_ticks: u32) -> Array<NoteEvent> 
     let mut bass: u32 = *voices.at(0);
     let mut top: u32 = *voices.at(0);
     for v in voices.span() {
-        if voice_mean_less(events, *v, bass) {
+        if mean_less(sums, counts, *v, bass) {
             bass = *v;
         }
-        if voice_mean_less(events, top, *v) {
+        if mean_less(sums, counts, top, *v) {
             top = *v;
         }
     }
@@ -217,7 +224,14 @@ fn tie_repeats(events: Span<NoteEvent>, section_ticks: u32) -> Array<NoteEvent> 
     let mut out: Array<NoteEvent> = array![];
     for v in voices.span() {
         let v = *v;
-        let inner = tie_any && v != 0 && v != bass && v != top;
+        if !(tie_any && v != 0 && v != bass && v != top) {
+            for e in events {
+                if e.voice_id == v {
+                    out.append(*e);
+                }
+            }
+            continue;
+        }
         let mut prev: Option<NoteEvent> = Option::None;
         for e in events {
             if e.voice_id != v {
@@ -226,7 +240,7 @@ fn tie_repeats(events: Span<NoteEvent>, section_ticks: u32) -> Array<NoteEvent> 
             let e = *e;
             match prev {
                 Option::Some(p) => {
-                    if inner && p.pitch == e.pitch && p.time
+                    if p.pitch == e.pitch && p.time
                         + p.duration == e.time && p.time
                             / section_ticks == e.time
                             / section_ticks && p.duration
@@ -301,15 +315,13 @@ pub fn genesis_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
     };
     let score = build_v11_score_with(cb, live, ov);
     let p = score.params;
-    // the Genesis channels, then ties in the inner voices
-    let picked = genesis_pick(score.events.span(), genesis_channels(tier));
-    let mut kept: Array<NoteEvent> = array![];
-    for e in score.events.span() {
-        if contains(picked.span(), e.voice_id) {
-            kept.append(*e);
-        }
-    }
-    let events = tie_repeats(kept.span(), score.section_ticks);
+    // the Genesis channels, then ties in the inner voices (statistics of the full score: the kept
+    // voices' are the same, since a channel is kept or dropped whole)
+    let (sums, counts) = voice_stats(score.events.span());
+    let picked = genesis_pick(sums.span(), counts.span(), genesis_channels(tier));
+    let events = tie_repeats(
+        score.events.span(), picked.span(), sums.span(), counts.span(), score.section_ticks,
+    );
     let form = BeastForm {
         events,
         score_hash: 0,

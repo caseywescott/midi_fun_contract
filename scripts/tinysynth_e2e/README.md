@@ -34,14 +34,18 @@ contracts/beast_sound/src/tests.cairo):
 
 | | min | median | max |
 |---|---|---|---|
-| normal | 0.131B (1.07M steps) | 0.247B (2.01M) | 0.385B (3.15M) |
-| shiny | 0.140B (1.13M) | 0.262B (2.12M) | 0.405B (3.29M, #28) |
+| normal | 0.124B (1.00M steps) | 0.226B (1.81M) | 0.342B (2.74M) |
+| shiny | 0.132B (1.06M) | 0.241B (1.92M) | 0.362B (2.88M, #28) |
 
-By tier (normal, median): tiers 1-2 0.36B, tier 3 0.25B, tiers 4-5 0.15B. Shiny adds about 0.02B.
-`get_sound` adds under 2M for the settings. A whole `token_uri` is then roughly 0.55B at worst
-(was 0.65B with v1.1), about 0.35B for a median Beast, 0.41B for the Warlock. Every Genesis Track
+By tier (normal, median): tiers 1-2 0.32B, tier 3 0.23B, tiers 4-5 0.14B. Shiny adds about 0.02B.
+Composing is about two-thirds of it, writing the file about a quarter; the channel pick and ties
+take one pass each over the notes (3874be4 had them rescanning per voice: about 10% more).
+`get_sound` adds under 2M for the settings. A whole `token_uri` is then roughly 0.51B at worst
+(was 0.65B with v1.1), about 0.33B for a median Beast, 0.38B for the Warlock. Every Genesis Track
 composes all six channels before the tier's channel filter, so the cheapest tracks cost more than
 v1.1's genesis Warlock did (0.06B), and the most expensive cost less than v1.1's heaviest (0.47B).
+Composing only the kept channels would cut that further but changes the music (each voice is
+chosen against the voices already placed), so it would break parity with the lab.
 
 `beast_token_uri_warlock_print` (ignored) prints a Warlock `token_uri`. Decoded, its page plays in
 Chrome with the TinyChip timbres installed; the token-uri-inspector skill's `split_page.mjs` gives

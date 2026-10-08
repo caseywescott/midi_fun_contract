@@ -131,7 +131,7 @@ const TYPES = ['Magic', 'Hunter', 'Brute'];
 let mode = 'tracks', synth = null, playing = false;
 const GENESIS = ${JSON.stringify(GENESIS)}, GDEF = { name: 0, seed: 0n, theme: 'species', genesisKey: 'spread', channels: 'rarity', mix: 'balanced', ties: 'weak', topLead: true };
 let playAll = false, advanceTimer = 0;
-const SWAPS = {}; // species id -> the species whose Genesis Track it plays (absent = its own)
+const SWAPS = { ...L.GENESIS_SWAPS }; // species id -> the species whose Genesis Track it plays (absent = its own); starts from the default swaps
 const trackOf = (id) => SWAPS[id] || id;
 const PICKS = { ...L.GENESIS_THEMES }; // species id -> theme candidate, starting from the chosen Genesis themes (0 or absent = its own)
 // a day count as an age since launch: day 365 is a year in
@@ -153,7 +153,7 @@ function saveHash() {
   if ($('fl-on').checked) q.fl = 1;
   if (mode !== 'tracks') q.tab = mode;
   if (mode === 'genesis' && !$('gspread').checked) q.gsp = 0;
-  { const sw = Object.keys(SWAPS); if (sw.length) q.gs = sw.map((k) => k + '.' + SWAPS[k]).join(','); }
+  { const enc = (m) => Object.keys(m).map(Number).sort((a, c) => a - c).map((k) => k + '.' + m[k]).join(','); const cur = enc(SWAPS); if (cur !== enc(L.GENESIS_SWAPS)) q.gs = cur || 'none'; }
   { const ids = Object.keys(PICKS).filter((k) => (PICKS[k] || 0) !== (L.GENESIS_THEMES[k] || 0)); if (ids.length) q.gm = ids.map((k) => k + '.' + (PICKS[k] || 0)).join(','); }
   if (mode === 'drift') q.day = $('day').value;
   if (mode === 'yeti') q.yeti = ['y-rock', 'y-yodel', 'y-avalanche', 'y-stomp'].filter((id) => $(id).checked).map((id) => id.slice(2)).join('.');
@@ -173,7 +173,8 @@ function loadHash() {
   if (q.has('tday')) { $('drift-on').checked = q.has('dv') || !q.has('fl'); $('tday').disabled = false; $('tday').value = q.get('tday'); $('tdayv').textContent = age(+$('tday').value); }
   if (q.get('dv')) $('dv').value = q.get('dv');
   if (q.get('gsp') === '0') $('gspread').checked = false;
-  if (q.get('gs')) for (const pr of q.get('gs').split(',')) { const [k, v] = pr.split('.').map(Number); if (k >= 1 && k <= 75 && v >= 1 && v <= 75 && k !== v) { SWAPS[k] = v; SWAPS[v] = k; } }
+  if (q.has('gs')) for (const k of Object.keys(SWAPS)) delete SWAPS[k];
+  if (q.get('gs') && q.get('gs') !== 'none') for (const pr of q.get('gs').split(',')) { const [k, v] = pr.split('.').map(Number); if (k >= 1 && k <= 75 && v >= 1 && v <= 75 && k !== v) { SWAPS[k] = v; SWAPS[v] = k; } }
   if (q.get('gm')) for (const pr of q.get('gm').split(',')) { const [k, n] = pr.split('.').map(Number); if (k >= 1 && k <= 75 && n >= 0 && n <= 1242) PICKS[k] = n; }
   if (q.has('top')) $('toplead').checked = q.get('top') === '1';
   if (q.get('tie')) $('ties').value = q.get('tie') === 'off' ? '' : q.get('tie');
@@ -371,11 +372,12 @@ function make() {
   if (mode === 'tracks') {
     const seed = seedOf(), epoch = $('drift-on').checked ? +$('tday').value : null, flourishDay = $('fl-on').checked ? +$('tday').value : null;
     args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value, bpm: bpmSet, driftMode: $('dv').value, mix: $('mix').value || null, flourishDay, ties: $('ties').value || false, topLead: $('toplead').checked, motif: 'default' };
-    out = L.labMidi('sample', b, x.live, args, BS.engine, BS.v11);
+    const gsrc = args.name === 0 && seed === null ? trackOf(b.id) : b.id; // a swapped Beast's Genesis Track is the other Beast's
+    out = L.labMidi('sample', gsrc === b.id ? b : { ...BEASTS[gsrc - 1].beast, shiny: b.shiny }, x.live, args, BS.engine, BS.v11);
     const f = out.info;
     if (bpmSet === null) $('bpm').value = f.tempo;
     $('bpmv').textContent = f.tempo + ' BPM' + (bpmSet === null ? ' (auto)' : '');
-    head = trackName() + (args.name ? '' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 seed 0 (Genesis)' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (f.tied ? ' \u00b7 ' + f.tied + ' repeats tied' : '') + (f.flourishes ? ' \u00b7 ' + f.flourishes.count + ' flourish' + (f.flourishes.count === 1 ? '' : 'es') + (f.flourishes.count ? ' on ' + f.flourishes.voices + ' voice' + (f.flourishes.voices > 1 ? 's' : '') + ': ' + Object.entries(f.flourishes.shapes).map(([k, n]) => n + ' ' + k + (n > 1 ? (k.endsWith('s') ? 'es' : 's') : '')).join(', ') : '') + ' (day ' + flourishDay + ': ' + (100 * f.flourishes.share).toFixed(1) + '% of the theme\u2019s notes, ' + (100 * f.flourishes.share / 2).toFixed(1) + '% of the others\u2019)' : '') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
+    head = trackName() + (args.name ? '' : gsrc !== b.id ? ' (playing ' + BEASTS[gsrc - 1].name + '\u2019s Genesis Track, swapped)' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 seed 0 (Genesis)' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (f.tied ? ' \u00b7 ' + f.tied + ' repeats tied' : '') + (f.flourishes ? ' \u00b7 ' + f.flourishes.count + ' flourish' + (f.flourishes.count === 1 ? '' : 'es') + (f.flourishes.count ? ' on ' + f.flourishes.voices + ' voice' + (f.flourishes.voices > 1 ? 's' : '') + ': ' + Object.entries(f.flourishes.shapes).map(([k, n]) => n + ' ' + k + (n > 1 ? (k.endsWith('s') ? 'es' : 's') : '')).join(', ') : '') + ' (day ' + flourishDay + ': ' + (100 * f.flourishes.share).toFixed(1) + '% of the theme\u2019s notes, ' + (100 * f.flourishes.share / 2).toFixed(1) + '% of the others\u2019)' : '') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
   } else if (mode === 'genesis') {
     const src = trackOf(b.id), sb = { ...BEASTS[src - 1].beast, shiny: b.shiny };
     out = L.labMidi('sample', sb, x.live, { ...GDEF, genesisKey: $('gspread').checked ? 'spread' : 'rule', motif: PICKS[src] || 0 }, BS.engine, BS.v11);
@@ -440,13 +442,14 @@ function showSwaps() {
   if ($('swapB').value === $('swapA').value) $('swapB').value = String(+$('swapA').value % 75 + 1);
   $('swapgo').disabled = $('swapA').value === $('swapB').value;
   const pairs = Object.keys(SWAPS).map(Number).filter((k) => SWAPS[k] > k).sort((a, c) => a - c);
-  $('swaplist').innerHTML = pairs.length ? pairs.map((a) => { const b = SWAPS[a]; return '<div class="swaprow"><span><b>' + nm(a) + '</b> \u21c4 <b>' + nm(b) + '</b></span><button class="mini" data-play="' + a + '">\u25b6 ' + nm(a) + ' with ' + nm(b) + '\u2019s music</button><button class="mini" data-play="' + b + '">\u25b6 ' + nm(b) + ' with ' + nm(a) + '\u2019s music</button><button class="mini" data-undo="' + a + '">Undo</button></div>'; }).join('')
-    + '<div class="ctl" style="margin-top:10px"><button id="gscopy" class="stop">Copy swaps + link</button><button id="gsclear" class="stop">Undo all</button></div>'
-    : '<p class="note" style="margin-top:8px">No swaps yet: every Beast plays its own music.</p>';
+  $('swaplist').innerHTML = pairs.length ? pairs.map((a) => { const b = SWAPS[a]; return '<div class="swaprow"><span><b>' + nm(a) + '</b> \u21c4 <b>' + nm(b) + '</b>' + (L.GENESIS_SWAPS[a] === b ? ' <small>(default)</small>' : '') + '</span><button class="mini" data-play="' + a + '">\u25b6 ' + nm(a) + ' with ' + nm(b) + '\u2019s music</button><button class="mini" data-play="' + b + '">\u25b6 ' + nm(b) + ' with ' + nm(a) + '\u2019s music</button><button class="mini" data-undo="' + a + '">Undo</button></div>'; }).join('')
+    + '<div class="ctl" style="margin-top:10px"><button id="gscopy" class="stop">Copy swaps + link</button><button id="gsclear" class="stop">Undo all</button><button id="gsdef" class="stop">Default swaps</button></div>'
+    : '<p class="note" style="margin-top:8px">No swaps: every Beast plays its own music. <button id="gsdef" class="mini">Default swaps</button></p>';
   document.querySelectorAll('[data-play]').forEach((x) => (x.onclick = () => { playAll = false; genesisGo(+x.dataset.play - 1); }));
   document.querySelectorAll('[data-undo]').forEach((x) => (x.onclick = () => { unswap(+x.dataset.undo); afterSwap(); }));
   const c = $('gscopy'); if (c) c.onclick = () => { const t = pairs.map((a) => nm(a) + ' \u21c4 ' + nm(SWAPS[a])).join(', '); try { navigator.clipboard.writeText('Swaps: ' + t + '\\n' + location.href); c.textContent = 'Copied'; } catch { } };
   const x = $('gsclear'); if (x) x.onclick = () => { for (const k of Object.keys(SWAPS)) delete SWAPS[k]; afterSwap(); };
+  const dd = $('gsdef'); if (dd) dd.onclick = () => { for (const k of Object.keys(SWAPS)) delete SWAPS[k]; Object.assign(SWAPS, L.GENESIS_SWAPS); afterSwap(); };
 }
 function unswap(a) { const b = SWAPS[a]; delete SWAPS[a]; if (b && SWAPS[b] === a) delete SWAPS[b]; }
 function afterSwap() { fillGenesis(); showPick(); showSwaps(); if (playing) refresh(); else make(); }

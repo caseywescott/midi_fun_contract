@@ -320,8 +320,10 @@ export function speciesTrackTreatment(seed) {
   const k = low32(H('BEAST_TRACK_KEY', seed));
   return { ...t, prefix: 1 + (k % 69), suffix: 1 + ((k >>> 8) % 18) };
 }
-/** The chosen Genesis themes (the user's picks, 7 Oct; 25, 38, 46, 49, 52, 63, 64, 66, 68, 72, 75 changed 8 Oct): species id -> theme candidate; absent = 0, its own. */
-export const GENESIS_THEMES = { 2: 3, 3: 6, 4: 1, 7: 5, 8: 419, 9: 1, 11: 6, 13: 1176, 14: 1, 15: 7, 17: 4, 19: 817, 20: 447, 21: 502, 22: 6, 23: 353, 25: 908, 26: 2, 27: 195, 28: 61, 29: 967, 30: 597, 31: 598, 32: 914, 33: 976, 34: 204, 35: 797, 36: 1011, 38: 402, 39: 210, 41: 808, 42: 575, 43: 7, 44: 582, 45: 847, 46: 1018, 48: 1087, 49: 982, 51: 6, 52: 1115, 53: 496, 54: 196, 55: 1075, 56: 1145, 57: 1180, 58: 559, 59: 1105, 60: 208, 61: 677, 62: 165, 63: 696, 64: 16, 65: 931, 66: 799, 67: 136, 68: 941, 69: 650, 70: 5, 71: 2, 72: 135, 73: 1156, 74: 965, 75: 1040 };
+/** The chosen Genesis themes (the user's picks, 7 Oct; later picks 8 Oct): species id -> theme candidate; absent = 0, its own. */
+export const GENESIS_THEMES = { 2: 3, 3: 5, 4: 1, 7: 5, 8: 419, 9: 1, 11: 6, 13: 1176, 14: 1, 15: 7, 17: 4, 19: 837, 20: 452, 21: 511, 22: 1174, 23: 353, 25: 908, 26: 2, 27: 195, 28: 61, 29: 967, 30: 597, 31: 598, 32: 914, 33: 976, 34: 204, 35: 797, 36: 74, 38: 911, 39: 210, 41: 808, 42: 575, 43: 7, 44: 582, 45: 847, 46: 1018, 48: 1087, 49: 986, 51: 6, 52: 1115, 53: 496, 54: 196, 55: 1075, 56: 1146, 57: 1180, 58: 559, 59: 1119, 60: 208, 61: 677, 62: 165, 63: 696, 64: 16, 65: 931, 66: 799, 67: 136, 68: 941, 69: 650, 70: 5, 71: 2, 72: 135, 73: 1156, 74: 965, 75: 1040 };
+/** Default music swaps: species id -> the species whose Genesis Track it plays (two-way pairs). Harpy (39) <-> Pegasus (40). */
+export const GENESIS_SWAPS = { 39: 40, 40: 39 };
 /** Genesis mode overrides on the spread key (same tonic): species id -> mode id. Nue (33) is Phrygian. */
 export const GENESIS_MODES = { 33: 5 };
 /** Each mode's scale as semitone offsets from the tonic, as named. */

@@ -186,7 +186,7 @@ export const YETI_IDEAS = {
   stomp: 'Stomp: three-quarter speed, a kick on every beat, the bass doubled an octave down',
   develop: 'Develop: the first bar is the motif; bar 2 repeats it a third higher, bar 3 turns it upside down and climbs to the high point, bar 4 steps down to the tonic (same rhythm)',
   thirtyseconds: '32nds: the ornaments in 32nd notes: snappier mordents and turns, faster trills (two flicks on a quarter, a longer trill on long notes), runs into the next note in 32nds',
-  ornaments: 'Ornaments: sixteenth-note figures inside the melody notes (mordents, trill starts, turns, runs into the next note, trilled long notes); every note still starts on its beat, about every other note, more for a Yeti with a busier ornament style',
+  ornaments: 'Ornaments: sixteenth-note figures inside the melody notes (mordents, trill starts, turns, runs into the next note, trilled long notes); every note still starts on its beat, about one melody note in four, one in two for a Yeti with a busier ornament style',
 };
 
 // ── Yeti melody: more melodic variety in the first section, same note times and lengths ──────────
@@ -242,13 +242,14 @@ export function yetiOrnaments(events, r, b, E, fast = false) {
   if (notes.length < 2) return events;
   const h = nameHash(b, 2);
   const dens = r.params.ornament_density ?? 3; // the Yeti's own ornament style (from its name)
-  const every = dens >= 4 ? 1 : 2; // busier styles ornament more notes
+  const gaps = dens >= 4 ? [2, 3] : [4, 5]; // notes between ornaments, alternating: about one in four or five (two or three for busier styles)
+  let made = 0;
   const repl = new Map();
   let since = 99;
   notes.forEach((e, i) => {
     since++;
     const next = notes[i + 1], last = i === notes.length - 1;
-    if (e.duration < 480 || since < every || last) return;
+    if (e.duration < 480 || since < gaps[made % 2] || last) return;
     const d = sc.degree(e.pitch), up = sc.pitch(d + 1), down = sc.pitch(d - 1);
     const vel = Math.max(1, e.velocity - 12), seg = (pitch, len, v = vel) => ({ pitch, len, v });
     const k = (h >>> (i % 24)) % 5;
@@ -279,6 +280,7 @@ export function yetiOrnaments(events, r, b, E, fast = false) {
     let t = e.time;
     repl.set(e, fig.map((f) => { const n = { ...e, time: t, duration: f.len, pitch: Math.max(24, Math.min(108, f.pitch)), velocity: f.v }; t += f.len; return n; }));
     since = 0;
+    made++;
   });
   return events.flatMap((e) => repl.get(e) ?? [e]);
 }

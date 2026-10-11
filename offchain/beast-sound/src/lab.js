@@ -184,7 +184,107 @@ export const YETI_IDEAS = {
   yodel: 'Yodel: the lead leaps an octave on every other note of each beat pair, chest voice to head voice',
   avalanche: 'Avalanche: each section ends in a two-octave sixteenth-note arpeggio down through the closing chord on the Pulse 12.5% Pluck, landing on a crash',
   stomp: 'Stomp: three-quarter speed, a kick on every beat, the bass doubled an octave down',
+  develop: 'Develop: the first bar is the motif; bar 2 repeats it a third higher, bar 3 turns it upside down and climbs to the high point, bar 4 steps down to the tonic (same rhythm)',
+  contour: 'Contour: new pitches on the same rhythm in the theme\'s register, an arch with one high point and turns along the way, steps mixed with leaps that turn back, no repeated notes, ending on the tonic',
 };
+
+// ── Yeti melody: more melodic variety in the first section, same note times and lengths ──────────
+// Both work in scale degrees of the Beast's key, so every note stays in key; the rhythm (each note's
+// time and length) is untouched, so the groove and the drums line up exactly as before.
+const BAR = 1920;
+function yetiScale(r, E) {
+  const I = E.internals, mode = I.canonicalToMelodic(r.params.mode_id), home = I.transposedTonic(r.params.tonic_keynum, 0);
+  const pitch = (d) => I.realize(d, home, mode);
+  const degree = (p) => { let best = 0; for (let d = -28; d <= 42; d++) if (Math.abs(pitch(d) - p) < Math.abs(pitch(best) - p)) best = d; return best; };
+  return { pitch, degree };
+}
+/** A small deterministic hash of the Beast's name (so each Yeti gets its own choices). */
+const nameHash = (b, salt) => { let h = (b.prefix * 131 + b.suffix * 31 + salt * 977 + 7) >>> 0; h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; return h >>> 0; };
+
+/** Develop: motif, sequence a third up, inversion to the high point, cadence down to the tonic. */
+function yetiDevelop(notes, sc) {
+  const deg = notes.map((e) => sc.degree(e.pitch));
+  const bars = [0, 1, 2, 3].map((k) => notes.map((e, i) => i).filter((i) => Math.floor(notes[i].time / BAR) === k));
+  const motif = bars[0].map((i) => deg[i]);
+  const steps = motif.slice(1).map((d, k) => d - motif[k]); // the motif's intervals in degrees
+  const step = (k) => (steps.length ? steps[k % steps.length] : 1) || 1; // never a repeat
+  const out = deg.slice();
+  let last = motif[motif.length - 1];
+  // bar 2: the motif a third (two degrees) above where bar 1 started
+  bars[1].forEach((i, k) => { out[i] = k === 0 ? motif[0] + 2 : out[bars[1][k - 1]] + step(k - 1); });
+  if (bars[1].length) last = out[bars[1][bars[1].length - 1]];
+  // bar 3: the intervals upside down, widened, so it climbs to the section's high point
+  bars[2].forEach((i, k) => {
+    const prev = k === 0 ? last : out[bars[2][k - 1]];
+    const inv = -step(k);
+    out[i] = prev + (inv > 0 ? inv + (k % 2 === 0 ? 1 : 0) : k === 0 ? 2 : inv);
+  });
+  // bar 4: step down to the tonic (degree 0 in the register of the last high note), leading tone
+  // before the last note when there are only two notes left
+  const b4 = bars[3];
+  if (b4.length) {
+    const hi = Math.max(...bars[2].map((i) => out[i]), last);
+    const tonic = Math.floor(hi / 7) * 7 - (hi % 7 < 3 ? 7 : 0);
+    b4.forEach((i, k) => { const left = b4.length - 1 - k; out[i] = left === 0 ? tonic : left === 1 && b4.length <= 3 ? tonic - 1 : tonic + left; });
+  }
+  // no two equal notes in a row
+  for (let i = 1; i < out.length; i++) if (out[i] === out[i - 1]) out[i] += i % 2 ? 1 : -1;
+  return out.map((d) => sc.pitch(d));
+}
+
+/** Contour: an arch with one high point and turns along the way, steps and leaps that turn back,
+ *  in the theme's own register (from its lowest note up to an octave or a tenth), starting on the
+ *  theme's first note and ending on the tonic. */
+function yetiContour(notes, sc, b) {
+  const n = notes.length, h = nameHash(b, 1);
+  const orig = notes.map((e) => sc.degree(e.pitch)), lo = Math.min(...orig);
+  const floor = lo, span = 7 + (h % 3); // an octave to a tenth above the theme's lowest note
+  const peakAt = 0.55 + ((h >>> 3) % 3) * 0.1; // the high point 55-75% of the way through
+  const last = orig[n - 1], end = Math.round(last / 7) * 7; // the tonic nearest where the theme ends
+  const out = [orig[0]];
+  let leapDir = 0, run = 0, runDir = 0; // after a leap step back; no more than three moves one way
+  for (let i = 1; i < n; i++) {
+    if (i === n - 1) { out.push(end); break; }
+    const x = i / (n - 1);
+    const arch = x <= peakAt ? Math.sin((x / peakAt) * Math.PI / 2) : Math.cos(((x - peakAt) / (1 - peakAt)) * Math.PI / 2);
+    const target = floor + 1 + (span - 1) * arch + 1.5 * Math.sin((i * Math.PI) / 2); // the arch with a turn every few notes
+    const prev = out[i - 1], prev2 = i > 1 ? out[i - 2] : null, strong = notes[i].time % 960 === 0, long = notes[i].duration >= 720;
+    let best = null, bestScore = Infinity;
+    const top = i > 1 ? Math.max(...out) : null;
+    for (let d = prev - 5; d <= prev + 5; d++) {
+      const mv = d - prev, size = Math.abs(mv);
+      let v = Math.abs(d - target) * 3; // follow the shape
+      if (size === 0) v += 40; // no repeated notes
+      if (size >= 3) v += 4 + size; // leaps, but not every note
+      if (leapDir && Math.sign(mv) === leapDir) v += 20; // turn back after a leap
+      if (leapDir && size > 2) v += 12; // and by step
+      if (run >= 3 && Math.sign(mv) === runDir) v += 12; // no long scale runs
+      if (prev2 !== null && mv === prev - prev2) v += 6; // vary the intervals
+      if (prev2 !== null && d === prev2) v += 10; // no back-and-forth between two notes
+      if (top !== null && d >= top && i < Math.round(peakAt * (n - 1)) - 1) v += 8; // the high point once, near the peak
+      if ((strong || long) && ![0, 2, 4].includes(((d % 7) + 7) % 7)) v += 5; // chord tones on the beat
+      if (d > floor + span || d < floor - 1) v += 30; // stay in the theme's register
+      if (Math.abs(sc.pitch(d) - sc.pitch(prev)) === 6) v += 15; // no tritone leaps
+      v += ((h >>> (((d % 16) + 16) % 16)) & 3) * 0.5; // the name breaks near-ties
+      if (v < bestScore) { bestScore = v; best = d; }
+    }
+    const dir = Math.sign(best - prev);
+    run = dir === runDir ? run + 1 : 1; runDir = dir;
+    leapDir = Math.abs(best - prev) >= 3 ? dir : 0;
+    out.push(best);
+  }
+  return out.map((d) => sc.pitch(d));
+}
+
+/** The first section's theme voice with a new melody (same times and lengths). */
+export function yetiMelody(events, r, b, E, kind) {
+  const sec = r.form.section_ticks, sc = yetiScale(r, E);
+  const notes = events.filter((e) => e.voice_id === 0 && e.time < sec).sort((a, c) => a.time - c.time);
+  if (notes.length < 3) return events;
+  const pitches = kind === 'develop' ? yetiDevelop(notes, sc) : yetiContour(notes, sc, b);
+  const at = new Map(notes.map((e, i) => [e, Math.max(24, Math.min(108, pitches[i]))]));
+  return events.map((e) => (at.has(e) ? { ...e, pitch: at.get(e) } : e));
+}
 
 /** A rock beat: kick 1 and 3 (and the and of 3), snare 2 and 4, eighth hats, crash per section, tom fill into the next. */
 export function rockDrums(length, sec) {
@@ -214,6 +314,8 @@ export function yetiMidi(b, live, ideas, E, v11) {
   const sec = r.form.section_ticks, sections = r.form.sections.length, maxV = Math.max(...events.map((e) => e.voice_id));
   const programs = {};
   let stompDouble = null;
+  if (ideas.contour) events = yetiMelody(events, r, b, E, 'contour');
+  else if (ideas.develop) events = yetiMelody(events, r, b, E, 'develop');
   if (ideas.yodel) {
     // the theme voice: the second note of each beat pair jumps an octave up
     events = events.map((e) => (e.voice_id === 0 && Math.floor(e.time / 240) % 2 === 1 && e.pitch + 12 <= 108 ? { ...e, pitch: e.pitch + 12 } : e));

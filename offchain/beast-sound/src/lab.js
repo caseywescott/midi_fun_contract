@@ -185,6 +185,7 @@ export const YETI_IDEAS = {
   avalanche: 'Avalanche: each section ends in a two-octave sixteenth-note arpeggio down through the closing chord on the Pulse 12.5% Pluck, landing on a crash',
   stomp: 'Stomp: three-quarter speed, a kick on every beat, the bass doubled an octave down',
   develop: 'Develop: the first bar is the motif; bar 2 repeats it a third higher, bar 3 turns it upside down and climbs to the high point, bar 4 steps down to the tonic (same rhythm)',
+  thirtyseconds: '32nds: the ornaments in 32nd notes: snappier mordents and turns, faster trills (two flicks on a quarter, a longer trill on long notes), runs into the next note in 32nds',
   ornaments: 'Ornaments: sixteenth-note figures inside the melody notes (mordents, trill starts, turns, runs into the next note, trilled long notes); every note still starts on its beat, about every other note, more for a Yeti with a busier ornament style',
 };
 
@@ -235,8 +236,8 @@ function yetiDevelop(notes, sc) {
 /** Ornaments: sixteenth-note figures inside the first section's melody notes. Each figure splits one
  *  note into sixteenths (120 ticks) that start on the note's own beat and add up to its length, so the
  *  beat and the groove are untouched. Neighbours are the scale's next degrees, so it stays in key. */
-export function yetiOrnaments(events, r, b, E) {
-  const sec = r.form.section_ticks, sc = yetiScale(r, E), S = 120;
+export function yetiOrnaments(events, r, b, E, fast = false) {
+  const sec = r.form.section_ticks, sc = yetiScale(r, E), S = fast ? 60 : 120; // a sixteenth or a 32nd
   const notes = events.filter((e) => e.voice_id === 0 && e.time < sec).sort((a, c) => a.time - c.time);
   if (notes.length < 2) return events;
   const h = nameHash(b, 2);
@@ -252,21 +253,28 @@ export function yetiOrnaments(events, r, b, E) {
     const vel = Math.max(1, e.velocity - 12), seg = (pitch, len, v = vel) => ({ pitch, len, v });
     const k = (h >>> (i % 24)) % 5;
     let fig;
+    const alt = (n) => Array.from({ length: n }, (_, j) => seg(j % 2 ? up : e.pitch, S, j ? vel : e.velocity)); // main, upper, main, ...
+    // the rest of the note: the figure's last note held on when it is the note itself, else the note again
+    const hold = (fig2) => {
+      const used = fig2.reduce((x, f) => x + f.len, 0), rest = e.duration - used, lastF = fig2[fig2.length - 1];
+      if (rest <= 0) return fig2;
+      return lastF.pitch === e.pitch ? [...fig2.slice(0, -1), seg(e.pitch, lastF.len + rest, lastF.v)] : [...fig2, seg(e.pitch, rest)];
+    };
     if (e.duration >= 960) {
-      // a long note: trilled in sixteenths for its first beat, then held
-      fig = [seg(e.pitch, S, e.velocity), seg(up, S), seg(e.pitch, S), seg(up, S), seg(e.pitch, e.duration - 4 * S)];
+      // a long note: trilled for its first beat (4 sixteenths or 8 32nds), then held
+      fig = hold(alt(fast ? 8 : 4));
     } else if (next && Math.abs(sc.degree(next.pitch) - d) >= 2 && k < 3 && next.time === e.time + e.duration) {
-      // a run into the next note: the note, then sixteenths stepping toward it
+      // a run into the next note: the note, then short notes stepping toward it
       const nd = sc.degree(next.pitch), dir = Math.sign(nd - d), gap = Math.abs(nd - d);
-      const steps = Math.min(3, gap - 1, Math.floor(e.duration / S) - 1);
+      const steps = Math.min(fast ? 4 : 3, gap - 1, Math.floor(e.duration / S) - 1);
       fig = [seg(e.pitch, e.duration - steps * S, e.velocity)];
       for (let s2 = 1; s2 <= steps; s2++) fig.push(seg(sc.pitch(d + dir * (gap - steps - 1 + s2)), S));
     } else if (k === 0 || k === 3) {
-      fig = [seg(e.pitch, S, e.velocity), seg(down, S), seg(e.pitch, e.duration - 2 * S)]; // mordent
+      fig = hold([seg(e.pitch, S, e.velocity), seg(down, S), seg(e.pitch, S)]); // mordent
     } else if (k === 1) {
-      fig = [seg(e.pitch, S, e.velocity), seg(up, S), seg(e.pitch, e.duration - 2 * S)]; // trill start
+      fig = hold(fast ? alt(5) : [seg(e.pitch, S, e.velocity), seg(up, S), seg(e.pitch, S)]); // trill start (two flicks in 32nds)
     } else {
-      fig = [seg(e.pitch, S, e.velocity), seg(up, S), seg(down, S), seg(e.pitch, e.duration - 3 * S)]; // turn, back on the note
+      fig = hold([seg(e.pitch, S, e.velocity), seg(up, S), seg(down, S), seg(e.pitch, S)]); // turn, back on the note
     }
     let t = e.time;
     repl.set(e, fig.map((f) => { const n = { ...e, time: t, duration: f.len, pitch: Math.max(24, Math.min(108, f.pitch)), velocity: f.v }; t += f.len; return n; }));
@@ -314,12 +322,12 @@ export function yetiMidi(b, live, ideas, E, v11) {
   const programs = {};
   let stompDouble = null;
   if (ideas.develop) events = yetiMelody(events, r, b, E, 'develop');
-  const ornament = ideas.ornaments;
+  const ornament = ideas.ornaments || ideas.thirtyseconds;
   if (ideas.yodel) {
     // the theme voice: the second note of each beat pair jumps an octave up
     events = events.map((e) => (e.voice_id === 0 && Math.floor(e.time / 240) % 2 === 1 && e.pitch + 12 <= 108 ? { ...e, pitch: e.pitch + 12 } : e));
   }
-  if (ornament) events = yetiOrnaments(events, r, b, E);
+  if (ornament) events = yetiOrnaments(events, r, b, E, !!ideas.thirtyseconds);
   if (ideas.stomp) {
     // the lowest voice doubled an octave down on its own channel
     const means = {};

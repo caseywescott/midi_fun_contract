@@ -185,7 +185,7 @@ export const YETI_IDEAS = {
   avalanche: 'Avalanche: each section ends in a two-octave sixteenth-note arpeggio down through the closing chord on the Pulse 12.5% Pluck, landing on a crash',
   stomp: 'Stomp: three-quarter speed, a kick on every beat, the bass doubled an octave down',
   develop: 'Develop: the first bar is the motif; bar 2 repeats it a third higher, bar 3 turns it upside down and climbs to the high point, bar 4 steps down to the tonic (same rhythm)',
-  contour: 'Contour: new pitches on the same rhythm in the theme\'s register, an arch with one high point and turns along the way, steps mixed with leaps that turn back, no repeated notes, ending on the tonic',
+  ornaments: 'Ornaments: sixteenth-note figures inside the melody notes (mordents, trill starts, turns, runs into the next note, trilled long notes); every note still starts on its beat, about every other note, more for a Yeti with a busier ornament style',
 };
 
 // ── Yeti melody: more melodic variety in the first section, same note times and lengths ──────────
@@ -232,56 +232,55 @@ function yetiDevelop(notes, sc) {
   return out.map((d) => sc.pitch(d));
 }
 
-/** Contour: an arch with one high point and turns along the way, steps and leaps that turn back,
- *  in the theme's own register (from its lowest note up to an octave or a tenth), starting on the
- *  theme's first note and ending on the tonic. */
-function yetiContour(notes, sc, b) {
-  const n = notes.length, h = nameHash(b, 1);
-  const orig = notes.map((e) => sc.degree(e.pitch)), lo = Math.min(...orig);
-  const floor = lo, span = 7 + (h % 3); // an octave to a tenth above the theme's lowest note
-  const peakAt = 0.55 + ((h >>> 3) % 3) * 0.1; // the high point 55-75% of the way through
-  const last = orig[n - 1], end = Math.round(last / 7) * 7; // the tonic nearest where the theme ends
-  const out = [orig[0]];
-  let leapDir = 0, run = 0, runDir = 0; // after a leap step back; no more than three moves one way
-  for (let i = 1; i < n; i++) {
-    if (i === n - 1) { out.push(end); break; }
-    const x = i / (n - 1);
-    const arch = x <= peakAt ? Math.sin((x / peakAt) * Math.PI / 2) : Math.cos(((x - peakAt) / (1 - peakAt)) * Math.PI / 2);
-    const target = floor + 1 + (span - 1) * arch + 1.5 * Math.sin((i * Math.PI) / 2); // the arch with a turn every few notes
-    const prev = out[i - 1], prev2 = i > 1 ? out[i - 2] : null, strong = notes[i].time % 960 === 0, long = notes[i].duration >= 720;
-    let best = null, bestScore = Infinity;
-    const top = i > 1 ? Math.max(...out) : null;
-    for (let d = prev - 5; d <= prev + 5; d++) {
-      const mv = d - prev, size = Math.abs(mv);
-      let v = Math.abs(d - target) * 3; // follow the shape
-      if (size === 0) v += 40; // no repeated notes
-      if (size >= 3) v += 4 + size; // leaps, but not every note
-      if (leapDir && Math.sign(mv) === leapDir) v += 20; // turn back after a leap
-      if (leapDir && size > 2) v += 12; // and by step
-      if (run >= 3 && Math.sign(mv) === runDir) v += 12; // no long scale runs
-      if (prev2 !== null && mv === prev - prev2) v += 6; // vary the intervals
-      if (prev2 !== null && d === prev2) v += 10; // no back-and-forth between two notes
-      if (top !== null && d >= top && i < Math.round(peakAt * (n - 1)) - 1) v += 8; // the high point once, near the peak
-      if ((strong || long) && ![0, 2, 4].includes(((d % 7) + 7) % 7)) v += 5; // chord tones on the beat
-      if (d > floor + span || d < floor - 1) v += 30; // stay in the theme's register
-      if (Math.abs(sc.pitch(d) - sc.pitch(prev)) === 6) v += 15; // no tritone leaps
-      v += ((h >>> (((d % 16) + 16) % 16)) & 3) * 0.5; // the name breaks near-ties
-      if (v < bestScore) { bestScore = v; best = d; }
+/** Ornaments: sixteenth-note figures inside the first section's melody notes. Each figure splits one
+ *  note into sixteenths (120 ticks) that start on the note's own beat and add up to its length, so the
+ *  beat and the groove are untouched. Neighbours are the scale's next degrees, so it stays in key. */
+export function yetiOrnaments(events, r, b, E) {
+  const sec = r.form.section_ticks, sc = yetiScale(r, E), S = 120;
+  const notes = events.filter((e) => e.voice_id === 0 && e.time < sec).sort((a, c) => a.time - c.time);
+  if (notes.length < 2) return events;
+  const h = nameHash(b, 2);
+  const dens = r.params.ornament_density ?? 3; // the Yeti's own ornament style (from its name)
+  const every = dens >= 4 ? 1 : 2; // busier styles ornament more notes
+  const repl = new Map();
+  let since = 99;
+  notes.forEach((e, i) => {
+    since++;
+    const next = notes[i + 1], last = i === notes.length - 1;
+    if (e.duration < 480 || since < every || last) return;
+    const d = sc.degree(e.pitch), up = sc.pitch(d + 1), down = sc.pitch(d - 1);
+    const vel = Math.max(1, e.velocity - 12), seg = (pitch, len, v = vel) => ({ pitch, len, v });
+    const k = (h >>> (i % 24)) % 5;
+    let fig;
+    if (e.duration >= 960) {
+      // a long note: trilled in sixteenths for its first beat, then held
+      fig = [seg(e.pitch, S, e.velocity), seg(up, S), seg(e.pitch, S), seg(up, S), seg(e.pitch, e.duration - 4 * S)];
+    } else if (next && Math.abs(sc.degree(next.pitch) - d) >= 2 && k < 3 && next.time === e.time + e.duration) {
+      // a run into the next note: the note, then sixteenths stepping toward it
+      const nd = sc.degree(next.pitch), dir = Math.sign(nd - d), gap = Math.abs(nd - d);
+      const steps = Math.min(3, gap - 1, Math.floor(e.duration / S) - 1);
+      fig = [seg(e.pitch, e.duration - steps * S, e.velocity)];
+      for (let s2 = 1; s2 <= steps; s2++) fig.push(seg(sc.pitch(d + dir * (gap - steps - 1 + s2)), S));
+    } else if (k === 0 || k === 3) {
+      fig = [seg(e.pitch, S, e.velocity), seg(down, S), seg(e.pitch, e.duration - 2 * S)]; // mordent
+    } else if (k === 1) {
+      fig = [seg(e.pitch, S, e.velocity), seg(up, S), seg(e.pitch, e.duration - 2 * S)]; // trill start
+    } else {
+      fig = [seg(e.pitch, S, e.velocity), seg(up, S), seg(down, S), seg(e.pitch, e.duration - 3 * S)]; // turn, back on the note
     }
-    const dir = Math.sign(best - prev);
-    run = dir === runDir ? run + 1 : 1; runDir = dir;
-    leapDir = Math.abs(best - prev) >= 3 ? dir : 0;
-    out.push(best);
-  }
-  return out.map((d) => sc.pitch(d));
+    let t = e.time;
+    repl.set(e, fig.map((f) => { const n = { ...e, time: t, duration: f.len, pitch: Math.max(24, Math.min(108, f.pitch)), velocity: f.v }; t += f.len; return n; }));
+    since = 0;
+  });
+  return events.flatMap((e) => repl.get(e) ?? [e]);
 }
 
-/** The first section's theme voice with a new melody (same times and lengths). */
+/** The first section's theme voice developed from its first bar (same times and lengths). */
 export function yetiMelody(events, r, b, E, kind) {
   const sec = r.form.section_ticks, sc = yetiScale(r, E);
   const notes = events.filter((e) => e.voice_id === 0 && e.time < sec).sort((a, c) => a.time - c.time);
   if (notes.length < 3) return events;
-  const pitches = kind === 'develop' ? yetiDevelop(notes, sc) : yetiContour(notes, sc, b);
+  const pitches = yetiDevelop(notes, sc);
   const at = new Map(notes.map((e, i) => [e, Math.max(24, Math.min(108, pitches[i]))]));
   return events.map((e) => (at.has(e) ? { ...e, pitch: at.get(e) } : e));
 }
@@ -314,12 +313,13 @@ export function yetiMidi(b, live, ideas, E, v11) {
   const sec = r.form.section_ticks, sections = r.form.sections.length, maxV = Math.max(...events.map((e) => e.voice_id));
   const programs = {};
   let stompDouble = null;
-  if (ideas.contour) events = yetiMelody(events, r, b, E, 'contour');
-  else if (ideas.develop) events = yetiMelody(events, r, b, E, 'develop');
+  if (ideas.develop) events = yetiMelody(events, r, b, E, 'develop');
+  const ornament = ideas.ornaments;
   if (ideas.yodel) {
     // the theme voice: the second note of each beat pair jumps an octave up
     events = events.map((e) => (e.voice_id === 0 && Math.floor(e.time / 240) % 2 === 1 && e.pitch + 12 <= 108 ? { ...e, pitch: e.pitch + 12 } : e));
   }
+  if (ornament) events = yetiOrnaments(events, r, b, E);
   if (ideas.stomp) {
     // the lowest voice doubled an octave down on its own channel
     const means = {};

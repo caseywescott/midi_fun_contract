@@ -186,6 +186,7 @@ export const YETI_IDEAS = {
   stomp: 'Stomp: three-quarter speed, a kick on every beat, the bass doubled an octave down',
   develop: 'Develop: the first bar is the motif; bar 2 repeats it a third higher, bar 3 turns it upside down and climbs to the high point, bar 4 steps down to the tonic (same rhythm)',
   thirtyseconds: '32nds: the ornaments in 32nd notes: snappier mordents and turns, faster trills (two flicks on a quarter, a longer trill on long notes), runs into the next note in 32nds',
+  dark: 'Dark: the whole Yeti (every voice, ornaments, avalanche) in a darker mode on the same tonic and rhythm (Aeolian, harmonic minor, Locrian, or Phrygian kept), and the avalanche only ever runs down a minor chord, never one of the mode\'s major chords',
   ornaments: 'Ornaments: sixteenth-note figures inside the melody notes (mordents, trill starts, turns, runs into the next note, trilled long notes); every note still starts on its beat, about one melody note in four, one in two for a Yeti with a busier ornament style',
 };
 
@@ -194,8 +195,8 @@ export const YETI_IDEAS = {
 // time and length) is untouched, so the groove and the drums line up exactly as before.
 const BAR = 1920;
 function yetiScale(r, E) {
-  const I = E.internals, mode = I.canonicalToMelodic(r.params.mode_id), home = I.transposedTonic(r.params.tonic_keynum, 0);
-  const pitch = (d) => I.realize(d, home, mode);
+  const I = E.internals, mode = I.canonicalToMelodic(r.params.mode_id), home = I.transposedTonic(r.params.tonic_keynum, 0), sc = r.yetiScale;
+  const pitch = sc ? (d) => home + 12 * Math.floor(d / 7) + sc[((d % 7) + 7) % 7] : (d) => I.realize(d, home, mode);
   const degree = (p) => { let best = 0; for (let d = -28; d <= 42; d++) if (Math.abs(pitch(d) - p) < Math.abs(pitch(best) - p)) best = d; return best; };
   return { pitch, degree };
 }
@@ -316,9 +317,15 @@ const stompDrums = (length, sec, tier, mega) => {
   return base.sort((a, b) => a[0] - b[0]);
 };
 
+/** Dark modes for the Yeti (canonical mode id -> its scale): Aeolian, harmonic minor, Locrian, Phrygian. */
+export const YETI_DARK = { aeolian: 7, harmonic: 8, locrian: 6, phrygian: 5 };
+
 export function yetiMidi(b, live, ideas, E, v11) {
-  const opts = ideas.rock ? { ...V11, override: { tempo_us: 342857 } } : ideas.stomp ? { ...V11, override: { tempo_us: 666667 } } : V11;
-  let r = v11.render(b, live, opts);
+  const override = ideas.rock ? { tempo_us: 342857 } : ideas.stomp ? { tempo_us: 666667 } : {};
+  const darkId = ideas.dark ? YETI_DARK[ideas.dark] ?? YETI_DARK.aeolian : null;
+  if (darkId !== null) { override.params = { mode_id: darkId }; override.scale = MODE_SCALES[darkId]; } // same tonic, every voice in the dark scale
+  let r = v11.render(b, live, Object.keys(override).length ? { ...V11, override } : V11);
+  if (darkId !== null) r = { ...r, yetiScale: MODE_SCALES[darkId] };
   let events = r.form.events.map((e) => ({ ...e }));
   const sec = r.form.section_ticks, sections = r.form.sections.length, maxV = Math.max(...events.map((e) => e.voice_id));
   const programs = {};
@@ -346,8 +353,8 @@ export function yetiMidi(b, live, ideas, E, v11) {
     // on the chord, whatever the section closes on; a bare unison or fifth is filled out to the triad the
     // chord the key's scale gives it
     const ch = maxV + 2, top = r.params.tonic_keynum + 24, I = E.internals; // two octaves down to the tonic's octave above the home register, around the melody
-    const mode = I.canonicalToMelodic(r.params.mode_id), home = I.transposedTonic(r.params.tonic_keynum, 0);
-    const scale = Array.from({ length: 7 }, (_, d) => I.realize(d, home, mode) % 12);
+    const ys = yetiScale(r, E);
+    const scale = Array.from({ length: 7 }, (_, d) => ys.pitch(d) % 12);
     for (let s = 0; s < sections; s++) {
       const end = s * sec + sec, start = end - 960;
       const window = events.filter((e) => e.voice_id < ch && e.time < end && e.time + e.duration > start);
@@ -362,7 +369,8 @@ export function yetiMidi(b, live, ideas, E, v11) {
       const perfect = (d) => ((triad(d)[2] - triad(d)[0] + 12) % 12) === 7;
       const pref = [0, 4, 3, 5, 2, 1, 6];
       const cover = (d, set) => set.filter((q) => triad(d).includes(q)).length;
-      const best = pref.slice().sort((a, c) => cover(c, pcs) - cover(a, pcs) || cover(c, heard) - cover(a, heard) || perfect(c) - perfect(a) || pref.indexOf(a) - pref.indexOf(c))[0];
+      const minor = (d) => perfect(d) && ((triad(d)[1] - triad(d)[0] + 12) % 12) === 3;
+      const best = pref.filter((d) => darkId === null || d === 0 || minor(d)).slice().sort((a, c) => cover(c, pcs) - cover(a, pcs) || cover(c, heard) - cover(a, heard) || perfect(c) - perfect(a) || pref.indexOf(a) - pref.indexOf(c))[0];
       const root = scale[best], chord = triad(best); // the run uses the triad only, never a passing note
       let hi = top - (((top - root) % 12) + 12) % 12; // the highest pitch class of the root at or below top
       const run = [];

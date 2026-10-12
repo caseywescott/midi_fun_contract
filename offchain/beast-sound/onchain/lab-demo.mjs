@@ -121,6 +121,8 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <label><input type="checkbox" id="y-yodel"><span>Yodel<small>the lead leaps an octave on every other note</small></span></label>
 <label><input type="checkbox" id="y-avalanche" checked><span>Avalanche<small>a two-octave sixteenth arpeggio down through the closing chord to end each section</small></span></label>
 <label><input type="checkbox" id="y-stomp"><span>Stomp<small>three-quarter speed, kick every beat, bass an octave down (instead of rock)</small></span></label>
+<div><label><input type="checkbox" id="y-dark"><span>Dark<small>every voice in a darker mode, same Ab tonic and rhythm; the avalanche runs down minor chords only (A/B against the Ab Phrygian it plays now)</small></span></label>
+<select id="y-darkmode" style="margin-top:6px"><option value="aeolian" selected>Aeolian (natural minor)</option><option value="harmonic">Harmonic minor</option><option value="locrian">Locrian (darkest)</option><option value="phrygian">Phrygian (today's mode, minor chords only)</option></select></div>
 </div><p class="note">Ideas for a Yeti special (species 68); picking this tab selects a Yeti.</p></div></div>
 <div class="card"><canvas id="roll" width="1600" height="440"></canvas><div id="legend" class="legend"></div><p class="note" id="clock"></p></div>
 <div class="card"><pre id="info"></pre></div>
@@ -162,7 +164,8 @@ function saveHash() {
   { const enc = (m) => Object.keys(m).map(Number).sort((a, c) => a - c).map((k) => k + '.' + m[k]).join(','); const cur = enc(SWAPS); if (cur !== enc(L.GENESIS_SWAPS)) q.gs = cur || 'none'; }
   { const ids = Object.keys(PICKS).filter((k) => (PICKS[k] || 0) !== (L.GENESIS_THEMES[k] || 0)); if (ids.length) q.gm = ids.map((k) => k + '.' + (PICKS[k] || 0)).join(','); }
   if (mode === 'drift') q.day = $('day').value;
-  if (mode === 'yeti') q.yeti = ['y-develop', 'y-ornaments', 'y-32nds', 'y-rock', 'y-yodel', 'y-avalanche', 'y-stomp'].filter((id) => $(id).checked).map((id) => id.slice(2)).join('.');
+  if (mode === 'yeti') q.yeti = ['y-develop', 'y-ornaments', 'y-32nds', 'y-rock', 'y-yodel', 'y-avalanche', 'y-stomp', 'y-dark'].filter((id) => $(id).checked).map((id) => id.slice(2)).join('.');
+  if (mode === 'yeti' && $('y-darkmode').value !== 'aeolian') q.ydm = $('y-darkmode').value;
   try { history.replaceState(null, '', '#' + new URLSearchParams(q).toString()); } catch {}
 }
 function loadHash() {
@@ -187,7 +190,8 @@ function loadHash() {
   if (q.get('tie')) $('ties').value = q.get('tie') === 'off' ? '' : q.get('tie');
   if (q.get('mix')) $('mix').value = q.get('mix') === 'v11' ? '' : q.get('mix');
   if (q.has('day')) { $('day').value = q.get('day'); $('dayv').textContent = age(+$('day').value); }
-  if (q.has('yeti')) { const on = q.get('yeti').split('.'); for (const k of ['develop', 'ornaments', '32nds', 'rock', 'yodel', 'avalanche', 'stomp']) $('y-' + k).checked = on.includes(k); }
+  if (q.has('yeti')) { const on = q.get('yeti').split('.'); for (const k of ['develop', 'ornaments', '32nds', 'rock', 'yodel', 'avalanche', 'stomp', 'dark']) $('y-' + k).checked = on.includes(k); }
+  if (q.get('ydm') && [...$('y-darkmode').options].some((o) => o.value === q.get('ydm'))) $('y-darkmode').value = q.get('ydm');
   return ['genesis', 'drift', 'yeti'].includes(q.get('tab')) ? q.get('tab') : 'tracks';
 }
 function showName() { const n = +$('name').value; $('namev').textContent = n ? '#' + n + ' ' + nameText(n) : 'Genesis Track'; }
@@ -396,8 +400,8 @@ function make() {
     args = { epoch: +$('day').value };
     head = 'day ' + args.epoch + ': ' + L.drift(b, args.epoch).label;
   } else {
-    args = { ideas: { develop: $('y-develop').checked, ornaments: $('y-ornaments').checked, thirtyseconds: $('y-32nds').checked, rock: $('y-rock').checked && !$('y-stomp').checked, yodel: $('y-yodel').checked, avalanche: $('y-avalanche').checked, stomp: $('y-stomp').checked } };
-    head = 'Yeti ideas: ' + Object.entries(args.ideas).filter(([, on]) => on).map(([k]) => k).join(' + ') + (b.id !== 68 ? ' (on a non-Yeti)' : '');
+    args = { ideas: { develop: $('y-develop').checked, ornaments: $('y-ornaments').checked, thirtyseconds: $('y-32nds').checked, rock: $('y-rock').checked && !$('y-stomp').checked, yodel: $('y-yodel').checked, avalanche: $('y-avalanche').checked, stomp: $('y-stomp').checked, dark: $('y-dark').checked ? $('y-darkmode').value : false } };
+    head = 'Yeti ideas: ' + Object.entries(args.ideas).filter(([, on]) => on).map(([k, v]) => (k === 'dark' ? 'dark (' + v + ')' : k)).join(' + ') + (b.id !== 68 ? ' (on a non-Yeti)' : '');
   }
   if (!out) out = L.labMidi(mode, b, x.live, args, BS.engine, BS.v11);
   saveHash();
@@ -535,7 +539,8 @@ $('stop').onclick = () => { playAll = false; clearTimeout(advanceTimer); if (syn
 $('speed').onchange = () => renderArt(playing);
 $('beast').onchange = refresh;
 $('day').oninput = () => { $('dayv').textContent = age(+$('day').value); refresh(); };
-for (const id of ['y-develop', 'y-ornaments', 'y-32nds', 'y-rock', 'y-yodel', 'y-avalanche', 'y-stomp']) $(id).onchange = refresh;
+for (const id of ['y-develop', 'y-ornaments', 'y-32nds', 'y-rock', 'y-yodel', 'y-avalanche', 'y-stomp', 'y-dark']) $(id).onchange = refresh;
+$('y-darkmode').onchange = () => { $('y-dark').checked = true; refresh(); };
 fillTrackSelect();
 { const t = loadHash(); fillGenesis(); showPick(); showSwaps(); showName(); if (t !== 'tracks') tab(t); else refresh(); }
 </script></body></html>`;

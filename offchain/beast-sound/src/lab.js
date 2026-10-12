@@ -187,6 +187,7 @@ export const YETI_IDEAS = {
   develop: 'Develop: the first bar is the motif; bar 2 repeats it a third higher, bar 3 turns it upside down and climbs to the high point, bar 4 steps down to the tonic (same rhythm)',
   thirtyseconds: '32nds: the ornaments in 32nd notes: snappier mordents and turns, faster trills (two flicks on a quarter, a longer trill on long notes), runs into the next note in 32nds',
   dark: 'Dark: the whole Yeti (every voice, ornaments, avalanche) in a darker mode on the same tonic and rhythm (Aeolian, harmonic minor, Locrian, or Phrygian kept), and the avalanche only ever runs down a minor chord, never one of the mode\'s major chords',
+  varied: 'Varied: each Beast (species and name) gets its own ornament profile: where the figures go (evenly spaced, in bursts, on the long notes, on the strong beats, at bar ends, or thickening through the section) and a palette of three favourite figures out of mordent, upper mordent, turn, run, slide and trill, weighted 3:2:1',
   ornaments: 'Ornaments: sixteenth-note figures inside the melody notes (mordents, trill starts, turns, runs into the next note, trilled long notes); every note still starts on its beat, about one melody note in four, one in two for a Yeti with a busier ornament style',
 };
 
@@ -234,10 +235,24 @@ function yetiDevelop(notes, sc) {
   return out.map((d) => sc.pitch(d));
 }
 
+/** A hash of the species and the name (nameHash alone is the same for every species' name 0). */
+const beastHash = (b, salt) => nameHash({ prefix: b.prefix + b.id * 70, suffix: b.suffix + b.id * 19 }, salt);
+export const ORNAMENT_PLACEMENTS = { even: 'evenly spaced', bursts: 'in bursts', long: 'on the long notes', strong: 'on the strong beats', barends: 'at bar ends', swell: 'thickening through the section' };
+export const ORNAMENT_FIGURES = { mordent: 'mordent', upper: 'upper mordent', turn: 'turn', run: 'run', slide: 'slide', trill: 'trill' };
+/** A Beast's ornament profile: a placement style, its spacing, and three favourite figures (weights 3, 2, 1). */
+export function yetiOrnamentProfile(b) {
+  const h = beastHash(b, 5), g = beastHash(b, 6);
+  const placement = Object.keys(ORNAMENT_PLACEMENTS)[h % 6];
+  const pool = Object.keys(ORNAMENT_FIGURES), figures = [];
+  for (let k = 0; figures.length < 3; k++) { const f = pool[(g >>> (k * 3)) % pool.length]; if (!figures.includes(f)) figures.push(f); else pool.push(pool.splice(pool.indexOf(f), 1)[0]); }
+  return { placement, gap: 2 + ((h >>> 4) % 4), burst: 2 + ((h >>> 8) % 2), figures };
+}
+
 /** Ornaments: sixteenth-note figures inside the first section's melody notes. Each figure splits one
  *  note into sixteenths (120 ticks) that start on the note's own beat and add up to its length, so the
  *  beat and the groove are untouched. Neighbours are the scale's next degrees, so it stays in key. */
-export function yetiOrnaments(events, r, b, E, fast = false) {
+export function yetiOrnaments(events, r, b, E, fast = false, varied = false) {
+  if (varied) return yetiOrnamentsVaried(events, r, b, E, fast);
   const sec = r.form.section_ticks, sc = yetiScale(r, E), S = fast ? 60 : 120; // a sixteenth or a 32nd
   const notes = events.filter((e) => e.voice_id === 0 && e.time < sec).sort((a, c) => a.time - c.time);
   if (notes.length < 2) return events;
@@ -282,6 +297,58 @@ export function yetiOrnaments(events, r, b, E, fast = false) {
     repl.set(e, fig.map((f) => { const n = { ...e, time: t, duration: f.len, pitch: Math.max(24, Math.min(108, f.pitch)), velocity: f.v }; t += f.len; return n; }));
     since = 0;
     made++;
+  });
+  return events.flatMap((e) => repl.get(e) ?? [e]);
+}
+
+/** Ornaments placed and chosen by the Beast's own profile (yetiOrnamentProfile). Same contract as
+ *  yetiOrnaments: every figure starts on the note's beat and adds up to its length, in the key's scale. */
+function yetiOrnamentsVaried(events, r, b, E, fast) {
+  const sec = r.form.section_ticks, sc = yetiScale(r, E), S = fast ? 60 : 120;
+  const notes = events.filter((e) => e.voice_id === 0 && e.time < sec).sort((a, c) => a.time - c.time);
+  if (notes.length < 2) return events;
+  const P = yetiOrnamentProfile(b), busy = (r.params.ornament_density ?? 3) >= 4, h = beastHash(b, 7);
+  const roll = (i, salt) => (((h ^ Math.imul(i + 1, 2654435761) ^ Math.imul(salt, 40503)) >>> 0) % 1000) / 1000;
+  const ok = notes.map((e, i) => e.duration >= 480 && i < notes.length - 1);
+  const pick = new Set(), elig = notes.map((_, i) => i).filter((i) => ok[i]);
+  const gap = Math.max(1, P.gap - (busy ? 1 : 0));
+  if (P.placement === 'even') elig.forEach((i, k) => { if (k % gap === 0) pick.add(i); });
+  else if (P.placement === 'bursts') { const cycle = P.burst + gap + 2; elig.forEach((i, k) => { if (k % cycle < P.burst) pick.add(i); }); }
+  else if (P.placement === 'long') elig.slice().sort((a, c) => notes[c].duration - notes[a].duration || a - c).slice(0, Math.ceil(elig.length * (busy ? 0.5 : 0.35))).forEach((i) => pick.add(i));
+  else if (P.placement === 'strong') { const on = elig.filter((i) => notes[i].time % 960 === 0); on.forEach((i, k) => { if (k % (gap > 3 ? 2 : 1) === 0) pick.add(i); }); }
+  else if (P.placement === 'barends') { const on = elig.filter((i) => notes[i].time % BAR >= 960 || (notes[i].time + notes[i].duration) % BAR === 0); on.forEach((i, k) => { if (k % 2 === 0 || busy) pick.add(i); }); }
+  else elig.forEach((i) => { if (roll(i, 1) < 0.08 + (busy ? 0.75 : 0.6) * (notes[i].time / sec)) pick.add(i); }); // swell
+  if (!pick.size && elig.length) pick.add(elig[0]);
+  const weighted = P.figures.flatMap((f, k) => Array(3 - k).fill(f)); // 3:2:1
+  const repl = new Map();
+  notes.forEach((e, i) => {
+    if (!pick.has(i)) return;
+    const next = notes[i + 1], d = sc.degree(e.pitch), up = sc.pitch(d + 1), down = sc.pitch(d - 1);
+    const vel = Math.max(1, e.velocity - 12), seg = (pitch, len, v = vel) => ({ pitch, len, v });
+    const hold = (fig2) => {
+      const used = fig2.reduce((x, f) => x + f.len, 0), rest = e.duration - used, lastF = fig2[fig2.length - 1];
+      if (rest <= 0) return fig2;
+      return lastF.pitch === e.pitch ? [...fig2.slice(0, -1), seg(e.pitch, lastF.len + rest, lastF.v)] : [...fig2, seg(e.pitch, rest)];
+    };
+    const alt = (n, o) => Array.from({ length: n }, (_, j) => seg(j % 2 ? o : e.pitch, S, j ? vel : e.velocity));
+    const canRun = next && next.time === e.time + e.duration && Math.abs(sc.degree(next.pitch) - d) >= 2;
+    // the figure: a weighted pick from the palette; a run needs a leap into the next note, else the next favourite
+    let f = weighted[Math.floor(roll(i, 2) * weighted.length)];
+    if (f === 'run' && !canRun) f = P.figures.find((x) => x !== 'run') ?? 'mordent';
+    if (f === 'trill' && e.duration < 960 && !fast) f = 'upper';
+    let fig;
+    if (f === 'run') {
+      const nd = sc.degree(next.pitch), dir = Math.sign(nd - d), g2 = Math.abs(nd - d);
+      const steps = Math.min(fast ? 4 : 3, g2 - 1, Math.floor(e.duration / S) - 1);
+      fig = [seg(e.pitch, e.duration - steps * S, e.velocity)];
+      for (let s2 = 1; s2 <= steps; s2++) fig.push(seg(sc.pitch(d + dir * (g2 - steps - 1 + s2)), S));
+    } else if (f === 'trill') fig = hold(alt(e.duration >= 960 ? (fast ? 8 : 4) : 5, up));
+    else if (f === 'upper') fig = hold(fast ? alt(3, up) : [seg(e.pitch, S, e.velocity), seg(up, S), seg(e.pitch, S)]);
+    else if (f === 'turn') fig = hold([seg(up, S, e.velocity), seg(e.pitch, S), seg(down, S), seg(e.pitch, S)]); // upper note first, then around
+    else if (f === 'slide') fig = hold([seg(sc.pitch(d - 2), S, vel), seg(down, S), seg(e.pitch, S, e.velocity)]); // two steps up into the note
+    else fig = hold([seg(e.pitch, S, e.velocity), seg(down, S), seg(e.pitch, S)]); // mordent
+    let t = e.time;
+    repl.set(e, fig.map((x) => { const n = { ...e, time: t, duration: x.len, pitch: Math.max(24, Math.min(108, x.pitch)), velocity: x.v }; t += x.len; return n; }));
   });
   return events.flatMap((e) => repl.get(e) ?? [e]);
 }
@@ -331,12 +398,12 @@ export function yetiMidi(b, live, ideas, E, v11) {
   const programs = {};
   let stompDouble = null;
   if (ideas.develop) events = yetiMelody(events, r, b, E, 'develop');
-  const ornament = ideas.ornaments || ideas.thirtyseconds;
+  const ornament = ideas.ornaments || ideas.thirtyseconds || ideas.varied;
   if (ideas.yodel) {
     // the theme voice: the second note of each beat pair jumps an octave up
     events = events.map((e) => (e.voice_id === 0 && Math.floor(e.time / 240) % 2 === 1 && e.pitch + 12 <= 108 ? { ...e, pitch: e.pitch + 12 } : e));
   }
-  if (ornament) events = yetiOrnaments(events, r, b, E, !!ideas.thirtyseconds);
+  if (ornament) events = yetiOrnaments(events, r, b, E, !!ideas.thirtyseconds, !!ideas.varied);
   if (ideas.stomp) {
     // the lowest voice doubled an octave down on its own channel
     const means = {};

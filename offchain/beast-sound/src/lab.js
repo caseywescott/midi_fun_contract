@@ -4,7 +4,7 @@
 //                  one (Beasts V3 change_track(token_id, track_id)); $SKULL unlocks variations
 //   progression    a Beast starts as its own scale; each unlock reveals a layer, in an order
 //                  fixed by the Beast (onchain: the unlock transaction's block hash)
-//   drift          a never-ending track: each epoch (a day of blocks, seeded by an old block hash)
+//   drift          a never-ending track: each epoch (a day of blocks; with blockHashes, seeded by the epoch's first block hash)
 //                  turns at most one small knob, so the music stays itself from day to day
 //   specials       the Yeti (species 68): rock groove, yodel, avalanche, stomp
 //
@@ -142,11 +142,26 @@ export const DRIFT_KNOBS = ['key plan turns the other way', 'episode directions 
  * hash, readable once it is 10 blocks old). Each epoch turns at most one knob; one epoch in four turns
  * none, so the track is mostly itself.
  */
-export function drift(b, epoch) {
-  const s = low32(H('BEAST_DRIFT', entityHash(b), epoch));
+export function drift(b, epoch, anchor = null) {
+  const s = low32(anchor === null ? H('BEAST_DRIFT', entityHash(b), epoch) : H('BEAST_DRIFT', entityHash(b), epoch, anchor(epoch)));
   const knob = s % 5; // 4 = no change
   return { knob: knob < 4 ? knob : null, label: knob < 4 ? DRIFT_KNOBS[knob] : 'as written' };
 }
+
+// ── block-hash epochs: nobody can hear a future day before its block exists ──────────────────────
+// An epoch is a run of DRIFT_EPOCH_BLOCKS blocks; epoch e's seed mixes in the hash of its first block
+// (e * DRIFT_EPOCH_BLOCKS), which does not exist until that block is made. Starknet's get_block_hash
+// only reads blocks at least 10 behind the current one, so the epoch at block B is (B - 10) / N: an
+// epoch starts 10 blocks after its first block, once that hash is readable. Days count from 1
+// (day d = epoch d - 1). The three sound modes pick the block: live = the current block, original =
+// the block the track was produced in, a specific block = any block up to the current one.
+export const DRIFT_EPOCH_BLOCKS = 43200; // about a day at 2-second blocks; set from the chain's real block time
+export const epochAtBlock = (block) => Math.max(0, Math.floor((block - 10) / DRIFT_EPOCH_BLOCKS));
+export const epochFirstBlock = (epoch) => epoch * DRIFT_EPOCH_BLOCKS;
+/** The lab's stand-in for get_block_hash (a fixed hash per block number); onchain this is the real block hash. */
+export const labBlockHash = (block) => H('LAB_BLOCK_HASH', block);
+/** Day d's anchor: the hash of its epoch's first block. */
+export const dayAnchor = (blockHash = labBlockHash) => (day) => blockHash(epochFirstBlock(day - 1));
 
 // ── layered drift (v2): every change audible, on three clocks, so a track evolves over years ──────
 // The month (30 days) may re-pick the rhythm cells (2 months in 3; the first month plays as written);
@@ -155,19 +170,21 @@ export function drift(b, epoch) {
 // directions swapped, or the tempo nudged -4, -2, +2 or +4 BPM. Nothing accumulates: a day's version is
 // a pure function of the track and the day number.
 export const DRIFT2_DAY = ['key plan turns the other way', 'episode directions swap', 'tempo -4 BPM', 'tempo -2 BPM', 'tempo +2 BPM', 'tempo +4 BPM'];
-export function drift2(b, day) {
+export function drift2(b, day, anchor = null) {
   const k = entityHash(b), month = Math.floor((day - 1) / 30), week = Math.floor((day - 1) / 7);
-  const m = low32(H('BEAST_DRIFT2_M', k, month)), w = low32(H('BEAST_DRIFT2_W', k, week)), dk = low32(H('BEAST_DRIFT2_D', k, day)) % 6;
-  const rhythm = month > 0 && m % 3 !== 0 ? H('BEAST_DRIFT2_RHYTHM', k, month) : null;
-  const rotate = w % 4 !== 0 ? H('BEAST_DRIFT2_ROT', k, week) : null;
+  // with block hashes, each clock also mixes in the hash of its own first block (day d's epoch is d - 1)
+  const hm = anchor ? [anchor(month * 30 + 1)] : [], hw = anchor ? [anchor(week * 7 + 1)] : [], hd = anchor ? [anchor(day)] : [];
+  const m = low32(H('BEAST_DRIFT2_M', k, month, ...hm)), w = low32(H('BEAST_DRIFT2_W', k, week, ...hw)), dk = low32(H('BEAST_DRIFT2_D', k, day, ...hd)) % 6;
+  const rhythm = month > 0 && m % 3 !== 0 ? H('BEAST_DRIFT2_RHYTHM', k, month, ...hm) : null;
+  const rotate = w % 4 !== 0 ? H('BEAST_DRIFT2_ROT', k, week, ...hw) : null;
   const delta = [0, 0, -4, -2, 2, 4][dk];
   const label = [rhythm !== null ? 'month ' + (month + 1) + ': new rhythm' : 'month ' + (month + 1) + ': rhythm as written',
     rotate !== null ? 'week ' + (week + 1) + ': channels rotate' : 'week ' + (week + 1) + ': channels as picked', 'day: ' + DRIFT2_DAY[dk]].join(' \u00b7 ');
   return { v: 2, rhythm, rotate, dayKnob: dk, delta, label };
 }
 
-export function driftMidi(b, live, epoch, E, v11) {
-  const d = drift(b, epoch), override = {};
+export function driftMidi(b, live, epoch, E, v11, anchor = null) {
+  const d = drift(b, epoch, anchor), override = {};
   const base = v11.render(b, live, V11), tr = base.v11.trajectory;
   if (d.knob === 0) override.flipSide = true;
   if (d.knob === 1) override.tr = { direction: tr.direction === 0 ? 1 : -tr.direction };
@@ -717,7 +734,7 @@ export function addFlourishes(form, day, key, style = {}) {
   return { form: { ...form, events: ev.filter((x) => x.duration > 0) }, added, share };
 }
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0, trueV = false } = {}, E, v11) {
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0, trueV = false, blockHashes = false } = {}, E, v11) {
   // seed 0 is the Genesis seed (0 is never a block hash): the Genesis rules, no seeded treatment, the
   // tier's fixed channel count, so the OG track of a species (name 0, seed 0) is known exactly
   if (seed === 0n || seed === 0) seed = null;
@@ -757,7 +774,8 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   override.tr.trill = !!orn.allow_trill;
   if (full) override.params = { ...(override.params || {}), use_countersubject: true };
   const off = epoch === null || epoch === undefined;
-  const d = off ? { knob: null, label: 'off' } : driftMode === 'v2' ? drift2(b, epoch) : drift(b, epoch);
+  const anchor = blockHashes ? dayAnchor() : null;
+  const d = off ? { knob: null, label: 'off' } : driftMode === 'v2' ? drift2(b, epoch, anchor) : drift(b, epoch, anchor);
   if (d.v === 2 && d.rhythm !== null) override.rhythmSeed = d.rhythm;
   const base = v11.render(cb, neutral, { ...V11, override });
   const tr = base.v11.trajectory;
@@ -824,7 +842,7 @@ export function labMidi(mode, b, live, args, E, v11) {
     const full = v11.render(b, live, V11);
     return { midi: progressionMidi(full, E, args.unlocked, args.seed, !!args.three), order: args.three ? PREFERRED_ORDER : unlockOrder(args.seed) };
   }
-  if (mode === 'drift') return driftMidi(b, live, args.epoch, E, v11);
+  if (mode === 'drift') return driftMidi(b, live, args.epoch, E, v11, args.blockHashes ? dayAnchor() : null);
   if (mode === 'tracks') return ownedTrackMidi(b, live, args.seed, args.epoch, E, v11);
   if (mode === 'species') return speciesTrackMidi(b, live, args.seed, args.epoch, E, v11);
   if (mode === 'sample') return sampleTrackMidi(b, live, args, E, v11);

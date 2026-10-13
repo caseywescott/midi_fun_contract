@@ -83,6 +83,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <label style="margin-top:12px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="drift-on"> Drift on top: day <b id="tdayv">1</b></label><label style="margin-top:4px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="fl-on"> Flourishes grow with age: trills, mordents, turns, suspensions, passing notes and anticipations in 16ths across the voices, 0% on day 1 rising toward 8% of the theme’s notes and 4% of the others’, one per beat</label>
 <input type="range" id="tday" min="1" max="1242" value="1" disabled>
 <select id="dv" style="margin-top:6px"><option value="v2" selected>Layered drift: monthly rhythm, weekly channel rotation, a daily key-plan, episode or tempo change</option><option value="v1">One-knob drift (v1: one small change a day)</option></select>
+<label style="margin-top:6px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="bh" checked> Block-hash seeds: each day, week and month of drift mixes in the hash of its first block, so no one can hear a future day before its block exists (the lab uses stand-in hashes; untick for the old counter-only drift)</label>
 <label for="seed" style="margin-top:10px">Seed (a block hash; 0 = the Genesis seed)</label><input type="text" id="seed" spellcheck="false" value="0" placeholder="0">
 <div class="ctl"><button id="newseed" class="stop">New hash</button><button id="noseed" class="stop">Seed 0 (Genesis)</button><button id="sample">Random sample</button></div>
 <div class="row" style="grid-template-columns:1fr 1fr;margin-top:12px"><div><label for="theme">Motif</label><select id="theme"><option value="species" selected>Species motif in every track</option><option value="name">Each name re-seeds the motif (v1.1 today)</option></select></div>
@@ -96,7 +97,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <label for="chan" style="margin-top:12px">Channels</label><select id="chan"><option value="rarity" selected>Rarity: the seed picks 3–6 (6 is 1 in 25); Genesis by tier</option><option value="tier">By tier (v1.1: 4/4/3/2/2 voices)</option><option value="3">Force 3</option><option value="4">Force 4</option><option value="5">Force 5</option><option value="6">Force 6 (rare)</option></select>
 <p class="note">Name 0 is the species' Genesis Track, the base every Beast of the species starts with. Names 1–1242 are the 69 × 18 prefix/suffix pairs: the prefix sets the key, mode and register, the suffix the ornament style. The seed (in the auction, the block hash of the previous purchase) sets the development, episode direction, sections, spacing, which side the theme sits and the rhythm, and how many of the six channels play (four canon voices, countersubject, drums; same presets): most tracks 3–5, 1 in 25 all 6. The theme and the lowest voice always play. Every Beast of a species shares the notes; shiny only adds the mega sound. The address bar keeps the current sample, so a link plays it again.</p></div>
 <div id="p-drift" class="panel" style="margin-top:14px"><label for="day">Day (epoch): <b id="dayv">1</b></label><input type="range" id="day" min="1" max="1242" value="1">
-<p class="note">This tab plays the plain v1.1 Beast, not the Tracks sample: Genesis traits with no history (one section; the tier's voices and countersubject; v1.1's genesis key; shiny adds its tempo bump and the mega sound). For drift on a sampled track, use "Drift on top" in Tracks. A never-ending track: each epoch (a day of blocks, seeded by the epoch's first block hash, readable once 10 blocks old) turns at most one small knob; most days it plays as written.</p></div>
+<p class="note">This tab plays the plain v1.1 Beast, not the Tracks sample: Genesis traits with no history (one section; the tier's voices and countersubject; v1.1's genesis key; shiny adds its tempo bump and the mega sound). For drift on a sampled track, use "Drift on top" in Tracks; the Block-hash seeds box there applies here too. A never-ending track: each epoch (a day of blocks, seeded by the epoch's first block hash, readable once 10 blocks old) turns at most one small knob; most days it plays as written.</p></div>
 <div id="p-genesis" class="panel" style="margin-top:14px">
 <p class="now" id="gnow"></p>
 <label style="display:flex;gap:8px;align-items:center;color:var(--fg);margin-bottom:10px"><input type="checkbox" id="gspread" checked> Spread keys: each species its own key and mode, played as named (off = v1.1, every species Phrygian)</label>
@@ -115,9 +116,9 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div class="glist" id="glist"></div></div>
 <div id="p-yeti" class="panel" style="margin-top:14px"><div class="chk">
 <label><input type="checkbox" id="y-develop"><span>Develop<small>melody: the first bar's motif, a third higher, upside down to the high point, then down to the tonic (same rhythm)</small></span></label>
-<label><input type="checkbox" id="y-ornaments"><span>Ornaments<small>sixteenth-note mordents, trill starts, turns and runs inside the melody notes; every note still starts on its beat</small></span></label>
+<label><input type="checkbox" id="y-ornaments" checked><span>Ornaments<small>sixteenth-note mordents, trill starts, turns and runs inside the melody notes; every note still starts on its beat</small></span></label>
 <label><input type="checkbox" id="y-32nds"><span>32nds<small>the ornaments in 32nd notes: snappier mordents and turns, faster trills (turns Ornaments on)</small></span></label>
-<label><input type="checkbox" id="y-varied"><span>Varied ornaments<small>each Beast its own ornament profile: where the figures go (evenly, in bursts, on long notes, strong beats, bar ends, or thickening) and three favourite figures; try other Beasts in the menu above (turns Ornaments on)</small></span></label>
+<label><input type="checkbox" id="y-varied" checked><span>Varied ornaments<small>each Beast its own ornament profile: where the figures go (evenly, in bursts, on long notes, strong beats, bar ends, or thickening) and three favourite figures; try other Beasts in the menu above (turns Ornaments on)</small></span></label>
 <label><input type="checkbox" id="y-rock" checked><span>Rock groove<small>175 BPM, kick 1 and 3, snare backbeat, crash and tom fill each section</small></span></label>
 <label><input type="checkbox" id="y-yodel"><span>Yodel<small>the lead leaps an octave on every other note</small></span></label>
 <label><input type="checkbox" id="y-avalanche" checked><span>Avalanche<small>a two-octave sixteenth arpeggio down through the closing chord to end each section</small></span></label>
@@ -158,6 +159,7 @@ function saveHash() {
   const q = { b: curBeast().id, n: $('name').value, s: $('seed').value.trim(), shiny: $('shiny').checked ? 1 : 0, theme: $('theme').value, gkey: $('gkey').value, ch: $('chan').value, mix: $('mix').value || 'v11', tie: $('ties').value || 'off', top: $('toplead').checked ? 1 : 0, ...(bpmSet ? { bpm: bpmSet } : {}) };
   if ($('drift-on').checked || $('fl-on').checked) q.tday = $('tday').value;
   if ($('drift-on').checked) q.dv = $('dv').value;
+  if (!$('bh').checked) q.bh = 0;
   if ($('fl-on').checked) q.fl = 1;
   if (mode !== 'tracks') q.tab = mode;
   if (mode === 'genesis' && !$('gspread').checked) q.gsp = 0;
@@ -190,6 +192,7 @@ function loadHash() {
   if (q.has('top')) $('toplead').checked = q.get('top') === '1';
   if (q.get('tie')) $('ties').value = q.get('tie') === 'off' ? '' : q.get('tie');
   if (q.get('mix')) $('mix').value = q.get('mix') === 'v11' ? '' : q.get('mix');
+  if (q.get('bh') === '0') $('bh').checked = false;
   if (q.has('day')) { $('day').value = q.get('day'); $('dayv').textContent = age(+$('day').value); }
   if (q.has('yeti')) { const on = q.get('yeti').split('.'); for (const k of ['develop', 'ornaments', '32nds', 'rock', 'yodel', 'avalanche', 'stomp', 'dark', 'varied']) $('y-' + k).checked = on.includes(k); }
   if (q.get('ydm') && [...$('y-darkmode').options].some((o) => o.value === q.get('ydm'))) $('y-darkmode').value = q.get('ydm');
@@ -383,13 +386,13 @@ function make() {
   let args = {}, head = '', out;
   if (mode === 'tracks') {
     const seed = seedOf(), epoch = $('drift-on').checked ? +$('tday').value : null, flourishDay = $('fl-on').checked ? +$('tday').value : null;
-    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value, bpm: bpmSet, driftMode: $('dv').value, mix: $('mix').value || null, flourishDay, ties: $('ties').value || false, topLead: $('toplead').checked, motif: 'default', trueV: $('truev').checked };
+    args = { name: +$('name').value, seed, theme: $('theme').value, genesisKey: $('gkey').value, epoch, channels: $('chan').value, bpm: bpmSet, driftMode: $('dv').value, mix: $('mix').value || null, flourishDay, ties: $('ties').value || false, blockHashes: $('bh').checked, topLead: $('toplead').checked, motif: 'default', trueV: $('truev').checked };
     const gsrc = args.name === 0 && seed === null ? trackOf(b.id) : b.id; // a swapped Beast's Genesis Track is the other Beast's
     out = L.labMidi('sample', gsrc === b.id ? b : { ...BEASTS[gsrc - 1].beast, shiny: b.shiny }, x.live, args, BS.engine, BS.v11);
     const f = out.info;
     if (bpmSet === null) $('bpm').value = f.tempo;
     $('bpmv').textContent = f.tempo + ' BPM' + (bpmSet === null ? ' (auto)' : '');
-    head = trackName() + (args.name ? '' : gsrc !== b.id ? ' (playing ' + BEASTS[gsrc - 1].name + '\u2019s Genesis Track, swapped)' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 seed 0 (Genesis)' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (f.tied ? ' \u00b7 ' + f.tied + ' repeats tied' : '') + (f.flourishes ? ' \u00b7 ' + f.flourishes.count + ' flourish' + (f.flourishes.count === 1 ? '' : 'es') + (f.flourishes.count ? ' on ' + f.flourishes.voices + ' voice' + (f.flourishes.voices > 1 ? 's' : '') + ': ' + Object.entries(f.flourishes.shapes).map(([k, n]) => n + ' ' + k + (n > 1 ? (k.endsWith('s') ? 'es' : 's') : '')).join(', ') : '') + ' (day ' + flourishDay + ': ' + (100 * f.flourishes.share).toFixed(1) + '% of the theme\u2019s notes, ' + (100 * f.flourishes.share / 2).toFixed(1) + '% of the others\u2019)' : '') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label : '');
+    head = trackName() + (args.name ? '' : gsrc !== b.id ? ' (playing ' + BEASTS[gsrc - 1].name + '\u2019s Genesis Track, swapped)' : ' (Genesis Track)') + ' \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + (f.channels ? f.channels.length + ' channels' + (f.channels.length === 6 ? ' (RARE)' : '') + ': ' + f.channels.join(', ') : f.voices + ' voices') + '\\n' + devName(f) + (seed === null ? ' \u00b7 seed 0 (Genesis)' : ' \u00b7 seed 0x' + seed.toString(16).slice(0, 12) + '\u2026') + (f.tied ? ' \u00b7 ' + f.tied + ' repeats tied' : '') + (f.flourishes ? ' \u00b7 ' + f.flourishes.count + ' flourish' + (f.flourishes.count === 1 ? '' : 'es') + (f.flourishes.count ? ' on ' + f.flourishes.voices + ' voice' + (f.flourishes.voices > 1 ? 's' : '') + ': ' + Object.entries(f.flourishes.shapes).map(([k, n]) => n + ' ' + k + (n > 1 ? (k.endsWith('s') ? 'es' : 's') : '')).join(', ') : '') + ' (day ' + flourishDay + ': ' + (100 * f.flourishes.share).toFixed(1) + '% of the theme\u2019s notes, ' + (100 * f.flourishes.share / 2).toFixed(1) + '% of the others\u2019)' : '') + (epoch !== null ? ' \u00b7 drift day ' + epoch + ': ' + out.drift.label + (args.blockHashes ? ' (block-hash seeded)' : ' (counter only)') : '');
   } else if (mode === 'genesis') {
     const src = trackOf(b.id), sb = { ...BEASTS[src - 1].beast, shiny: b.shiny };
     out = L.labMidi('sample', sb, x.live, { ...GDEF, genesisKey: $('gspread').checked ? 'spread' : 'rule', motif: PICKS[src] || 0, trueV: $('gtruev').checked }, BS.engine, BS.v11);
@@ -398,8 +401,8 @@ function make() {
     head = (trackOf(b.id) !== b.id ? x.name + ' playing ' + BEASTS[trackOf(b.id) - 1].name + '\u2019s music (swapped): ' + BEASTS[trackOf(b.id) - 1].name + '\u2019s' : x.name) + ' Genesis Track (name 0, seed 0' + (PICKS[trackOf(b.id)] ? ', theme #' + PICKS[trackOf(b.id)] : '') + ') \u00b7 ' + f.key + ' \u00b7 ' + f.tempo + ' BPM \u00b7 ' + f.channels.length + ' channels: ' + f.channels.join(', ') + (playAll ? ' \u00b7 playing all: ' + (+$('beast').value + 1) + ' of 75' : '');
     document.querySelectorAll('.grow').forEach((r) => r.classList.toggle('on', r.dataset.i === $('beast').value));
   } else if (mode === 'drift') {
-    args = { epoch: +$('day').value };
-    head = 'day ' + args.epoch + ': ' + L.drift(b, args.epoch).label;
+    args = { epoch: +$('day').value, blockHashes: $('bh').checked };
+    head = 'day ' + args.epoch + ': ' + L.drift(b, args.epoch, args.blockHashes ? L.dayAnchor() : null).label + (args.blockHashes ? ' \u00b7 epoch ' + (args.epoch - 1) + ' from block ' + L.epochFirstBlock(args.epoch - 1).toLocaleString() + ' (hash 0x' + L.dayAnchor()(args.epoch).toString(16).slice(0, 10) + '\u2026, stand-in)' : ' \u00b7 counter only');
   } else {
     args = { ideas: { develop: $('y-develop').checked, ornaments: $('y-ornaments').checked, thirtyseconds: $('y-32nds').checked, rock: $('y-rock').checked && !$('y-stomp').checked, yodel: $('y-yodel').checked, avalanche: $('y-avalanche').checked, stomp: $('y-stomp').checked, dark: $('y-dark').checked ? $('y-darkmode').value : false, varied: $('y-varied').checked } };
     head = 'Yeti ideas: ' + Object.entries(args.ideas).filter(([, on]) => on).map(([k, v]) => (k === 'dark' ? 'dark (' + v + ')' : k)).join(' + ') + (b.id !== 68 ? ' (on a non-Yeti)' : '');
@@ -534,6 +537,7 @@ $('bpm').oninput = () => { $('bpmv').textContent = $('bpm').value + ' BPM'; };
 $('bpm-down').onclick = () => setBpm(+$('bpm').value - 4);
 $('bpm-up').onclick = () => setBpm(+$('bpm').value + 4);
 $('bpm-auto').onclick = () => setBpm(null);
+$('bh').onchange = refresh;
 $('drift-on').onchange = $('fl-on').onchange = () => { $('tday').disabled = !$('drift-on').checked && !$('fl-on').checked; refresh(); };
 $('tday').oninput = () => { $('tdayv').textContent = age(+$('tday').value); refresh(); };
 $('play').onclick = start;

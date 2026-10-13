@@ -43,9 +43,9 @@ const SRC_PASSING: u8 = 4;
 const SRC_TONIC: u8 = 5;
 const SRC_TRILL: u8 = 6;
 /// Developments for sections after the first.
-const DEV_SEQUENCE: u8 = 0;
-const DEV_STRETTO: u8 = 1;
-const DEV_INVERSION: u8 = 2;
+pub const DEV_SEQUENCE: u8 = 0;
+pub const DEV_STRETTO: u8 = 1;
+pub const DEV_INVERSION: u8 = 2;
 
 #[derive(Copy, Drop)]
 struct Slot {
@@ -85,6 +85,14 @@ pub struct V11Override {
     pub scale: Option<Span<u8>>,
     /// Trills in place of passing notes, in place of the name's ornament policy.
     pub trill: Option<bool>,
+    /// A bought track's treatment (engine_v11.js `override.rhythmSeed`, `flipSide`, `tr`): the seed
+    /// that picks the theme's rhythm cells, the key plan mirrored, the development (DEV_*), the
+    /// episodes' direction (1, -1, 0) and the voice spacing (0 wide, 1 normal, 2 close).
+    pub rhythm_seed: Option<felt252>,
+    pub flip_side: Option<bool>,
+    pub development: Option<u8>,
+    pub direction: Option<i32>,
+    pub spacing: Option<u8>,
 }
 
 /// No overrides: `build_v11_score_with(beast, live, no_override())` is `build_v11_score`.
@@ -100,6 +108,11 @@ pub fn no_override() -> V11Override {
         use_countersubject: Option::None,
         scale: Option::None,
         trill: Option::None,
+        rhythm_seed: Option::None,
+        flip_side: Option::None,
+        development: Option::None,
+        direction: Option::None,
+        spacing: Option::None,
     }
 }
 
@@ -356,11 +369,16 @@ fn fifths_plan(n: u32, r: i32) -> Array<i32> {
 }
 
 /// Scale-degree shift per section (a diatonic fifth is 4 steps), in the nearest register.
-fn degree_plan(p: @BeastCompositionParams) -> Array<i32> {
-    let side: i32 = if p.weakness == 1 {
+fn degree_plan(p: @BeastCompositionParams, flip: bool) -> Array<i32> {
+    let type_side: i32 = if p.weakness == 1 {
         -1
     } else {
         1
+    };
+    let side = if flip {
+        -type_side
+    } else {
+        type_side
     };
     let mut out: Array<i32> = array![];
     for f in fifths_plan(p.section_count.into(), reach(p.tier)) {
@@ -1192,8 +1210,21 @@ pub fn build_v11_score_with(
     if let Option::Some(t) = ov.trill {
         tr.trill = t;
     }
+    if let Option::Some(x) = ov.development {
+        tr.development = x;
+    }
+    if let Option::Some(x) = ov.direction {
+        tr.direction = x;
+    }
+    if let Option::Some(x) = ov.spacing {
+        tr.spacing = x;
+    }
     let p = apply_override(p0, ov);
-    let mut slots = theme_rhythm(@p, theme.span(), seeds.motif_seed);
+    let rhythm_seed = match ov.rhythm_seed {
+        Option::Some(x) => x,
+        Option::None => seeds.motif_seed,
+    };
+    let mut slots = theme_rhythm(@p, theme.span(), rhythm_seed);
     if tr.trill {
         // a trill (upper neighbour and back) replaces each passing note of an eighth or longer
         let mut out: Array<Slot> = array![];
@@ -1239,7 +1270,7 @@ pub fn build_v11_score_with(
     let cs_seed = core::poseidon::poseidon_hash_span(
         array![p.name_variant_id.into(), p.species_id.into()].span(),
     );
-    let plan = degree_plan(@p);
+    let plan = degree_plan(@p, ov.flip_side == Option::Some(true));
     let mut events: Array<NoteEvent> = array![];
     let sc8: u32 = p.section_count.into();
     let mut s: u32 = 0;

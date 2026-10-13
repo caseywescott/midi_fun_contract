@@ -34,7 +34,7 @@ fn name_parity_range(lo: u64, hi: u64) {
                 tier: species_tier(id),
                 beast_type: species_type(id),
             };
-            let midi = track_midi(pack_inputs(composer_inputs(b, live)), TRACK_SPECIAL_SONG);
+            let midi = track_midi(pack_inputs(composer_inputs(b, live)), TRACK_SPECIAL_SONG, 0);
             println!(
                 "NAME case={} name={} shiny={} midi_len={} midi={}",
                 id,
@@ -202,7 +202,7 @@ fn yeti_parity(names: Span<u32>) {
             tier: species_tier(68),
             beast_type: species_type(68),
         };
-        let midi = track_midi(pack_inputs(composer_inputs(b, live)), TRACK_SPECIAL_SONG);
+        let midi = track_midi(pack_inputs(composer_inputs(b, live)), TRACK_SPECIAL_SONG, 0);
         println!(
             "YETI case=68 name={} shiny={} midi_len={} midi={}",
             nv,
@@ -264,7 +264,7 @@ fn sound_check_parity(lo: u64, hi: u64) {
                 tier: species_tier(id),
                 beast_type: species_type(id),
             };
-            let midi = track_midi(pack_inputs(composer_inputs(b, live)), TRACK_SOUND_CHECK);
+            let midi = track_midi(pack_inputs(composer_inputs(b, live)), TRACK_SOUND_CHECK, 0);
             println!(
                 "SC case={} name={} shiny={} midi_len={} midi={}",
                 id,
@@ -298,4 +298,189 @@ fn sound_check_parity_fixture_1() {
 #[available_gas(1000000000000)]
 fn sound_check_parity_fixture_2() {
     sound_check_parity(51, 75);
+}
+
+/// Bought-track parity: per species, one track with no special name (normal) and one named and
+/// shiny, each with its own seed; scripts/seeded_parity.mjs checks the SEED lines.
+fn seed_of(id: u64, k: u64) -> felt252 {
+    (id * 1000003 + k * 7919 + 1).into()
+}
+
+fn seeded_parity_range(lo: u64, hi: u64) {
+    let live = BeastV3LiveState {
+        adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1,
+    };
+    let mut id: u64 = lo;
+    while id <= hi {
+        let mut k: u64 = 0;
+        while k <= 1 {
+            let nv: u32 = if k == 1 {
+                name_of(id, 1)
+            } else {
+                0
+            };
+            let (prefix, suffix): (u8, u8) = if nv == 0 {
+                (0, 0)
+            } else {
+                (((nv - 1) / 18 + 1).try_into().unwrap(), ((nv - 1) % 18 + 1).try_into().unwrap())
+            };
+            let b = PackableBeastV3 {
+                id,
+                prefix,
+                suffix,
+                level: 1,
+                health: 100,
+                shiny: k.try_into().unwrap(),
+                animated: 0,
+                tier: species_tier(id),
+                beast_type: species_type(id),
+            };
+            let seed = seed_of(id, k);
+            let midi = track_midi(pack_inputs(composer_inputs(b, live)), 3, seed);
+            println!(
+                "SEED case={} name={} shiny={} seed={} midi_len={} midi={}",
+                id,
+                nv,
+                k,
+                seed,
+                *midi.at(0),
+                core::poseidon::poseidon_hash_span(midi.span()),
+            );
+            k += 1;
+        }
+        id += 1;
+    }
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_00() {
+    seeded_parity_range(1, 4);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_01() {
+    seeded_parity_range(5, 8);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_02() {
+    seeded_parity_range(9, 12);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_03() {
+    seeded_parity_range(13, 16);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_04() {
+    seeded_parity_range(17, 20);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_05() {
+    seeded_parity_range(21, 24);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_06() {
+    seeded_parity_range(25, 28);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_07() {
+    seeded_parity_range(29, 32);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_08() {
+    seeded_parity_range(33, 36);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_09() {
+    seeded_parity_range(37, 40);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_10() {
+    seeded_parity_range(41, 44);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_11() {
+    seeded_parity_range(45, 48);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_12() {
+    seeded_parity_range(49, 52);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_13() {
+    seeded_parity_range(53, 56);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_14() {
+    seeded_parity_range(57, 60);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_15() {
+    seeded_parity_range(61, 64);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_16() {
+    seeded_parity_range(65, 68);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_17() {
+    seeded_parity_range(69, 72);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn seeded_parity_fixture_18() {
+    seeded_parity_range(73, 75);
 }

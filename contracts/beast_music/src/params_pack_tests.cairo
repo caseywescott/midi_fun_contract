@@ -215,7 +215,7 @@ fn warlock() -> felt252 {
 }
 
 #[test]
-#[should_panic(expected: "bought tracks not composed yet")]
-fn track_bought_not_yet() {
-    track_smf_bytes(warlock(), 3);
+#[should_panic(expected: 'bought track needs a seed')]
+fn track_bought_needs_a_seed() {
+    track_smf_bytes(warlock(), 3, 0);
 }

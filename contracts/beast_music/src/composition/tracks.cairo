@@ -5,14 +5,15 @@
 //!   1  Species Song        the Genesis Track: every Beast of a species shares it (default swaps)
 //!   2  Beast Special Song  the name track: the species' theme in the name's key and style;
 //!                          a Beast without a special name plays its Species Song
-//!   3+ bought tracks       seeded by a block hash (not composed yet)
+//!   3+ bought tracks       the track's seed (a block hash, stored with the track) on the Beast's
+//!                          key and the species' theme
 //! Shiny adds the mega sound to every track.
 
 use crate::composition::beast_trait_map::{WEAKNESS_BLADE, WEAKNESS_MAGIC};
 use crate::composition::beast_v3_sound::{
     BEAST_TYPE_BRUTE, BEAST_TYPE_HUNTER, BEAST_TYPE_MAGIC, PackableBeastV3,
 };
-use crate::composition::genesis::{genesis_smf_bytes, name_track_smf_bytes};
+use crate::composition::genesis::{genesis_smf_bytes, name_track_smf_bytes, seeded_track_smf_bytes};
 use crate::composition::params_pack::{ComposerInputs, unpack_inputs};
 use crate::composition::sound_check::sound_check_smf_bytes;
 
@@ -60,7 +61,8 @@ pub fn beast_of(x: ComposerInputs) -> PackableBeastV3 {
 }
 
 /// Track `track` of the Beast whose composer inputs are `packed`, as a self-contained MIDI file.
-pub fn track_smf_bytes(packed: felt252, track: u32) -> Array<u8> {
+/// `seed` is a bought track's seed (tracks 3+; ignored by tracks 0-2).
+pub fn track_smf_bytes(packed: felt252, track: u32, seed: felt252) -> Array<u8> {
     let beast = beast_of(unpack_inputs(packed));
     if track == TRACK_SPECIES_SONG {
         return genesis_smf_bytes(beast);
@@ -74,10 +76,11 @@ pub fn track_smf_bytes(packed: felt252, track: u32) -> Array<u8> {
     if track == TRACK_SOUND_CHECK {
         return sound_check_smf_bytes(beast);
     }
-    panic!("bought tracks not composed yet")
+    assert(seed != 0, 'bought track needs a seed');
+    seeded_track_smf_bytes(beast, beast.prefix, beast.suffix, seed)
 }
 
 /// The same, packed 31 bytes per felt after the byte length.
-pub fn track_midi(packed: felt252, track: u32) -> Array<felt252> {
-    midi::pack::to_felt252_array(track_smf_bytes(packed, track).span())
+pub fn track_midi(packed: felt252, track: u32, seed: felt252) -> Array<felt252> {
+    midi::pack::to_felt252_array(track_smf_bytes(packed, track, seed).span())
 }

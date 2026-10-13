@@ -13,7 +13,8 @@ use midi_provider::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
 use starknet::syscalls::deploy_syscall;
 use starknet::{ClassHash, ContractAddress};
 use crate::provider::{
-    BeastMidiProvider, IBeastMidiProviderDispatcher, IBeastMidiProviderDispatcherTrait, StateSource,
+    BeastMidiProvider, IBeastMidiProviderDispatcher, IBeastMidiProviderDispatcherTrait,
+    IBeastTracksDispatcher, IBeastTracksDispatcherTrait, StateSource,
 };
 
 #[starknet::interface]
@@ -462,6 +463,43 @@ fn get_midi_rejects_unminted_tokens() {
     w.midi.get_midi(encode_v3_token_id(sorrow_peak_warlock()));
 }
 
+/// The Yeti's two settings serialize to the generated hashes, pass the class checks, and carry the
+/// Brute family, its avalanche's Pulse 12.5% Pluck (13), the drums, and the mega leads when mega.
+#[test]
+fn yeti_synth_settings_are_the_brute_family_and_the_avalanche() {
+    for mega in array![false, true] {
+        let s = crate::synth_settings::yeti_synth_settings(mega);
+        let mut felts: Array<felt252> = array![];
+        s.serialize(ref felts);
+        assert_eq!(
+            core::poseidon::poseidon_hash_span(felts.span()),
+            crate::synth_settings::yeti_synth_settings_serde_hash(mega),
+        );
+        midi_provider::synth::validate(@s);
+        let mut slots: Felt252Dict<bool> = Default::default();
+        for tb in s.timbres {
+            slots.insert(tb.slot.into() + if tb.drum {
+                256
+            } else {
+                0
+            }, true);
+        }
+        for p in beast_music::composition::full_midi::family_leads(2).span() {
+            assert!(slots.get((*p).into()), "lead missing");
+        }
+        for p in beast_music::composition::full_midi::family_plucks(2).span() {
+            assert!(slots.get((*p).into()), "pluck missing");
+        }
+        assert!(slots.get(13), "avalanche preset missing");
+        for d in array![36_u8, 38, 42, 45, 46, 47, 48, 49, 50] {
+            assert!(slots.get(d.into() + 256), "drum missing");
+        }
+        for p in beast_music::composition::full_midi::MEGA_LEADS.span() {
+            assert_eq!(slots.get((*p).into()), mega);
+        }
+    }
+}
+
 /// The six settings (each type's family, normal and mega) serialize to the hashes the generator
 /// computed.
 #[test]
@@ -664,3 +702,145 @@ fn gas_probe_direct_genesis_32_shiny() {
 #[test]
 #[ignore]
 fn gas_probe_direct_nothing() {}
+
+// ── tracks (IBeastTracks)
+// ──────────────────────────────────────────────────────────────────────
+
+fn tracks(w: World) -> IBeastTracksDispatcher {
+    IBeastTracksDispatcher { contract_address: w.midi.contract_address }
+}
+
+fn bytes(b: Array<u8>) -> ByteArray {
+    midi_provider::bytes_to_byte_array(b.span())
+}
+
+#[test]
+fn composer_inputs_are_the_packed_beast() {
+    let w = setup();
+    let b = sorrow_peak_warlock();
+    let inputs = tracks(w).get_composer_inputs(encode_v3_token_id(b));
+    let expected = beast_music::composition::params_pack::pack_inputs(
+        beast_music::composition::params_pack::composer_inputs(
+            b, beast_music::composition::genesis::neutral_live(),
+        ),
+    );
+    assert_eq!(inputs, expected);
+}
+
+/// Track 1, the Species Song, is what get_sound plays.
+#[test]
+fn species_song_is_get_sound() {
+    let w = setup();
+    let b = sorrow_peak_warlock();
+    let token_id = set_state(w, b, live(3, 1, 2, 40));
+    let sound = ISoundProviderDispatcher { contract_address: w.midi.contract_address }
+        .get_sound(token_id);
+    assert_eq!(tracks(w).get_track_sound(token_id, 1, 0, 0), sound);
+}
+
+/// A named Beast's Sound Check, Special Song and a bought track, from the token and from its
+/// stored inputs, each with the Beast's own settings.
+#[test]
+fn tracks_compose_from_the_token_and_from_stored_inputs() {
+    let w = setup();
+    let b = sorrow_peak_warlock();
+    let token_id = set_state(w, b, live(0, 0, 1, 1));
+    let t = tracks(w);
+    let inputs = t.get_composer_inputs(token_id);
+    let settings = crate::synth_settings::beast_synth_settings(b.beast_type, false);
+    let check = t.get_track_sound(token_id, 0, 0, 0);
+    assert_eq!(check.midi, bytes(beast_music::composition::sound_check::sound_check_smf_bytes(b)));
+    assert_eq!(check.settings, settings);
+    let special = t.get_track_sound(token_id, 2, 0, 0);
+    assert_eq!(
+        special.midi,
+        bytes(beast_music::composition::genesis::name_track_smf_bytes(b, b.prefix, b.suffix)),
+    );
+    assert_eq!(t.get_track_sound_for_inputs(inputs, 2, 0, 0), special);
+    let bought = t.get_track_sound(token_id, 3, 0xabc123, 0);
+    assert_eq!(
+        bought.midi,
+        bytes(
+            beast_music::composition::genesis::seeded_track_smf_bytes(
+                b, b.prefix, b.suffix, 0xabc123,
+            ),
+        ),
+    );
+    assert_eq!(bought.settings, settings);
+}
+
+/// The Yeti's tracks and get_settings carry its avalanche's preset.
+#[test]
+fn yeti_tracks_carry_the_avalanche_preset() {
+    let w = setup();
+    let b = PackableBeastV3 {
+        id: 68,
+        prefix: 0,
+        suffix: 0,
+        level: 1,
+        health: 100,
+        shiny: 1,
+        animated: 0,
+        tier: 4,
+        beast_type: 2,
+    };
+    let token_id = set_state(w, b, live(0, 0, 1, 1));
+    let yeti = crate::synth_settings::yeti_synth_settings(true);
+    assert_eq!(
+        ISynthSettingsProviderDispatcher { contract_address: w.midi.contract_address }
+            .get_settings(token_id),
+        yeti,
+    );
+    assert_eq!(tracks(w).get_track_sound(token_id, 1, 0, 0).settings, yeti);
+}
+
+/// A block's drift: the day at that block, its day, week and month read from their first blocks'
+/// hashes.
+#[test]
+fn drift_reads_the_block_hashes() {
+    let w = setup();
+    let b = sorrow_peak_warlock();
+    let token_id = set_state(w, b, live(0, 0, 1, 1));
+    let n = beast_music::composition::drift::DRIFT_EPOCH_BLOCKS;
+    let block = 40 * n + 500; // day 41: week 5, month 1
+    starknet::testing::set_block_number(block + 20);
+    let day = beast_music::composition::drift::day_at_block(block);
+    assert_eq!(day, 41);
+    let (d, wk, m) = beast_music::composition::drift::drift_anchor_blocks(day);
+    starknet::testing::set_block_hash(d, 0x111);
+    starknet::testing::set_block_hash(wk, 0x222);
+    starknet::testing::set_block_hash(m, 0x333);
+    let clock = beast_music::composition::drift::DriftClock {
+        day, day_hash: 0x111, week_hash: 0x222, month_hash: 0x333,
+    };
+    let sound = tracks(w).get_track_sound(token_id, 2, 0, block);
+    assert_eq!(
+        sound.midi,
+        bytes(
+            beast_music::composition::genesis::song_smf_bytes(
+                b, b.prefix, b.suffix, 0, Option::Some(clock),
+            ),
+        ),
+    );
+}
+
+#[test]
+#[should_panic(expected: ('block in the future', 'ENTRYPOINT_FAILED'))]
+fn drift_rejects_future_blocks() {
+    let w = setup();
+    starknet::testing::set_block_number(1000);
+    tracks(w)
+        .get_track_sound_for_inputs(
+            tracks(w).get_composer_inputs(encode_v3_token_id(sorrow_peak_warlock())), 1, 0, 1001,
+        );
+}
+
+#[test]
+#[should_panic(expected: ('bought track needs a seed', 'ENTRYPOINT_FAILED'))]
+fn bought_tracks_need_a_seed() {
+    let w = setup();
+    tracks(w)
+        .get_track_sound_for_inputs(
+            tracks(w).get_composer_inputs(encode_v3_token_id(sorrow_peak_warlock())), 3, 0, 0,
+        );
+}

@@ -217,5 +217,5 @@ fn warlock() -> felt252 {
 #[test]
 #[should_panic(expected: 'bought track needs a seed')]
 fn track_bought_needs_a_seed() {
-    track_smf_bytes(warlock(), 3, 0);
+    track_smf_bytes(warlock(), 3, 0, Option::None);
 }

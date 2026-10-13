@@ -239,12 +239,16 @@ ${timbres.join('\n')}
 
 /** The six settings the provider serves: each type's family, normal and mega. */
 export const SETTINGS_VARIANTS = FAMILIES.flatMap((f, t) => [false, true].map((mega) => ({ type: t, mega, name: f.name.toLowerCase() + (mega ? '_mega' : '') })));
+/** The Yeti (species 68, a Brute): the Brute family plus Pulse 12.5% Pluck (13), its avalanche's preset. */
+export const YETI_AVALANCHE_PROGRAM = 13;
+export const YETI_VARIANTS = [false, true].map((mega) => ({ type: 2, mega, yeti: true, name: 'yeti' + (mega ? '_mega' : '') }));
+export const variantPrograms = (v) => [...beastPrograms(v.type, v.mega), ...(v.yeti ? [YETI_AVALANCHE_PROGRAM] : [])];
 
 /** contracts/beast_sound/src/synth_settings.cairo: the six settings and the lookups by type and mega. */
 export function settingsCairo() {
-  const fns = SETTINGS_VARIANTS.map((v) => settingsFn(beastSynthSettings(undefined, beastPrograms(v.type, v.mega)), beastWaves(undefined, beastPrograms(v.type, v.mega)),
+  const fns = [...SETTINGS_VARIANTS, ...YETI_VARIANTS].map((v) => settingsFn(beastSynthSettings(undefined, variantPrograms(v)), beastWaves(undefined, variantPrograms(v)),
     `beast_synth_settings_${v.name}`, `SERDE_HASH_${v.name.toUpperCase()}`,
-    `${FAMILIES[v.type].name} Beasts${v.mega ? ' that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65)' : ''}.`));
+    `${v.yeti ? 'The Yeti (a Brute): also Pulse 12.5% Pluck (13), its avalanche' : FAMILIES[v.type].name + ' Beasts'}${v.mega ? ' that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65)' : ''}.`));
   const arm = (fn) => SETTINGS_VARIANTS.map((v) => `        (${v.type}, ${v.mega}) => ${fn(v)},`).join('\n');
   return `//! The Beast sound settings for onchain-midi-player: for each Beast type, its family of TinyChip
 //! presets (the programs Beast MIDI selects, in their own program slots) and the chip drum kit,
@@ -268,6 +272,24 @@ pub fn beast_synth_settings_serde_hash(beast_type: u8, mega: bool) -> felt252 {
     match (beast_type, mega) {
 ${arm((v) => `SERDE_HASH_${v.name.toUpperCase()}`)}
         _ => panic!("invalid type"),
+    }
+}
+
+/// The Yeti's settings (species 68): the Brute family and its avalanche's Pulse 12.5% Pluck (13).
+pub fn yeti_synth_settings(mega: bool) -> TinySynthSettings {
+    if mega {
+        beast_synth_settings_yeti_mega()
+    } else {
+        beast_synth_settings_yeti()
+    }
+}
+
+/// The Poseidon hash of \`yeti_synth_settings(mega)\`'s Serde.
+pub fn yeti_synth_settings_serde_hash(mega: bool) -> felt252 {
+    if mega {
+        SERDE_HASH_YETI_MEGA
+    } else {
+        SERDE_HASH_YETI
     }
 }
 
@@ -313,14 +335,14 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (process.argv[2] === '--cairo') {
     const out = fileURLToPath(new URL('../../../../contracts/beast_sound/src/synth_settings.cairo', import.meta.url));
     writeFileSync(out, settingsCairo());
-    console.log(`${out}: ${SETTINGS_VARIANTS.map((v) => v.name).join(', ')}`);
+    console.log(`${out}: ${[...SETTINGS_VARIANTS, ...YETI_VARIANTS].map((v) => v.name).join(', ')}`);
     process.exit(0);
   }
   // the six settings as JSON (onchain-midi-player's scripts/preview.mjs --settings)
   const dir = fileURLToPath(new URL('./settings/', import.meta.url));
   mkdirSync(dir, { recursive: true });
-  for (const v of SETTINGS_VARIANTS) {
-    const st = beastSynthSettings(undefined, beastPrograms(v.type, v.mega));
+  for (const v of [...SETTINGS_VARIANTS, ...YETI_VARIANTS]) {
+    const st = beastSynthSettings(undefined, variantPrograms(v));
     writeFileSync(dir + v.name + '.json', JSON.stringify(st, null, 1) + '\n');
     console.log(`settings/${v.name}.json: ${st.timbres.length} timbres, ${st.waves.length} waves`);
   }

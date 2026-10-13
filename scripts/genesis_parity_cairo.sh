@@ -6,7 +6,7 @@
 # A watchdog stops a batch that grows past $2 MB of resident memory (default 6000).
 #   sh scripts/genesis_parity_cairo.sh /tmp/gen.txt && node scripts/genesis_parity.mjs /tmp/gen.txt
 out=${1:-/tmp/gen.txt}; limit_mb=${2:-6000}; fixture=${FIXTURE:-genesis_parity_fixture_}
-tag=$(case "$fixture" in genesis_parity_fixture_) echo GEN;; seeded_parity_fixture_) echo SEED;; *) echo NAME;; esac)
+if [ "$fixture" = genesis_parity_fixture_ ]; then tag=GEN; elif [ "$fixture" = seeded_parity_fixture_ ]; then tag=SEED; elif [ "$fixture" = drift_parity_fixture_ ]; then tag=DRIFT; else tag=NAME; fi
 cd "$(dirname "$0")/../contracts/beast_music" || exit 2
 : > "$out"
 scarb build >/dev/null 2>&1 || { echo "build failed"; exit 2; }

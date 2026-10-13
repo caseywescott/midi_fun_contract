@@ -5,9 +5,12 @@
 //! Ignored (heavy): run in batches with scripts/genesis_parity_cairo.sh
 //! (FIXTURE=name_parity_fixture_).
 use crate::composition::beast_v3_sound::{BeastV3LiveState, PackableBeastV3};
+use crate::composition::drift::{DriftClock, drift_anchor_blocks};
 use crate::composition::genesis::{species_tier, species_type};
 use crate::composition::params_pack::{composer_inputs, pack_inputs};
-use crate::composition::tracks::{TRACK_SOUND_CHECK, TRACK_SPECIAL_SONG, track_midi};
+use crate::composition::tracks::{
+    TRACK_SOUND_CHECK, TRACK_SPECIAL_SONG, TRACK_SPECIES_SONG, track_midi,
+};
 
 /// Special name k (0 or 1) of species `id` as a name variant 1..=1242.
 fn name_of(id: u64, k: u64) -> u32 {
@@ -34,7 +37,9 @@ fn name_parity_range(lo: u64, hi: u64) {
                 tier: species_tier(id),
                 beast_type: species_type(id),
             };
-            let midi = track_midi(pack_inputs(composer_inputs(b, live)), TRACK_SPECIAL_SONG, 0);
+            let midi = track_midi(
+                pack_inputs(composer_inputs(b, live)), TRACK_SPECIAL_SONG, 0, Option::None,
+            );
             println!(
                 "NAME case={} name={} shiny={} midi_len={} midi={}",
                 id,
@@ -202,7 +207,9 @@ fn yeti_parity(names: Span<u32>) {
             tier: species_tier(68),
             beast_type: species_type(68),
         };
-        let midi = track_midi(pack_inputs(composer_inputs(b, live)), TRACK_SPECIAL_SONG, 0);
+        let midi = track_midi(
+            pack_inputs(composer_inputs(b, live)), TRACK_SPECIAL_SONG, 0, Option::None,
+        );
         println!(
             "YETI case=68 name={} shiny={} midi_len={} midi={}",
             nv,
@@ -264,7 +271,9 @@ fn sound_check_parity(lo: u64, hi: u64) {
                 tier: species_tier(id),
                 beast_type: species_type(id),
             };
-            let midi = track_midi(pack_inputs(composer_inputs(b, live)), TRACK_SOUND_CHECK, 0);
+            let midi = track_midi(
+                pack_inputs(composer_inputs(b, live)), TRACK_SOUND_CHECK, 0, Option::None,
+            );
             println!(
                 "SC case={} name={} shiny={} midi_len={} midi={}",
                 id,
@@ -336,7 +345,7 @@ fn seeded_parity_range(lo: u64, hi: u64) {
                 beast_type: species_type(id),
             };
             let seed = seed_of(id, k);
-            let midi = track_midi(pack_inputs(composer_inputs(b, live)), 3, seed);
+            let midi = track_midi(pack_inputs(composer_inputs(b, live)), 3, seed, Option::None);
             println!(
                 "SEED case={} name={} shiny={} seed={} midi_len={} midi={}",
                 id,
@@ -483,4 +492,212 @@ fn seeded_parity_fixture_17() {
 #[available_gas(1000000000000)]
 fn seeded_parity_fixture_18() {
     seeded_parity_range(73, 75);
+}
+
+/// Drift parity: per species, the Species Song on one day and a named, shiny bought track on a
+/// later day, with the lab's stand-in block hashes (poseidon('LAB_BLOCK_HASH', block));
+/// scripts/drift_parity.mjs checks the DRIFT lines.
+fn lab_block_hash(block: u64) -> felt252 {
+    core::poseidon::poseidon_hash_span(array!['LAB_BLOCK_HASH', block.into()].span())
+}
+
+fn lab_clock(day: u64) -> DriftClock {
+    let (d, w, m) = drift_anchor_blocks(day);
+    DriftClock {
+        day,
+        day_hash: lab_block_hash(d),
+        week_hash: lab_block_hash(w),
+        month_hash: lab_block_hash(m),
+    }
+}
+
+fn drift_parity_range(lo: u64, hi: u64) {
+    let live = BeastV3LiveState {
+        adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1,
+    };
+    let mut id: u64 = lo;
+    while id <= hi {
+        let mut k: u64 = 0;
+        while k <= 1 {
+            let nv: u32 = if k == 1 {
+                name_of(id, 1)
+            } else {
+                0
+            };
+            let (prefix, suffix): (u8, u8) = if nv == 0 {
+                (0, 0)
+            } else {
+                (((nv - 1) / 18 + 1).try_into().unwrap(), ((nv - 1) % 18 + 1).try_into().unwrap())
+            };
+            let b = PackableBeastV3 {
+                id,
+                prefix,
+                suffix,
+                level: 1,
+                health: 100,
+                shiny: k.try_into().unwrap(),
+                animated: 0,
+                tier: species_tier(id),
+                beast_type: species_type(id),
+            };
+            let day = if k == 0 {
+                1 + (id * 13) % 400
+            } else {
+                31 + (id * 29) % 600
+            };
+            let (track, seed) = if k == 0 {
+                (TRACK_SPECIES_SONG, 0)
+            } else {
+                (3, seed_of(id, 1))
+            };
+            let midi = track_midi(
+                pack_inputs(composer_inputs(b, live)), track, seed, Option::Some(lab_clock(day)),
+            );
+            println!(
+                "DRIFT case={} name={} shiny={} seed={} day={} midi_len={} midi={}",
+                id,
+                nv,
+                k,
+                seed,
+                day,
+                *midi.at(0),
+                core::poseidon::poseidon_hash_span(midi.span()),
+            );
+            k += 1;
+        }
+        id += 1;
+    }
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_00() {
+    drift_parity_range(1, 4);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_01() {
+    drift_parity_range(5, 8);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_02() {
+    drift_parity_range(9, 12);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_03() {
+    drift_parity_range(13, 16);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_04() {
+    drift_parity_range(17, 20);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_05() {
+    drift_parity_range(21, 24);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_06() {
+    drift_parity_range(25, 28);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_07() {
+    drift_parity_range(29, 32);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_08() {
+    drift_parity_range(33, 36);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_09() {
+    drift_parity_range(37, 40);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_10() {
+    drift_parity_range(41, 44);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_11() {
+    drift_parity_range(45, 48);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_12() {
+    drift_parity_range(49, 52);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_13() {
+    drift_parity_range(53, 56);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_14() {
+    drift_parity_range(57, 60);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_15() {
+    drift_parity_range(61, 64);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_16() {
+    drift_parity_range(65, 68);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_17() {
+    drift_parity_range(69, 72);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn drift_parity_fixture_18() {
+    drift_parity_range(73, 75);
 }

@@ -13,7 +13,8 @@ use crate::composition::beast_trait_map::{WEAKNESS_BLADE, WEAKNESS_MAGIC};
 use crate::composition::beast_v3_sound::{
     BEAST_TYPE_BRUTE, BEAST_TYPE_HUNTER, BEAST_TYPE_MAGIC, PackableBeastV3,
 };
-use crate::composition::genesis::{genesis_smf_bytes, name_track_smf_bytes, seeded_track_smf_bytes};
+use crate::composition::drift::DriftClock;
+use crate::composition::genesis::song_smf_bytes;
 use crate::composition::params_pack::{ComposerInputs, unpack_inputs};
 use crate::composition::sound_check::sound_check_smf_bytes;
 
@@ -61,26 +62,28 @@ pub fn beast_of(x: ComposerInputs) -> PackableBeastV3 {
 }
 
 /// Track `track` of the Beast whose composer inputs are `packed`, as a self-contained MIDI file.
-/// `seed` is a bought track's seed (tracks 3+; ignored by tracks 0-2).
-pub fn track_smf_bytes(packed: felt252, track: u32, seed: felt252) -> Array<u8> {
+/// `seed` is a bought track's seed (tracks 3+; ignored by tracks 0-2); `drift` the day of drift
+/// to play (`drift.cairo`; none = as written; the Sound Check never drifts).
+pub fn track_smf_bytes(
+    packed: felt252, track: u32, seed: felt252, drift: Option<DriftClock>,
+) -> Array<u8> {
     let beast = beast_of(unpack_inputs(packed));
-    if track == TRACK_SPECIES_SONG {
-        return genesis_smf_bytes(beast);
-    }
-    if track == TRACK_SPECIAL_SONG {
-        if beast.prefix == 0 {
-            return genesis_smf_bytes(beast);
-        }
-        return name_track_smf_bytes(beast, beast.prefix, beast.suffix);
-    }
     if track == TRACK_SOUND_CHECK {
         return sound_check_smf_bytes(beast);
     }
+    if track == TRACK_SPECIES_SONG || (track == TRACK_SPECIAL_SONG && beast.prefix == 0) {
+        return song_smf_bytes(beast, 0, 0, 0, drift);
+    }
+    if track == TRACK_SPECIAL_SONG {
+        return song_smf_bytes(beast, beast.prefix, beast.suffix, 0, drift);
+    }
     assert(seed != 0, 'bought track needs a seed');
-    seeded_track_smf_bytes(beast, beast.prefix, beast.suffix, seed)
+    song_smf_bytes(beast, beast.prefix, beast.suffix, seed, drift)
 }
 
 /// The same, packed 31 bytes per felt after the byte length.
-pub fn track_midi(packed: felt252, track: u32, seed: felt252) -> Array<felt252> {
-    midi::pack::to_felt252_array(track_smf_bytes(packed, track, seed).span())
+pub fn track_midi(
+    packed: felt252, track: u32, seed: felt252, drift: Option<DriftClock>,
+) -> Array<felt252> {
+    midi::pack::to_felt252_array(track_smf_bytes(packed, track, seed, drift).span())
 }

@@ -793,7 +793,8 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   if (full) override.params = { ...(override.params || {}), use_countersubject: true };
   const off = epoch === null || epoch === undefined;
   const anchor = blockHashes ? dayAnchor() : null;
-  const d = off ? { knob: null, label: 'off' } : driftMode === 'v2' ? drift2(b, epoch, anchor) : drift(b, epoch, anchor);
+  const ent = name ? { ...b, ...nm } : b; // drift belongs to the Beast: its species and special name
+  const d = off ? { knob: null, label: 'off' } : driftMode === 'v2' ? drift2(ent, epoch, anchor) : drift(ent, epoch, anchor);
   if (d.v === 2 && d.rhythm !== null) override.rhythmSeed = d.rhythm;
   const base = v11.render(cb, neutral, { ...V11, override });
   const tr = base.v11.trajectory;
@@ -805,7 +806,10 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     again = true;
     if (d.dayKnob === 0) override.flipSide = !override.flipSide;
     else if (d.dayKnob === 1) override.tr = { ...override.tr, direction: tr.direction === 0 ? 1 : -tr.direction };
-    else override.tempo_us = Math.round(60e6 / (60e6 / (override.tempo_us || base.params.tempo_us) + d.delta));
+    else { // the tempo nudged by delta BPM: 60e6 / (60e6 / T + delta), rounded half up, in integers (as Cairo)
+      const T = override.tempo_us || base.params.tempo_us, D = 60e6 + d.delta * T;
+      override.tempo_us = Math.floor((2 * 60e6 * T + D) / (2 * D));
+    }
   }
   const r = again ? v11.render(cb, neutral, { ...V11, override }) : base;
   let drums = d.knob === 3 ? (length, sec, tier, mega) => drumEvents(length, sec, tier >= 5 ? 4 : tier + 1, mega) : null;

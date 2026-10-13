@@ -30,6 +30,7 @@ use crate::composition::beast_v11::{
 use crate::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, map_v3_beast_to_composition_params,
 };
+use crate::composition::drift::{DriftClock, layered_drift, nudge_tempo};
 use crate::composition::full_midi::{
     Arrangement, Voicing, beast_form_to_full_smf_bytes_arranged, mega_lead_pick,
 };
@@ -273,7 +274,7 @@ fn tie_repeats(
 /// the default swaps), with the mega arrangement when the Beast is shiny. Species past 75 compose
 /// with their own tier and type and their own theme.
 pub fn genesis_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
-    compose(beast, 0, 0, 0)
+    compose(beast, 0, 0, 0, Option::None)
 }
 
 /// A name track (the Beast Special Song): `sampleTrackMidi` at special name (prefix, suffix), seed
@@ -282,7 +283,7 @@ pub fn genesis_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
 /// ornament style played in its real scale, and trills when the name's style has them.
 pub fn name_track_smf_bytes(beast: PackableBeastV3, prefix: u8, suffix: u8) -> Array<u8> {
     assert(prefix >= 1 && prefix <= 69 && suffix >= 1 && suffix <= 18, 'invalid special name');
-    compose(beast, prefix, suffix, 0)
+    compose(beast, prefix, suffix, 0, Option::None)
 }
 
 /// A bought track: `sampleTrackMidi` with the track's seed (a block hash, never 0) on the Beast's
@@ -295,7 +296,17 @@ pub fn seeded_track_smf_bytes(
 ) -> Array<u8> {
     assert(seed != 0, 'seed 0 is the Genesis seed');
     assert(prefix <= 69 && suffix <= 18 && (prefix == 0) == (suffix == 0), 'invalid special name');
-    compose(beast, prefix, suffix, seed)
+    compose(beast, prefix, suffix, seed, Option::None)
+}
+
+/// Any of a Beast's songs on a day of drift: the Genesis Track (prefix 0, seed 0), a name track
+/// (seed 0) or a bought track (a seed), with the layered drift of `clock` (`drift.cairo`; none =
+/// as written). The drift belongs to the Beast (its species and special name).
+pub fn song_smf_bytes(
+    beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
+) -> Array<u8> {
+    assert(prefix <= 69 && suffix <= 18 && (prefix == 0) == (suffix == 0), 'invalid special name');
+    compose(beast, prefix, suffix, seed, drift)
 }
 
 /// A track's treatment from its seed (lab.js `trackTreatment`).
@@ -405,7 +416,9 @@ fn seeded_pick(sums: Span<u64>, counts: Span<u64>, count: u32, seed: felt252) ->
 }
 
 /// The Genesis Track (prefix 0, seed 0), a name track (seed 0) or a bought track (a seed).
-fn compose(beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252) -> Array<u8> {
+fn compose(
+    beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
+) -> Array<u8> {
     let named = prefix != 0;
     let seeded = seed != 0;
     let tm = if seeded {
@@ -457,7 +470,7 @@ fn compose(beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252) -> Arr
         Option::Some(t) => t.sections,
         Option::None => tier_sections(tier),
     };
-    let (rhythm_seed, flip_side, development, direction, spacing) = match tm {
+    let (mut rhythm_seed, mut flip_side, development, mut direction, spacing) = match tm {
         Option::Some(t) => (
             Option::Some(t.rhythm_seed),
             Option::Some(t.flip_side),
@@ -467,6 +480,30 @@ fn compose(beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252) -> Arr
         ),
         Option::None => (Option::None, Option::None, Option::None, Option::None, Option::None),
     };
+    // the day's drift: the month's rhythm, the day's knob (key plan side or episode direction; the
+    // tempo is nudged below), the week's channel order
+    let dr = match drift {
+        Option::Some(c) => Option::Some(layered_drift(src, prefix, suffix, c)),
+        Option::None => Option::None,
+    };
+    if let Option::Some(d) = dr {
+        if let Option::Some(r) = d.rhythm {
+            rhythm_seed = Option::Some(r);
+        }
+        if d.day_knob == 0 {
+            flip_side = Option::Some(flip_side != Option::Some(true));
+        } else if d.day_knob == 1 {
+            let now: i32 = match direction {
+                Option::Some(x) => x,
+                Option::None => 0 // no history: the episodes alternate
+            };
+            direction = Option::Some(if now == 0 {
+                1
+            } else {
+                -now
+            });
+        }
+    }
     let ov = if named {
         let kn = map_v3_beast_to_composition_params(PackableBeastV3 { prefix, suffix, ..g }, live);
         V11Override {
@@ -511,10 +548,21 @@ fn compose(beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252) -> Arr
     // the Genesis channels, then ties in the inner voices (statistics of the full score: the kept
     // voices' are the same, since a channel is kept or dropped whole)
     let (sums, counts) = voice_stats(score.events.span());
-    let picked = if seeded {
-        seeded_pick(sums.span(), counts.span(), seeded_channels(seed), seed)
+    let count = if seeded {
+        seeded_channels(seed)
     } else {
-        genesis_pick(sums.span(), counts.span(), genesis_channels(tier))
+        genesis_channels(tier)
+    };
+    let rotate = match dr {
+        Option::Some(d) => d.rotate,
+        Option::None => Option::None,
+    };
+    let picked = if let Option::Some(r) = rotate {
+        seeded_pick(sums.span(), counts.span(), count, r)
+    } else if seeded {
+        seeded_pick(sums.span(), counts.span(), count, seed)
+    } else {
+        genesis_pick(sums.span(), counts.span(), count)
     };
     let mut events = tie_repeats(
         score.events.span(), picked.span(), sums.span(), counts.span(), score.section_ticks,
@@ -538,13 +586,19 @@ fn compose(beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252) -> Arr
         section_count: p.section_count,
         length_ticks: p.section_count.into() * score.section_ticks,
     };
+    let mut tempo_us = if yeti {
+        YETI_ROCK_TEMPO_US
+    } else {
+        p.tempo_us
+    };
+    if let Option::Some(d) = dr {
+        if d.day_knob >= 2 {
+            tempo_us = nudge_tempo(tempo_us, d.delta_bpm);
+        }
+    }
     beast_form_to_full_smf_bytes_arranged(
         @form,
-        if yeti {
-            YETI_ROCK_TEMPO_US
-        } else {
-            p.tempo_us
-        },
+        tempo_us,
         p.tier,
         Option::Some(
             Voicing {

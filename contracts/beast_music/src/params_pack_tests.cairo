@@ -7,7 +7,7 @@ use crate::composition::beast_v3_sound::{
 };
 use crate::composition::genesis::{species_tier, species_type};
 use crate::composition::params_pack::{ComposerInputs, composer_inputs, pack_inputs, unpack_inputs};
-use crate::composition::tracks::{TRACK_SOUND_CHECK, beast_of, track_smf_bytes};
+use crate::composition::tracks::{beast_of, track_smf_bytes};
 
 fn same(a: BeastCompositionParams, b: BeastCompositionParams) -> bool {
     a.species_id == b.species_id
@@ -212,12 +212,6 @@ fn warlock() -> felt252 {
         beast_type: 0,
     };
     pack_inputs(composer_inputs(b, live(0, 0, 0)))
-}
-
-#[test]
-#[should_panic(expected: 'sound check not composed yet')]
-fn track_sound_check_not_yet() {
-    track_smf_bytes(warlock(), TRACK_SOUND_CHECK);
 }
 
 #[test]

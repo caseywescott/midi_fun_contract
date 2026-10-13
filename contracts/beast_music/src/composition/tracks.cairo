@@ -1,7 +1,7 @@
 //! A Beast's tracks, composed from its stored composer inputs (`params_pack`), not its token ID.
 //!
 //! Track numbers (provisional, until the multi-track interface lands):
-//!   0  Sound Check         a scale run through the Beast's presets (not composed yet)
+//!   0  Sound Check         the Beast's scale through each of its presets (one per Beast)
 //!   1  Species Song        the Genesis Track: every Beast of a species shares it (default swaps)
 //!   2  Beast Special Song  the name track: the species' theme in the name's key and style;
 //!                          a Beast without a special name plays its Species Song
@@ -14,6 +14,7 @@ use crate::composition::beast_v3_sound::{
 };
 use crate::composition::genesis::{genesis_smf_bytes, name_track_smf_bytes};
 use crate::composition::params_pack::{ComposerInputs, unpack_inputs};
+use crate::composition::sound_check::sound_check_smf_bytes;
 
 pub const TRACK_SOUND_CHECK: u32 = 0;
 pub const TRACK_SPECIES_SONG: u32 = 1;
@@ -70,7 +71,9 @@ pub fn track_smf_bytes(packed: felt252, track: u32) -> Array<u8> {
         }
         return name_track_smf_bytes(beast, beast.prefix, beast.suffix);
     }
-    assert(track != TRACK_SOUND_CHECK, 'sound check not composed yet');
+    if track == TRACK_SOUND_CHECK {
+        return sound_check_smf_bytes(beast);
+    }
     panic!("bought tracks not composed yet")
 }
 

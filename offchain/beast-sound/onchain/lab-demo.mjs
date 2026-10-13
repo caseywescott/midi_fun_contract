@@ -75,7 +75,7 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div class="ctl"><button id="play">&#9654; Play</button><button id="stop" class="stop">&#9632; Stop</button></div>
 <label for="speed" style="margin-top:12px">Art speed (one sprite frame per)</label><select id="speed"><option value="auto" selected>Auto: eighth note, quarter above 150 BPM</option><option value="0.5">Eighth note</option><option value="1">Quarter note</option><option value="2">Half note</option></select>
 <p class="note" id="artinfo"></p></div></div>
-<div class="card"><div class="tabs"><button id="t-tracks" class="on">Tracks</button><button id="t-genesis">Genesis</button><button id="t-drift">Drift</button><button id="t-yeti">Yeti</button></div>
+<div class="card"><div class="tabs"><button id="t-tracks" class="on">Tracks</button><button id="t-genesis">Genesis</button><button id="t-drift">Drift</button><button id="t-yeti">Yeti</button><button id="t-sc">Sound Check</button></div>
 <div id="p-tracks" class="panel on" style="margin-top:14px">
 <label for="name">Special name: <b id="namev">Genesis Track</b></label>
 <div class="row" style="grid-template-columns:auto 1fr auto 84px;align-items:center;gap:8px"><button id="name-down" class="mini" title="Previous name (\u2190)">\u2212</button><input type="range" id="name" min="0" max="1242" value="0"><button id="name-up" class="mini" title="Next name (\u2192)">+</button><input type="number" id="namen" min="0" max="1242" value="0"></div>
@@ -114,6 +114,8 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <div class="ctl" style="margin-top:0"><button id="gall">&#9654; Play all 75 (one loop each)</button><button id="gprev" class="stop">&#9664; Previous</button><button id="gnext" class="stop">Next &#9654;</button></div>
 <p class="note">Every species' Genesis Track (special name 0, seed 0) exactly as the lab plays it by default, the proposal in the Genesis Tracks doc. Tap a row to play it; Play all steps through the 75, one full loop each. The Shiny box above adds the mega sound.</p>
 <div class="glist" id="glist"></div></div>
+<div id="p-sc" class="panel" style="margin-top:14px"><label for="scname">Special name (0 = none: the species' spread key)</label><input type="number" id="scname" min="0" max="1242" value="0">
+<p class="note">Track 0, the Sound Check: the Beast's scale through each of its presets, a block each (four quarters on a pattern the Beast picks, a held note, four staccato blips an octave up), then the drum kit. The presets are the type's three leads and three plucks, plus the two mega leads when Shiny is ticked, from a start the Beast picks. The key is the special name's (or the species' spread key), in its real scale. One per Beast: species, special name and shiny. Matches Cairo (sound_check.cairo).</p></div>
 <div id="p-yeti" class="panel" style="margin-top:14px"><div class="chk">
 <label><input type="checkbox" id="y-develop"><span>Develop<small>melody: the first bar's motif, a third higher, upside down to the high point, then down to the tonic (same rhythm)</small></span></label>
 <label><input type="checkbox" id="y-ornaments" checked><span>Ornaments<small>sixteenth-note mordents, trill starts, turns and runs inside the melody notes; every note still starts on its beat</small></span></label>
@@ -167,6 +169,7 @@ function saveHash() {
   { const enc = (m) => Object.keys(m).map(Number).sort((a, c) => a - c).map((k) => k + '.' + m[k]).join(','); const cur = enc(SWAPS); if (cur !== enc(L.GENESIS_SWAPS)) q.gs = cur || 'none'; }
   { const ids = Object.keys(PICKS).filter((k) => (PICKS[k] || 0) !== (L.GENESIS_THEMES[k] || 0)); if (ids.length) q.gm = ids.map((k) => k + '.' + (PICKS[k] || 0)).join(','); }
   if (mode === 'drift') q.day = $('day').value;
+  if (mode === 'sc') q.scn = $('scname').value;
   if (mode === 'yeti') q.yeti = ['y-develop', 'y-ornaments', 'y-32nds', 'y-rock', 'y-yodel', 'y-avalanche', 'y-stomp', 'y-dark', 'y-varied'].filter((id) => $(id).checked).map((id) => id.slice(2)).join('.');
   if (mode === 'yeti' && $('y-darkmode').value !== 'aeolian') q.ydm = $('y-darkmode').value;
   try { history.replaceState(null, '', '#' + new URLSearchParams(q).toString()); } catch {}
@@ -196,7 +199,8 @@ function loadHash() {
   if (q.has('day')) { $('day').value = q.get('day'); $('dayv').textContent = age(+$('day').value); }
   if (q.has('yeti')) { const on = q.get('yeti').split('.'); for (const k of ['develop', 'ornaments', '32nds', 'rock', 'yodel', 'avalanche', 'stomp', 'dark', 'varied']) $('y-' + k).checked = on.includes(k); }
   if (q.get('ydm') && [...$('y-darkmode').options].some((o) => o.value === q.get('ydm'))) $('y-darkmode').value = q.get('ydm');
-  return ['genesis', 'drift', 'yeti'].includes(q.get('tab')) ? q.get('tab') : 'tracks';
+  if (q.has('scn')) $('scname').value = q.get('scn');
+  return ['genesis', 'drift', 'yeti', 'sc'].includes(q.get('tab')) ? q.get('tab') : 'tracks';
 }
 function showName() { const n = +$('name').value; $('namev').textContent = n ? '#' + n + ' ' + nameText(n) : 'Genesis Track'; }
 BEASTS.forEach((x, i) => $('beast').add(new Option(x.beast.id + '. ' + x.name + '  (tier ' + x.beast.tier + ' ' + TYPES[x.beast.beast_type] + ')', i)));
@@ -403,6 +407,10 @@ function make() {
   } else if (mode === 'drift') {
     args = { epoch: +$('day').value, blockHashes: $('bh').checked };
     head = 'day ' + args.epoch + ': ' + L.drift(b, args.epoch, args.blockHashes ? L.dayAnchor() : null).label + (args.blockHashes ? ' \u00b7 epoch ' + (args.epoch - 1) + ' from block ' + L.epochFirstBlock(args.epoch - 1).toLocaleString() + ' (hash 0x' + L.dayAnchor()(args.epoch).toString(16).slice(0, 10) + '\u2026, stand-in)' : ' \u00b7 counter only');
+  } else if (mode === 'sc') {
+    const n = Math.min(1242, Math.max(0, Math.round(+$('scname').value) || 0));
+    out = L.labMidi('soundcheck', b, x.live, { name: n }, BS.engine, BS.v11);
+    head = 'Sound Check \u00b7 ' + (n ? '#' + n + ' ' + nameText(n) + ' ' : '') + x.name + ' \u00b7 ' + out.info.key + ' \u00b7 presets ' + out.info.presets.map((p) => p + ' ' + (NAMES[p] || '')).join(', ') + ' \u00b7 pattern ' + out.info.pattern.join('-') + ', held degree ' + (out.info.held + 1);
   } else {
     args = { ideas: { develop: $('y-develop').checked, ornaments: $('y-ornaments').checked, thirtyseconds: $('y-32nds').checked, rock: $('y-rock').checked && !$('y-stomp').checked, yodel: $('y-yodel').checked, avalanche: $('y-avalanche').checked, stomp: $('y-stomp').checked, dark: $('y-dark').checked ? $('y-darkmode').value : false, varied: $('y-varied').checked } };
     head = 'Yeti ideas: ' + Object.entries(args.ideas).filter(([, on]) => on).map(([k, v]) => (k === 'dark' ? 'dark (' + v + ')' : k)).join(' + ') + (b.id !== 68 ? ' (on a non-Yeti)' : '');
@@ -482,11 +490,11 @@ function fillGenesis() {
 function refresh() { if (playing) start(); else { make(); renderArt(false); } }
 function tab(m) {
   if (m !== 'genesis') { playAll = false; clearTimeout(advanceTimer); }
-  mode = m; for (const t of ['tracks', 'genesis', 'drift', 'yeti']) { $('t-' + t).classList.toggle('on', t === m); $('p-' + t).classList.toggle('on', t === m); }
+  mode = m; for (const t of ['tracks', 'genesis', 'drift', 'yeti', 'sc']) { $('t-' + t).classList.toggle('on', t === m); $('p-' + t).classList.toggle('on', t === m); }
   if (m === 'yeti' && BEASTS[+$('beast').value].beast.id !== 68) { const i = BEASTS.findIndex((x) => x.beast.id === 68); if (i >= 0) $('beast').value = i; }
   refresh();
 }
-for (const t of ['tracks', 'genesis', 'drift', 'yeti']) $('t-' + t).onclick = () => tab(t);
+for (const t of ['tracks', 'genesis', 'drift', 'yeti', 'sc']) $('t-' + t).onclick = () => tab(t);
 $('gspread').onchange = () => { fillGenesis(); showPick(); refresh(); };
 $('gtruev').onchange = () => { $('truev').checked = $('gtruev').checked; refresh(); };
 $('truev').onchange = () => { $('gtruev').checked = $('truev').checked; refresh(); };
@@ -544,6 +552,7 @@ $('play').onclick = start;
 $('stop').onclick = () => { playAll = false; clearTimeout(advanceTimer); if (synth) synth.stopMIDI(); playing = false; stopFollowing(); drawRoll(null); };
 $('speed').onchange = () => renderArt(playing);
 $('beast').onchange = refresh;
+$('scname').onchange = refresh;
 $('day').oninput = () => { $('dayv').textContent = age(+$('day').value); refresh(); };
 for (const id of ['y-develop', 'y-ornaments', 'y-32nds', 'y-rock', 'y-yodel', 'y-avalanche', 'y-stomp', 'y-dark', 'y-varied']) $(id).onchange = refresh;
 $('y-darkmode').onchange = () => { $('y-dark').checked = true; refresh(); };

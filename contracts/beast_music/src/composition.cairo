@@ -11,5 +11,7 @@ pub mod genesis;
 pub mod invertible_counterpoint;
 pub mod melodic_canon;
 pub mod params_pack;
+pub mod sound_check;
 pub mod stretto;
 pub mod tracks;
+pub mod yeti;

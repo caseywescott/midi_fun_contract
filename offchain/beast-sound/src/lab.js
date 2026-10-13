@@ -10,7 +10,7 @@
 //
 // Every function is a pure function of its inputs, like the composer, so each can move to Cairo.
 import { poseidonHashMany } from './index.js';
-import { MEGA_ALL, beastFullMidi, beastInstruments, drumEvents } from './full_midi.js';
+import { FAMILIES, MEGA_ALL, MEGA_LEADS, beastFullMidi, beastInstruments, drumEvents } from './full_midi.js';
 
 const V11 = { keys: 'mode', even: true, traj: true };
 const P = 2n ** 251n + 17n * 2n ** 192n + 1n;
@@ -196,6 +196,9 @@ export function driftMidi(b, live, epoch, E, v11, anchor = null) {
 
 // ── specials: the Yeti (species 68) ───────────────────────────────────────────────────────────
 export const YETI = 68;
+/** The Yeti's tracks: the rock groove's tempo (175 BPM) and the avalanche's voice (past the six channels). */
+export const YETI_ROCK_TEMPO_US = 342857;
+export const YETI_AVALANCHE_VOICE = 6;
 export const YETI_IDEAS = {
   rock: 'Rock groove: 175 BPM, kick on 1 and 3, snare backbeat, eighth hats, crash and tom fill at every section (the #301 groove)',
   yodel: 'Yodel: the lead leaps an octave on every other note of each beat pair, chest voice to head voice',
@@ -325,16 +328,16 @@ function yetiOrnamentsVaried(events, r, b, E, fast) {
   const notes = events.filter((e) => e.voice_id === 0 && e.time < sec).sort((a, c) => a.time - c.time);
   if (notes.length < 2) return events;
   const P = yetiOrnamentProfile(b), busy = (r.params.ornament_density ?? 3) >= 4, h = beastHash(b, 7);
-  const roll = (i, salt) => (((h ^ Math.imul(i + 1, 2654435761) ^ Math.imul(salt, 40503)) >>> 0) % 1000) / 1000;
+  const roll = (i, salt) => ((h ^ Math.imul(i + 1, 2654435761) ^ Math.imul(salt, 40503)) >>> 0) % 1000; // 0..999 (integers, so Cairo can match it)
   const ok = notes.map((e, i) => e.duration >= 480 && i < notes.length - 1);
   const pick = new Set(), elig = notes.map((_, i) => i).filter((i) => ok[i]);
   const gap = Math.max(1, P.gap - (busy ? 1 : 0));
   if (P.placement === 'even') elig.forEach((i, k) => { if (k % gap === 0) pick.add(i); });
   else if (P.placement === 'bursts') { const cycle = P.burst + gap + 2; elig.forEach((i, k) => { if (k % cycle < P.burst) pick.add(i); }); }
-  else if (P.placement === 'long') elig.slice().sort((a, c) => notes[c].duration - notes[a].duration || a - c).slice(0, Math.ceil(elig.length * (busy ? 0.5 : 0.35))).forEach((i) => pick.add(i));
+  else if (P.placement === 'long') elig.slice().sort((a, c) => notes[c].duration - notes[a].duration || a - c).slice(0, Math.floor((elig.length * (busy ? 50 : 35) + 99) / 100)).forEach((i) => pick.add(i));
   else if (P.placement === 'strong') { const on = elig.filter((i) => notes[i].time % 960 === 0); on.forEach((i, k) => { if (k % (gap > 3 ? 2 : 1) === 0) pick.add(i); }); }
   else if (P.placement === 'barends') { const on = elig.filter((i) => notes[i].time % BAR >= 960 || (notes[i].time + notes[i].duration) % BAR === 0); on.forEach((i, k) => { if (k % 2 === 0 || busy) pick.add(i); }); }
-  else elig.forEach((i) => { if (roll(i, 1) < 0.08 + (busy ? 0.75 : 0.6) * (notes[i].time / sec)) pick.add(i); }); // swell
+  else elig.forEach((i) => { if (roll(i, 1) * sec < 80 * sec + (busy ? 750 : 600) * notes[i].time) pick.add(i); }); // swell: 8% rising by 75% (60%) of the section
   if (!pick.size && elig.length) pick.add(elig[0]);
   const weighted = P.figures.flatMap((f, k) => Array(3 - k).fill(f)); // 3:2:1
   const repl = new Map();
@@ -350,7 +353,7 @@ function yetiOrnamentsVaried(events, r, b, E, fast) {
     const alt = (n, o) => Array.from({ length: n }, (_, j) => seg(j % 2 ? o : e.pitch, S, j ? vel : e.velocity));
     const canRun = next && next.time === e.time + e.duration && Math.abs(sc.degree(next.pitch) - d) >= 2;
     // the figure: a weighted pick from the palette; a run needs a leap into the next note, else the next favourite
-    let f = weighted[Math.floor(roll(i, 2) * weighted.length)];
+    let f = weighted[Math.floor((roll(i, 2) * weighted.length) / 1000)];
     if (f === 'run' && !canRun) f = P.figures.find((x) => x !== 'run') ?? 'mordent';
     if (f === 'trill' && e.duration < 960 && !fast) f = 'upper';
     let fig;
@@ -401,6 +404,46 @@ const stompDrums = (length, sec, tier, mega) => {
   return base.sort((a, b) => a[0] - b[0]);
 };
 
+/** The Yeti's avalanche: the run down each section's closing chord on voice `ch` (see yetiMidi). */
+export function yetiAvalanche(events, r, E, ch, darkId = null) {
+  // the last half bar of each section: an arpeggio down two octaves in sixteenths through the chord
+  // that is sounding there (the pitch classes of the other voices in that half bar), from the bass
+  // note's pitch class two octaves above the home tonic's register down to it, so the run is in key and
+  // on the chord, whatever the section closes on; a bare unison or fifth is filled out to the triad the
+  // chord the key's scale gives it
+  const top = r.params.tonic_keynum + 24; // two octaves down to the tonic's octave above the home register, around the melody
+  const sec = r.form.section_ticks, sections = r.form.sections.length;
+  events = events.slice();
+  const ys = yetiScale(r, E);
+  const scale = Array.from({ length: 7 }, (_, d) => ys.pitch(d) % 12);
+  for (let s = 0; s < sections; s++) {
+    const end = s * sec + sec, start = end - 960;
+    const window = events.filter((e) => e.voice_id < ch && e.time < end && e.time + e.duration > start);
+    if (!window.length) continue;
+    // what sounds at the close (the last beat), falling back on the whole half bar
+    const closing = window.filter((e) => e.time + e.duration > end - 480);
+    const pcs = [...new Set((closing.length ? closing : window).map((e) => e.pitch % 12))], heard = [...new Set(window.map((e) => e.pitch % 12))];
+    // the chord: the key's triad that holds the most of what is sounding, preferring a perfect fifth (no
+    // diminished triad) and then the tonic, V, IV, VI, III, II, VII; a lone fifth in the bass reads as the
+    // chord above it (Eb alone in Ab Phrygian is the tonic chord, Ab-Cb-Eb)
+    const triad = (d) => [0, 2, 4].map((k) => scale[(d + k) % 7]);
+    const perfect = (d) => ((triad(d)[2] - triad(d)[0] + 12) % 12) === 7;
+    const pref = [0, 4, 3, 5, 2, 1, 6];
+    const cover = (d, set) => set.filter((q) => triad(d).includes(q)).length;
+    const minor = (d) => perfect(d) && ((triad(d)[1] - triad(d)[0] + 12) % 12) === 3;
+    const best = pref.filter((d) => darkId === null || d === 0 || minor(d)).slice().sort((a, c) => cover(c, pcs) - cover(a, pcs) || cover(c, heard) - cover(a, heard) || perfect(c) - perfect(a) || pref.indexOf(a) - pref.indexOf(c))[0];
+    const root = scale[best], chord = triad(best); // the run uses the triad only, never a passing note
+    let hi = top - (((top - root) % 12) + 12) % 12; // the highest pitch class of the root at or below top
+    const run = [];
+    for (let q = hi; q >= hi - 24; q--) if (chord.includes(q % 12)) run.push(q);
+    const n = Math.min(run.length, 8), picked = run.length <= 8 ? run : run.filter((_, k) => k % Math.ceil(run.length / 8) === 0 || k === run.length - 1).slice(-8);
+    if (picked[picked.length - 1] !== hi - 24) picked.push(hi - 24);
+    const notes = picked.slice(-Math.min(picked.length, 8)), t0 = end - notes.length * 120;
+    notes.forEach((q, i) => events.push({ time: t0 + i * 120, duration: 110, pitch: q, velocity: 112 - i * 4, voice_id: ch, role: 'avalanche' }));
+  }
+  return events;
+}
+
 /** Dark modes for the Yeti (canonical mode id -> its scale): Aeolian, harmonic minor, Locrian, Phrygian. */
 export const YETI_DARK = { aeolian: 7, harmonic: 8, locrian: 6, phrygian: 5 };
 
@@ -431,40 +474,8 @@ export function yetiMidi(b, live, ideas, E, v11) {
     stompDouble = { ch, low }; // plays the low voice's own preset, an octave down
   }
   if (ideas.avalanche) {
-    // the last half bar of each section: an arpeggio down two octaves in sixteenths through the chord
-    // that is sounding there (the pitch classes of the other voices in that half bar), from the bass
-    // note's pitch class two octaves above the home tonic's register down to it, so the run is in key and
-    // on the chord, whatever the section closes on; a bare unison or fifth is filled out to the triad the
-    // chord the key's scale gives it
-    const ch = maxV + 2, top = r.params.tonic_keynum + 24, I = E.internals; // two octaves down to the tonic's octave above the home register, around the melody
-    const ys = yetiScale(r, E);
-    const scale = Array.from({ length: 7 }, (_, d) => ys.pitch(d) % 12);
-    for (let s = 0; s < sections; s++) {
-      const end = s * sec + sec, start = end - 960;
-      const window = events.filter((e) => e.voice_id < ch && e.time < end && e.time + e.duration > start);
-      if (!window.length) continue;
-      // what sounds at the close (the last beat), falling back on the whole half bar
-      const closing = window.filter((e) => e.time + e.duration > end - 480);
-      const pcs = [...new Set((closing.length ? closing : window).map((e) => e.pitch % 12))], heard = [...new Set(window.map((e) => e.pitch % 12))];
-      // the chord: the key's triad that holds the most of what is sounding, preferring a perfect fifth (no
-      // diminished triad) and then the tonic, V, IV, VI, III, II, VII; a lone fifth in the bass reads as the
-      // chord above it (Eb alone in Ab Phrygian is the tonic chord, Ab-Cb-Eb)
-      const triad = (d) => [0, 2, 4].map((k) => scale[(d + k) % 7]);
-      const perfect = (d) => ((triad(d)[2] - triad(d)[0] + 12) % 12) === 7;
-      const pref = [0, 4, 3, 5, 2, 1, 6];
-      const cover = (d, set) => set.filter((q) => triad(d).includes(q)).length;
-      const minor = (d) => perfect(d) && ((triad(d)[1] - triad(d)[0] + 12) % 12) === 3;
-      const best = pref.filter((d) => darkId === null || d === 0 || minor(d)).slice().sort((a, c) => cover(c, pcs) - cover(a, pcs) || cover(c, heard) - cover(a, heard) || perfect(c) - perfect(a) || pref.indexOf(a) - pref.indexOf(c))[0];
-      const root = scale[best], chord = triad(best); // the run uses the triad only, never a passing note
-      let hi = top - (((top - root) % 12) + 12) % 12; // the highest pitch class of the root at or below top
-      const run = [];
-      for (let q = hi; q >= hi - 24; q--) if (chord.includes(q % 12)) run.push(q);
-      const n = Math.min(run.length, 8), picked = run.length <= 8 ? run : run.filter((_, k) => k % Math.ceil(run.length / 8) === 0 || k === run.length - 1).slice(-8);
-      if (picked[picked.length - 1] !== hi - 24) picked.push(hi - 24);
-      const notes = picked.slice(-Math.min(picked.length, 8)), t0 = end - notes.length * 120;
-      notes.forEach((q, i) => events.push({ time: t0 + i * 120, duration: 110, pitch: q, velocity: 112 - i * 4, voice_id: ch, role: 'avalanche' }));
-    }
-    programs[ch] = 13; // Pulse 12.5% Pluck: a bright, icy run
+    events = yetiAvalanche(events, r, E, maxV + 2, darkId);
+    programs[maxV + 2] = 13; // Pulse 12.5% Pluck: a bright, icy run
   }
   events.sort((a, c) => a.voice_id - c.voice_id || a.time - c.time);
   // keep each voice monophonic and in time order (the writer's contract)
@@ -576,6 +587,8 @@ function trackMidi(b, live, seed, epoch, E, v11, species) {
 // each species the key of a canonical name instead; 'proposed' adds genesisTempo (the Genesis Track
 // table's starting point), for comparing while the 75 Genesis Tracks are tuned.
 export const NAME_COUNT = 69 * 18;
+/** A special name's variant id (0 = none): 1 + (prefix - 1) * 18 + (suffix - 1). */
+export const nameVariant = (prefix, suffix) => (prefix === 0 ? 0 : 1 + (prefix - 1) * 18 + (suffix - 1));
 export const nameFromVariant = (n) => (n === 0 ? { prefix: 0, suffix: 0 } : { prefix: Math.floor((n - 1) / 18) + 1, suffix: ((n - 1) % 18) + 1 });
 export const genesisBeast = (b) => ({ ...b, prefix: 0, suffix: 0, level: BASE_LEVEL, health: BASE_HEALTH, shiny: 0, animated: 0 });
 
@@ -734,17 +747,19 @@ export function addFlourishes(form, day, key, style = {}) {
   return { form: { ...form, events: ev.filter((x) => x.duration > 0) }, added, share };
 }
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0, trueV = false, blockHashes = false } = {}, E, v11) {
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0, trueV = false, blockHashes = false, yeti = true } = {}, E, v11) {
   // seed 0 is the Genesis seed (0 is never a block hash): the Genesis rules, no seeded treatment, the
   // tier's fixed channel count, so the OG track of a species (name 0, seed 0) is known exactly
   if (seed === 0n || seed === 0) seed = null;
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
   const g = genesisBeast(b), nm = nameFromVariant(name);
   const t = seed === null || seed === undefined ? null : trackTreatment(seed);
-  // motif (Genesis only): theme candidate N, the motif (pitches and rhythm) that special name N would
-  // compose, on the Genesis Track's own key, ornament style and instruments; 0 = the species' own theme
+  // motif: theme candidate N, the motif (pitches and rhythm) that special name N would compose, on the
+  // track's own key, ornament style and instruments; 0 = the species' own theme. The species' picked
+  // theme plays on its Genesis Track and on every track of the species (name tracks and bought tracks
+  // keep the species' theme), so all of a species' tracks share it
   if (motif === 'default') motif = GENESIS_THEMES[b.id] || 0;
-  const cand = !name && motif > 0 ? nameFromVariant(Math.min(NAME_COUNT, motif)) : null;
+  const cand = (!name || theme === 'species') && motif > 0 ? nameFromVariant(Math.min(NAME_COUNT, motif)) : null;
   const cb = cand ? { ...g, ...cand } : name && theme === 'name' ? { ...g, ...nm } : g; // the Beast the composer sees (theme, register)
   // channels 'tier': v1.1's voices for the tier; 'rarity' or a forced count 3-6: the full six, filtered
   const full = channels !== 'tier';
@@ -758,7 +773,8 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   }
   if (name && theme === 'species') { // the name's key and ornament style on the species' theme
     const kp = E.mapV3({ ...g, ...nm }, neutral);
-    override.params = { mode_id: kp.mode_id, tonic_keynum: kp.tonic_keynum, register_band: kp.register_band, ornament_density: kp.ornament_density, _ornament: kp._ornament };
+    override.params = { mode_id: kp.mode_id, tonic_keynum: kp.tonic_keynum, register_band: kp.register_band, ornament_density: kp.ornament_density, _ornament: kp._ornament, name_variant_id: 0 };
+    if (MODE_SCALES[kp.mode_id]) override.scale = MODE_SCALES[kp.mode_id]; // the mode as named, as on the Genesis spread keys
     orn = kp._ornament;
   } else if (!name && (genesisKey === 'spread' || genesisKey === 'proposed')) {
     const kp = E.mapV3(spreadKeyBeast(g), neutral);
@@ -771,6 +787,8 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   if (!name && genesisKey === 'proposed') override.tempo_us = Math.round(60e6 / genesisTempo(b));
   if (bpm) override.tempo_us = Math.round(60e6 / bpm); // the page's tempo control
   if (trueV) override.trueDominant = true; // section ends close on a real (major) V
+  const yetiOn = yeti && b.id === YETI; // the Yeti special on every Yeti track (see below)
+  if (yetiOn && !bpm) override.tempo_us = YETI_ROCK_TEMPO_US;
   override.tr.trill = !!orn.allow_trill;
   if (full) override.params = { ...(override.params || {}), use_countersubject: true };
   const off = epoch === null || epoch === undefined;
@@ -801,13 +819,25 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   }
   let tied = null;
   if (ties) { const t2 = tieRepeats(out.form, ties === 'all' ? 'all' : 'weak'); tied = t2.tied; out = { ...out, form: t2.form }; }
+  // the Yeti special: 16th-note ornaments placed by the track's own profile (its special name), the
+  // avalanche down each section's closing chord, and the rock groove at 175 BPM, on the track's key
+  let yetiMix = null;
+  if (yetiOn) {
+    const ys = { ...out, yetiScale: override.scale || null };
+    let ev = yetiOrnaments(out.form.events.map((e) => ({ ...e })), ys, name ? { ...b, ...nm } : b, E, false, true);
+    ev = yetiAvalanche(ev, ys, E, YETI_AVALANCHE_VOICE);
+    ev.sort((a, c) => a.voice_id - c.voice_id || a.time - c.time);
+    out = { ...out, form: { ...out.form, events: ev } };
+    if (drums !== false) drums = (length, s2) => rockDrums(length, s2);
+    yetiMix = { programs: { [YETI_AVALANCHE_VOICE]: 13 }, notLead: [YETI_AVALANCHE_VOICE] };
+  }
   // flourishes on the voices that play (after the channel filter)
   if (flourishDay) { fl = addFlourishes(out.form, flourishDay, H('BEAST_FLOURISH_KEY', entityHash(b), name, seed ?? 0n), orn); out = { ...out, form: fl.form }; }
   const info = { key: keyName(p), voices: p.voice_count, sections: p.section_count, tempo: Math.round(60e6 / (override.tempo_us || p.tempo_us)), ...r.v11.trajectory,
     tied,
     flourishes: fl ? { count: fl.added.length, share: fl.share, notes: fl.added.flatMap((x) => (x.notes ? x.notes.map(([time, pitch]) => ({ voice: x.voice, time, pitch })) : [{ voice: x.voice, time: x.time, pitch: x.pitch }])), voices: [...new Set(fl.added.map((x) => x.voice))].length, shapes: fl.added.reduce((m, x) => ((m[x.shape] = (m[x.shape] || 0) + 1), m), {}) } : null,
     channels: playing ? playing.map((c, i) => (i === 1 && c !== 4 && c !== 'drums' ? 'low voice' : CHANNEL_NAMES[c])) : null };
-  return { midi: beastFullMidi(out, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums, mix, topLead }), drift: d, result: out, info };
+  return { midi: beastFullMidi(out, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums, mix, topLead, ...(yetiMix || {}) }), drift: d, result: out, info };
 }
 
 // ── the Genesis Track, as the lab plays it by default (and as the Cairo port must match) ─────────
@@ -823,6 +853,44 @@ export function genesisMidi(speciesId, shiny, E, v11, opts = {}) {
   const src = GENESIS_SWAPS[speciesId] || speciesId;
   const b = { id: src, prefix: 0, suffix: 0, level: 1, health: 100, shiny: shiny ? 1 : 0, animated: 0, tier: speciesTier(src), beast_type: speciesType(src) };
   return sampleTrackMidi(b, { species_count: 1 }, { ...GENESIS_DEFAULTS, ...opts }, E, v11);
+}
+
+// ── the Sound Check: a Beast's scale through each of its presets ──────────────────────────────────
+// Each preset gets a block of ten quarter notes: four quarters on the Beast's scale (a pattern picked
+// by the Beast), a held note, then four staccato blips an octave up; the drum kit closes it. The
+// presets are the Beast's family (three leads, three plucks) plus the two mega leads when shiny, from
+// a start picked by the Beast. The key is the Beast's own: its special name's key, or for a Beast
+// without one its species' spread key (as on its Species Song), in the mode's real scale. Its inputs
+// are the species, the special name and the shiny flag, all in the packed composer inputs.
+export const SOUND_CHECK_PATTERNS = [[0, 1, 2, 3], [0, 2, 4, 7], [7, 4, 2, 0], [0, 2, 1, 3]];
+export const SOUND_CHECK_KIT = [36, 38, 42, 46, 49, 50, 47, 45];
+const SC_BLOCK = 4800, SC_KIT_VOICE = 9;
+export function soundCheckMidi(b, E) {
+  const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1 };
+  const g = genesisBeast(b), named = b.prefix !== 0;
+  const kp = E.mapV3(named ? { ...g, prefix: b.prefix, suffix: b.suffix } : spreadKeyBeast(g), neutral);
+  const mode = !named && GENESIS_MODES[b.id] !== undefined ? GENESIS_MODES[b.id] : kp.mode_id;
+  const scale = MODE_SCALES[mode] ?? [0, 2, 3, 5, 7, 8, 10];
+  const tonic = kp.tonic_keynum;
+  const pitch = (d) => tonic + 12 * Math.floor(d / 7) + scale[((d % 7) + 7) % 7];
+  const h = low32(H('BEAST_SOUND_CHECK', b.id, nameVariant(b.prefix, b.suffix)));
+  const fam = FAMILIES[b.beast_type] ?? FAMILIES[0];
+  const presets = [...fam.leads, ...fam.plucks, ...(b.shiny ? MEGA_LEADS : [])];
+  const rot = h % presets.length, pattern = SOUND_CHECK_PATTERNS[(h >>> 8) % 4], held = (h >>> 12) % 2 ? 4 : 7;
+  const events = [], programs = {};
+  presets.forEach((_, v) => {
+    const t0 = v * SC_BLOCK;
+    programs[v] = presets[(v + rot) % presets.length];
+    pattern.forEach((d, k) => events.push({ time: t0 + k * 480, duration: 420, pitch: pitch(d), velocity: 100, voice_id: v }));
+    events.push({ time: t0 + 1920, duration: 1380, pitch: pitch(held), velocity: 96, voice_id: v });
+    [7, 9, 11, 14].forEach((d, k) => events.push({ time: t0 + 3360 + k * 240, duration: 60, pitch: pitch(d), velocity: 90, voice_id: v }));
+  });
+  const k0 = presets.length * SC_BLOCK;
+  SOUND_CHECK_KIT.forEach((key, k) => events.push({ time: k0 + k * 480, duration: 240, pitch: key, velocity: 100, voice_id: SC_KIT_VOICE }));
+  programs[SC_KIT_VOICE] = 0;
+  const length = k0 + SC_BLOCK;
+  const result = { beast: b, params: { tempo_us: 500000, tier: b.tier, species_id: b.id, name_variant_id: nameVariant(b.prefix, b.suffix) }, form: { events, section_ticks: length, sections: [0] } };
+  return { midi: beastFullMidi(result, (f) => f.section_ticks * f.sections.length, {}, { instruments: 'placeholder', programs, drums: false }), info: { key: keyName({ mode_id: mode, tonic_keynum: tonic }), presets: presets.map((_, v) => programs[v]), pattern, held } };
 }
 
 /** A simulated per-Beast auction: the offer's seed chain and a gradual Dutch auction price. */
@@ -847,5 +915,6 @@ export function labMidi(mode, b, live, args, E, v11) {
   if (mode === 'species') return speciesTrackMidi(b, live, args.seed, args.epoch, E, v11);
   if (mode === 'sample') return sampleTrackMidi(b, live, args, E, v11);
   if (mode === 'yeti') return { midi: yetiMidi(b, live, args.ideas, E, v11) };
+  if (mode === 'soundcheck') return soundCheckMidi({ ...b, ...nameFromVariant(args.name) }, E);
   throw new Error('mode ' + mode);
 }

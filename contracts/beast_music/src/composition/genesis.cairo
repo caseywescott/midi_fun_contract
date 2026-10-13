@@ -31,6 +31,10 @@ use crate::composition::full_midi::{
     Arrangement, Voicing, beast_form_to_full_smf_bytes_arranged, mega_lead_pick,
 };
 use crate::composition::melodic_canon::NoteEvent;
+use crate::composition::yeti::{
+    YETI, YETI_AVALANCHE_PROGRAM, YETI_AVALANCHE_VOICE, YETI_ROCK_TEMPO_US, yeti_avalanche,
+    yeti_key, yeti_ornaments,
+};
 
 /// The chosen Genesis theme of species 1..=75 (index id - 1): a special-name candidate, 0 = its
 /// own.
@@ -62,7 +66,7 @@ pub fn genesis_swap(id: u64) -> u64 {
 }
 
 /// A chosen mode on the spread key (same tonic): Nue (33) is Phrygian.
-fn genesis_mode(id: u64, mode_id: u8) -> u8 {
+pub fn genesis_mode(id: u64, mode_id: u8) -> u8 {
     if id == 33 {
         return 5;
     }
@@ -71,7 +75,7 @@ fn genesis_mode(id: u64, mode_id: u8) -> u8 {
 
 /// A mode's scale as named, semitones from the tonic (Locrian, harmonic minor and Dorian #4
 /// included).
-fn named_mode_scale(mode_id: u8) -> Option<Span<u8>> {
+pub fn named_mode_scale(mode_id: u8) -> Option<Span<u8>> {
     match mode_id {
         4 => Option::Some(array![0, 2, 3, 5, 7, 9, 10].span()),
         5 => Option::Some(array![0, 1, 3, 5, 7, 8, 10].span()),
@@ -113,7 +117,7 @@ fn genesis_channels(tier: u8) -> u32 {
 }
 
 /// No live history: what every Genesis Track composes with.
-fn neutral_live() -> BeastV3LiveState {
+pub fn neutral_live() -> BeastV3LiveState {
     BeastV3LiveState {
         adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1,
     }
@@ -271,8 +275,8 @@ pub fn genesis_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
 
 /// A name track (the Beast Special Song): `sampleTrackMidi` at special name (prefix, suffix), seed
 /// 0, with the Genesis defaults. Everything is the Genesis Track's (channels, ties, mix,
-/// instruments, sections) except: the species' own theme and no swap, the name's key, register and
-/// ornament style, trills when the name's style has them, and the composer's own scale realization.
+/// instruments, sections, the species' picked theme) except: no swap, the name's key, register and
+/// ornament style played in its real scale, and trills when the name's style has them.
 pub fn name_track_smf_bytes(beast: PackableBeastV3, prefix: u8, suffix: u8) -> Array<u8> {
     assert(prefix >= 1 && prefix <= 69 && suffix >= 1 && suffix <= 18, 'invalid special name');
     compose(beast, prefix, suffix)
@@ -303,11 +307,7 @@ fn compose(beast: PackableBeastV3, prefix: u8, suffix: u8) -> Array<u8> {
         beast_type,
     };
     let live = neutral_live();
-    let motif = if named {
-        0
-    } else {
-        genesis_theme(src)
-    };
+    let motif = genesis_theme(src);
     let cb = if motif > 0 {
         PackableBeastV3 {
             prefix: ((motif - 1) / 18 + 1).try_into().unwrap(),
@@ -334,9 +334,9 @@ fn compose(beast: PackableBeastV3, prefix: u8, suffix: u8) -> Array<u8> {
             tonic_keynum: Option::Some(kn.tonic_keynum),
             register_band: Option::Some(kn.register_band),
             ornament_density: Option::Some(kn.ornament_density),
-            name_variant_id: Option::None,
+            name_variant_id: Option::Some(0),
             use_countersubject: Option::Some(true),
-            scale: Option::None,
+            scale: named_mode_scale(kn.mode_id),
             trill: Option::Some(prefix2_ornament_policy(suffix - 1).allow_trill),
         }
     } else {
@@ -353,15 +353,29 @@ fn compose(beast: PackableBeastV3, prefix: u8, suffix: u8) -> Array<u8> {
             trill: Option::Some(false),
         }
     };
+    let scale_used = ov.scale;
     let score = build_v11_score_with(cb, live, ov);
     let p = score.params;
     // the Genesis channels, then ties in the inner voices (statistics of the full score: the kept
     // voices' are the same, since a channel is kept or dropped whole)
     let (sums, counts) = voice_stats(score.events.span());
     let picked = genesis_pick(sums.span(), counts.span(), genesis_channels(tier));
-    let events = tie_repeats(
+    let mut events = tie_repeats(
         score.events.span(), picked.span(), sums.span(), counts.span(), score.section_ticks,
     );
+    // the Yeti special on every Yeti track: ornaments by the track's profile, then the avalanche
+    let yeti = src == YETI;
+    if yeti {
+        let key = yeti_key(p.tonic_keynum, p.mode_id, scale_used);
+        events =
+            yeti_ornaments(
+                events.span(), score.section_ticks, key, p.ornament_density, src, prefix, suffix,
+            );
+        events =
+            yeti_avalanche(
+                events.span(), score.section_ticks, p.section_count.into(), p.tonic_keynum, key,
+            );
+    }
     let form = BeastForm {
         events,
         score_hash: 0,
@@ -370,7 +384,11 @@ fn compose(beast: PackableBeastV3, prefix: u8, suffix: u8) -> Array<u8> {
     };
     beast_form_to_full_smf_bytes_arranged(
         @form,
-        p.tempo_us,
+        if yeti {
+            YETI_ROCK_TEMPO_US
+        } else {
+            p.tempo_us
+        },
         p.tier,
         Option::Some(
             Voicing {
@@ -383,7 +401,18 @@ fn compose(beast: PackableBeastV3, prefix: u8, suffix: u8) -> Array<u8> {
         ),
         beast.shiny == 1,
         mega_lead_pick(p.species_id, p.name_variant_id),
-        Arrangement { top_lead: true, balanced: true, drums: contains(picked.span(), DRUMS) },
+        Arrangement {
+            top_lead: true,
+            balanced: true,
+            drums: contains(picked.span(), DRUMS),
+            rock: yeti,
+            extra: if yeti {
+                Option::Some((YETI_AVALANCHE_VOICE, YETI_AVALANCHE_PROGRAM))
+            } else {
+                Option::None
+            },
+            programs: Option::None,
+        },
     )
 }
 

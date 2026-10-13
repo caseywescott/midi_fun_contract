@@ -7,7 +7,7 @@
 use crate::composition::beast_v3_sound::{BeastV3LiveState, PackableBeastV3};
 use crate::composition::genesis::{species_tier, species_type};
 use crate::composition::params_pack::{composer_inputs, pack_inputs};
-use crate::composition::tracks::{TRACK_SPECIAL_SONG, track_midi};
+use crate::composition::tracks::{TRACK_SOUND_CHECK, TRACK_SPECIAL_SONG, track_midi};
 
 /// Special name k (0 or 1) of species `id` as a name variant 1..=1242.
 fn name_of(id: u64, k: u64) -> u32 {
@@ -180,4 +180,122 @@ fn name_parity_fixture_17() {
 #[available_gas(1000000000000)]
 fn name_parity_fixture_18() {
     name_parity_range(73, 75);
+}
+
+/// The Yeti special across its ornament profiles: Yeti name tracks covering every placement (two or
+/// three names each), alternating normal and shiny; scripts/yeti_parity.mjs checks the YETI lines.
+fn yeti_parity(names: Span<u32>) {
+    let live = BeastV3LiveState {
+        adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1,
+    };
+    let mut k: u32 = 0;
+    for nv in names {
+        let nv = *nv;
+        let b = PackableBeastV3 {
+            id: 68,
+            prefix: ((nv - 1) / 18 + 1).try_into().unwrap(),
+            suffix: ((nv - 1) % 18 + 1).try_into().unwrap(),
+            level: 1,
+            health: 100,
+            shiny: (k % 2).try_into().unwrap(),
+            animated: 0,
+            tier: species_tier(68),
+            beast_type: species_type(68),
+        };
+        let midi = track_midi(pack_inputs(composer_inputs(b, live)), TRACK_SPECIAL_SONG);
+        println!(
+            "YETI case=68 name={} shiny={} midi_len={} midi={}",
+            nv,
+            k % 2,
+            *midi.at(0),
+            core::poseidon::poseidon_hash_span(midi.span()),
+        );
+        k += 1;
+    }
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn yeti_parity_fixture_0() {
+    yeti_parity(array![1, 518, 1100, 2, 578, 1129, 3, 581].span());
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn yeti_parity_fixture_1() {
+    yeti_parity(array![1132, 4, 553, 1056, 5, 657, 8, 655].span());
+}
+
+/// Sound Check parity: every species with no special name, normal and shiny, and with special name
+/// k = 0 (normal), composed from the packed inputs as track 0; scripts/sound_check_parity.mjs
+/// checks the SC lines.
+fn sound_check_parity(lo: u64, hi: u64) {
+    let live = BeastV3LiveState {
+        adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1,
+    };
+    let mut id = lo;
+    while id <= hi {
+        let mut c: u32 = 0;
+        while c < 3 {
+            let nv: u32 = if c == 2 {
+                name_of(id, 0)
+            } else {
+                0
+            };
+            let (prefix, suffix): (u8, u8) = if nv == 0 {
+                (0, 0)
+            } else {
+                (((nv - 1) / 18 + 1).try_into().unwrap(), ((nv - 1) % 18 + 1).try_into().unwrap())
+            };
+            let b = PackableBeastV3 {
+                id,
+                prefix,
+                suffix,
+                level: 1,
+                health: 100,
+                shiny: if c == 1 {
+                    1
+                } else {
+                    0
+                },
+                animated: 0,
+                tier: species_tier(id),
+                beast_type: species_type(id),
+            };
+            let midi = track_midi(pack_inputs(composer_inputs(b, live)), TRACK_SOUND_CHECK);
+            println!(
+                "SC case={} name={} shiny={} midi_len={} midi={}",
+                id,
+                nv,
+                b.shiny,
+                *midi.at(0),
+                core::poseidon::poseidon_hash_span(midi.span()),
+            );
+            c += 1;
+        }
+        id += 1;
+    }
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn sound_check_parity_fixture_0() {
+    sound_check_parity(1, 25);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn sound_check_parity_fixture_1() {
+    sound_check_parity(26, 50);
+}
+
+#[test]
+#[ignore]
+#[available_gas(1000000000000)]
+fn sound_check_parity_fixture_2() {
+    sound_check_parity(51, 75);
 }

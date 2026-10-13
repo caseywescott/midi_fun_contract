@@ -14,6 +14,7 @@ use core::dict::{Felt252Dict, Felt252DictTrait};
 use midi::smf::{TrackWriterTrait, smf_bytes};
 use crate::composition::beast_score::BeastForm;
 use crate::composition::melodic_canon::NoteEvent;
+use crate::composition::yeti::rock_drum_track;
 
 /// The program every voice plays: TinyChip's Triangle Lead (bank 0) for now, until the preset set
 /// and its orchestration are chosen.
@@ -358,12 +359,18 @@ pub fn mega_lead_pick(species_id: u64, name_variant_id: u32) -> u32 {
 /// `beastFullMidi`
 /// options): `top_lead` (the highest voice never plays a pluck: it takes the family's lead no other
 /// voice plays), `balanced` (leads at channel volume 64 and plucks at 127, panning halved, the
-/// upper plucks softer above the bass) and `drums` (the drum track, or none).
+/// upper plucks softer above the bass), `drums` (the drum track, or none), `rock` (the Yeti's rock
+/// groove in place of the groove) and `extra` (a voice on its own program that is never the lead:
+/// the Yeti's avalanche, `programs` and `notLead` in the lab) and `programs` (a program per voice
+/// id in place of the voicing's: the Sound Check's presets).
 #[derive(Copy, Drop)]
 pub struct Arrangement {
     pub top_lead: bool,
     pub balanced: bool,
     pub drums: bool,
+    pub rock: bool,
+    pub extra: Option<(u32, u8)>,
+    pub programs: Option<Span<u8>>,
 }
 
 /// The upper plucks' volume factor in basis points for a voice averaging MIDI 52 + i (i = 0..12;
@@ -387,7 +394,14 @@ pub fn beast_form_to_full_smf_bytes(
         voicing,
         mega,
         lead_pick,
-        Arrangement { top_lead: false, balanced: false, drums: true },
+        Arrangement {
+            top_lead: false,
+            balanced: false,
+            drums: true,
+            rock: false,
+            extra: Option::None,
+            programs: Option::None,
+        },
     )
 }
 
@@ -405,10 +419,42 @@ pub fn beast_form_to_full_smf_bytes_arranged(
     let (placeholder, base_pans) = voice_setup(form);
     let max_voice: u32 = placeholder.len() - 1;
     // instruments by Beast, or VOICE_PROGRAM on every voice
-    let base_programs = match voicing {
+    let mut base_programs = match voicing {
         Option::Some(vc) => beast_voice_programs(events, max_voice, vc),
         Option::None => placeholder,
     };
+    let extra_voice: u32 = match arr.extra {
+        Option::Some((
+            ev, prog,
+        )) => {
+            let mut next: Array<u8> = array![];
+            let mut v: u32 = 0;
+            while v <= max_voice {
+                next.append(if v == ev {
+                    prog
+                } else {
+                    *base_programs.at(v)
+                });
+                v += 1;
+            }
+            base_programs = next;
+            ev
+        },
+        Option::None => 0xFFFFFFFF,
+    };
+    if let Option::Some(ps) = arr.programs {
+        let mut next: Array<u8> = array![];
+        let mut v: u32 = 0;
+        while v <= max_voice {
+            next.append(if v < ps.len() {
+                *ps.at(v)
+            } else {
+                *base_programs.at(v)
+            });
+            v += 1;
+        }
+        base_programs = next;
+    }
     let length = form.length_ticks;
     let sections: u32 = form.section_count.into();
     let sec = length / sections;
@@ -432,7 +478,7 @@ pub fn beast_form_to_full_smf_bytes_arranged(
         }
         sums.append(sum);
         counts.append(n);
-        if n > 0 && (!found || sum * lead_n >= lead_sum * n) {
+        if n > 0 && v != extra_voice && (!found || sum * lead_n >= lead_sum * n) {
             lead = v;
             lead_sum = sum;
             lead_n = n;
@@ -608,7 +654,11 @@ pub fn beast_form_to_full_smf_bytes_arranged(
         v += 1;
     }
     if arr.drums {
-        let drums = drum_track(length, sec, tier, mega);
+        let drums = if arr.rock {
+            rock_drum_track(length, sec)
+        } else {
+            drum_track(length, sec, tier, mega)
+        };
         if drums.len() > 0 {
             tracks.append(drums);
         }

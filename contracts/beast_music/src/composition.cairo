@@ -10,4 +10,5 @@ pub mod full_midi;
 pub mod genesis;
 pub mod invertible_counterpoint;
 pub mod melodic_canon;
+pub mod params_pack;
 pub mod stretto;

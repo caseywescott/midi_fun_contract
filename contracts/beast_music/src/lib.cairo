@@ -3,6 +3,8 @@ pub mod composition;
 mod genesis_tests;
 pub mod lcg;
 pub mod modes;
+#[cfg(test)]
+mod params_pack_tests;
 pub mod rng;
 
 #[cfg(test)]

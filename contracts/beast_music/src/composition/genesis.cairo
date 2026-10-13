@@ -22,6 +22,7 @@
 
 use core::dict::{Felt252Dict, Felt252DictTrait};
 use crate::composition::beast_score::BeastForm;
+use crate::composition::beast_trait_map::prefix2_ornament_policy;
 use crate::composition::beast_v11::{V11Override, build_v11_score_with};
 use crate::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, map_v3_beast_to_composition_params,
@@ -265,7 +266,26 @@ fn tie_repeats(
 /// the default swaps), with the mega arrangement when the Beast is shiny. Species past 75 compose
 /// with their own tier and type and their own theme.
 pub fn genesis_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
-    let src = genesis_swap(beast.id);
+    compose(beast, 0, 0)
+}
+
+/// A name track (the Beast Special Song): `sampleTrackMidi` at special name (prefix, suffix), seed
+/// 0, with the Genesis defaults. Everything is the Genesis Track's (channels, ties, mix,
+/// instruments, sections) except: the species' own theme and no swap, the name's key, register and
+/// ornament style, trills when the name's style has them, and the composer's own scale realization.
+pub fn name_track_smf_bytes(beast: PackableBeastV3, prefix: u8, suffix: u8) -> Array<u8> {
+    assert(prefix >= 1 && prefix <= 69 && suffix >= 1 && suffix <= 18, 'invalid special name');
+    compose(beast, prefix, suffix)
+}
+
+/// The Genesis Track (prefix 0) or a name track.
+fn compose(beast: PackableBeastV3, prefix: u8, suffix: u8) -> Array<u8> {
+    let named = prefix != 0;
+    let src = if named {
+        beast.id
+    } else {
+        genesis_swap(beast.id)
+    };
     let (tier, beast_type) = if src >= 1 && src <= 75 {
         (species_tier(src), species_type(src))
     } else {
@@ -283,7 +303,11 @@ pub fn genesis_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
         beast_type,
     };
     let live = neutral_live();
-    let motif = genesis_theme(src);
+    let motif = if named {
+        0
+    } else {
+        genesis_theme(src)
+    };
     let cb = if motif > 0 {
         PackableBeastV3 {
             prefix: ((motif - 1) / 18 + 1).try_into().unwrap(),
@@ -301,17 +325,33 @@ pub fn genesis_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
     };
     let ks = map_v3_beast_to_composition_params(spread, live);
     let mode = genesis_mode(src, ks.mode_id);
-    let ov = V11Override {
-        voice_count: Option::Some(4),
-        section_count: Option::Some(tier_sections(tier)),
-        mode_id: Option::Some(mode),
-        tonic_keynum: Option::Some(ks.tonic_keynum),
-        register_band: Option::Some(ks.register_band),
-        ornament_density: Option::Some(pg.ornament_density),
-        name_variant_id: Option::Some(0),
-        use_countersubject: Option::Some(true),
-        scale: named_mode_scale(mode),
-        trill: Option::Some(false),
+    let ov = if named {
+        let kn = map_v3_beast_to_composition_params(PackableBeastV3 { prefix, suffix, ..g }, live);
+        V11Override {
+            voice_count: Option::Some(4),
+            section_count: Option::Some(tier_sections(tier)),
+            mode_id: Option::Some(kn.mode_id),
+            tonic_keynum: Option::Some(kn.tonic_keynum),
+            register_band: Option::Some(kn.register_band),
+            ornament_density: Option::Some(kn.ornament_density),
+            name_variant_id: Option::None,
+            use_countersubject: Option::Some(true),
+            scale: Option::None,
+            trill: Option::Some(prefix2_ornament_policy(suffix - 1).allow_trill),
+        }
+    } else {
+        V11Override {
+            voice_count: Option::Some(4),
+            section_count: Option::Some(tier_sections(tier)),
+            mode_id: Option::Some(mode),
+            tonic_keynum: Option::Some(ks.tonic_keynum),
+            register_band: Option::Some(ks.register_band),
+            ornament_density: Option::Some(pg.ornament_density),
+            name_variant_id: Option::Some(0),
+            use_countersubject: Option::Some(true),
+            scale: named_mode_scale(mode),
+            trill: Option::Some(false),
+        }
     };
     let score = build_v11_score_with(cb, live, ov);
     let p = score.params;

@@ -1,11 +1,12 @@
-//! The composer inputs (`BeastCompositionParams`) packed into one felt, so a Beast (or a track) can
-//! store what the composer needs and compose without decoding a token ID.
+//! The composer inputs (`BeastCompositionParams` and the shiny and animated flags) packed into one
+//! felt, so a Beast (or a track) can store what the composer needs and compose without decoding a
+//! token ID.
 //!
-//! Lossless: `unpack_params(pack_params(p))` is `p` field for field, so a stored felt composes the
-//! same bytes as the params it came from. `pack_params` rejects a field that does not fit its width
+//! Lossless: `unpack_inputs(pack_inputs(x))` is `x` field for field, so a stored felt composes the
+//! same bytes as the params it came from. `pack_inputs` rejects a field that does not fit its width
 //! instead of truncating it.
 //!
-//! Layout v1, from the low bit (175 of the felt's 251 bits; the rest is free for later fields):
+//! Layout v1, from the low bit (177 of the felt's 251 bits; the rest is free for later fields):
 //!
 //! | bits    | width | field                 | range today                               |
 //! |---------|-------|-----------------------|-------------------------------------------|
@@ -31,8 +32,30 @@
 //! | 132-138 | 7     | velocity_ceiling      | 0..127                                    |
 //! | 139-158 | 20    | tempo_us              | up to 1048575 (57 BPM and faster)         |
 //! | 159-174 | 16    | score_version         | set by us, never by callers               |
+//! | 175     | 1     | shiny                 | picks the mega sound                      |
+//! | 176     | 1     | animated              |                                           |
 
 use crate::composition::beast_trait_map::BeastCompositionParams;
+use crate::composition::beast_v3_sound::{
+    BeastV3LiveState, PackableBeastV3, map_v3_beast_to_composition_params,
+};
+
+/// What the composer needs to compose a Beast's tracks, without its token ID.
+#[derive(Copy, Drop, Serde)]
+pub struct ComposerInputs {
+    pub params: BeastCompositionParams,
+    pub shiny: bool,
+    pub animated: bool,
+}
+
+/// A Beast's composer inputs at a live state.
+pub fn composer_inputs(beast: PackableBeastV3, live: BeastV3LiveState) -> ComposerInputs {
+    ComposerInputs {
+        params: map_v3_beast_to_composition_params(beast, live),
+        shiny: beast.shiny == 1,
+        animated: beast.animated == 1,
+    }
+}
 
 pub const PARAMS_LAYOUT_VERSION: u8 = 1;
 
@@ -71,7 +94,8 @@ fn bit(b: bool) -> u256 {
     }
 }
 
-pub fn pack_params(p: BeastCompositionParams) -> felt252 {
+pub fn pack_inputs(x: ComposerInputs) -> felt252 {
+    let p = x.params;
     let mut acc: u256 = 0;
     let mut shift: u256 = 1;
     put(ref acc, ref shift, PARAMS_LAYOUT_VERSION.into(), W4);
@@ -96,10 +120,12 @@ pub fn pack_params(p: BeastCompositionParams) -> felt252 {
     put(ref acc, ref shift, p.velocity_ceiling.into(), W7);
     put(ref acc, ref shift, p.tempo_us.into(), W20);
     put(ref acc, ref shift, p.score_version.into(), W16);
+    put(ref acc, ref shift, bit(x.shiny), W1);
+    put(ref acc, ref shift, bit(x.animated), W1);
     acc.try_into().unwrap()
 }
 
-pub fn unpack_params(packed: felt252) -> BeastCompositionParams {
+pub fn unpack_inputs(packed: felt252) -> ComposerInputs {
     let mut rest: u256 = packed.into();
     assert(take(ref rest, W4) == PARAMS_LAYOUT_VERSION.into(), 'unknown params layout');
     let species_id = take(ref rest, W64).try_into().unwrap();
@@ -123,8 +149,10 @@ pub fn unpack_params(packed: felt252) -> BeastCompositionParams {
     let velocity_ceiling = take(ref rest, W7).try_into().unwrap();
     let tempo_us = take(ref rest, W20).try_into().unwrap();
     let score_version = take(ref rest, W16).try_into().unwrap();
+    let shiny = take(ref rest, W1) == 1;
+    let animated = take(ref rest, W1) == 1;
     assert(rest == 0, 'unknown params bits');
-    BeastCompositionParams {
+    let params = BeastCompositionParams {
         species_id,
         name_variant_id,
         mode_id,
@@ -146,5 +174,6 @@ pub fn unpack_params(packed: felt252) -> BeastCompositionParams {
         velocity_ceiling,
         tempo_us,
         score_version,
-    }
+    };
+    ComposerInputs { params, shiny, animated }
 }

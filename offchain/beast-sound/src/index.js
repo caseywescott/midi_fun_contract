@@ -1,4 +1,4 @@
-// @koji/beast-sound: compose any Beast's canonical theme offchain.
+// beast-sound: compose any Beast's canonical theme offchain.
 //
 // The only inputs are Beast data that already exists: the token's static traits (from the Beasts
 // V3 token ID, or `get_beast` on the current collection) and its live stats (kills, Summit deaths,

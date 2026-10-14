@@ -1,5 +1,5 @@
 {
-  "name": "@koji/beast-sound",
+  "name": "beast-sound",
   "version": "1.0.0",
   "description": "Offchain Beast Sound: turn any Loot Survivor Beast (token ID + live stats) into its canonical canon, MIDI file and compact BSN1 note stream. Output matches the Cairo reference byte for byte.",
   "type": "module",

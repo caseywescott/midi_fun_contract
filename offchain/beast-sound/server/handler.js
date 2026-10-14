@@ -11,7 +11,8 @@
 // and ?drums=0 (drums off) for the player.
 //
 // Everything is computed from data Provable Games already publishes; nothing is stored. The score
-// is deterministic: anyone can recompute it with @koji/beast-sound and compare score_hash.
+// is deterministic: anyone can recompute it with beast-sound (offchain/beast-sound in
+// github.com/caseywescott/midi_fun_contract) and compare score_hash.
 import { composeBeast, decodeTokenId, ENGINE_VERSION } from '../src/index.js';
 import { NETWORKS, readMainnetBeast, readV3Beast } from '../src/chain.js';
 import { PLAYER_JS } from './dist/player.bundle.js';
@@ -68,7 +69,7 @@ function summary(url, token, { got, song }) {
     midi_base64: b64(song.midi),
     compact: { format: 'BSN1', base64: b64(song.bsn) },
     links: { json: `${base}.json`, midi: `${base}.mid`, player: `${base}/player` },
-    verify: 'npm @koji/beast-sound: composeBeast(beast, live).scoreHash must equal hashes.score',
+    verify: 'github.com/caseywescott/midi_fun_contract, offchain/beast-sound: composeBeast(beast, live).scoreHash must equal hashes.score',
   };
 }
 

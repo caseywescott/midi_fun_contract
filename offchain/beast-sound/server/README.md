@@ -37,7 +37,8 @@ the player on the token page. Games can call the `.json` or `.mid` route directl
   Beast), and marketplaces call `token_uri` constantly.
 - The V3 design already keeps external calls and heavy work out of `token_uri`.
 - The sound stays verifiable: the score is a pure function of the Beast. Anyone can recompute it
-  with `@koji/beast-sound` and compare `hashes.score`; the Cairo reference produces the same bytes.
+  with `beast-sound` (`offchain/beast-sound`) and compare `hashes.score`; the Cairo reference
+  produces the same bytes.
 
 ## Run and deploy
 

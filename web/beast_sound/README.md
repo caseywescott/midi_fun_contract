@@ -14,7 +14,7 @@ checked against Cairo by `scripts/beast_v3_parity.mjs`.
 
 ## Build
 
-The engine lives in `offchain/beast-sound` (the `@koji/beast-sound` package); this page bundles it.
+The engine lives in `offchain/beast-sound` (the `beast-sound` package); this page bundles it.
 
 ```bash
 (cd ../../offchain/beast-sound && npm install)   # esbuild 0.23.0, the package's devDependency

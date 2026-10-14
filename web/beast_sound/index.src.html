@@ -359,7 +359,7 @@ html[data-skin="ls"] body::after {
       <section>
         <span class="label">If a new contract isn't wanted</span>
         <h3>The whole thing also runs offchain</h3>
-        <p>Sound doesn't have to be a contract at all. <code>@koji/beast-sound</code> composes any Beast's theme from data Provable Games already publishes: the token's traits, the NFT's kills and rank, and Summit's deaths and hours held. Nothing needs to be deployed, stored or changed on their side.</p>
+        <p>Sound doesn't have to be a contract at all. <code>beast-sound</code> composes any Beast's theme from data Provable Games already publishes: the token's traits, the NFT's kills and rank, and Summit's deaths and hours held. Nothing needs to be deployed, stored or changed on their side.</p>
         <div class="tbl"><table>
           <thead><tr><th>Concern</th><th>Onchain contract</th><th>Offchain package</th></tr></thead>
           <tbody>
@@ -517,7 +517,7 @@ struct BeastV3LiveState {
           <tbody>
             <tr><td>V3 token decode + mapper (<code>beast_v3_sound.cairo</code>)</td><td><span class="status done">Done</span></td><td>12 Cairo tests. The Warlock Genesis and "Agony Bane Gloomfang" token IDs match the Sepolia deployment exactly</td></tr>
             <tr><td>Browser engine = Cairo engine</td><td><span class="status done">Done</span></td><td>Seed, params, state and score hashes plus a per-note checksum match on 5 fixture Beasts</td></tr>
-            <tr><td>Offchain package <code>@koji/beast-sound</code> (engine, chain readers, CLI, types)</td><td><span class="status done">Done</span></td><td>13 tests against Cairo-generated fixtures. The CLI reads mainnet, Summit and the V3 Sepolia registry, and writes MIDI. This page runs the same engine</td></tr>
+            <tr><td>Offchain package <code>beast-sound</code> (engine, chain readers, CLI, types)</td><td><span class="status done">Done</span></td><td>13 tests against Cairo-generated fixtures. The CLI reads mainnet, Summit and the V3 Sepolia registry, and writes MIDI. This page runs the same engine</td></tr>
             <tr><td>Simulator with real Beasts</td><td><span class="status done">Done</span></td><td>4 V3 Sepolia Beasts and 300 mainnet Beasts with Death Mountain and Summit stats. A hosted copy reads mainnet live</td></tr>
             <tr><td>BeastSound contract + provider class</td><td><span class="status todo">Next</span></td><td>Interface above. About 1 week with tests, then deploy beside the Sepolia V3 stack</td></tr>
             <tr><td>Composer as a deployable contract (<code>BeastSoundComposer</code>)</td><td><span class="status done">Done</span></td><td>Builds to 25,139 CASM felts (limit 81,920). <code>get_score_notes</code> returns BSN1; <code>get_score_midi</code> returns a real MIDI file. Both are byte-identical to the browser engine, and BSN1 decodes to the identical MIDI file</td></tr>

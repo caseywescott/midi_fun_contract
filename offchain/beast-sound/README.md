@@ -1,4 +1,4 @@
-# @koji/beast-sound
+# beast-sound
 
 Every Loot Survivor Beast has a theme, and its history arranges it. This package composes that
 theme **entirely offchain**, from Beast data that already exists. No Sound contract, no new
@@ -20,8 +20,8 @@ the same music.
 ## Use
 
 ```js
-import { composeBeast, genesisBeast, decodeTokenId } from '@koji/beast-sound';
-import { readMainnetBeast, readV3Beast } from '@koji/beast-sound/chain';
+import { composeBeast, genesisBeast, decodeTokenId } from 'beast-sound';
+import { readMainnetBeast, readV3Beast } from 'beast-sound/chain';
 
 // From chain (public reads only)
 const { beast, live } = await readMainnetBeast(52918);       // Sorrow Peak Warlock
@@ -63,7 +63,7 @@ npx beast-sound compose --species 29 --prefix 20 --suffix 5 --level 150 --kills 
 ## Sound rarity drop, no contract
 
 ```js
-import { dropSaltFromBlockHash, hasSound } from '@koji/beast-sound';
+import { dropSaltFromBlockHash, hasSound } from 'beast-sound';
 const salt = dropSaltFromBlockHash(blockHashOfAnnouncedBlock); // announce block N before launch
 hasSound(beast, { salt, bps: 500 });                           // 5%; Genesis Beasts always sing
 ```

@@ -1,144 +1,66 @@
-# Koji: A Cairo library for Autonomous Music
+# midi_fun_contract
 
-A comprehensive Cairo contract for MIDI music processing, featuring advanced algorithms for Euclidean rhythms, velocity curves, and musical transformations.
+Onchain music on Starknet: a core MIDI system, and Beast Sound, which composes music for each
+Beasts V3 NFT and is the first consumer of that system.
 
-## Features
+## Layout
 
-- **Euclidean Rhythm Generation**: Generate musical patterns using Bjorklund's algorithm
-- **Velocity Curve Processing**: Apply dynamic velocity transformations to MIDI events
-- **MIDI Event Handling**: Full support for NoteOn, NoteOff, SetTempo, and other MIDI messages
-- **Cairo Code Generation**: Generate clean Cairo code from MIDI data structures
-- **Cairo to MIDI Conversion**: Convert Cairo code back to playable MIDI files
-- **Python Integration**: Convert MIDI files to Cairo structs and JSON formats
-- **TypeScript Parser**: Parse Cairo MIDI events back to standard MIDI format
+The Cairo code is one Scarb workspace (the root `Scarb.toml`, scarb 2.20.1 as pinned in
+`.tool-versions`). Packages are grouped by system; a package named `*_contracts` declares Starknet
+contracts, and the others are libraries (`[lib]`, no contracts).
 
-## Quick Start
+| Package | Path | Kind | What it is |
+|---|---|---|---|
+| `midi` | `core/midi` | library | The core MIDI types (`midi::types`) and interfaces (`midi::interfaces`: `IMidiProvider`, `ISynthSettingsProvider`, `ISoundProvider`, `IMidiSoundPage`), Standard MIDI File writing (`midi::smf`) and packing (`midi::pack`) |
+| `midi_contracts` | `core/midi_contracts` | contracts | `MidiSoundPage` (an NFT's `token_uri` with onchain sound) and an example provider |
+| `beast_composer` | `beasts/beast_composer` | library | The Beast Sound composer: a Beasts V3 token and its live state to MIDI |
+| `beast_contracts` | `beasts/beast_contracts` | contracts | `BeastMidiProvider`, the composer as an `IMidiProvider`, and the `BeastSoundComposer` benchmark |
 
-[Cairo Music Composition Guide](docs/composing.md) - Complete workflow for composing music with Cairo and Koji utilities
+```
+                 midi  (core/midi)
+          ┌───────┴──────────┐
+          ▼                  ▼
+  midi_contracts       beast_composer
+  (core)               (beasts)
+                             │
+                             ▼
+                      beast_contracts ──► midi
+```
 
-### Cairo Code Generation
+Nothing in `core/` depends on `beasts/`. The Beast packages reach `midi` through the workspace
+dependency (`midi.workspace = true`), so `beasts/` can move to its own repository unchanged: see
+`beasts/README.md`.
 
-Generate clean Cairo code from MIDI data:
+Each package has a README with its API and details.
+
+## Build and test
+
+From the repository root:
 
 ```bash
-# Using the automated script (recommended)
-./scripts/generate_cairo_output.sh
-
-# Or manually with redirection
-SCARB_UI_VERBOSITY=quiet scarb test -- --filter midi_to_cairo_file_output_test 2>&1 | \
-grep -v "running\|test\|gas usage\|test result" > my_midi.cairo
+scarb build                     # every package; artifacts in target/dev/<package>_<Contract>.*
+scarb test                      # every package's tests
+scarb test -p beast_contracts   # one package
+scarb fmt --check
 ```
 
-### Cairo to MIDI Conversion
+`TESTING.md` covers the `#[ignore]`d parity fixtures and the generated Cairo files.
 
-Convert Cairo code back to playable MIDI files:
+## Outside the workspace
 
-```bash
-# Generate both Cairo code and MIDI file
-./scripts/generate_cairo_and_midi.sh
+- `offchain/beast-sound/`: the JS Beast Sound engine (`@koji/beast-sound`), the TinySynth sound page
+  sources and the generators of `core/midi_contracts/src/page/page_data.cairo`, its golden tests and
+  `beasts/beast_contracts/src/synth_settings.cairo`.
+- `web/beast_sound/`: the browser simulator and instrument patches.
+- `scripts/*parity*`: compare the Cairo composer with the JS engine.
+- `docs/beasts/`: the Beast Sound composition guide.
 
-# Generate only Cairo code
-./scripts/generate_cairo_and_midi.sh --cairo-only
-
-# Generate only MIDI from existing Cairo file
-./scripts/generate_cairo_and_midi.sh --midi-only
-
-# Use custom filenames
-./scripts/generate_cairo_and_midi.sh --cairo-output my_music.cairo --midi-output my_music.mid
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-scarb test
-
-# Run specific test
-scarb test -- --filter midi_to_cairo_file_output_test
-
-# Run with quiet output
-SCARB_UI_VERBOSITY=quiet scarb test
-```
-
-### Python MIDI Conversion
-
-```bash
-# Convert MIDI to Cairo struct
-python3 python/cli.py input.mid output.cairo --format cairo
-
-# Convert MIDI to JSON
-python3 python/cli.py input.mid output.json --format json
-```
-
-## Project Structure
-
-```
-midi_fun_contract/
-├── src/
-│   ├── midi/           # Core MIDI functionality
-│   │   ├── core.cairo      # Main MIDI processing
-│   │   ├── euclidean.cairo # Euclidean rhythm generation
-│   │   ├── instruments.cairo # Instrument handling
-│   │   ├── modes.cairo     # Musical modes
-│   │   ├── output.cairo    # Output formatting
-│   │   ├── pitch.cairo     # Pitch calculations
-│   │   ├── time.cairo      # Time quantization
-│   │   ├── types.cairo     # MIDI type definitions
-│   │   ├── velocitycurve.cairo # Velocity processing
-│   │   └── voicings.cairo  # Chord voicings
-│   └── tests/
-│       └── midi_2_cairo_print.cairo # Cairo code generation tests
-├── python/             # Python MIDI conversion tools
-├── typescript/         # TypeScript MIDI parsing and conversion
-├── scripts/
-│   ├── generate_cairo_output.sh # Cairo code generation
-│   └── generate_cairo_and_midi.sh # Full Cairo to MIDI pipeline
-└── docs/               # Documentation
-```
-
-## Documentation
-
-- [Cairo Music Composition Guide](docs/composing.md) - Complete workflow for composing music with Cairo and Koji utilities
-
-## Development
-
-### Prerequisites
-
-- Scarb (Cairo package manager)
-- Python 3.7+
-- Node.js (for TypeScript tools)
-
-### Setup
-
-```bash
-# Install Scarb dependencies
-scarb build
-
-# Install Python dependencies
-cd python && pip install -r requirements.txt
-
-# Install TypeScript dependencies
-cd typescript && npm install
-```
-
-Autonomous Music library based on previous [work](https://github.com/caseywescott/MusicTools-StarkNet) made by Casey Wescott.
-
-# Midi Conversion
-
-Convert Midi to JSON format:
-
-```bash
-make convert-json MIDI_FILE="path/to/midi/file.mid" OUTPUT_FILE="path/to/output"
-```
-
-Convert to Cairo format:
-
-```bash
-make convert-cairo MIDI_FILE="path/to/midi/file.mid" OUTPUT_FILE="path/to/output"
-```
-
-# MIDI Fun Contract
+The `koji` Cairo library that used to live at the root (`src/`) was removed; the `koji-final` tag
+marks its last commit. Its tooling (`python/`, `typescript/`, `demos/`, `pyproject.toml`,
+`poetry.lock`, the `Makefile`, `docs/composing.md`, `docs/motif_files/`) still references it and is
+due for its own cleanup, as are parts of `fixtures/`, `data/`, `example/` and `scripts/` (check what
+uses each before removing it).
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.

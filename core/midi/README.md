@@ -1,13 +1,32 @@
 # midi
 
-Standard MIDI Files onchain: a Scarb `[lib]` package with no dependencies, no storage and no
-syscalls. The Beast composer (`beasts/beast_composer`) and the MIDI providers
-(`core/midi_contracts`, `beasts/beast_contracts`) write their files with it.
+The core MIDI system's library: its data types and interfaces, and Standard MIDI File writing. A
+Scarb `[lib]` package with no contracts, no storage and no syscalls. It depends on `starknet` (to
+declare interfaces) and `onchain_midi_player` (whose types it re-exports), and on nothing in
+`beasts/`. The Beast composer (`beasts/beast_composer`) and the contracts (`core/midi_contracts`,
+`beasts/beast_contracts`) build on it.
 
 ```toml
 [dependencies]
-midi = { path = "../midi" }   # or a git dependency on this repository
+midi.workspace = true   # in this workspace
+# from another repository:
+# midi = { git = "https://github.com/loothero/midi_fun_contract", rev = "<commit>" }
 ```
+
+| Module | What it holds |
+|---|---|
+| `midi::types` | `TinySynthSettings`, `TinySynthSound`, `Timbre`, `Operator`, `Waveform`, `WaveDef`, `Filter`, `FilterKind`, `FIXED_POINT_SCALE`: onchain-midi-player's own types, re-exported, so they are the types its class takes |
+| `midi::interfaces` | `IMidiProvider`, `ISynthSettingsProvider`, `IMidiSoundPage`, and onchain-midi-player's `ISoundProvider`, each with its dispatchers |
+| `midi::settings` | `default_settings()` and `validate(@settings)` for `TinySynthSettings` |
+| `midi::smf` | Standard MIDI File writing (below) |
+| `midi::pack` | Bytes out of a contract (below) |
+
+```cairo
+use midi::interfaces::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
+use midi::types::TinySynthSettings;
+```
+
+The rules a provider follows are in `core/midi_contracts/README.md`.
 
 ## `midi::smf`
 
@@ -51,5 +70,6 @@ let file: Array<u8> = smf_bytes(
 
 `scarb test`: the SMF specification's variable-length quantity examples, deltas and End of Track,
 running status, header and chunks, both packers at every length to 100. The writers built on it
-are pinned byte for byte by `beast_music`'s `smf_golden` and `midi_provider`'s
-`scale_provider_golden`.
+are pinned byte for byte by `beast_composer`'s `smf_golden` and `midi_contracts`'
+`scale_provider_golden`. The interfaces are exercised by the contracts that implement and call them,
+in `midi_contracts` and `beast_contracts`.

@@ -17,16 +17,17 @@ NFT token_uri ──► MidiSoundPage.token_uri(members, svg_b64, token_address,
                             data:text/html;base64, [TinySynth + player][MIDI as base64][SVG]
 ```
 
-- `core/midi_contracts`: the generic `IMidiProvider` interface, onchain-midi-player's types and
-  `ISoundProvider` (re-exported), and a non-Beast example provider.
+- `core/midi` (`midi::interfaces`, `midi::types`): the generic `IMidiProvider` and `IMidiSoundPage`
+  interfaces, and onchain-midi-player's types and `ISoundProvider` (re-exported).
+- `core/midi_contracts`: `page::MidiSoundPage`, the page contract, configured with one provider at
+  deploy; and a non-Beast example provider.
 - `beasts/beast_contracts`: `BeastMidiProvider`, which validates the collection and token and reads
   the Beast's live state itself (see its README for sources and missing-state behavior).
-- `cairo/` (`beast_sound_page`): `MidiSoundPage`, configured with one provider at deploy.
 - `integration/`: the Beasts V3 patch and the devnet end-to-end check.
 
 ## The page
 
-`cairo/src/page_data.cairo` stores the page head, TinySynth (the Provable Games fork, `vendor/`,
+`core/midi_contracts/src/page/page_data.cairo` stores the page head, TinySynth (the Provable Games fork, `vendor/`,
 36,187 bytes minified), the player (`player-src.js`, 3,198 bytes) and the opening of the MIDI block,
 base64-encoded at build time: 39,889 bytes of HTML (padded), 53,196 characters, 1,719 felts without the
 optional modules (2,115 with TinyChip and BeatSync). At call time only the MIDI is encoded.
@@ -174,7 +175,7 @@ The MIDI was 816, 2,991 and 3,716 bytes in those three states.
 
 ### Assembly alone (cairo-test estimate)
 
-These are the `bench_*` tests in `cairo/src/tests.cairo`, without calldata or the provider call.
+These are the `bench_*` tests in `core/midi_contracts/src/page/tests.cairo`, without calldata or the provider call.
 cairo-test reports Sierra gas, a different unit from devnet's fee estimate, so only compare rows
 here with each other:
 
@@ -196,12 +197,12 @@ on this one.
 
 ```bash
 npm install                                  # @scure/starknet (in offchain/beast-sound)
-node onchain/build.mjs                       # check + minify TinySynth, bundle the player (+ TinyChip, BeatSync if enabled), encode STORED, write cairo/src/page_data.cairo
+node onchain/build.mjs                       # check + minify TinySynth, bundle the player (+ TinyChip, BeatSync if enabled), encode STORED, write core/midi_contracts/src/page/page_data.cairo
 node onchain/build-library.mjs               # the offchain JS library (onchain/lib) and dist/composer.js, for sites and demos
 node onchain/engines-demo.mjs                # public/onchain/engines.html: the same MIDI through the chip synth or TinySynth
 node onchain/golden.mjs                      # Cairo tests from the JS reference (page.js) and JS engine MIDI
 npm test                                     # layout, decoding, player core, TinySynth timing (Node)
-cd onchain/cairo && scarb test               # Cairo token_uri == JS token_uri byte for byte; contract tests
+scarb test -p midi_contracts                 # Cairo token_uri == JS token_uri byte for byte; contract tests
 node onchain/browser-check.mjs [uri files]   # offline headless Chromium (see the header for setup)
 node onchain/integration/e2e_devnet.mjs …    # full path on devnet (see integration/README.md)
 node onchain/gallery.mjs --rebuild           # re-render public/onchain from recorded inputs

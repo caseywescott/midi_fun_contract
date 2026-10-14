@@ -5,7 +5,7 @@ through loothero's class in a copy of its repo, as the Beasts NFT's `token_uri` 
 
 ```bash
 git clone https://github.com/Provable-Games/onchain-midi-player /tmp/ots_e2e
-git -C /tmp/ots_e2e checkout 38d76ce6120d964502891c16445ce083bf1bfedd   # the rev midi_provider pins (scarb 2.20.1, snforge 0.64.0)
+git -C /tmp/ots_e2e checkout 38d76ce6120d964502891c16445ce083bf1bfedd   # the rev the workspace Scarb.toml pins (scarb 2.20.1, snforge 0.64.0)
 (cd offchain/beast-sound && npm install)                                  # fixtures.mjs imports the JS engine
 node scripts/tinysynth_e2e/fixtures.mjs /tmp/ots_e2e/tests/beast_e2e_fixtures.cairo
 cp scripts/tinysynth_e2e/test_beast_e2e.cairo /tmp/ots_e2e/tests/

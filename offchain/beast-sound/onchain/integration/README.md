@@ -34,7 +34,7 @@ provider: the page does, and the provider only calls the NFT's state getters
 
 1. Declare and deploy `BeastMidiProvider` (`beasts/beast_contracts`, scarb 2.20.1). Constructor:
    the Beasts NFT address.
-2. Declare and deploy `MidiSoundPage` (`onchain/cairo`). Constructor: the provider address.
+2. Declare and deploy `MidiSoundPage` (`core/midi_contracts`). Constructor: the provider address.
 3. Upgrade or redeploy `beasts_nft` with the patch.
 4. Before switching, call `MidiSoundPage.token_uri(members, svg_b64, <nft>, <token_id>)` directly
    for a genesis token and a minted one. A page whose provider serves a different collection

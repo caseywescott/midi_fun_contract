@@ -1,16 +1,13 @@
-# beast_music
+# beast_composer
 
-The Beast Sound composer on its own: the part of the `koji` music library that Beasts V3 sound
-actually uses, extracted into a standalone Cairo package. Its one dependency is `core/midi`
-(Standard MIDI File writing and felt packing).
+The Beast Sound composer: a Scarb `[lib]` package (no contracts) that turns a Beasts V3 token and
+its live state into music. Its one dependency is `midi` (`core/midi`: Standard MIDI File writing
+and felt packing). `beasts/beast_contracts` (`BeastMidiProvider`, `BeastSoundComposer`) serves it
+onchain.
 
-| | `koji` (repo root) | `beast_music` |
-|---|---|---|
-| Modules | 84 | 14 |
-| Lines | 36,649 | about 2,900 |
-
-`beasts/beast_contracts` (`BeastMidiProvider`, `BeastSoundComposer`) depends on this package instead
-of `koji`.
+It began as the part of the `koji` music library that Beasts V3 sound uses (14 of koji's 84
+modules), extracted into its own package; koji has since been removed from this repository (the
+`koji-final` tag marks its last commit).
 
 ## What is in it
 
@@ -28,8 +25,8 @@ of `koji`.
 | `modes`, `lcg`, `rng` | The mode enum, the seeded random source |
 
 Everything else in `koji` (Barry Harris, harmonic walk and jazz harmony, ornamentation v2,
-motif/form, timeline and tiling rhythm, canon variants, the general MIDI toolkit, engine v2) is
-left out. `koji` itself is unchanged.
+motif/form, timeline and tiling rhythm, canon variants, the general MIDI toolkit, engine v2) was
+left out.
 
 ## How it was extracted, and how it was checked
 
@@ -37,10 +34,10 @@ The modules and functions kept are the ones the compiled contracts use: their Si
 (built with `sierra-replace-ids`) plus a static call graph for helpers the compiler inlines. Unused
 functions, types and imports were then removed until the package built with no warnings.
 
-- **Same code onchain:** `BeastMidiProvider` and `BeastSoundComposer` built against `beast_music`
-  have CASM bytecode identical to the `koji` builds (23,154 and 26,608 felts). The ABI is identical
-  apart from type paths (`beast_music::` instead of `koji::`), which changes the class hash but no
-  behavior.
+- **Same code onchain:** at extraction, `BeastMidiProvider` and `BeastSoundComposer` built against
+  this package had CASM bytecode identical to the `koji` builds (23,154 and 26,608 felts). The ABI
+  was identical apart from type paths (`beast_music::`, now `beast_composer::`, instead of
+  `koji::`), which changes the class hash but no behavior.
 - **Same music:** the Beast v3 tests run here (`src/tests.cairo`, 14 tests), and the parity fixture
   prints exactly the lines `koji` does, which `scripts/beast_v3_parity.mjs` matches against the JS
   engine (65 of 65 checks):
@@ -77,8 +74,7 @@ this changes a note (the 75-case parity is rerun after each change). One `get_mi
 Beast is about 0.76B L2 gas (v1: 0.44B; the first port: over 2B), the named rank-1 Warlock about
 0.44B, a genesis Warlock about 0.1B.
 
-## Keeping it in sync
+## Tests
 
-Composer changes now land here. While `koji` keeps its own copy (its tests, demos and the other
-engines use it), a change to the Beast path has to be made in both until `koji`'s copy is retired.
-The parity fixture catches a mismatch: both must print the same `PARITY` lines.
+`scarb test -p beast_composer` (or `scarb test` here) runs the composer's tests; the parity fixtures
+above are `#[ignore]`d there and in CI, and run with `--include-ignored`.

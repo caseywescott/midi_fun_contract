@@ -1,59 +1,35 @@
-# Testing without crashing your laptop
+# Testing
 
-Heavy MIDI-export tests print large `Message::` streams to stdout. Running all **521** tests at once can spike CPU/RAM and freeze the machine.
+The Cairo packages are one Scarb workspace (scarb 2.20.1). Each package has its own tests:
 
-## Safe default: unit tests only
-
-```bash
-./scripts/run_unit_tests.sh
-```
-
-Runs ~25 light modules one at a time with a **3s pause** between each (override with `SCARB_TEST_SLEEP=5`).
-
-Skipped by design: `midi_2_cairo_print`, `test_*_midi` (MIDI dump tests).
-
-## Full `scarb test` is now lighter
-
-MIDI-export tests are marked `#[ignore]`. Plain `scarb test` skips them (~160 fewer heavy runs).
-
-To include ignored tests:
+| Package | `scarb test -p …` covers |
+|---|---|
+| `midi` | SMF writing (VLQ examples, deltas, End of Track, running status, chunks) and both packers |
+| `midi_contracts` | `ScaleMidiProvider` (behavior, pinned bytes, `get_sound`); `MidiSoundPage` (`token_uri` equal to the JS reference byte for byte, contract tests with real and mock providers) |
+| `beast_composer` | The composer; the parity fixtures are `#[ignore]`d (below) |
+| `beast_contracts` | `BeastMidiProvider` on a mock NFT and Death Mountain: sources, rejections, `get_sound`, onchain-midi-player's `validate` on the settings |
 
 ```bash
-scarb test -- --include-ignored
+scarb test                      # all four, as CI runs them (one job per package)
+scarb test -p beast_composer    # one package
+scarb fmt --check               # CI checks formatting too
 ```
 
-## Generate one MIDI (recommended)
+## Parity fixtures
 
-```bash
-./scripts/generate_midi_from_test.sh \
-  renaissance_canon_long_3voice_v2_ornamented_midi_test \
-  demos/renaissance/renaissance_canon_long_3voice_v2_ornamented.mid
-```
+The composer's parity fixtures compare Cairo with the JS engine (`offchain/beast-sound`). A Cairo VM
+run keeps what it allocates until it ends, so they are `#[ignore]`d, need several GB per batch, and
+run locally in batches through `scripts/*_parity_cairo.sh` and `scripts/*_parity.mjs`. See
+`beasts/beast_composer/README.md`.
 
-## Generate v2 ornament showcase (batched)
+## Generated Cairo
 
-```bash
-# Catalog only (~1 heavy test)
-CATALOG_ONLY=1 ./scripts/generate_ornamentation_v2_demo_midis.sh
+Three files are written by scripts in `offchain/beast-sound/onchain` (run `npm install` in
+`offchain/beast-sound` first). After a change to their sources, regenerate them and commit the
+result; with unchanged sources, they reproduce the committed files byte for byte:
 
-# 10 kinds at a time, 5s cooldown between each
-SCARB_TEST_SLEEP=5 BATCH=1 BATCH_SIZE=10 ./scripts/generate_ornamentation_v2_demo_midis.sh
-SCARB_TEST_SLEEP=5 BATCH=2 BATCH_SIZE=10 ./scripts/generate_ornamentation_v2_demo_midis.sh
-SCARB_TEST_SLEEP=5 BATCH=3 BATCH_SIZE=10 ./scripts/generate_ornamentation_v2_demo_midis.sh
-SCARB_TEST_SLEEP=5 BATCH=4 BATCH_SIZE=10 ./scripts/generate_ornamentation_v2_demo_midis.sh
-```
-
-## Manual single test
-
-```bash
-scarb test -- --include-ignored --filter ornament_v2_01_passing_asc_midi_test
-```
-
-## Tips
-
-| Problem | Fix |
-|--------|-----|
-| Thermal throttling / fan max | Increase `SCARB_TEST_SLEEP` (e.g. 8–10) |
-| Out of memory | Run batched scripts; never pipe full suite to a file |
-| Slow compile | Scripts call `scarb build` once before a batch |
-| CI needs MIDI tests | `scarb test -- --include-ignored --filter test_ornamentation_v2_midi` |
+| File | Generator |
+|---|---|
+| `core/midi_contracts/src/page/page_data.cairo` | `node onchain/build.mjs` (needs `npx esbuild`) |
+| `core/midi_contracts/src/page/tests.cairo` | `node onchain/golden.mjs` |
+| `beasts/beast_contracts/src/synth_settings.cairo` | `node onchain/tinychip/synth_settings.mjs --cairo` |

@@ -120,7 +120,7 @@ value from the same bank data as the runtime:
   when the chip waves were approximated with built-in waves.
 - **Cairo:** `beasts/beast_contracts/src/synth_settings.cairo` (`beast_synth_settings()`) is generated
   from the same function, with onchain-midi-player's own types (re-exported by
-  `midi_provider::synth`); tests check its Serde hash against the generator's and run the class's
+  `midi::types`); tests check its Serde hash against the generator's and run the class's
   `validate` on it, and its Serde matches onchain-midi-player's own fixture serializer.
 
 ```bash

@@ -1,4 +1,4 @@
-// Reference for the onchain token_uri with sound (onchain/cairo builds the same bytes).
+// Reference for the onchain token_uri with sound (core/midi_contracts builds the same bytes).
 //
 // token_uri is plain JSON (data:application/json;utf8,…), not base64: Cairo base64 is costly per
 // byte, and encoding the whole JSON was the biggest cost of a sound token_uri. Only the HTML page

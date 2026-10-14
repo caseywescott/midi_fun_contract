@@ -217,7 +217,7 @@ fn baseline_today_warlock() {
     assert!(uri.len() > 0);
 }
 `;
-writeFileSync(here + 'cairo/src/tests.cairo', tests);
+writeFileSync(here + '../../../core/midi_contracts/src/page/tests.cairo', tests);
 // scarb fmt lays out the generated arrays (CI checks fmt); without scarb, run it before committing
-try { execFileSync('scarb', ['fmt'], { cwd: here + 'cairo', stdio: 'ignore' }); } catch { console.warn('scarb fmt not run: run it in onchain/cairo before committing'); }
+try { execFileSync('scarb', ['fmt', '-p', 'midi_contracts'], { cwd: here + '../../../core/midi_contracts', stdio: 'ignore' }); } catch { console.warn('scarb fmt not run: run scarb fmt before committing'); }
 console.log(`Warlock MIDI ${midiOf(warlock).length} B, heaviest ${midiOf(heaviest).length} B, max voice ${maxVoice}; wrote ${MIDI_LENGTHS.length + 4} token_uri cases`);

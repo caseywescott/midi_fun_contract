@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs contracts/beast_music's Genesis parity fixture one batch at a time (4 species, normal and shiny;
+# Runs beasts/beast_composer's Genesis parity fixture one batch at a time (4 species, normal and shiny;
 # each batch is its own Cairo VM run) and writes the GEN lines to $1. FIXTURE=name_parity_fixture_
 # runs the name-track fixture instead (its NAME lines; check with scripts/name_parity.mjs), and
 # FIXTURE=seeded_parity_fixture_ the bought-track fixture (SEED lines; scripts/seeded_parity.mjs).
@@ -7,7 +7,7 @@
 #   sh scripts/genesis_parity_cairo.sh /tmp/gen.txt && node scripts/genesis_parity.mjs /tmp/gen.txt
 out=${1:-/tmp/gen.txt}; limit_mb=${2:-6000}; fixture=${FIXTURE:-genesis_parity_fixture_}
 if [ "$fixture" = genesis_parity_fixture_ ]; then tag=GEN; elif [ "$fixture" = seeded_parity_fixture_ ]; then tag=SEED; elif [ "$fixture" = drift_parity_fixture_ ]; then tag=DRIFT; else tag=NAME; fi
-cd "$(dirname "$0")/../contracts/beast_music" || exit 2
+cd "$(dirname "$0")/../beasts/beast_composer" || exit 2
 : > "$out"
 scarb build >/dev/null 2>&1 || { echo "build failed"; exit 2; }
 for i in $(seq -w 0 18); do

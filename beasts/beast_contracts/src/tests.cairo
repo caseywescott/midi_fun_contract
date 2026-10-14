@@ -1,15 +1,15 @@
 //! BeastMidiProvider against mock Beasts NFT and Death Mountain contracts.
 
-use beast_music::composition::beast_v3_sound::{
+use beast_composer::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, encode_v3_token_id,
 };
-use beast_music::composition::genesis::genesis_midi;
+use beast_composer::composition::genesis::genesis_midi;
 use core::dict::{Felt252Dict, Felt252DictTrait};
-use midi_provider::synth::{
+use midi_contracts::synth::{
     ISoundProviderDispatcher, ISoundProviderDispatcherTrait, ISynthSettingsProviderDispatcher,
     ISynthSettingsProviderDispatcherTrait, TinySynthSound,
 };
-use midi_provider::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
+use midi_contracts::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
 use starknet::syscalls::deploy_syscall;
 use starknet::{ClassHash, ContractAddress};
 use crate::provider::{
@@ -318,8 +318,8 @@ fn harpy_and_pegasus_play_each_others_tracks() {
     let p = w.midi.get_midi(encode_v3_token_id(pegasus));
     assert!(h != p);
     // each plays the other species' Genesis Track
-    assert_eq!(beast_music::composition::genesis::genesis_swap(39), 40);
-    assert_eq!(beast_music::composition::genesis::genesis_swap(40), 39);
+    assert_eq!(beast_composer::composition::genesis::genesis_swap(39), 40);
+    assert_eq!(beast_composer::composition::genesis::genesis_swap(40), 39);
 }
 
 #[test]
@@ -475,7 +475,7 @@ fn yeti_synth_settings_are_the_brute_family_and_the_avalanche() {
             core::poseidon::poseidon_hash_span(felts.span()),
             crate::synth_settings::yeti_synth_settings_serde_hash(mega),
         );
-        midi_provider::synth::validate(@s);
+        midi_contracts::synth::validate(@s);
         let mut slots: Felt252Dict<bool> = Default::default();
         for tb in s.timbres {
             slots.insert(tb.slot.into() + if tb.drum {
@@ -484,17 +484,17 @@ fn yeti_synth_settings_are_the_brute_family_and_the_avalanche() {
                 0
             }, true);
         }
-        for p in beast_music::composition::full_midi::family_leads(2).span() {
+        for p in beast_composer::composition::full_midi::family_leads(2).span() {
             assert!(slots.get((*p).into()), "lead missing");
         }
-        for p in beast_music::composition::full_midi::family_plucks(2).span() {
+        for p in beast_composer::composition::full_midi::family_plucks(2).span() {
             assert!(slots.get((*p).into()), "pluck missing");
         }
         assert!(slots.get(13), "avalanche preset missing");
         for d in array![36_u8, 38, 42, 45, 46, 47, 48, 49, 50] {
             assert!(slots.get(d.into() + 256), "drum missing");
         }
-        for p in beast_music::composition::full_midi::MEGA_LEADS.span() {
+        for p in beast_composer::composition::full_midi::MEGA_LEADS.span() {
             assert_eq!(slots.get((*p).into()), mega);
         }
     }
@@ -524,7 +524,7 @@ fn beast_synth_settings_pass_the_class_checks() {
     for t in array![0_u8, 1, 2] {
         for mega in array![false, true] {
             let s = crate::synth_settings::beast_synth_settings(t, mega);
-            midi_provider::synth::validate(@s);
+            midi_contracts::synth::validate(@s);
             let mut slots: Felt252Dict<bool> = Default::default();
             for tb in s.timbres {
                 let key: felt252 = tb.slot.into() + if tb.drum {
@@ -535,16 +535,16 @@ fn beast_synth_settings_pass_the_class_checks() {
                 assert!(!slots.get(key), "slot twice");
                 slots.insert(key, true);
             }
-            for p in beast_music::composition::full_midi::family_leads(t).span() {
+            for p in beast_composer::composition::full_midi::family_leads(t).span() {
                 assert!(slots.get((*p).into()), "family lead missing");
             }
-            for p in beast_music::composition::full_midi::family_plucks(t).span() {
+            for p in beast_composer::composition::full_midi::family_plucks(t).span() {
                 assert!(slots.get((*p).into()), "family pluck missing");
             }
             for d in array![36_u8, 38, 41, 42, 43, 45, 46, 47, 48, 49, 50] {
                 assert!(slots.get(d.into() + 256), "drum missing");
             }
-            for p in beast_music::composition::full_midi::MEGA_LEADS.span() {
+            for p in beast_composer::composition::full_midi::MEGA_LEADS.span() {
                 assert_eq!(slots.get((*p).into()), mega);
             }
         }
@@ -622,8 +622,8 @@ fn gas_beast(id: u64, shiny: u8) -> PackableBeastV3 {
         health: 100,
         shiny,
         animated: 0,
-        tier: beast_music::composition::genesis::species_tier(id),
-        beast_type: beast_music::composition::genesis::species_type(id),
+        tier: beast_composer::composition::genesis::species_tier(id),
+        beast_type: beast_composer::composition::genesis::species_type(id),
     }
 }
 
@@ -688,7 +688,7 @@ fn gas_probe_get_midi_21() {
 #[test]
 #[ignore]
 fn gas_probe_direct_v11_heaviest() {
-    beast_music::composition::beast_v11::v11_score_full_smf_bytes(
+    beast_composer::composition::beast_v11::v11_score_full_smf_bytes(
         heaviest(), live(200, 63, 1, 1243),
     );
 }
@@ -696,7 +696,7 @@ fn gas_probe_direct_v11_heaviest() {
 #[test]
 #[ignore]
 fn gas_probe_direct_genesis_32_shiny() {
-    beast_music::composition::genesis::genesis_smf_bytes(gas_beast(32, 1));
+    beast_composer::composition::genesis::genesis_smf_bytes(gas_beast(32, 1));
 }
 
 #[test]
@@ -711,7 +711,7 @@ fn tracks(w: World) -> IBeastTracksDispatcher {
 }
 
 fn bytes(b: Array<u8>) -> ByteArray {
-    midi_provider::bytes_to_byte_array(b.span())
+    midi_contracts::bytes_to_byte_array(b.span())
 }
 
 #[test]
@@ -719,9 +719,9 @@ fn composer_inputs_are_the_packed_beast() {
     let w = setup();
     let b = sorrow_peak_warlock();
     let inputs = tracks(w).get_composer_inputs(encode_v3_token_id(b));
-    let expected = beast_music::composition::params_pack::pack_inputs(
-        beast_music::composition::params_pack::composer_inputs(
-            b, beast_music::composition::genesis::neutral_live(),
+    let expected = beast_composer::composition::params_pack::pack_inputs(
+        beast_composer::composition::params_pack::composer_inputs(
+            b, beast_composer::composition::genesis::neutral_live(),
         ),
     );
     assert_eq!(inputs, expected);
@@ -749,19 +749,21 @@ fn tracks_compose_from_the_token_and_from_stored_inputs() {
     let inputs = t.get_composer_inputs(token_id);
     let settings = crate::synth_settings::beast_synth_settings(b.beast_type, false);
     let check = t.get_track_sound(token_id, 0, 0, 0);
-    assert_eq!(check.midi, bytes(beast_music::composition::sound_check::sound_check_smf_bytes(b)));
+    assert_eq!(
+        check.midi, bytes(beast_composer::composition::sound_check::sound_check_smf_bytes(b)),
+    );
     assert_eq!(check.settings, settings);
     let special = t.get_track_sound(token_id, 2, 0, 0);
     assert_eq!(
         special.midi,
-        bytes(beast_music::composition::genesis::name_track_smf_bytes(b, b.prefix, b.suffix)),
+        bytes(beast_composer::composition::genesis::name_track_smf_bytes(b, b.prefix, b.suffix)),
     );
     assert_eq!(t.get_track_sound_for_inputs(inputs, 2, 0, 0), special);
     let bought = t.get_track_sound(token_id, 3, 0xabc123, 0);
     assert_eq!(
         bought.midi,
         bytes(
-            beast_music::composition::genesis::seeded_track_smf_bytes(
+            beast_composer::composition::genesis::seeded_track_smf_bytes(
                 b, b.prefix, b.suffix, 0xabc123,
             ),
         ),
@@ -801,23 +803,23 @@ fn drift_reads_the_block_hashes() {
     let w = setup();
     let b = sorrow_peak_warlock();
     let token_id = set_state(w, b, live(0, 0, 1, 1));
-    let n = beast_music::composition::drift::DRIFT_EPOCH_BLOCKS;
+    let n = beast_composer::composition::drift::DRIFT_EPOCH_BLOCKS;
     let block = 40 * n + 500; // day 41: week 5, month 1
     starknet::testing::set_block_number(block + 20);
-    let day = beast_music::composition::drift::day_at_block(block);
+    let day = beast_composer::composition::drift::day_at_block(block);
     assert_eq!(day, 41);
-    let (d, wk, m) = beast_music::composition::drift::drift_anchor_blocks(day);
+    let (d, wk, m) = beast_composer::composition::drift::drift_anchor_blocks(day);
     starknet::testing::set_block_hash(d, 0x111);
     starknet::testing::set_block_hash(wk, 0x222);
     starknet::testing::set_block_hash(m, 0x333);
-    let clock = beast_music::composition::drift::DriftClock {
+    let clock = beast_composer::composition::drift::DriftClock {
         day, day_hash: 0x111, week_hash: 0x222, month_hash: 0x333,
     };
     let sound = tracks(w).get_track_sound(token_id, 2, 0, block);
     assert_eq!(
         sound.midi,
         bytes(
-            beast_music::composition::genesis::song_smf_bytes(
+            beast_composer::composition::genesis::song_smf_bytes(
                 b, b.prefix, b.suffix, 0, Option::Some(clock),
             ),
         ),

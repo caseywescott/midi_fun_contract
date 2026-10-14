@@ -2,7 +2,7 @@
 // encode the stored segment, generate the Cairo data module.
 //   node onchain/build.mjs   (needs: npx esbuild)
 //
-// Writes onchain/dist/{tinysynth.min.js,player.js,stored.b64} and onchain/cairo/src/page_data.cairo.
+// Writes onchain/dist/{tinysynth.min.js,player.js,stored.b64} and core/midi_contracts/src/page/page_data.cairo.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -87,5 +87,5 @@ ${p.map((w) => `        ${w},`).join('\n')}
         .span()
 }`).join('\n')}
 `;
-writeFileSync(here + 'cairo/src/page_data.cairo', cairo);
+writeFileSync(here + '../../../core/midi_contracts/src/page/page_data.cairo', cairo);
 console.log(`tinysynth ${tinysynthMin.length} B · player ${player.length} B · page ${pageHtml(js).length} B · stored ${bytes.length} chars · ${words.length + 3} felts · sha256 ${sha.slice(0, 16)}…`);

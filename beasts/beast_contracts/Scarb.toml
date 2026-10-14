@@ -1,0 +1,17 @@
+[package]
+name = "beast_contracts"
+version.workspace = true
+edition.workspace = true
+description = "BeastMidiProvider: the Beast Sound composer as a Starknet MIDI provider."
+
+[dependencies]
+beast_composer = { path = "../beast_composer" }
+midi_contracts = { path = "../../core/midi_contracts" }
+starknet.workspace = true
+
+[dev-dependencies]
+cairo_test.workspace = true
+
+[[target.starknet-contract]]
+sierra = true
+casm = true

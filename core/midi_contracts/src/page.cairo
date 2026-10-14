@@ -11,7 +11,7 @@
 //! collection.
 //!
 //! token_uri is plain JSON (`data:application/json;utf8,…`), not base64, so the JSON and SVG are
-//! never re-encoded (see onchain/page.js):
+//! never re-encoded (see offchain/beast-sound/onchain/page.js):
 //!
 //!   'data:application/json;utf8,{' ++ escape(members)
 //!     ++ ',"image":"data:image/svg+xml;base64,' ++ svg_b64 ++ '",' ++ <spaces>
@@ -111,9 +111,9 @@ pub trait IMidiSoundPage<T> {
 #[starknet::contract]
 pub mod MidiSoundPage {
     use core::num::traits::Zero;
-    use midi_provider::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
     use starknet::ContractAddress;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+    use crate::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
 
     #[storage]
     struct Storage {

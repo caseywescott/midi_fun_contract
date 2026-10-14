@@ -1,0 +1,20 @@
+[package]
+name = "midi_contracts"
+version.workspace = true
+edition.workspace = true
+description = "The core MIDI contracts: MidiSoundPage (token_uri with onchain sound) and an example IMidiProvider."
+
+[dependencies]
+midi.workspace = true
+# TinySynthSettings, TinySynthSound, ISoundProvider and settings::validate (Provable-Games/onchain-midi-player).
+onchain_midi_player.workspace = true
+starknet.workspace = true
+
+[dev-dependencies]
+cairo_test.workspace = true
+
+[lib]
+
+[[target.starknet-contract]]
+sierra = true
+casm = true

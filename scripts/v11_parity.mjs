@@ -1,8 +1,8 @@
 // Parity: composer v1.1 (offchain/beast-sound/src/engine_v11.js with the compare page's options:
-// same mode, even phrases, history) against Cairo (contracts/beast_music: beast_v11, v11_parity_fixture).
+// same mode, even phrases, history) against Cairo (beasts/beast_composer: beast_v11, v11_parity_fixture).
 // Compares each case's note count, section length, events hash and self-contained MIDI hash (with the
 // mega arrangement for shiny Beasts, as get_midi plays it).
-//   (cd contracts/beast_music && scarb test -- --include-ignored --filter v11_parity_fixture | grep V11 > /tmp/v11.txt)
+//   (cd beasts/beast_composer && scarb test -- --include-ignored --filter v11_parity_fixture | grep V11 > /tmp/v11.txt)
 //   node scripts/v11_parity.mjs /tmp/v11.txt
 import { readFileSync } from 'node:fs';
 import { engine as E, poseidonHashMany } from '../offchain/beast-sound/src/index.js';
@@ -11,7 +11,7 @@ import { beastSoundMidi } from '../offchain/beast-sound/src/full_midi.js';
 
 const v11 = createEngineV11(E), OPTIONS = { keys: 'mode', even: true, traj: true };
 
-// Must match v11_case in contracts/beast_music/src/tests.cairo.
+// Must match v11_case in beasts/beast_composer/src/tests.cairo.
 export function v11Case(id) {
   const named = id % 3 !== 0;
   const beast = {

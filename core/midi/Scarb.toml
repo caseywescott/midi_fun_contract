@@ -1,12 +1,12 @@
 [package]
 name = "midi"
-version = "0.1.0"
-edition = "2025_12"
+version.workspace = true
+edition.workspace = true
 description = "Standard MIDI File writing and felt/ByteArray packing for onchain music."
 
 [dependencies]
 
 [dev-dependencies]
-cairo_test = "2.20.1"
+cairo_test.workspace = true
 
 [lib]

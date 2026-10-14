@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 # One Scarb workspace (the root Scarb.toml; scarb 2.20.1, as in /.tool-versions). Each package runs
 # its own tests. The parity fixtures are #[ignore]d here: they need several GB per batch; run them
-# locally (contracts/beast_music/README.md).
+# locally (beasts/beast_composer/README.md).
 jobs:
   fmt:
     runs-on: ubuntu-latest
@@ -22,10 +22,9 @@ jobs:
       matrix:
         package:
           - midi
-          - midi_provider
-          - beast_music
-          - beast_sound
-          - beast_sound_page
+          - midi_contracts
+          - beast_composer
+          - beast_contracts
     steps:
       - uses: actions/checkout@v4
       - uses: software-mansion/setup-scarb@v1

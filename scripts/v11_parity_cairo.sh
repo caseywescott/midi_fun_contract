@@ -1,10 +1,10 @@
 #!/bin/sh
-# Runs contracts/beast_music's v1.1 parity fixture one batch at a time (each batch is its own Cairo VM
+# Runs beasts/beast_composer's v1.1 parity fixture one batch at a time (each batch is its own Cairo VM
 # run: about 3 GB peak; all 75 cases in one run needed about 41 GB) and writes the V11 lines to $1.
 # A watchdog stops a batch that grows past $2 MB of resident memory (default 6000).
 #   sh scripts/v11_parity_cairo.sh /tmp/v11.txt && node scripts/v11_parity.mjs /tmp/v11.txt
 out=${1:-/tmp/v11.txt}; limit_mb=${2:-6000}
-cd "$(dirname "$0")/../contracts/beast_music" || exit 2
+cd "$(dirname "$0")/../beasts/beast_composer" || exit 2
 : > "$out"
 scarb build >/dev/null 2>&1 || { echo "build failed"; exit 2; }
 for i in $(seq -w 0 18); do

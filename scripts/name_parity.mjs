@@ -1,6 +1,6 @@
 // Parity: the Beast Special Song (name track) of two special names per species, one normal and one
 // shiny, as the Beast Sound lab plays it (`sampleTrackMidi` at that name, seed 0, Genesis defaults;
-// offchain/beast-sound/src/lab.js) against Cairo (contracts/beast_music/src/composition/tracks.cairo,
+// offchain/beast-sound/src/lab.js) against Cairo (beasts/beast_composer/src/composition/tracks.cairo,
 // composed from the packed composer inputs, via name_track_tests.cairo).
 //   FIXTURE=name_parity_fixture_ sh scripts/genesis_parity_cairo.sh /tmp/name.txt && node scripts/name_parity.mjs /tmp/name.txt
 import { readFileSync } from 'node:fs';

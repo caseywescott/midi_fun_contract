@@ -118,7 +118,7 @@ value from the same bank data as the runtime:
   centroid) is 0.57-1.03x for the essentials and 0.91-1.03x for the drums. With all 20 essentials
   and the drums, `SETTINGS` is 2,927 bytes and 46 operators, against 4,180 bytes and 75 operators
   when the chip waves were approximated with built-in waves.
-- **Cairo:** `contracts/beast_sound/src/synth_settings.cairo` (`beast_synth_settings()`) is generated
+- **Cairo:** `beasts/beast_contracts/src/synth_settings.cairo` (`beast_synth_settings()`) is generated
   from the same function, with onchain-midi-player's own types (re-exported by
   `midi_provider::synth`); tests check its Serde hash against the generator's and run the class's
   `validate` on it, and its Serde matches onchain-midi-player's own fixture serializer.

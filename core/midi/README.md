@@ -1,8 +1,8 @@
 # midi
 
 Standard MIDI Files onchain: a Scarb `[lib]` package with no dependencies, no storage and no
-syscalls. The Beast composer (`contracts/beast_music`) and the MIDI providers
-(`contracts/midi_provider`, `contracts/beast_sound`) write their files with it.
+syscalls. The Beast composer (`beasts/beast_composer`) and the MIDI providers
+(`core/midi_contracts`, `beasts/beast_contracts`) write their files with it.
 
 ```toml
 [dependencies]

@@ -30,7 +30,7 @@ and the largest file, shiny #32 (7,197 bytes, mega Hunter settings, 19 timbres),
 
 One call to the provider's `get_midi`, over all 150 Genesis Tracks (75 species, normal and shiny;
 cairo-test estimate, Cairo 2.20.1, mock deploys subtracted; `gas_probe_*` and a one-off sweep in
-contracts/beast_sound/src/tests.cairo):
+beasts/beast_contracts/src/tests.cairo):
 
 | | min | median | max |
 |---|---|---|---|

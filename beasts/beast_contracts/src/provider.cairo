@@ -5,7 +5,7 @@
 //! is written for. `get_sound(token_id)`, onchain-midi-player's `ISoundProvider`, returns both in
 //! one call (`TinySynthSound { midi, settings }`, equal to `get_midi` and `get_settings`). The
 //! provider validates the token (collection, token ID, minted), decodes the static traits from the
-//! token ID and plays its species' Genesis Track (`beast_music::composition::genesis`): composer
+//! token ID and plays its species' Genesis Track (`beast_composer::composition::genesis`): composer
 //! v1.1 with the Beast Sound lab's defaults (spread keys, the chosen themes, the default swaps, the
 //! tier's Genesis channels, weak-beat ties, no pluck on top, the balanced mix), the mega
 //! arrangement when the Beast is shiny. The MIDI is byte-identical to `genesis_midi` and to the
@@ -34,8 +34,8 @@
 //! be caught. It reverts only for an unsupported collection, an invalid token ID or an unminted
 //! token. The provider only calls state getters, never `token_uri`, so metadata cannot recurse.
 
-use beast_music::composition::beast_v3_sound::BeastV3LiveState;
-use midi_provider::synth::TinySynthSound;
+use beast_composer::composition::beast_v3_sound::BeastV3LiveState;
+use midi_contracts::synth::TinySynthSound;
 use starknet::ContractAddress;
 
 /// `IBeasts::get_cached_stats` (Beasts V3 `BeastLiveStats`).
@@ -98,7 +98,7 @@ pub struct BeastLiveStateReport {
 /// for.
 #[starknet::interface]
 pub trait IBeastTracks<T> {
-    /// The token's composer inputs (`beast_music::composition::params_pack`), to store with the
+    /// The token's composer inputs (`beast_composer::composition::params_pack`), to store with the
     /// Beast: everything its tracks need, so they compose without the token ID.
     fn get_composer_inputs(self: @T, token_id: u256) -> felt252;
     /// Track `track` of a minted token.
@@ -126,25 +126,25 @@ pub trait IBeastMidiProvider<T> {
 
 #[starknet::contract]
 pub mod BeastMidiProvider {
-    use beast_music::composition::beast_v3_sound::{
+    use beast_composer::composition::beast_v3_sound::{
         BEAST_V3_ENGINE_VERSION, BeastV3LiveState, GENESIS_SPECIES_MAX, PackableBeastV3,
         decode_v3_token_id,
     };
-    use beast_music::composition::drift::{DriftClock, day_at_block, drift_anchor_blocks};
-    use beast_music::composition::genesis::{
+    use beast_composer::composition::drift::{DriftClock, day_at_block, drift_anchor_blocks};
+    use beast_composer::composition::genesis::{
         genesis_smf_bytes, genesis_swap, neutral_live, species_type,
     };
-    use beast_music::composition::params_pack::{composer_inputs, pack_inputs, unpack_inputs};
-    use beast_music::composition::tracks::{
+    use beast_composer::composition::params_pack::{composer_inputs, pack_inputs, unpack_inputs};
+    use beast_composer::composition::tracks::{
         TRACK_SPECIAL_SONG, TRACK_SPECIES_SONG, beast_of, track_smf_bytes,
     };
-    use beast_music::composition::yeti::YETI;
+    use beast_composer::composition::yeti::YETI;
     use core::num::traits::Zero;
     use core::poseidon::poseidon_hash_span;
-    use midi_provider::synth::{
+    use midi_contracts::synth::{
         ISoundProvider, ISynthSettingsProvider, TinySynthSettings, TinySynthSound,
     };
-    use midi_provider::{IMidiProvider, bytes_to_byte_array};
+    use midi_contracts::{IMidiProvider, bytes_to_byte_array};
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
     use starknet::syscalls::get_block_hash_syscall;
     use starknet::{ContractAddress, SyscallResultTrait, get_block_number};

@@ -1,7 +1,7 @@
 // Parity: the Genesis Track of every species, normal and shiny, as the Beast Sound lab plays it
 // (`genesisMidi`, offchain/beast-sound/src/lab.js: spread keys, chosen themes, default swaps, Genesis
 // channels, weak-beat ties, no pluck on top, balanced mix) against Cairo
-// (contracts/beast_music/src/composition/genesis.cairo, via genesis_tests.cairo).
+// (beasts/beast_composer/src/composition/genesis.cairo, via genesis_tests.cairo).
 //   sh scripts/genesis_parity_cairo.sh /tmp/gen.txt && node scripts/genesis_parity.mjs /tmp/gen.txt
 import { readFileSync } from 'node:fs';
 import { engine as E, poseidonHashMany } from '../offchain/beast-sound/src/index.js';

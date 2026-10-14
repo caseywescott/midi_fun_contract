@@ -105,7 +105,7 @@ and pan per voice and a drum track) and serve the sounds those programs select w
 
 | Provider | Collections | Notes |
 |---|---|---|
-| `beast_sound::provider::BeastMidiProvider` (`contracts/beast_sound`) | One Beasts V3 NFT, set at deploy | Engine v1 Beast themes, the TinyChip settings and `get_sound`; reads rank, species count, kills and Death Mountain defeats itself. |
+| `beast_sound::provider::BeastMidiProvider` (`beasts/beast_contracts`) | One Beasts V3 NFT, set at deploy | Engine v1 Beast themes, the TinyChip settings and `get_sound`; reads rank, species count, kills and Death Mountain defeats itself. |
 | `midi_provider::examples::scale::ScaleMidiProvider` (this package) | Any one collection, set at deploy | Example: a two-bar pentatonic loop from `poseidon(token_address, token_id)` with its own GM instruments (marimba, fingered bass) and hi-hat; `get_sound` pairs it with `default_settings()`. |
 
 `bytes_to_byte_array(Span<u8>)` (from the `midi` package, re-exported here) packs bytes 31 per word

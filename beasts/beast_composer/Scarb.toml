@@ -1,0 +1,13 @@
+[package]
+name = "beast_composer"
+version.workspace = true
+edition.workspace = true
+description = "The Beast Sound composer: a Beasts V3 token and its live state to a Standard MIDI File."
+
+[dependencies]
+midi.workspace = true
+
+[dev-dependencies]
+cairo_test.workspace = true
+
+[lib]

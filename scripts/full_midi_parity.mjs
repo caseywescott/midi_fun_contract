@@ -1,12 +1,12 @@
 // Parity: the self-contained Beast MIDI (programs, pan, drums), JS (offchain/beast-sound/src/full_midi.js)
-// against Cairo (contracts/beast_music: full_midi_parity_fixture).
-//   (cd contracts/beast_music && scarb test -- --include-ignored --filter full_midi_parity_fixture | grep FULL > /tmp/full.txt)
+// against Cairo (beasts/beast_composer: full_midi_parity_fixture).
+//   (cd beasts/beast_composer && scarb test -- --include-ignored --filter full_midi_parity_fixture | grep FULL > /tmp/full.txt)
 //   node scripts/full_midi_parity.mjs /tmp/full.txt
 import { readFileSync } from 'node:fs';
 import { engine as E, poseidonHashMany } from '../offchain/beast-sound/src/index.js';
 import { beastFullMidi } from '../offchain/beast-sound/src/full_midi.js';
 
-// Must match full_midi_parity_fixture in contracts/beast_music/src/tests.cairo.
+// Must match full_midi_parity_fixture in beasts/beast_composer/src/tests.cairo.
 const W = { id: 1, prefix: 57, suffix: 15, level: 126, health: 229, shiny: 0, animated: 0, tier: 1, beast_type: 0 };
 export const CASES = [
   [W, { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 500, species_count: 954 }],

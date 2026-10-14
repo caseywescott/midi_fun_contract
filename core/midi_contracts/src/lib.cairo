@@ -6,12 +6,13 @@
 //!
 //! A provider owns everything collection-specific: which collections it supports, how it reads
 //! a token's traits and live state, and how it composes. Callers such as the TinySynth sound page
-//! (`beast_sound_page::MidiSoundPage`) need only the two identifiers and never see collection
+//! (`midi_contracts::page::MidiSoundPage`) need only the two identifiers and never see collection
 //! state.
 
 use starknet::ContractAddress;
 
 pub mod examples;
+pub mod page;
 pub mod synth;
 
 #[starknet::interface]

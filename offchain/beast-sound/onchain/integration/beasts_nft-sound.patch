@@ -37,7 +37,7 @@ index a035b37..703c492 100644
      pub special3: u8,
  }
 +
-+/// Sound page (`beast_sound_page::MidiSoundPage`): returns the full token_uri with an
++/// Sound page (`midi_contracts::page::MidiSoundPage`): returns the full token_uri with an
 +/// `animation_url` that plays the token's music. `members` is the metadata JSON body without
 +/// braces and without `image`; `svg_b64` is the base64 SVG that `image` would carry. The page's
 +/// MIDI provider composes from `(token_address, token_id)` alone, reading this contract's state

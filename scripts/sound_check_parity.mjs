@@ -1,6 +1,6 @@
 // Parity: the Sound Check (track 0) of every species, no special name normal and shiny, and one named
 // Beast each: the lab's `soundCheckMidi` against Cairo (sound_check.cairo via tracks.cairo).
-//   cd contracts/beast_music && for i in 0 1 2; do scarb test -- --include-ignored --filter sound_check_parity_fixture_$i; done | grep '^SC' > /tmp/sc.txt
+//   cd beasts/beast_composer && for i in 0 1 2; do scarb test -- --include-ignored --filter sound_check_parity_fixture_$i; done | grep '^SC' > /tmp/sc.txt
 //   node scripts/sound_check_parity.mjs /tmp/sc.txt
 import { readFileSync } from 'node:fs';
 import { engine as E, poseidonHashMany } from '../offchain/beast-sound/src/index.js';

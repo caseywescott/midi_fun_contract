@@ -1,7 +1,7 @@
 # beast_music
 
 The Beast Sound composer on its own: the part of the `koji` music library that Beasts V3 sound
-actually uses, extracted into a standalone Cairo package. Its one dependency is `contracts/midi`
+actually uses, extracted into a standalone Cairo package. Its one dependency is `core/midi`
 (Standard MIDI File writing and felt packing).
 
 | | `koji` (repo root) | `beast_music` |
@@ -9,7 +9,7 @@ actually uses, extracted into a standalone Cairo package. Its one dependency is 
 | Modules | 84 | 14 |
 | Lines | 36,649 | about 2,900 |
 
-`contracts/beast_sound` (`BeastMidiProvider`, `BeastSoundComposer`) depends on this package instead
+`beasts/beast_contracts` (`BeastMidiProvider`, `BeastSoundComposer`) depends on this package instead
 of `koji`.
 
 ## What is in it
@@ -48,7 +48,7 @@ functions, types and imports were then removed until the package built with no w
   scarb test -- --include-ignored --filter beast_v3_parity_fixture | grep PARITY > /tmp/parity.txt
   node ../../scripts/beast_v3_parity.mjs /tmp/parity.txt
   ```
-- `contracts/beast_sound`'s 16 tests pass on it unchanged.
+- `beasts/beast_contracts`'s 16 tests pass on it unchanged.
 
 `smf_golden` (ignored; `scarb test -- --include-ignored --filter smf_golden`) pins every byte both
 SMF writers produce for 50 Beasts in two live states; it held unchanged when the writers moved onto

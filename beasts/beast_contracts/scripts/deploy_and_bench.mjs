@@ -2,14 +2,15 @@
 // node bench.mjs <rpc_url> <account_address> <private_key> [existing_contract_address]
 import { RpcProvider, Account, json } from 'starknet';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 const [rpc, addr, pk, existing] = process.argv.slice(2);
 const provider = new RpcProvider({ nodeUrl: rpc });
 const account = new Account({ provider, address: addr, signer: pk });
-const D = '/Volumes/Extreme SSD/Generative_Music_Series/midi_fun_contract/contracts/beast_sound/target/dev/';
+const D = fileURLToPath(new URL('../../../target/dev/', import.meta.url));
 let contractAddress = existing;
 if (!contractAddress) {
-  const sierra = json.parse(readFileSync(D + 'beast_sound_BeastSoundComposer.contract_class.json', 'utf8'));
-  const casm = json.parse(readFileSync(D + 'beast_sound_BeastSoundComposer.compiled_contract_class.json', 'utf8'));
+  const sierra = json.parse(readFileSync(D + 'beast_contracts_BeastSoundComposer.contract_class.json', 'utf8'));
+  const casm = json.parse(readFileSync(D + 'beast_contracts_BeastSoundComposer.compiled_contract_class.json', 'utf8'));
   const res = await account.declareAndDeploy({ contract: sierra, casm, constructorCalldata: ['0x' + Buffer.from('LS_V3_DEMO_SALT').toString('hex'), '500'] });
   contractAddress = res.deploy.contract_address;
   console.log('class_hash', res.declare.class_hash, '\ncontract', contractAddress);

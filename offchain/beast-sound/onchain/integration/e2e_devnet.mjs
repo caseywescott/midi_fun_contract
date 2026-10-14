@@ -93,8 +93,8 @@ const C = {
   gif: loadClass(beastsDev + 'beasts_nft_beast_gif_regular_data.contract_class.json', beastsDev + 'beasts_nft_beast_gif_regular_data.compiled_contract_class.json'),
   gifShiny: loadClass(beastsDev + 'beasts_nft_beast_gif_shiny_data.contract_class.json', beastsDev + 'beasts_nft_beast_gif_shiny_data.compiled_contract_class.json'),
   dm: loadClass(beastsDev + 'beasts_nft_unittest_mock_death_mountain.test.contract_class.json', mockDmCasm),
-  provider: loadClass(repo + 'contracts/beast_sound/target/dev/beast_sound_BeastMidiProvider.contract_class.json', repo + 'contracts/beast_sound/target/dev/beast_sound_BeastMidiProvider.compiled_contract_class.json'),
-  page: loadClass(here + '../cairo/target/dev/beast_sound_page_MidiSoundPage.contract_class.json', here + '../cairo/target/dev/beast_sound_page_MidiSoundPage.compiled_contract_class.json'),
+  provider: loadClass(repo + 'target/dev/beast_contracts_BeastMidiProvider.contract_class.json', repo + 'target/dev/beast_contracts_BeastMidiProvider.compiled_contract_class.json'),
+  page: loadClass(repo + 'target/dev/midi_contracts_MidiSoundPage.contract_class.json', repo + 'target/dev/midi_contracts_MidiSoundPage.compiled_contract_class.json'),
 };
 const report = { sizes: Object.fromEntries(Object.entries(C).filter(([k]) => ['nft', 'provider', 'page'].includes(k)).map(([k, c]) => [k, classSize(c)])), checks: {}, tokens: [] };
 

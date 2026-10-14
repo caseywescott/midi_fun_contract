@@ -1,8 +1,8 @@
 #!/bin/sh
 # Declare and deploy BeastMidiProvider on Starknet Sepolia, then smoke-test get_sound on a genesis
-# Warlock. Run from anywhere; it builds contracts/beast_sound with its own scarb (2.20.1).
+# Warlock. Run from anywhere; it builds beasts/beast_contracts with the workspace scarb (2.20.1).
 #
-#   sh contracts/beast_sound/scripts/deploy_sepolia.sh [beasts_v3_nft_address]
+#   sh beasts/beast_contracts/scripts/deploy_sepolia.sh [beasts_v3_nft_address]
 #
 # Uses the sncast account profile `beast-sound-sepolia` in ~/.starknet_accounts (no key is read or
 # printed here; sncast signs). The account needs STRK for fees: the script stops before sending
@@ -34,7 +34,7 @@ if [ "$DEPLOYED" = "0" ]; then
 fi
 
 echo "declaring BeastMidiProvider"
-DECLARE=$($SN declare --contract-name BeastMidiProvider --url "$RPC" 2>&1 || true)
+DECLARE=$($SN declare --package beast_contracts --contract-name BeastMidiProvider --url "$RPC" 2>&1 || true)
 echo "$DECLARE"
 CLASS=$(echo "$DECLARE" | grep -oE "(class_hash|Class Hash): *0x[0-9a-f]+" | grep -oE "0x[0-9a-f]+" | head -1)
 if [ -z "$CLASS" ]; then

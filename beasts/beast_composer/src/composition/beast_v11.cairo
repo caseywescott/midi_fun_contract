@@ -417,6 +417,8 @@ const SPAN_START: u32 = 0xFFFFE;
 const SPAN_END: u32 = 0xFFFFF;
 
 /// Appends a note to the section and records it on the grid.
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
 fn put(ref out: Array<NoteEvent>, ref grid: Felt252Dict<u32>, e: NoteEvent) {
     assert(e.time % CELL == 0 && e.duration % CELL == 0 && e.duration > 0, 'v11: off grid');
     out.append(e);

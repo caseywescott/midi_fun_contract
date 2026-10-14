@@ -58,6 +58,8 @@ pub struct Countersubject {
 // ─────────────────────────────────────────────────────────────
 
 /// Candidate CS steps at position p: consonant against the subject, IC-safe, ≤ max_step.
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
 fn cs_candidates(
     cs_cur: i32, subject_next: i32, max_step: u32, enforce_ic: bool, lo: i32, hi: i32,
 ) -> Array<i32> {

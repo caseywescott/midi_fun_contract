@@ -416,6 +416,8 @@ fn seeded_pick(sums: Span<u64>, counts: Span<u64>, count: u32, seed: felt252) ->
 }
 
 /// The Genesis Track (prefix 0, seed 0), a name track (seed 0) or a bought track (a seed).
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
 fn compose(
     beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
 ) -> Array<u8> {

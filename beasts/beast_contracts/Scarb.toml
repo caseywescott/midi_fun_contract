@@ -6,7 +6,7 @@ description = "BeastMidiProvider: the Beast Sound composer as a Starknet MIDI pr
 
 [dependencies]
 beast_composer = { path = "../beast_composer" }
-midi_contracts = { path = "../../core/midi_contracts" }
+midi.workspace = true
 starknet.workspace = true
 
 [dev-dependencies]

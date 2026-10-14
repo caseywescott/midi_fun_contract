@@ -22,8 +22,6 @@
 //!
 //! So the per-call base64 work is the MIDI, twice. escape() writes '%' as %25 and '#' as %23.
 
-use starknet::ContractAddress;
-
 pub mod b64;
 pub mod page_data;
 
@@ -91,29 +89,14 @@ fn append_escaped(ref out: ByteArray, s: @ByteArray) {
     }
 }
 
-#[starknet::interface]
-pub trait IMidiSoundPage<T> {
-    /// The token's full token_uri with `animation_url`. `members` and `svg_b64` are as for the
-    /// pure `token_uri`; the MIDI comes from the provider's `get_midi_for(token_address, token_id)`
-    /// (the collection-checked form of `get_midi(token_id)`).
-    fn token_uri(
-        self: @T,
-        members: ByteArray,
-        svg_b64: ByteArray,
-        token_address: ContractAddress,
-        token_id: u256,
-    ) -> ByteArray;
-    fn get_midi_provider(self: @T) -> ContractAddress;
-}
-
 /// The player lives in this contract's code; the provider is fixed at deploy. A new player or
 /// orchestration is a new class, a new provider a new deployment.
 #[starknet::contract]
 pub mod MidiSoundPage {
     use core::num::traits::Zero;
+    use midi::interfaces::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait, IMidiSoundPage};
     use starknet::ContractAddress;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
-    use crate::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
 
     #[storage]
     struct Storage {
@@ -127,7 +110,7 @@ pub mod MidiSoundPage {
     }
 
     #[abi(embed_v0)]
-    impl MidiSoundPageImpl of super::IMidiSoundPage<ContractState> {
+    impl MidiSoundPageImpl of IMidiSoundPage<ContractState> {
         fn token_uri(
             self: @ContractState,
             members: ByteArray,

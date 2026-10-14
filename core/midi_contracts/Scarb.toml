@@ -6,8 +6,6 @@ description = "The core MIDI contracts: MidiSoundPage (token_uri with onchain so
 
 [dependencies]
 midi.workspace = true
-# TinySynthSettings, TinySynthSound, ISoundProvider and settings::validate (Provable-Games/onchain-midi-player).
-onchain_midi_player.workspace = true
 starknet.workspace = true
 
 [dev-dependencies]

@@ -35,7 +35,11 @@
 //! token. The provider only calls state getters, never `token_uri`, so metadata cannot recurse.
 
 use beast_composer::composition::beast_v3_sound::BeastV3LiveState;
-use midi_contracts::synth::TinySynthSound;
+// The contract module has a `midi` function, which hides the `midi` crate there: it takes these
+// through `super`.
+use midi::interfaces::{IMidiProvider, ISoundProvider, ISynthSettingsProvider};
+use midi::pack::bytes_to_byte_array;
+use midi::types::{TinySynthSettings, TinySynthSound};
 use starknet::ContractAddress;
 
 /// `IBeasts::get_cached_stats` (Beasts V3 `BeastLiveStats`).
@@ -141,17 +145,14 @@ pub mod BeastMidiProvider {
     use beast_composer::composition::yeti::YETI;
     use core::num::traits::Zero;
     use core::poseidon::poseidon_hash_span;
-    use midi_contracts::synth::{
-        ISoundProvider, ISynthSettingsProvider, TinySynthSettings, TinySynthSound,
-    };
-    use midi_contracts::{IMidiProvider, bytes_to_byte_array};
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
     use starknet::syscalls::get_block_hash_syscall;
     use starknet::{ContractAddress, SyscallResultTrait, get_block_number};
     use super::{
         BeastLiveStateReport, IBeastMidiProvider, IBeastTracks, IBeastsLiveStateDispatcher,
         IBeastsLiveStateDispatcherTrait, IDeathMountainCollectsDispatcher,
-        IDeathMountainCollectsDispatcherTrait, StateSource,
+        IDeathMountainCollectsDispatcherTrait, IMidiProvider, ISoundProvider,
+        ISynthSettingsProvider, StateSource, TinySynthSettings, TinySynthSound, bytes_to_byte_array,
     };
 
     #[storage]

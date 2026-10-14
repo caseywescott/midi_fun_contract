@@ -1,8 +1,11 @@
+use midi::interfaces::{
+    IMidiProviderDispatcher, IMidiProviderDispatcherTrait, ISoundProviderDispatcher,
+    ISoundProviderDispatcherTrait,
+};
+use midi::settings::default_settings;
 use starknet::ContractAddress;
 use starknet::syscalls::deploy_syscall;
 use crate::examples::scale::ScaleMidiProvider;
-use crate::synth::{ISoundProviderDispatcher, ISoundProviderDispatcherTrait, default_settings};
-use crate::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
 
 fn collection() -> ContractAddress {
     'COLLECTION'.try_into().unwrap()

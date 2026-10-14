@@ -9,11 +9,13 @@
 #[starknet::contract]
 pub mod ScaleMidiProvider {
     use core::poseidon::poseidon_hash_span;
+    use midi::interfaces::{IMidiProvider, ISoundProvider};
+    use midi::pack::bytes_to_byte_array;
+    use midi::settings::default_settings;
     use midi::smf::{TrackWriterTrait, smf_bytes};
+    use midi::types::TinySynthSound;
     use starknet::ContractAddress;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
-    use crate::synth::{ISoundProvider, TinySynthSound, default_settings};
-    use crate::{IMidiProvider, bytes_to_byte_array};
 
     const PPQN: u32 = 480;
     const STEP: u32 = 240; // eighth notes

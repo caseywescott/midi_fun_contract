@@ -1,17 +1,20 @@
 //! MidiSoundPage with real and mock providers: the page passes the two identifiers through and
 //! embeds exactly the provider's MIDI.
 
+use midi::interfaces::{
+    IMidiProviderDispatcher, IMidiProviderDispatcherTrait, IMidiSoundPageDispatcher,
+    IMidiSoundPageDispatcherTrait,
+};
 use starknet::syscalls::deploy_syscall;
 use starknet::{ClassHash, ContractAddress};
 use crate::examples::scale::ScaleMidiProvider;
-use crate::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
-use super::{IMidiSoundPageDispatcher, IMidiSoundPageDispatcherTrait, MidiSoundPage, token_uri};
+use super::{MidiSoundPage, token_uri};
 
 /// Returns `token_id % 97` synthetic bytes, and only for its one collection.
 #[starknet::contract]
 mod MockProvider {
+    use midi::interfaces::IMidiProvider;
     use starknet::ContractAddress;
-    use crate::IMidiProvider;
 
     #[storage]
     struct Storage {}

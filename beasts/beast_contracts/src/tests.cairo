@@ -5,11 +5,12 @@ use beast_composer::composition::beast_v3_sound::{
 };
 use beast_composer::composition::genesis::genesis_midi;
 use core::dict::{Felt252Dict, Felt252DictTrait};
-use midi_contracts::synth::{
-    ISoundProviderDispatcher, ISoundProviderDispatcherTrait, ISynthSettingsProviderDispatcher,
-    ISynthSettingsProviderDispatcherTrait, TinySynthSound,
+use midi::interfaces::{
+    IMidiProviderDispatcher, IMidiProviderDispatcherTrait, ISoundProviderDispatcher,
+    ISoundProviderDispatcherTrait, ISynthSettingsProviderDispatcher,
+    ISynthSettingsProviderDispatcherTrait,
 };
-use midi_contracts::{IMidiProviderDispatcher, IMidiProviderDispatcherTrait};
+use midi::types::TinySynthSound;
 use starknet::syscalls::deploy_syscall;
 use starknet::{ClassHash, ContractAddress};
 use crate::provider::{
@@ -475,7 +476,7 @@ fn yeti_synth_settings_are_the_brute_family_and_the_avalanche() {
             core::poseidon::poseidon_hash_span(felts.span()),
             crate::synth_settings::yeti_synth_settings_serde_hash(mega),
         );
-        midi_contracts::synth::validate(@s);
+        midi::settings::validate(@s);
         let mut slots: Felt252Dict<bool> = Default::default();
         for tb in s.timbres {
             slots.insert(tb.slot.into() + if tb.drum {
@@ -524,7 +525,7 @@ fn beast_synth_settings_pass_the_class_checks() {
     for t in array![0_u8, 1, 2] {
         for mega in array![false, true] {
             let s = crate::synth_settings::beast_synth_settings(t, mega);
-            midi_contracts::synth::validate(@s);
+            midi::settings::validate(@s);
             let mut slots: Felt252Dict<bool> = Default::default();
             for tb in s.timbres {
                 let key: felt252 = tb.slot.into() + if tb.drum {
@@ -711,7 +712,7 @@ fn tracks(w: World) -> IBeastTracksDispatcher {
 }
 
 fn bytes(b: Array<u8>) -> ByteArray {
-    midi_contracts::bytes_to_byte_array(b.span())
+    midi::pack::bytes_to_byte_array(b.span())
 }
 
 #[test]

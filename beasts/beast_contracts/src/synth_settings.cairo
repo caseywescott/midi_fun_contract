@@ -55,1149 +55,223 @@ pub fn yeti_synth_settings_serde_hash(mega: bool) -> felt252 {
 /// Cairo agrees).
 pub const SERDE_HASH_MAGIC: felt252 =
     0x262e5597e7815983b98d2d9c4a94108ed93f7c292b8a3840b417455e7519e61;
-/// Magic Beasts. Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI; 17 timbres, one operator per line.
+/// Magic Beasts. Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI; 17 timbres.
 #[cairofmt::skip]
 pub fn beast_synth_settings_magic() -> TinySynthSettings {
-    let waves = array![
-        WaveDef::Samples(array![64, -64, -64, -64, -64, -64, -64, -64].span()),
-        WaveDef::Samples(array![64, -64, -64, -64].span()),
-        WaveDef::Samples(array![64, -64].span()),
-        WaveDef::Samples(array![77, 67, 56, 46, 36, 26, 15, 5, -5, -15, -26, -36, -46, -56, -67, -77, -77, -67, -56, -46, -36, -26, -15, -5, 5, 15, 26, 36, 46, 56, 67, 77].span()),
-    ];
-    let timbres = array![
-        Timbre {
-            drum: false, slot: 0, operators: array![
-                op(0, Waveform::Custom(3), 4593, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 175, 0, 60000, 2000, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 9, operators: array![
-                op(0, Waveform::Custom(0), 4490, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 323, 0, 50000, 3500, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 7, operators: array![
-                op(0, Waveform::Custom(0), 5347, 10000, 0, 30, 200, 2500, 5500, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 87, 0, 60000, 1800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 15, operators: array![
-                op(0, Waveform::Custom(3), 6814, 10000, 0, 20, 0, 1800, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 17, operators: array![
-                op(0, Waveform::Custom(1), 3968, 10000, 0, 20, 0, 2200, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Custom(0), 1785, 20000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 13, operators: array![
-                op(0, Waveform::Custom(0), 5324, 10000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 36, operators: array![
-                op(0, Waveform::Custom(3), 9500, 0, 1600000, 20, 0, 600, 0, 300, 2800, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 38, operators: array![
-                op(0, Waveform::WhiteNoise, 4330, 0, 2640000, 20, 0, 500, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Custom(2), 2800, 0, 2000000, 20, 0, 250, 0, 300, 5500, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 41, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 900000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 42, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 140, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 43, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1050000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 45, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1250000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 46, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 600, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 47, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1450000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 48, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1700000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 49, operators: array![
-                op(0, Waveform::WhiteNoise, 2598, 0, 8800000, 20, 0, 2500, 0, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 50, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 2000000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-    ];
-    TinySynthSettings {
-        quality: 1,
-        reverb: 30,
-        master_vol: 40,
-        voices: 64,
-        waves: waves.span(),
-        timbres: timbres.span(),
-    }
+    settings_from(1, 30, 40, 64, WAVES_MAGIC.span(), TIMBRES_MAGIC.span())
 }
+#[cairofmt::skip]
+const WAVES_MAGIC: [u32; 4] = [8, 2052, 3074, 3616];
+#[cairofmt::skip]
+const TIMBRES_MAGIC: [u32; 17] = [1024, 263177, 525319, 786959, 918545, 1180173, 1311524, 1443110, 1704745, 1835818, 1966891, 2097965, 2229038, 2360111, 2491184, 2622257, 2753330];
 
 /// Poseidon hash of `beast_synth_settings_magic_mega`'s Serde, as the generator computes it (tests
 /// check Cairo agrees).
 pub const SERDE_HASH_MAGIC_MEGA: felt252 =
     0x23de58ed5cc16d761f4092383d23f98b9a5db1849eb5949c88fc5788e41135a;
-/// Magic Beasts that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65). Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI, nN16; 19 timbres, one operator per line.
+/// Magic Beasts that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65). Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI, nN16; 19 timbres.
 #[cairofmt::skip]
 pub fn beast_synth_settings_magic_mega() -> TinySynthSettings {
-    let waves = array![
-        WaveDef::Samples(array![64, -64, -64, -64, -64, -64, -64, -64].span()),
-        WaveDef::Samples(array![64, -64, -64, -64].span()),
-        WaveDef::Samples(array![64, -64].span()),
-        WaveDef::Samples(array![77, 67, 56, 46, 36, 26, 15, 5, -5, -15, -26, -36, -46, -56, -67, -77, -77, -67, -56, -46, -36, -26, -15, -5, 5, 15, 26, 36, 46, 56, 67, 77].span()),
-        WaveDef::Samples(array![-30, -25, -20, -15, -44, -38, -33, -28, 11, 16, 21, 26, -3, 3, 8, 13, 47, 42, 37, 32, -8, -13, -18, -23, 6, 1, -4, -9, -49, -54, -59, -64].span()),
-    ];
-    let timbres = array![
-        Timbre {
-            drum: false, slot: 0, operators: array![
-                op(0, Waveform::Custom(3), 4593, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 175, 0, 60000, 2000, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 9, operators: array![
-                op(0, Waveform::Custom(0), 4490, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 323, 0, 50000, 3500, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 7, operators: array![
-                op(0, Waveform::Custom(0), 5347, 10000, 0, 30, 200, 2500, 5500, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 87, 0, 60000, 1800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 15, operators: array![
-                op(0, Waveform::Custom(3), 6814, 10000, 0, 20, 0, 1800, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 17, operators: array![
-                op(0, Waveform::Custom(1), 3968, 10000, 0, 20, 0, 2200, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Custom(0), 1785, 20000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 13, operators: array![
-                op(0, Waveform::Custom(0), 5324, 10000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 50, operators: array![
-                op(0, Waveform::Custom(2), 3139, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 204, 0, 80000, 800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 65, operators: array![
-                op(0, Waveform::Custom(4), 6966, 10000, 0, 150, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 87, 0, 60000, 1800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 36, operators: array![
-                op(0, Waveform::Custom(3), 9500, 0, 1600000, 20, 0, 600, 0, 300, 2800, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 38, operators: array![
-                op(0, Waveform::WhiteNoise, 4330, 0, 2640000, 20, 0, 500, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Custom(2), 2800, 0, 2000000, 20, 0, 250, 0, 300, 5500, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 41, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 900000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 42, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 140, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 43, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1050000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 45, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1250000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 46, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 600, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 47, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1450000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 48, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1700000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 49, operators: array![
-                op(0, Waveform::WhiteNoise, 2598, 0, 8800000, 20, 0, 2500, 0, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 50, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 2000000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-    ];
-    TinySynthSettings {
-        quality: 1,
-        reverb: 30,
-        master_vol: 40,
-        voices: 64,
-        waves: waves.span(),
-        timbres: timbres.span(),
-    }
+    settings_from(1, 30, 40, 64, WAVES_MAGIC_MEGA.span(), TIMBRES_MAGIC_MEGA.span())
 }
+#[cairofmt::skip]
+const WAVES_MAGIC_MEGA: [u32; 5] = [8, 2052, 3074, 3616, 11808];
+#[cairofmt::skip]
+const TIMBRES_MAGIC_MEGA: [u32; 19] = [1024, 263177, 525319, 786959, 918545, 1180173, 2884658, 3146817, 1311524, 1443110, 1704745, 1835818, 1966891, 2097965, 2229038, 2360111, 2491184, 2622257, 2753330];
 
 /// Poseidon hash of `beast_synth_settings_hunter`'s Serde, as the generator computes it (tests
 /// check Cairo agrees).
 pub const SERDE_HASH_HUNTER: felt252 =
     0x6757f16a5c576c48f5ca9038489187670184572205057181845e7e858e2ffc8;
-/// Hunter Beasts. Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI; 17 timbres, one operator per line.
+/// Hunter Beasts. Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI; 17 timbres.
 #[cairofmt::skip]
 pub fn beast_synth_settings_hunter() -> TinySynthSettings {
-    let waves = array![
-        WaveDef::Samples(array![64, -64, -64, -64, -64, -64, -64, -64].span()),
-        WaveDef::Samples(array![64, -64, -64, -64].span()),
-        WaveDef::Samples(array![64, -64].span()),
-        WaveDef::Samples(array![77, 67, 56, 46, 36, 26, 15, 5, -5, -15, -26, -36, -46, -56, -67, -77, -77, -67, -56, -46, -36, -26, -15, -5, 5, 15, 26, 36, 46, 56, 67, 77].span()),
-    ];
-    let timbres = array![
-        Timbre {
-            drum: false, slot: 2, operators: array![
-                op(0, Waveform::Custom(1), 3944, 10000, 0, 30, 200, 1000, 8500, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 116, 0, 60000, 1500, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 1, operators: array![
-                op(0, Waveform::Custom(0), 5082, 10000, 0, 30, 200, 1000, 8000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 145, 0, 60000, 1800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 8, operators: array![
-                op(0, Waveform::Custom(1), 3574, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 234, 0, 90000, 600, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 12, operators: array![
-                op(0, Waveform::Custom(1), 5246, 10000, 0, 20, 0, 1400, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 19, operators: array![
-                op(0, Waveform::Custom(0), 6684, 10000, 0, 20, 0, 500, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 6, operators: array![
-                op(0, Waveform::Custom(1), 3574, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 36, operators: array![
-                op(0, Waveform::Custom(3), 9500, 0, 1600000, 20, 0, 600, 0, 300, 2800, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 38, operators: array![
-                op(0, Waveform::WhiteNoise, 4330, 0, 2640000, 20, 0, 500, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Custom(2), 2800, 0, 2000000, 20, 0, 250, 0, 300, 5500, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 41, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 900000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 42, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 140, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 43, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1050000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 45, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1250000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 46, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 600, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 47, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1450000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 48, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1700000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 49, operators: array![
-                op(0, Waveform::WhiteNoise, 2598, 0, 8800000, 20, 0, 2500, 0, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 50, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 2000000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-    ];
-    TinySynthSettings {
-        quality: 1,
-        reverb: 30,
-        master_vol: 40,
-        voices: 64,
-        waves: waves.span(),
-        timbres: timbres.span(),
-    }
+    settings_from(1, 30, 40, 64, WAVES_HUNTER.span(), TIMBRES_HUNTER.span())
 }
+#[cairofmt::skip]
+const WAVES_HUNTER: [u32; 4] = [8, 2052, 3074, 3616];
+#[cairofmt::skip]
+const TIMBRES_HUNTER: [u32; 17] = [3408898, 3671041, 3933192, 4194828, 4325907, 4456966, 1311524, 1443110, 1704745, 1835818, 1966891, 2097965, 2229038, 2360111, 2491184, 2622257, 2753330];
 
 /// Poseidon hash of `beast_synth_settings_hunter_mega`'s Serde, as the generator computes it (tests
 /// check Cairo agrees).
 pub const SERDE_HASH_HUNTER_MEGA: felt252 =
     0x613355ee6a854f648ae2773236db4cecd3331084b8282925e67d40665a6b852;
-/// Hunter Beasts that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65). Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI, nN16; 19 timbres, one operator per line.
+/// Hunter Beasts that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65). Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP25, nP50, nTRI, nN16; 19 timbres.
 #[cairofmt::skip]
 pub fn beast_synth_settings_hunter_mega() -> TinySynthSettings {
-    let waves = array![
-        WaveDef::Samples(array![64, -64, -64, -64, -64, -64, -64, -64].span()),
-        WaveDef::Samples(array![64, -64, -64, -64].span()),
-        WaveDef::Samples(array![64, -64].span()),
-        WaveDef::Samples(array![77, 67, 56, 46, 36, 26, 15, 5, -5, -15, -26, -36, -46, -56, -67, -77, -77, -67, -56, -46, -36, -26, -15, -5, 5, 15, 26, 36, 46, 56, 67, 77].span()),
-        WaveDef::Samples(array![-30, -25, -20, -15, -44, -38, -33, -28, 11, 16, 21, 26, -3, 3, 8, 13, 47, 42, 37, 32, -8, -13, -18, -23, 6, 1, -4, -9, -49, -54, -59, -64].span()),
-    ];
-    let timbres = array![
-        Timbre {
-            drum: false, slot: 2, operators: array![
-                op(0, Waveform::Custom(1), 3944, 10000, 0, 30, 200, 1000, 8500, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 116, 0, 60000, 1500, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 1, operators: array![
-                op(0, Waveform::Custom(0), 5082, 10000, 0, 30, 200, 1000, 8000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 145, 0, 60000, 1800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 8, operators: array![
-                op(0, Waveform::Custom(1), 3574, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 234, 0, 90000, 600, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 12, operators: array![
-                op(0, Waveform::Custom(1), 5246, 10000, 0, 20, 0, 1400, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 19, operators: array![
-                op(0, Waveform::Custom(0), 6684, 10000, 0, 20, 0, 500, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 6, operators: array![
-                op(0, Waveform::Custom(1), 3574, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 50, operators: array![
-                op(0, Waveform::Custom(2), 3139, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 204, 0, 80000, 800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 65, operators: array![
-                op(0, Waveform::Custom(4), 6966, 10000, 0, 150, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 87, 0, 60000, 1800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 36, operators: array![
-                op(0, Waveform::Custom(3), 9500, 0, 1600000, 20, 0, 600, 0, 300, 2800, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 38, operators: array![
-                op(0, Waveform::WhiteNoise, 4330, 0, 2640000, 20, 0, 500, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Custom(2), 2800, 0, 2000000, 20, 0, 250, 0, 300, 5500, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 41, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 900000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 42, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 140, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 43, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1050000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 45, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1250000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 46, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 600, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 47, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1450000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 48, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 1700000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 49, operators: array![
-                op(0, Waveform::WhiteNoise, 2598, 0, 8800000, 20, 0, 2500, 0, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 50, operators: array![
-                op(0, Waveform::Custom(3), 7500, 0, 2000000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-    ];
-    TinySynthSettings {
-        quality: 1,
-        reverb: 30,
-        master_vol: 40,
-        voices: 64,
-        waves: waves.span(),
-        timbres: timbres.span(),
-    }
+    settings_from(1, 30, 40, 64, WAVES_HUNTER_MEGA.span(), TIMBRES_HUNTER_MEGA.span())
 }
+#[cairofmt::skip]
+const WAVES_HUNTER_MEGA: [u32; 5] = [8, 2052, 3074, 3616, 11808];
+#[cairofmt::skip]
+const TIMBRES_HUNTER_MEGA: [u32; 19] = [3408898, 3671041, 3933192, 4194828, 4325907, 4456966, 2884658, 3146817, 1311524, 1443110, 1704745, 1835818, 1966891, 2097965, 2229038, 2360111, 2491184, 2622257, 2753330];
 
 /// Poseidon hash of `beast_synth_settings_brute`'s Serde, as the generator computes it (tests check
 /// Cairo agrees).
 pub const SERDE_HASH_BRUTE: felt252 =
     0x2b60e54acfca3bcdec9f2ef3af961303e775dfd9b276e6e21e43d04a041250c;
-/// Brute Beasts. Quality 1, reverb 30, volume 40, 64 voices; waves: nP50, nTRI, nSAW; 17 timbres, one operator per line.
+/// Brute Beasts. Quality 1, reverb 30, volume 40, 64 voices; waves: nP50, nTRI, nSAW; 17 timbres.
 #[cairofmt::skip]
 pub fn beast_synth_settings_brute() -> TinySynthSettings {
-    let waves = array![
-        WaveDef::Samples(array![64, -64].span()),
-        WaveDef::Samples(array![77, 67, 56, 46, 36, 26, 15, 5, -5, -15, -26, -36, -46, -56, -67, -77, -77, -67, -56, -46, -36, -26, -15, -5, 5, 15, 26, 36, 46, 56, 67, 77].span()),
-        WaveDef::Samples(array![-58, -50, -42, -35, -27, -19, -12, -4, 4, 12, 19, 27, 35, 42, 50, 58].span()),
-    ];
-    let timbres = array![
-        Timbre {
-            drum: false, slot: 3, operators: array![
-                op(0, Waveform::Custom(0), 3139, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 145, 0, 60000, 1800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 4, operators: array![
-                op(0, Waveform::Custom(2), 6504, 10000, 0, 200, 200, 1000, 8000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 105, 0, 60000, 2000, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 5, operators: array![
-                op(0, Waveform::Custom(0), 3139, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 16, operators: array![
-                op(0, Waveform::Custom(2), 9992, 10000, 0, 20, 0, 1300, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 14, operators: array![
-                op(0, Waveform::Custom(0), 5610, 10000, 0, 20, 0, 1000, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 18, operators: array![
-                op(0, Waveform::Custom(0), 4099, 10000, 0, 20, 100, 3500, 1800, 800, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 36, operators: array![
-                op(0, Waveform::Custom(1), 9500, 0, 1600000, 20, 0, 600, 0, 300, 2800, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 38, operators: array![
-                op(0, Waveform::WhiteNoise, 4330, 0, 2640000, 20, 0, 500, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Custom(0), 2800, 0, 2000000, 20, 0, 250, 0, 300, 5500, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 41, operators: array![
-                op(0, Waveform::Custom(1), 7500, 0, 900000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 42, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 140, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 43, operators: array![
-                op(0, Waveform::Custom(1), 7500, 0, 1050000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 45, operators: array![
-                op(0, Waveform::Custom(1), 7500, 0, 1250000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 46, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 600, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 47, operators: array![
-                op(0, Waveform::Custom(1), 7500, 0, 1450000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 48, operators: array![
-                op(0, Waveform::Custom(1), 7500, 0, 1700000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 49, operators: array![
-                op(0, Waveform::WhiteNoise, 2598, 0, 8800000, 20, 0, 2500, 0, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 50, operators: array![
-                op(0, Waveform::Custom(1), 7500, 0, 2000000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-    ];
-    TinySynthSettings {
-        quality: 1,
-        reverb: 30,
-        master_vol: 40,
-        voices: 64,
-        waves: waves.span(),
-        timbres: timbres.span(),
-    }
+    settings_from(1, 30, 40, 64, WAVES_BRUTE.span(), TIMBRES_BRUTE.span())
 }
+#[cairofmt::skip]
+const WAVES_BRUTE: [u32; 3] = [3074, 3616, 19984];
+#[cairofmt::skip]
+const TIMBRES_BRUTE: [u32; 17] = [4588547, 4850692, 5112325, 5243408, 5374478, 5505554, 5636900, 5768486, 6030121, 1835818, 6161195, 6292269, 2229038, 6423343, 6554416, 2622257, 6685490];
 
 /// Poseidon hash of `beast_synth_settings_brute_mega`'s Serde, as the generator computes it (tests
 /// check Cairo agrees).
 pub const SERDE_HASH_BRUTE_MEGA: felt252 =
     0x1b7fdd21b0ce30bfd306ea036baa6dbc54203f482467955dffdb7d6de523ec5;
-/// Brute Beasts that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65). Quality 1, reverb 30, volume 40, 64 voices; waves: nP50, nTRI, nSAW, nN16; 19 timbres, one operator per line.
+/// Brute Beasts that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65). Quality 1, reverb 30, volume 40, 64 voices; waves: nP50, nTRI, nSAW, nN16; 19 timbres.
 #[cairofmt::skip]
 pub fn beast_synth_settings_brute_mega() -> TinySynthSettings {
-    let waves = array![
-        WaveDef::Samples(array![64, -64].span()),
-        WaveDef::Samples(array![77, 67, 56, 46, 36, 26, 15, 5, -5, -15, -26, -36, -46, -56, -67, -77, -77, -67, -56, -46, -36, -26, -15, -5, 5, 15, 26, 36, 46, 56, 67, 77].span()),
-        WaveDef::Samples(array![-58, -50, -42, -35, -27, -19, -12, -4, 4, 12, 19, 27, 35, 42, 50, 58].span()),
-        WaveDef::Samples(array![-30, -25, -20, -15, -44, -38, -33, -28, 11, 16, 21, 26, -3, 3, 8, 13, 47, 42, 37, 32, -8, -13, -18, -23, 6, 1, -4, -9, -49, -54, -59, -64].span()),
-    ];
-    let timbres = array![
-        Timbre {
-            drum: false, slot: 3, operators: array![
-                op(0, Waveform::Custom(0), 3139, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 145, 0, 60000, 1800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 4, operators: array![
-                op(0, Waveform::Custom(2), 6504, 10000, 0, 200, 200, 1000, 8000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 105, 0, 60000, 2000, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 5, operators: array![
-                op(0, Waveform::Custom(0), 3139, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 16, operators: array![
-                op(0, Waveform::Custom(2), 9992, 10000, 0, 20, 0, 1300, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 14, operators: array![
-                op(0, Waveform::Custom(0), 5610, 10000, 0, 20, 0, 1000, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 18, operators: array![
-                op(0, Waveform::Custom(0), 4099, 10000, 0, 20, 100, 3500, 1800, 800, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 50, operators: array![
-                op(0, Waveform::Custom(0), 3139, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 204, 0, 80000, 800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 65, operators: array![
-                op(0, Waveform::Custom(3), 6966, 10000, 0, 150, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 87, 0, 60000, 1800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 36, operators: array![
-                op(0, Waveform::Custom(1), 9500, 0, 1600000, 20, 0, 600, 0, 300, 2800, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 38, operators: array![
-                op(0, Waveform::WhiteNoise, 4330, 0, 2640000, 20, 0, 500, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Custom(0), 2800, 0, 2000000, 20, 0, 250, 0, 300, 5500, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 41, operators: array![
-                op(0, Waveform::Custom(1), 7500, 0, 900000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 42, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 140, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 43, operators: array![
-                op(0, Waveform::Custom(1), 7500, 0, 1050000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 45, operators: array![
-                op(0, Waveform::Custom(1), 7500, 0, 1250000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 46, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 600, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 47, operators: array![
-                op(0, Waveform::Custom(1), 7500, 0, 1450000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 48, operators: array![
-                op(0, Waveform::Custom(1), 7500, 0, 1700000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 49, operators: array![
-                op(0, Waveform::WhiteNoise, 2598, 0, 8800000, 20, 0, 2500, 0, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 50, operators: array![
-                op(0, Waveform::Custom(1), 7500, 0, 2000000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-    ];
-    TinySynthSettings {
-        quality: 1,
-        reverb: 30,
-        master_vol: 40,
-        voices: 64,
-        waves: waves.span(),
-        timbres: timbres.span(),
-    }
+    settings_from(1, 30, 40, 64, WAVES_BRUTE_MEGA.span(), TIMBRES_BRUTE_MEGA.span())
 }
+#[cairofmt::skip]
+const WAVES_BRUTE_MEGA: [u32; 4] = [3074, 3616, 19984, 11808];
+#[cairofmt::skip]
+const TIMBRES_BRUTE_MEGA: [u32; 19] = [4588547, 4850692, 5112325, 5243408, 5374478, 5505554, 6816818, 7078977, 5636900, 5768486, 6030121, 1835818, 6161195, 6292269, 2229038, 6423343, 6554416, 2622257, 6685490];
 
 /// Poseidon hash of `beast_synth_settings_yeti`'s Serde, as the generator computes it (tests check
 /// Cairo agrees).
 pub const SERDE_HASH_YETI: felt252 =
     0x1aa1a2567c07fbfd30d703574916d6fd531619712a609f6f621657e1b216df;
-/// The Yeti (a Brute): also Pulse 12.5% Pluck (13), its avalanche. Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP50, nTRI, nSAW; 18 timbres, one operator per line.
+/// The Yeti (a Brute): also Pulse 12.5% Pluck (13), its avalanche. Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP50, nTRI, nSAW; 18 timbres.
 #[cairofmt::skip]
 pub fn beast_synth_settings_yeti() -> TinySynthSettings {
-    let waves = array![
-        WaveDef::Samples(array![64, -64, -64, -64, -64, -64, -64, -64].span()),
-        WaveDef::Samples(array![64, -64].span()),
-        WaveDef::Samples(array![77, 67, 56, 46, 36, 26, 15, 5, -5, -15, -26, -36, -46, -56, -67, -77, -77, -67, -56, -46, -36, -26, -15, -5, 5, 15, 26, 36, 46, 56, 67, 77].span()),
-        WaveDef::Samples(array![-58, -50, -42, -35, -27, -19, -12, -4, 4, 12, 19, 27, 35, 42, 50, 58].span()),
-    ];
-    let timbres = array![
-        Timbre {
-            drum: false, slot: 3, operators: array![
-                op(0, Waveform::Custom(1), 3139, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 145, 0, 60000, 1800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 4, operators: array![
-                op(0, Waveform::Custom(3), 6504, 10000, 0, 200, 200, 1000, 8000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 105, 0, 60000, 2000, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 5, operators: array![
-                op(0, Waveform::Custom(1), 3139, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 16, operators: array![
-                op(0, Waveform::Custom(3), 9992, 10000, 0, 20, 0, 1300, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 14, operators: array![
-                op(0, Waveform::Custom(1), 5610, 10000, 0, 20, 0, 1000, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 18, operators: array![
-                op(0, Waveform::Custom(1), 4099, 10000, 0, 20, 100, 3500, 1800, 800, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 13, operators: array![
-                op(0, Waveform::Custom(0), 5324, 10000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 36, operators: array![
-                op(0, Waveform::Custom(2), 9500, 0, 1600000, 20, 0, 600, 0, 300, 2800, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 38, operators: array![
-                op(0, Waveform::WhiteNoise, 4330, 0, 2640000, 20, 0, 500, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Custom(1), 2800, 0, 2000000, 20, 0, 250, 0, 300, 5500, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 41, operators: array![
-                op(0, Waveform::Custom(2), 7500, 0, 900000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 42, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 140, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 43, operators: array![
-                op(0, Waveform::Custom(2), 7500, 0, 1050000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 45, operators: array![
-                op(0, Waveform::Custom(2), 7500, 0, 1250000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 46, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 600, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 47, operators: array![
-                op(0, Waveform::Custom(2), 7500, 0, 1450000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 48, operators: array![
-                op(0, Waveform::Custom(2), 7500, 0, 1700000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 49, operators: array![
-                op(0, Waveform::WhiteNoise, 2598, 0, 8800000, 20, 0, 2500, 0, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 50, operators: array![
-                op(0, Waveform::Custom(2), 7500, 0, 2000000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-    ];
-    TinySynthSettings {
-        quality: 1,
-        reverb: 30,
-        master_vol: 40,
-        voices: 64,
-        waves: waves.span(),
-        timbres: timbres.span(),
-    }
+    settings_from(1, 30, 40, 64, WAVES_YETI.span(), TIMBRES_YETI.span())
 }
+#[cairofmt::skip]
+const WAVES_YETI: [u32; 4] = [8, 3074, 3616, 19984];
+#[cairofmt::skip]
+const TIMBRES_YETI: [u32; 18] = [7341059, 7603204, 7864837, 7995920, 8126990, 8258066, 1180173, 8389412, 8520998, 8782633, 1835818, 8913707, 9044781, 2229038, 9175855, 9306928, 2622257, 9438002];
 
 /// Poseidon hash of `beast_synth_settings_yeti_mega`'s Serde, as the generator computes it (tests
 /// check Cairo agrees).
 pub const SERDE_HASH_YETI_MEGA: felt252 =
     0xc5db949f559a177547691e079c0154d9f47dc7f1ebf61b8f1e53ac909190c7;
-/// The Yeti (a Brute): also Pulse 12.5% Pluck (13), its avalanche that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65). Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP50, nTRI, nSAW, nN16; 20 timbres, one operator per line.
+/// The Yeti (a Brute): also Pulse 12.5% Pluck (13), its avalanche that are mega (shiny): also the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65). Quality 1, reverb 30, volume 40, 64 voices; waves: nP12, nP50, nTRI, nSAW, nN16; 20 timbres.
 #[cairofmt::skip]
 pub fn beast_synth_settings_yeti_mega() -> TinySynthSettings {
-    let waves = array![
-        WaveDef::Samples(array![64, -64, -64, -64, -64, -64, -64, -64].span()),
-        WaveDef::Samples(array![64, -64].span()),
-        WaveDef::Samples(array![77, 67, 56, 46, 36, 26, 15, 5, -5, -15, -26, -36, -46, -56, -67, -77, -77, -67, -56, -46, -36, -26, -15, -5, 5, 15, 26, 36, 46, 56, 67, 77].span()),
-        WaveDef::Samples(array![-58, -50, -42, -35, -27, -19, -12, -4, 4, 12, 19, 27, 35, 42, 50, 58].span()),
-        WaveDef::Samples(array![-30, -25, -20, -15, -44, -38, -33, -28, 11, 16, 21, 26, -3, 3, 8, 13, 47, 42, 37, 32, -8, -13, -18, -23, 6, 1, -4, -9, -49, -54, -59, -64].span()),
-    ];
-    let timbres = array![
-        Timbre {
-            drum: false, slot: 3, operators: array![
-                op(0, Waveform::Custom(1), 3139, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 145, 0, 60000, 1800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 4, operators: array![
-                op(0, Waveform::Custom(3), 6504, 10000, 0, 200, 200, 1000, 8000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 105, 0, 60000, 2000, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 5, operators: array![
-                op(0, Waveform::Custom(1), 3139, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 16, operators: array![
-                op(0, Waveform::Custom(3), 9992, 10000, 0, 20, 0, 1300, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 14, operators: array![
-                op(0, Waveform::Custom(1), 5610, 10000, 0, 20, 0, 1000, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 18, operators: array![
-                op(0, Waveform::Custom(1), 4099, 10000, 0, 20, 100, 3500, 1800, 800, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 50, operators: array![
-                op(0, Waveform::Custom(1), 3139, 10000, 0, 30, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 204, 0, 80000, 800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 65, operators: array![
-                op(0, Waveform::Custom(4), 6966, 10000, 0, 150, 200, 1000, 10000, 300, 10000, 10000, 0),
-                op(1, Waveform::Triangle, 87, 0, 60000, 1800, 0, 100, 10000, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: false, slot: 13, operators: array![
-                op(0, Waveform::Custom(0), 5324, 10000, 0, 20, 0, 1200, 0, 300, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 36, operators: array![
-                op(0, Waveform::Custom(2), 9500, 0, 1600000, 20, 0, 600, 0, 300, 2800, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 38, operators: array![
-                op(0, Waveform::WhiteNoise, 4330, 0, 2640000, 20, 0, 500, 0, 300, 10000, 10000, 0),
-                op(0, Waveform::Custom(1), 2800, 0, 2000000, 20, 0, 250, 0, 300, 5500, 300, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 41, operators: array![
-                op(0, Waveform::Custom(2), 7500, 0, 900000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 42, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 140, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 43, operators: array![
-                op(0, Waveform::Custom(2), 7500, 0, 1050000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 45, operators: array![
-                op(0, Waveform::Custom(2), 7500, 0, 1250000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 46, operators: array![
-                op(0, Waveform::MetallicNoise, 2054, 0, 61600000, 10, 0, 600, 0, 200, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 47, operators: array![
-                op(0, Waveform::Custom(2), 7500, 0, 1450000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 48, operators: array![
-                op(0, Waveform::Custom(2), 7500, 0, 1700000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 49, operators: array![
-                op(0, Waveform::WhiteNoise, 2598, 0, 8800000, 20, 0, 2500, 0, 500, 10000, 10000, 0),
-            ]
-                .span(),
-        },
-        Timbre {
-            drum: true, slot: 50, operators: array![
-                op(0, Waveform::Custom(2), 7500, 0, 2000000, 20, 0, 800, 0, 300, 6000, 500, 0),
-            ]
-                .span(),
-        },
-    ];
-    TinySynthSettings {
-        quality: 1,
-        reverb: 30,
-        master_vol: 40,
-        voices: 64,
-        waves: waves.span(),
-        timbres: timbres.span(),
-    }
+    settings_from(1, 30, 40, 64, WAVES_YETI_MEGA.span(), TIMBRES_YETI_MEGA.span())
 }
+#[cairofmt::skip]
+const WAVES_YETI_MEGA: [u32; 5] = [8, 3074, 3616, 19984, 11808];
+#[cairofmt::skip]
+const TIMBRES_YETI_MEGA: [u32; 20] = [7341059, 7603204, 7864837, 7995920, 8126990, 8258066, 9569330, 3146817, 1180173, 8389412, 8520998, 8782633, 1835818, 8913707, 9044781, 2229038, 9175855, 9306928, 2622257, 9438002];
+/// Every wave's samples, each once (`WAVES_*`: start * 0x100 + length).
+#[cairofmt::skip]
+const SAMPLES: [i8; 94] = [64, -64, -64, -64, -64, -64, -64, -64, 64, -64, -64, -64, 64, -64, 77, 67, 56, 46, 36, 26, 15, 5, -5, -15, -26, -36, -46, -56, -67, -77, -77, -67, -56, -46, -36, -26, -15, -5, 5, 15, 26, 36, 46, 56, 67, 77, -30, -25, -20, -15, -44, -38, -33, -28, 11, 16, 21, 26, -3, 3, 8, 13, 47, 42, 37, 32, -8, -13, -18, -23, 6, 1, -4, -9, -49, -54, -59, -64, -58, -50, -42, -35, -27, -19, -12, -4, 4, 12, 19, 27, 35, 42, 50, 58];
+/// Every distinct operator list, each once (`TIMBRES_*`: ((first * 0x100 + count) * 2 + drum) *
+/// 0x100 + slot); no filters.
+#[cairofmt::skip]
+const OPERATORS: [Operator; 75] = [
+    Operator { route: 0, wave: Waveform::Custom(3), volume: 4593, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 175, ratio: 0, offset_hz: 60000, attack: 2000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(0), volume: 4490, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 323, ratio: 0, offset_hz: 50000, attack: 3500, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(0), volume: 5347, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 2500, sustain: 5500, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 87, ratio: 0, offset_hz: 60000, attack: 1800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(3), volume: 6814, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1800, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 3968, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 2200, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(0), volume: 1785, ratio: 20000, offset_hz: 0, attack: 20, hold: 0, decay: 1200, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(0), volume: 5324, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1200, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(3), volume: 9500, ratio: 0, offset_hz: 1600000, attack: 20, hold: 0, decay: 600, sustain: 0, release: 300, pitch_ratio: 2800, pitch_time: 300, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::WhiteNoise, volume: 4330, ratio: 0, offset_hz: 2640000, attack: 20, hold: 0, decay: 500, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(2), volume: 2800, ratio: 0, offset_hz: 2000000, attack: 20, hold: 0, decay: 250, sustain: 0, release: 300, pitch_ratio: 5500, pitch_time: 300, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(3), volume: 7500, ratio: 0, offset_hz: 900000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::MetallicNoise, volume: 2054, ratio: 0, offset_hz: 61600000, attack: 10, hold: 0, decay: 140, sustain: 0, release: 200, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(3), volume: 7500, ratio: 0, offset_hz: 1050000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(3), volume: 7500, ratio: 0, offset_hz: 1250000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::MetallicNoise, volume: 2054, ratio: 0, offset_hz: 61600000, attack: 10, hold: 0, decay: 600, sustain: 0, release: 200, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(3), volume: 7500, ratio: 0, offset_hz: 1450000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(3), volume: 7500, ratio: 0, offset_hz: 1700000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::WhiteNoise, volume: 2598, ratio: 0, offset_hz: 8800000, attack: 20, hold: 0, decay: 2500, sustain: 0, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(3), volume: 7500, ratio: 0, offset_hz: 2000000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(2), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 204, ratio: 0, offset_hz: 80000, attack: 800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(4), volume: 6966, ratio: 10000, offset_hz: 0, attack: 150, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 87, ratio: 0, offset_hz: 60000, attack: 1800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 3944, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 8500, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 116, ratio: 0, offset_hz: 60000, attack: 1500, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(0), volume: 5082, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 8000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 145, ratio: 0, offset_hz: 60000, attack: 1800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 3574, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 234, ratio: 0, offset_hz: 90000, attack: 600, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 5246, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1400, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(0), volume: 6684, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 500, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 3574, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(0), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 145, ratio: 0, offset_hz: 60000, attack: 1800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(2), volume: 6504, ratio: 10000, offset_hz: 0, attack: 200, hold: 200, decay: 1000, sustain: 8000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 105, ratio: 0, offset_hz: 60000, attack: 2000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(0), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(2), volume: 9992, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1300, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(0), volume: 5610, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1000, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(0), volume: 4099, ratio: 10000, offset_hz: 0, attack: 20, hold: 100, decay: 3500, sustain: 1800, release: 800, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 9500, ratio: 0, offset_hz: 1600000, attack: 20, hold: 0, decay: 600, sustain: 0, release: 300, pitch_ratio: 2800, pitch_time: 300, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::WhiteNoise, volume: 4330, ratio: 0, offset_hz: 2640000, attack: 20, hold: 0, decay: 500, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(0), volume: 2800, ratio: 0, offset_hz: 2000000, attack: 20, hold: 0, decay: 250, sustain: 0, release: 300, pitch_ratio: 5500, pitch_time: 300, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 7500, ratio: 0, offset_hz: 900000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 7500, ratio: 0, offset_hz: 1050000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 7500, ratio: 0, offset_hz: 1250000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 7500, ratio: 0, offset_hz: 1450000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 7500, ratio: 0, offset_hz: 1700000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 7500, ratio: 0, offset_hz: 2000000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(0), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 204, ratio: 0, offset_hz: 80000, attack: 800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(3), volume: 6966, ratio: 10000, offset_hz: 0, attack: 150, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 87, ratio: 0, offset_hz: 60000, attack: 1800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 145, ratio: 0, offset_hz: 60000, attack: 1800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(3), volume: 6504, ratio: 10000, offset_hz: 0, attack: 200, hold: 200, decay: 1000, sustain: 8000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 105, ratio: 0, offset_hz: 60000, attack: 2000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(3), volume: 9992, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1300, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 5610, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1000, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 4099, ratio: 10000, offset_hz: 0, attack: 20, hold: 100, decay: 3500, sustain: 1800, release: 800, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(2), volume: 9500, ratio: 0, offset_hz: 1600000, attack: 20, hold: 0, decay: 600, sustain: 0, release: 300, pitch_ratio: 2800, pitch_time: 300, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::WhiteNoise, volume: 4330, ratio: 0, offset_hz: 2640000, attack: 20, hold: 0, decay: 500, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 2800, ratio: 0, offset_hz: 2000000, attack: 20, hold: 0, decay: 250, sustain: 0, release: 300, pitch_ratio: 5500, pitch_time: 300, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(2), volume: 7500, ratio: 0, offset_hz: 900000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(2), volume: 7500, ratio: 0, offset_hz: 1050000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(2), volume: 7500, ratio: 0, offset_hz: 1250000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(2), volume: 7500, ratio: 0, offset_hz: 1450000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(2), volume: 7500, ratio: 0, offset_hz: 1700000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(2), volume: 7500, ratio: 0, offset_hz: 2000000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
+    Operator { route: 0, wave: Waveform::Custom(1), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+    Operator { route: 1, wave: Waveform::Triangle, volume: 204, ratio: 0, offset_hz: 80000, attack: 800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
+];
 
-/// route, wave, then volume, ratio, offset_hz, attack, hold, decay, sustain, release, pitch_ratio,
-/// pitch_time, key_scale (fixed point); no filter.
-fn op(
-    route: u8,
-    wave: Waveform,
-    volume: u32,
-    ratio: u32,
-    offset_hz: i32,
-    attack: u32,
-    hold: u32,
-    decay: u32,
-    sustain: u32,
-    release: u32,
-    pitch_ratio: u32,
-    pitch_time: u32,
-    key_scale: i32,
-) -> Operator {
-    Operator {
-        route,
-        wave,
-        volume,
-        ratio,
-        offset_hz,
-        attack,
-        hold,
-        decay,
-        sustain,
-        release,
-        pitch_ratio,
-        pitch_time,
-        key_scale,
-        filter: Option::None,
+/// A settings value from its tables: each wave a slice of SAMPLES, each timbre a slice of
+/// OPERATORS.
+// Out of line on purpose: inlined, this body is copied into each of the eight settings functions.
+#[inline(never)]
+fn settings_from(
+    quality: u8, reverb: u8, master_vol: u8, voices: u8, waves: Span<u32>, timbres: Span<u32>,
+) -> TinySynthSettings {
+    let samples = SAMPLES.span();
+    let operators = OPERATORS.span();
+    let mut wave_defs: Array<WaveDef> = array![];
+    for w in waves {
+        wave_defs.append(WaveDef::Samples(samples.slice(*w / 0x100, *w % 0x100)));
+    }
+    let mut timbre_defs: Array<Timbre> = array![];
+    for t in timbres {
+        let ops = *t / 0x200;
+        timbre_defs
+            .append(
+                Timbre {
+                    drum: (*t / 0x100) % 2 == 1,
+                    slot: (*t % 0x100).try_into().unwrap(),
+                    operators: operators.slice(ops / 0x100, ops % 0x100),
+                },
+            );
+    }
+    TinySynthSettings {
+        quality, reverb, master_vol, voices, waves: wave_defs.span(), timbres: timbre_defs.span(),
     }
 }

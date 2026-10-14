@@ -204,36 +204,55 @@ const wrapDoc = (text, prefix = '///', width = 100) => {
   return [...lines, line].join('\n');
 };
 
-/** One generated settings function: its Serde hash constant, then the function itself. */
+// Shared data: every wave's samples go once into SAMPLES and every distinct operator list once into
+// OPERATORS (`const` fixed-size arrays, stored in the class's constant segment); a settings function
+// is two tables of slices into them, which `settings_from` turns into the TinySynthSettings. Data in
+// constants costs the contract a felt per value; the same values built in code (`array![...]` of
+// struct literals in every settings function) cost about 10x that in CASM.
+const SAMPLES = []; const SAMPLES_AT = new Map(); // samples key -> start
+const OPERATORS = []; const OPERATORS_AT = new Map(); // operator list key -> start
+const samplesAt = (samples) => {
+  const key = samples.join(',');
+  if (!SAMPLES_AT.has(key)) { SAMPLES_AT.set(key, SAMPLES.length); SAMPLES.push(...samples); }
+  return SAMPLES_AT.get(key);
+};
+const operatorsAt = (ops) => {
+  const key = ops.join('\n');
+  if (!OPERATORS_AT.has(key)) { OPERATORS_AT.set(key, OPERATORS.length); OPERATORS.push(...ops); }
+  return OPERATORS_AT.get(key);
+};
+const check = (ok, what) => { if (!ok) throw new Error(`settings table: ${what} out of range`); };
+
+/** One generated settings function: its Serde hash constant, the function, then its two tables. */
 function settingsFn(s, waveNames, fnName, hashName, doc) {
   const hash = poseidonHashMany(serializeSettings(s));
-  const timbres = s.timbres.map((t) => {
-    const wave = (w) => (typeof w === 'string' ? w : `Custom(${w.Custom})`);
-    const ops = t.operators.map((o) => `            op(${o.route}, Waveform::${wave(o.wave)}, ${OP_FIELDS.map((k) => o[k]).join(', ')}),`);
-    return `        Timbre {\n            drum: ${t.drum}, slot: ${t.slot}, operators: array![\n    ${ops.join('\n    ')}\n            ]\n                .span(),\n        },`;
+  const wave = (w) => (typeof w === 'string' ? w : `Custom(${w.Custom})`);
+  // a wave: start * 0x100 + length, into SAMPLES
+  const waves = s.waves.map((w) => {
+    const start = samplesAt(w.Samples); const len = w.Samples.length;
+    check(len < 0x100 && start < 0x1000000, 'wave');
+    return start * 0x100 + len;
   });
-  const waves = s.waves.map((w) => `        WaveDef::Samples(array![${w.Samples.join(', ')}].span()),`);
+  // a timbre: ((first * 0x100 + count) * 2 + drum) * 0x100 + slot, its operators from OPERATORS
+  const timbres = s.timbres.map((t) => {
+    const ops = t.operators.map((o) => `    Operator { route: ${o.route}, wave: Waveform::${wave(o.wave)}, ${OP_FIELDS.map((k) => `${k}: ${o[k]}`).join(', ')}, filter: Option::None },`);
+    const first = operatorsAt(ops); const count = ops.length;
+    check(count < 0x100 && first < 0x10000 && t.slot < 0x100, 'timbre');
+    return ((first * 0x100 + count) * 2 + (t.drum ? 1 : 0)) * 0x100 + t.slot;
+  });
+  const up = fnName.replace('beast_synth_settings_', '').toUpperCase();
   return `${wrapDoc(`Poseidon hash of \`${fnName}\`'s Serde, as the generator computes it (tests check Cairo agrees).`)}
 pub const ${hashName}: felt252 =
     0x${hash.toString(16)};
-/// ${doc} Quality ${s.quality}, reverb ${s.reverb}, volume ${s.master_vol}, ${s.voices} voices; waves: ${waveNames.join(', ') || 'none'}; ${s.timbres.length} timbres, one operator per line.
+/// ${doc} Quality ${s.quality}, reverb ${s.reverb}, volume ${s.master_vol}, ${s.voices} voices; waves: ${waveNames.join(', ') || 'none'}; ${s.timbres.length} timbres.
 #[cairofmt::skip]
 pub fn ${fnName}() -> TinySynthSettings {
-    let waves = array![
-${waves.join('\n')}
-    ];
-    let timbres = array![
-${timbres.join('\n')}
-    ];
-    TinySynthSettings {
-        quality: ${s.quality},
-        reverb: ${s.reverb},
-        master_vol: ${s.master_vol},
-        voices: ${s.voices},
-        waves: waves.span(),
-        timbres: timbres.span(),
-    }
+    settings_from(${s.quality}, ${s.reverb}, ${s.master_vol}, ${s.voices}, WAVES_${up}.span(), TIMBRES_${up}.span())
 }
+#[cairofmt::skip]
+const WAVES_${up}: [u32; ${waves.length}] = [${waves.join(', ')}];
+#[cairofmt::skip]
+const TIMBRES_${up}: [u32; ${timbres.length}] = [${timbres.join(', ')}];
 `;
 }
 
@@ -293,39 +312,43 @@ pub fn yeti_synth_settings_serde_hash(mega: bool) -> felt252 {
     }
 }
 
-${fns.join('\n')}
-/// route, wave, then volume, ratio, offset_hz, attack, hold, decay, sustain, release, pitch_ratio,
-/// pitch_time, key_scale (fixed point); no filter.
-fn op(
-    route: u8,
-    wave: Waveform,
-    volume: u32,
-    ratio: u32,
-    offset_hz: i32,
-    attack: u32,
-    hold: u32,
-    decay: u32,
-    sustain: u32,
-    release: u32,
-    pitch_ratio: u32,
-    pitch_time: u32,
-    key_scale: i32,
-) -> Operator {
-    Operator {
-        route,
-        wave,
-        volume,
-        ratio,
-        offset_hz,
-        attack,
-        hold,
-        decay,
-        sustain,
-        release,
-        pitch_ratio,
-        pitch_time,
-        key_scale,
-        filter: Option::None,
+${fns.join('\n')}/// Every wave's samples, each once (\`WAVES_*\`: start * 0x100 + length).
+#[cairofmt::skip]
+const SAMPLES: [i8; ${SAMPLES.length}] = [${SAMPLES.join(', ')}];
+/// Every distinct operator list, each once (\`TIMBRES_*\`: ((first * 0x100 + count) * 2 + drum) *
+/// 0x100 + slot); no filters.
+#[cairofmt::skip]
+const OPERATORS: [Operator; ${OPERATORS.length}] = [
+${OPERATORS.join('\n')}
+];
+
+/// A settings value from its tables: each wave a slice of SAMPLES, each timbre a slice of
+/// OPERATORS.
+// Out of line on purpose: inlined, this body is copied into each of the eight settings functions.
+#[inline(never)]
+fn settings_from(
+    quality: u8, reverb: u8, master_vol: u8, voices: u8, waves: Span<u32>, timbres: Span<u32>,
+) -> TinySynthSettings {
+    let samples = SAMPLES.span();
+    let operators = OPERATORS.span();
+    let mut wave_defs: Array<WaveDef> = array![];
+    for w in waves {
+        wave_defs.append(WaveDef::Samples(samples.slice(*w / 0x100, *w % 0x100)));
+    }
+    let mut timbre_defs: Array<Timbre> = array![];
+    for t in timbres {
+        let ops = *t / 0x200;
+        timbre_defs
+            .append(
+                Timbre {
+                    drum: (*t / 0x100) % 2 == 1,
+                    slot: (*t % 0x100).try_into().unwrap(),
+                    operators: operators.slice(ops / 0x100, ops % 0x100),
+                },
+            );
+    }
+    TinySynthSettings {
+        quality, reverb, master_vol, voices, waves: wave_defs.span(), timbres: timbre_defs.span(),
     }
 }
 `;

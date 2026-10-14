@@ -10,7 +10,9 @@
 //! (`midi_provider`) build on it.
 
 pub mod pack;
-pub mod smf;
 
+#[cfg(test)]
+mod pack_tests;
+pub mod smf;
 #[cfg(test)]
 mod tests;

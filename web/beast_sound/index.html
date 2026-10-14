@@ -353,7 +353,7 @@ html[data-skin="ls"] body::after {
           <li><b>Seed</b> = <code>poseidon('BEAST_SOUND_V1', id, prefix, suffix)</code>, the same inputs as the entity hash. A V2 Beast keeps its melody through <code>burn_and_mint</code>, because the seed contains no contract address, chain id or owner.</li>
           <li><b>Creator authority</b> = holder of the species' Genesis Beast, the same rule V3 now uses for art.</li>
         </ul>
-        <p class="callout">MVP: a Sound rarity drop across the original 93,225, every Genesis Beast singing, and an opt-in for community species. Creators can use the Koji composer or their own provider.</p>
+        <p class="callout">MVP: a Sound rarity drop across the original 93,225, every Genesis Beast singing, and an opt-in for community species. Creators can use the Beast composer or their own provider.</p>
       </section>
 
       <section>
@@ -400,13 +400,13 @@ flowchart LR
   NFT["beasts_nft (V3)<br/>token ID · kills · rank"]
   SUM["Summit<br/>deaths · hours held"]
   SND["BeastSound<br/>drop salt · per-species provider"]
-  KOJI["Koji composer (Cairo)<br/>pure: token + live → score"]
+  COMPOSER["Beast composer (Cairo)<br/>pure: token + live → score"]
   WEB["Renderer<br/>WebAudio · game engine"]
   NFT -->|"owner_of(Genesis) = creator"| SND
   NFT --> SND
   SUM --> SND
-  SND --> KOJI
-  KOJI -->|"params · state hash · score hash"| WEB
+  SND --> COMPOSER
+  COMPOSER -->|"params · state hash · score hash"| WEB
   WEB -->|"recompute + verify score hash"| WEB
 </pre>
         <p>The contract is the source of truth for identity, params and hashes. Renderers recompute the notes offchain and check them against the score hash. That's what this page does, with the same engine.</p>
@@ -419,7 +419,7 @@ flowchart LR
 trait IBeastSound&lt;T&gt; {
     // rarity + opt-in
     fn has_sound(self: @T, token_id: u256) -&gt; bool;
-    fn get_sound_provider(self: @T, species_id: u64) -&gt; ContractAddress;   // 0 = Koji default
+    fn get_sound_provider(self: @T, species_id: u64) -&gt; ContractAddress;   // 0 = the Beast composer
     fn set_sound_provider(ref self: T, species_id: u64, provider: ContractAddress);
         // caller == beasts_nft.owner_of(genesis_token_id(species_id)) — same rule as V3 art
     fn lock_sound(ref self: T, species_id: u64);                            // one-way, like lock_art
@@ -435,7 +435,7 @@ trait IBeastSound&lt;T&gt; {
 }
 
 #[starknet::interface]
-trait IBeastSoundProvider&lt;T&gt; {   // Koji canonical class, or a creator's own
+trait IBeastSoundProvider&lt;T&gt; {   // the Beast composer's class, or a creator's own
     fn get_score(self: @T, beast: PackableBeast, live: BeastV3LiveState) -&gt; Span&lt;felt252&gt;;
 }
 
@@ -489,7 +489,7 @@ struct BeastV3LiveState {
       </section>
 
       <section>
-        <span class="label">Changes made to the Koji spec and code</span>
+        <span class="label">Changes made to the original spec and code</span>
         <h3>What this patch changes</h3>
         <div class="tbl"><table>
           <thead><tr><th>Before</th><th>Now (branch <code>beasts-v3-sound</code>)</th></tr></thead>

@@ -1,8 +1,9 @@
 # Beast Sound simulator
 
 Single-file page that plays any Loot Survivor Beast's canonical theme in the browser.
-The engine is `offchain/beast-sound/src/engine.js`, which mirrors `src/composition/beast_v3_sound.cairo`
-and `beast_score.cairo`; parity is checked against Cairo by `scripts/beast_v3_parity.mjs`.
+The engine is `offchain/beast-sound/src/engine.js`, which mirrors
+`contracts/beast_music/src/composition/beast_v3_sound.cairo` and `beast_score.cairo`; parity is
+checked against Cairo by `scripts/beast_v3_parity.mjs`.
 
 - `index.src.html`: page source with `/*BUNDLE*/` and `/*SNAPSHOT*/` placeholders
 - `entry.mjs`: bundle entry that pulls in the offchain package
@@ -16,14 +17,16 @@ and `beast_score.cairo`; parity is checked against Cairo by `scripts/beast_v3_pa
 The engine lives in `offchain/beast-sound` (the `@koji/beast-sound` package); this page bundles it.
 
 ```bash
-(cd ../../offchain/beast-sound && npm install)
-npx esbuild entry.mjs --bundle --minify --format=iife --outfile=/tmp/bundle.js
+(cd ../../offchain/beast-sound && npm install)   # esbuild 0.23.0, the package's devDependency
+../../offchain/beast-sound/node_modules/.bin/esbuild entry.mjs --bundle --minify --format=iife --outfile=/tmp/bundle.js
 python3 build.py /tmp/bundle.js snapshot.min.json index.html
 ```
 
 ## Parity
 
+From the repository root:
+
 ```bash
-scarb test -- --include-ignored --filter beast_v3_parity_fixture | grep PARITY > /tmp/parity.txt
+(cd contracts/beast_music && scarb test -- --include-ignored --filter beast_v3_parity_fixture | grep PARITY > /tmp/parity.txt)
 node scripts/beast_v3_parity.mjs /tmp/parity.txt   # needs @scure/starknet resolvable
 ```

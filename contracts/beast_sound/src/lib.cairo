@@ -1,4 +1,4 @@
-//! BeastSoundComposer: the Koji Beast composer as a Starknet contract.
+//! BeastSoundComposer: the Beast composer (`beast_music`) as a Starknet contract.
 //!
 //! Every view is a pure function of a Beasts V3 token ID plus the Beast's live state, passed as
 //! calldata (benchmark build). `provider::BeastMidiProvider` is the production path: it serves the

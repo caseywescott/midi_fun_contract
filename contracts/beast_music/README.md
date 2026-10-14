@@ -1,16 +1,8 @@
 # beast_music
 
-The Beast Sound composer on its own: the part of the `koji` music library that Beasts V3 sound
-actually uses, extracted into a standalone Cairo package. Its one dependency is `contracts/midi`
-(Standard MIDI File writing and felt packing).
-
-| | `koji` (repo root) | `beast_music` |
-|---|---|---|
-| Modules | 84 | 14 |
-| Lines | 36,649 | about 2,900 |
-
-`contracts/beast_sound` (`BeastMidiProvider`, `BeastSoundComposer`) depends on this package instead
-of `koji`.
+The Beast Sound composer as a standalone Cairo package. Its one dependency is `contracts/midi`
+(Standard MIDI File writing and felt packing). `contracts/beast_sound` (`BeastMidiProvider`,
+`BeastSoundComposer`) depends on it.
 
 ## What is in it
 
@@ -27,28 +19,23 @@ of `koji`.
 | `composition::counterpoint`, `canon_rules`, `invertible_counterpoint`, `stretto` | The few interval and canon helpers the above call |
 | `modes`, `lcg`, `rng` | The mode enum, the seeded random source |
 
-Everything else in `koji` (Barry Harris, harmonic walk and jazz harmony, ornamentation v2,
-motif/form, timeline and tiling rhythm, canon variants, the general MIDI toolkit, engine v2) is
-left out. `koji` itself is unchanged.
+## What it holds, and how it is checked
 
-## How it was extracted, and how it was checked
-
-The modules and functions kept are the ones the compiled contracts use: their Sierra function list
+The modules and functions here are the ones the compiled contracts use: their Sierra function list
 (built with `sierra-replace-ids`) plus a static call graph for helpers the compiler inlines. Unused
-functions, types and imports were then removed until the package built with no warnings.
+functions, types and imports were removed until the package built with no warnings.
 
-- **Same code onchain:** `BeastMidiProvider` and `BeastSoundComposer` built against `beast_music`
-  have CASM bytecode identical to the `koji` builds (23,154 and 26,608 felts). The ABI is identical
-  apart from type paths (`beast_music::` instead of `koji::`), which changes the class hash but no
-  behavior.
-- **Same music:** the Beast v3 tests run here (`src/tests.cairo`, 14 tests), and the parity fixture
-  prints exactly the lines `koji` does, which `scripts/beast_v3_parity.mjs` matches against the JS
-  engine (65 of 65 checks):
+- **Tests:** the Beast v3 tests (`src/tests.cairo`), the trait map and the score
+  (`src/trait_map_tests.cairo`, `src/score_tests.cairo`), the helpers they build on
+  (`src/articulation_tests.cairo`, `contrapuntal_tests.cairo`, `canon_rules_tests.cairo`,
+  `melodic_canon_tests.cairo`, `lcg_tests.cairo`, `rng_tests.cairo`), plus the track, Genesis and
+  input-packing tests.
+- **Same music as the JS engine:** the parity fixture prints `PARITY` lines that
+  `scripts/beast_v3_parity.mjs` matches against `offchain/beast-sound` (65 of 65 checks):
   ```bash
   scarb test -- --include-ignored --filter beast_v3_parity_fixture | grep PARITY > /tmp/parity.txt
   node ../../scripts/beast_v3_parity.mjs /tmp/parity.txt
   ```
-- `contracts/beast_sound`'s 16 tests pass on it unchanged.
 
 `smf_golden` (ignored; `scarb test -- --include-ignored --filter smf_golden`) pins every byte both
 SMF writers produce for 50 Beasts in two live states; it held unchanged when the writers moved onto
@@ -79,6 +66,6 @@ Beast is about 0.76B L2 gas (v1: 0.44B; the first port: over 2B), the named rank
 
 ## Keeping it in sync
 
-Composer changes now land here. While `koji` keeps its own copy (its tests, demos and the other
-engines use it), a change to the Beast path has to be made in both until `koji`'s copy is retired.
-The parity fixture catches a mismatch: both must print the same `PARITY` lines.
+Composer changes land here, and in the JS mirror in `offchain/beast-sound/src` (`engine.js`,
+`engine_v11.js`, `full_midi.js`, `lab.js`) in the same change. The parity fixtures catch a
+mismatch: the scripts in `scripts/` compare their output with the JS.

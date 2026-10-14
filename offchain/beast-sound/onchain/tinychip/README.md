@@ -121,7 +121,10 @@ value from the same bank data as the runtime:
 - **Cairo:** `beasts/beast_contracts/src/synth_settings.cairo` (`beast_synth_settings()`) is generated
   from the same function, with onchain-midi-player's own types (re-exported by
   `midi::types`); tests check its Serde hash against the generator's and run the class's
-  `validate` on it, and its Serde matches onchain-midi-player's own fixture serializer.
+  `validate` on it, and its Serde matches onchain-midi-player's own fixture serializer. To keep
+  `BeastMidiProvider` small, the data is constants: every wave's samples once (`SAMPLES`), every
+  distinct operator list once (`OPERATORS`), and per settings two tables of slices into them
+  (`WAVES_*`, `TIMBRES_*`) that `settings_from` turns into the value.
 
 ```bash
 node onchain/tinychip/synth_settings.mjs onchain/tinychip/beast_synth_settings.json  # JSON, for preview.mjs --settings

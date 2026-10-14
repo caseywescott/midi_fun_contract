@@ -70,7 +70,7 @@ published score (see §5).
 
 ## 3. Canonical knobs (change the score)
 
-Every knob exists twice: Cairo (`src/composition/…`) and its JS mirror
+Every knob exists twice: Cairo (`beasts/beast_composer/src/composition/…`) and its JS mirror
 (`offchain/beast-sound/src/…`). Change both.
 
 ### Ornamentation (engine v2)

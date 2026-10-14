@@ -31,3 +31,6 @@ jobs:
         with:
           scarb-version: "2.20.1"
       - run: scarb test -p ${{ matrix.package }}
+      # Scarb.lock pins every git dependency to a commit (game_components_encoding is asked for by
+      # tag): a build that changes it means a dependency moved.
+      - run: git diff --exit-code Scarb.lock

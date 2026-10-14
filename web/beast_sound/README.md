@@ -1,8 +1,9 @@
 # Beast Sound simulator
 
 Single-file page that plays any Loot Survivor Beast's canonical theme in the browser.
-The engine is `offchain/beast-sound/src/engine.js`, which mirrors `src/composition/beast_v3_sound.cairo`
-and `beast_score.cairo`; parity is checked against Cairo by `scripts/beast_v3_parity.mjs`.
+The engine is `offchain/beast-sound/src/engine.js`, which mirrors
+`beasts/beast_composer/src/composition/beast_v3_sound.cairo` and `beast_score.cairo`; parity is
+checked against Cairo by `scripts/beast_v3_parity.mjs`.
 
 - `index.src.html`: page source with `/*BUNDLE*/` and `/*SNAPSHOT*/` placeholders
 - `entry.mjs`: bundle entry that pulls in the offchain package

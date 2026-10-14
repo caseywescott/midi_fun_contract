@@ -1,5 +1,5 @@
 {
- "source": "src/tests/test_beast_v3_sound.cairo::beast_v3_parity_fixture",
+ "source": "beasts/beast_composer/src/tests.cairo::beast_v3_parity_fixture",
  "cases": [
   {
    "beast": {

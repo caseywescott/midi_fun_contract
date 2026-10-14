@@ -1,6 +1,6 @@
 // Parity: offchain engine (offchain/beast-sound) vs the Cairo reference (beast_v3_parity_fixture).
 //
-//   scarb test -- --include-ignored --filter beast_v3_parity_fixture | grep PARITY > /tmp/parity.txt
+//   (cd beasts/beast_composer && scarb test -- --include-ignored --filter beast_v3_parity_fixture | grep PARITY > /tmp/parity.txt)
 //   node scripts/beast_v3_parity.mjs /tmp/parity.txt           # compare
 //   node scripts/beast_v3_parity.mjs /tmp/parity.txt --write   # also refresh golden fixtures
 //
@@ -9,7 +9,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { engine as E, poseidonHashMany, encodeBsi } from '../offchain/beast-sound/src/index.js';
 
-// Must match the cases in src/tests/test_beast_v3_sound.cairo::beast_v3_parity_fixture.
+// Must match the cases in beasts/beast_composer/src/tests.cairo::beast_v3_parity_fixture.
 export const CASES = [
   [{ id: 1, prefix: 57, suffix: 15, level: 126, health: 229, shiny: 0, animated: 0, tier: 1, beast_type: 0 }, { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 500, species_count: 954 }],
   [{ id: 1, prefix: 57, suffix: 15, level: 126, health: 229, shiny: 0, animated: 0, tier: 1, beast_type: 0 }, { adventurers_killed: 40, scars: 9, summit_held_seconds: 90000, rank: 1, species_count: 954 }],
@@ -52,7 +52,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   console.log(failures === 0 ? `PARITY: all ${CASES.length} cases match Cairo (${CASES.length * 13} checks)` : `PARITY: ${failures} mismatches`);
   if (failures === 0 && process.argv.includes('--write')) {
     const out = new URL('../offchain/beast-sound/test/golden.json', import.meta.url);
-    writeFileSync(out, JSON.stringify({ source: 'src/tests/test_beast_v3_sound.cairo::beast_v3_parity_fixture', cases: golden }, null, 1) + '\n');
+    writeFileSync(out, JSON.stringify({ source: 'beasts/beast_composer/src/tests.cairo::beast_v3_parity_fixture', cases: golden }, null, 1) + '\n');
     console.log('wrote', decodeURIComponent(out.pathname));
   }
   process.exit(failures === 0 ? 0 : 1);

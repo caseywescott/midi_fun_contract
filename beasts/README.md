@@ -24,7 +24,7 @@ version = "0.1.0"
 edition = "2025_12"
 
 [workspace.dependencies]
-midi = { git = "https://github.com/loothero/midi_fun_contract", rev = "<commit>" }
+midi = { git = "https://github.com/caseywescott/midi_fun_contract", rev = "<commit>" }
 starknet = "2.20.1"
 cairo_test = "2.20.1"
 ```

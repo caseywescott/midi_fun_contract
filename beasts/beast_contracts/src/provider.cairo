@@ -35,11 +35,7 @@
 //! token. The provider only calls state getters, never `token_uri`, so metadata cannot recurse.
 
 use beast_composer::composition::beast_v3_sound::BeastV3LiveState;
-// The contract module has a `midi` function, which hides the `midi` crate there: it takes these
-// through `super`.
-use midi::interfaces::{IMidiProvider, ISoundProvider, ISynthSettingsProvider};
-use midi::pack::bytes_to_byte_array;
-use midi::types::{TinySynthSettings, TinySynthSound};
+use midi::types::TinySynthSound;
 use starknet::ContractAddress;
 
 /// `IBeasts::get_cached_stats` (Beasts V3 `BeastLiveStats`).
@@ -145,14 +141,16 @@ pub mod BeastMidiProvider {
     use beast_composer::composition::yeti::YETI;
     use core::num::traits::Zero;
     use core::poseidon::poseidon_hash_span;
+    use midi::interfaces::{IMidiProvider, ISoundProvider, ISynthSettingsProvider};
+    use midi::pack::bytes_to_byte_array;
+    use midi::types::{TinySynthSettings, TinySynthSound};
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
     use starknet::syscalls::get_block_hash_syscall;
     use starknet::{ContractAddress, SyscallResultTrait, get_block_number};
     use super::{
         BeastLiveStateReport, IBeastMidiProvider, IBeastTracks, IBeastsLiveStateDispatcher,
         IBeastsLiveStateDispatcherTrait, IDeathMountainCollectsDispatcher,
-        IDeathMountainCollectsDispatcherTrait, IMidiProvider, ISoundProvider,
-        ISynthSettingsProvider, StateSource, TinySynthSettings, TinySynthSound, bytes_to_byte_array,
+        IDeathMountainCollectsDispatcherTrait, StateSource,
     };
 
     #[storage]
@@ -169,13 +167,13 @@ pub mod BeastMidiProvider {
     #[abi(embed_v0)]
     impl MidiProviderImpl of IMidiProvider<ContractState> {
         fn get_midi(self: @ContractState, token_id: u256) -> ByteArray {
-            midi(self, self.collection.read(), token_id)
+            token_midi(self, self.collection.read(), token_id)
         }
 
         fn get_midi_for(
             self: @ContractState, token_address: ContractAddress, token_id: u256,
         ) -> ByteArray {
-            midi(self, token_address, token_id)
+            token_midi(self, token_address, token_id)
         }
     }
 
@@ -194,8 +192,8 @@ pub mod BeastMidiProvider {
         /// `get_midi(token_id)` and `get_settings(token_id)` in one call, reading the live state
         /// once.
         fn get_sound(self: @ContractState, token_id: u256) -> TinySynthSound {
-            // `midi` validates the token ID, so the settings need no second check.
-            let midi = midi(self, self.collection.read(), token_id);
+            // `token_midi` validates the token ID, so the settings need no second check.
+            let midi = token_midi(self, self.collection.read(), token_id);
             TinySynthSound { midi, settings: settings(decode_v3_token_id(token_id)) }
         }
     }
@@ -291,7 +289,9 @@ pub mod BeastMidiProvider {
 
     /// The token's Genesis Track, after checking the collection, the token ID and that the token
     /// is minted (`get_beast_rank` reverts otherwise).
-    fn midi(self: @ContractState, token_address: ContractAddress, token_id: u256) -> ByteArray {
+    fn token_midi(
+        self: @ContractState, token_address: ContractAddress, token_id: u256,
+    ) -> ByteArray {
         let collection = self.collection.read();
         assert(token_address == collection, 'unsupported collection');
         let beast = decode_v3_token_id(token_id);

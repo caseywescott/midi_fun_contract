@@ -10,7 +10,7 @@ declare interfaces) and `onchain_midi_player` (whose types it re-exports), and o
 [dependencies]
 midi.workspace = true   # in this workspace
 # from another repository:
-# midi = { git = "https://github.com/loothero/midi_fun_contract", rev = "<commit>" }
+# midi = { git = "https://github.com/caseywescott/midi_fun_contract", rev = "<commit>" }
 ```
 
 | Module | What it holds |

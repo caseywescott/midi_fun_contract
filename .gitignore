@@ -7,8 +7,6 @@ __pycache__
 
 .DS_Store
 
-Scarb.lock
-
 #######
 Node / TypeScript
 #######

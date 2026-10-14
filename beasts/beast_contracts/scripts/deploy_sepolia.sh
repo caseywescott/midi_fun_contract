@@ -34,14 +34,15 @@ if [ "$DEPLOYED" = "0" ]; then
 fi
 
 echo "declaring BeastMidiProvider"
-DECLARE=$($SN declare --package beast_contracts --contract-name BeastMidiProvider --url "$RPC" 2>&1 || true)
-echo "$DECLARE"
-CLASS=$(echo "$DECLARE" | grep -oE "(class_hash|Class Hash): *0x[0-9a-f]+" | grep -oE "0x[0-9a-f]+" | head -1)
-if [ -z "$CLASS" ]; then
-  # already declared: sncast reports the hash in the error
-  CLASS=$(echo "$DECLARE" | grep -oE "0x[0-9a-f]{50,}" | head -1)
+if DECLARE=$($SN declare --package beast_contracts --contract-name BeastMidiProvider --url "$RPC" 2>&1); then
+  echo "$DECLARE"
+  CLASS=$(echo "$DECLARE" | grep -oE "(class_hash|Class Hash): *0x[0-9a-f]+" | grep -oE "0x[0-9a-f]+" | head -1)
+else
+  echo "$DECLARE"
+  # already declared: sncast names the class hash in that error; any other error stops here
+  CLASS=$(echo "$DECLARE" | grep "already declared" | grep -oE "0x[0-9a-f]+" | head -1)
 fi
-[ -n "$CLASS" ] || { echo "no class hash"; exit 1; }
+[ -n "$CLASS" ] || { echo "declare failed: no class hash"; exit 1; }
 echo "class $CLASS"
 
 echo "deploying against the Beasts NFT $NFT"

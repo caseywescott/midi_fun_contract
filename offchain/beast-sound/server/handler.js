@@ -6,8 +6,9 @@
 //   GET /beasts/{token}/player     -> self-contained HTML player (use as the NFT's animation_url)
 //
 // {token} is a current mainnet token number (e.g. 52918) or a Beasts V3 116-bit token ID (decimal
-// or 0x). Query: ?engine=1|2 (default 1), ?network=sepolia|mainnet for V3 IDs (default sepolia
-// until V3 ships on mainnet), ?patch=<patch id> and ?drums=0 (drums off) for the player.
+// or 0x). Query: ?engine=1 (the default and the only engine; any other value is a 400),
+// ?network=sepolia|mainnet for V3 IDs (default sepolia until V3 ships on mainnet), ?patch=<patch id>
+// and ?drums=0 (drums off) for the player.
 //
 // Everything is computed from data Provable Games already publishes; nothing is stored. The score
 // is deterministic: anyone can recompute it with @koji/beast-sound and compare score_hash.
@@ -33,12 +34,12 @@ async function loadBeast(token, network) {
   return readV3Beast(n, { network: network === 'mainnet' ? NETWORKS.mainnet : NETWORKS.sepolia, decodeTokenId });
 }
 
-async function compose(token, engineVersion, network) {
-  const key = `${token}:${engineVersion}:${network}`;
+async function compose(token, network) {
+  const key = `${token}:${network}`;
   const hit = cache.get(key);
   if (hit && hit.at > Date.now() - CACHE_SECONDS * 1000) return hit.value;
   const got = await loadBeast(token, network);
-  const song = composeBeast(got.beast, got.live, { speciesName: got.speciesName, engineVersion });
+  const song = composeBeast(got.beast, got.live, { speciesName: got.speciesName });
   const value = { got, song };
   cache.set(key, { at: Date.now(), value });
   if (cache.size > 5000) cache.delete(cache.keys().next().value);
@@ -60,15 +61,14 @@ function summary(url, token, { got, song }) {
       sections: song.params.section_count,
       voices: song.params.voice_count,
       notes: song.events.length,
-      ...(song.ornamentStyle ? { ornament_style: song.ornamentStyle } : {}),
     },
     hashes: { sound_seed: song.soundSeed, motif: song.motifHash, state: song.stateHash, score: song.scoreHash },
     // [time_ticks, duration_ticks, midi_key, velocity, voice]; 480 ticks per beat
     notes: song.events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice]),
     midi_base64: b64(song.midi),
-    compact: { format: song.engineVersion === 2 ? 'BSN2' : 'BSN1', base64: b64(song.bsn) },
+    compact: { format: 'BSN1', base64: b64(song.bsn) },
     links: { json: `${base}.json`, midi: `${base}.mid`, player: `${base}/player` },
-    verify: 'npm @koji/beast-sound: composeBeast(beast, live, { engineVersion }).scoreHash must equal hashes.score',
+    verify: 'npm @koji/beast-sound: composeBeast(beast, live).scoreHash must equal hashes.score',
   };
 }
 
@@ -109,18 +109,18 @@ export async function handleRequest(request) {
   const url = new URL(request.url);
   if (request.method === 'OPTIONS') return new Response(null, { headers: { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET' } });
   if (url.pathname === '/' || url.pathname === '') {
-    return new Response('Beast Sound\n\nGET /beasts/{token}.json | .mid | /player\n{token}: mainnet token number or Beasts V3 token ID\n?engine=1|2  ?network=sepolia|mainnet  ?patch=chip_tri_lead  ?drums=0\n', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
+    return new Response('Beast Sound\n\nGET /beasts/{token}.json | .mid | /player\n{token}: mainnet token number or Beasts V3 token ID\n?engine=1  ?network=sepolia|mainnet  ?patch=chip_tri_lead  ?drums=0\n', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
   }
   const m = url.pathname.match(/^\/beasts\/(0x[0-9a-fA-F]+|\d+)(\.json|\.mid|\/player)?\/?$/);
   if (!m) return json({ error: 'Use /beasts/{token}.json, /beasts/{token}.mid or /beasts/{token}/player' }, 404);
   const token = BigInt(m[1]);
   const kind = m[2] || '.json';
   const engineVersion = Number(url.searchParams.get('engine') || ENGINE_VERSION);
-  if (engineVersion !== 1 && engineVersion !== 2) return json({ error: 'engine must be 1 or 2' }, 400);
+  if (engineVersion !== 1) return json({ error: 'engine must be 1' }, 400);
   const network = url.searchParams.get('network') || 'sepolia';
   let composed;
   try {
-    composed = await compose(token, engineVersion, network);
+    composed = await compose(token, network);
   } catch (e) {
     return json({ error: `Could not read or compose Beast ${token}: ${e.message}` }, 404);
   }

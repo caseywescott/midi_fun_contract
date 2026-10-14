@@ -385,7 +385,8 @@ export function createCoreEngine({ poseidonHashMany }) {
   const eventsToMidi = (events, tempo, endTick = 0) => notesToMidi(events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), tempo, endTick);
 
 
-  // Building blocks reused by engine v2 (engine_v2.js). Not part of the public API.
+  // Building blocks reused by composer v1.1 (engine_v11.js) and the Lab (lab.js). Not part of the
+  // public API.
   const internals = {
     H, enc, realize, articulate, generateCountersubject, paramsHash, deriveSeeds, sectionTonicShift,
     transposedTonic, canonicalToMelodic, mapV3, soundSeed, prefix2Policy, typeTierFamily,

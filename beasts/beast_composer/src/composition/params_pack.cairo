@@ -141,6 +141,12 @@ pub fn pack_inputs(x: ComposerInputs) -> felt252 {
 }
 
 pub fn unpack_inputs(packed: felt252) -> ComposerInputs {
+    // Boxed for CASM size: the body's panic exits then write 2 felts, not the whole value.
+    unpack_inputs_boxed(packed).unbox()
+}
+
+#[inline(never)]
+fn unpack_inputs_boxed(packed: felt252) -> Box<ComposerInputs> {
     let mut rest: u256 = packed.into();
     assert(take(ref rest, NW4) == PARAMS_LAYOUT_VERSION.into(), 'unknown params layout');
     let species_id = take(ref rest, NW64).try_into().unwrap();
@@ -190,5 +196,5 @@ pub fn unpack_inputs(packed: felt252) -> ComposerInputs {
         tempo_us,
         score_version,
     };
-    ComposerInputs { params, shiny, animated }
+    BoxTrait::new(ComposerInputs { params, shiny, animated })
 }

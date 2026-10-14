@@ -388,6 +388,14 @@ fn genesis_key(id: u64, tier: u8) -> BeastKeyCell {
 pub fn map_v3_beast_to_composition_params(
     beast: PackableBeastV3, live: BeastV3LiveState,
 ) -> BeastCompositionParams {
+    // Boxed for CASM size: the body's panic exits then write 2 felts, not the whole value.
+    map_v3_beast_to_composition_params_boxed(beast, live).unbox()
+}
+
+#[inline(never)]
+fn map_v3_beast_to_composition_params_boxed(
+    beast: PackableBeastV3, live: BeastV3LiveState,
+) -> Box<BeastCompositionParams> {
     assert_valid_v3_beast(beast);
     let tier = beast.tier;
     let family = type_tier_family(beast.beast_type, tier);
@@ -461,33 +469,35 @@ pub fn map_v3_beast_to_composition_params(
         } else {
             0
         };
-    BeastCompositionParams {
-        species_id: beast.id,
-        name_variant_id: v3_name_variant_id(beast.prefix, beast.suffix),
-        mode_id: key.canonical_mode_id,
-        tonic_keynum: tonic_keynum_for_cell(key),
-        register_band: key.register_band,
-        tier,
-        weakness: type_to_section_relation(beast.beast_type),
-        canon_config_id: family.canon_config_id,
-        profile_id: family.profile_id,
-        voice_count,
-        section_count: sections_for_kill_bucket(state.kill_bucket),
-        stretto_bucket,
-        stretto_lag: stretto_lag(@default_stretto_plan(), stretto_bucket),
-        use_inversion: state.defeat_bucket >= 3 || (tier <= 2 && state.encounter_bucket >= 4),
-        use_countersubject: tier <= 2 || (tier == 3 && state.rank_tier <= 1),
-        use_compound_melody: tier >= 4,
-        ornament_density: clamp_u8(density_raw, 7),
-        articulation_profile: if state.is_crown {
-            ARTICULATION_ACCENT
-        } else {
-            visual_articulation
+    BoxTrait::new(
+        BeastCompositionParams {
+            species_id: beast.id,
+            name_variant_id: v3_name_variant_id(beast.prefix, beast.suffix),
+            mode_id: key.canonical_mode_id,
+            tonic_keynum: tonic_keynum_for_cell(key),
+            register_band: key.register_band,
+            tier,
+            weakness: type_to_section_relation(beast.beast_type),
+            canon_config_id: family.canon_config_id,
+            profile_id: family.profile_id,
+            voice_count,
+            section_count: sections_for_kill_bucket(state.kill_bucket),
+            stretto_bucket,
+            stretto_lag: stretto_lag(@default_stretto_plan(), stretto_bucket),
+            use_inversion: state.defeat_bucket >= 3 || (tier <= 2 && state.encounter_bucket >= 4),
+            use_countersubject: tier <= 2 || (tier == 3 && state.rank_tier <= 1),
+            use_compound_melody: tier >= 4,
+            ornament_density: clamp_u8(density_raw, 7),
+            articulation_profile: if state.is_crown {
+                ARTICULATION_ACCENT
+            } else {
+                visual_articulation
+            },
+            velocity_ceiling,
+            tempo_us: 500000 - tempo_bump,
+            score_version: BEAST_V3_ENGINE_VERSION,
         },
-        velocity_ceiling,
-        tempo_us: 500000 - tempo_bump,
-        score_version: BEAST_V3_ENGINE_VERSION,
-    }
+    )
 }
 
 /// Cache key for renderers: changes only when a normalized bucket, rank tier, or the engine

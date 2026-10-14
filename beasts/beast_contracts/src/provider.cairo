@@ -320,6 +320,14 @@ pub mod BeastMidiProvider {
     fn read_live_state(
         self: @ContractState, token_address: ContractAddress, token_id: u256,
     ) -> (PackableBeastV3, BeastLiveStateReport) {
+        // Boxed for CASM size: the body's panic exits then write 2 felts, not the whole value.
+        read_live_state_boxed(self, token_address, token_id).unbox()
+    }
+
+    #[inline(never)]
+    fn read_live_state_boxed(
+        self: @ContractState, token_address: ContractAddress, token_id: u256,
+    ) -> Box<(PackableBeastV3, BeastLiveStateReport)> {
         let collection = self.collection.read();
         assert(token_address == collection, 'unsupported collection');
         let beast = decode_v3_token_id(token_id);
@@ -361,6 +369,6 @@ pub mod BeastMidiProvider {
             complete: kills_source != StateSource::Unavailable
                 && scars_source != StateSource::Unavailable,
         };
-        (beast, report)
+        BoxTrait::new((beast, report))
     }
 }

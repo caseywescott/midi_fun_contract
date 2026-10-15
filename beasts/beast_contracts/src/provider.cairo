@@ -35,7 +35,6 @@
 //! token. The provider only calls state getters, never `token_uri`, so metadata cannot recurse.
 
 use beast_composer::composition::beast_v3_sound::BeastV3LiveState;
-use midi::types::TinySynthSound;
 use starknet::ContractAddress;
 
 /// `IBeasts::get_cached_stats` (Beasts V3 `BeastLiveStats`).
@@ -88,29 +87,6 @@ pub struct BeastLiveStateReport {
     pub complete: bool,
 }
 
-/// A Beast's tracks (provisional, until the multi-track interface settles the signatures). Track
-/// numbers: 0 Sound Check, 1 Species Song (the Genesis Track), 2 Beast Special Song (the name
-/// track; the Species Song for a Beast without a special name), 3+ bought tracks (`seed`, the
-/// track's seed, is the block hash it was produced from; ignored by tracks 0-2). `block` is the
-/// block to play the drift at: 0 = as written; otherwise the day of drift at that block, which
-/// must not be in the future (live = the current block, original = the block the track was
-/// produced in, or any earlier block). Every call returns the MIDI and the settings it is written
-/// for.
-#[starknet::interface]
-pub trait IBeastTracks<T> {
-    /// The token's composer inputs (`beast_composer::composition::params_pack`), to store with the
-    /// Beast: everything its tracks need, so they compose without the token ID.
-    fn get_composer_inputs(self: @T, token_id: u256) -> felt252;
-    /// Track `track` of a minted token.
-    fn get_track_sound(
-        self: @T, token_id: u256, track: u32, seed: felt252, block: u64,
-    ) -> TinySynthSound;
-    /// Track `track` from stored composer inputs (no token ID, no collection call).
-    fn get_track_sound_for_inputs(
-        self: @T, inputs: felt252, track: u32, seed: felt252, block: u64,
-    ) -> TinySynthSound;
-}
-
 #[starknet::interface]
 pub trait IBeastMidiProvider<T> {
     /// The Beast's live state, and where each field came from (the Genesis Track that
@@ -130,25 +106,17 @@ pub mod BeastMidiProvider {
         BEAST_V3_ENGINE_VERSION, BeastV3LiveState, GENESIS_SPECIES_MAX, PackableBeastV3,
         decode_v3_token_id,
     };
-    use beast_composer::composition::drift::{DriftClock, day_at_block, drift_anchor_blocks};
-    use beast_composer::composition::genesis::{
-        genesis_smf_bytes, genesis_swap, neutral_live, species_type,
-    };
-    use beast_composer::composition::params_pack::{composer_inputs, pack_inputs, unpack_inputs};
-    use beast_composer::composition::tracks::{
-        TRACK_SPECIAL_SONG, TRACK_SPECIES_SONG, beast_of, track_smf_bytes,
-    };
+    use beast_composer::composition::genesis::{genesis_smf_bytes, genesis_swap, species_type};
     use beast_composer::composition::yeti::YETI;
     use core::num::traits::Zero;
     use core::poseidon::poseidon_hash_span;
     use midi::interfaces::{IMidiProvider, ISoundProvider, ISynthSettingsProvider};
     use midi::pack::bytes_to_byte_array;
     use midi::types::{TinySynthSettings, TinySynthSound};
+    use starknet::ContractAddress;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
-    use starknet::syscalls::get_block_hash_syscall;
-    use starknet::{ContractAddress, SyscallResultTrait, get_block_number};
     use super::{
-        BeastLiveStateReport, IBeastMidiProvider, IBeastTracks, IBeastsLiveStateDispatcher,
+        BeastLiveStateReport, IBeastMidiProvider, IBeastsLiveStateDispatcher,
         IBeastsLiveStateDispatcherTrait, IDeathMountainCollectsDispatcher,
         IDeathMountainCollectsDispatcherTrait, StateSource,
     };
@@ -196,77 +164,6 @@ pub mod BeastMidiProvider {
             let midi = token_midi(self, self.collection.read(), token_id);
             TinySynthSound { midi, settings: settings(decode_v3_token_id(token_id)) }
         }
-    }
-
-    #[abi(embed_v0)]
-    impl BeastTracksImpl of IBeastTracks<ContractState> {
-        fn get_composer_inputs(self: @ContractState, token_id: u256) -> felt252 {
-            pack_inputs(composer_inputs(decode_v3_token_id(token_id), neutral_live()))
-        }
-
-        fn get_track_sound(
-            self: @ContractState, token_id: u256, track: u32, seed: felt252, block: u64,
-        ) -> TinySynthSound {
-            let beast = decode_v3_token_id(token_id);
-            IBeastsLiveStateDispatcher { contract_address: self.collection.read() }
-                .get_beast_rank(token_id);
-            track_sound(pack_inputs(composer_inputs(beast, neutral_live())), track, seed, block)
-        }
-
-        fn get_track_sound_for_inputs(
-            self: @ContractState, inputs: felt252, track: u32, seed: felt252, block: u64,
-        ) -> TinySynthSound {
-            track_sound(inputs, track, seed, block)
-        }
-    }
-
-    /// A track and its settings, at the drift of `block` (0 = as written).
-    fn track_sound(inputs: felt252, track: u32, seed: felt252, block: u64) -> TinySynthSound {
-        let midi = track_smf_bytes(inputs, track, seed, drift_clock_at(block));
-        let beast = beast_of(unpack_inputs(inputs));
-        TinySynthSound {
-            midi: bytes_to_byte_array(midi.span()), settings: track_settings(beast, track),
-        }
-    }
-
-    /// The day of drift at `block`, its day, week and month read from their first blocks' hashes;
-    /// none for block 0.
-    fn drift_clock_at(block: u64) -> Option<DriftClock> {
-        if block == 0 {
-            return Option::None;
-        }
-        assert(block <= get_block_number(), 'block in the future');
-        let day = day_at_block(block);
-        let (d, w, m) = drift_anchor_blocks(day);
-        Option::Some(
-            DriftClock {
-                day,
-                day_hash: get_block_hash_syscall(d).unwrap_syscall(),
-                week_hash: get_block_hash_syscall(w).unwrap_syscall(),
-                month_hash: get_block_hash_syscall(m).unwrap_syscall(),
-            },
-        )
-    }
-
-    /// The settings a track is written for: the Species Song plays the swapped partner's music
-    /// (its type), the other tracks the Beast's own; the Yeti's carry its avalanche's preset.
-    fn track_settings(beast: PackableBeastV3, track: u32) -> TinySynthSettings {
-        let species_song = track == TRACK_SPECIES_SONG
-            || (track == TRACK_SPECIAL_SONG && beast.prefix == 0);
-        let src = if species_song {
-            genesis_swap(beast.id)
-        } else {
-            beast.id
-        };
-        if src == YETI {
-            return crate::synth_settings::yeti_synth_settings(beast.shiny == 1);
-        }
-        let beast_type = if src != beast.id && src <= GENESIS_SPECIES_MAX {
-            species_type(src)
-        } else {
-            beast.beast_type
-        };
-        crate::synth_settings::beast_synth_settings(beast_type, beast.shiny == 1)
     }
 
     #[abi(embed_v0)]

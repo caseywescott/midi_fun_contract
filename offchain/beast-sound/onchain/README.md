@@ -170,7 +170,7 @@ The MIDI was 816, 2,991 and 3,716 bytes in those three states.
 | Class | Sierra felts | CASM felts (limit 81,920) |
 |---|---:|---:|
 | `MidiSoundPage` | 26,462 | 24,202 (15,828 with the PR encoder) |
-| `BeastMidiProvider` (composer v1.1, Cairo 2.20.1) | 23,103 | 49,648 |
+| `BeastMidiProvider` (the Genesis Track, Cairo 2.20.1) | 39,453 | 78,336 |
 | `beasts_nft`, patched (unpatched) | 33,046 (32,753) | 74,927 (74,062) |
 
 ### Assembly alone (cairo-test estimate)

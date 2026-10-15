@@ -33,6 +33,12 @@
 //! `get_midi` never reverts for that: it runs inside the NFT's `token_uri`, where a revert cannot
 //! be caught. It reverts only for an unsupported collection, an invalid token ID or an unminted
 //! token. The provider only calls state getters, never `token_uri`, so metadata cannot recurse.
+//!
+//! Upgrades (`IUpgradeableProvider`): for a short period after launch the owner (set at deploy)
+//! can replace the class, to fix anything found in the first days or to add the Beasts' tracks;
+//! `renounce_ownership` then ends upgrades for good (the owner becomes zero and no one can upgrade
+//! again). `owner()` shows which state the provider is in. Every upgrade, transfer and the
+//! renouncement emit an event.
 
 use beast_composer::composition::beast_v3_sound::BeastV3LiveState;
 use starknet::ContractAddress;
@@ -87,6 +93,20 @@ pub struct BeastLiveStateReport {
     pub complete: bool,
 }
 
+/// The provider's upgrade controls: owner-only while there is an owner, and gone for good once it
+/// is renounced.
+#[starknet::interface]
+pub trait IUpgradeableProvider<T> {
+    /// Replace this contract's class (storage is kept). Owner only.
+    fn upgrade(ref self: T, new_class: starknet::ClassHash);
+    /// Hand the upgrade rights to `new_owner` (non-zero). Owner only.
+    fn transfer_ownership(ref self: T, new_owner: ContractAddress);
+    /// End upgrades permanently: the owner becomes zero. Owner only.
+    fn renounce_ownership(ref self: T);
+    /// The owner, or zero once upgrades are renounced.
+    fn owner(self: @T) -> ContractAddress;
+}
+
 #[starknet::interface]
 pub trait IBeastMidiProvider<T> {
     /// The Beast's live state, and where each field came from (the Genesis Track that
@@ -113,23 +133,82 @@ pub mod BeastMidiProvider {
     use midi::interfaces::{IMidiProvider, ISoundProvider, ISynthSettingsProvider};
     use midi::pack::bytes_to_byte_array;
     use midi::types::{TinySynthSettings, TinySynthSound};
-    use starknet::ContractAddress;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+    use starknet::syscalls::{emit_event_syscall, replace_class_syscall};
+    use starknet::{ClassHash, ContractAddress, SyscallResultTrait, get_caller_address};
     use super::{
         BeastLiveStateReport, IBeastMidiProvider, IBeastsLiveStateDispatcher,
         IBeastsLiveStateDispatcherTrait, IDeathMountainCollectsDispatcher,
-        IDeathMountainCollectsDispatcherTrait, StateSource,
+        IDeathMountainCollectsDispatcherTrait, IUpgradeableProvider, StateSource,
     };
 
     #[storage]
     struct Storage {
         collection: ContractAddress,
+        owner: ContractAddress,
     }
 
+    /// Events, emitted directly (keys: the event name's selector; data as below), the layout
+    /// `#[derive(starknet::Event)]` gives a struct event:
+    /// - `Upgraded`: data `[class_hash]`, the class was replaced;
+    /// - `OwnershipTransferred`: data `[previous_owner, new_owner]` (`new_owner` zero: upgrades
+    ///   renounced for good).
+    fn emit_upgraded(class_hash: ClassHash) {
+        emit_event_syscall(array![selector!("Upgraded")].span(), array![class_hash.into()].span())
+            .unwrap_syscall();
+    }
+
+    fn emit_ownership(previous_owner: ContractAddress, new_owner: ContractAddress) {
+        emit_event_syscall(
+            array![selector!("OwnershipTransferred")].span(),
+            array![previous_owner.into(), new_owner.into()].span(),
+        )
+            .unwrap_syscall();
+    }
+
+    /// `owner` may upgrade the class until it renounces (see `IUpgradeableProvider`).
     #[constructor]
-    fn constructor(ref self: ContractState, collection: ContractAddress) {
+    fn constructor(ref self: ContractState, collection: ContractAddress, owner: ContractAddress) {
         assert(collection.is_non_zero(), 'zero collection');
+        assert(owner.is_non_zero(), 'zero owner');
         self.collection.write(collection);
+        self.owner.write(owner);
+        emit_ownership(Zero::zero(), owner);
+    }
+
+    #[abi(embed_v0)]
+    impl UpgradeableProviderImpl of IUpgradeableProvider<ContractState> {
+        fn upgrade(ref self: ContractState, new_class: ClassHash) {
+            assert_owner(@self);
+            assert(new_class.is_non_zero(), 'zero class');
+            replace_class_syscall(new_class).unwrap_syscall();
+            emit_upgraded(new_class);
+        }
+
+        fn transfer_ownership(ref self: ContractState, new_owner: ContractAddress) {
+            assert_owner(@self);
+            assert(new_owner.is_non_zero(), 'zero owner');
+            let previous_owner = self.owner.read();
+            self.owner.write(new_owner);
+            emit_ownership(previous_owner, new_owner);
+        }
+
+        fn renounce_ownership(ref self: ContractState) {
+            assert_owner(@self);
+            let previous_owner = self.owner.read();
+            self.owner.write(Zero::zero());
+            emit_ownership(previous_owner, Zero::zero());
+        }
+
+        fn owner(self: @ContractState) -> ContractAddress {
+            self.owner.read()
+        }
+    }
+
+    /// Only the owner (never zero: a renounced provider has no caller that passes).
+    fn assert_owner(self: @ContractState) {
+        let owner = self.owner.read();
+        assert(owner.is_non_zero() && get_caller_address() == owner, 'not owner');
     }
 
     #[abi(embed_v0)]

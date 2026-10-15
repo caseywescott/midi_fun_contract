@@ -2,7 +2,10 @@
 # Declare and deploy BeastMidiProvider on Starknet Sepolia, then smoke-test get_sound on a genesis
 # Warlock. Run from anywhere; it builds beasts/beast_contracts with the workspace scarb (2.20.1).
 #
-#   sh beasts/beast_contracts/scripts/deploy_sepolia.sh [beasts_v3_nft_address]
+#   sh beasts/beast_contracts/scripts/deploy_sepolia.sh [beasts_v3_nft_address] [owner]
+#
+# The owner can upgrade the provider until it calls renounce_ownership(); it defaults to the
+# deploying account.
 #
 # Uses the sncast account profile `beast-sound-sepolia` in ~/.starknet_accounts (no key is read or
 # printed here; sncast signs). The account needs STRK for fees: the script stops before sending
@@ -46,7 +49,9 @@ fi
 echo "class $CLASS"
 
 echo "deploying against the Beasts NFT $NFT"
-DEPLOY=$($SN deploy --class-hash "$CLASS" --constructor-calldata "$NFT" --url "$RPC")
+OWNER=${2:-$ADDRESS}
+echo "owner (may upgrade until renounced): $OWNER"
+DEPLOY=$($SN deploy --class-hash "$CLASS" --constructor-calldata "$NFT" "$OWNER" --url "$RPC")
 echo "$DEPLOY"
 PROVIDER=$(echo "$DEPLOY" | grep -oE "(contract_address|Contract Address): *0x[0-9a-f]+" | grep -oE "0x[0-9a-f]+" | head -1)
 echo "provider $PROVIDER"

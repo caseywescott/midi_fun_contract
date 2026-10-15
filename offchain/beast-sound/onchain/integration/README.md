@@ -33,7 +33,8 @@ provider: the page does, and the provider only calls the NFT's state getters
 ## Deploy (separate step, not done here)
 
 1. Declare and deploy `BeastMidiProvider` (`beasts/beast_contracts`, scarb 2.20.1). Constructor:
-   the Beasts NFT address.
+   the Beasts NFT address, then the owner, who can `upgrade(new_class)` until it calls
+   `renounce_ownership()` (after which the class can never change; `owner()` is then zero).
 2. Declare and deploy `MidiSoundPage` (`core/midi_contracts`). Constructor: the provider address.
 3. Upgrade or redeploy `beasts_nft` with the patch.
 4. Before switching, call `MidiSoundPage.token_uri(members, svg_b64, <nft>, <token_id>)` directly

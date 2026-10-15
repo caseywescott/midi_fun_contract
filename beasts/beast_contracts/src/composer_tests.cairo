@@ -7,11 +7,11 @@
 //! V3 token and its live state. Level and health are token traits in V3, so the token keeps them
 //! while the live state carries the history; the sound seed comes from the token
 //! (`beast_sound_seed(id, prefix, suffix)`), and no view returns it.
-use beast_music::composition::beast_score::{beast_params_hash, build_beast_form};
-use beast_music::composition::beast_v3_sound::{
+use beast_composer::composition::beast_score::{beast_params_hash, build_beast_form};
+use beast_composer::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, beast_sound_seed, encode_v3_token_id,
 };
-use beast_music::composition::genesis::{species_tier, species_type};
+use beast_composer::composition::genesis::{species_tier, species_type};
 use starknet::syscalls::deploy_syscall;
 use crate::{BeastSoundComposer, IBeastSoundComposerDispatcher, IBeastSoundComposerDispatcherTrait};
 

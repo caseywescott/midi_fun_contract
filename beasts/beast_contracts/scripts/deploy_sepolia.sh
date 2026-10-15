@@ -1,6 +1,5 @@
 #!/bin/sh
-# Declare BeastTrackComposer (the composer class the provider library-calls), declare and deploy
-# BeastMidiProvider on Starknet Sepolia, then smoke-test get_sound on a genesis
+# Declare and deploy BeastMidiProvider on Starknet Sepolia, then smoke-test get_sound on a genesis
 # Warlock. Run from anywhere; it builds beasts/beast_contracts with the workspace scarb (2.20.1).
 #
 #   sh beasts/beast_contracts/scripts/deploy_sepolia.sh [beasts_v3_nft_address]
@@ -34,26 +33,20 @@ if [ "$DEPLOYED" = "0" ]; then
   $SN account deploy --name $ACCOUNT --url "$RPC"
 fi
 
-# declare a class (already declared: sncast names the class hash in that error; any other error stops)
-declare() {
-  echo "declaring $1" >&2
-  if OUT=$($SN declare --package beast_contracts --contract-name "$1" --url "$RPC" 2>&1); then
-    echo "$OUT" >&2
-    H=$(echo "$OUT" | grep -oE "(class_hash|Class Hash): *0x[0-9a-f]+" | grep -oE "0x[0-9a-f]+" | head -1)
-  else
-    echo "$OUT" >&2
-    H=$(echo "$OUT" | grep "already declared" | grep -oE "0x[0-9a-f]+" | head -1)
-  fi
-  [ -n "$H" ] || { echo "declare $1 failed: no class hash" >&2; exit 1; }
-  echo "$H"
-}
-COMPOSER=$(declare BeastTrackComposer)
-echo "composer class $COMPOSER"
-CLASS=$(declare BeastMidiProvider)
-echo "provider class $CLASS"
+echo "declaring BeastMidiProvider"
+if DECLARE=$($SN declare --package beast_contracts --contract-name BeastMidiProvider --url "$RPC" 2>&1); then
+  echo "$DECLARE"
+  CLASS=$(echo "$DECLARE" | grep -oE "(class_hash|Class Hash): *0x[0-9a-f]+" | grep -oE "0x[0-9a-f]+" | head -1)
+else
+  echo "$DECLARE"
+  # already declared: sncast names the class hash in that error; any other error stops here
+  CLASS=$(echo "$DECLARE" | grep "already declared" | grep -oE "0x[0-9a-f]+" | head -1)
+fi
+[ -n "$CLASS" ] || { echo "declare failed: no class hash"; exit 1; }
+echo "class $CLASS"
 
 echo "deploying against the Beasts NFT $NFT"
-DEPLOY=$($SN deploy --class-hash "$CLASS" --constructor-calldata "$NFT" "$COMPOSER" --url "$RPC")
+DEPLOY=$($SN deploy --class-hash "$CLASS" --constructor-calldata "$NFT" --url "$RPC")
 echo "$DEPLOY"
 PROVIDER=$(echo "$DEPLOY" | grep -oE "(contract_address|Contract Address): *0x[0-9a-f]+" | grep -oE "0x[0-9a-f]+" | head -1)
 echo "provider $PROVIDER"

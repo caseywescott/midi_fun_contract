@@ -10,7 +10,6 @@ use beast_composer::composition::beast_v3_sound::BeastV3LiveState;
 
 pub mod provider;
 pub mod synth_settings;
-pub mod track_composer;
 
 #[starknet::interface]
 pub trait IBeastSoundComposer<T> {

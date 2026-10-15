@@ -155,11 +155,7 @@ fn deploy(class_hash: ClassHash, calldata: Array<felt252>, salt: felt252) -> Con
 fn setup() -> World {
     let nft = deploy(MockBeasts::TEST_CLASS_HASH, array![], 1);
     let dm = deploy(MockDeathMountain::TEST_CLASS_HASH, array![], 2);
-    let provider = deploy(
-        BeastMidiProvider::TEST_CLASS_HASH,
-        array![nft.into(), crate::track_composer::BeastTrackComposer::TEST_CLASS_HASH.into()],
-        3,
-    );
+    let provider = deploy(BeastMidiProvider::TEST_CLASS_HASH, array![nft.into()], 3);
     let world = World {
         nft: IMockBeastsDispatcher { contract_address: nft },
         dm: IMockDeathMountainDispatcher { contract_address: dm },
@@ -843,7 +839,7 @@ fn drift_rejects_future_blocks() {
 }
 
 #[test]
-#[should_panic(expected: ('bought track needs a seed', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('bought track needs a seed', 'ENTRYPOINT_FAILED'))]
 fn bought_tracks_need_a_seed() {
     let w = setup();
     tracks(w)

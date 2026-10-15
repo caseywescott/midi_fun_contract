@@ -105,7 +105,7 @@ Needs Cairo 2.20 (scarb 2.20.1, the root `.tool-versions`), as onchain-midi-play
 repository root (artifacts land in the workspace `target/dev`, named `beast_contracts_<Contract>`):
 
 ```bash
-scarb build -p beast_contracts   # BeastMidiProvider: Sierra 7,631, CASM 16,439; BeastTrackComposer (library-called): Sierra 39,344, CASM 76,660 (limit 81,920)
+scarb build -p beast_contracts   # BeastMidiProvider: Sierra 47,714 felts, CASM 87,697: still over the Starknet limit (81,920)
 scarb test -p beast_contracts    # provider vs v11_score_full_midi on mock NFT + Death Mountain, sources,
                                  # rejections, get_sound, and onchain-midi-player's validate on the settings
 ```

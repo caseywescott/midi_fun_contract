@@ -122,8 +122,6 @@ pub trait IBeastMidiProvider<T> {
     fn get_collection(self: @T) -> ContractAddress;
     /// Composition engine (`BEAST_V3_ENGINE_VERSION`): a new engine means a new provider.
     fn get_engine_version(self: @T) -> u32;
-    /// The `BeastTrackComposer` class every track is composed by (a library call).
-    fn get_composer_class(self: @T) -> starknet::ClassHash;
 }
 
 #[starknet::contract]
@@ -133,20 +131,22 @@ pub mod BeastMidiProvider {
         decode_v3_token_id,
     };
     use beast_composer::composition::drift::{DriftClock, day_at_block, drift_anchor_blocks};
-    use beast_composer::composition::genesis::{genesis_swap, neutral_live, species_type};
+    use beast_composer::composition::genesis::{
+        genesis_smf_bytes, genesis_swap, neutral_live, species_type,
+    };
     use beast_composer::composition::params_pack::{composer_inputs, pack_inputs, unpack_inputs};
-    use beast_composer::composition::tracks::{TRACK_SPECIAL_SONG, TRACK_SPECIES_SONG, beast_of};
+    use beast_composer::composition::tracks::{
+        TRACK_SPECIAL_SONG, TRACK_SPECIES_SONG, beast_of, track_smf_bytes,
+    };
     use beast_composer::composition::yeti::YETI;
     use core::num::traits::Zero;
     use core::poseidon::poseidon_hash_span;
     use midi::interfaces::{IMidiProvider, ISoundProvider, ISynthSettingsProvider};
+    use midi::pack::bytes_to_byte_array;
     use midi::types::{TinySynthSettings, TinySynthSound};
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
     use starknet::syscalls::get_block_hash_syscall;
-    use starknet::{ClassHash, ContractAddress, SyscallResultTrait, get_block_number};
-    use crate::track_composer::{
-        IBeastTrackComposerDispatcherTrait, IBeastTrackComposerLibraryDispatcher,
-    };
+    use starknet::{ContractAddress, SyscallResultTrait, get_block_number};
     use super::{
         BeastLiveStateReport, IBeastMidiProvider, IBeastTracks, IBeastsLiveStateDispatcher,
         IBeastsLiveStateDispatcherTrait, IDeathMountainCollectsDispatcher,
@@ -156,27 +156,12 @@ pub mod BeastMidiProvider {
     #[storage]
     struct Storage {
         collection: ContractAddress,
-        composer_class: ClassHash,
     }
 
-    /// `composer_class`: the declared `BeastTrackComposer` class (`crate::track_composer`), which
-    /// composes every track through a library call.
     #[constructor]
-    fn constructor(
-        ref self: ContractState, collection: ContractAddress, composer_class: ClassHash,
-    ) {
+    fn constructor(ref self: ContractState, collection: ContractAddress) {
         assert(collection.is_non_zero(), 'zero collection');
-        assert(composer_class.is_non_zero(), 'zero composer class');
         self.collection.write(collection);
-        self.composer_class.write(composer_class);
-    }
-
-    /// Track `track` of the Beast with packed composer inputs `inputs`, by the composer class.
-    fn compose(
-        self: @ContractState, inputs: felt252, track: u32, seed: felt252, drift: Option<DriftClock>,
-    ) -> ByteArray {
-        IBeastTrackComposerLibraryDispatcher { class_hash: self.composer_class.read() }
-            .compose(inputs, track, seed, drift)
     }
 
     #[abi(embed_v0)]
@@ -225,25 +210,23 @@ pub mod BeastMidiProvider {
             let beast = decode_v3_token_id(token_id);
             IBeastsLiveStateDispatcher { contract_address: self.collection.read() }
                 .get_beast_rank(token_id);
-            track_sound(
-                self, pack_inputs(composer_inputs(beast, neutral_live())), track, seed, block,
-            )
+            track_sound(pack_inputs(composer_inputs(beast, neutral_live())), track, seed, block)
         }
 
         fn get_track_sound_for_inputs(
             self: @ContractState, inputs: felt252, track: u32, seed: felt252, block: u64,
         ) -> TinySynthSound {
-            track_sound(self, inputs, track, seed, block)
+            track_sound(inputs, track, seed, block)
         }
     }
 
     /// A track and its settings, at the drift of `block` (0 = as written).
-    fn track_sound(
-        self: @ContractState, inputs: felt252, track: u32, seed: felt252, block: u64,
-    ) -> TinySynthSound {
-        let midi = compose(self, inputs, track, seed, drift_clock_at(block));
+    fn track_sound(inputs: felt252, track: u32, seed: felt252, block: u64) -> TinySynthSound {
+        let midi = track_smf_bytes(inputs, track, seed, drift_clock_at(block));
         let beast = beast_of(unpack_inputs(inputs));
-        TinySynthSound { midi, settings: track_settings(beast, track) }
+        TinySynthSound {
+            midi: bytes_to_byte_array(midi.span()), settings: track_settings(beast, track),
+        }
     }
 
     /// The day of drift at `block`, its day, week and month read from their first blocks' hashes;
@@ -302,10 +285,6 @@ pub mod BeastMidiProvider {
         fn get_engine_version(self: @ContractState) -> u32 {
             BEAST_V3_ENGINE_VERSION
         }
-
-        fn get_composer_class(self: @ContractState) -> ClassHash {
-            self.composer_class.read()
-        }
     }
 
     /// The token's Genesis Track, after checking the collection, the token ID and that the token
@@ -317,13 +296,7 @@ pub mod BeastMidiProvider {
         assert(token_address == collection, 'unsupported collection');
         let beast = decode_v3_token_id(token_id);
         IBeastsLiveStateDispatcher { contract_address: collection }.get_beast_rank(token_id);
-        compose(
-            self,
-            pack_inputs(composer_inputs(beast, neutral_live())),
-            TRACK_SPECIES_SONG,
-            0,
-            Option::None,
-        )
+        bytes_to_byte_array(genesis_smf_bytes(beast).span())
     }
 
     /// The Beast sound settings.

@@ -3,7 +3,7 @@
 // The server inlines the Beast's notes (window.BEAST) into the HTML, so the page needs no network
 // access and works inside marketplace iframes. Tap to start (browsers require a gesture); the theme
 // loops until stopped. Synthesis is the simulator's patch library (Triangle lead by default).
-import { createKit, PATCH_BY_ID, chipDrum } from '../../../web/beast_sound/patches.js';
+import { createKit, PATCH_BY_ID, chipDrum } from '../onchain/lib/patches.js';
 import { createLoopScheduler } from './scheduler.js';
 
 const B = window.BEAST;

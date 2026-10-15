@@ -1,4 +1,4 @@
-// Types for @koji/beast-sound.
+// Types for beast-sound.
 
 /** Static traits; identical to Beasts V3 `PackableBeast` (and decodable from its token ID). */
 export interface Beast {

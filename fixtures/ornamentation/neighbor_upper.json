@@ -1,6 +1,0 @@
-{
-  "selection": { "kind": "seeded", "seed": 17 },
-  "enabledOrnaments": ["NeighborUpper"],
-  "contour": "A-B-A",
-  "deterministic": true
-}

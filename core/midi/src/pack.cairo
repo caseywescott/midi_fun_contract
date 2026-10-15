@@ -27,7 +27,7 @@ pub fn bytes_to_byte_array(mut bytes: Span<u8>) -> ByteArray {
 }
 
 /// `[byte_len, words...]`: each word packs up to 31 bytes big-endian (the last one fewer, not
-/// padded). The RPC transport of Koji's views; decoded by `bytesToFelts`'s inverse in
+/// padded). The RPC transport for Beast views; decoded by `bytesToFelts`'s inverse in
 /// offchain/beast-sound.
 pub fn to_felt252_array(mut bytes: Span<u8>) -> Array<felt252> {
     let mut out: Array<felt252> = array![bytes.len().into()];

@@ -1,14 +1,8 @@
 //! Articulation layer — bakes articulation marks into NoteEvent duration and velocity.
 //!
-//! Articulation is stored as `u8` codes in the `MusicalObject.articulations` plane
-//! (`transform.cairo`). This module provides the policy tables that convert those codes
-//! into concrete duration fractions and velocity deltas, plus helpers to:
-//!
-//!  - apply an articulation plan to any `Array<NoteEvent>` from any existing generator,
-//!  - extend `transform::assemble` to honour the articulation plane (`assemble_articulated`),
-//!  - generate cyclic patterns from a profile id or a seed.
-//!
-//! No existing files are modified.
+//! Articulation marks are `u8` codes. This module provides the policy tables that convert those
+//! codes into concrete duration fractions and velocity deltas, and `apply_articulation_plan`, which
+//! applies a cyclic pattern of codes to an `Array<NoteEvent>`.
 
 use core::array::ArrayTrait;
 use crate::composition::melodic_canon::NoteEvent;

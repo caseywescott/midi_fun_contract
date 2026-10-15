@@ -48,18 +48,14 @@ scarb fmt --check
 
 ## Outside the workspace
 
-- `offchain/beast-sound/`: the JS Beast Sound engine (`@koji/beast-sound`), the TinySynth sound page
+- `offchain/beast-sound/`: the JS Beast Sound engine (`beast-sound`), the TinySynth sound page
   sources and the generators of `core/midi_contracts/src/page/page_data.cairo`, its golden tests and
   `beasts/beast_contracts/src/synth_settings.cairo`.
-- `web/beast_sound/`: the browser simulator and instrument patches.
 - `scripts/*parity*`: compare the Cairo composer with the JS engine.
 - `docs/beasts/`: the Beast Sound composition guide.
 
-The `koji` Cairo library that used to live at the root (`src/`) was removed; the `koji-final` tag
-marks its last commit. Its tooling (`python/`, `typescript/`, `demos/`, `pyproject.toml`,
-`poetry.lock`, the `Makefile`, `docs/composing.md`, `docs/motif_files/`) still references it and is
-due for its own cleanup, as are parts of `fixtures/`, `data/`, `example/` and `scripts/` (check what
-uses each before removing it).
+The `koji` music library, its tooling and research, Beast Engine v2 and the old browser simulator
+were removed; the `archive/koji` tag marks the last commit that has them.
 
 ## License
 

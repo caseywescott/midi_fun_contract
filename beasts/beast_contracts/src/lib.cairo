@@ -1,4 +1,4 @@
-//! BeastSoundComposer: the Koji Beast composer as a Starknet contract.
+//! BeastSoundComposer: the Beast composer (`beast_music`) as a Starknet contract.
 //!
 //! Every view is a pure function of a Beasts V3 token ID plus the Beast's live state, passed as
 //! calldata (benchmark build). `provider::BeastMidiProvider` is the production path: it serves the
@@ -22,7 +22,7 @@ pub trait IBeastSoundComposer<T> {
     /// Standard MIDI File bytes: [byte_len, 31-byte big-endian chunks...].
     fn get_score_midi(self: @T, token_id: u256, live: BeastV3LiveState) -> Array<felt252>;
     /// BSN1 compact note stream (7 bits per note), same packing. Clients rebuild the exact MIDI
-    /// file with `bsnToMidi` (web/beast_sound/engine.js).
+    /// file with `bsnToMidi` (offchain/beast-sound/src/bsn.js).
     fn get_score_notes(self: @T, token_id: u256, live: BeastV3LiveState) -> Array<felt252>;
     /// BSI1 instruction stream (62-bit instructions, 4 per felt): any music, not only grid canons.
     /// Decode with decodeBsi (offchain/beast-sound/src/bsi.js) or the library's notes module.
@@ -96,5 +96,7 @@ pub mod BeastSoundComposer {
     }
 }
 
+#[cfg(test)]
+mod composer_tests;
 #[cfg(test)]
 mod tests;

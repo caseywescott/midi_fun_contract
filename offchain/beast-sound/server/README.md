@@ -7,11 +7,12 @@ nothing is added onchain.
 |---|---|
 | `GET /beasts/{token}/player` | Self-contained HTML player (Loot Survivor style, loops). Use it as the NFT's `animation_url`. |
 | `GET /beasts/{token}.mid` | Standard MIDI File |
-| `GET /beasts/{token}.json` | Notes, hashes, live stats used, compact score (BSN1/BSN2), links |
+| `GET /beasts/{token}.json` | Notes, hashes, live stats used, compact score (BSN1), links |
 
 `{token}`: a current mainnet token number (e.g. `52918`) or a Beasts V3 token ID (decimal or `0x`).
-Query: `?engine=1|2` (default 1), `?network=sepolia|mainnet` (V3 IDs, default sepolia until V3 is
-on mainnet), `?patch=chip_tri_lead`, `?drums=0` (the player has chiptune drums on by default).
+Query: `?engine=1` (the default and the only engine; any other value is a 400),
+`?network=sepolia|mainnet` (V3 IDs, default sepolia until V3 is on mainnet), `?patch=chip_tri_lead`,
+`?drums=0` (the player has chiptune drums on by default).
 
 Live stats (kills, Summit deaths and hours, rank) are read on request and cached for 5 minutes.
 
@@ -33,10 +34,11 @@ the player on the token page. Games can call the `.json` or `.mid` route directl
 ## Why a URL and not sound inside token_uri
 
 - Full scores are heavy to compute onchain (engine v1: up to about 350M L2 gas for the largest
-  Beast; engine v2 far more), and marketplaces call `token_uri` constantly.
+  Beast), and marketplaces call `token_uri` constantly.
 - The V3 design already keeps external calls and heavy work out of `token_uri`.
 - The sound stays verifiable: the score is a pure function of the Beast. Anyone can recompute it
-  with `@koji/beast-sound` and compare `hashes.score`; the Cairo reference produces the same bytes.
+  with `beast-sound` (`offchain/beast-sound`) and compare `hashes.score`; the Cairo reference
+  produces the same bytes.
 
 ## Run and deploy
 

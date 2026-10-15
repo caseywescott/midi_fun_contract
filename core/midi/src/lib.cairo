@@ -17,6 +17,8 @@
 
 pub mod interfaces;
 pub mod pack;
+#[cfg(test)]
+mod pack_tests;
 pub mod settings;
 pub mod smf;
 

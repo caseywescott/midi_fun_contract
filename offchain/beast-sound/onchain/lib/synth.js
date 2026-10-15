@@ -4,7 +4,7 @@
 //   synth.instrument({ wave: 'tri' | 'p12' | 'p25' | 'p50' | 'saw' | 'noise', octave, gain,
 //                      env: { attack, decay, sustain, release },   // frames at 60 fps
 //                      vib: { rate, cents, delay }, arp: { cents: [...], frames }, blip, drop })
-import { chip, chipDrum } from '../../../../web/beast_sound/chip.js';
+import { chip, chipDrum } from './chip.js';
 
 export function instrument(def) {
   const { gain = 1.2, ...opts } = def;

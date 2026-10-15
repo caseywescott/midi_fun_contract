@@ -7,7 +7,7 @@ onchain.
 
 It began as the part of the `koji` music library that Beasts V3 sound uses (14 of koji's 84
 modules), extracted into its own package; koji has since been removed from this repository (the
-`koji-final` tag marks its last commit).
+`archive/koji` tag marks its last commit).
 
 ## What is in it
 

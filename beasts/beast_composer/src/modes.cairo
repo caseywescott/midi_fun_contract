@@ -1,4 +1,5 @@
-//! Scale modes (Koji's pattern table). The Beast composer realizes Dorian, Aeolian and Phrygian.
+//! Scale modes: the full table, so the ids `mode_to_id` gives stay stable. The Beast composer
+//! realizes Dorian, Aeolian and Phrygian.
 
 #[derive(Copy, Drop, Serde)]
 pub enum Modes {

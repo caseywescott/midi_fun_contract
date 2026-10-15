@@ -91,7 +91,7 @@ export async function readMainnetBeast(tokenNumber, { network = NETWORKS.mainnet
  * them from elsewhere. Community species names come from the registry.
  */
 export async function readV3Beast(tokenId, { network = NETWORKS.sepolia, decodeTokenId, summit } = {}) {
-  if (!decodeTokenId) throw new Error('pass decodeTokenId (from @koji/beast-sound)');
+  if (!decodeTokenId) throw new Error('pass decodeTokenId (from beast-sound)');
   const t = BigInt(tokenId);
   const beast = decodeTokenId(t);
   const safe = (p) => p.then((r) => Number(r[0])).catch(() => null);

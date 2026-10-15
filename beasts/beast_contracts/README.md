@@ -83,7 +83,7 @@ the one that made the Beast mintable.
 | `get_composition_params(token_id, live)` | Bounded musical parameters |
 | `get_music_state_hash(token_id, live)` | Renderer cache key |
 | `get_score_hash(token_id, live)` | Commitment to the full score |
-| `get_score_notes(token_id, live)` | BSN1 compact note stream (7 bits per note), same packing. `bsnToMidi` in `web/beast_sound/engine.js` rebuilds the exact MIDI file |
+| `get_score_notes(token_id, live)` | BSN1 compact note stream (7 bits per note), same packing. `bsnToMidi` in `offchain/beast-sound/src/bsn.js` rebuilds the exact MIDI file |
 | `get_score_midi(token_id, live)` | Standard MIDI File bytes: `[byte_len, 31-byte chunks…]`, byte-identical to the browser engine |
 
 ## BSN1 layout

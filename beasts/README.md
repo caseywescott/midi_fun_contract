@@ -33,5 +33,5 @@ with `scarb 2.20.1` in its `.tool-versions`. Both packages build and pass their 
 
 Beast tooling that lives outside this directory and would move with it: `offchain/beast-sound/`
 (the JS engine and the generator of `beast_contracts/src/synth_settings.cairo`; it also generates
-the core sound page's Cairo, which stays), `web/beast_sound/`, `scripts/*parity*` and
+the core sound page's Cairo, which stays), `scripts/*parity*` and
 `docs/beasts/`.

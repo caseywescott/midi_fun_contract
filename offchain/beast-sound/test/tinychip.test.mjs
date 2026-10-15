@@ -60,11 +60,12 @@ test('its presets, drum kit and waveforms match the full bank (loudness gains fo
 test('orchestration: deterministic, register roles, tempo picks the leads, no preset twice in a score', () => {
   const { TinyChip: T } = load();
   const P = plain(T.POOLS);
-  const cache = JSON.parse(readFileSync(new URL('../onchain/.gallery-cache.json', import.meta.url), 'utf8'));
+  // each gallery Beast's traits and live stats as read from mainnet (committed: no chain access here)
+  const { beasts } = JSON.parse(readFileSync(new URL('./gallery_beasts.json', import.meta.url), 'utf8'));
   const gallery = JSON.parse(readFileSync(new URL('../public/onchain/gallery.json', import.meta.url), 'utf8'));
   const sets = new Set(), used = new Set();
   for (const { token } of gallery) {
-    const { beast, live } = cache[token];
+    const { beast, live } = beasts[token];
     const { events, channels, r } = beastEvents(beast, live);
     const roles = plain(T.orchestrate(events, channels, 1920));
     assert.deepEqual(plain(T.orchestrate(events, channels, 1920)), roles, 'same score, same orchestration');

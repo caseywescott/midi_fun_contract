@@ -537,7 +537,7 @@ pub fn v3_params_hash(beast: PackableBeastV3, live: BeastV3LiveState) -> felt252
 // One form tick is one quarter note at 480 PPQN, so event times are written as-is. Each voice's
 // events are emitted in time order by `build_beast_form` (and a note ends before the voice's next
 // note starts), so tracks need no sorting: the encoder walks the event list once per voice.
-// Byte-identical to `toMidiFile` in web/beast_sound/engine.js.
+// Byte-identical to `toMidiFile` in offchain/beast-sound/src/engine.js.
 
 pub fn beast_form_to_smf_bytes(form: @BeastForm, tempo_us: u32) -> Array<u8> {
     let events = form.events.span();
@@ -616,7 +616,7 @@ pub fn v3_score_midi(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<fe
 // Runs appear in emission order (section by section, voices ascending), so a run whose voice is
 // not above the previous run's voice starts a new section. Bits are MSB-first, zero-padded to a
 // byte, then packed 31 bytes per felt after a byte-length felt (`to_felt252_array`).
-// `decodeBsn` in web/beast_sound/engine.js rebuilds the exact canonical events and MIDI bytes.
+// `decodeBsn` in offchain/beast-sound/src/bsn.js rebuilds the exact canonical events and MIDI bytes.
 
 pub const BSN_VERSION: u8 = 1;
 

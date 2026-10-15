@@ -1,10 +1,10 @@
-// Beast Sound engine: the Koji Beast composer in plain JavaScript.
+// Beast Sound engine: the Beast composer in plain JavaScript.
 //
-// A line-for-line port of the Cairo reference implementation:
-//   src/composition/beast_v3_sound.cairo   (V3 token -> BeastCompositionParams, MIDI, BSN1)
-//   src/composition/beast_trait_map.cairo  (key cells, ornament policy, buckets)
-//   src/composition/beast_score.cairo      (build_beast_form: hashed theme, canon, countersubject,
-//                                           articulation, score hash)
+// A line-for-line port of the Cairo reference implementation (contracts/beast_music/src/composition):
+//   beast_v3_sound.cairo   (V3 token -> BeastCompositionParams, MIDI, BSN1)
+//   beast_trait_map.cairo  (key cells, ornament policy, buckets)
+//   beast_score.cairo      (build_beast_form: hashed theme, canon, countersubject, articulation,
+//                           score hash)
 // Same inputs => same score hash, note events, MIDI bytes and BSN1 bytes. Checked against Cairo
 // output by test/golden.test.mjs (fixtures regenerated with scripts/beast_v3_parity.mjs --write).
 //
@@ -385,7 +385,8 @@ export function createCoreEngine({ poseidonHashMany }) {
   const eventsToMidi = (events, tempo, endTick = 0) => notesToMidi(events.map((e) => [e.time, e.duration, e.pitch, e.velocity, e.voice_id]), tempo, endTick);
 
 
-  // Building blocks reused by engine v2 (engine_v2.js). Not part of the public API.
+  // Building blocks reused by composer v1.1 (engine_v11.js) and the Lab (lab.js). Not part of the
+  // public API.
   const internals = {
     H, enc, realize, articulate, generateCountersubject, paramsHash, deriveSeeds, sectionTonicShift,
     transposedTonic, canonicalToMelodic, mapV3, soundSeed, prefix2Policy, typeTierFamily,

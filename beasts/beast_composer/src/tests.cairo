@@ -51,6 +51,14 @@ fn v3_rejects_mixed_zero_affix() {
     decode_v3_token_id(encode_v3_token_id(b));
 }
 
+/// The layout is 116 bits: a bit in the high word is rejected like any other stray bit, even over
+/// a valid Beast.
+#[test]
+#[should_panic(expected: ('invalid token id',))]
+fn v3_rejects_high_word_bits() {
+    decode_v3_token_id(encode_v3_token_id(sorrow_peak_warlock()) + u256 { low: 0, high: 1 });
+}
+
 #[test]
 fn v3_name_variant_matches_vault_encoding() {
     assert(v3_name_variant_id(0, 0) == 0, 'genesis');

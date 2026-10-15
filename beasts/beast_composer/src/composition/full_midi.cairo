@@ -406,6 +406,8 @@ pub fn beast_form_to_full_smf_bytes(
 }
 
 /// The same with an arrangement (`beast_form_to_full_smf_bytes` is the plain one, drums on).
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
 pub fn beast_form_to_full_smf_bytes_arranged(
     form: @BeastForm,
     tempo_us: u32,

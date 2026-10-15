@@ -114,6 +114,8 @@ fn beast_hash(id: u64, prefix: u8, suffix: u8, salt: u64) -> u64 {
     name_hash(prefix.into() + id * 70, suffix.into() + id * 19, salt)
 }
 
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
 fn shr(x: u64, n: u32) -> u64 {
     let mut v = x;
     let mut i = 0;
@@ -146,6 +148,8 @@ struct Profile {
     figures: Array<u8>,
 }
 
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
 fn profile(id: u64, prefix: u8, suffix: u8) -> Profile {
     let h = beast_hash(id, prefix, suffix, 5);
     let g = beast_hash(id, prefix, suffix, 6);

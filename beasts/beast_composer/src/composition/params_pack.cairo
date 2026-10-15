@@ -71,6 +71,18 @@ const W11: u256 = 0x800;
 const W16: u256 = 0x10000;
 const W20: u256 = 0x100000;
 const W64: u256 = 0x10000000000000000;
+// the same as divisors for `take`
+const NW1: NonZero<u256> = 0x2;
+const NW2: NonZero<u256> = 0x4;
+const NW3: NonZero<u256> = 0x8;
+const NW4: NonZero<u256> = 0x10;
+const NW5: NonZero<u256> = 0x20;
+const NW6: NonZero<u256> = 0x40;
+const NW7: NonZero<u256> = 0x80;
+const NW11: NonZero<u256> = 0x800;
+const NW16: NonZero<u256> = 0x10000;
+const NW20: NonZero<u256> = 0x100000;
+const NW64: NonZero<u256> = 0x10000000000000000;
 
 /// Appends `value` in the next field, `size` = 2^width.
 fn put(ref acc: u256, ref shift: u256, value: u256, size: u256) {
@@ -80,9 +92,12 @@ fn put(ref acc: u256, ref shift: u256, value: u256, size: u256) {
 }
 
 /// Takes the next field, `size` = 2^width.
-fn take(ref rest: u256, size: u256) -> u256 {
-    let v = rest % size;
-    rest = rest / size;
+// A NonZero size, so `take` cannot panic, and out of line: otherwise each of unpack_inputs' 24
+// calls adds a panic exit there, and every exit writes the whole ComposerInputs (CASM size).
+#[inline(never)]
+fn take(ref rest: u256, size: NonZero<u256>) -> u256 {
+    let (q, v) = DivRem::div_rem(rest, size);
+    rest = q;
     v
 }
 
@@ -126,31 +141,37 @@ pub fn pack_inputs(x: ComposerInputs) -> felt252 {
 }
 
 pub fn unpack_inputs(packed: felt252) -> ComposerInputs {
+    // Boxed for CASM size: the body's panic exits then write 2 felts, not the whole value.
+    unpack_inputs_boxed(packed).unbox()
+}
+
+#[inline(never)]
+fn unpack_inputs_boxed(packed: felt252) -> Box<ComposerInputs> {
     let mut rest: u256 = packed.into();
-    assert(take(ref rest, W4) == PARAMS_LAYOUT_VERSION.into(), 'unknown params layout');
-    let species_id = take(ref rest, W64).try_into().unwrap();
-    let name_variant_id = take(ref rest, W11).try_into().unwrap();
-    let mode_id = take(ref rest, W5).try_into().unwrap();
-    let tonic_keynum = take(ref rest, W7).try_into().unwrap();
-    let register_band = take(ref rest, W2).try_into().unwrap();
-    let tier = take(ref rest, W3).try_into().unwrap();
-    let weakness = take(ref rest, W2).try_into().unwrap();
-    let canon_config_id = take(ref rest, W6).try_into().unwrap();
-    let profile_id = take(ref rest, W5).try_into().unwrap();
-    let voice_count = take(ref rest, W3).try_into().unwrap();
-    let section_count = take(ref rest, W4).try_into().unwrap();
-    let stretto_bucket = take(ref rest, W3).try_into().unwrap();
-    let stretto_lag = take(ref rest, W4).try_into().unwrap();
-    let use_inversion = take(ref rest, W1) == 1;
-    let use_countersubject = take(ref rest, W1) == 1;
-    let use_compound_melody = take(ref rest, W1) == 1;
-    let ornament_density = take(ref rest, W3).try_into().unwrap();
-    let articulation_profile = take(ref rest, W3).try_into().unwrap();
-    let velocity_ceiling = take(ref rest, W7).try_into().unwrap();
-    let tempo_us = take(ref rest, W20).try_into().unwrap();
-    let score_version = take(ref rest, W16).try_into().unwrap();
-    let shiny = take(ref rest, W1) == 1;
-    let animated = take(ref rest, W1) == 1;
+    assert(take(ref rest, NW4) == PARAMS_LAYOUT_VERSION.into(), 'unknown params layout');
+    let species_id = take(ref rest, NW64).try_into().unwrap();
+    let name_variant_id = take(ref rest, NW11).try_into().unwrap();
+    let mode_id = take(ref rest, NW5).try_into().unwrap();
+    let tonic_keynum = take(ref rest, NW7).try_into().unwrap();
+    let register_band = take(ref rest, NW2).try_into().unwrap();
+    let tier = take(ref rest, NW3).try_into().unwrap();
+    let weakness = take(ref rest, NW2).try_into().unwrap();
+    let canon_config_id = take(ref rest, NW6).try_into().unwrap();
+    let profile_id = take(ref rest, NW5).try_into().unwrap();
+    let voice_count = take(ref rest, NW3).try_into().unwrap();
+    let section_count = take(ref rest, NW4).try_into().unwrap();
+    let stretto_bucket = take(ref rest, NW3).try_into().unwrap();
+    let stretto_lag = take(ref rest, NW4).try_into().unwrap();
+    let use_inversion = take(ref rest, NW1) == 1;
+    let use_countersubject = take(ref rest, NW1) == 1;
+    let use_compound_melody = take(ref rest, NW1) == 1;
+    let ornament_density = take(ref rest, NW3).try_into().unwrap();
+    let articulation_profile = take(ref rest, NW3).try_into().unwrap();
+    let velocity_ceiling = take(ref rest, NW7).try_into().unwrap();
+    let tempo_us = take(ref rest, NW20).try_into().unwrap();
+    let score_version = take(ref rest, NW16).try_into().unwrap();
+    let shiny = take(ref rest, NW1) == 1;
+    let animated = take(ref rest, NW1) == 1;
     assert(rest == 0, 'unknown params bits');
     let params = BeastCompositionParams {
         species_id,
@@ -175,5 +196,5 @@ pub fn unpack_inputs(packed: felt252) -> ComposerInputs {
         tempo_us,
         score_version,
     };
-    ComposerInputs { params, shiny, animated }
+    BoxTrait::new(ComposerInputs { params, shiny, animated })
 }

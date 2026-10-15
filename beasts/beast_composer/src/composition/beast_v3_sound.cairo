@@ -65,9 +65,6 @@ pub const GENESIS_LEVEL: u16 = 1;
 pub const GENESIS_HEALTH: u16 = 100;
 
 const TWO_POW_64: u256 = 0x10000000000000000;
-const TWO_POW_7: u256 = 0x80;
-const TWO_POW_5: u256 = 0x20;
-const TWO_POW_16: u256 = 0x10000;
 
 /// Mirror of Beasts V3 `pack::PackableBeast`.
 #[derive(Copy, Drop, Serde, PartialEq)]
@@ -121,17 +118,20 @@ pub struct BeastTypeTierFamily {
 
 /// Decode a Beasts V3 token ID (same layout and validation as `pack::decode_token_id`).
 pub fn decode_v3_token_id(token_id: u256) -> PackableBeastV3 {
-    let mut packed = token_id;
-    let id: u64 = (packed % TWO_POW_64).try_into().unwrap();
-    packed = packed / TWO_POW_64;
-    let prefix: u8 = (packed % TWO_POW_7).try_into().unwrap();
-    packed = packed / TWO_POW_7;
-    let suffix: u8 = (packed % TWO_POW_5).try_into().unwrap();
-    packed = packed / TWO_POW_5;
-    let level: u16 = (packed % TWO_POW_16).try_into().unwrap();
-    packed = packed / TWO_POW_16;
-    let health: u16 = (packed % TWO_POW_16).try_into().unwrap();
-    packed = packed / TWO_POW_16;
+    // The layout is 116 bits, all in the low word, so this decodes in u128 (u256 division costs
+    // far more CASM). A bit in the high word is a stray bit, rejected like those below.
+    assert(token_id.high == 0, 'invalid token id');
+    let mut packed: u128 = token_id.low;
+    let id: u64 = (packed % 0x10000000000000000).try_into().unwrap();
+    packed = packed / 0x10000000000000000;
+    let prefix: u8 = (packed % 0x80).try_into().unwrap();
+    packed = packed / 0x80;
+    let suffix: u8 = (packed % 0x20).try_into().unwrap();
+    packed = packed / 0x20;
+    let level: u16 = (packed % 0x10000).try_into().unwrap();
+    packed = packed / 0x10000;
+    let health: u16 = (packed % 0x10000).try_into().unwrap();
+    packed = packed / 0x10000;
     let shiny: u8 = (packed % 2).try_into().unwrap();
     packed = packed / 2;
     let animated: u8 = (packed % 2).try_into().unwrap();
@@ -388,6 +388,14 @@ fn genesis_key(id: u64, tier: u8) -> BeastKeyCell {
 pub fn map_v3_beast_to_composition_params(
     beast: PackableBeastV3, live: BeastV3LiveState,
 ) -> BeastCompositionParams {
+    // Boxed for CASM size: the body's panic exits then write 2 felts, not the whole value.
+    map_v3_beast_to_composition_params_boxed(beast, live).unbox()
+}
+
+#[inline(never)]
+fn map_v3_beast_to_composition_params_boxed(
+    beast: PackableBeastV3, live: BeastV3LiveState,
+) -> Box<BeastCompositionParams> {
     assert_valid_v3_beast(beast);
     let tier = beast.tier;
     let family = type_tier_family(beast.beast_type, tier);
@@ -461,33 +469,35 @@ pub fn map_v3_beast_to_composition_params(
         } else {
             0
         };
-    BeastCompositionParams {
-        species_id: beast.id,
-        name_variant_id: v3_name_variant_id(beast.prefix, beast.suffix),
-        mode_id: key.canonical_mode_id,
-        tonic_keynum: tonic_keynum_for_cell(key),
-        register_band: key.register_band,
-        tier,
-        weakness: type_to_section_relation(beast.beast_type),
-        canon_config_id: family.canon_config_id,
-        profile_id: family.profile_id,
-        voice_count,
-        section_count: sections_for_kill_bucket(state.kill_bucket),
-        stretto_bucket,
-        stretto_lag: stretto_lag(@default_stretto_plan(), stretto_bucket),
-        use_inversion: state.defeat_bucket >= 3 || (tier <= 2 && state.encounter_bucket >= 4),
-        use_countersubject: tier <= 2 || (tier == 3 && state.rank_tier <= 1),
-        use_compound_melody: tier >= 4,
-        ornament_density: clamp_u8(density_raw, 7),
-        articulation_profile: if state.is_crown {
-            ARTICULATION_ACCENT
-        } else {
-            visual_articulation
+    BoxTrait::new(
+        BeastCompositionParams {
+            species_id: beast.id,
+            name_variant_id: v3_name_variant_id(beast.prefix, beast.suffix),
+            mode_id: key.canonical_mode_id,
+            tonic_keynum: tonic_keynum_for_cell(key),
+            register_band: key.register_band,
+            tier,
+            weakness: type_to_section_relation(beast.beast_type),
+            canon_config_id: family.canon_config_id,
+            profile_id: family.profile_id,
+            voice_count,
+            section_count: sections_for_kill_bucket(state.kill_bucket),
+            stretto_bucket,
+            stretto_lag: stretto_lag(@default_stretto_plan(), stretto_bucket),
+            use_inversion: state.defeat_bucket >= 3 || (tier <= 2 && state.encounter_bucket >= 4),
+            use_countersubject: tier <= 2 || (tier == 3 && state.rank_tier <= 1),
+            use_compound_melody: tier >= 4,
+            ornament_density: clamp_u8(density_raw, 7),
+            articulation_profile: if state.is_crown {
+                ARTICULATION_ACCENT
+            } else {
+                visual_articulation
+            },
+            velocity_ceiling,
+            tempo_us: 500000 - tempo_bump,
+            score_version: BEAST_V3_ENGINE_VERSION,
         },
-        velocity_ceiling,
-        tempo_us: 500000 - tempo_bump,
-        score_version: BEAST_V3_ENGINE_VERSION,
-    }
+    )
 }
 
 /// Cache key for renderers: changes only when a normalized bucket, rank tier, or the engine

@@ -417,6 +417,8 @@ const SPAN_START: u32 = 0xFFFFE;
 const SPAN_END: u32 = 0xFFFFF;
 
 /// Appends a note to the section and records it on the grid.
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
 fn put(ref out: Array<NoteEvent>, ref grid: Felt252Dict<u32>, e: NoteEvent) {
     assert(e.time % CELL == 0 && e.duration % CELL == 0 && e.duration > 0, 'v11: off grid');
     out.append(e);
@@ -1185,6 +1187,14 @@ pub fn build_v11_score(beast: PackableBeastV3, live: BeastV3LiveState) -> V11Sco
 pub fn build_v11_score_with(
     beast: PackableBeastV3, live: BeastV3LiveState, ov: V11Override,
 ) -> V11Score {
+    // Boxed for CASM size: the body's panic exits then write 2 felts, not the whole value.
+    build_v11_score_with_boxed(beast, live, ov).unbox()
+}
+
+#[inline(never)]
+fn build_v11_score_with_boxed(
+    beast: PackableBeastV3, live: BeastV3LiveState, ov: V11Override,
+) -> Box<V11Score> {
     // history: kills and defeats swapped; the structure is composed with a neutral rank (the real
     // rank sets only prominence)
     let swapped = BeastV3LiveState {
@@ -1291,7 +1301,7 @@ pub fn build_v11_score_with(
         s += 1;
     }
     shape(ref events, @p, section_ticks, tr.prominence);
-    V11Score { events, section_ticks, params: p }
+    BoxTrait::new(V11Score { events, section_ticks, params: p })
 }
 
 /// The v1.1 score as a form for the MIDI writers (no score hash: the self-contained writer does not

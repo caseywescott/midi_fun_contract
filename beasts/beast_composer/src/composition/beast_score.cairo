@@ -112,6 +112,8 @@ pub fn beast_params_hash(params: BeastCompositionParams) -> felt252 {
     h.finalize()
 }
 
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
 fn degree_hash(seed: felt252, step_index: u32, leader_degree: i32, prior_hash: felt252) -> u32 {
     let d: felt252 = if leader_degree < 0 {
         (1000_i32 + leader_degree).try_into().unwrap()

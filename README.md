@@ -55,7 +55,8 @@ scarb fmt --check
 - `docs/beasts/`: the Beast Sound composition guide.
 
 The `koji` music library, its tooling and research, Beast Engine v2 and the old browser simulator
-were removed; the `archive/koji` tag marks the last commit that has them.
+moved to their own repository, [koji-cairo](https://github.com/caseywescott/koji-cairo), with their
+history; the `archive/koji` tag here marks the last commit that has them.
 
 ## License
 

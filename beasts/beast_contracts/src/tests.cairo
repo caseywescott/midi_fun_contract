@@ -729,8 +729,8 @@ fn yeti_settings_carry_the_avalanche_preset() {
     );
 }
 
-// ── upgrades (IUpgradeableProvider)
-// ─────────────────────────────────────────────────────────────
+// ── upgrades (OpenZeppelin Ownable and Upgradeable)
+// ────────────────────────────────────────────
 
 /// A stand-in for a later provider class: answers one view, so a test can see the class changed.
 #[starknet::interface]
@@ -750,90 +750,88 @@ pub mod ProviderV2 {
         }
     }
 }
-use crate::provider::IUpgradeableProviderDispatcherTrait;
+use openzeppelin_interfaces::access::ownable::{IOwnableDispatcher, IOwnableDispatcherTrait};
+use openzeppelin_interfaces::upgrades::{IUpgradeableDispatcher, IUpgradeableDispatcherTrait};
 
 fn addr(x: felt252) -> ContractAddress {
     x.try_into().unwrap()
 }
 
-fn upgrades(w: World) -> crate::provider::IUpgradeableProviderDispatcher {
-    crate::provider::IUpgradeableProviderDispatcher { contract_address: w.midi.contract_address }
+fn ownable(w: World) -> IOwnableDispatcher {
+    IOwnableDispatcher { contract_address: w.midi.contract_address }
+}
+
+fn upgradeable(w: World) -> IUpgradeableDispatcher {
+    IUpgradeableDispatcher { contract_address: w.midi.contract_address }
 }
 
 fn as_caller(who: felt252) {
     starknet::testing::set_contract_address(addr(who));
 }
 
+fn version(w: World) -> u32 {
+    IProviderV2Dispatcher { contract_address: w.midi.contract_address }.version()
+}
+
 #[test]
 fn owner_is_set_at_deploy_and_announced() {
     let w = setup();
-    assert_eq!(upgrades(w).owner(), addr(OWNER));
+    assert_eq!(ownable(w).owner(), addr(OWNER));
     let (keys, data) = starknet::testing::pop_log_raw(w.midi.contract_address).unwrap();
-    assert_eq!(keys, array![selector!("OwnershipTransferred")].span());
-    assert_eq!(data, array![0, OWNER].span());
+    assert_eq!(keys, array![selector!("OwnershipTransferred"), 0, OWNER].span());
+    assert_eq!(data, array![].span());
 }
 
 #[test]
 fn owner_upgrades_the_class() {
     let w = setup();
+    let a = w.midi.contract_address;
+    let _ = starknet::testing::pop_log_raw(a); // the constructor's
     as_caller(OWNER);
-    upgrades(w).upgrade(ProviderV2::TEST_CLASS_HASH);
-    assert_eq!(IProviderV2Dispatcher { contract_address: w.midi.contract_address }.version(), 2);
+    upgradeable(w).upgrade(ProviderV2::TEST_CLASS_HASH);
+    assert_eq!(version(w), 2);
+    let (keys, data) = starknet::testing::pop_log_raw(a).unwrap();
+    assert_eq!(keys, array![selector!("Upgraded")].span());
+    assert_eq!(data, array![ProviderV2::TEST_CLASS_HASH.into()].span());
 }
 
 #[test]
-#[should_panic(expected: ('not owner', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('Caller is not the owner', 'ENTRYPOINT_FAILED'))]
 fn others_cannot_upgrade() {
     let w = setup();
     as_caller(0xbad);
-    upgrades(w).upgrade(ProviderV2::TEST_CLASS_HASH);
+    upgradeable(w).upgrade(ProviderV2::TEST_CLASS_HASH);
 }
 
 #[test]
 fn ownership_transfers() {
     let w = setup();
     as_caller(OWNER);
-    upgrades(w).transfer_ownership(addr(0xb0b));
-    assert_eq!(upgrades(w).owner(), addr(0xb0b));
+    ownable(w).transfer_ownership(addr(0xb0b));
+    assert_eq!(ownable(w).owner(), addr(0xb0b));
     as_caller(0xb0b);
-    upgrades(w).upgrade(ProviderV2::TEST_CLASS_HASH);
-    assert_eq!(IProviderV2Dispatcher { contract_address: w.midi.contract_address }.version(), 2);
+    upgradeable(w).upgrade(ProviderV2::TEST_CLASS_HASH);
+    assert_eq!(version(w), 2);
 }
 
+/// After renouncing, the owner is zero and the former owner (or anyone) can no longer upgrade.
 #[test]
-#[should_panic(expected: ('not owner', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('Caller is not the owner', 'ENTRYPOINT_FAILED'))]
 fn renounced_ends_upgrades_for_good() {
     let w = setup();
     as_caller(OWNER);
-    upgrades(w).renounce_ownership();
-    assert_eq!(upgrades(w).owner(), addr(0));
-    upgrades(w).upgrade(ProviderV2::TEST_CLASS_HASH);
+    ownable(w).renounce_ownership();
+    assert_eq!(ownable(w).owner(), addr(0));
+    upgradeable(w).upgrade(ProviderV2::TEST_CLASS_HASH);
 }
 
 #[test]
-#[should_panic(expected: ('not owner', 'ENTRYPOINT_FAILED'))]
+#[should_panic(expected: ('Caller is not the owner', 'ENTRYPOINT_FAILED'))]
 fn renounced_cannot_be_reclaimed() {
     let w = setup();
     as_caller(OWNER);
-    upgrades(w).renounce_ownership();
-    as_caller(0);
-    upgrades(w).transfer_ownership(addr(OWNER));
-}
-
-#[test]
-fn upgrade_events_are_emitted() {
-    let w = setup();
-    let a = w.midi.contract_address;
-    let _ = starknet::testing::pop_log_raw(a); // the constructor's
-    as_caller(OWNER);
-    upgrades(w).transfer_ownership(addr(0xb0b));
-    let (k, d) = starknet::testing::pop_log_raw(a).unwrap();
-    assert_eq!(k, array![selector!("OwnershipTransferred")].span());
-    assert_eq!(d, array![OWNER, 0xb0b].span());
-    as_caller(0xb0b);
-    upgrades(w).renounce_ownership();
-    let (_, d) = starknet::testing::pop_log_raw(a).unwrap();
-    assert_eq!(d, array![0xb0b, 0].span());
+    ownable(w).renounce_ownership();
+    ownable(w).transfer_ownership(addr(OWNER));
 }
 
 #[test]
@@ -842,5 +840,5 @@ fn constructor_rejects_a_zero_owner() {
     let result = deploy_syscall(
         BeastMidiProvider::TEST_CLASS_HASH, 3, array![nft.into(), 0].span(), false,
     );
-    assert_eq!(result.unwrap_err(), array!['zero owner', 'CONSTRUCTOR_FAILED']);
+    assert_eq!(result.unwrap_err(), array!['New owner is the zero address', 'CONSTRUCTOR_FAILED']);
 }

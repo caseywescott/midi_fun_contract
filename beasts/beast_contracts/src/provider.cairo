@@ -33,6 +33,12 @@
 //! `get_midi` never reverts for that: it runs inside the NFT's `token_uri`, where a revert cannot
 //! be caught. It reverts only for an unsupported collection, an invalid token ID or an unminted
 //! token. The provider only calls state getters, never `token_uri`, so metadata cannot recurse.
+//!
+//! Upgrades (OpenZeppelin Ownable and Upgradeable): for a short period after launch the owner
+//! (set at deploy) can `upgrade` the class, to fix anything found in the first days or to add the
+//! Beasts' tracks; `renounce_ownership` then ends upgrades for good (the owner becomes zero).
+//! `owner()` shows which state the provider is in; OZ's `OwnershipTransferred` and `Upgraded`
+//! events record every change.
 
 use beast_composer::composition::beast_v3_sound::BeastV3LiveState;
 use starknet::ContractAddress;
@@ -113,23 +119,60 @@ pub mod BeastMidiProvider {
     use midi::interfaces::{IMidiProvider, ISoundProvider, ISynthSettingsProvider};
     use midi::pack::bytes_to_byte_array;
     use midi::types::{TinySynthSettings, TinySynthSound};
-    use starknet::ContractAddress;
+    use openzeppelin_access::ownable::OwnableComponent;
+    use openzeppelin_interfaces::upgrades::IUpgradeable;
+    use openzeppelin_upgrades::UpgradeableComponent;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+    use starknet::{ClassHash, ContractAddress};
     use super::{
         BeastLiveStateReport, IBeastMidiProvider, IBeastsLiveStateDispatcher,
         IBeastsLiveStateDispatcherTrait, IDeathMountainCollectsDispatcher,
         IDeathMountainCollectsDispatcherTrait, StateSource,
     };
 
+    component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
+    component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
+
+    /// OpenZeppelin Ownable: `owner`, `transfer_ownership`, `renounce_ownership`.
+    #[abi(embed_v0)]
+    impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
+    impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
+    impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
+
     #[storage]
     struct Storage {
         collection: ContractAddress,
+        #[substorage(v0)]
+        ownable: OwnableComponent::Storage,
+        #[substorage(v0)]
+        upgradeable: UpgradeableComponent::Storage,
     }
 
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        #[flat]
+        OwnableEvent: OwnableComponent::Event,
+        #[flat]
+        UpgradeableEvent: UpgradeableComponent::Event,
+    }
+
+    /// `owner` may upgrade the class until it renounces ownership (OpenZeppelin Ownable and
+    /// Upgradeable).
     #[constructor]
-    fn constructor(ref self: ContractState, collection: ContractAddress) {
+    fn constructor(ref self: ContractState, collection: ContractAddress, owner: ContractAddress) {
         assert(collection.is_non_zero(), 'zero collection');
         self.collection.write(collection);
+        self.ownable.initializer(owner);
+    }
+
+    /// OpenZeppelin `IUpgradeable`: the owner replaces the class (storage is kept).
+    #[abi(embed_v0)]
+    impl UpgradeableImpl of IUpgradeable<ContractState> {
+        fn upgrade(ref self: ContractState, new_class_hash: ClassHash) {
+            self.ownable.assert_only_owner();
+            self.upgradeable.upgrade(new_class_hash);
+        }
     }
 
     #[abi(embed_v0)]

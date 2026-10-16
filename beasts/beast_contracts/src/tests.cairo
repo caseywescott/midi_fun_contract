@@ -151,10 +151,13 @@ fn deploy(class_hash: ClassHash, calldata: Array<felt252>, salt: felt252) -> Con
     address
 }
 
+/// The provider's owner in the tests.
+const OWNER: felt252 = 0x0a11ce;
+
 fn setup() -> World {
     let nft = deploy(MockBeasts::TEST_CLASS_HASH, array![], 1);
     let dm = deploy(MockDeathMountain::TEST_CLASS_HASH, array![], 2);
-    let provider = deploy(BeastMidiProvider::TEST_CLASS_HASH, array![nft.into()], 3);
+    let provider = deploy(BeastMidiProvider::TEST_CLASS_HASH, array![nft.into(), OWNER], 3);
     let world = World {
         nft: IMockBeastsDispatcher { contract_address: nft },
         dm: IMockDeathMountainDispatcher { contract_address: dm },
@@ -724,4 +727,118 @@ fn yeti_settings_carry_the_avalanche_preset() {
             .get_settings(token_id),
         crate::synth_settings::yeti_synth_settings(true),
     );
+}
+
+// ── upgrades (OpenZeppelin Ownable and Upgradeable)
+// ────────────────────────────────────────────
+
+/// A stand-in for a later provider class: answers one view, so a test can see the class changed.
+#[starknet::interface]
+pub trait IProviderV2<T> {
+    fn version(self: @T) -> u32;
+}
+
+#[starknet::contract]
+pub mod ProviderV2 {
+    #[storage]
+    struct Storage {}
+
+    #[abi(embed_v0)]
+    impl V2 of super::IProviderV2<ContractState> {
+        fn version(self: @ContractState) -> u32 {
+            2
+        }
+    }
+}
+use openzeppelin_interfaces::access::ownable::{IOwnableDispatcher, IOwnableDispatcherTrait};
+use openzeppelin_interfaces::upgrades::{IUpgradeableDispatcher, IUpgradeableDispatcherTrait};
+
+fn addr(x: felt252) -> ContractAddress {
+    x.try_into().unwrap()
+}
+
+fn ownable(w: World) -> IOwnableDispatcher {
+    IOwnableDispatcher { contract_address: w.midi.contract_address }
+}
+
+fn upgradeable(w: World) -> IUpgradeableDispatcher {
+    IUpgradeableDispatcher { contract_address: w.midi.contract_address }
+}
+
+fn as_caller(who: felt252) {
+    starknet::testing::set_contract_address(addr(who));
+}
+
+fn version(w: World) -> u32 {
+    IProviderV2Dispatcher { contract_address: w.midi.contract_address }.version()
+}
+
+#[test]
+fn owner_is_set_at_deploy_and_announced() {
+    let w = setup();
+    assert_eq!(ownable(w).owner(), addr(OWNER));
+    let (keys, data) = starknet::testing::pop_log_raw(w.midi.contract_address).unwrap();
+    assert_eq!(keys, array![selector!("OwnershipTransferred"), 0, OWNER].span());
+    assert_eq!(data, array![].span());
+}
+
+#[test]
+fn owner_upgrades_the_class() {
+    let w = setup();
+    let a = w.midi.contract_address;
+    let _ = starknet::testing::pop_log_raw(a); // the constructor's
+    as_caller(OWNER);
+    upgradeable(w).upgrade(ProviderV2::TEST_CLASS_HASH);
+    assert_eq!(version(w), 2);
+    let (keys, data) = starknet::testing::pop_log_raw(a).unwrap();
+    assert_eq!(keys, array![selector!("Upgraded")].span());
+    assert_eq!(data, array![ProviderV2::TEST_CLASS_HASH.into()].span());
+}
+
+#[test]
+#[should_panic(expected: ('Caller is not the owner', 'ENTRYPOINT_FAILED'))]
+fn others_cannot_upgrade() {
+    let w = setup();
+    as_caller(0xbad);
+    upgradeable(w).upgrade(ProviderV2::TEST_CLASS_HASH);
+}
+
+#[test]
+fn ownership_transfers() {
+    let w = setup();
+    as_caller(OWNER);
+    ownable(w).transfer_ownership(addr(0xb0b));
+    assert_eq!(ownable(w).owner(), addr(0xb0b));
+    as_caller(0xb0b);
+    upgradeable(w).upgrade(ProviderV2::TEST_CLASS_HASH);
+    assert_eq!(version(w), 2);
+}
+
+/// After renouncing, the owner is zero and the former owner (or anyone) can no longer upgrade.
+#[test]
+#[should_panic(expected: ('Caller is not the owner', 'ENTRYPOINT_FAILED'))]
+fn renounced_ends_upgrades_for_good() {
+    let w = setup();
+    as_caller(OWNER);
+    ownable(w).renounce_ownership();
+    assert_eq!(ownable(w).owner(), addr(0));
+    upgradeable(w).upgrade(ProviderV2::TEST_CLASS_HASH);
+}
+
+#[test]
+#[should_panic(expected: ('Caller is not the owner', 'ENTRYPOINT_FAILED'))]
+fn renounced_cannot_be_reclaimed() {
+    let w = setup();
+    as_caller(OWNER);
+    ownable(w).renounce_ownership();
+    ownable(w).transfer_ownership(addr(OWNER));
+}
+
+#[test]
+fn constructor_rejects_a_zero_owner() {
+    let nft = deploy(MockBeasts::TEST_CLASS_HASH, array![], 1);
+    let result = deploy_syscall(
+        BeastMidiProvider::TEST_CLASS_HASH, 3, array![nft.into(), 0].span(), false,
+    );
+    assert_eq!(result.unwrap_err(), array!['New owner is the zero address', 'CONSTRUCTOR_FAILED']);
 }

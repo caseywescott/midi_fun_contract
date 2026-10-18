@@ -737,7 +737,7 @@ pub const A_GET_LIVE_STATE_C076: (u32, felt252) = (
 );
 /// baseline-frozen
 pub const A_GET_COLLECTION: (u32, felt252) = (
-    1, 0x2860aa1ea2812eb03b8f7e74e8a1d82aadc82b202c3e9421dc30ceab054a5da,
+    1, 0x534ca1adc448f0a5a204b782a2aa55b633c29f0c26a50e4f7037257fdc5fe82,
 );
 /// js
 pub const A_GET_ENGINE_VERSION: (u32, felt252) = (
@@ -893,7 +893,7 @@ pub const C_TOKEN_URI_E2E_S032_S: (u32, felt252) = (
 );
 /// baseline-frozen
 pub const C_GET_MIDI_PROVIDER: (u32, felt252) = (
-    1, 0x3843d97ea7b6b90104fbc91b17072f469ca90dec00f15625cb99917b637f140,
+    1, 0x5fcce6b92ec4e2565405f3150f7d3a45ad28abbdd35858ff2a2ad1b03af3862,
 );
 /// baseline-frozen
 pub const D_SCALE_GET_MIDI_T1: (u32, felt252) = (

@@ -180,7 +180,7 @@ from two places:
   Genesis defaults on the token's tier and type for the community species), the page's `tokenUri`
   (`onchain/page.js` with `onchain/dist/stored.b64`, whose length is the Cairo `STORED_LEN`),
   Buffer base64 and `midiHtml`, and plain packing for the probes.
-- **baseline-frozen** (59 checks): the Cairo output at the baseline (2ce04a9), recorded once by
+- **baseline-frozen** (59 checks): the Cairo output at the baseline (2ce04a9), recorded by
   `gas_bench.py freeze` into `expected/frozen.json`: settings, live-state reports, composer views,
   the scale MIDI, the T1 score, the collection and provider addresses.
 
@@ -192,6 +192,12 @@ values from the JS engine alone and copies the frozen ones from `frozen.json`, s
 reproduces the same files. `gas_bench.py freeze` refuses to run if `frozen.json` exists, or if the
 production sources differ from `--baseline-rev`. A candidate that changes an output fails the
 bench; a deliberate change of the music is a new baseline, made by freezing at that commit.
+
+A compiler change is a re-freeze at the same baseline. The collection and provider addresses
+(`a_get_collection`, `c_get_midi_provider`) are the addresses of the bench's MockBeasts and
+FixedMidiProvider, which derive from their class hashes, so they move whenever the compiler
+changes those classes. `frozen.json` was re-frozen at 2ce04a9 with scarb 2.21.0 (it was frozen
+with 2.20.1): those 2 values changed and the other 290, the 233 js values included, did not.
 
 Checked by mutation in a scratch copy (not committed): lowering the velocity of the first note of
 voice 0 in `full_midi.cairo` failed 179 cases, each on its own `DIGEST MISMATCH` (every case that

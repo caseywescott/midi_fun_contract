@@ -6,14 +6,14 @@
    "sha256": "f56e6f1646ccfb279e54d1d7b479a783abbd0b97b8a6a941dabdb94195a3be0d",
    "files": 72
   },
-  "created_utc": "2026-10-18T05:58:20+00:00",
-  "scarb": "scarb 2.20.1 (dd18779a1 2026-08-21)",
-  "snforge": "snforge 0.64.0"
+  "created_utc": "2026-10-18T11:46:39+00:00",
+  "scarb": "scarb 2.21.0 (fbd5bd03d 2026-10-09)",
+  "snforge": "snforge 0.64.1"
  },
  "values": {
   "A_GET_COLLECTION": [
    1,
-   "0x2860aa1ea2812eb03b8f7e74e8a1d82aadc82b202c3e9421dc30ceab054a5da"
+   "0x534ca1adc448f0a5a204b782a2aa55b633c29f0c26a50e4f7037257fdc5fe82"
   ],
   "A_GET_ENGINE_VERSION": [
    1,
@@ -869,7 +869,7 @@
   ],
   "C_GET_MIDI_PROVIDER": [
    1,
-   "0x3843d97ea7b6b90104fbc91b17072f469ca90dec00f15625cb99917b637f140"
+   "0x5fcce6b92ec4e2565405f3150f7d3a45ad28abbdd35858ff2a2ad1b03af3862"
   ],
   "C_TOKEN_URI_E2E_S001_N": [
    136585,

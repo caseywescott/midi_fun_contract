@@ -1,0 +1,9 @@
+# bench build output (bench/target is also covered by the root `target` rule)
+target/
+.snfoundry_cache/
+snfoundry_trace/
+profile/
+coverage/
+# ad-hoc snapshots: only the committed baselines are kept
+snapshots/*
+!snapshots/baseline-*.json

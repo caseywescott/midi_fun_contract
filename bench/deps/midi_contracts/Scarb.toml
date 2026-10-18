@@ -1,0 +1,13 @@
+# core/midi_contracts as a library for the bench (see bench/Scarb.toml): the production package's
+# name, version, edition and dependencies, a [lib] target, and
+# `src` -> ../../../core/midi_contracts/src.
+[package]
+name = "midi_contracts"
+version = "0.1.0"
+edition = "2025_12"
+
+[dependencies]
+midi = { path = "../../../core/midi" }
+starknet = "2.20.1"
+
+[lib]

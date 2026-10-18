@@ -1,0 +1,48 @@
+# The gas benchmark (bench/README.md): its own Scarb workspace, so the root workspace, its
+# Scarb.lock and CI are untouched. It depends on the four production packages by path.
+#
+# `beast_contracts` and `midi_contracts` declare only a starknet-contract target, and Scarb drops a
+# dependency with no lib target ("missing a lib or cairo-plugin target"). So the bench depends on
+# them through deps/<package>/: the same package name, version and edition, a [lib] target, and a
+# `src` symlink to the production sources. `midi` and `beast_composer` are plain path dependencies
+# (their `version.workspace` and `midi.workspace` resolve from the root workspace). gas_bench.py
+# checks on every run that the classes built here are byte-identical to the root `scarb build`.
+[workspace]
+
+[package]
+name = "midi_bench"
+version = "0.1.0"
+edition = "2025_12"
+
+[dependencies]
+starknet = "2.20.1"
+midi = { path = "../core/midi" }
+midi_contracts = { path = "deps/midi_contracts" }
+beast_composer = { path = "../beasts/beast_composer" }
+beast_contracts = { path = "deps/beast_contracts" }
+
+[dev-dependencies]
+snforge_std = "=0.64.0"
+assert_macros = "2.20.1"
+
+# The production classes, built in this package's starknet-contract target (what
+# `snforge test --no-optimization` loads), next to the bench's own mocks and probes.
+[[target.starknet-contract]]
+sierra = true
+casm = true
+build-external-contracts = [
+    "beast_contracts::provider::BeastMidiProvider",
+    "beast_contracts::BeastSoundComposer",
+    "midi_contracts::page::MidiSoundPage",
+    "midi_contracts::examples::scale::ScaleMidiProvider",
+]
+
+[features]
+# `gas_bench.py freeze` only: the tests print their digests instead of checking them.
+record = []
+
+[tool.scarb]
+allow-prebuilt-plugins = ["snforge_std"]
+
+[tool.snforge]
+tracked_resource = "sierra-gas"

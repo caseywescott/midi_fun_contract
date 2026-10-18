@@ -34,5 +34,8 @@ assert_macros = "2.21.0"
 
 # `scarb test` runs snforge in every package (`[scripts] test.workspace = true`). The step cap is
 # lifted: some tests and every #[ignore]d parity fixture run far past snforge's default 10M steps.
+# Four threads, not snforge's default of every core: at most half of a current laptop's cores, and
+# what CI's 4-core runner runs, so a local run holds the memory CI does. For more threads, run
+# `snforge test --max-n-steps 4294967295 --max-threads <n>` in the package.
 [workspace.scripts]
-test = "snforge test --max-n-steps 4294967295"
+test = "snforge test --max-n-steps 4294967295 --max-threads 4"

@@ -13,7 +13,8 @@ interfaces, SMF writing, packing), `core/midi_contracts` (MidiSoundPage, ScaleMi
 
 scarb 2.21.0 and Starknet Foundry 0.64.1, pinned in `.tool-versions` (`bench/.tool-versions` for
 the bench). Tests run on snforge, not the deprecated `scarb cairo-test`: `scarb test` runs
-`snforge test --max-n-steps 4294967295` in each package (root `[workspace.scripts]`).
+`snforge test --max-n-steps 4294967295 --max-threads 4` in each package (root
+`[workspace.scripts]`), on four threads rather than every core.
 
 ## Commands
 

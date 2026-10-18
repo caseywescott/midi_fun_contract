@@ -33,7 +33,7 @@ snforge_std = "=0.64.1"
 assert_macros = "2.21.0"
 
 [workspace.scripts]
-test = "snforge test --max-n-steps 4294967295"
+test = "snforge test --max-n-steps 4294967295 --max-threads 4"
 ```
 
 with `scarb 2.21.0` and `starknet-foundry 0.64.1` in its `.tool-versions`. Both packages build and

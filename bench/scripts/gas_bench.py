@@ -47,7 +47,7 @@ CASM_LIMIT = 81920  # Starknet's maximum CASM bytecode size, felts
 # transaction's execution may use. snforge does not enforce it (it caps VM steps instead).
 EXECUTE_MAX_SIERRA_GAS = 1_110_000_000
 MAX_N_STEPS = 50_000_000  # passed to snforge (its default is 10,000,000 VM steps per test)
-DEFAULT_THREADS = 8
+DEFAULT_THREADS = 4  # at most half of a current laptop's cores; gas does not depend on it
 PRODUCTION_PATHS = ['core', 'beasts', 'Scarb.toml', 'Scarb.lock', '.tool-versions']
 
 # What a gas number means. `compare` refuses snapshots whose definitions differ.

@@ -27,7 +27,7 @@ python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-bdfc78f.json
 python3 bench/scripts/gas_bench.py test a_get_midi_s021
 ```
 
-`run` takes `--threads N` (default 8). Snapshots other than `baseline-*.json` are ignored by git.
+`run` takes `--threads N` (default 4). Snapshots other than `baseline-*.json` are ignored by git.
 
 ## What `run` does
 
@@ -219,7 +219,7 @@ On this machine (32 cores, shared with other builds), a full `run` from a clean 
 `target` directories deleted) took between 35 s and 3.6 min, most of it compiling, depending on
 the other load; with the build cached the snforge run takes 10 to 20 s. Peak resident memory of the whole run's process tree is
 about 12.6 GB at 8 threads (the snforge run: about 11 GB at 4 threads, 13 GB at 8, 15 GB at 12, with
-identical gas). The default is 8 threads.
+identical gas). The default is 4 threads, at most half of a current laptop's cores.
 
 ## Changing the matrix
 

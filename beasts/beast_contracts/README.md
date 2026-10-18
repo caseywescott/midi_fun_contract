@@ -113,7 +113,7 @@ scarb test -p beast_contracts    # provider vs v11_score_full_midi on mock NFT +
 ## BeastMidiProvider gas (`bench/`)
 
 L2 (Sierra) gas of one call, nested calls included, from `bench/snapshots/baseline-bdfc78f.json`
-(snforge 0.64.0 on the classes `scarb build` makes; mock NFT and Death Mountain; no transaction
+(snforge 0.64.1 on the classes `scarb build` makes; mock NFT and Death Mountain; no transaction
 overhead):
 
 | Call | Gas |

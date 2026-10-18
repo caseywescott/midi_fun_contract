@@ -59,7 +59,7 @@ python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-bdfc78f.json
     bench/snapshots/candidate.json --markdown
 ```
 
-It is its own Scarb workspace (snforge 0.64.0, `bench/.tool-versions`); see `bench/README.md`.
+It is its own Scarb workspace (snforge 0.64.1, `bench/.tool-versions`); see `bench/README.md`.
 
 ## Outside the workspace
 

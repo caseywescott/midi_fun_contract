@@ -39,7 +39,7 @@ result; with unchanged sources, they reproduce the committed files byte for byte
 
 ## Gas benchmark
 
-`bench/` (its own Scarb workspace, snforge 0.64.0) runs every production entry point it measures
+`bench/` (its own Scarb workspace, snforge 0.64.1) runs every production entry point it measures
 from the classes `scarb build` makes, and checks each call's whole output: the Genesis Tracks
 against the JS engine (`genesisMidi`), everything else against the outputs frozen at the baseline.
 A change that alters any output fails the bench instead of reporting a saving. Commands and the

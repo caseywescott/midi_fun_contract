@@ -1,0 +1,6341 @@
+{
+ "schema": "midi_bench/gas-snapshot/1",
+ "created_utc": "2026-10-18T06:11:31+00:00",
+ "measurement": {
+  "definition_version": 1,
+  "quantity": "L2 gas (Sierra gas) of the case's one top-level call from the test, inclusive of the calls it makes (e.g. get_midi includes the NFT's get_beast_rank)",
+  "source": "the [L2 gas] of that call in `snforge test --trace-components contract-name gas`",
+  "tracked_resource": "sierra-gas",
+  "snforge_mode": "--no-optimization (contracts from the bench package's starknet-contract target, checked identical to the root scarb build)",
+  "max_n_steps": 50000000,
+  "excludes": "the test body (deploys, mock setup, output digests) and transaction overheads"
+ },
+ "tools": {
+  "scarb": {
+   "path": "/home/ubuntu/.asdf/installs/scarb/2.20.1/bin/scarb",
+   "version": "scarb 2.20.1 (dd18779a1 2026-08-21)\ncairo: 2.20.0 (https://crates.io/crates/cairo-lang-compiler/2.20.0)\nsierra: 1.9.3\narch: x86_64-unknown-linux-gnu"
+  },
+  "snforge": {
+   "path": "/home/ubuntu/.asdf/installs/starknet-foundry/0.64.0/bin/snforge",
+   "version": "snforge 0.64.0"
+  },
+  "universal_sierra_compiler": {
+   "path": "/home/ubuntu/.local/bin/universal-sierra-compiler",
+   "version": "universal-sierra-compiler 2.10.1"
+  },
+  "node": {
+   "path": "/home/ubuntu/.asdf/installs/nodejs/24.19.0/bin/node",
+   "version": "v24.19.0"
+  }
+ },
+ "git": {
+  "rev": "4853c8f00f151e190f10bfd7f642a1bd267e949b",
+  "dirty": false,
+  "status": [],
+  "tracked_tree": {
+   "sha256": "9e4af8b7a02b0919f265c4c831072370b601cf8c70d9ea75fc8fb78285f329ad",
+   "files": 444
+  },
+  "production_tree": {
+   "sha256": "f56e6f1646ccfb279e54d1d7b479a783abbd0b97b8a6a941dabdb94195a3be0d",
+   "files": 72
+  },
+  "bench_tree": {
+   "sha256": "55212ef219f909f9e1ec5e163c87db1f3b46778129b6f7af8935f353d8dff531",
+   "files": 21
+  },
+  "root_scarb_lock_sha256": "dbe79ca05a7e1b14bda4660f83a8692f357f6433aa2c33f8d550e94b6b0f3cf8",
+  "bench_scarb_lock_sha256": "347e01366dabf640b2638d441780cde2c7fbbc9a0786a9bb4199a48f82dde256"
+ },
+ "expected_table": {
+  "cases_json_sha256": "cdbdfedfdcb57b1a386a5cf8698d382b90e9c97ee5c73f7d3fea83d5e8288f6b",
+  "frozen_json_sha256": "e5c5300a2f735c867e4b16fb74c7580c90bbd26ce234d68dd74d6b68b04085b6",
+  "generator_check": "286 cases, 292 checks (233 js, 59 baseline-frozen)"
+ },
+ "classes": [
+  {
+   "contract": "BeastMidiProvider",
+   "package": "beast_contracts",
+   "module": "beast_contracts::provider::BeastMidiProvider",
+   "casm_bytecode_len": 79526,
+   "casm_bytecode_sha256": "ae2520ba8dd17205fe86d6e59c264b7f49df8a5f21b95e69b90d5931e4afea32",
+   "casm_file_sha256": "fe37fafb65785b464c7a0b530ac12463fbfa7f6c56b4740ea41b60fe1b66f3f6",
+   "sierra_program_len": 40015,
+   "sierra_program_sha256": "8127cc2b89a71556efc688f797f3901919e591ee6227390b148a5cb3d7d49d1b",
+   "sierra_file_sha256": "2660839088309060a625c0b43a4391c1943293f742827a321630545fb340ef24",
+   "casm_limit": 81920,
+   "casm_headroom": 2394
+  },
+  {
+   "contract": "BeastSoundComposer",
+   "package": "beast_contracts",
+   "module": "beast_contracts::BeastSoundComposer",
+   "casm_bytecode_len": 23828,
+   "casm_bytecode_sha256": "43d2252700b47ede04db174cbe24cfdd26f90777deb3a0ad047a4b7c6c973784",
+   "casm_file_sha256": "e97758a67f20332160b32e4ca405f667065803d13a1ae61abab0a6b66fc6c806",
+   "sierra_program_len": 11160,
+   "sierra_program_sha256": "6d1965a2eb26f136db79119283a0502e4e617f3ceab9cb13115b03c558a12587",
+   "sierra_file_sha256": "23d2c4a334227e287f521a58725bbffc356511435a2b212ebbe5afd35b6cf6ce",
+   "casm_limit": 81920,
+   "casm_headroom": 58092
+  },
+  {
+   "contract": "MidiSoundPage",
+   "package": "midi_contracts",
+   "module": "midi_contracts::page::MidiSoundPage",
+   "casm_bytecode_len": 22646,
+   "casm_bytecode_sha256": "0bd168ba1120a7788d6906e3d21e9c903152cec5d8f2018e4d21a45f739fa666",
+   "casm_file_sha256": "c040529113a2ab020088eba40bef109026d85461d4141ecb529ca9b86f72c8fb",
+   "sierra_program_len": 26618,
+   "sierra_program_sha256": "d03f1eb452bb42aa5fe65757903e280d3b1591de170ee9122dd7ae19b92de4c6",
+   "sierra_file_sha256": "851a5a21b49914b0dc3dc92d74a8d05dd802a0f1ec39a204d05da085e2847161",
+   "casm_limit": 81920,
+   "casm_headroom": 59274
+  },
+  {
+   "contract": "ScaleMidiProvider",
+   "package": "midi_contracts",
+   "module": "midi_contracts::examples::scale::ScaleMidiProvider",
+   "casm_bytecode_len": 7659,
+   "casm_bytecode_sha256": "ab6fe2900cdb19fc5b4ade945c5edcb83983af2b4505a63e5a0f01d7b34d9a9e",
+   "casm_file_sha256": "c561cfae907ade04c51562c8a0f9e222e7840fb42727f531ea29abb1acaf294c",
+   "sierra_program_len": 3262,
+   "sierra_program_sha256": "7591cc1de0c7efd08781b912afbbb91f535722de199da18d27898be94b7c7fa8",
+   "sierra_file_sha256": "a9dfcd56c401cb49d0a1f26b0f39cb5be9d4a3d84a24fcbd972e2da7265d449e",
+   "casm_limit": 81920,
+   "casm_headroom": 74261
+  }
+ ],
+ "artifact_identity": {
+  "mode": "--no-optimization",
+  "all_identical": true,
+  "classes": [
+   {
+    "contract": "BeastMidiProvider",
+    "identical": true,
+    "copies": [
+     {
+      "manifest": "midi_bench.starknet_artifacts.json",
+      "sierra": "midi_bench_BeastMidiProvider.contract_class.json",
+      "sierra_program_len": 40015,
+      "sierra_program_sha256": "8127cc2b89a71556efc688f797f3901919e591ee6227390b148a5cb3d7d49d1b",
+      "sierra_file_sha256": "2660839088309060a625c0b43a4391c1943293f742827a321630545fb340ef24",
+      "sierra_identical": true,
+      "scarb_casm_bytecode_sha256": "ae2520ba8dd17205fe86d6e59c264b7f49df8a5f21b95e69b90d5931e4afea32",
+      "scarb_casm_identical": true,
+      "usc_casm_bytecode_sha256": "ae2520ba8dd17205fe86d6e59c264b7f49df8a5f21b95e69b90d5931e4afea32",
+      "usc_casm_identical": true
+     },
+     {
+      "manifest": "midi_bench_unittest.test.starknet_artifacts.json",
+      "sierra": "midi_bench_unittest_BeastMidiProvider.test.contract_class.json",
+      "sierra_program_len": 40015,
+      "sierra_program_sha256": "8127cc2b89a71556efc688f797f3901919e591ee6227390b148a5cb3d7d49d1b",
+      "sierra_file_sha256": "2660839088309060a625c0b43a4391c1943293f742827a321630545fb340ef24",
+      "sierra_identical": true,
+      "usc_casm_bytecode_sha256": "ae2520ba8dd17205fe86d6e59c264b7f49df8a5f21b95e69b90d5931e4afea32",
+      "usc_casm_identical": true
+     }
+    ]
+   },
+   {
+    "contract": "BeastSoundComposer",
+    "identical": true,
+    "copies": [
+     {
+      "manifest": "midi_bench.starknet_artifacts.json",
+      "sierra": "midi_bench_BeastSoundComposer.contract_class.json",
+      "sierra_program_len": 11160,
+      "sierra_program_sha256": "6d1965a2eb26f136db79119283a0502e4e617f3ceab9cb13115b03c558a12587",
+      "sierra_file_sha256": "23d2c4a334227e287f521a58725bbffc356511435a2b212ebbe5afd35b6cf6ce",
+      "sierra_identical": true,
+      "scarb_casm_bytecode_sha256": "43d2252700b47ede04db174cbe24cfdd26f90777deb3a0ad047a4b7c6c973784",
+      "scarb_casm_identical": true,
+      "usc_casm_bytecode_sha256": "43d2252700b47ede04db174cbe24cfdd26f90777deb3a0ad047a4b7c6c973784",
+      "usc_casm_identical": true
+     },
+     {
+      "manifest": "midi_bench_unittest.test.starknet_artifacts.json",
+      "sierra": "midi_bench_unittest_BeastSoundComposer.test.contract_class.json",
+      "sierra_program_len": 11160,
+      "sierra_program_sha256": "6d1965a2eb26f136db79119283a0502e4e617f3ceab9cb13115b03c558a12587",
+      "sierra_file_sha256": "23d2c4a334227e287f521a58725bbffc356511435a2b212ebbe5afd35b6cf6ce",
+      "sierra_identical": true,
+      "usc_casm_bytecode_sha256": "43d2252700b47ede04db174cbe24cfdd26f90777deb3a0ad047a4b7c6c973784",
+      "usc_casm_identical": true
+     }
+    ]
+   },
+   {
+    "contract": "MidiSoundPage",
+    "identical": true,
+    "copies": [
+     {
+      "manifest": "midi_bench.starknet_artifacts.json",
+      "sierra": "midi_bench_MidiSoundPage.contract_class.json",
+      "sierra_program_len": 26618,
+      "sierra_program_sha256": "d03f1eb452bb42aa5fe65757903e280d3b1591de170ee9122dd7ae19b92de4c6",
+      "sierra_file_sha256": "851a5a21b49914b0dc3dc92d74a8d05dd802a0f1ec39a204d05da085e2847161",
+      "sierra_identical": true,
+      "scarb_casm_bytecode_sha256": "0bd168ba1120a7788d6906e3d21e9c903152cec5d8f2018e4d21a45f739fa666",
+      "scarb_casm_identical": true,
+      "usc_casm_bytecode_sha256": "0bd168ba1120a7788d6906e3d21e9c903152cec5d8f2018e4d21a45f739fa666",
+      "usc_casm_identical": true
+     },
+     {
+      "manifest": "midi_bench_unittest.test.starknet_artifacts.json",
+      "sierra": "midi_bench_unittest_MidiSoundPage.test.contract_class.json",
+      "sierra_program_len": 26618,
+      "sierra_program_sha256": "d03f1eb452bb42aa5fe65757903e280d3b1591de170ee9122dd7ae19b92de4c6",
+      "sierra_file_sha256": "851a5a21b49914b0dc3dc92d74a8d05dd802a0f1ec39a204d05da085e2847161",
+      "sierra_identical": true,
+      "usc_casm_bytecode_sha256": "0bd168ba1120a7788d6906e3d21e9c903152cec5d8f2018e4d21a45f739fa666",
+      "usc_casm_identical": true
+     }
+    ]
+   },
+   {
+    "contract": "ScaleMidiProvider",
+    "identical": true,
+    "copies": [
+     {
+      "manifest": "midi_bench.starknet_artifacts.json",
+      "sierra": "midi_bench_ScaleMidiProvider.contract_class.json",
+      "sierra_program_len": 3262,
+      "sierra_program_sha256": "7591cc1de0c7efd08781b912afbbb91f535722de199da18d27898be94b7c7fa8",
+      "sierra_file_sha256": "a9dfcd56c401cb49d0a1f26b0f39cb5be9d4a3d84a24fcbd972e2da7265d449e",
+      "sierra_identical": true,
+      "scarb_casm_bytecode_sha256": "ab6fe2900cdb19fc5b4ade945c5edcb83983af2b4505a63e5a0f01d7b34d9a9e",
+      "scarb_casm_identical": true,
+      "usc_casm_bytecode_sha256": "ab6fe2900cdb19fc5b4ade945c5edcb83983af2b4505a63e5a0f01d7b34d9a9e",
+      "usc_casm_identical": true
+     },
+     {
+      "manifest": "midi_bench_unittest.test.starknet_artifacts.json",
+      "sierra": "midi_bench_unittest_ScaleMidiProvider.test.contract_class.json",
+      "sierra_program_len": 3262,
+      "sierra_program_sha256": "7591cc1de0c7efd08781b912afbbb91f535722de199da18d27898be94b7c7fa8",
+      "sierra_file_sha256": "a9dfcd56c401cb49d0a1f26b0f39cb5be9d4a3d84a24fcbd972e2da7265d449e",
+      "sierra_identical": true,
+      "usc_casm_bytecode_sha256": "ab6fe2900cdb19fc5b4ade945c5edcb83983af2b4505a63e5a0f01d7b34d9a9e",
+      "usc_casm_identical": true
+     }
+    ]
+   }
+  ]
+ },
+ "run": {
+  "command": [
+   "/home/ubuntu/.asdf/installs/starknet-foundry/0.64.0/bin/snforge",
+   "test",
+   "--no-optimization",
+   "--tracked-resource",
+   "sierra-gas",
+   "--max-n-steps",
+   "50000000",
+   "--trace-components",
+   "contract-name",
+   "gas",
+   "--color",
+   "never",
+   "--max-threads",
+   "8"
+  ],
+  "threads": 8,
+  "wall_s": 23.6,
+  "peak_rss_mb": 12236,
+  "tests_passed": 286
+ },
+ "checks": {
+  "inclusive_of_nested_calls": {
+   "cases": [
+    "a_get_midi_s021_n",
+    "m_get_midi_s021_n_burn_rank"
+   ],
+   "get_midi_delta": 1941450,
+   "get_beast_rank_delta": 1941450,
+   "holds": true
+  },
+  "execute_max_sierra_gas": {
+   "limit": 1110000000,
+   "over": [],
+   "max_case": "c_token_uri_e2e_s032_s",
+   "max_gas": 466035973
+  }
+ },
+ "groups": {
+  "A": {
+   "count": 180,
+   "sum": 38498930425,
+   "min": 1570,
+   "max": 361826223
+  },
+  "B": {
+   "count": 28,
+   "sum": 380045340,
+   "min": 117793,
+   "max": 73044487
+  },
+  "C": {
+   "count": 9,
+   "sum": 1320511396,
+   "min": 27550,
+   "max": 466035973
+  },
+  "D": {
+   "count": 6,
+   "sum": 14542442,
+   "min": 2420942,
+   "max": 2425942
+  },
+  "E": {
+   "count": 62,
+   "sum": 4190118256,
+   "min": 4750,
+   "max": 358440133
+  },
+  "M": {
+   "count": 1,
+   "sum": 125832425,
+   "min": 125832425,
+   "max": 125832425
+  }
+ },
+ "derived": {
+  "note": "net = probe - its input-only (or return-cost) probe; see bench/README.md",
+  "stages": [
+   {
+    "species": "s021_n",
+    "midi_bytes": 1406,
+    "get_midi": 123890975,
+    "T0_genesis_smf_bytes": 123013325,
+    "T0_return_cost": 2209490,
+    "T0_net": 120803835,
+    "T1_params_and_score": 102330855,
+    "T1_build_and_return_cost": 3880550,
+    "T1_net": 98450305,
+    "T1_share_of_T0_net": 0.815,
+    "after_score": 22353530,
+    "provider_dispatch_and_packing": 3087140
+   },
+   {
+    "species": "s001_n",
+    "midi_bytes": 4726,
+    "get_midi": 284708453,
+    "T0_genesis_smf_bytes": 282387673,
+    "T0_return_cost": 7421890,
+    "T0_net": 274965783,
+    "T1_params_and_score": 208028553,
+    "T1_build_and_return_cost": 7959850,
+    "T1_net": 200068703,
+    "T1_share_of_T0_net": 0.7276,
+    "after_score": 74897080,
+    "provider_dispatch_and_packing": 9742670
+   },
+   {
+    "species": "s032_s",
+    "midi_bytes": 7197,
+    "get_midi": 355833723,
+    "T0_genesis_smf_bytes": 352432843,
+    "T0_return_cost": 11301360,
+    "T0_net": 341131483,
+    "T1_params_and_score": 246831243,
+    "T1_build_and_return_cost": 9981450,
+    "T1_net": 236849793,
+    "T1_share_of_T0_net": 0.6943,
+    "after_score": 104281690,
+    "provider_dispatch_and_packing": 14702240
+   }
+  ],
+  "pack": [
+   {
+    "len": 0,
+    "input": 4750,
+    "bytes_to_byte_array_net": 20580,
+    "to_felt252_array_net": 6110
+   },
+   {
+    "len": 1,
+    "input": 6690,
+    "bytes_to_byte_array_net": 22050,
+    "to_felt252_array_net": 12690
+   },
+   {
+    "len": 30,
+    "input": 136030,
+    "bytes_to_byte_array_net": 64680,
+    "to_felt252_array_net": 64020
+   },
+   {
+    "len": 31,
+    "input": 140490,
+    "bytes_to_byte_array_net": 82740,
+    "to_felt252_array_net": 65490
+   },
+   {
+    "len": 32,
+    "input": 144950,
+    "bytes_to_byte_array_net": 84210,
+    "to_felt252_array_net": 72070
+   },
+   {
+    "len": 62,
+    "input": 278750,
+    "bytes_to_byte_array_net": 144900,
+    "to_felt252_array_net": 124870
+   },
+   {
+    "len": 1406,
+    "input": 6272990,
+    "bytes_to_byte_array_net": 2833950,
+    "to_felt252_array_net": 2702490
+   },
+   {
+    "len": 4726,
+    "input": 21080190
+   },
+   {
+    "len": 7197,
+    "input": 32100850,
+    "bytes_to_byte_array_net": 14449050,
+    "to_felt252_array_net": 13795930
+   }
+  ],
+  "base64": [
+   {
+    "len": 31,
+    "input": 19220,
+    "append_base64_net": 260590,
+    "midi_html_net": 301250
+   },
+   {
+    "len": 1406,
+    "input": 146340,
+    "append_base64_net": 3264380,
+    "midi_html_net": 3293720
+   },
+   {
+    "len": 4726,
+    "input": 454900,
+    "append_base64_net": 10376470,
+    "midi_html_net": 10407890
+   },
+   {
+    "len": 7197,
+    "input": 685600,
+    "append_base64_net": 15744430,
+    "midi_html_net": 15786260
+   }
+  ]
+ },
+ "cases": [
+  {
+   "name": "a_get_midi_s001_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 284708453,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 290393283,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S001_N (js)",
+   "labels": [
+    "Warlock",
+    "Magic",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s001_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 304553103,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 310720280,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S001_S (js)",
+   "labels": [
+    "Warlock",
+    "Magic",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s002_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 289893883,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 295596294,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S002_N (js)",
+   "labels": [
+    "Typhon",
+    "Magic",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s002_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 309758063,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 315942821,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S002_S (js)",
+   "labels": [
+    "Typhon",
+    "Magic",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s003_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 313132413,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 318940310,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S003_N (js)",
+   "labels": [
+    "Jiangshi",
+    "Magic",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s003_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 333110983,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 339401227,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S003_S (js)",
+   "labels": [
+    "Jiangshi",
+    "Magic",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s004_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 313810743,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 319636221,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S004_N (js)",
+   "labels": [
+    "Anansi",
+    "Magic",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s004_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 333808843,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 340116668,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S004_S (js)",
+   "labels": [
+    "Anansi",
+    "Magic",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s005_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 296383973,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 302094044,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S005_N (js)",
+   "labels": [
+    "Basilisk",
+    "Magic",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s005_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 315270993,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 321438170,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S005_S (js)",
+   "labels": [
+    "Basilisk",
+    "Magic",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s006_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 302432853,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 308178086,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S006_N (js)",
+   "labels": [
+    "Gorgon",
+    "Magic",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s006_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 321361553,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 327563892,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S006_S (js)",
+   "labels": [
+    "Gorgon",
+    "Magic",
+    "tier 2",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s007_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 300894803,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 306632376,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S007_N (js)",
+   "labels": [
+    "Kitsune",
+    "Magic",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s007_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 320798043,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 327017963,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S007_S (js)",
+   "labels": [
+    "Kitsune",
+    "Magic",
+    "tier 2",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s008_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 297200133,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 302927785,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S008_N (js)",
+   "labels": [
+    "Lich",
+    "Magic",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s008_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 315455073,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 321622250,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S008_S (js)",
+   "labels": [
+    "Lich",
+    "Magic",
+    "tier 2",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s009_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 296590753,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 302300824,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S009_N (js)",
+   "labels": [
+    "Chimera",
+    "Magic",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s009_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 314801203,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 320943139,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S009_S (js)",
+   "labels": [
+    "Chimera",
+    "Magic",
+    "tier 2",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s010_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 289549783,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 295224692,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S010_N (js)",
+   "labels": [
+    "Wendigo",
+    "Magic",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s010_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 307398243,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 313495096,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S010_S (js)",
+   "labels": [
+    "Wendigo",
+    "Magic",
+    "tier 2",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s011_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 221193495,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 226411298,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S011_N (js)",
+   "labels": [
+    "Rakshasa",
+    "Magic",
+    "tier 3",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s011_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 235567305,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 241136728,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S011_S (js)",
+   "labels": [
+    "Rakshasa",
+    "Magic",
+    "tier 3",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s012_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 217348785,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 222584169,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S012_N (js)",
+   "labels": [
+    "Werewolf",
+    "Magic",
+    "tier 3",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s012_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 232223975,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 237820900,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S012_S (js)",
+   "labels": [
+    "Werewolf",
+    "Magic",
+    "tier 3",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s013_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 221153575,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 226369408,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S013_N (js)",
+   "labels": [
+    "Banshee",
+    "Magic",
+    "tier 3",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s013_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 235524595,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 241094018,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S013_S (js)",
+   "labels": [
+    "Banshee",
+    "Magic",
+    "tier 3",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s014_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 221090845,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 226306678,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S014_N (js)",
+   "labels": [
+    "Draugr",
+    "Magic",
+    "tier 3",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s014_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 235461865,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 241031288,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S014_S (js)",
+   "labels": [
+    "Draugr",
+    "Magic",
+    "tier 3",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s015_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 199662295,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 204837276,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S015_N (js)",
+   "labels": [
+    "Vampire",
+    "Magic",
+    "tier 3",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s015_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 214495485,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 220039667,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S015_S (js)",
+   "labels": [
+    "Vampire",
+    "Magic",
+    "tier 3",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s016_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 140854385,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 145655934,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S016_N (js)",
+   "labels": [
+    "Goblin",
+    "Magic",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s016_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 150521245,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 155563238,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S016_S (js)",
+   "labels": [
+    "Goblin",
+    "Magic",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s017_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 130358095,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 135118792,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S017_N (js)",
+   "labels": [
+    "Ghoul",
+    "Magic",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s017_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 139172915,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 144154505,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S017_S (js)",
+   "labels": [
+    "Ghoul",
+    "Magic",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s018_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 129712235,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 134472932,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S018_N (js)",
+   "labels": [
+    "Wraith",
+    "Magic",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s018_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 138527055,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 143508645,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S018_S (js)",
+   "labels": [
+    "Wraith",
+    "Magic",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s019_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 129846565,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 134607262,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S019_N (js)",
+   "labels": [
+    "Sprite",
+    "Magic",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s019_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 138661385,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 143642975,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S019_S (js)",
+   "labels": [
+    "Sprite",
+    "Magic",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s020_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 126838115,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 131591152,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S020_N (js)",
+   "labels": [
+    "Kappa",
+    "Magic",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s020_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 135469225,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 140433234,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S020_S (js)",
+   "labels": [
+    "Kappa",
+    "Magic",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s021_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 123890975,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 128634091,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S021_N (js)",
+   "labels": [
+    "Fairy",
+    "Magic",
+    "tier 5",
+    "normal",
+    "lightest Genesis file (1,406 bytes)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s021_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 132326215,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 137272643,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S021_S (js)",
+   "labels": [
+    "Fairy",
+    "Magic",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s022_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 140788165,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 145584024,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S022_N (js)",
+   "labels": [
+    "Leprechaun",
+    "Magic",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s022_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 150459455,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 155501448,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S022_S (js)",
+   "labels": [
+    "Leprechaun",
+    "Magic",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s023_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 140750125,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 145545984,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S023_N (js)",
+   "labels": [
+    "Kelpie",
+    "Magic",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s023_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 150421415,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 155463408,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S023_S (js)",
+   "labels": [
+    "Kelpie",
+    "Magic",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s024_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 129672985,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 134433682,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S024_N (js)",
+   "labels": [
+    "Pixie",
+    "Magic",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s024_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 138475645,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 143457235,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S024_S (js)",
+   "labels": [
+    "Pixie",
+    "Magic",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s025_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 129610685,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 134371382,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S025_N (js)",
+   "labels": [
+    "Gnome",
+    "Magic",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s025_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 138413345,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 143394935,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S025_S (js)",
+   "labels": [
+    "Gnome",
+    "Magic",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s026_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 317128023,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 322943580,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S026_N (js)",
+   "labels": [
+    "Griffin",
+    "Hunter",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s026_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 337137133,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 343444958,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S026_S (js)",
+   "labels": [
+    "Griffin",
+    "Hunter",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s027_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 326814443,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 332587178,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S027_N (js)",
+   "labels": [
+    "Manticore",
+    "Hunter",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s027_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 347430183,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 353712767,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S027_S (js)",
+   "labels": [
+    "Manticore",
+    "Hunter",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s028_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 341752793,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 347648595,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S028_N (js)",
+   "labels": [
+    "Phoenix",
+    "Hunter",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s028_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 361826223,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 368204372,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S028_S (js)",
+   "labels": [
+    "Phoenix",
+    "Hunter",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s029_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 314149903,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 319975381,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S029_N (js)",
+   "labels": [
+    "Dragon",
+    "Hunter",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s029_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 334148003,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 340455828,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S029_S (js)",
+   "labels": [
+    "Dragon",
+    "Hunter",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s030_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 337855603,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 343751405,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S030_N (js)",
+   "labels": [
+    "Minotaur",
+    "Hunter",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s030_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 357929033,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 364307182,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S030_S (js)",
+   "labels": [
+    "Minotaur",
+    "Hunter",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s031_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 309673523,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 315446258,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S031_N (js)",
+   "labels": [
+    "Qilin",
+    "Hunter",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s031_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 329635203,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 335900206,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S031_S (js)",
+   "labels": [
+    "Qilin",
+    "Hunter",
+    "tier 2",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s032_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 335738123,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 341633925,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S032_N (js)",
+   "labels": [
+    "Ammit",
+    "Hunter",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s032_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 355833723,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 362221793,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S032_S (js)",
+   "labels": [
+    "Ammit",
+    "Hunter",
+    "tier 2",
+    "shiny (mega)",
+    "largest Genesis file (7,197 bytes)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s033_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 308392343,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 314182659,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S033_N (js)",
+   "labels": [
+    "Nue",
+    "Hunter",
+    "tier 2",
+    "normal",
+    "Nue: Phrygian"
+   ]
+  },
+  {
+   "name": "a_get_midi_s033_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 328351383,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 334624046,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S033_S (js)",
+   "labels": [
+    "Nue",
+    "Hunter",
+    "tier 2",
+    "shiny (mega)",
+    "Nue: Phrygian"
+   ]
+  },
+  {
+   "name": "a_get_midi_s034_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 317156143,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 322946459,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S034_N (js)",
+   "labels": [
+    "Skinwalker",
+    "Hunter",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s034_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 336808673,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 343081336,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S034_S (js)",
+   "labels": [
+    "Skinwalker",
+    "Hunter",
+    "tier 2",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s035_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 328462563,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 334270460,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S035_N (js)",
+   "labels": [
+    "Chupacabra",
+    "Hunter",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s035_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 349120153,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 355437899,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S035_S (js)",
+   "labels": [
+    "Chupacabra",
+    "Hunter",
+    "tier 2",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s036_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 251740895,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 257074105,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S036_N (js)",
+   "labels": [
+    "Weretiger",
+    "Hunter",
+    "tier 3",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s036_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 266741485,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 272443896,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S036_S (js)",
+   "labels": [
+    "Weretiger",
+    "Hunter",
+    "tier 3",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s037_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 242935925,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 248233973,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S037_N (js)",
+   "labels": [
+    "Wyvern",
+    "Hunter",
+    "tier 3",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s037_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 257903035,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 263570284,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S037_S (js)",
+   "labels": [
+    "Wyvern",
+    "Hunter",
+    "tier 3",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s038_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 247569295,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 252884924,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S038_N (js)",
+   "labels": [
+    "Roc",
+    "Hunter",
+    "tier 3",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s038_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 263535715,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 269245786,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S038_S (js)",
+   "labels": [
+    "Roc",
+    "Hunter",
+    "tier 3",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s039_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 246957945,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 252263653,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S039_N (js)",
+   "labels": [
+    "Harpy",
+    "Hunter",
+    "tier 3",
+    "normal",
+    "swap: plays species 40's Genesis Track"
+   ]
+  },
+  {
+   "name": "a_get_midi_s039_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 262913205,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 268615616,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S039_S (js)",
+   "labels": [
+    "Harpy",
+    "Hunter",
+    "tier 3",
+    "shiny (mega)",
+    "swap: plays species 40's Genesis Track"
+   ]
+  },
+  {
+   "name": "a_get_midi_s040_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 221877005,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 227122310,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S040_N (js)",
+   "labels": [
+    "Pegasus",
+    "Hunter",
+    "tier 3",
+    "normal",
+    "swap: plays species 39's Genesis Track"
+   ]
+  },
+  {
+   "name": "a_get_midi_s040_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 236785525,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 242400031,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S040_S (js)",
+   "labels": [
+    "Pegasus",
+    "Hunter",
+    "tier 3",
+    "shiny (mega)",
+    "swap: plays species 39's Genesis Track"
+   ]
+  },
+  {
+   "name": "a_get_midi_s041_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 138361435,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 143149634,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S041_N (js)",
+   "labels": [
+    "Hippogriff",
+    "Hunter",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s041_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 147861175,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 152885587,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S041_S (js)",
+   "labels": [
+    "Hippogriff",
+    "Hunter",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s042_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 140908735,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 145710284,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S042_N (js)",
+   "labels": [
+    "Fenrir",
+    "Hunter",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s042_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 150575595,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 155617588,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S042_S (js)",
+   "labels": [
+    "Fenrir",
+    "Hunter",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s043_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 142016895,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 146818444,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S043_N (js)",
+   "labels": [
+    "Jaguar",
+    "Hunter",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s043_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 151683755,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 156725748,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S043_S (js)",
+   "labels": [
+    "Jaguar",
+    "Hunter",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s044_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 138329405,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 143117604,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S044_N (js)",
+   "labels": [
+    "Satori",
+    "Hunter",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s044_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 147829145,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 152853557,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S044_S (js)",
+   "labels": [
+    "Satori",
+    "Hunter",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s045_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 154691875,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 159532817,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S045_N (js)",
+   "labels": [
+    "Direwolf",
+    "Hunter",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s045_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 165227365,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 170332022,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S045_S (js)",
+   "labels": [
+    "Direwolf",
+    "Hunter",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s046_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 154392115,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 159223136,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S046_N (js)",
+   "labels": [
+    "Bear",
+    "Hunter",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s046_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 164932035,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 170036692,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S046_S (js)",
+   "labels": [
+    "Bear",
+    "Hunter",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s047_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 140714075,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 145509934,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S047_N (js)",
+   "labels": [
+    "Wolf",
+    "Hunter",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s047_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 150385365,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 155427358,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S047_S (js)",
+   "labels": [
+    "Wolf",
+    "Hunter",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s048_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 154493405,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 159324426,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S048_N (js)",
+   "labels": [
+    "Mantis",
+    "Hunter",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s048_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 165033325,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 170137982,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S048_S (js)",
+   "labels": [
+    "Mantis",
+    "Hunter",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s049_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 154421215,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 159252236,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S049_N (js)",
+   "labels": [
+    "Spider",
+    "Hunter",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s049_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 164961135,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 170065792,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S049_S (js)",
+   "labels": [
+    "Spider",
+    "Hunter",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s050_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 140727675,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 145523534,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S050_N (js)",
+   "labels": [
+    "Rat",
+    "Hunter",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s050_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 150398965,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 155440958,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S050_S (js)",
+   "labels": [
+    "Rat",
+    "Hunter",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s051_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 319595313,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 325410870,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S051_N (js)",
+   "labels": [
+    "Kraken",
+    "Brute",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s051_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 339582253,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 345882418,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S051_S (js)",
+   "labels": [
+    "Kraken",
+    "Brute",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s052_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 320266863,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 326098031,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S052_N (js)",
+   "labels": [
+    "Colossus",
+    "Brute",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s052_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 340270543,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 346588289,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S052_S (js)",
+   "labels": [
+    "Colossus",
+    "Brute",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s053_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 319381153,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 325189050,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S053_N (js)",
+   "labels": [
+    "Balrog",
+    "Brute",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s053_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 339031043,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 345313627,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S053_S (js)",
+   "labels": [
+    "Balrog",
+    "Brute",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s054_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 316577123,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 322392680,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S054_N (js)",
+   "labels": [
+    "Leviathan",
+    "Brute",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s054_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 336586233,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 342894058,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S054_S (js)",
+   "labels": [
+    "Leviathan",
+    "Brute",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s055_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 313826413,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 319624389,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S055_N (js)",
+   "labels": [
+    "Tarrasque",
+    "Brute",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s055_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 333465143,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 339737806,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S055_S (js)",
+   "labels": [
+    "Tarrasque",
+    "Brute",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s056_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 319531363,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 325321679,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S056_N (js)",
+   "labels": [
+    "Titan",
+    "Brute",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s056_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 339164513,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 345429516,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S056_S (js)",
+   "labels": [
+    "Titan",
+    "Brute",
+    "tier 2",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s057_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 320005763,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 325821320,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S057_N (js)",
+   "labels": [
+    "Nephilim",
+    "Brute",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s057_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 339241113,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 345513776,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S057_S (js)",
+   "labels": [
+    "Nephilim",
+    "Brute",
+    "tier 2",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s058_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 329162733,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 335013452,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S058_N (js)",
+   "labels": [
+    "Behemoth",
+    "Brute",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s058_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 349210903,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 355553890,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S058_S (js)",
+   "labels": [
+    "Behemoth",
+    "Brute",
+    "tier 2",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s059_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 317853783,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 323651759,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S059_N (js)",
+   "labels": [
+    "Hydra",
+    "Brute",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s059_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 337821193,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 344103777,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S059_S (js)",
+   "labels": [
+    "Hydra",
+    "Brute",
+    "tier 2",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s060_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 318778683,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 324604161,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S060_N (js)",
+   "labels": [
+    "Juggernaut",
+    "Brute",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s060_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 338776783,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 345084608,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S060_S (js)",
+   "labels": [
+    "Juggernaut",
+    "Brute",
+    "tier 2",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s061_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 230182285,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 235445171,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S061_N (js)",
+   "labels": [
+    "Oni",
+    "Brute",
+    "tier 3",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s061_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 245107545,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 250739632,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S061_S (js)",
+   "labels": [
+    "Oni",
+    "Brute",
+    "tier 3",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s062_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 225910605,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 231173491,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S062_N (js)",
+   "labels": [
+    "Jotunn",
+    "Brute",
+    "tier 3",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s062_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 240835865,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 246467952,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S062_S (js)",
+   "labels": [
+    "Jotunn",
+    "Brute",
+    "tier 3",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s063_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 229961145,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 235224031,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S063_N (js)",
+   "labels": [
+    "Ettin",
+    "Brute",
+    "tier 3",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s063_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 244886405,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 250518492,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S063_S (js)",
+   "labels": [
+    "Ettin",
+    "Brute",
+    "tier 3",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s064_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 225443105,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 230688410,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S064_N (js)",
+   "labels": [
+    "Cyclops",
+    "Brute",
+    "tier 3",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s064_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 240095345,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 245699930,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S064_S (js)",
+   "labels": [
+    "Cyclops",
+    "Brute",
+    "tier 3",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s065_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 227856165,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 233119051,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S065_N (js)",
+   "labels": [
+    "Giant",
+    "Brute",
+    "tier 3",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s065_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 242781425,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 248413512,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S065_S (js)",
+   "labels": [
+    "Giant",
+    "Brute",
+    "tier 3",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s066_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 141137575,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 145939124,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S066_N (js)",
+   "labels": [
+    "Nemean Lion",
+    "Brute",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s066_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 150804435,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 155846428,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S066_S (js)",
+   "labels": [
+    "Nemean Lion",
+    "Brute",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s067_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 143866635,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 148668184,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S067_N (js)",
+   "labels": [
+    "Berserker",
+    "Brute",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s067_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 153533495,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 158575488,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S067_S (js)",
+   "labels": [
+    "Berserker",
+    "Brute",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s068_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 189571111,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 194490037,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S068_N (js)",
+   "labels": [
+    "Yeti",
+    "Brute",
+    "tier 4",
+    "normal",
+    "Yeti (ornaments, avalanche, rock tempo)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s068_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 196848581,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 201978479,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S068_S (js)",
+   "labels": [
+    "Yeti",
+    "Brute",
+    "tier 4",
+    "shiny (mega)",
+    "Yeti (ornaments, avalanche, rock tempo)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s069_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 143846745,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 148648294,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S069_N (js)",
+   "labels": [
+    "Golem",
+    "Brute",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s069_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 153513605,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 158555598,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S069_S (js)",
+   "labels": [
+    "Golem",
+    "Brute",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s070_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 147632735,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 152446175,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S070_N (js)",
+   "labels": [
+    "Ent",
+    "Brute",
+    "tier 4",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s070_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 157483305,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 162542879,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S070_S (js)",
+   "labels": [
+    "Ent",
+    "Brute",
+    "tier 4",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s071_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 143638265,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 148434124,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S071_N (js)",
+   "labels": [
+    "Troll",
+    "Brute",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s071_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 153309555,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 158351548,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S071_S (js)",
+   "labels": [
+    "Troll",
+    "Brute",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s072_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 142174535,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 146970394,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S072_N (js)",
+   "labels": [
+    "Bigfoot",
+    "Brute",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s072_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 151845825,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 156887818,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S072_S (js)",
+   "labels": [
+    "Bigfoot",
+    "Brute",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s073_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 144443275,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 149249055,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S073_N (js)",
+   "labels": [
+    "Ogre",
+    "Brute",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s073_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 154281685,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 159333599,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S073_S (js)",
+   "labels": [
+    "Ogre",
+    "Brute",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s074_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 142202235,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 146998094,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S074_N (js)",
+   "labels": [
+    "Orc",
+    "Brute",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s074_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 151873525,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 156915518,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S074_S (js)",
+   "labels": [
+    "Orc",
+    "Brute",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_s075_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 143531715,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 148327574,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S075_N (js)",
+   "labels": [
+    "Skeleton",
+    "Brute",
+    "tier 5",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_s075_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 153203005,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 158244998,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_S075_S (js)",
+   "labels": [
+    "Skeleton",
+    "Brute",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_midi_c076",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 246744085,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 252284812,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_C076 (js)",
+   "labels": [
+    "Agony Bane Gloomfang (community_species_plays_its_genesis_track): Hunter, tier 3"
+   ]
+  },
+  {
+   "name": "a_get_midi_c077",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 334220953,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 340361797,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_C077 (js)",
+   "labels": [
+    "community species 77: Brute, tier 1, shiny (most sections and channels)"
+   ]
+  },
+  {
+   "name": "a_get_midi_c200",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 138114075,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 142725372,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_C200 (js)",
+   "labels": [
+    "community species 200: Magic, tier 5"
+   ]
+  },
+  {
+   "name": "a_get_midi_named_warlock",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 284708453,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 291197273,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_NAMED_WARLOCK (js)",
+   "labels": [
+    "Sorrow Peak Warlock (prefix 57, suffix 15, level 126, health 229), live(2, 12, 1, 954): plays the Warlock Genesis Track"
+   ]
+  },
+  {
+   "name": "a_get_midi_for_s021_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi_for",
+   "gas": 123866405,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 128609621,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_FOR_S021_N (js)",
+   "labels": [
+    "Fairy",
+    "Magic",
+    "tier 5",
+    "normal",
+    "lightest Genesis file (1,406 bytes)"
+   ]
+  },
+  {
+   "name": "a_get_midi_for_s001_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi_for",
+   "gas": 284683883,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 290368813,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_FOR_S001_N (js)",
+   "labels": [
+    "Warlock",
+    "Magic",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_midi_for_s032_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi_for",
+   "gas": 355809153,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 362197323,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_MIDI_FOR_S032_S (js)",
+   "labels": [
+    "Ammit",
+    "Hunter",
+    "tier 2",
+    "shiny (mega)",
+    "largest Genesis file (7,197 bytes)"
+   ]
+  },
+  {
+   "name": "a_get_sound_s001_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_sound",
+   "gas": 285300493,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 293039551,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SOUND_S001_N_MIDI (js), A_GET_SOUND_S001_N_SETTINGS (baseline-frozen)",
+   "labels": [
+    "Warlock",
+    "Magic",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_sound_s001_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_sound",
+   "gas": 305264683,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 313969817,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SOUND_S001_S_MIDI (js), A_GET_SOUND_S001_S_SETTINGS (baseline-frozen)",
+   "labels": [
+    "Warlock",
+    "Magic",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_sound_s068_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_sound",
+   "gas": 190188231,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 197186175,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SOUND_S068_N_MIDI (js), A_GET_SOUND_S068_N_SETTINGS (baseline-frozen)",
+   "labels": [
+    "Yeti",
+    "Brute",
+    "tier 4",
+    "normal",
+    "Yeti (ornaments, avalanche, rock tempo)"
+   ]
+  },
+  {
+   "name": "a_get_sound_s039_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_sound",
+   "gas": 247544665,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 254840423,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SOUND_S039_N_MIDI (js), A_GET_SOUND_S039_N_SETTINGS (baseline-frozen)",
+   "labels": [
+    "Harpy",
+    "Hunter",
+    "tier 3",
+    "normal",
+    "swap: plays species 40's Genesis Track"
+   ]
+  },
+  {
+   "name": "a_get_sound_s021_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_sound",
+   "gas": 124483015,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 131280359,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SOUND_S021_N_MIDI (js), A_GET_SOUND_S021_N_SETTINGS (baseline-frozen)",
+   "labels": [
+    "Fairy",
+    "Magic",
+    "tier 5",
+    "normal",
+    "lightest Genesis file (1,406 bytes)"
+   ]
+  },
+  {
+   "name": "a_get_sound_c076",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_sound",
+   "gas": 247328955,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 254859732,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SOUND_C076_MIDI (js), A_GET_SOUND_C076_SETTINGS (baseline-frozen)",
+   "labels": [
+    "Agony Bane Gloomfang (community_species_plays_its_genesis_track): Hunter, tier 3"
+   ]
+  },
+  {
+   "name": "a_get_settings_s001_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_settings",
+   "gas": 590550,
+   "nested": [],
+   "test_l2_gas": 4990368,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SETTINGS_S001_N (baseline-frozen)",
+   "labels": [
+    "Warlock",
+    "Magic",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_settings_s001_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_settings",
+   "gas": 710090,
+   "nested": [],
+   "test_l2_gas": 5593637,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SETTINGS_S001_S (baseline-frozen)",
+   "labels": [
+    "Warlock",
+    "Magic",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_settings_s026_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_settings",
+   "gas": 583380,
+   "nested": [],
+   "test_l2_gas": 4919020,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SETTINGS_S026_N (baseline-frozen)",
+   "labels": [
+    "Griffin",
+    "Hunter",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_settings_s026_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_settings",
+   "gas": 702920,
+   "nested": [],
+   "test_l2_gas": 5522289,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SETTINGS_S026_S (baseline-frozen)",
+   "labels": [
+    "Griffin",
+    "Hunter",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_settings_s051_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_settings",
+   "gas": 573090,
+   "nested": [],
+   "test_l2_gas": 4855414,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SETTINGS_S051_N (baseline-frozen)",
+   "labels": [
+    "Kraken",
+    "Brute",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "a_get_settings_s051_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_settings",
+   "gas": 692630,
+   "nested": [],
+   "test_l2_gas": 5458683,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SETTINGS_S051_S (baseline-frozen)",
+   "labels": [
+    "Kraken",
+    "Brute",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "a_get_settings_s068_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_settings",
+   "gas": 615630,
+   "nested": [],
+   "test_l2_gas": 5040238,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SETTINGS_S068_N (baseline-frozen)",
+   "labels": [
+    "Yeti",
+    "Brute",
+    "tier 4",
+    "normal",
+    "Yeti (ornaments, avalanche, rock tempo)"
+   ]
+  },
+  {
+   "name": "a_get_settings_s068_s",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_settings",
+   "gas": 735270,
+   "nested": [],
+   "test_l2_gas": 5643607,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SETTINGS_S068_S (baseline-frozen)",
+   "labels": [
+    "Yeti",
+    "Brute",
+    "tier 4",
+    "shiny (mega)",
+    "Yeti (ornaments, avalanche, rock tempo)"
+   ]
+  },
+  {
+   "name": "a_get_settings_s039_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_settings",
+   "gas": 585230,
+   "nested": [],
+   "test_l2_gas": 4920870,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SETTINGS_S039_N (baseline-frozen)",
+   "labels": [
+    "Harpy",
+    "Hunter",
+    "tier 3",
+    "normal",
+    "swap: plays species 40's Genesis Track"
+   ]
+  },
+  {
+   "name": "a_get_settings_s040_n",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_settings",
+   "gas": 585530,
+   "nested": [],
+   "test_l2_gas": 4921170,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_SETTINGS_S040_N (baseline-frozen)",
+   "labels": [
+    "Pegasus",
+    "Hunter",
+    "tier 3",
+    "normal",
+    "swap: plays species 39's Genesis Track"
+   ]
+  },
+  {
+   "name": "a_get_live_state_genesis_warlock_dm",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_live_state",
+   "gas": 816352,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    },
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_species_count",
+     "gas": 34480
+    },
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_death_mountain_address",
+     "gas": 27550
+    },
+    {
+     "depth": 1,
+     "contract": "MockDeathMountain",
+     "selector": "get_collectable_count",
+     "gas": 39800
+    },
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_adventurers_killed",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 4363199,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_LIVE_STATE_GENESIS_WARLOCK_DM (baseline-frozen)",
+   "labels": [
+    "genesis Warlock (Sepolia 0x7006400010000000000000000001), Death Mountain set, all zero"
+   ]
+  },
+  {
+   "name": "a_get_live_state_named_warlock_scars",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_live_state",
+   "gas": 816442,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    },
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_species_count",
+     "gas": 34480
+    },
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_death_mountain_address",
+     "gas": 27550
+    },
+    {
+     "depth": 1,
+     "contract": "MockDeathMountain",
+     "selector": "get_collectable_count",
+     "gas": 39800
+    },
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_adventurers_killed",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 5971289,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_LIVE_STATE_NAMED_WARLOCK_SCARS (baseline-frozen)",
+   "labels": [
+    "Sorrow Peak Warlock with 3 kills, 4 scars, rank 7 (report_shows_sources)"
+   ]
+  },
+  {
+   "name": "a_get_live_state_named_warlock_no_dm",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_live_state",
+   "gas": 503230,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    },
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_species_count",
+     "gas": 34480
+    },
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_death_mountain_address",
+     "gas": 27550
+    }
+   ],
+   "test_l2_gas": 5417357,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_LIVE_STATE_NAMED_WARLOCK_NO_DM (baseline-frozen)",
+   "labels": [
+    "Sorrow Peak Warlock, no Death Mountain address: Unavailable"
+   ]
+  },
+  {
+   "name": "a_get_live_state_c076",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_live_state",
+   "gas": 521490,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    },
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_species_count",
+     "gas": 34480
+    },
+    {
+     "depth": 1,
+     "contract": "MockBeasts",
+     "selector": "get_cached_stats",
+     "gas": 41550
+    }
+   ],
+   "test_l2_gas": 5095825,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_LIVE_STATE_C076 (baseline-frozen)",
+   "labels": [
+    "community species 76: cached kills, scars NotTracked"
+   ]
+  },
+  {
+   "name": "a_get_collection",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_collection",
+   "gas": 27550,
+   "nested": [],
+   "test_l2_gas": 2272181,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_COLLECTION (baseline-frozen)",
+   "labels": []
+  },
+  {
+   "name": "a_get_engine_version",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "get_engine_version",
+   "gas": 1570,
+   "nested": [],
+   "test_l2_gas": 2245631,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_GET_ENGINE_VERSION (js)",
+   "labels": []
+  },
+  {
+   "name": "a_owner",
+   "group": "A",
+   "contract": "BeastMidiProvider",
+   "selector": "owner",
+   "gas": 27550,
+   "nested": [],
+   "test_l2_gas": 2272181,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: A_OWNER (js)",
+   "labels": [
+    "OpenZeppelin Ownable"
+   ]
+  },
+  {
+   "name": "b_has_sound_tier5_fresh",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "has_sound",
+   "gas": 117793,
+   "nested": [],
+   "test_l2_gas": 1449804,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_HAS_SOUND_TIER5_FRESH (baseline-frozen)",
+   "labels": [
+    "tier 5, fresh: live(0, 0, 600, 1100)"
+   ]
+  },
+  {
+   "name": "b_has_sound_sorrow_peak_warlock",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "has_sound",
+   "gas": 117793,
+   "nested": [],
+   "test_l2_gas": 1450004,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_HAS_SOUND_SORROW_PEAK_WARLOCK (baseline-frozen)",
+   "labels": [
+    "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+   ]
+  },
+  {
+   "name": "b_has_sound_tier1_3_sections",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "has_sound",
+   "gas": 117793,
+   "nested": [],
+   "test_l2_gas": 1449804,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_HAS_SOUND_TIER1_3_SECTIONS (baseline-frozen)",
+   "labels": [
+    "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+   ]
+  },
+  {
+   "name": "b_has_sound_heaviest",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "has_sound",
+   "gas": 117793,
+   "nested": [],
+   "test_l2_gas": 1449804,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_HAS_SOUND_HEAVIEST (baseline-frozen)",
+   "labels": [
+    "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+   ]
+  },
+  {
+   "name": "b_get_composition_params_tier5_fresh",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_composition_params",
+   "gas": 145840,
+   "nested": [],
+   "test_l2_gas": 1544621,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_COMPOSITION_PARAMS_TIER5_FRESH (baseline-frozen)",
+   "labels": [
+    "tier 5, fresh: live(0, 0, 600, 1100)"
+   ]
+  },
+  {
+   "name": "b_get_composition_params_sorrow_peak_warlock",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_composition_params",
+   "gas": 167520,
+   "nested": [],
+   "test_l2_gas": 1566201,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_COMPOSITION_PARAMS_SORROW_PEAK_WARLOCK (baseline-frozen)",
+   "labels": [
+    "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+   ]
+  },
+  {
+   "name": "b_get_composition_params_tier1_3_sections",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_composition_params",
+   "gas": 213700,
+   "nested": [],
+   "test_l2_gas": 1612381,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_COMPOSITION_PARAMS_TIER1_3_SECTIONS (baseline-frozen)",
+   "labels": [
+    "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+   ]
+  },
+  {
+   "name": "b_get_composition_params_heaviest",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_composition_params",
+   "gas": 215300,
+   "nested": [],
+   "test_l2_gas": 1613981,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_COMPOSITION_PARAMS_HEAVIEST (baseline-frozen)",
+   "labels": [
+    "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+   ]
+  },
+  {
+   "name": "b_get_music_state_hash_tier5_fresh",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_music_state_hash",
+   "gas": 119601,
+   "nested": [],
+   "test_l2_gas": 1452012,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_MUSIC_STATE_HASH_TIER5_FRESH (baseline-frozen)",
+   "labels": [
+    "tier 5, fresh: live(0, 0, 600, 1100)"
+   ]
+  },
+  {
+   "name": "b_get_music_state_hash_sorrow_peak_warlock",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_music_state_hash",
+   "gas": 141931,
+   "nested": [],
+   "test_l2_gas": 1474342,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_MUSIC_STATE_HASH_SORROW_PEAK_WARLOCK (baseline-frozen)",
+   "labels": [
+    "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+   ]
+  },
+  {
+   "name": "b_get_music_state_hash_tier1_3_sections",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_music_state_hash",
+   "gas": 186921,
+   "nested": [],
+   "test_l2_gas": 1519332,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_MUSIC_STATE_HASH_TIER1_3_SECTIONS (baseline-frozen)",
+   "labels": [
+    "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+   ]
+  },
+  {
+   "name": "b_get_music_state_hash_heaviest",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_music_state_hash",
+   "gas": 188261,
+   "nested": [],
+   "test_l2_gas": 1520672,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_MUSIC_STATE_HASH_HEAVIEST (baseline-frozen)",
+   "labels": [
+    "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+   ]
+  },
+  {
+   "name": "b_get_score_hash_tier5_fresh",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_hash",
+   "gas": 1207735,
+   "nested": [],
+   "test_l2_gas": 2539946,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_HASH_TIER5_FRESH (baseline-frozen)",
+   "labels": [
+    "tier 5, fresh: live(0, 0, 600, 1100)"
+   ]
+  },
+  {
+   "name": "b_get_score_hash_sorrow_peak_warlock",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_hash",
+   "gas": 12745791,
+   "nested": [],
+   "test_l2_gas": 14078202,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_HASH_SORROW_PEAK_WARLOCK (baseline-frozen)",
+   "labels": [
+    "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+   ]
+  },
+  {
+   "name": "b_get_score_hash_tier1_3_sections",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_hash",
+   "gas": 18526853,
+   "nested": [],
+   "test_l2_gas": 19859264,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_HASH_TIER1_3_SECTIONS (baseline-frozen)",
+   "labels": [
+    "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+   ]
+  },
+  {
+   "name": "b_get_score_hash_heaviest",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_hash",
+   "gas": 31177447,
+   "nested": [],
+   "test_l2_gas": 32509658,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_HASH_HEAVIEST (baseline-frozen)",
+   "labels": [
+    "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+   ]
+  },
+  {
+   "name": "b_get_score_notes_tier5_fresh",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_notes",
+   "gas": 1846755,
+   "nested": [],
+   "test_l2_gas": 3193747,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_NOTES_TIER5_FRESH (baseline-frozen)",
+   "labels": [
+    "tier 5, fresh: live(0, 0, 600, 1100)"
+   ]
+  },
+  {
+   "name": "b_get_score_notes_sorrow_peak_warlock",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_notes",
+   "gas": 18785851,
+   "nested": [],
+   "test_l2_gas": 20159526,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_NOTES_SORROW_PEAK_WARLOCK (baseline-frozen)",
+   "labels": [
+    "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+   ]
+  },
+  {
+   "name": "b_get_score_notes_tier1_3_sections",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_notes",
+   "gas": 27498643,
+   "nested": [],
+   "test_l2_gas": 28886399,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_NOTES_TIER1_3_SECTIONS (baseline-frozen)",
+   "labels": [
+    "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+   ]
+  },
+  {
+   "name": "b_get_score_notes_heaviest",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_notes",
+   "gas": 46012697,
+   "nested": [],
+   "test_l2_gas": 47430676,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_NOTES_HEAVIEST (baseline-frozen)",
+   "labels": [
+    "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+   ]
+  },
+  {
+   "name": "b_get_score_instructions_tier5_fresh",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_instructions",
+   "gas": 1337905,
+   "nested": [],
+   "test_l2_gas": 2695238,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_INSTRUCTIONS_TIER5_FRESH (baseline-frozen)",
+   "labels": [
+    "tier 5, fresh: live(0, 0, 600, 1100)"
+   ]
+  },
+  {
+   "name": "b_get_score_instructions_sorrow_peak_warlock",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_instructions",
+   "gas": 14210181,
+   "nested": [],
+   "test_l2_gas": 15756253,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_INSTRUCTIONS_SORROW_PEAK_WARLOCK (baseline-frozen)",
+   "labels": [
+    "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+   ]
+  },
+  {
+   "name": "b_get_score_instructions_tier1_3_sections",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_instructions",
+   "gas": 20712443,
+   "nested": [],
+   "test_l2_gas": 22359925,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_INSTRUCTIONS_TIER1_3_SECTIONS (baseline-frozen)",
+   "labels": [
+    "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+   ]
+  },
+  {
+   "name": "b_get_score_instructions_heaviest",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_instructions",
+   "gas": 34805437,
+   "nested": [],
+   "test_l2_gas": 36655739,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_INSTRUCTIONS_HEAVIEST (baseline-frozen)",
+   "labels": [
+    "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+   ]
+  },
+  {
+   "name": "b_get_score_midi_tier5_fresh",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_midi",
+   "gas": 2470805,
+   "nested": [],
+   "test_l2_gas": 3838079,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_MIDI_TIER5_FRESH (baseline-frozen)",
+   "labels": [
+    "tier 5, fresh: live(0, 0, 600, 1100)"
+   ]
+  },
+  {
+   "name": "b_get_score_midi_sorrow_peak_warlock",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_midi",
+   "gas": 29894231,
+   "nested": [],
+   "test_l2_gas": 31491008,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_MIDI_SORROW_PEAK_WARLOCK (baseline-frozen)",
+   "labels": [
+    "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+   ]
+  },
+  {
+   "name": "b_get_score_midi_tier1_3_sections",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_midi",
+   "gas": 43917833,
+   "nested": [],
+   "test_l2_gas": 45636302,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_MIDI_TIER1_3_SECTIONS (baseline-frozen)",
+   "labels": [
+    "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+   ]
+  },
+  {
+   "name": "b_get_score_midi_heaviest",
+   "group": "B",
+   "contract": "BeastSoundComposer",
+   "selector": "get_score_midi",
+   "gas": 73044487,
+   "nested": [],
+   "test_l2_gas": 74995999,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: B_GET_SCORE_MIDI_HEAVIEST (baseline-frozen)",
+   "labels": [
+    "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+   ]
+  },
+  {
+   "name": "c_token_uri_fixed_l31",
+   "group": "C",
+   "contract": "MidiSoundPage",
+   "selector": "token_uri",
+   "gas": 73927360,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "FixedMidiProvider",
+     "selector": "get_midi_for",
+     "gas": 24700
+    }
+   ],
+   "test_l2_gas": 113082790,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: C_TOKEN_URI_FIXED_L31 (js)",
+   "labels": [
+    "31 synthetic bytes ((i * 37 + 11) % 256)",
+    "real Warlock members (2275 B) and svg_b64 (30128 B)"
+   ]
+  },
+  {
+   "name": "c_token_uri_fixed_l1406",
+   "group": "C",
+   "contract": "MidiSoundPage",
+   "selector": "token_uri",
+   "gas": 81161540,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "FixedMidiProvider",
+     "selector": "get_midi_for",
+     "gas": 220900
+    }
+   ],
+   "test_l2_gas": 121010289,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: C_TOKEN_URI_FIXED_L1406 (js)",
+   "labels": [
+    "Genesis Track of species 21 (1,406 bytes)",
+    "real Warlock members (2275 B) and svg_b64 (30128 B)"
+   ]
+  },
+  {
+   "name": "c_token_uri_fixed_l4726",
+   "group": "C",
+   "contract": "MidiSoundPage",
+   "selector": "token_uri",
+   "gas": 98634000,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "FixedMidiProvider",
+     "selector": "get_midi_for",
+     "gas": 697450
+    }
+   ],
+   "test_l2_gas": 140152944,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: C_TOKEN_URI_FIXED_L4726 (js)",
+   "labels": [
+    "Genesis Track of species 1 (4,726 bytes)",
+    "real Warlock members (2275 B) and svg_b64 (30128 B)"
+   ]
+  },
+  {
+   "name": "c_token_uri_fixed_l7197",
+   "group": "C",
+   "contract": "MidiSoundPage",
+   "selector": "token_uri",
+   "gas": 111280570,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "FixedMidiProvider",
+     "selector": "get_midi_for",
+     "gas": 1053750
+    }
+   ],
+   "test_l2_gas": 154047765,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: C_TOKEN_URI_FIXED_L7197 (js)",
+   "labels": [
+    "Genesis Track of species 32, shiny (7,197 bytes)",
+    "real Warlock members (2275 B) and svg_b64 (30128 B)"
+   ]
+  },
+  {
+   "name": "c_token_uri_fixed_l1406_escaped",
+   "group": "C",
+   "contract": "MidiSoundPage",
+   "selector": "token_uri",
+   "gas": 82002920,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "FixedMidiProvider",
+     "selector": "get_midi_for",
+     "gas": 220900
+    }
+   ],
+   "test_l2_gas": 121871220,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: C_TOKEN_URI_FIXED_L1406_ESCAPED (js)",
+   "labels": [
+    "Genesis Track of species 21 (1,406 bytes)",
+    "Warlock members plus a member with '#' and '%' (2320 B), Warlock svg_b64"
+   ]
+  },
+  {
+   "name": "c_token_uri_fixed_l1406_small",
+   "group": "C",
+   "contract": "MidiSoundPage",
+   "selector": "token_uri",
+   "gas": 24821050,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "FixedMidiProvider",
+     "selector": "get_midi_for",
+     "gas": 220900
+    }
+   ],
+   "test_l2_gas": 45136003,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: C_TOKEN_URI_FIXED_L1406_SMALL (js)",
+   "labels": [
+    "Genesis Track of species 21 (1,406 bytes)",
+    "small members (29 B) and svg_b64 (56 B) of the page's tests"
+   ]
+  },
+  {
+   "name": "c_token_uri_e2e_s001_n",
+   "group": "C",
+   "contract": "MidiSoundPage",
+   "selector": "token_uri",
+   "gas": 382620433,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "BeastMidiProvider",
+     "selector": "get_midi_for",
+     "gas": 284683883
+    },
+    {
+     "depth": 2,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 428186419,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: C_TOKEN_URI_E2E_S001_N (js)",
+   "labels": [
+    "Warlock",
+    "Magic",
+    "tier 1",
+    "normal",
+    "end to end: the page calls the production BeastMidiProvider",
+    "real Warlock members (2275 B) and svg_b64 (30128 B)"
+   ]
+  },
+  {
+   "name": "c_token_uri_e2e_s032_s",
+   "group": "C",
+   "contract": "MidiSoundPage",
+   "selector": "token_uri",
+   "gas": 466035973,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "BeastMidiProvider",
+     "selector": "get_midi_for",
+     "gas": 355809153
+    },
+    {
+     "depth": 2,
+     "contract": "MockBeasts",
+     "selector": "get_beast_rank",
+     "gas": 76930
+    }
+   ],
+   "test_l2_gas": 512850210,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: C_TOKEN_URI_E2E_S032_S (js)",
+   "labels": [
+    "Ammit",
+    "Hunter",
+    "tier 2",
+    "shiny (mega)",
+    "largest Genesis file (7,197 bytes)",
+    "end to end: the page calls the production BeastMidiProvider",
+    "real Warlock members (2275 B) and svg_b64 (30128 B)"
+   ]
+  },
+  {
+   "name": "c_get_midi_provider",
+   "group": "C",
+   "contract": "MidiSoundPage",
+   "selector": "get_midi_provider",
+   "gas": 27550,
+   "nested": [],
+   "test_l2_gas": 942261,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: C_GET_MIDI_PROVIDER (baseline-frozen)",
+   "labels": []
+  },
+  {
+   "name": "d_scale_get_midi_t1",
+   "group": "D",
+   "contract": "ScaleMidiProvider",
+   "selector": "get_midi",
+   "gas": 2423532,
+   "nested": [],
+   "test_l2_gas": 3256567,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: D_SCALE_GET_MIDI_T1 (baseline-frozen)",
+   "labels": [
+    "token 1, collection 'BEASTS'"
+   ]
+  },
+  {
+   "name": "d_scale_get_midi_for_t1",
+   "group": "D",
+   "contract": "ScaleMidiProvider",
+   "selector": "get_midi_for",
+   "gas": 2425142,
+   "nested": [],
+   "test_l2_gas": 3258377,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: D_SCALE_GET_MIDI_FOR_T1 (baseline-frozen)",
+   "labels": [
+    "token 1, collection 'BEASTS'"
+   ]
+  },
+  {
+   "name": "d_scale_get_midi_t42",
+   "group": "D",
+   "contract": "ScaleMidiProvider",
+   "selector": "get_midi",
+   "gas": 2424332,
+   "nested": [],
+   "test_l2_gas": 3257367,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: D_SCALE_GET_MIDI_T42 (baseline-frozen)",
+   "labels": [
+    "token 42, collection 'BEASTS'"
+   ]
+  },
+  {
+   "name": "d_scale_get_midi_for_t42",
+   "group": "D",
+   "contract": "ScaleMidiProvider",
+   "selector": "get_midi_for",
+   "gas": 2425942,
+   "nested": [],
+   "test_l2_gas": 3259177,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: D_SCALE_GET_MIDI_FOR_T42 (baseline-frozen)",
+   "labels": [
+    "token 42, collection 'BEASTS'"
+   ]
+  },
+  {
+   "name": "d_scale_get_midi_t_warlock",
+   "group": "D",
+   "contract": "ScaleMidiProvider",
+   "selector": "get_midi",
+   "gas": 2420942,
+   "nested": [],
+   "test_l2_gas": 3253977,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: D_SCALE_GET_MIDI_T_WARLOCK (baseline-frozen)",
+   "labels": [
+    "token 0x7006400010000000000000000001, collection 'BEASTS'"
+   ]
+  },
+  {
+   "name": "d_scale_get_midi_for_t_warlock",
+   "group": "D",
+   "contract": "ScaleMidiProvider",
+   "selector": "get_midi_for",
+   "gas": 2422552,
+   "nested": [],
+   "test_l2_gas": 3255787,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: D_SCALE_GET_MIDI_FOR_T_WARLOCK (baseline-frozen)",
+   "labels": [
+    "token 0x7006400010000000000000000001, collection 'BEASTS'"
+   ]
+  },
+  {
+   "name": "e_pack_input_l0000",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "pack_input",
+   "gas": 4750,
+   "nested": [],
+   "test_l2_gas": 280921,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_PACK_INPUT_L0000 (js)",
+   "labels": [
+    "input only: synthetic(0)"
+   ]
+  },
+  {
+   "name": "e_bytes_to_byte_array_l0000",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "bytes_to_byte_array",
+   "gas": 25330,
+   "nested": [],
+   "test_l2_gas": 322631,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0000 (js)",
+   "labels": [
+    "midi::pack::bytes_to_byte_array(synthetic(0))"
+   ]
+  },
+  {
+   "name": "e_to_felt252_array_l0000",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "to_felt252_array",
+   "gas": 10860,
+   "nested": [],
+   "test_l2_gas": 297332,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_TO_FELT252_ARRAY_L0000 (js)",
+   "labels": [
+    "midi::pack::to_felt252_array(synthetic(0))"
+   ]
+  },
+  {
+   "name": "e_pack_input_l0001",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "pack_input",
+   "gas": 6690,
+   "nested": [],
+   "test_l2_gas": 282861,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_PACK_INPUT_L0001 (js)",
+   "labels": [
+    "input only: synthetic(1)"
+   ]
+  },
+  {
+   "name": "e_bytes_to_byte_array_l0001",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "bytes_to_byte_array",
+   "gas": 28740,
+   "nested": [],
+   "test_l2_gas": 330272,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0001 (js)",
+   "labels": [
+    "midi::pack::bytes_to_byte_array(synthetic(1))"
+   ]
+  },
+  {
+   "name": "e_to_felt252_array_l0001",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "to_felt252_array",
+   "gas": 19380,
+   "nested": [],
+   "test_l2_gas": 309792,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_TO_FELT252_ARRAY_L0001 (js)",
+   "labels": [
+    "midi::pack::to_felt252_array(synthetic(1))"
+   ]
+  },
+  {
+   "name": "e_pack_input_l0030",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "pack_input",
+   "gas": 136030,
+   "nested": [],
+   "test_l2_gas": 412201,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_PACK_INPUT_L0030 (js)",
+   "labels": [
+    "input only: synthetic(30)"
+   ]
+  },
+  {
+   "name": "e_bytes_to_byte_array_l0030",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "bytes_to_byte_array",
+   "gas": 200710,
+   "nested": [],
+   "test_l2_gas": 502242,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0030 (js)",
+   "labels": [
+    "midi::pack::bytes_to_byte_array(synthetic(30))"
+   ]
+  },
+  {
+   "name": "e_to_felt252_array_l0030",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "to_felt252_array",
+   "gas": 200050,
+   "nested": [],
+   "test_l2_gas": 490462,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_TO_FELT252_ARRAY_L0030 (js)",
+   "labels": [
+    "midi::pack::to_felt252_array(synthetic(30))"
+   ]
+  },
+  {
+   "name": "e_pack_input_l0031",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "pack_input",
+   "gas": 140490,
+   "nested": [],
+   "test_l2_gas": 416661,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_PACK_INPUT_L0031 (js)",
+   "labels": [
+    "input only: synthetic(31)"
+   ]
+  },
+  {
+   "name": "e_bytes_to_byte_array_l0031",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "bytes_to_byte_array",
+   "gas": 223230,
+   "nested": [],
+   "test_l2_gas": 530452,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0031 (js)",
+   "labels": [
+    "midi::pack::bytes_to_byte_array(synthetic(31))"
+   ]
+  },
+  {
+   "name": "e_to_felt252_array_l0031",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "to_felt252_array",
+   "gas": 205980,
+   "nested": [],
+   "test_l2_gas": 496392,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_TO_FELT252_ARRAY_L0031 (js)",
+   "labels": [
+    "midi::pack::to_felt252_array(synthetic(31))"
+   ]
+  },
+  {
+   "name": "e_pack_input_l0032",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "pack_input",
+   "gas": 144950,
+   "nested": [],
+   "test_l2_gas": 421121,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_PACK_INPUT_L0032 (js)",
+   "labels": [
+    "input only: synthetic(32)"
+   ]
+  },
+  {
+   "name": "e_bytes_to_byte_array_l0032",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "bytes_to_byte_array",
+   "gas": 229160,
+   "nested": [],
+   "test_l2_gas": 538352,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0032 (js)",
+   "labels": [
+    "midi::pack::bytes_to_byte_array(synthetic(32))"
+   ]
+  },
+  {
+   "name": "e_to_felt252_array_l0032",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "to_felt252_array",
+   "gas": 217020,
+   "nested": [],
+   "test_l2_gas": 513633,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_TO_FELT252_ARRAY_L0032 (js)",
+   "labels": [
+    "midi::pack::to_felt252_array(synthetic(32))"
+   ]
+  },
+  {
+   "name": "e_pack_input_l0062",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "pack_input",
+   "gas": 278750,
+   "nested": [],
+   "test_l2_gas": 554921,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_PACK_INPUT_L0062 (js)",
+   "labels": [
+    "input only: synthetic(62)"
+   ]
+  },
+  {
+   "name": "e_bytes_to_byte_array_l0062",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "bytes_to_byte_array",
+   "gas": 423650,
+   "nested": [],
+   "test_l2_gas": 738532,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0062 (js)",
+   "labels": [
+    "midi::pack::bytes_to_byte_array(synthetic(62))"
+   ]
+  },
+  {
+   "name": "e_to_felt252_array_l0062",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "to_felt252_array",
+   "gas": 403620,
+   "nested": [],
+   "test_l2_gas": 700233,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_TO_FELT252_ARRAY_L0062 (js)",
+   "labels": [
+    "midi::pack::to_felt252_array(synthetic(62))"
+   ]
+  },
+  {
+   "name": "e_pack_input_l1406",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "pack_input",
+   "gas": 6272990,
+   "nested": [],
+   "test_l2_gas": 6549161,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_PACK_INPUT_L1406 (js)",
+   "labels": [
+    "input only: synthetic(1406)"
+   ]
+  },
+  {
+   "name": "e_bytes_to_byte_array_l1406",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "bytes_to_byte_array",
+   "gas": 9106940,
+   "nested": [],
+   "test_l2_gas": 9802914,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_BYTES_TO_BYTE_ARRAY_L1406 (js)",
+   "labels": [
+    "midi::pack::bytes_to_byte_array(synthetic(1406))"
+   ]
+  },
+  {
+   "name": "e_to_felt252_array_l1406",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "to_felt252_array",
+   "gas": 8975480,
+   "nested": [],
+   "test_l2_gas": 9495195,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_TO_FELT252_ARRAY_L1406 (js)",
+   "labels": [
+    "midi::pack::to_felt252_array(synthetic(1406))"
+   ]
+  },
+  {
+   "name": "e_pack_input_l7197",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "pack_input",
+   "gas": 32100850,
+   "nested": [],
+   "test_l2_gas": 32377021,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_PACK_INPUT_L7197 (js)",
+   "labels": [
+    "input only: synthetic(7197)"
+   ]
+  },
+  {
+   "name": "e_bytes_to_byte_array_l7197",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "bytes_to_byte_array",
+   "gas": 46549900,
+   "nested": [],
+   "test_l2_gas": 48890828,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_BYTES_TO_BYTE_ARRAY_L7197 (js)",
+   "labels": [
+    "midi::pack::bytes_to_byte_array(synthetic(7197))"
+   ]
+  },
+  {
+   "name": "e_to_felt252_array_l7197",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "to_felt252_array",
+   "gas": 45896780,
+   "nested": [],
+   "test_l2_gas": 47363548,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_TO_FELT252_ARRAY_L7197 (js)",
+   "labels": [
+    "midi::pack::to_felt252_array(synthetic(7197))"
+   ]
+  },
+  {
+   "name": "e_b64_input_l0031",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "b64_input",
+   "gas": 19220,
+   "nested": [],
+   "test_l2_gas": 295391,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_B64_INPUT_L0031 (js)",
+   "labels": [
+    "input only: 31 synthetic bytes ((i * 37 + 11) % 256)"
+   ]
+  },
+  {
+   "name": "e_append_base64_l0031",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "append_base64",
+   "gas": 279810,
+   "nested": [],
+   "test_l2_gas": 589002,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_APPEND_BASE64_L0031 (js)",
+   "labels": [
+    "midi_contracts::page::append_base64 of 31 synthetic bytes ((i * 37 + 11) % 256)"
+   ]
+  },
+  {
+   "name": "e_midi_html_l0031",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "midi_html",
+   "gas": 320470,
+   "nested": [],
+   "test_l2_gas": 639583,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_MIDI_HTML_L0031 (js)",
+   "labels": [
+    "midi_contracts::page::midi_html of 31 synthetic bytes ((i * 37 + 11) % 256)"
+   ]
+  },
+  {
+   "name": "e_b64_input_l1406",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "b64_input",
+   "gas": 146340,
+   "nested": [],
+   "test_l2_gas": 422511,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_B64_INPUT_L1406 (js)",
+   "labels": [
+    "input only: Genesis Track of species 21 (1,406 bytes)"
+   ]
+  },
+  {
+   "name": "e_append_base64_l1406",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "append_base64",
+   "gas": 3410720,
+   "nested": [],
+   "test_l2_gas": 4239682,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_APPEND_BASE64_L1406 (js)",
+   "labels": [
+    "midi_contracts::page::append_base64 of Genesis Track of species 21 (1,406 bytes)"
+   ]
+  },
+  {
+   "name": "e_midi_html_l1406",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "midi_html",
+   "gas": 3440060,
+   "nested": [],
+   "test_l2_gas": 4276682,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_MIDI_HTML_L1406 (js)",
+   "labels": [
+    "midi_contracts::page::midi_html of Genesis Track of species 21 (1,406 bytes)"
+   ]
+  },
+  {
+   "name": "e_b64_input_l4726",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "b64_input",
+   "gas": 454900,
+   "nested": [],
+   "test_l2_gas": 731071,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_B64_INPUT_L4726 (js)",
+   "labels": [
+    "input only: Genesis Track of species 1 (4,726 bytes)"
+   ]
+  },
+  {
+   "name": "e_append_base64_l4726",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "append_base64",
+   "gas": 10831370,
+   "nested": [],
+   "test_l2_gas": 12916243,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_APPEND_BASE64_L4726 (js)",
+   "labels": [
+    "midi_contracts::page::append_base64 of Genesis Track of species 1 (4,726 bytes)"
+   ]
+  },
+  {
+   "name": "e_midi_html_l4726",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "midi_html",
+   "gas": 10862790,
+   "nested": [],
+   "test_l2_gas": 12957584,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_MIDI_HTML_L4726 (js)",
+   "labels": [
+    "midi_contracts::page::midi_html of Genesis Track of species 1 (4,726 bytes)"
+   ]
+  },
+  {
+   "name": "e_b64_input_l7197",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "b64_input",
+   "gas": 685600,
+   "nested": [],
+   "test_l2_gas": 961771,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_B64_INPUT_L7197 (js)",
+   "labels": [
+    "input only: Genesis Track of species 32, shiny (7,197 bytes)"
+   ]
+  },
+  {
+   "name": "e_append_base64_l7197",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "append_base64",
+   "gas": 16430030,
+   "nested": [],
+   "test_l2_gas": 19446696,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_APPEND_BASE64_L7197 (js)",
+   "labels": [
+    "midi_contracts::page::append_base64 of Genesis Track of species 32, shiny (7,197 bytes)"
+   ]
+  },
+  {
+   "name": "e_midi_html_l7197",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "midi_html",
+   "gas": 16471860,
+   "nested": [],
+   "test_l2_gas": 19506107,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_MIDI_HTML_L7197 (js)",
+   "labels": [
+    "midi_contracts::page::midi_html of Genesis Track of species 32, shiny (7,197 bytes)"
+   ]
+  },
+  {
+   "name": "e_pack_input_l4726",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "pack_input",
+   "gas": 21080190,
+   "nested": [],
+   "test_l2_gas": 21356361,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_PACK_INPUT_L4726 (js)",
+   "labels": [
+    "input only: synthetic(4726)"
+   ]
+  },
+  {
+   "name": "e_u8_output_l1406",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "u8_output",
+   "gas": 8482480,
+   "nested": [],
+   "test_l2_gas": 16284304,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_U8_OUTPUT_L1406 (js)",
+   "labels": [
+    "synthetic(1406) returned as Array<u8>"
+   ]
+  },
+  {
+   "name": "e_u8_output_l4726",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "u8_output",
+   "gas": 28502080,
+   "nested": [],
+   "test_l2_gas": 54062628,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_U8_OUTPUT_L4726 (js)",
+   "labels": [
+    "synthetic(4726) returned as Array<u8>"
+   ]
+  },
+  {
+   "name": "e_u8_output_l7197",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "u8_output",
+   "gas": 43402210,
+   "nested": [],
+   "test_l2_gas": 82179988,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_U8_OUTPUT_L7197 (js)",
+   "labels": [
+    "synthetic(7197) returned as Array<u8>"
+   ]
+  },
+  {
+   "name": "e_felt_input_n1073",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "felt_input",
+   "gas": 2193870,
+   "nested": [],
+   "test_l2_gas": 2470041,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_FELT_INPUT_N1073 (js)",
+   "labels": [
+    "input only: [0..1073) as felts"
+   ]
+  },
+  {
+   "name": "e_felt_output_n1073",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "felt_output",
+   "gas": 3880550,
+   "nested": [],
+   "test_l2_gas": 9602598,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_FELT_OUTPUT_N1073 (js)",
+   "labels": [
+    "[0..1073) returned as Array<felt252>"
+   ]
+  },
+  {
+   "name": "e_felt_input_n2203",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "felt_input",
+   "gas": 4499070,
+   "nested": [],
+   "test_l2_gas": 4775241,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_FELT_INPUT_N2203 (js)",
+   "labels": [
+    "input only: [0..2203) as felts"
+   ]
+  },
+  {
+   "name": "e_felt_output_n2203",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "felt_output",
+   "gas": 7959850,
+   "nested": [],
+   "test_l2_gas": 19411563,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_FELT_OUTPUT_N2203 (js)",
+   "labels": [
+    "[0..2203) returned as Array<felt252>"
+   ]
+  },
+  {
+   "name": "e_felt_input_n2763",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "felt_input",
+   "gas": 5641470,
+   "nested": [],
+   "test_l2_gas": 5917641,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_FELT_INPUT_N2763 (js)",
+   "labels": [
+    "input only: [0..2763) as felts"
+   ]
+  },
+  {
+   "name": "e_felt_output_n2763",
+   "group": "E",
+   "contract": "BenchLib",
+   "selector": "felt_output",
+   "gas": 9981450,
+   "nested": [],
+   "test_l2_gas": 24272643,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_FELT_OUTPUT_N2763 (js)",
+   "labels": [
+    "[0..2763) returned as Array<felt252>"
+   ]
+  },
+  {
+   "name": "e_genesis_smf_bytes_s021_n",
+   "group": "E",
+   "contract": "BenchGenesis",
+   "selector": "genesis_smf_bytes",
+   "gas": 123013325,
+   "nested": [],
+   "test_l2_gas": 130816749,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SMF_BYTES_S021_N (js)",
+   "labels": [
+    "Fairy",
+    "Magic",
+    "tier 5",
+    "normal",
+    "lightest Genesis file (1,406 bytes)"
+   ]
+  },
+  {
+   "name": "e_genesis_smf_bytes_s021_s",
+   "group": "E",
+   "contract": "BenchGenesis",
+   "selector": "genesis_smf_bytes",
+   "gas": 131139295,
+   "nested": [],
+   "test_l2_gas": 142810391,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SMF_BYTES_S021_S (js)",
+   "labels": [
+    "Fairy",
+    "Magic",
+    "tier 5",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "e_genesis_smf_bytes_s001_n",
+   "group": "E",
+   "contract": "BenchGenesis",
+   "selector": "genesis_smf_bytes",
+   "gas": 282387673,
+   "nested": [],
+   "test_l2_gas": 307949821,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SMF_BYTES_S001_N (js)",
+   "labels": [
+    "Warlock",
+    "Magic",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "e_genesis_smf_bytes_s001_s",
+   "group": "E",
+   "contract": "BenchGenesis",
+   "selector": "genesis_smf_bytes",
+   "gas": 301491373,
+   "nested": [],
+   "test_l2_gas": 336224868,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SMF_BYTES_S001_S (js)",
+   "labels": [
+    "Warlock",
+    "Magic",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "e_genesis_smf_bytes_s032_n",
+   "group": "E",
+   "contract": "BenchGenesis",
+   "selector": "genesis_smf_bytes",
+   "gas": 333094783,
+   "nested": [],
+   "test_l2_gas": 362699863,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SMF_BYTES_S032_N (js)",
+   "labels": [
+    "Ammit",
+    "Hunter",
+    "tier 2",
+    "normal"
+   ]
+  },
+  {
+   "name": "e_genesis_smf_bytes_s032_s",
+   "group": "E",
+   "contract": "BenchGenesis",
+   "selector": "genesis_smf_bytes",
+   "gas": 352432843,
+   "nested": [],
+   "test_l2_gas": 391212221,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SMF_BYTES_S032_S (js)",
+   "labels": [
+    "Ammit",
+    "Hunter",
+    "tier 2",
+    "shiny (mega)",
+    "largest Genesis file (7,197 bytes)"
+   ]
+  },
+  {
+   "name": "e_genesis_smf_bytes_s028_s",
+   "group": "E",
+   "contract": "BenchGenesis",
+   "selector": "genesis_smf_bytes",
+   "gas": 358440133,
+   "nested": [],
+   "test_l2_gas": 397121340,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SMF_BYTES_S028_S (js)",
+   "labels": [
+    "Phoenix",
+    "Hunter",
+    "tier 1",
+    "shiny (mega)"
+   ]
+  },
+  {
+   "name": "e_genesis_smf_bytes_s068_n",
+   "group": "E",
+   "contract": "BenchGenesis",
+   "selector": "genesis_smf_bytes",
+   "gas": 188424261,
+   "nested": [],
+   "test_l2_gas": 199575635,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SMF_BYTES_S068_N (js)",
+   "labels": [
+    "Yeti",
+    "Brute",
+    "tier 4",
+    "normal",
+    "Yeti (ornaments, avalanche, rock tempo)"
+   ]
+  },
+  {
+   "name": "e_genesis_smf_bytes_s068_s",
+   "group": "E",
+   "contract": "BenchGenesis",
+   "selector": "genesis_smf_bytes",
+   "gas": 195377371,
+   "nested": [],
+   "test_l2_gas": 210476457,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SMF_BYTES_S068_S (js)",
+   "labels": [
+    "Yeti",
+    "Brute",
+    "tier 4",
+    "shiny (mega)",
+    "Yeti (ornaments, avalanche, rock tempo)"
+   ]
+  },
+  {
+   "name": "e_genesis_smf_bytes_s039_n",
+   "group": "E",
+   "contract": "BenchGenesis",
+   "selector": "genesis_smf_bytes",
+   "gas": 245216335,
+   "nested": [],
+   "test_l2_gas": 263599891,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SMF_BYTES_S039_N (js)",
+   "labels": [
+    "Harpy",
+    "Hunter",
+    "tier 3",
+    "normal",
+    "swap: plays species 40's Genesis Track"
+   ]
+  },
+  {
+   "name": "e_genesis_smf_bytes_s040_n",
+   "group": "E",
+   "contract": "BenchGenesis",
+   "selector": "genesis_smf_bytes",
+   "gas": 220231725,
+   "nested": [],
+   "test_l2_gas": 237556248,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SMF_BYTES_S040_N (js)",
+   "labels": [
+    "Pegasus",
+    "Hunter",
+    "tier 3",
+    "normal",
+    "swap: plays species 39's Genesis Track"
+   ]
+  },
+  {
+   "name": "e_genesis_smf_bytes_s033_n",
+   "group": "E",
+   "contract": "BenchGenesis",
+   "selector": "genesis_smf_bytes",
+   "gas": 305909383,
+   "nested": [],
+   "test_l2_gas": 333445387,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SMF_BYTES_S033_N (js)",
+   "labels": [
+    "Nue",
+    "Hunter",
+    "tier 2",
+    "normal",
+    "Nue: Phrygian"
+   ]
+  },
+  {
+   "name": "e_genesis_smf_bytes_c076",
+   "group": "E",
+   "contract": "BenchGenesis",
+   "selector": "genesis_smf_bytes",
+   "gas": 244990385,
+   "nested": [],
+   "test_l2_gas": 263614942,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SMF_BYTES_C076 (js)",
+   "labels": [
+    "Agony Bane Gloomfang (community_species_plays_its_genesis_track): Hunter, tier 3"
+   ]
+  },
+  {
+   "name": "e_genesis_score_s021_n",
+   "group": "E",
+   "contract": "BenchScore",
+   "selector": "genesis_score",
+   "gas": 102330855,
+   "nested": [],
+   "test_l2_gas": 108054503,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SCORE_S021_N (baseline-frozen)",
+   "labels": [
+    "Fairy",
+    "Magic",
+    "tier 5",
+    "normal",
+    "lightest Genesis file (1,406 bytes)"
+   ]
+  },
+  {
+   "name": "e_genesis_score_s001_n",
+   "group": "E",
+   "contract": "BenchScore",
+   "selector": "genesis_score",
+   "gas": 208028553,
+   "nested": [],
+   "test_l2_gas": 219481866,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SCORE_S001_N (baseline-frozen)",
+   "labels": [
+    "Warlock",
+    "Magic",
+    "tier 1",
+    "normal"
+   ]
+  },
+  {
+   "name": "e_genesis_score_s032_s",
+   "group": "E",
+   "contract": "BenchScore",
+   "selector": "genesis_score",
+   "gas": 246831243,
+   "nested": [],
+   "test_l2_gas": 261124036,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: E_GENESIS_SCORE_S032_S (baseline-frozen)",
+   "labels": [
+    "Ammit",
+    "Hunter",
+    "tier 2",
+    "shiny (mega)",
+    "largest Genesis file (7,197 bytes)"
+   ]
+  },
+  {
+   "name": "m_get_midi_s021_n_burn_rank",
+   "group": "M",
+   "contract": "BeastMidiProvider",
+   "selector": "get_midi",
+   "gas": 125832425,
+   "nested": [
+    {
+     "depth": 1,
+     "contract": "BurnBeasts",
+     "selector": "get_beast_rank",
+     "gas": 2018380
+    }
+   ],
+   "test_l2_gas": 130575541,
+   "over_execute_max_sierra_gas": false,
+   "output": "checked: M_GET_MIDI_S021_N_BURN_RANK (js)",
+   "labels": [
+    "as a_get_midi_s021_n, with BurnBeasts as the NFT (get_beast_rank does 200 extra poseidon rounds)"
+   ]
+  }
+ ]
+}

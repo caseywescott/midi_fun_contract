@@ -11,9 +11,15 @@ interfaces, SMF writing, packing), `core/midi_contracts` (MidiSoundPage, ScaleMi
 
 ## Toolchain
 
-scarb 2.20.1 and Starknet Foundry 0.64.1, pinned in `.tool-versions` (`bench/.tool-versions` for
+scarb 2.21.0 and Starknet Foundry 0.64.1, pinned in `.tool-versions` (`bench/.tool-versions` for
 the bench). Tests run on snforge, not the deprecated `scarb cairo-test`: `scarb test` runs
-`snforge test --max-n-steps 4294967295` in each package (root `[workspace.scripts]`).
+`snforge test --max-n-steps 4294967295 --max-threads 4` in each package (root
+`[workspace.scripts]`), on four threads rather than every core.
+
+`snforge check-requirements` warns that scarb 2.21.0 is above snforge 0.64.1's "maximal
+recommended 2.20.1". Ignore it: 0.64.1 predates scarb 2.21.0, everything passes on this pair, and
+the next snforge release raises the maximum (foundry-rs/starknet-foundry#4624). Don't downgrade
+scarb or move snforge off a release to silence it.
 
 ## Commands
 
@@ -31,7 +37,7 @@ Gas benchmark (needs `npm install --prefix offchain/beast-sound` once):
 
 ```bash
 python3 bench/scripts/gas_bench.py run --out bench/snapshots/candidate.json
-python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-bdfc78f.json \
+python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-25be776.json \
     bench/snapshots/candidate.json --markdown
 ```
 

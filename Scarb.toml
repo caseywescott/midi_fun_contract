@@ -26,13 +26,16 @@ onchain_midi_player = { git = "https://github.com/Provable-Games/onchain-midi-pl
 openzeppelin_access = "4.0.1"
 openzeppelin_upgrades = "4.0.1"
 openzeppelin_interfaces = "2.2.0"
-starknet = "2.20.1"
+starknet = "2.21.0"
 # Tests run on Starknet Foundry (snforge, pinned in /.tool-versions); assert_macros gives them
 # assert_eq! and friends.
 snforge_std = "=0.64.1"
-assert_macros = "2.20.1"
+assert_macros = "2.21.0"
 
 # `scarb test` runs snforge in every package (`[scripts] test.workspace = true`). The step cap is
 # lifted: some tests and every #[ignore]d parity fixture run far past snforge's default 10M steps.
+# Four threads, not snforge's default of every core: at most half of a current laptop's cores, and
+# what CI's 4-core runner runs, so a local run holds the memory CI does. For more threads, run
+# `snforge test --max-n-steps 4294967295 --max-threads <n>` in the package.
 [workspace.scripts]
-test = "snforge test --max-n-steps 4294967295"
+test = "snforge test --max-n-steps 4294967295 --max-threads 4"

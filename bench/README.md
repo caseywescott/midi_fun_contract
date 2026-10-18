@@ -10,7 +10,7 @@ workspace with its own `Scarb.lock` and `.tool-versions`.
 
 ## Commands
 
-Needs scarb 2.20.1, snforge 0.64.1 (`bench/.tool-versions`; with asdf the runner resolves both
+Needs scarb 2.21.0, snforge 0.64.1 (`bench/.tool-versions`; with asdf the runner resolves both
 from there), universal-sierra-compiler (snforge's own), node 20+ with `npm install` run once in
 `offchain/beast-sound`, and python3. From the repository root:
 
@@ -19,7 +19,7 @@ from there), universal-sierra-compiler (snforge's own), node 20+ with `npm insta
 python3 bench/scripts/gas_bench.py run --out bench/snapshots/candidate.json
 
 # compare it with the baseline (plain text, or --markdown; --fail-on-regression exits 3)
-python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-bdfc78f.json \
+python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-25be776.json \
     bench/snapshots/candidate.json --markdown
 
 # run some bench tests with the pinned tools, no snapshot (e.g. after a change, or to see
@@ -27,7 +27,7 @@ python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-bdfc78f.json
 python3 bench/scripts/gas_bench.py test a_get_midi_s021
 ```
 
-`run` takes `--threads N` (default 8). Snapshots other than `baseline-*.json` are ignored by git.
+`run` takes `--threads N` (default 4). Snapshots other than `baseline-*.json` are ignored by git.
 
 ## What `run` does
 
@@ -61,7 +61,7 @@ python3 bench/scripts/gas_bench.py test a_get_midi_s021
 ## Tooling: snforge in its own workspace
 
 - **snforge 0.64.1, own workspace.** `bench/Scarb.toml` has `[workspace]`, its own `Scarb.lock`
-  and `.tool-versions` (scarb 2.20.1, starknet-foundry 0.64.1) and depends on the four packages by
+  and `.tool-versions` (scarb 2.21.0, starknet-foundry 0.64.1) and depends on the four packages by
   path. Scarb resolves `version.workspace`, `edition.workspace` and `midi.workspace = true` for
   path dependencies that belong to the root workspace (from the root manifest), and the bench's
   lock resolves every shared dependency to the root lock's versions and commits. With `bench/`
@@ -113,7 +113,7 @@ clean captures.
 Limits: Starknet 0.14.x allows a transaction's execution `execute_max_sierra_gas` =
 1,110,000,000 L2 gas; snforge does not enforce it (a single call of 1,133,970,050 passes), so the
 runner flags any case above it (none at the baseline: the heaviest is `c_token_uri_e2e_s032_s` at
-466,035,973, the heaviest `get_midi` 361,826,223). snforge caps VM steps per test instead, at
+466,023,973, the heaviest `get_midi` 361,814,223). snforge caps VM steps per test instead, at
 10,000,000 by default (a test of 9,947,415 steps passes, one about 85,000 steps longer fails
 with "RunResources has no remaining steps"); the heaviest bench test takes
 4.2 M steps, and the runner passes `--max-n-steps 50000000` so that a heavier candidate is
@@ -180,7 +180,7 @@ from two places:
   Genesis defaults on the token's tier and type for the community species), the page's `tokenUri`
   (`onchain/page.js` with `onchain/dist/stored.b64`, whose length is the Cairo `STORED_LEN`),
   Buffer base64 and `midiHtml`, and plain packing for the probes.
-- **baseline-frozen** (59 checks): the Cairo output at the baseline (2ce04a9), recorded once by
+- **baseline-frozen** (59 checks): the Cairo output at the baseline (2ce04a9), recorded by
   `gas_bench.py freeze` into `expected/frozen.json`: settings, live-state reports, composer views,
   the scale MIDI, the T1 score, the collection and provider addresses.
 
@@ -192,6 +192,12 @@ values from the JS engine alone and copies the frozen ones from `frozen.json`, s
 reproduces the same files. `gas_bench.py freeze` refuses to run if `frozen.json` exists, or if the
 production sources differ from `--baseline-rev`. A candidate that changes an output fails the
 bench; a deliberate change of the music is a new baseline, made by freezing at that commit.
+
+A compiler change is a re-freeze at the same baseline. The collection and provider addresses
+(`a_get_collection`, `c_get_midi_provider`) are the addresses of the bench's MockBeasts and
+FixedMidiProvider, which derive from their class hashes, so they move whenever the compiler
+changes those classes. `frozen.json` was re-frozen at 2ce04a9 with scarb 2.21.0 (it was frozen
+with 2.20.1): those 2 values changed and the other 290, the 233 js values included, did not.
 
 Checked by mutation in a scratch copy (not committed): lowering the velocity of the first note of
 voice 0 in `full_midi.cairo` failed 179 cases, each on its own `DIGEST MISMATCH` (every case that
@@ -219,7 +225,7 @@ On this machine (32 cores, shared with other builds), a full `run` from a clean 
 `target` directories deleted) took between 35 s and 3.6 min, most of it compiling, depending on
 the other load; with the build cached the snforge run takes 10 to 20 s. Peak resident memory of the whole run's process tree is
 about 12.6 GB at 8 threads (the snforge run: about 11 GB at 4 threads, 13 GB at 8, 15 GB at 12, with
-identical gas). The default is 8 threads.
+identical gas). The default is 4 threads, at most half of a current laptop's cores.
 
 ## Changing the matrix
 
@@ -244,5 +250,5 @@ baseline snapshot, since `compare` refuses different case sets.
 | `expected/frozen.json` | the baseline's outputs (`gas_bench.py freeze`) |
 | `scripts/gen_expected.mjs` | the matrix and the expected-table generator |
 | `scripts/gas_bench.py` | run, compare, test, freeze |
-| `snapshots/baseline-bdfc78f.json` | the current baseline: the classes after the gas work |
-| `snapshots/baseline-2ce04a9.json` | the classes before it (`2ce04a9`, where the bench was frozen) |
+| `snapshots/baseline-25be776.json` | the current baseline: the classes after the gas work, built with scarb 2.21.0 (25be776) |
+| `snapshots/baseline-2ce04a9.json` | the classes before it (`2ce04a9`'s sources, where the bench was frozen), built with scarb 2.21.0 |

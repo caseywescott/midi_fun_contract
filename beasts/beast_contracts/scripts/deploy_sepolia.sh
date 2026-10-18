@@ -1,6 +1,6 @@
 #!/bin/sh
 # Declare and deploy BeastMidiProvider on Starknet Sepolia, then smoke-test get_sound on a genesis
-# Warlock. Run from anywhere; it builds beasts/beast_contracts with the workspace scarb (2.20.1).
+# Warlock. Run from anywhere; it builds beasts/beast_contracts with the workspace scarb (2.21.0).
 #
 #   sh beasts/beast_contracts/scripts/deploy_sepolia.sh [beasts_v3_nft_address] [owner]
 #

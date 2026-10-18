@@ -1,6 +1,6 @@
 {
  "schema": "midi_bench/gas-snapshot/1",
- "created_utc": "2026-10-18T10:45:36+00:00",
+ "created_utc": "2026-10-18T11:51:14+00:00",
  "measurement": {
   "definition_version": 1,
   "quantity": "L2 gas (Sierra gas) of the case's one top-level call from the test, inclusive of the calls it makes (e.g. get_midi includes the NFT's get_beast_rank)",
@@ -12,8 +12,8 @@
  },
  "tools": {
   "scarb": {
-   "path": "/home/ubuntu/.asdf/installs/scarb/2.20.1/bin/scarb",
-   "version": "scarb 2.20.1 (dd18779a1 2026-08-21)\ncairo: 2.20.0 (https://crates.io/crates/cairo-lang-compiler/2.20.0)\nsierra: 1.9.3\narch: x86_64-unknown-linux-gnu"
+   "path": "/home/ubuntu/.asdf/installs/scarb/2.21.0/bin/scarb",
+   "version": "scarb 2.21.0 (fbd5bd03d 2026-10-09)\ncairo: 2.21.0 (https://crates.io/crates/cairo-lang-compiler/2.21.0)\nsierra: 1.9.5\narch: x86_64-unknown-linux-gnu"
   },
   "snforge": {
    "path": "/home/ubuntu/.asdf/installs/starknet-foundry/0.64.1/bin/snforge",
@@ -29,11 +29,11 @@
   }
  },
  "git": {
-  "rev": "769838ab0610b0a770cd94e0652688020e0c5b0a",
+  "rev": "2d167e986c8bfe1549b491c8128fac7fc84fb852",
   "dirty": false,
   "status": [],
   "tracked_tree": {
-   "sha256": "21074c30c1cbda4bb6605f1f220226691e868decf5c928f1ffa4b7ce43ab474e",
+   "sha256": "508ed93486442bf032f594de66d2fb7bc76c0550e0ce1ad77d038b901ad2a6d2",
    "files": 446
   },
   "production_tree": {
@@ -41,15 +41,15 @@
    "files": 72
   },
   "bench_tree": {
-   "sha256": "33bcdbf37b5eacea808ea7a390b7b0913e8070644be2dc5d4d60a0648e790f2b",
+   "sha256": "b1a36ec372f8f684ad4143b301d647f8d9b1499d7be4c7efa229a1db1a94eaf2",
    "files": 23
   },
   "root_scarb_lock_sha256": "dbe79ca05a7e1b14bda4660f83a8692f357f6433aa2c33f8d550e94b6b0f3cf8",
   "bench_scarb_lock_sha256": "8d7fe18eb4399e3a794df50f04e05478859fe56ed3a3bfcbbb9091103d586bd5"
  },
  "expected_table": {
-  "cases_json_sha256": "cdbdfedfdcb57b1a386a5cf8698d382b90e9c97ee5c73f7d3fea83d5e8288f6b",
-  "frozen_json_sha256": "e5c5300a2f735c867e4b16fb74c7580c90bbd26ce234d68dd74d6b68b04085b6",
+  "cases_json_sha256": "0d87765517b3be08b7bd11c52105c5c8533f021049d5554c0f745455cbc6a0ec",
+  "frozen_json_sha256": "4bb5a0a4630c8c719196e6591fe6e211e9e4199c1a510ea0e1674e4bc3c8e46e",
   "generator_check": "286 cases, 292 checks (233 js, 59 baseline-frozen)"
  },
  "classes": [
@@ -57,27 +57,27 @@
    "contract": "BeastMidiProvider",
    "package": "beast_contracts",
    "module": "beast_contracts::provider::BeastMidiProvider",
-   "casm_bytecode_len": 79526,
-   "casm_bytecode_sha256": "ae2520ba8dd17205fe86d6e59c264b7f49df8a5f21b95e69b90d5931e4afea32",
-   "casm_file_sha256": "fe37fafb65785b464c7a0b530ac12463fbfa7f6c56b4740ea41b60fe1b66f3f6",
-   "sierra_program_len": 40015,
-   "sierra_program_sha256": "8127cc2b89a71556efc688f797f3901919e591ee6227390b148a5cb3d7d49d1b",
-   "sierra_file_sha256": "2660839088309060a625c0b43a4391c1943293f742827a321630545fb340ef24",
+   "casm_bytecode_len": 79685,
+   "casm_bytecode_sha256": "c4e8535ab0e410466de41b2bc14ffdbd13c8507e3dbf5662d1b862d600fab2e6",
+   "casm_file_sha256": "be4f57e34282afd22213d5252510ccd7eae4c65e0d8f69f4e5a3e37722cbe0d5",
+   "sierra_program_len": 40046,
+   "sierra_program_sha256": "3839f5120b54bc276c69723460e8a72a0afdf2866754d791db9c0d78b49df668",
+   "sierra_file_sha256": "d4868c37dbdd27f58ef0f5c1f70c4eb2d3c6251816fed378c5f6e9f3252cb17f",
    "casm_limit": 81920,
-   "casm_headroom": 2394
+   "casm_headroom": 2235
   },
   {
    "contract": "BeastSoundComposer",
    "package": "beast_contracts",
    "module": "beast_contracts::BeastSoundComposer",
-   "casm_bytecode_len": 23828,
-   "casm_bytecode_sha256": "43d2252700b47ede04db174cbe24cfdd26f90777deb3a0ad047a4b7c6c973784",
-   "casm_file_sha256": "e97758a67f20332160b32e4ca405f667065803d13a1ae61abab0a6b66fc6c806",
-   "sierra_program_len": 11160,
-   "sierra_program_sha256": "6d1965a2eb26f136db79119283a0502e4e617f3ceab9cb13115b03c558a12587",
-   "sierra_file_sha256": "23d2c4a334227e287f521a58725bbffc356511435a2b212ebbe5afd35b6cf6ce",
+   "casm_bytecode_len": 23771,
+   "casm_bytecode_sha256": "df056323a3067b20aa31a6557a254cbcdaa19d8559a9ce57d33f6147c481eb3c",
+   "casm_file_sha256": "b0cd633077208f2bfb5100b9039f1837d9530282317c727e20596866201c6b29",
+   "sierra_program_len": 11124,
+   "sierra_program_sha256": "a4c4940271a3089f5dd6f94f12d6656d8aa55ff470732469672cfd9493d5c09b",
+   "sierra_file_sha256": "1a8fcc87555d6725ec93c92ebe2213ab986fa057a9bec937d7bfeeacb9874f86",
    "casm_limit": 81920,
-   "casm_headroom": 58092
+   "casm_headroom": 58149
   },
   {
    "contract": "MidiSoundPage",
@@ -85,10 +85,10 @@
    "module": "midi_contracts::page::MidiSoundPage",
    "casm_bytecode_len": 22646,
    "casm_bytecode_sha256": "0bd168ba1120a7788d6906e3d21e9c903152cec5d8f2018e4d21a45f739fa666",
-   "casm_file_sha256": "c040529113a2ab020088eba40bef109026d85461d4141ecb529ca9b86f72c8fb",
+   "casm_file_sha256": "a92a637f8bd1ad0cffd5b8f96f8c29c8cf68d87741c4710ec05573cd40565d56",
    "sierra_program_len": 26618,
-   "sierra_program_sha256": "d03f1eb452bb42aa5fe65757903e280d3b1591de170ee9122dd7ae19b92de4c6",
-   "sierra_file_sha256": "851a5a21b49914b0dc3dc92d74a8d05dd802a0f1ec39a204d05da085e2847161",
+   "sierra_program_sha256": "af2bb52b581aea2058bf96505a642f687a129083d77194cb2cc11ef86625041c",
+   "sierra_file_sha256": "77153286d53a7876ec98b552501134a2ba3380150d34b8d5d25cb6cdc616002e",
    "casm_limit": 81920,
    "casm_headroom": 59274
   },
@@ -98,10 +98,10 @@
    "module": "midi_contracts::examples::scale::ScaleMidiProvider",
    "casm_bytecode_len": 7659,
    "casm_bytecode_sha256": "ab6fe2900cdb19fc5b4ade945c5edcb83983af2b4505a63e5a0f01d7b34d9a9e",
-   "casm_file_sha256": "c561cfae907ade04c51562c8a0f9e222e7840fb42727f531ea29abb1acaf294c",
+   "casm_file_sha256": "303a9ff1bbb87ac6f0a08fc01e7369734c146141c8164f478dce91806d7f1fc2",
    "sierra_program_len": 3262,
-   "sierra_program_sha256": "7591cc1de0c7efd08781b912afbbb91f535722de199da18d27898be94b7c7fa8",
-   "sierra_file_sha256": "a9dfcd56c401cb49d0a1f26b0f39cb5be9d4a3d84a24fcbd972e2da7265d449e",
+   "sierra_program_sha256": "583a568da7f5dfc3afc15f9bce3e18c7e92896f605bb77cc30e9ee9abe5d72a5",
+   "sierra_file_sha256": "44db8c594df4115a713fc7f0beb69986014a7e519ae92a73da47b389c3c5cb40",
    "casm_limit": 81920,
    "casm_headroom": 74261
   }
@@ -117,23 +117,23 @@
      {
       "manifest": "midi_bench.starknet_artifacts.json",
       "sierra": "midi_bench_BeastMidiProvider.contract_class.json",
-      "sierra_program_len": 40015,
-      "sierra_program_sha256": "8127cc2b89a71556efc688f797f3901919e591ee6227390b148a5cb3d7d49d1b",
-      "sierra_file_sha256": "2660839088309060a625c0b43a4391c1943293f742827a321630545fb340ef24",
+      "sierra_program_len": 40046,
+      "sierra_program_sha256": "3839f5120b54bc276c69723460e8a72a0afdf2866754d791db9c0d78b49df668",
+      "sierra_file_sha256": "d4868c37dbdd27f58ef0f5c1f70c4eb2d3c6251816fed378c5f6e9f3252cb17f",
       "sierra_identical": true,
-      "scarb_casm_bytecode_sha256": "ae2520ba8dd17205fe86d6e59c264b7f49df8a5f21b95e69b90d5931e4afea32",
+      "scarb_casm_bytecode_sha256": "c4e8535ab0e410466de41b2bc14ffdbd13c8507e3dbf5662d1b862d600fab2e6",
       "scarb_casm_identical": true,
-      "usc_casm_bytecode_sha256": "ae2520ba8dd17205fe86d6e59c264b7f49df8a5f21b95e69b90d5931e4afea32",
+      "usc_casm_bytecode_sha256": "c4e8535ab0e410466de41b2bc14ffdbd13c8507e3dbf5662d1b862d600fab2e6",
       "usc_casm_identical": true
      },
      {
       "manifest": "midi_bench_unittest.test.starknet_artifacts.json",
       "sierra": "midi_bench_unittest_BeastMidiProvider.test.contract_class.json",
-      "sierra_program_len": 40015,
-      "sierra_program_sha256": "8127cc2b89a71556efc688f797f3901919e591ee6227390b148a5cb3d7d49d1b",
-      "sierra_file_sha256": "2660839088309060a625c0b43a4391c1943293f742827a321630545fb340ef24",
+      "sierra_program_len": 40046,
+      "sierra_program_sha256": "3839f5120b54bc276c69723460e8a72a0afdf2866754d791db9c0d78b49df668",
+      "sierra_file_sha256": "d4868c37dbdd27f58ef0f5c1f70c4eb2d3c6251816fed378c5f6e9f3252cb17f",
       "sierra_identical": true,
-      "usc_casm_bytecode_sha256": "ae2520ba8dd17205fe86d6e59c264b7f49df8a5f21b95e69b90d5931e4afea32",
+      "usc_casm_bytecode_sha256": "c4e8535ab0e410466de41b2bc14ffdbd13c8507e3dbf5662d1b862d600fab2e6",
       "usc_casm_identical": true
      }
     ]
@@ -145,23 +145,23 @@
      {
       "manifest": "midi_bench.starknet_artifacts.json",
       "sierra": "midi_bench_BeastSoundComposer.contract_class.json",
-      "sierra_program_len": 11160,
-      "sierra_program_sha256": "6d1965a2eb26f136db79119283a0502e4e617f3ceab9cb13115b03c558a12587",
-      "sierra_file_sha256": "23d2c4a334227e287f521a58725bbffc356511435a2b212ebbe5afd35b6cf6ce",
+      "sierra_program_len": 11124,
+      "sierra_program_sha256": "a4c4940271a3089f5dd6f94f12d6656d8aa55ff470732469672cfd9493d5c09b",
+      "sierra_file_sha256": "1a8fcc87555d6725ec93c92ebe2213ab986fa057a9bec937d7bfeeacb9874f86",
       "sierra_identical": true,
-      "scarb_casm_bytecode_sha256": "43d2252700b47ede04db174cbe24cfdd26f90777deb3a0ad047a4b7c6c973784",
+      "scarb_casm_bytecode_sha256": "df056323a3067b20aa31a6557a254cbcdaa19d8559a9ce57d33f6147c481eb3c",
       "scarb_casm_identical": true,
-      "usc_casm_bytecode_sha256": "43d2252700b47ede04db174cbe24cfdd26f90777deb3a0ad047a4b7c6c973784",
+      "usc_casm_bytecode_sha256": "df056323a3067b20aa31a6557a254cbcdaa19d8559a9ce57d33f6147c481eb3c",
       "usc_casm_identical": true
      },
      {
       "manifest": "midi_bench_unittest.test.starknet_artifacts.json",
       "sierra": "midi_bench_unittest_BeastSoundComposer.test.contract_class.json",
-      "sierra_program_len": 11160,
-      "sierra_program_sha256": "6d1965a2eb26f136db79119283a0502e4e617f3ceab9cb13115b03c558a12587",
-      "sierra_file_sha256": "23d2c4a334227e287f521a58725bbffc356511435a2b212ebbe5afd35b6cf6ce",
+      "sierra_program_len": 11124,
+      "sierra_program_sha256": "a4c4940271a3089f5dd6f94f12d6656d8aa55ff470732469672cfd9493d5c09b",
+      "sierra_file_sha256": "1a8fcc87555d6725ec93c92ebe2213ab986fa057a9bec937d7bfeeacb9874f86",
       "sierra_identical": true,
-      "usc_casm_bytecode_sha256": "43d2252700b47ede04db174cbe24cfdd26f90777deb3a0ad047a4b7c6c973784",
+      "usc_casm_bytecode_sha256": "df056323a3067b20aa31a6557a254cbcdaa19d8559a9ce57d33f6147c481eb3c",
       "usc_casm_identical": true
      }
     ]
@@ -174,8 +174,8 @@
       "manifest": "midi_bench.starknet_artifacts.json",
       "sierra": "midi_bench_MidiSoundPage.contract_class.json",
       "sierra_program_len": 26618,
-      "sierra_program_sha256": "d03f1eb452bb42aa5fe65757903e280d3b1591de170ee9122dd7ae19b92de4c6",
-      "sierra_file_sha256": "851a5a21b49914b0dc3dc92d74a8d05dd802a0f1ec39a204d05da085e2847161",
+      "sierra_program_sha256": "af2bb52b581aea2058bf96505a642f687a129083d77194cb2cc11ef86625041c",
+      "sierra_file_sha256": "77153286d53a7876ec98b552501134a2ba3380150d34b8d5d25cb6cdc616002e",
       "sierra_identical": true,
       "scarb_casm_bytecode_sha256": "0bd168ba1120a7788d6906e3d21e9c903152cec5d8f2018e4d21a45f739fa666",
       "scarb_casm_identical": true,
@@ -186,8 +186,8 @@
       "manifest": "midi_bench_unittest.test.starknet_artifacts.json",
       "sierra": "midi_bench_unittest_MidiSoundPage.test.contract_class.json",
       "sierra_program_len": 26618,
-      "sierra_program_sha256": "d03f1eb452bb42aa5fe65757903e280d3b1591de170ee9122dd7ae19b92de4c6",
-      "sierra_file_sha256": "851a5a21b49914b0dc3dc92d74a8d05dd802a0f1ec39a204d05da085e2847161",
+      "sierra_program_sha256": "af2bb52b581aea2058bf96505a642f687a129083d77194cb2cc11ef86625041c",
+      "sierra_file_sha256": "77153286d53a7876ec98b552501134a2ba3380150d34b8d5d25cb6cdc616002e",
       "sierra_identical": true,
       "usc_casm_bytecode_sha256": "0bd168ba1120a7788d6906e3d21e9c903152cec5d8f2018e4d21a45f739fa666",
       "usc_casm_identical": true
@@ -202,8 +202,8 @@
       "manifest": "midi_bench.starknet_artifacts.json",
       "sierra": "midi_bench_ScaleMidiProvider.contract_class.json",
       "sierra_program_len": 3262,
-      "sierra_program_sha256": "7591cc1de0c7efd08781b912afbbb91f535722de199da18d27898be94b7c7fa8",
-      "sierra_file_sha256": "a9dfcd56c401cb49d0a1f26b0f39cb5be9d4a3d84a24fcbd972e2da7265d449e",
+      "sierra_program_sha256": "583a568da7f5dfc3afc15f9bce3e18c7e92896f605bb77cc30e9ee9abe5d72a5",
+      "sierra_file_sha256": "44db8c594df4115a713fc7f0beb69986014a7e519ae92a73da47b389c3c5cb40",
       "sierra_identical": true,
       "scarb_casm_bytecode_sha256": "ab6fe2900cdb19fc5b4ade945c5edcb83983af2b4505a63e5a0f01d7b34d9a9e",
       "scarb_casm_identical": true,
@@ -214,8 +214,8 @@
       "manifest": "midi_bench_unittest.test.starknet_artifacts.json",
       "sierra": "midi_bench_unittest_ScaleMidiProvider.test.contract_class.json",
       "sierra_program_len": 3262,
-      "sierra_program_sha256": "7591cc1de0c7efd08781b912afbbb91f535722de199da18d27898be94b7c7fa8",
-      "sierra_file_sha256": "a9dfcd56c401cb49d0a1f26b0f39cb5be9d4a3d84a24fcbd972e2da7265d449e",
+      "sierra_program_sha256": "583a568da7f5dfc3afc15f9bce3e18c7e92896f605bb77cc30e9ee9abe5d72a5",
+      "sierra_file_sha256": "44db8c594df4115a713fc7f0beb69986014a7e519ae92a73da47b389c3c5cb40",
       "sierra_identical": true,
       "usc_casm_bytecode_sha256": "ab6fe2900cdb19fc5b4ade945c5edcb83983af2b4505a63e5a0f01d7b34d9a9e",
       "usc_casm_identical": true
@@ -242,8 +242,8 @@
    "4"
   ],
   "threads": 4,
-  "wall_s": 51.5,
-  "peak_rss_mb": 10994,
+  "wall_s": 32.2,
+  "peak_rss_mb": 11281,
   "tests_passed": 286
  },
  "checks": {
@@ -260,15 +260,15 @@
    "limit": 1110000000,
    "over": [],
    "max_case": "c_token_uri_e2e_s032_s",
-   "max_gas": 466035973
+   "max_gas": 466023973
   }
  },
  "groups": {
   "A": {
    "count": 180,
-   "sum": 38498930425,
+   "sum": 38497448485,
    "min": 1570,
-   "max": 361826223
+   "max": 361814223
   },
   "B": {
    "count": 28,
@@ -278,9 +278,9 @@
   },
   "C": {
    "count": 9,
-   "sum": 1320511396,
+   "sum": 1320487396,
    "min": 27550,
-   "max": 466035973
+   "max": 466023973
   },
   "D": {
    "count": 6,
@@ -290,15 +290,15 @@
   },
   "E": {
    "count": 62,
-   "sum": 4190118256,
+   "sum": 4189959296,
    "min": 4750,
-   "max": 358440133
+   "max": 358428133
   },
   "M": {
    "count": 1,
-   "sum": 125832425,
-   "min": 125832425,
-   "max": 125832425
+   "sum": 125826425,
+   "min": 125826425,
+   "max": 125826425
   }
  },
  "derived": {
@@ -307,13 +307,13 @@
    {
     "species": "s021_n",
     "midi_bytes": 1406,
-    "get_midi": 123890975,
-    "T0_genesis_smf_bytes": 123013325,
+    "get_midi": 123884975,
+    "T0_genesis_smf_bytes": 123007325,
     "T0_return_cost": 2209490,
-    "T0_net": 120803835,
-    "T1_params_and_score": 102330855,
+    "T0_net": 120797835,
+    "T1_params_and_score": 102324855,
     "T1_build_and_return_cost": 3880550,
-    "T1_net": 98450305,
+    "T1_net": 98444305,
     "T1_share_of_T0_net": 0.815,
     "after_score": 22353530,
     "provider_dispatch_and_packing": 3087140
@@ -321,13 +321,13 @@
    {
     "species": "s001_n",
     "midi_bytes": 4726,
-    "get_midi": 284708453,
-    "T0_genesis_smf_bytes": 282387673,
+    "get_midi": 284696453,
+    "T0_genesis_smf_bytes": 282375673,
     "T0_return_cost": 7421890,
-    "T0_net": 274965783,
-    "T1_params_and_score": 208028553,
+    "T0_net": 274953783,
+    "T1_params_and_score": 208016553,
     "T1_build_and_return_cost": 7959850,
-    "T1_net": 200068703,
+    "T1_net": 200056703,
     "T1_share_of_T0_net": 0.7276,
     "after_score": 74897080,
     "provider_dispatch_and_packing": 9742670
@@ -335,13 +335,13 @@
    {
     "species": "s032_s",
     "midi_bytes": 7197,
-    "get_midi": 355833723,
-    "T0_genesis_smf_bytes": 352432843,
+    "get_midi": 355821723,
+    "T0_genesis_smf_bytes": 352420843,
     "T0_return_cost": 11301360,
-    "T0_net": 341131483,
-    "T1_params_and_score": 246831243,
+    "T0_net": 341119483,
+    "T1_params_and_score": 246819243,
     "T1_build_and_return_cost": 9981450,
-    "T1_net": 236849793,
+    "T1_net": 236837793,
     "T1_share_of_T0_net": 0.6943,
     "after_score": 104281690,
     "provider_dispatch_and_packing": 14702240
@@ -434,7 +434,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 284708453,
+   "gas": 284696453,
    "nested": [
     {
      "depth": 1,
@@ -443,7 +443,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 290393283,
+   "test_l2_gas": 290380813,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S001_N (js)",
    "labels": [
@@ -458,7 +458,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 304553103,
+   "gas": 304541103,
    "nested": [
     {
      "depth": 1,
@@ -467,7 +467,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 310720280,
+   "test_l2_gas": 310707810,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S001_S (js)",
    "labels": [
@@ -482,7 +482,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 289893883,
+   "gas": 289881883,
    "nested": [
     {
      "depth": 1,
@@ -491,7 +491,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 295596294,
+   "test_l2_gas": 295583824,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S002_N (js)",
    "labels": [
@@ -506,7 +506,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 309758063,
+   "gas": 309746063,
    "nested": [
     {
      "depth": 1,
@@ -515,7 +515,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 315942821,
+   "test_l2_gas": 315930351,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S002_S (js)",
    "labels": [
@@ -530,7 +530,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 313132413,
+   "gas": 313120413,
    "nested": [
     {
      "depth": 1,
@@ -539,7 +539,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 318940310,
+   "test_l2_gas": 318927840,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S003_N (js)",
    "labels": [
@@ -554,7 +554,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 333110983,
+   "gas": 333098983,
    "nested": [
     {
      "depth": 1,
@@ -563,7 +563,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 339401227,
+   "test_l2_gas": 339388757,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S003_S (js)",
    "labels": [
@@ -578,7 +578,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 313810743,
+   "gas": 313798743,
    "nested": [
     {
      "depth": 1,
@@ -587,7 +587,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 319636221,
+   "test_l2_gas": 319623751,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S004_N (js)",
    "labels": [
@@ -602,7 +602,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 333808843,
+   "gas": 333796843,
    "nested": [
     {
      "depth": 1,
@@ -611,7 +611,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 340116668,
+   "test_l2_gas": 340104198,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S004_S (js)",
    "labels": [
@@ -626,7 +626,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 296383973,
+   "gas": 296371973,
    "nested": [
     {
      "depth": 1,
@@ -635,7 +635,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 302094044,
+   "test_l2_gas": 302081574,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S005_N (js)",
    "labels": [
@@ -650,7 +650,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 315270993,
+   "gas": 315258993,
    "nested": [
     {
      "depth": 1,
@@ -659,7 +659,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 321438170,
+   "test_l2_gas": 321425700,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S005_S (js)",
    "labels": [
@@ -674,7 +674,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 302432853,
+   "gas": 302420853,
    "nested": [
     {
      "depth": 1,
@@ -683,7 +683,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 308178086,
+   "test_l2_gas": 308165616,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S006_N (js)",
    "labels": [
@@ -698,7 +698,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 321361553,
+   "gas": 321349553,
    "nested": [
     {
      "depth": 1,
@@ -707,7 +707,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 327563892,
+   "test_l2_gas": 327551422,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S006_S (js)",
    "labels": [
@@ -722,7 +722,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 300894803,
+   "gas": 300882803,
    "nested": [
     {
      "depth": 1,
@@ -731,7 +731,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 306632376,
+   "test_l2_gas": 306619906,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S007_N (js)",
    "labels": [
@@ -746,7 +746,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 320798043,
+   "gas": 320786043,
    "nested": [
     {
      "depth": 1,
@@ -755,7 +755,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 327017963,
+   "test_l2_gas": 327005493,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S007_S (js)",
    "labels": [
@@ -770,7 +770,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 297200133,
+   "gas": 297188133,
    "nested": [
     {
      "depth": 1,
@@ -779,7 +779,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 302927785,
+   "test_l2_gas": 302915315,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S008_N (js)",
    "labels": [
@@ -794,7 +794,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 315455073,
+   "gas": 315443073,
    "nested": [
     {
      "depth": 1,
@@ -803,7 +803,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 321622250,
+   "test_l2_gas": 321609780,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S008_S (js)",
    "labels": [
@@ -818,7 +818,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 296590753,
+   "gas": 296578753,
    "nested": [
     {
      "depth": 1,
@@ -827,7 +827,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 302300824,
+   "test_l2_gas": 302288354,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S009_N (js)",
    "labels": [
@@ -842,7 +842,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 314801203,
+   "gas": 314789203,
    "nested": [
     {
      "depth": 1,
@@ -851,7 +851,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 320943139,
+   "test_l2_gas": 320930669,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S009_S (js)",
    "labels": [
@@ -866,7 +866,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 289549783,
+   "gas": 289537783,
    "nested": [
     {
      "depth": 1,
@@ -875,7 +875,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 295224692,
+   "test_l2_gas": 295212222,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S010_N (js)",
    "labels": [
@@ -890,7 +890,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 307398243,
+   "gas": 307386243,
    "nested": [
     {
      "depth": 1,
@@ -899,7 +899,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 313495096,
+   "test_l2_gas": 313482626,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S010_S (js)",
    "labels": [
@@ -914,7 +914,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 221193495,
+   "gas": 221184495,
    "nested": [
     {
      "depth": 1,
@@ -923,7 +923,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 226411298,
+   "test_l2_gas": 226401828,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S011_N (js)",
    "labels": [
@@ -938,7 +938,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 235567305,
+   "gas": 235558305,
    "nested": [
     {
      "depth": 1,
@@ -947,7 +947,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 241136728,
+   "test_l2_gas": 241127258,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S011_S (js)",
    "labels": [
@@ -962,7 +962,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 217348785,
+   "gas": 217339785,
    "nested": [
     {
      "depth": 1,
@@ -971,7 +971,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 222584169,
+   "test_l2_gas": 222574699,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S012_N (js)",
    "labels": [
@@ -986,7 +986,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 232223975,
+   "gas": 232214975,
    "nested": [
     {
      "depth": 1,
@@ -995,7 +995,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 237820900,
+   "test_l2_gas": 237811430,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S012_S (js)",
    "labels": [
@@ -1010,7 +1010,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 221153575,
+   "gas": 221144575,
    "nested": [
     {
      "depth": 1,
@@ -1019,7 +1019,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 226369408,
+   "test_l2_gas": 226359938,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S013_N (js)",
    "labels": [
@@ -1034,7 +1034,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 235524595,
+   "gas": 235515595,
    "nested": [
     {
      "depth": 1,
@@ -1043,7 +1043,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 241094018,
+   "test_l2_gas": 241084548,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S013_S (js)",
    "labels": [
@@ -1058,7 +1058,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 221090845,
+   "gas": 221081845,
    "nested": [
     {
      "depth": 1,
@@ -1067,7 +1067,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 226306678,
+   "test_l2_gas": 226297208,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S014_N (js)",
    "labels": [
@@ -1082,7 +1082,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 235461865,
+   "gas": 235452865,
    "nested": [
     {
      "depth": 1,
@@ -1091,7 +1091,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 241031288,
+   "test_l2_gas": 241021818,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S014_S (js)",
    "labels": [
@@ -1106,7 +1106,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 199662295,
+   "gas": 199653295,
    "nested": [
     {
      "depth": 1,
@@ -1115,7 +1115,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 204837276,
+   "test_l2_gas": 204827806,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S015_N (js)",
    "labels": [
@@ -1130,7 +1130,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 214495485,
+   "gas": 214486485,
    "nested": [
     {
      "depth": 1,
@@ -1139,7 +1139,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 220039667,
+   "test_l2_gas": 220030197,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S015_S (js)",
    "labels": [
@@ -1154,7 +1154,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 140854385,
+   "gas": 140848385,
    "nested": [
     {
      "depth": 1,
@@ -1163,7 +1163,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 145655934,
+   "test_l2_gas": 145649464,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S016_N (js)",
    "labels": [
@@ -1178,7 +1178,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 150521245,
+   "gas": 150515245,
    "nested": [
     {
      "depth": 1,
@@ -1187,7 +1187,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 155563238,
+   "test_l2_gas": 155556768,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S016_S (js)",
    "labels": [
@@ -1202,7 +1202,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 130358095,
+   "gas": 130352095,
    "nested": [
     {
      "depth": 1,
@@ -1211,7 +1211,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 135118792,
+   "test_l2_gas": 135112322,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S017_N (js)",
    "labels": [
@@ -1226,7 +1226,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 139172915,
+   "gas": 139166915,
    "nested": [
     {
      "depth": 1,
@@ -1235,7 +1235,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 144154505,
+   "test_l2_gas": 144148035,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S017_S (js)",
    "labels": [
@@ -1250,7 +1250,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 129712235,
+   "gas": 129706235,
    "nested": [
     {
      "depth": 1,
@@ -1259,7 +1259,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 134472932,
+   "test_l2_gas": 134466462,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S018_N (js)",
    "labels": [
@@ -1274,7 +1274,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 138527055,
+   "gas": 138521055,
    "nested": [
     {
      "depth": 1,
@@ -1283,7 +1283,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 143508645,
+   "test_l2_gas": 143502175,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S018_S (js)",
    "labels": [
@@ -1298,7 +1298,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 129846565,
+   "gas": 129840565,
    "nested": [
     {
      "depth": 1,
@@ -1307,7 +1307,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 134607262,
+   "test_l2_gas": 134600792,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S019_N (js)",
    "labels": [
@@ -1322,7 +1322,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 138661385,
+   "gas": 138655385,
    "nested": [
     {
      "depth": 1,
@@ -1331,7 +1331,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 143642975,
+   "test_l2_gas": 143636505,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S019_S (js)",
    "labels": [
@@ -1346,7 +1346,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 126838115,
+   "gas": 126832115,
    "nested": [
     {
      "depth": 1,
@@ -1355,7 +1355,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 131591152,
+   "test_l2_gas": 131584682,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S020_N (js)",
    "labels": [
@@ -1370,7 +1370,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 135469225,
+   "gas": 135463225,
    "nested": [
     {
      "depth": 1,
@@ -1379,7 +1379,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 140433234,
+   "test_l2_gas": 140426764,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S020_S (js)",
    "labels": [
@@ -1394,7 +1394,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 123890975,
+   "gas": 123884975,
    "nested": [
     {
      "depth": 1,
@@ -1403,7 +1403,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 128634091,
+   "test_l2_gas": 128627621,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S021_N (js)",
    "labels": [
@@ -1419,7 +1419,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 132326215,
+   "gas": 132320215,
    "nested": [
     {
      "depth": 1,
@@ -1428,7 +1428,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 137272643,
+   "test_l2_gas": 137266173,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S021_S (js)",
    "labels": [
@@ -1443,7 +1443,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 140788165,
+   "gas": 140782165,
    "nested": [
     {
      "depth": 1,
@@ -1452,7 +1452,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 145584024,
+   "test_l2_gas": 145577554,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S022_N (js)",
    "labels": [
@@ -1467,7 +1467,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 150459455,
+   "gas": 150453455,
    "nested": [
     {
      "depth": 1,
@@ -1476,7 +1476,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 155501448,
+   "test_l2_gas": 155494978,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S022_S (js)",
    "labels": [
@@ -1491,7 +1491,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 140750125,
+   "gas": 140744125,
    "nested": [
     {
      "depth": 1,
@@ -1500,7 +1500,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 145545984,
+   "test_l2_gas": 145539514,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S023_N (js)",
    "labels": [
@@ -1515,7 +1515,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 150421415,
+   "gas": 150415415,
    "nested": [
     {
      "depth": 1,
@@ -1524,7 +1524,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 155463408,
+   "test_l2_gas": 155456938,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S023_S (js)",
    "labels": [
@@ -1539,7 +1539,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 129672985,
+   "gas": 129666985,
    "nested": [
     {
      "depth": 1,
@@ -1548,7 +1548,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 134433682,
+   "test_l2_gas": 134427212,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S024_N (js)",
    "labels": [
@@ -1563,7 +1563,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 138475645,
+   "gas": 138469645,
    "nested": [
     {
      "depth": 1,
@@ -1572,7 +1572,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 143457235,
+   "test_l2_gas": 143450765,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S024_S (js)",
    "labels": [
@@ -1587,7 +1587,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 129610685,
+   "gas": 129604685,
    "nested": [
     {
      "depth": 1,
@@ -1596,7 +1596,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 134371382,
+   "test_l2_gas": 134364912,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S025_N (js)",
    "labels": [
@@ -1611,7 +1611,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 138413345,
+   "gas": 138407345,
    "nested": [
     {
      "depth": 1,
@@ -1620,7 +1620,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 143394935,
+   "test_l2_gas": 143388465,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S025_S (js)",
    "labels": [
@@ -1635,7 +1635,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 317128023,
+   "gas": 317116023,
    "nested": [
     {
      "depth": 1,
@@ -1644,7 +1644,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 322943580,
+   "test_l2_gas": 322931110,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S026_N (js)",
    "labels": [
@@ -1659,7 +1659,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 337137133,
+   "gas": 337125133,
    "nested": [
     {
      "depth": 1,
@@ -1668,7 +1668,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 343444958,
+   "test_l2_gas": 343432488,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S026_S (js)",
    "labels": [
@@ -1683,7 +1683,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 326814443,
+   "gas": 326802443,
    "nested": [
     {
      "depth": 1,
@@ -1692,7 +1692,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 332587178,
+   "test_l2_gas": 332574708,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S027_N (js)",
    "labels": [
@@ -1707,7 +1707,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 347430183,
+   "gas": 347418183,
    "nested": [
     {
      "depth": 1,
@@ -1716,7 +1716,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 353712767,
+   "test_l2_gas": 353700297,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S027_S (js)",
    "labels": [
@@ -1731,7 +1731,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 341752793,
+   "gas": 341740793,
    "nested": [
     {
      "depth": 1,
@@ -1740,7 +1740,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 347648595,
+   "test_l2_gas": 347636125,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S028_N (js)",
    "labels": [
@@ -1755,7 +1755,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 361826223,
+   "gas": 361814223,
    "nested": [
     {
      "depth": 1,
@@ -1764,7 +1764,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 368204372,
+   "test_l2_gas": 368191902,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S028_S (js)",
    "labels": [
@@ -1779,7 +1779,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 314149903,
+   "gas": 314137903,
    "nested": [
     {
      "depth": 1,
@@ -1788,7 +1788,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 319975381,
+   "test_l2_gas": 319962911,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S029_N (js)",
    "labels": [
@@ -1803,7 +1803,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 334148003,
+   "gas": 334136003,
    "nested": [
     {
      "depth": 1,
@@ -1812,7 +1812,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 340455828,
+   "test_l2_gas": 340443358,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S029_S (js)",
    "labels": [
@@ -1827,7 +1827,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 337855603,
+   "gas": 337843603,
    "nested": [
     {
      "depth": 1,
@@ -1836,7 +1836,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 343751405,
+   "test_l2_gas": 343738935,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S030_N (js)",
    "labels": [
@@ -1851,7 +1851,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 357929033,
+   "gas": 357917033,
    "nested": [
     {
      "depth": 1,
@@ -1860,7 +1860,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 364307182,
+   "test_l2_gas": 364294712,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S030_S (js)",
    "labels": [
@@ -1875,7 +1875,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 309673523,
+   "gas": 309661523,
    "nested": [
     {
      "depth": 1,
@@ -1884,7 +1884,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 315446258,
+   "test_l2_gas": 315433788,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S031_N (js)",
    "labels": [
@@ -1899,7 +1899,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 329635203,
+   "gas": 329623203,
    "nested": [
     {
      "depth": 1,
@@ -1908,7 +1908,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 335900206,
+   "test_l2_gas": 335887736,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S031_S (js)",
    "labels": [
@@ -1923,7 +1923,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 335738123,
+   "gas": 335726123,
    "nested": [
     {
      "depth": 1,
@@ -1932,7 +1932,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 341633925,
+   "test_l2_gas": 341621455,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S032_N (js)",
    "labels": [
@@ -1947,7 +1947,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 355833723,
+   "gas": 355821723,
    "nested": [
     {
      "depth": 1,
@@ -1956,7 +1956,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 362221793,
+   "test_l2_gas": 362209323,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S032_S (js)",
    "labels": [
@@ -1972,7 +1972,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 308392343,
+   "gas": 308380343,
    "nested": [
     {
      "depth": 1,
@@ -1981,7 +1981,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 314182659,
+   "test_l2_gas": 314170189,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S033_N (js)",
    "labels": [
@@ -1997,7 +1997,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 328351383,
+   "gas": 328339383,
    "nested": [
     {
      "depth": 1,
@@ -2006,7 +2006,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 334624046,
+   "test_l2_gas": 334611576,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S033_S (js)",
    "labels": [
@@ -2022,7 +2022,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 317156143,
+   "gas": 317144143,
    "nested": [
     {
      "depth": 1,
@@ -2031,7 +2031,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 322946459,
+   "test_l2_gas": 322933989,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S034_N (js)",
    "labels": [
@@ -2046,7 +2046,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 336808673,
+   "gas": 336796673,
    "nested": [
     {
      "depth": 1,
@@ -2055,7 +2055,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 343081336,
+   "test_l2_gas": 343068866,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S034_S (js)",
    "labels": [
@@ -2070,7 +2070,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 328462563,
+   "gas": 328450563,
    "nested": [
     {
      "depth": 1,
@@ -2079,7 +2079,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 334270460,
+   "test_l2_gas": 334257990,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S035_N (js)",
    "labels": [
@@ -2094,7 +2094,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 349120153,
+   "gas": 349108153,
    "nested": [
     {
      "depth": 1,
@@ -2103,7 +2103,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 355437899,
+   "test_l2_gas": 355425429,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S035_S (js)",
    "labels": [
@@ -2118,7 +2118,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 251740895,
+   "gas": 251731895,
    "nested": [
     {
      "depth": 1,
@@ -2127,7 +2127,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 257074105,
+   "test_l2_gas": 257064635,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S036_N (js)",
    "labels": [
@@ -2142,7 +2142,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 266741485,
+   "gas": 266732485,
    "nested": [
     {
      "depth": 1,
@@ -2151,7 +2151,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 272443896,
+   "test_l2_gas": 272434426,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S036_S (js)",
    "labels": [
@@ -2166,7 +2166,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 242935925,
+   "gas": 242926925,
    "nested": [
     {
      "depth": 1,
@@ -2175,7 +2175,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 248233973,
+   "test_l2_gas": 248224503,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S037_N (js)",
    "labels": [
@@ -2190,7 +2190,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 257903035,
+   "gas": 257894035,
    "nested": [
     {
      "depth": 1,
@@ -2199,7 +2199,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 263570284,
+   "test_l2_gas": 263560814,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S037_S (js)",
    "labels": [
@@ -2214,7 +2214,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 247569295,
+   "gas": 247560295,
    "nested": [
     {
      "depth": 1,
@@ -2223,7 +2223,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 252884924,
+   "test_l2_gas": 252875454,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S038_N (js)",
    "labels": [
@@ -2238,7 +2238,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 263535715,
+   "gas": 263526715,
    "nested": [
     {
      "depth": 1,
@@ -2247,7 +2247,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 269245786,
+   "test_l2_gas": 269236316,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S038_S (js)",
    "labels": [
@@ -2262,7 +2262,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 246957945,
+   "gas": 246948945,
    "nested": [
     {
      "depth": 1,
@@ -2271,7 +2271,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 252263653,
+   "test_l2_gas": 252254183,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S039_N (js)",
    "labels": [
@@ -2287,7 +2287,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 262913205,
+   "gas": 262904205,
    "nested": [
     {
      "depth": 1,
@@ -2296,7 +2296,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 268615616,
+   "test_l2_gas": 268606146,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S039_S (js)",
    "labels": [
@@ -2312,7 +2312,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 221877005,
+   "gas": 221868005,
    "nested": [
     {
      "depth": 1,
@@ -2321,7 +2321,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 227122310,
+   "test_l2_gas": 227112840,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S040_N (js)",
    "labels": [
@@ -2337,7 +2337,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 236785525,
+   "gas": 236776525,
    "nested": [
     {
      "depth": 1,
@@ -2346,7 +2346,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 242400031,
+   "test_l2_gas": 242390561,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S040_S (js)",
    "labels": [
@@ -2362,7 +2362,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 138361435,
+   "gas": 138355435,
    "nested": [
     {
      "depth": 1,
@@ -2371,7 +2371,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 143149634,
+   "test_l2_gas": 143143164,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S041_N (js)",
    "labels": [
@@ -2386,7 +2386,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 147861175,
+   "gas": 147855175,
    "nested": [
     {
      "depth": 1,
@@ -2395,7 +2395,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 152885587,
+   "test_l2_gas": 152879117,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S041_S (js)",
    "labels": [
@@ -2410,7 +2410,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 140908735,
+   "gas": 140902735,
    "nested": [
     {
      "depth": 1,
@@ -2419,7 +2419,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 145710284,
+   "test_l2_gas": 145703814,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S042_N (js)",
    "labels": [
@@ -2434,7 +2434,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 150575595,
+   "gas": 150569595,
    "nested": [
     {
      "depth": 1,
@@ -2443,7 +2443,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 155617588,
+   "test_l2_gas": 155611118,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S042_S (js)",
    "labels": [
@@ -2458,7 +2458,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 142016895,
+   "gas": 142010895,
    "nested": [
     {
      "depth": 1,
@@ -2467,7 +2467,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 146818444,
+   "test_l2_gas": 146811974,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S043_N (js)",
    "labels": [
@@ -2482,7 +2482,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 151683755,
+   "gas": 151677755,
    "nested": [
     {
      "depth": 1,
@@ -2491,7 +2491,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 156725748,
+   "test_l2_gas": 156719278,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S043_S (js)",
    "labels": [
@@ -2506,7 +2506,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 138329405,
+   "gas": 138323405,
    "nested": [
     {
      "depth": 1,
@@ -2515,7 +2515,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 143117604,
+   "test_l2_gas": 143111134,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S044_N (js)",
    "labels": [
@@ -2530,7 +2530,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 147829145,
+   "gas": 147823145,
    "nested": [
     {
      "depth": 1,
@@ -2539,7 +2539,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 152853557,
+   "test_l2_gas": 152847087,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S044_S (js)",
    "labels": [
@@ -2554,7 +2554,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 154691875,
+   "gas": 154685875,
    "nested": [
     {
      "depth": 1,
@@ -2563,7 +2563,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 159532817,
+   "test_l2_gas": 159526347,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S045_N (js)",
    "labels": [
@@ -2578,7 +2578,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 165227365,
+   "gas": 165221365,
    "nested": [
     {
      "depth": 1,
@@ -2587,7 +2587,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 170332022,
+   "test_l2_gas": 170325552,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S045_S (js)",
    "labels": [
@@ -2602,7 +2602,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 154392115,
+   "gas": 154386115,
    "nested": [
     {
      "depth": 1,
@@ -2611,7 +2611,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 159223136,
+   "test_l2_gas": 159216666,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S046_N (js)",
    "labels": [
@@ -2626,7 +2626,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 164932035,
+   "gas": 164926035,
    "nested": [
     {
      "depth": 1,
@@ -2635,7 +2635,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 170036692,
+   "test_l2_gas": 170030222,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S046_S (js)",
    "labels": [
@@ -2650,7 +2650,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 140714075,
+   "gas": 140708075,
    "nested": [
     {
      "depth": 1,
@@ -2659,7 +2659,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 145509934,
+   "test_l2_gas": 145503464,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S047_N (js)",
    "labels": [
@@ -2674,7 +2674,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 150385365,
+   "gas": 150379365,
    "nested": [
     {
      "depth": 1,
@@ -2683,7 +2683,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 155427358,
+   "test_l2_gas": 155420888,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S047_S (js)",
    "labels": [
@@ -2698,7 +2698,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 154493405,
+   "gas": 154487405,
    "nested": [
     {
      "depth": 1,
@@ -2707,7 +2707,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 159324426,
+   "test_l2_gas": 159317956,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S048_N (js)",
    "labels": [
@@ -2722,7 +2722,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 165033325,
+   "gas": 165027325,
    "nested": [
     {
      "depth": 1,
@@ -2731,7 +2731,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 170137982,
+   "test_l2_gas": 170131512,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S048_S (js)",
    "labels": [
@@ -2746,7 +2746,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 154421215,
+   "gas": 154415215,
    "nested": [
     {
      "depth": 1,
@@ -2755,7 +2755,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 159252236,
+   "test_l2_gas": 159245766,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S049_N (js)",
    "labels": [
@@ -2770,7 +2770,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 164961135,
+   "gas": 164955135,
    "nested": [
     {
      "depth": 1,
@@ -2779,7 +2779,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 170065792,
+   "test_l2_gas": 170059322,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S049_S (js)",
    "labels": [
@@ -2794,7 +2794,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 140727675,
+   "gas": 140721675,
    "nested": [
     {
      "depth": 1,
@@ -2803,7 +2803,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 145523534,
+   "test_l2_gas": 145517064,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S050_N (js)",
    "labels": [
@@ -2818,7 +2818,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 150398965,
+   "gas": 150392965,
    "nested": [
     {
      "depth": 1,
@@ -2827,7 +2827,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 155440958,
+   "test_l2_gas": 155434488,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S050_S (js)",
    "labels": [
@@ -2842,7 +2842,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 319595313,
+   "gas": 319583313,
    "nested": [
     {
      "depth": 1,
@@ -2851,7 +2851,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 325410870,
+   "test_l2_gas": 325398400,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S051_N (js)",
    "labels": [
@@ -2866,7 +2866,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 339582253,
+   "gas": 339570253,
    "nested": [
     {
      "depth": 1,
@@ -2875,7 +2875,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 345882418,
+   "test_l2_gas": 345869948,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S051_S (js)",
    "labels": [
@@ -2890,7 +2890,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 320266863,
+   "gas": 320254863,
    "nested": [
     {
      "depth": 1,
@@ -2899,7 +2899,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 326098031,
+   "test_l2_gas": 326085561,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S052_N (js)",
    "labels": [
@@ -2914,7 +2914,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 340270543,
+   "gas": 340258543,
    "nested": [
     {
      "depth": 1,
@@ -2923,7 +2923,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 346588289,
+   "test_l2_gas": 346575819,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S052_S (js)",
    "labels": [
@@ -2938,7 +2938,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 319381153,
+   "gas": 319369153,
    "nested": [
     {
      "depth": 1,
@@ -2947,7 +2947,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 325189050,
+   "test_l2_gas": 325176580,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S053_N (js)",
    "labels": [
@@ -2962,7 +2962,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 339031043,
+   "gas": 339019043,
    "nested": [
     {
      "depth": 1,
@@ -2971,7 +2971,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 345313627,
+   "test_l2_gas": 345301157,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S053_S (js)",
    "labels": [
@@ -2986,7 +2986,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 316577123,
+   "gas": 316565123,
    "nested": [
     {
      "depth": 1,
@@ -2995,7 +2995,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 322392680,
+   "test_l2_gas": 322380210,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S054_N (js)",
    "labels": [
@@ -3010,7 +3010,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 336586233,
+   "gas": 336574233,
    "nested": [
     {
      "depth": 1,
@@ -3019,7 +3019,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 342894058,
+   "test_l2_gas": 342881588,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S054_S (js)",
    "labels": [
@@ -3034,7 +3034,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 313826413,
+   "gas": 313814413,
    "nested": [
     {
      "depth": 1,
@@ -3043,7 +3043,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 319624389,
+   "test_l2_gas": 319611919,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S055_N (js)",
    "labels": [
@@ -3058,7 +3058,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 333465143,
+   "gas": 333453143,
    "nested": [
     {
      "depth": 1,
@@ -3067,7 +3067,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 339737806,
+   "test_l2_gas": 339725336,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S055_S (js)",
    "labels": [
@@ -3082,7 +3082,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 319531363,
+   "gas": 319519363,
    "nested": [
     {
      "depth": 1,
@@ -3091,7 +3091,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 325321679,
+   "test_l2_gas": 325309209,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S056_N (js)",
    "labels": [
@@ -3106,7 +3106,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 339164513,
+   "gas": 339152513,
    "nested": [
     {
      "depth": 1,
@@ -3115,7 +3115,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 345429516,
+   "test_l2_gas": 345417046,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S056_S (js)",
    "labels": [
@@ -3130,7 +3130,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 320005763,
+   "gas": 319993763,
    "nested": [
     {
      "depth": 1,
@@ -3139,7 +3139,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 325821320,
+   "test_l2_gas": 325808850,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S057_N (js)",
    "labels": [
@@ -3154,7 +3154,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 339241113,
+   "gas": 339229113,
    "nested": [
     {
      "depth": 1,
@@ -3163,7 +3163,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 345513776,
+   "test_l2_gas": 345501306,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S057_S (js)",
    "labels": [
@@ -3178,7 +3178,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 329162733,
+   "gas": 329150733,
    "nested": [
     {
      "depth": 1,
@@ -3187,7 +3187,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 335013452,
+   "test_l2_gas": 335000982,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S058_N (js)",
    "labels": [
@@ -3202,7 +3202,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 349210903,
+   "gas": 349198903,
    "nested": [
     {
      "depth": 1,
@@ -3211,7 +3211,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 355553890,
+   "test_l2_gas": 355541420,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S058_S (js)",
    "labels": [
@@ -3226,7 +3226,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 317853783,
+   "gas": 317841783,
    "nested": [
     {
      "depth": 1,
@@ -3235,7 +3235,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 323651759,
+   "test_l2_gas": 323639289,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S059_N (js)",
    "labels": [
@@ -3250,7 +3250,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 337821193,
+   "gas": 337809193,
    "nested": [
     {
      "depth": 1,
@@ -3259,7 +3259,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 344103777,
+   "test_l2_gas": 344091307,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S059_S (js)",
    "labels": [
@@ -3274,7 +3274,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 318778683,
+   "gas": 318766683,
    "nested": [
     {
      "depth": 1,
@@ -3283,7 +3283,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 324604161,
+   "test_l2_gas": 324591691,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S060_N (js)",
    "labels": [
@@ -3298,7 +3298,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 338776783,
+   "gas": 338764783,
    "nested": [
     {
      "depth": 1,
@@ -3307,7 +3307,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 345084608,
+   "test_l2_gas": 345072138,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S060_S (js)",
    "labels": [
@@ -3322,7 +3322,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 230182285,
+   "gas": 230173285,
    "nested": [
     {
      "depth": 1,
@@ -3331,7 +3331,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 235445171,
+   "test_l2_gas": 235435701,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S061_N (js)",
    "labels": [
@@ -3346,7 +3346,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 245107545,
+   "gas": 245098545,
    "nested": [
     {
      "depth": 1,
@@ -3355,7 +3355,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 250739632,
+   "test_l2_gas": 250730162,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S061_S (js)",
    "labels": [
@@ -3370,7 +3370,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 225910605,
+   "gas": 225901605,
    "nested": [
     {
      "depth": 1,
@@ -3379,7 +3379,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 231173491,
+   "test_l2_gas": 231164021,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S062_N (js)",
    "labels": [
@@ -3394,7 +3394,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 240835865,
+   "gas": 240826865,
    "nested": [
     {
      "depth": 1,
@@ -3403,7 +3403,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 246467952,
+   "test_l2_gas": 246458482,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S062_S (js)",
    "labels": [
@@ -3418,7 +3418,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 229961145,
+   "gas": 229952145,
    "nested": [
     {
      "depth": 1,
@@ -3427,7 +3427,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 235224031,
+   "test_l2_gas": 235214561,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S063_N (js)",
    "labels": [
@@ -3442,7 +3442,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 244886405,
+   "gas": 244877405,
    "nested": [
     {
      "depth": 1,
@@ -3451,7 +3451,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 250518492,
+   "test_l2_gas": 250509022,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S063_S (js)",
    "labels": [
@@ -3466,7 +3466,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 225443105,
+   "gas": 225434105,
    "nested": [
     {
      "depth": 1,
@@ -3475,7 +3475,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 230688410,
+   "test_l2_gas": 230678940,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S064_N (js)",
    "labels": [
@@ -3490,7 +3490,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 240095345,
+   "gas": 240086345,
    "nested": [
     {
      "depth": 1,
@@ -3499,7 +3499,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 245699930,
+   "test_l2_gas": 245690460,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S064_S (js)",
    "labels": [
@@ -3514,7 +3514,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 227856165,
+   "gas": 227847165,
    "nested": [
     {
      "depth": 1,
@@ -3523,7 +3523,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 233119051,
+   "test_l2_gas": 233109581,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S065_N (js)",
    "labels": [
@@ -3538,7 +3538,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 242781425,
+   "gas": 242772425,
    "nested": [
     {
      "depth": 1,
@@ -3547,7 +3547,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 248413512,
+   "test_l2_gas": 248404042,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S065_S (js)",
    "labels": [
@@ -3562,7 +3562,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 141137575,
+   "gas": 141131575,
    "nested": [
     {
      "depth": 1,
@@ -3571,7 +3571,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 145939124,
+   "test_l2_gas": 145932654,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S066_N (js)",
    "labels": [
@@ -3586,7 +3586,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 150804435,
+   "gas": 150798435,
    "nested": [
     {
      "depth": 1,
@@ -3595,7 +3595,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 155846428,
+   "test_l2_gas": 155839958,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S066_S (js)",
    "labels": [
@@ -3610,7 +3610,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 143866635,
+   "gas": 143860635,
    "nested": [
     {
      "depth": 1,
@@ -3619,7 +3619,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 148668184,
+   "test_l2_gas": 148661714,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S067_N (js)",
    "labels": [
@@ -3634,7 +3634,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 153533495,
+   "gas": 153527495,
    "nested": [
     {
      "depth": 1,
@@ -3643,7 +3643,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 158575488,
+   "test_l2_gas": 158569018,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S067_S (js)",
    "labels": [
@@ -3658,7 +3658,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 189571111,
+   "gas": 189562131,
    "nested": [
     {
      "depth": 1,
@@ -3667,7 +3667,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 194490037,
+   "test_l2_gas": 194480587,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S068_N (js)",
    "labels": [
@@ -3683,7 +3683,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 196848581,
+   "gas": 196839601,
    "nested": [
     {
      "depth": 1,
@@ -3692,7 +3692,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 201978479,
+   "test_l2_gas": 201969029,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S068_S (js)",
    "labels": [
@@ -3708,7 +3708,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 143846745,
+   "gas": 143840745,
    "nested": [
     {
      "depth": 1,
@@ -3717,7 +3717,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 148648294,
+   "test_l2_gas": 148641824,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S069_N (js)",
    "labels": [
@@ -3732,7 +3732,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 153513605,
+   "gas": 153507605,
    "nested": [
     {
      "depth": 1,
@@ -3741,7 +3741,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 158555598,
+   "test_l2_gas": 158549128,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S069_S (js)",
    "labels": [
@@ -3756,7 +3756,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 147632735,
+   "gas": 147626735,
    "nested": [
     {
      "depth": 1,
@@ -3765,7 +3765,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 152446175,
+   "test_l2_gas": 152439705,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S070_N (js)",
    "labels": [
@@ -3780,7 +3780,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 157483305,
+   "gas": 157477305,
    "nested": [
     {
      "depth": 1,
@@ -3789,7 +3789,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 162542879,
+   "test_l2_gas": 162536409,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S070_S (js)",
    "labels": [
@@ -3804,7 +3804,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 143638265,
+   "gas": 143632265,
    "nested": [
     {
      "depth": 1,
@@ -3813,7 +3813,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 148434124,
+   "test_l2_gas": 148427654,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S071_N (js)",
    "labels": [
@@ -3828,7 +3828,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 153309555,
+   "gas": 153303555,
    "nested": [
     {
      "depth": 1,
@@ -3837,7 +3837,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 158351548,
+   "test_l2_gas": 158345078,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S071_S (js)",
    "labels": [
@@ -3852,7 +3852,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 142174535,
+   "gas": 142168535,
    "nested": [
     {
      "depth": 1,
@@ -3861,7 +3861,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 146970394,
+   "test_l2_gas": 146963924,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S072_N (js)",
    "labels": [
@@ -3876,7 +3876,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 151845825,
+   "gas": 151839825,
    "nested": [
     {
      "depth": 1,
@@ -3885,7 +3885,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 156887818,
+   "test_l2_gas": 156881348,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S072_S (js)",
    "labels": [
@@ -3900,7 +3900,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 144443275,
+   "gas": 144437275,
    "nested": [
     {
      "depth": 1,
@@ -3909,7 +3909,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 149249055,
+   "test_l2_gas": 149242585,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S073_N (js)",
    "labels": [
@@ -3924,7 +3924,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 154281685,
+   "gas": 154275685,
    "nested": [
     {
      "depth": 1,
@@ -3933,7 +3933,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 159333599,
+   "test_l2_gas": 159327129,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S073_S (js)",
    "labels": [
@@ -3948,7 +3948,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 142202235,
+   "gas": 142196235,
    "nested": [
     {
      "depth": 1,
@@ -3957,7 +3957,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 146998094,
+   "test_l2_gas": 146991624,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S074_N (js)",
    "labels": [
@@ -3972,7 +3972,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 151873525,
+   "gas": 151867525,
    "nested": [
     {
      "depth": 1,
@@ -3981,7 +3981,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 156915518,
+   "test_l2_gas": 156909048,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S074_S (js)",
    "labels": [
@@ -3996,7 +3996,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 143531715,
+   "gas": 143525715,
    "nested": [
     {
      "depth": 1,
@@ -4005,7 +4005,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 148327574,
+   "test_l2_gas": 148321104,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S075_N (js)",
    "labels": [
@@ -4020,7 +4020,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 153203005,
+   "gas": 153197005,
    "nested": [
     {
      "depth": 1,
@@ -4029,7 +4029,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 158244998,
+   "test_l2_gas": 158238528,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S075_S (js)",
    "labels": [
@@ -4044,7 +4044,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 246744085,
+   "gas": 246735085,
    "nested": [
     {
      "depth": 1,
@@ -4053,7 +4053,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 252284812,
+   "test_l2_gas": 252275342,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_C076 (js)",
    "labels": [
@@ -4065,7 +4065,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 334220953,
+   "gas": 334208953,
    "nested": [
     {
      "depth": 1,
@@ -4074,7 +4074,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 340361797,
+   "test_l2_gas": 340349327,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_C077 (js)",
    "labels": [
@@ -4086,7 +4086,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 138114075,
+   "gas": 138108075,
    "nested": [
     {
      "depth": 1,
@@ -4095,7 +4095,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 142725372,
+   "test_l2_gas": 142718902,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_C200 (js)",
    "labels": [
@@ -4107,7 +4107,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 284708453,
+   "gas": 284696453,
    "nested": [
     {
      "depth": 1,
@@ -4116,7 +4116,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 291197273,
+   "test_l2_gas": 291184803,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_NAMED_WARLOCK (js)",
    "labels": [
@@ -4128,7 +4128,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi_for",
-   "gas": 123866405,
+   "gas": 123860405,
    "nested": [
     {
      "depth": 1,
@@ -4137,7 +4137,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 128609621,
+   "test_l2_gas": 128603151,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_FOR_S021_N (js)",
    "labels": [
@@ -4153,7 +4153,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi_for",
-   "gas": 284683883,
+   "gas": 284671883,
    "nested": [
     {
      "depth": 1,
@@ -4162,7 +4162,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 290368813,
+   "test_l2_gas": 290356343,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_FOR_S001_N (js)",
    "labels": [
@@ -4177,7 +4177,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi_for",
-   "gas": 355809153,
+   "gas": 355797153,
    "nested": [
     {
      "depth": 1,
@@ -4186,7 +4186,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 362197323,
+   "test_l2_gas": 362184853,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_FOR_S032_S (js)",
    "labels": [
@@ -4202,7 +4202,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_sound",
-   "gas": 285300493,
+   "gas": 285288493,
    "nested": [
     {
      "depth": 1,
@@ -4211,7 +4211,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 293039551,
+   "test_l2_gas": 293027081,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_SOUND_S001_N_MIDI (js), A_GET_SOUND_S001_N_SETTINGS (baseline-frozen)",
    "labels": [
@@ -4226,7 +4226,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_sound",
-   "gas": 305264683,
+   "gas": 305252683,
    "nested": [
     {
      "depth": 1,
@@ -4235,7 +4235,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 313969817,
+   "test_l2_gas": 313957347,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_SOUND_S001_S_MIDI (js), A_GET_SOUND_S001_S_SETTINGS (baseline-frozen)",
    "labels": [
@@ -4250,7 +4250,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_sound",
-   "gas": 190188231,
+   "gas": 190179251,
    "nested": [
     {
      "depth": 1,
@@ -4259,7 +4259,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 197186175,
+   "test_l2_gas": 197176725,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_SOUND_S068_N_MIDI (js), A_GET_SOUND_S068_N_SETTINGS (baseline-frozen)",
    "labels": [
@@ -4275,7 +4275,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_sound",
-   "gas": 247544665,
+   "gas": 247535665,
    "nested": [
     {
      "depth": 1,
@@ -4284,7 +4284,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 254840423,
+   "test_l2_gas": 254830953,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_SOUND_S039_N_MIDI (js), A_GET_SOUND_S039_N_SETTINGS (baseline-frozen)",
    "labels": [
@@ -4300,7 +4300,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_sound",
-   "gas": 124483015,
+   "gas": 124477015,
    "nested": [
     {
      "depth": 1,
@@ -4309,7 +4309,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 131280359,
+   "test_l2_gas": 131273889,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_SOUND_S021_N_MIDI (js), A_GET_SOUND_S021_N_SETTINGS (baseline-frozen)",
    "labels": [
@@ -4325,7 +4325,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_sound",
-   "gas": 247328955,
+   "gas": 247319955,
    "nested": [
     {
      "depth": 1,
@@ -4334,7 +4334,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 254859732,
+   "test_l2_gas": 254850262,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_SOUND_C076_MIDI (js), A_GET_SOUND_C076_SETTINGS (baseline-frozen)",
    "labels": [
@@ -5115,7 +5115,7 @@
      "gas": 24700
     }
    ],
-   "test_l2_gas": 113082790,
+   "test_l2_gas": 113082320,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_FIXED_L31 (js)",
    "labels": [
@@ -5137,7 +5137,7 @@
      "gas": 220900
     }
    ],
-   "test_l2_gas": 121010289,
+   "test_l2_gas": 121009819,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_FIXED_L1406 (js)",
    "labels": [
@@ -5159,7 +5159,7 @@
      "gas": 697450
     }
    ],
-   "test_l2_gas": 140152944,
+   "test_l2_gas": 140152474,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_FIXED_L4726 (js)",
    "labels": [
@@ -5181,7 +5181,7 @@
      "gas": 1053750
     }
    ],
-   "test_l2_gas": 154047765,
+   "test_l2_gas": 154047295,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_FIXED_L7197 (js)",
    "labels": [
@@ -5203,7 +5203,7 @@
      "gas": 220900
     }
    ],
-   "test_l2_gas": 121871220,
+   "test_l2_gas": 121870750,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_FIXED_L1406_ESCAPED (js)",
    "labels": [
@@ -5225,7 +5225,7 @@
      "gas": 220900
     }
    ],
-   "test_l2_gas": 45136003,
+   "test_l2_gas": 45135533,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_FIXED_L1406_SMALL (js)",
    "labels": [
@@ -5238,13 +5238,13 @@
    "group": "C",
    "contract": "MidiSoundPage",
    "selector": "token_uri",
-   "gas": 382620433,
+   "gas": 382608433,
    "nested": [
     {
      "depth": 1,
      "contract": "BeastMidiProvider",
      "selector": "get_midi_for",
-     "gas": 284683883
+     "gas": 284671883
     },
     {
      "depth": 2,
@@ -5253,7 +5253,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 428186419,
+   "test_l2_gas": 428173949,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_E2E_S001_N (js)",
    "labels": [
@@ -5270,13 +5270,13 @@
    "group": "C",
    "contract": "MidiSoundPage",
    "selector": "token_uri",
-   "gas": 466035973,
+   "gas": 466023973,
    "nested": [
     {
      "depth": 1,
      "contract": "BeastMidiProvider",
      "selector": "get_midi_for",
-     "gas": 355809153
+     "gas": 355797153
     },
     {
      "depth": 2,
@@ -5285,7 +5285,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 512850210,
+   "test_l2_gas": 512837740,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_E2E_S032_S (js)",
    "labels": [
@@ -5317,7 +5317,7 @@
    "selector": "get_midi",
    "gas": 2423532,
    "nested": [],
-   "test_l2_gas": 3256567,
+   "test_l2_gas": 3256097,
    "over_execute_max_sierra_gas": false,
    "output": "checked: D_SCALE_GET_MIDI_T1 (baseline-frozen)",
    "labels": [
@@ -5331,7 +5331,7 @@
    "selector": "get_midi_for",
    "gas": 2425142,
    "nested": [],
-   "test_l2_gas": 3258377,
+   "test_l2_gas": 3257907,
    "over_execute_max_sierra_gas": false,
    "output": "checked: D_SCALE_GET_MIDI_FOR_T1 (baseline-frozen)",
    "labels": [
@@ -5345,7 +5345,7 @@
    "selector": "get_midi",
    "gas": 2424332,
    "nested": [],
-   "test_l2_gas": 3257367,
+   "test_l2_gas": 3256897,
    "over_execute_max_sierra_gas": false,
    "output": "checked: D_SCALE_GET_MIDI_T42 (baseline-frozen)",
    "labels": [
@@ -5359,7 +5359,7 @@
    "selector": "get_midi_for",
    "gas": 2425942,
    "nested": [],
-   "test_l2_gas": 3259177,
+   "test_l2_gas": 3258707,
    "over_execute_max_sierra_gas": false,
    "output": "checked: D_SCALE_GET_MIDI_FOR_T42 (baseline-frozen)",
    "labels": [
@@ -5373,7 +5373,7 @@
    "selector": "get_midi",
    "gas": 2420942,
    "nested": [],
-   "test_l2_gas": 3253977,
+   "test_l2_gas": 3253507,
    "over_execute_max_sierra_gas": false,
    "output": "checked: D_SCALE_GET_MIDI_T_WARLOCK (baseline-frozen)",
    "labels": [
@@ -5387,7 +5387,7 @@
    "selector": "get_midi_for",
    "gas": 2422552,
    "nested": [],
-   "test_l2_gas": 3255787,
+   "test_l2_gas": 3255317,
    "over_execute_max_sierra_gas": false,
    "output": "checked: D_SCALE_GET_MIDI_FOR_T_WARLOCK (baseline-frozen)",
    "labels": [
@@ -5415,7 +5415,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 25330,
    "nested": [],
-   "test_l2_gas": 322631,
+   "test_l2_gas": 322061,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0000 (js)",
    "labels": [
@@ -5457,7 +5457,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 28740,
    "nested": [],
-   "test_l2_gas": 330272,
+   "test_l2_gas": 329702,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0001 (js)",
    "labels": [
@@ -5499,7 +5499,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 200710,
    "nested": [],
-   "test_l2_gas": 502242,
+   "test_l2_gas": 501672,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0030 (js)",
    "labels": [
@@ -5541,7 +5541,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 223230,
    "nested": [],
-   "test_l2_gas": 530452,
+   "test_l2_gas": 529982,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0031 (js)",
    "labels": [
@@ -5583,7 +5583,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 229160,
    "nested": [],
-   "test_l2_gas": 538352,
+   "test_l2_gas": 537882,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0032 (js)",
    "labels": [
@@ -5625,7 +5625,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 423650,
    "nested": [],
-   "test_l2_gas": 738532,
+   "test_l2_gas": 738062,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0062 (js)",
    "labels": [
@@ -5667,7 +5667,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 9106940,
    "nested": [],
-   "test_l2_gas": 9802914,
+   "test_l2_gas": 9802444,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L1406 (js)",
    "labels": [
@@ -5709,7 +5709,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 46549900,
    "nested": [],
-   "test_l2_gas": 48890828,
+   "test_l2_gas": 48890358,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L7197 (js)",
    "labels": [
@@ -5751,7 +5751,7 @@
    "selector": "append_base64",
    "gas": 279810,
    "nested": [],
-   "test_l2_gas": 589002,
+   "test_l2_gas": 588532,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_APPEND_BASE64_L0031 (js)",
    "labels": [
@@ -5765,7 +5765,7 @@
    "selector": "midi_html",
    "gas": 320470,
    "nested": [],
-   "test_l2_gas": 639583,
+   "test_l2_gas": 639113,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_MIDI_HTML_L0031 (js)",
    "labels": [
@@ -5793,7 +5793,7 @@
    "selector": "append_base64",
    "gas": 3410720,
    "nested": [],
-   "test_l2_gas": 4239682,
+   "test_l2_gas": 4239212,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_APPEND_BASE64_L1406 (js)",
    "labels": [
@@ -5807,7 +5807,7 @@
    "selector": "midi_html",
    "gas": 3440060,
    "nested": [],
-   "test_l2_gas": 4276682,
+   "test_l2_gas": 4276212,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_MIDI_HTML_L1406 (js)",
    "labels": [
@@ -5835,7 +5835,7 @@
    "selector": "append_base64",
    "gas": 10831370,
    "nested": [],
-   "test_l2_gas": 12916243,
+   "test_l2_gas": 12915773,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_APPEND_BASE64_L4726 (js)",
    "labels": [
@@ -5849,7 +5849,7 @@
    "selector": "midi_html",
    "gas": 10862790,
    "nested": [],
-   "test_l2_gas": 12957584,
+   "test_l2_gas": 12957114,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_MIDI_HTML_L4726 (js)",
    "labels": [
@@ -5877,7 +5877,7 @@
    "selector": "append_base64",
    "gas": 16430030,
    "nested": [],
-   "test_l2_gas": 19446696,
+   "test_l2_gas": 19446226,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_APPEND_BASE64_L7197 (js)",
    "labels": [
@@ -5891,7 +5891,7 @@
    "selector": "midi_html",
    "gas": 16471860,
    "nested": [],
-   "test_l2_gas": 19506107,
+   "test_l2_gas": 19505637,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_MIDI_HTML_L7197 (js)",
    "labels": [
@@ -6043,9 +6043,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 123013325,
+   "gas": 123007325,
    "nested": [],
-   "test_l2_gas": 130816749,
+   "test_l2_gas": 130810749,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S021_N (js)",
    "labels": [
@@ -6061,9 +6061,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 131139295,
+   "gas": 131133295,
    "nested": [],
-   "test_l2_gas": 142810391,
+   "test_l2_gas": 142804391,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S021_S (js)",
    "labels": [
@@ -6078,9 +6078,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 282387673,
+   "gas": 282375673,
    "nested": [],
-   "test_l2_gas": 307949821,
+   "test_l2_gas": 307937821,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S001_N (js)",
    "labels": [
@@ -6095,9 +6095,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 301491373,
+   "gas": 301479373,
    "nested": [],
-   "test_l2_gas": 336224868,
+   "test_l2_gas": 336212868,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S001_S (js)",
    "labels": [
@@ -6112,9 +6112,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 333094783,
+   "gas": 333082783,
    "nested": [],
-   "test_l2_gas": 362699863,
+   "test_l2_gas": 362687863,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S032_N (js)",
    "labels": [
@@ -6129,9 +6129,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 352432843,
+   "gas": 352420843,
    "nested": [],
-   "test_l2_gas": 391212221,
+   "test_l2_gas": 391200221,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S032_S (js)",
    "labels": [
@@ -6147,9 +6147,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 358440133,
+   "gas": 358428133,
    "nested": [],
-   "test_l2_gas": 397121340,
+   "test_l2_gas": 397109340,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S028_S (js)",
    "labels": [
@@ -6164,9 +6164,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 188424261,
+   "gas": 188415281,
    "nested": [],
-   "test_l2_gas": 199575635,
+   "test_l2_gas": 199566655,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S068_N (js)",
    "labels": [
@@ -6182,9 +6182,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 195377371,
+   "gas": 195368391,
    "nested": [],
-   "test_l2_gas": 210476457,
+   "test_l2_gas": 210467477,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S068_S (js)",
    "labels": [
@@ -6200,9 +6200,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 245216335,
+   "gas": 245207335,
    "nested": [],
-   "test_l2_gas": 263599891,
+   "test_l2_gas": 263590891,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S039_N (js)",
    "labels": [
@@ -6218,9 +6218,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 220231725,
+   "gas": 220222725,
    "nested": [],
-   "test_l2_gas": 237556248,
+   "test_l2_gas": 237547248,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S040_N (js)",
    "labels": [
@@ -6236,9 +6236,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 305909383,
+   "gas": 305897383,
    "nested": [],
-   "test_l2_gas": 333445387,
+   "test_l2_gas": 333433387,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S033_N (js)",
    "labels": [
@@ -6254,9 +6254,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 244990385,
+   "gas": 244981385,
    "nested": [],
-   "test_l2_gas": 263614942,
+   "test_l2_gas": 263605942,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_C076 (js)",
    "labels": [
@@ -6268,9 +6268,9 @@
    "group": "E",
    "contract": "BenchScore",
    "selector": "genesis_score",
-   "gas": 102330855,
+   "gas": 102324855,
    "nested": [],
-   "test_l2_gas": 108054503,
+   "test_l2_gas": 108048503,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SCORE_S021_N (baseline-frozen)",
    "labels": [
@@ -6286,9 +6286,9 @@
    "group": "E",
    "contract": "BenchScore",
    "selector": "genesis_score",
-   "gas": 208028553,
+   "gas": 208016553,
    "nested": [],
-   "test_l2_gas": 219481866,
+   "test_l2_gas": 219469866,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SCORE_S001_N (baseline-frozen)",
    "labels": [
@@ -6303,9 +6303,9 @@
    "group": "E",
    "contract": "BenchScore",
    "selector": "genesis_score",
-   "gas": 246831243,
+   "gas": 246819243,
    "nested": [],
-   "test_l2_gas": 261124036,
+   "test_l2_gas": 261112036,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SCORE_S032_S (baseline-frozen)",
    "labels": [
@@ -6321,7 +6321,7 @@
    "group": "M",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 125832425,
+   "gas": 125826425,
    "nested": [
     {
      "depth": 1,
@@ -6330,7 +6330,7 @@
      "gas": 2018380
     }
    ],
-   "test_l2_gas": 130575541,
+   "test_l2_gas": 130569071,
    "over_execute_max_sierra_gas": false,
    "output": "checked: M_GET_MIDI_S021_N_BURN_RANK (js)",
    "labels": [

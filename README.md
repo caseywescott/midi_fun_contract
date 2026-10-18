@@ -5,7 +5,7 @@ Beasts V3 NFT and is the first consumer of that system.
 
 ## Layout
 
-The Cairo code is one Scarb workspace (the root `Scarb.toml`, scarb 2.20.1 as pinned in
+The Cairo code is one Scarb workspace (the root `Scarb.toml`, scarb 2.21.0 as pinned in
 `.tool-versions`). Packages are grouped by system; a package named `*_contracts` declares Starknet
 contracts, and the others are libraries (`[lib]`, no contracts).
 
@@ -35,7 +35,7 @@ Each package has a README with its API and details.
 
 ## Build and test
 
-Needs scarb 2.20.1 and Starknet Foundry 0.64.1 (`snforge`), both pinned in `.tool-versions` (with
+Needs scarb 2.21.0 and Starknet Foundry 0.64.1 (`snforge`), both pinned in `.tool-versions` (with
 asdf: `asdf install`). The tests run on snforge: `scarb test` runs `snforge test` in each package
 through the root `Scarb.toml`'s `[workspace.scripts]`. From the repository root:
 
@@ -48,6 +48,14 @@ scarb fmt --check
 
 `TESTING.md` covers the `#[ignore]`d parity fixtures and the generated Cairo files.
 
+snforge 0.64.1 was released before scarb 2.21.0, so `snforge check-requirements` warns "Scarb
+Version 2.21.0 doesn't satisfy maximal recommended 2.20.1". It is only a warning: that release
+was not tested with 2.21.0, and every test, parity fixture and the gas bench pass on this pair
+(`snforge test` itself does not print it). The next snforge release raises the maximum to 2.21.0
+([foundry-rs/starknet-foundry#4624](https://github.com/foundry-rs/starknet-foundry/pull/4624));
+then bump `.tool-versions`, `snforge_std` (root and `bench/`) and CI's
+`starknet-foundry-version` together.
+
 ### Gas
 
 `bench/` measures the per-call L2 gas of the four contract classes over 286 fixed cases (every
@@ -57,7 +65,7 @@ the expected output, plus their CASM and Sierra sizes:
 ```bash
 npm install --prefix offchain/beast-sound   # once: the expected table is checked with the JS engine
 python3 bench/scripts/gas_bench.py run --out bench/snapshots/candidate.json
-python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-bdfc78f.json \
+python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-25be776.json \
     bench/snapshots/candidate.json --markdown
 ```
 

@@ -1,6 +1,6 @@
 # Testing
 
-The Cairo packages are one Scarb workspace (scarb 2.20.1). Their tests run on Starknet Foundry
+The Cairo packages are one Scarb workspace (scarb 2.21.0). Their tests run on Starknet Foundry
 (snforge 0.64.1, both pinned in `.tool-versions`): `scarb test` runs `snforge test` in each package
 (the root `Scarb.toml`'s `[workspace.scripts]`). Each package has its own tests:
 

@@ -209,32 +209,36 @@ pub fn drum_track(length: u32, sec: u32, tier: u8, mega: bool) -> Array<u8> {
     while u < length {
         let rel = u % sec;
         let in_fill = rel >= fill_start;
-        let mut hits: Array<(u8, u8)> = array![];
         if cymbal && rel == 0 {
-            hits.append((49, if mega {
+            track.note_on(u, 9, 49, if mega {
                 96
             } else {
                 76
-            }));
+            });
         }
         if in_fill {
             let at = rel - fill_start;
             for n in notes {
                 let (o, k, vel) = *n;
                 if o == at {
-                    hits.append((k, vel));
+                    track.note_on(u, 9, k, vel);
                 }
             }
         }
+        // The step's kick or snare (key 0: none) and its hat, written after the fill notes in
+        // that order. Each branch only sets them: every `note_on` is another copy of its call
+        // in the contract, so there is one per hit kind below.
+        let mut drum_key: u8 = 0;
+        let mut drum_vel: u8 = 0;
+        let mut hat_key: u8 = 42;
+        let mut hat_vel: u8 = 0;
         if !eighth {
-            if mega {
-                // mega: sixteenth-note hats
-                hits.append((42, if in_fill {
-                    32
-                } else {
-                    44
-                }));
-            }
+            // mega: sixteenth-note hats
+            hat_vel = if in_fill {
+                32
+            } else {
+                44
+            };
         } else {
             // `rel / 1920` is odd in the upper half of a bar pair, `rel % 1920` is the position in
             // its bar
@@ -245,52 +249,57 @@ pub fn drum_track(length: u32, sec: u32, tier: u8, mega: bool) -> Array<u8> {
             } else {
                 pair
             };
-            let mut open = false;
-            if q == 0 {
-                hits.append((36, if second {
+            let bar_start = q == 0;
+            hat_vel = if bar_start {
+                80
+            } else if quarter {
+                70
+            } else {
+                52
+            };
+            if bar_start {
+                drum_key = 36;
+                drum_vel = if second {
                     104
                 } else {
                     122
-                }));
+                };
             } else if q == 960 {
                 if !in_fill {
-                    hits.append((38, if second {
+                    drum_key = 38;
+                    drum_vel = if second {
                         88
                     } else {
                         94
-                    }));
+                    };
                 } else if !(fill_kick0 && rel == fill_start) {
-                    hits.append((36, 100));
+                    drum_key = 36;
+                    drum_vel = 100;
                 }
             } else if !in_fill {
                 if second {
                     if q == 1200 {
-                        hits.append((36, 86));
-                    } else {
-                        open = q == 1680;
+                        drum_key = 36;
+                        drum_vel = 86;
+                    } else if q == 1680 {
+                        // the open hat
+                        hat_key = 46;
+                        hat_vel = 64;
                     }
                 } else if mega && q == 720 {
-                    hits.append((36, 92)); // mega: the and of 2
+                    drum_key = 36;
+                    drum_vel = 92; // mega: the and of 2
                 }
             }
-            if open {
-                hits.append((46, 64));
-            } else {
-                let mut hv: u8 = if q == 0 {
-                    80
-                } else if quarter {
-                    70
-                } else {
-                    52
-                };
-                if in_fill {
-                    hv -= 12;
-                }
-                hits.append((42, hv));
+            if in_fill {
+                hat_vel -= 12;
             }
         }
-        for (k, vel) in hits {
-            track.note_on(u, 9, k, vel);
+        if drum_key != 0 {
+            track.note_on(u, 9, drum_key, drum_vel);
+        }
+        if eighth || mega {
+            track.note_on(u, 9, hat_key, hat_vel);
         }
         u += 120;
         eighth = !eighth;

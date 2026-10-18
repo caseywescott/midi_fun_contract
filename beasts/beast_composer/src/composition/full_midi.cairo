@@ -186,6 +186,9 @@ fn fill_notes(f: u8) -> Span<(u32, u8, u8)> {
 /// The drum track body (channel 10, running status) for a form of `length` ticks in sections of
 /// `sec`, ending with End-of-Track at `length`. Empty when there is nothing to play.
 pub fn drum_track(length: u32, sec: u32, tier: u8, mega: bool) -> Array<u8> {
+    if length == 0 {
+        return array![];
+    }
     let f = fill_for(tier);
     let notes = fill_notes(f);
     let region: u32 = if f >= 2 {
@@ -193,16 +196,21 @@ pub fn drum_track(length: u32, sec: u32, tier: u8, mega: bool) -> Array<u8> {
     } else {
         480
     };
+    let fill_start = sec - region;
     let fill_kick0 = f == 2; // only fill C has a kick at its start
+    // a cymbal on each section's downbeat: fill D, and every mega Beast
+    let cymbal = mega || f == 3;
     let mut track = TrackWriterTrait::with_running_status();
+    // One step per 120 ticks. Whether it is on an eighth note (`u % 240 == 0`) and, if so, on a
+    // quarter note (`u % 480 == 0`) is carried from step to step instead of divided out of `u`.
     let mut u: u32 = 0;
+    let mut eighth = true;
+    let mut quarter = true;
     while u < length {
         let rel = u % sec;
-        let fill_start = sec - region;
         let in_fill = rel >= fill_start;
         let mut hits: Array<(u8, u8)> = array![];
-        // a cymbal on each section's downbeat (fill D, and every mega Beast)
-        if rel == 0 && (mega || f == 3) {
+        if cymbal && rel == 0 {
             hits.append((49, if mega {
                 96
             } else {
@@ -210,64 +218,74 @@ pub fn drum_track(length: u32, sec: u32, tier: u8, mega: bool) -> Array<u8> {
             }));
         }
         if in_fill {
-            let mut i: u32 = 0;
-            while i < notes.len() {
-                let (o, k, vel) = *notes.at(i);
-                if o == rel - fill_start {
+            let at = rel - fill_start;
+            for n in notes {
+                let (o, k, vel) = *n;
+                if o == at {
                     hits.append((k, vel));
                 }
-                i += 1;
             }
         }
-        if mega && u % 240 != 0 {
-            // mega: sixteenth-note hats
-            hits.append((42, if in_fill {
-                32
+        if !eighth {
+            if mega {
+                // mega: sixteenth-note hats
+                hits.append((42, if in_fill {
+                    32
+                } else {
+                    44
+                }));
+            }
+        } else {
+            // `rel / 1920` is odd in the upper half of a bar pair, `rel % 1920` is the position in
+            // its bar
+            let pair = rel % 3840;
+            let second = pair >= 1920;
+            let q = if second {
+                pair - 1920
             } else {
-                44
-            }));
-        }
-        if u % 240 == 0 {
-            let bar = rel / 1920;
-            let second = bar % 2 == 1;
-            let q = rel % 1920;
+                pair
+            };
+            let mut open = false;
             if q == 0 {
                 hits.append((36, if second {
                     104
                 } else {
                     122
                 }));
-            }
-            if !in_fill && second && q == 1200 {
-                hits.append((36, 86));
-            }
-            if mega && !in_fill && !second && q == 720 {
-                hits.append((36, 92)); // mega: the and of 2
-            }
-            if in_fill && q == 960 && !(fill_kick0 && rel == fill_start) {
-                hits.append((36, 100));
-            }
-            if !in_fill && q == 960 {
-                hits.append((38, if second {
-                    88
-                } else {
-                    94
-                }));
-            }
-            let open = !in_fill && second && q == 1680;
-            let mut hv: u8 = if q == 0 {
-                80
-            } else if u % 480 == 0 {
-                70
-            } else {
-                52
-            };
-            if in_fill {
-                hv -= 12;
+            } else if q == 960 {
+                if !in_fill {
+                    hits.append((38, if second {
+                        88
+                    } else {
+                        94
+                    }));
+                } else if !(fill_kick0 && rel == fill_start) {
+                    hits.append((36, 100));
+                }
+            } else if !in_fill {
+                if second {
+                    if q == 1200 {
+                        hits.append((36, 86));
+                    } else {
+                        open = q == 1680;
+                    }
+                } else if mega && q == 720 {
+                    hits.append((36, 92)); // mega: the and of 2
+                }
             }
             if open {
                 hits.append((46, 64));
             } else {
+                let mut hv: u8 = if q == 0 {
+                    80
+                } else if quarter {
+                    70
+                } else {
+                    52
+                };
+                if in_fill {
+                    hv -= 12;
+                }
                 hits.append((42, hv));
             }
         }
@@ -275,11 +293,195 @@ pub fn drum_track(length: u32, sec: u32, tier: u8, mega: bool) -> Array<u8> {
             track.note_on(u, 9, k, vel);
         }
         u += 120;
-    }
-    if track.is_empty() {
-        return array![];
+        eighth = !eighth;
+        if !eighth {
+            quarter = !quarter;
+            // the sixteenth between two eighths plays nothing before the fill, unless it has the
+            // mega Beast's sixteenth-note hat: skip it
+            if !mega && rel + 120 < fill_start {
+                u += 120;
+                eighth = true;
+            }
+        }
     }
     track.finish_at(length)
+}
+
+#[cfg(test)]
+mod drum_track_tests {
+    use midi::smf::TrackWriterTrait;
+    use super::{drum_track, fill_for, fill_notes};
+
+    /// `drum_track` as it was when every step divided its position out of `u` and collected its
+    /// hits before writing them: the reference the carried position must reproduce byte for byte.
+    fn divided_drum_track(length: u32, sec: u32, tier: u8, mega: bool) -> Array<u8> {
+        let f = fill_for(tier);
+        let notes = fill_notes(f);
+        let region: u32 = if f >= 2 {
+            960
+        } else {
+            480
+        };
+        let fill_kick0 = f == 2; // only fill C has a kick at its start
+        let mut track = TrackWriterTrait::with_running_status();
+        let mut u: u32 = 0;
+        while u < length {
+            let rel = u % sec;
+            let fill_start = sec - region;
+            let in_fill = rel >= fill_start;
+            let mut hits: Array<(u8, u8)> = array![];
+            // a cymbal on each section's downbeat (fill D, and every mega Beast)
+            if rel == 0 && (mega || f == 3) {
+                hits.append((49, if mega {
+                    96
+                } else {
+                    76
+                }));
+            }
+            if in_fill {
+                let mut i: u32 = 0;
+                while i < notes.len() {
+                    let (o, k, vel) = *notes.at(i);
+                    if o == rel - fill_start {
+                        hits.append((k, vel));
+                    }
+                    i += 1;
+                }
+            }
+            if mega && u % 240 != 0 {
+                // mega: sixteenth-note hats
+                hits.append((42, if in_fill {
+                    32
+                } else {
+                    44
+                }));
+            }
+            if u % 240 == 0 {
+                let bar = rel / 1920;
+                let second = bar % 2 == 1;
+                let q = rel % 1920;
+                if q == 0 {
+                    hits.append((36, if second {
+                        104
+                    } else {
+                        122
+                    }));
+                }
+                if !in_fill && second && q == 1200 {
+                    hits.append((36, 86));
+                }
+                if mega && !in_fill && !second && q == 720 {
+                    hits.append((36, 92)); // mega: the and of 2
+                }
+                if in_fill && q == 960 && !(fill_kick0 && rel == fill_start) {
+                    hits.append((36, 100));
+                }
+                if !in_fill && q == 960 {
+                    hits.append((38, if second {
+                        88
+                    } else {
+                        94
+                    }));
+                }
+                let open = !in_fill && second && q == 1680;
+                let mut hv: u8 = if q == 0 {
+                    80
+                } else if u % 480 == 0 {
+                    70
+                } else {
+                    52
+                };
+                if in_fill {
+                    hv -= 12;
+                }
+                if open {
+                    hits.append((46, 64));
+                } else {
+                    hits.append((42, hv));
+                }
+            }
+            for (k, vel) in hits {
+                track.note_on(u, 9, k, vel);
+            }
+            u += 120;
+        }
+        if track.is_empty() {
+            return array![];
+        }
+        track.finish_at(length)
+    }
+
+    fn assert_same(length: u32, sec: u32, tier: u8, mega: bool) {
+        assert(
+            drum_track(length, sec, tier, mega) == divided_drum_track(length, sec, tier, mega),
+            'drum track differs',
+        );
+    }
+
+    /// Every fill (tiers 0 to 6 cover each `fill_for` branch) with and without mega, for the
+    /// lengths around the section and step boundaries. A fill longer than the section underflows
+    /// `sec - region` in both forms, so those are left out.
+    fn assert_same_at(length: u32, sec: u32) {
+        let mut tier: u8 = 0;
+        while tier <= 6 {
+            if tier >= 4 || sec >= 960 {
+                assert_same(length, sec, tier, false);
+                assert_same(length, sec, tier, true);
+            }
+            tier += 1;
+        }
+    }
+
+    fn assert_same_for_section(sec: u32) {
+        assert_same_at(1, sec);
+        assert_same_at(119, sec);
+        assert_same_at(120, sec);
+        assert_same_at(121, sec);
+        assert_same_at(sec - 1, sec);
+        assert_same_at(sec, sec);
+        assert_same_at(sec + 1, sec);
+        assert_same_at(2 * sec + 360, sec);
+        assert_same_at(2 * sec + 361, sec);
+    }
+
+    /// What the callers pass: whole bars to a section, whole sections to the form.
+    #[test]
+    #[available_gas(1000000000000)]
+    fn matches_on_whole_sections() {
+        let mut bars: u32 = 1;
+        while bars <= 4 {
+            let sec = bars * 1920;
+            assert_same_at(sec, sec);
+            assert_same_at(2 * sec, sec);
+            assert_same_at(3 * sec, sec);
+            bars += 1;
+        }
+        assert_same_at(8 * 3840, 3840);
+    }
+
+    /// Sections that are not a whole number of bars, of steps or of eighth notes.
+    #[test]
+    #[available_gas(1000000000000)]
+    fn matches_off_the_bar_grid() {
+        assert_same_for_section(480);
+        assert_same_for_section(481);
+        assert_same_for_section(599);
+        assert_same_for_section(600);
+        assert_same_for_section(719);
+        assert_same_for_section(960);
+        assert_same_for_section(1000);
+        assert_same_for_section(1919);
+        assert_same_for_section(1921);
+        assert_same_for_section(2160);
+    }
+
+    #[test]
+    fn nothing_to_play_in_no_ticks() {
+        assert(drum_track(0, 3840, 5, false).len() == 0, 'not empty');
+        assert(drum_track(0, 3840, 1, true).len() == 0, 'not empty');
+        // no section either: nothing is divided by it
+        assert(drum_track(0, 0, 1, true).len() == 0, 'not empty');
+    }
 }
 
 /// Instruments by Beast: the Beast's type picks a family of three leads and three plucks (the

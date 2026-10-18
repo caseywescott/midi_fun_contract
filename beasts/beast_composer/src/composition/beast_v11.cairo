@@ -24,6 +24,7 @@
 //! an integer and ties break the same way (first candidate wins).
 
 use core::dict::{Felt252Dict, Felt252DictTrait};
+use core::num::traits::CheckedSub;
 use crate::composition::beast_score::{
     BeastForm, build_beast_theme, canonical_to_melodic_mode, derive_beast_sound_seeds,
     transposed_tonic,
@@ -440,10 +441,41 @@ fn put(ref out: Array<NoteEvent>, ref grid: Felt252Dict<u32>, e: NoteEvent) {
     }
 }
 
-/// Interval kinds by interval class (|a - b| % 12): 0 consonant, 1 dissonant (2nds, tritone,
-/// 7ths), 2 unison or octave, 3 perfect fifth.
-fn interval_kinds() -> Span<u8> {
-    array![2, 1, 1, 0, 0, 0, 1, 3, 0, 0, 1, 1].span()
+/// How an interval scores, by (the candidate's pitch class - the other note's) % 12, twice over so
+/// that the row for one other note is a slice of it: 0 consonant, 1 dissonant (2nds, tritone,
+/// 7ths), 2 unison or octave, 3 perfect fifth if the candidate is not below the other note, 4
+/// perfect fifth if it is. A fifth (|a - b| % 12 = 7) and a fourth (5, consonant) are told apart by
+/// which note is higher; every other interval class is the same either way round.
+const INTERVAL_KINDS: [u8; 24] = [
+    2, 1, 1, 0, 0, 4, 1, 3, 0, 0, 1, 1, 2, 1, 1, 0, 0, 4, 1, 3, 0, 0, 1, 1,
+];
+
+/// A note sounding with the candidates, with what their scores need of it.
+#[derive(Copy, Drop)]
+struct Overlap {
+    pitch: u32,
+    /// The kinds of interval against this note by the candidate's pitch class: the 12 entries of
+    /// `INTERVAL_KINDS` from 12 minus this note's pitch class on.
+    kinds: Span<u8>,
+    /// What a dissonance with it costs: 40 on a strong beat, 8 off it.
+    dissonance: u32,
+    /// The interval class of `prev` against this voice's note before, or 12 when there is none.
+    before_ic: u32,
+}
+
+/// The overlap of a placed note of `pitch`, on a strong beat or not, with `before_ic`.
+fn overlap(pitch: u8, strong: bool, before_ic: u32) -> Overlap {
+    let pitch: u32 = pitch.into();
+    Overlap {
+        pitch,
+        kinds: INTERVAL_KINDS.span().slice(12 - pitch % 12, 12),
+        dissonance: if strong {
+            40
+        } else {
+            8
+        },
+        before_ic,
+    }
 }
 
 fn ic32(a: u32, b: u32) -> u32 {
@@ -452,6 +484,98 @@ fn ic32(a: u32, b: u32) -> u32 {
     } else {
         b - a
     }) % 12
+}
+
+/// What the overlapping note `o` adds to the score of the candidate `p` (pitch class `pc`) after
+/// `prev_pitch`, in quarter points: 8 or 40 for a dissonance, 16 or 24 for an octave or unison, 2
+/// for a perfect fifth, and 32 more for parallel octaves/unisons or fifths with what this voice and
+/// the other had before.
+// On purpose (gas): a call per overlap costs more than the body.
+#[inline(always)]
+fn overlap_points(o: Overlap, p: u32, pc: u32, prev_pitch: u32) -> u32 {
+    let kind = *o.kinds.at(pc);
+    if kind == 0 {
+        0
+    } else if kind == 1 {
+        o.dissonance
+    } else if kind == 2 {
+        if o.before_ic == 0 && prev_pitch != p {
+            if p == o.pitch {
+                56
+            } else {
+                48
+            }
+        } else if p == o.pitch {
+            24
+        } else {
+            16
+        }
+    } else {
+        let fifth = if kind == 3 {
+            p >= o.pitch
+        } else {
+            p < o.pitch
+        };
+        if !fifth {
+            0
+        } else if o.before_ic == 7 && prev_pitch != p {
+            34
+        } else {
+            2
+        }
+    }
+}
+
+/// The first of the candidates (base score, pitch) with the lowest score against the overlapping
+/// notes: the base, 12 for a leap of more than 9 semitones from the previous pitch, and the points
+/// of every overlap. Scores in quarter points.
+///
+/// Bases are never negative (`near` and the followers' candidates: 0, 6 or 12; `dominant`: 3 times
+/// a distance of at most 9), and no overlap or leap scores less than 0, so a score only grows as it
+/// is added up. A candidate is dropped as soon as it goes past `limit`, the highest score that
+/// beats the best so far (a tie goes to the earlier one), and no later candidate can beat a score
+/// of 0.
+fn best_candidate(
+    cands: Span<(i32, u8)>, ov: Span<Overlap>, has_prev: bool, prev_pitch: u32,
+) -> u8 {
+    let mut best_pitch: u8 = 0;
+    let mut limit = 0xFFFFFFFF_u32; // the first candidate always beats this
+    for (base, pitch) in cands {
+        let Some(mut left) = limit.checked_sub((*base).try_into().unwrap()) else {
+            continue;
+        };
+        let p: u32 = (*pitch).into();
+        if has_prev
+            && (match p.checked_sub(prev_pitch) {
+                Some(up) => up,
+                None => prev_pitch - p,
+            }) > 9 {
+            let Some(rest) = left.checked_sub(12) else {
+                continue;
+            };
+            left = rest;
+        }
+        let pc = p % 12;
+        let mut beaten = false;
+        for o in ov {
+            match left.checked_sub(overlap_points(*o, p, pc, prev_pitch)) {
+                Some(rest) => left = rest,
+                None => {
+                    beaten = true;
+                    break;
+                },
+            }
+        }
+        if !beaten {
+            let score = limit - left;
+            best_pitch = *pitch;
+            if score == 0 {
+                break;
+            }
+            limit = score - 1;
+        }
+    }
+    best_pitch
 }
 
 /// The candidate (base score, pitch) with the lowest score against everything placed so far in the
@@ -477,9 +601,7 @@ fn choose_pitch(
         Option::Some(ps) => (true, ps.pitch.into(), ps.time / CELL),
         Option::None => (false, 0, 0),
     };
-    // overlapping notes: (pitch, strong beat, interval class of prev against that voice's note
-    // before, or 12 when there is none)
-    let mut ov: Array<(u32, bool, u32)> = array![];
+    let mut ov: Array<Overlap> = array![];
     let end = time + duration;
     let mut u: u32 = 0;
     while u < voices {
@@ -528,61 +650,12 @@ fn choose_pitch(
                 } else {
                     12
                 };
-                ov.append((q.pitch.into(), strong, before_ic));
+                ov.append(overlap(q.pitch, strong, before_ic));
             }
         }
         u += 1;
     }
-    let ov = ov.span();
-    let kinds = interval_kinds();
-    let mut best_pitch: u8 = 0;
-    let mut best_score: i32 = 0;
-    let mut first = true;
-    for (base, pitch) in cands {
-        let p: u32 = (*pitch).into();
-        let mut score = *base;
-        for item in ov {
-            let (qp, strong, before_ic) = *item;
-            let ic = ic32(p, qp);
-            let kind = *kinds.at(ic);
-            if kind == 1 {
-                score += if strong {
-                    40
-                } else {
-                    8
-                };
-            } else if kind == 2 {
-                score += if p == qp {
-                    24
-                } else {
-                    16
-                };
-                // parallel octaves/unisons with what this voice and that voice had before
-                if before_ic == ic && prev_pitch != p {
-                    score += 32;
-                }
-            } else if kind == 3 {
-                score += 2;
-                // parallel fifths
-                if before_ic == ic && prev_pitch != p {
-                    score += 32;
-                }
-            }
-        }
-        if has_prev && (if p > prev_pitch {
-            p - prev_pitch
-        } else {
-            prev_pitch - p
-        }) > 9 {
-            score += 12; // no wild leaps
-        }
-        if first || score < best_score {
-            best_score = score;
-            best_pitch = *pitch;
-            first = false;
-        }
-    }
-    best_pitch
+    best_candidate(cands, ov.span(), has_prev, prev_pitch)
 }
 
 /// How a voice maps a theme degree: the canon offset, or the mirror for an inverted second voice.
@@ -1496,6 +1569,179 @@ mod realizer_tests {
                 deg += 1;
             }
             off += 1;
+        }
+    }
+}
+
+/// `choose_pitch`'s scoring against the original one: every candidate's score added up in i32, the
+/// interval class from `ic32` and a 12-entry table of kinds.
+#[cfg(test)]
+mod scoring_tests {
+    use super::{Overlap, best_candidate, ic32, overlap, overlap_points};
+
+    /// What an overlapping note added to a candidate's score in the original.
+    fn reference_points(p: u32, qp: u32, strong: bool, before_ic: u32, prev_pitch: u32) -> i32 {
+        let kinds = array![2, 1, 1, 0, 0, 0, 1, 3, 0, 0, 1, 1].span();
+        let ic = ic32(p, qp);
+        let kind = *kinds.at(ic);
+        let mut score: i32 = 0;
+        if kind == 1 {
+            score += if strong {
+                40
+            } else {
+                8
+            };
+        } else if kind == 2 {
+            score += if p == qp {
+                24
+            } else {
+                16
+            };
+            if before_ic == ic && prev_pitch != p {
+                score += 32;
+            }
+        } else if kind == 3 {
+            score += 2;
+            if before_ic == ic && prev_pitch != p {
+                score += 32;
+            }
+        }
+        score
+    }
+
+    /// The original candidate loop: every score in full, the first lowest wins.
+    fn reference_best(
+        cands: Span<(i32, u8)>, ov: Span<(u32, bool, u32)>, has_prev: bool, prev_pitch: u32,
+    ) -> u8 {
+        let mut best_pitch: u8 = 0;
+        let mut best_score: i32 = 0;
+        let mut first = true;
+        for (base, pitch) in cands {
+            let p: u32 = (*pitch).into();
+            let mut score = *base;
+            for item in ov {
+                let (qp, strong, before_ic) = *item;
+                score += reference_points(p, qp, strong, before_ic, prev_pitch);
+            }
+            if has_prev && (if p > prev_pitch {
+                p - prev_pitch
+            } else {
+                prev_pitch - p
+            }) > 9 {
+                score += 12;
+            }
+            if first || score < best_score {
+                best_score = score;
+                best_pitch = *pitch;
+                first = false;
+            }
+        }
+        best_pitch
+    }
+
+    /// Every pair of pitches in `lo..=hi`, with the voice's previous pitch repeated or not, against
+    /// the `before_ic` values that matter (none, unison/octave, fifth, other) and both beats.
+    fn check_points(lo: u32, hi: u32) {
+        let before_ics = array![0, 7, 12, 3].span();
+        let mut p = lo;
+        while p <= hi {
+            let prev_pitches = array![p, if p > 0 {
+                p - 1
+            } else {
+                1
+            }];
+            let mut qp = lo;
+            while qp <= hi {
+                for before_ic in before_ics {
+                    for prev_pitch in prev_pitches.span() {
+                        for strong in array![false, true].span() {
+                            let o = overlap(qp.try_into().unwrap(), *strong, *before_ic);
+                            let expected: u32 = reference_points(
+                                p, qp, *strong, *before_ic, *prev_pitch,
+                            )
+                                .try_into()
+                                .unwrap();
+                            assert(
+                                overlap_points(o, p, p % 12, *prev_pitch) == expected,
+                                'points differ',
+                            );
+                        }
+                    }
+                }
+                qp += 1;
+            }
+            p += 1;
+        }
+    }
+
+    /// All octave and note-order combinations of the 12 pitch classes.
+    #[test]
+    fn overlap_points_match_original_low() {
+        check_points(0, 36);
+    }
+
+    /// The top of the u8 pitch range, which nothing but the types bounds.
+    #[test]
+    fn overlap_points_match_original_high() {
+        check_points(219, 255);
+    }
+
+    fn next(ref state: u64) -> u32 {
+        state = (state * 1103515245 + 12345) % 2147483648;
+        (state / 65536).try_into().unwrap()
+    }
+
+    /// Random candidates (the bases of `near` and `dominant`), overlaps and previous pitches: the
+    /// same pitch is chosen, ties included.
+    #[test]
+    fn best_candidate_matches_original() {
+        let mut state: u64 = 20260101;
+        let before_ics = array![0, 7, 12, 3, 5, 0, 7, 12].span();
+        let mut trial: u32 = 0;
+        while trial < 1500 {
+            let centre = if trial % 10 == 9 {
+                225
+            } else {
+                36 + next(ref state) % 60
+            };
+            let mut cands: Array<(i32, u8)> = array![];
+            let n_cands = 1 + next(ref state) % 8;
+            let mut i: u32 = 0;
+            while i < n_cands {
+                let base: i32 = if next(ref state) % 2 == 0 {
+                    (*array![0, 6, 6, 12, 12].span().at(i % 5))
+                } else {
+                    (3 * (next(ref state) % 10)).try_into().unwrap()
+                };
+                let pitch: u8 = (centre + next(ref state) % 25 - 12).try_into().unwrap();
+                cands.append((base, pitch));
+                i += 1;
+            }
+            let mut ov: Array<Overlap> = array![];
+            let mut ov_ref: Array<(u32, bool, u32)> = array![];
+            let n_ov = next(ref state) % 7;
+            let mut j: u32 = 0;
+            while j < n_ov {
+                let qp: u8 = (centre + next(ref state) % 31 - 15).try_into().unwrap();
+                let strong = next(ref state) % 2 == 0;
+                let before_ic = *before_ics.at(next(ref state) % 8);
+                ov.append(overlap(qp, strong, before_ic));
+                ov_ref.append((qp.into(), strong, before_ic));
+                j += 1;
+            }
+            let has_prev = next(ref state) % 4 != 0;
+            let prev_pitch = if has_prev {
+                centre + next(ref state) % 31 - 15
+            } else {
+                0
+            };
+            assert(
+                best_candidate(
+                    cands.span(), ov.span(), has_prev, prev_pitch,
+                ) == reference_best(cands.span(), ov_ref.span(), has_prev, prev_pitch),
+                'pitch differs',
+            );
+            trial += 1;
         }
     }
 }

@@ -964,39 +964,165 @@ pub fn yeti_avalanche(
 pub fn rock_drum_track(length: u32, sec: u32) -> Array<u8> {
     let toms: Span<u8> = array![50, 48, 47, 45].span();
     let mut track = TrackWriterTrait::with_running_status();
+    if length == 0 {
+        return track.finish_at(0);
+    }
+    let fill_start = sec - 480;
+    // One step per 120 ticks; `eighth`: u % 240 == 0, carried instead of divided out of `u`.
     let mut u: u32 = 0;
+    let mut eighth = true;
     while u < length {
         let rel = u % sec;
-        let q = rel % 1920;
         if rel == 0 {
             track.note_on(u, 9, 49, 110);
         }
-        if rel >= sec - 480 {
-            let i = (rel - (sec - 480)) / 120;
+        if rel >= fill_start {
+            let i = (rel - fill_start) / 120;
             let k = if i < 4 {
                 *toms.at(i)
             } else {
                 45
             };
             track.note_on(u, 9, k, (96 + i * 6).try_into().unwrap());
-        } else if u % 240 == 0 {
-            if q == 0 || q == 960 || q == 1200 {
-                track.note_on(u, 9, 36, if q == 1200 {
-                    96
-                } else {
-                    120
-                });
-            }
-            if q == 480 || q == 1440 {
-                track.note_on(u, 9, 38, 112);
-            }
-            track.note_on(u, 9, 42, if q % 480 == 0 {
-                84
+        } else if eighth {
+            let q = rel % 1920;
+            // The kick or snare (key 0: none), then the hat, accented where q % 480 == 0: the
+            // kicks on 1 and 3 and the snare, not the kick on the and of 3.
+            let mut drum_key: u8 = 0;
+            let mut drum_vel: u8 = 0;
+            let mut hat_vel: u8 = 84;
+            if q == 0 || q == 960 {
+                drum_key = 36;
+                drum_vel = 120;
+            } else if q == 480 || q == 1440 {
+                drum_key = 38;
+                drum_vel = 112;
             } else {
-                60
-            });
+                hat_vel = 60;
+                if q == 1200 {
+                    drum_key = 36;
+                    drum_vel = 96;
+                }
+            }
+            if drum_key != 0 {
+                track.note_on(u, 9, drum_key, drum_vel);
+            }
+            track.note_on(u, 9, 42, hat_vel);
         }
         u += 120;
+        eighth = !eighth;
+        if !eighth && rel + 120 < fill_start {
+            // the sixteenth between two eighths plays nothing before the fill: skip it
+            u += 120;
+            eighth = true;
+        }
     }
     track.finish_at(length)
+}
+
+#[cfg(test)]
+mod rock_drum_track_tests {
+    use midi::smf::TrackWriterTrait;
+    use super::rock_drum_track;
+
+    /// `rock_drum_track` as it was when every step divided its position out of `u`: the reference
+    /// the carried eighth and the skipped steps must reproduce byte for byte.
+    fn divided_rock_drum_track(length: u32, sec: u32) -> Array<u8> {
+        let toms: Span<u8> = array![50, 48, 47, 45].span();
+        let mut track = TrackWriterTrait::with_running_status();
+        let mut u: u32 = 0;
+        while u < length {
+            let rel = u % sec;
+            let q = rel % 1920;
+            if rel == 0 {
+                track.note_on(u, 9, 49, 110);
+            }
+            if rel >= sec - 480 {
+                let i = (rel - (sec - 480)) / 120;
+                let k = if i < 4 {
+                    *toms.at(i)
+                } else {
+                    45
+                };
+                track.note_on(u, 9, k, (96 + i * 6).try_into().unwrap());
+            } else if u % 240 == 0 {
+                if q == 0 || q == 960 || q == 1200 {
+                    track.note_on(u, 9, 36, if q == 1200 {
+                        96
+                    } else {
+                        120
+                    });
+                }
+                if q == 480 || q == 1440 {
+                    track.note_on(u, 9, 38, 112);
+                }
+                track.note_on(u, 9, 42, if q % 480 == 0 {
+                    84
+                } else {
+                    60
+                });
+            }
+            u += 120;
+        }
+        track.finish_at(length)
+    }
+
+    fn assert_same(length: u32, sec: u32) {
+        assert(
+            rock_drum_track(length, sec) == divided_rock_drum_track(length, sec),
+            'rock drum track differs',
+        );
+    }
+
+    fn assert_same_for_section(sec: u32) {
+        assert_same(1, sec);
+        assert_same(119, sec);
+        assert_same(120, sec);
+        assert_same(121, sec);
+        assert_same(sec - 1, sec);
+        assert_same(sec, sec);
+        assert_same(sec + 1, sec);
+        assert_same(2 * sec + 360, sec);
+        assert_same(2 * sec + 361, sec);
+        assert_same(3 * sec, sec);
+    }
+
+    /// What the callers pass: whole bars to a section, whole sections to the form.
+    #[test]
+    #[available_gas(1000000000000)]
+    fn matches_on_whole_sections() {
+        let mut bars: u32 = 1;
+        while bars <= 4 {
+            let sec = bars * 1920;
+            assert_same(sec, sec);
+            assert_same(2 * sec, sec);
+            assert_same(3 * sec, sec);
+            bars += 1;
+        }
+        assert_same(8 * 3840, 3840);
+    }
+
+    /// Sections that are not a whole number of bars, of steps or of eighth notes.
+    #[test]
+    #[available_gas(1000000000000)]
+    fn matches_off_the_bar_grid() {
+        assert_same_for_section(480);
+        assert_same_for_section(481);
+        assert_same_for_section(599);
+        assert_same_for_section(600);
+        assert_same_for_section(719);
+        assert_same_for_section(960);
+        assert_same_for_section(1000);
+        assert_same_for_section(1919);
+        assert_same_for_section(1921);
+        assert_same_for_section(2160);
+    }
+
+    /// No ticks: just End of Track, whatever `sec` is (no `sec - 480` underflow).
+    #[test]
+    fn end_of_track_only_in_no_ticks() {
+        assert(rock_drum_track(0, 3840) == divided_rock_drum_track(0, 3840), 'differs');
+        assert(rock_drum_track(0, 0) == divided_rock_drum_track(0, 0), 'differs');
+        assert(rock_drum_track(0, 100) == divided_rock_drum_track(0, 100), 'differs');
+    }
 }

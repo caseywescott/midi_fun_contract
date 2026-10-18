@@ -276,13 +276,13 @@ fn tie_repeats(
 /// the default swaps), with the mega arrangement when the Beast is shiny. Species past 75 compose
 /// with their own tier and type and their own theme.
 pub fn genesis_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
-    compose(beast, 0, 0, 0, Option::None)
+    smf_bytes(SMF_FORMAT, SMF_DIVISION, genesis_tracks(beast).span())
 }
 
 /// The same file as a `ByteArray` (what `IMidiProvider::get_midi` returns), packed straight from
 /// the track bodies instead of from one copy of the whole file.
 pub fn genesis_byte_array(beast: PackableBeastV3) -> ByteArray {
-    smf_byte_array(SMF_FORMAT, SMF_DIVISION, compose_tracks(beast, 0, 0, 0, Option::None).span())
+    smf_byte_array(SMF_FORMAT, SMF_DIVISION, genesis_tracks(beast).span())
 }
 
 /// A name track (the Beast Special Song): `sampleTrackMidi` at special name (prefix, suffix), seed
@@ -424,29 +424,40 @@ fn seeded_pick(sums: Span<u64>, counts: Span<u64>, count: u32, seed: felt252) ->
 }
 
 /// The Genesis Track (prefix 0, seed 0), a name track (seed 0) or a bought track (a seed).
+// On purpose (CASM size): one copy of `compose_tracks` for all of them, whatever constant arguments
+// the callers pass; the Genesis Track has its own copy (`genesis_tracks`).
+#[inline(never)]
 fn compose(
     beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
 ) -> Array<u8> {
     smf_bytes(SMF_FORMAT, SMF_DIVISION, compose_tracks(beast, prefix, suffix, seed, drift).span())
 }
 
+/// The track bodies of the Genesis Track. The compiler emits a copy of `compose_tracks` for these
+/// constant arguments, folded to the Genesis Track, so a class that plays only that carries none of
+/// the name, bought and drift code (a class that plays the others as well holds both copies).
+fn genesis_tracks(beast: PackableBeastV3) -> Array<Array<u8>> {
+    compose_tracks(beast, 0, 0, 0, Option::None)
+}
+
 /// The track bodies of `compose`'s file.
-// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
-#[inline(never)]
+// On purpose (CASM size): `== 0` tests rather than `!= 0`. Const folding of a call with constant
+// arguments sees through `==` but not through `!(==)` (`bool_not`), which `!=` is, so with `!=` the
+// unreachable branches stay in the Genesis copy.
 fn compose_tracks(
     beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
 ) -> Array<Array<u8>> {
-    let named = prefix != 0;
-    let seeded = seed != 0;
-    let tm = if seeded {
-        Option::Some(treatment(seed))
-    } else {
+    let unnamed = prefix == 0;
+    let unseeded = seed == 0;
+    let tm = if unseeded {
         Option::None
-    };
-    let src = if named || seeded {
-        beast.id
     } else {
+        Option::Some(treatment(seed))
+    };
+    let src = if unnamed && unseeded {
         genesis_swap(beast.id)
+    } else {
+        beast.id
     };
     let (tier, beast_type) = if src >= 1 && src <= 75 {
         (species_tier(src), species_type(src))
@@ -521,7 +532,25 @@ fn compose_tracks(
             });
         }
     }
-    let ov = if named {
+    let ov = if unnamed {
+        V11Override {
+            voice_count: Option::Some(4),
+            section_count: Option::Some(sections),
+            mode_id: Option::Some(mode),
+            tonic_keynum: Option::Some(ks.tonic_keynum),
+            register_band: Option::Some(ks.register_band),
+            ornament_density: Option::Some(pg.ornament_density),
+            name_variant_id: Option::Some(0),
+            use_countersubject: Option::Some(true),
+            scale: named_mode_scale(mode),
+            trill: Option::Some(false),
+            rhythm_seed,
+            flip_side,
+            development,
+            direction,
+            spacing,
+        }
+    } else {
         let kn = map_v3_beast_to_composition_params(PackableBeastV3 { prefix, suffix, ..g }, live);
         V11Override {
             voice_count: Option::Some(4),
@@ -540,24 +569,6 @@ fn compose_tracks(
             direction,
             spacing,
         }
-    } else {
-        V11Override {
-            voice_count: Option::Some(4),
-            section_count: Option::Some(sections),
-            mode_id: Option::Some(mode),
-            tonic_keynum: Option::Some(ks.tonic_keynum),
-            register_band: Option::Some(ks.register_band),
-            ornament_density: Option::Some(pg.ornament_density),
-            name_variant_id: Option::Some(0),
-            use_countersubject: Option::Some(true),
-            scale: named_mode_scale(mode),
-            trill: Option::Some(false),
-            rhythm_seed,
-            flip_side,
-            development,
-            direction,
-            spacing,
-        }
     };
     let scale_used = ov.scale;
     let score = build_v11_score_with(cb, live, ov);
@@ -565,10 +576,10 @@ fn compose_tracks(
     // the Genesis channels, then ties in the inner voices (statistics of the full score: the kept
     // voices' are the same, since a channel is kept or dropped whole)
     let (sums, counts) = voice_stats(score.events.span());
-    let count = if seeded {
-        seeded_channels(seed)
-    } else {
+    let count = if unseeded {
         genesis_channels(tier)
+    } else {
+        seeded_channels(seed)
     };
     let rotate = match dr {
         Option::Some(d) => d.rotate,
@@ -576,10 +587,10 @@ fn compose_tracks(
     };
     let picked = if let Option::Some(r) = rotate {
         seeded_pick(sums.span(), counts.span(), count, r)
-    } else if seeded {
-        seeded_pick(sums.span(), counts.span(), count, seed)
-    } else {
+    } else if unseeded {
         genesis_pick(sums.span(), counts.span(), count)
+    } else {
+        seeded_pick(sums.span(), counts.span(), count, seed)
     };
     let mut events = tie_repeats(
         score.events.span(), picked.span(), sums.span(), counts.span(), score.section_ticks,
@@ -646,4 +657,34 @@ fn compose_tracks(
 /// The same, packed 31 bytes per felt after the byte length.
 pub fn genesis_midi(beast: PackableBeastV3) -> Array<felt252> {
     midi::pack::to_felt252_array(genesis_smf_bytes(beast).span())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::composition::beast_v3_sound::PackableBeastV3;
+    use super::{genesis_smf_bytes, song_smf_bytes, species_tier, species_type};
+
+    /// `genesis_smf_bytes` composes with the copy of `compose_tracks` folded to the Genesis Track,
+    /// `song_smf_bytes` with the general copy (`compose` is `#[inline(never)]`): the same file.
+    fn same_file(id: u64, tier: u8, beast_type: u8, shiny: u8) {
+        let b = PackableBeastV3 {
+            id, prefix: 0, suffix: 0, level: 50, health: 200, shiny, animated: 0, tier, beast_type,
+        };
+        assert!(
+            genesis_smf_bytes(b) == song_smf_bytes(b, 0, 0, 0, Option::None),
+            "species {} shiny {}",
+            id,
+            shiny,
+        );
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn the_genesis_copy_composes_what_the_general_copy_does() {
+        // The lightest file, a default swap (Harpy), the Yeti (shiny), a species past 75.
+        same_file(21, species_tier(21), species_type(21), 0);
+        same_file(39, species_tier(39), species_type(39), 0);
+        same_file(68, species_tier(68), species_type(68), 1);
+        same_file(76, 3, 1, 0);
+    }
 }

@@ -22,17 +22,17 @@ pub const VOICE_PROGRAM: u8 = 0;
 /// A maximal stretch of consecutive events of one voice: `events[start..start + len]` and the sum
 /// of their pitches.
 #[derive(Copy, Drop)]
-struct VoiceRun {
-    voice: u32,
-    start: u32,
-    len: u32,
+pub(crate) struct VoiceRun {
+    pub(crate) voice: u32,
+    pub(crate) start: u32,
+    pub(crate) len: u32,
     pitch_sum: u64,
 }
 
 /// The voice runs of `events`, in event order, from one pass. Events may come in any order (the
 /// Genesis path voice by voice, v1.1 section by section), so a voice can have several runs; reading
 /// a voice's runs in order reads its events in their original order.
-fn voice_runs(events: Span<NoteEvent>) -> Array<VoiceRun> {
+pub(crate) fn voice_runs(events: Span<NoteEvent>) -> Array<VoiceRun> {
     let mut runs: Array<VoiceRun> = array![];
     let mut voice: u32 = 0;
     // felts, so no overflow checks per event, converted once per run (they fit: at most
@@ -81,7 +81,7 @@ fn max_voice_of(runs: Span<VoiceRun>) -> u32 {
 }
 
 /// The pitch sum and the event count of every voice id 0..=max_voice.
-fn voice_stats(runs: Span<VoiceRun>, max_voice: u32) -> (Array<u64>, Array<u64>) {
+pub(crate) fn voice_stats(runs: Span<VoiceRun>, max_voice: u32) -> (Array<u64>, Array<u64>) {
     let mut sums: Array<u64> = array![];
     let mut counts: Array<u64> = array![];
     let mut v: u32 = 0;

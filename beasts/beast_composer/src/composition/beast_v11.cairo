@@ -603,58 +603,79 @@ fn map_degree(m: VoiceMap, d: i32) -> i32 {
 #[derive(Copy, Drop)]
 struct Realizer {
     shift: i32,
+    /// Where degree 0 is in `table` (a felt, see `realize`).
+    zero: felt252,
     tonic: u8,
     /// The mode's scale (`mode_scale`), looked up once per section: for the composer's diatonic
     /// modes `realize_degree(7, ..)` is exactly `degree_to_keynum` with it.
     scale: Span<u8>,
-    /// `degree_to_keynum(d + shift, ..)` for d in [-TABLE_LO, TABLE_HI), computed once per section;
-    /// 0xFFFF where that would panic (computed directly instead, so it still panics there).
-    table: Span<u16>,
+    /// `degree_to_keynum(d + shift, ..)` for the degrees it covers (TABLE_OCT_LO), computed once
+    /// per section; none where that would panic (computed directly instead, so it still panics
+    /// there).
+    table: Span<Option<u8>>,
 }
 
-const TABLE_LO: i32 = 48;
-const TABLE_HI: i32 = 48;
+/// The table holds the octaves [TABLE_OCT_LO, TABLE_OCT_HI) of `degree_to_keynum`'s 7 biased
+/// degrees: the shifted degrees [-21, 21), around the [-20, 15] the Genesis Tracks reach. A degree
+/// outside it realizes the same pitch directly, only slower.
+const TABLE_OCT_LO: u32 = 7;
+const TABLE_OCT_HI: u32 = 13;
+/// Where shifted degree 0 is in the table: 70 (`degree_to_keynum`'s bias) less the first octave's
+/// 49 biased degrees.
+const TABLE_ZERO: i32 = 21;
 
 fn realizer(shift: i32, tonic: u8, scale: Span<u8>) -> Realizer {
-    let mut table: Array<u16> = array![];
-    let mut d = -TABLE_LO;
-    while d < TABLE_HI {
-        let du = d + shift + 70;
-        let v: u16 = if du < 0 {
-            0xFFFF
-        } else {
-            let du: u32 = du.try_into().unwrap();
-            let total: u32 = tonic.into() + 12 * (du / 7) + (*scale.at(du % 7)).into();
-            if total < 120 || total - 120 > 255 {
-                0xFFFF
+    // Only the first seven degrees count, as in `degree_to_keynum`: a shorter scale panics here
+    // with the same 'Index out of bounds'.
+    let scale = scale.slice(0, 7);
+    let mut table: Array<Option<u8>> = array![];
+    let mut oct = TABLE_OCT_LO;
+    while oct < TABLE_OCT_HI {
+        let root: u32 = tonic.into() + 12 * oct;
+        for semis in scale {
+            // `degree_to_keynum`'s `total - 120` as a u8, where it neither underflows nor overflows
+            let total = root + (*semis).into();
+            table.append(if total >= 120 {
+                (total - 120).try_into()
             } else {
-                (total - 120).try_into().unwrap()
-            }
-        };
-        table.append(v);
-        d += 1;
+                Option::None
+            });
+        }
+        oct += 1;
     }
-    Realizer { shift, tonic, scale, table: table.span() }
+    Realizer { shift, zero: (shift + TABLE_ZERO).into(), tonic, scale, table: table.span() }
 }
 
 fn realize(r: Realizer, d: i32) -> u8 {
-    if d >= -TABLE_LO && d < TABLE_HI {
-        let i: u32 = (d + TABLE_LO).try_into().unwrap();
-        let v = *r.table.at(i);
-        if v != 0xFFFF {
-            return v.try_into().unwrap();
-        }
+    // The index is in felts: below the table it wraps to a huge one that `try_into` rejects.
+    match tabled(r.table, d.into() + r.zero) {
+        Option::Some(pitch) => pitch,
+        Option::None => degree_to_keynum(d + r.shift, r.tonic, r.scale),
     }
-    degree_to_keynum(d + r.shift, r.tonic, r.scale)
+}
+
+/// The table's pitch at `i`, if `i` is in the table and `degree_to_keynum` does not panic there.
+fn tabled(table: Span<Option<u8>>, i: felt252) -> Option<u8> {
+    *table.get(i.try_into()?)?.unbox()
+}
+
+/// The pitches at `base` and a step or two either side of it (`up` is the step: 1, or -1 mirrored),
+/// scored by distance.
+fn around(r: Realizer, base: i32, up: i32) -> Array<(i32, u8)> {
+    let (above, below) = (base + up, base - up);
+    array![
+        (0, realize(r, base)), (6, realize(r, above)), (6, realize(r, below)),
+        (12, realize(r, above + up)), (12, realize(r, below - up)),
+    ]
 }
 
 /// Candidates a step or two around a degree (mapped by the voice), scored by distance.
 fn near(r: Realizer, m: VoiceMap, deg: i32) -> Array<(i32, u8)> {
-    array![
-        (0, realize(r, map_degree(m, deg))), (6, realize(r, map_degree(m, deg + 1))),
-        (6, realize(r, map_degree(m, deg - 1))), (12, realize(r, map_degree(m, deg + 2))),
-        (12, realize(r, map_degree(m, deg - 2))),
-    ]
+    around(r, map_degree(m, deg), if m.invert {
+        -1
+    } else {
+        1
+    })
 }
 
 fn place(
@@ -939,10 +960,7 @@ fn build_section(
             let pitch = if v == 0 {
                 realize(r, base)
             } else {
-                let cands = array![
-                    (0, realize(r, base)), (6, realize(r, base + 1)), (6, realize(r, base - 1)),
-                    (12, realize(r, base + 2)), (12, realize(r, base - 2)),
-                ];
+                let cands = around(r, base, 1);
                 choose_pitch(cands.span(), time, sl.duration, out.span(), ref grid, voices, v, prev)
             };
             let e = NoteEvent { time, duration: sl.duration, pitch, velocity: 90, voice_id: v };
@@ -1003,10 +1021,11 @@ fn build_section(
         }
     }
     // the half cadence's target: the next section's dominant chord (bass: its 5th)
-    let next_r = realizer(next_shift, home, scale);
-    let dom_bass: Array<u8> = array![realize(next_r, 4) % 12];
+    let fifth = degree_to_keynum(4 + next_shift, home, scale) % 12;
+    let dom_bass: Array<u8> = array![fifth];
     let dom_chord: Array<u8> = array![
-        realize(next_r, 4) % 12, realize(next_r, 6) % 12, realize(next_r, 1) % 12,
+        fifth, degree_to_keynum(6 + next_shift, home, scale) % 12,
+        degree_to_keynum(1 + next_shift, home, scale) % 12,
     ];
     let nvo = lasts.len();
     let mut x: u32 = 0;
@@ -1346,4 +1365,137 @@ pub fn v11_score_full_smf_bytes(beast: PackableBeastV3, live: BeastV3LiveState) 
 /// The same, packed 31 bytes per felt after the byte length.
 pub fn v11_score_full_midi(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<felt252> {
     midi::pack::to_felt252_array(v11_score_full_smf_bytes(beast, live).span())
+}
+
+#[cfg(test)]
+mod realizer_tests {
+    use crate::composition::genesis::named_mode_scale;
+    use crate::composition::melodic_canon::{degree_to_keynum, mode_scale};
+    use super::{
+        TABLE_OCT_HI, TABLE_OCT_LO, TABLE_ZERO, VoiceMap, around, map_degree, near, realize,
+        realizer, tabled,
+    };
+
+    /// Every scale the composer realizes with: the modes `canonical_to_melodic_mode` gives (Dorian,
+    /// Phrygian, Aeolian) and `genesis::named_mode_scale`'s.
+    fn scales() -> Array<Span<u8>> {
+        let mut scales: Array<Span<u8>> = array![];
+        for mode in array![1_u8, 2, 5] {
+            scales.append(mode_scale(mode));
+        }
+        for id in array![4_u8, 5, 6, 7, 8, 26] {
+            scales.append(named_mode_scale(id).unwrap());
+        }
+        scales
+    }
+
+    /// `degree_to_keynum`'s pitch, none where it panics: the same steps, checked.
+    fn keynum(degree: i32, tonic: u8, scale: Span<u8>) -> Option<u8> {
+        let du: u32 = (degree + 70).try_into()?;
+        let total: u32 = tonic.into() + 12 * (du / 7) + (*scale.at(du % 7)).into();
+        if total >= 120 {
+            (total - 120).try_into()
+        } else {
+            Option::None
+        }
+    }
+
+    #[test]
+    fn table_covers_the_octaves_it_says() {
+        let r = realizer(0, 60, mode_scale(5));
+        assert!(r.table.len() == 7 * (TABLE_OCT_HI - TABLE_OCT_LO));
+        assert!(TABLE_ZERO == 70 - 7 * TABLE_OCT_LO.try_into().unwrap());
+    }
+
+    /// Over every scale, tonic (`transposed_tonic`'s 24..=96) and shift (`degree_plan`'s -3..=3),
+    /// and the degrees well past the table on both sides: the table holds exactly the pitches
+    /// `degree_to_keynum` returns without panicking, and `realize` returns them.
+    #[test]
+    #[available_gas(100000000000)]
+    fn realize_is_degree_to_keynum() {
+        for scale in scales().span() {
+            let mut tonic: u8 = 24;
+            while tonic <= 96 {
+                let mut shift: i32 = -3;
+                while shift <= 3 {
+                    let r = realizer(shift, tonic, *scale);
+                    let mut d: i32 = -28;
+                    while d < 28 {
+                        let want = keynum(d + shift, tonic, *scale);
+                        let in_table = d + shift >= -TABLE_ZERO && d + shift < TABLE_ZERO;
+                        let tabled = tabled(r.table, d.into() + r.zero);
+                        assert!(tabled == if in_table {
+                            want
+                        } else {
+                            Option::None
+                        });
+                        if let Option::Some(pitch) = want {
+                            assert!(degree_to_keynum(d + shift, tonic, *scale) == pitch);
+                            assert!(realize(r, d) == pitch);
+                        }
+                        d += 1;
+                    }
+                    shift += 1;
+                }
+                tonic += 1;
+            }
+        }
+    }
+
+    #[test]
+    #[should_panic(expected: ('Index out of bounds',))]
+    fn a_scale_of_six_degrees_panics() {
+        realizer(0, 60, mode_scale(7));
+    }
+
+    #[test]
+    #[should_panic(expected: ('u32_sub Overflow',))]
+    fn a_pitch_below_zero_panics() {
+        // 24 less two octaves and a bit: tabled as none, then `degree_to_keynum`'s subtraction
+        realize(realizer(0, 24, mode_scale(5)), -21);
+    }
+
+    #[test]
+    #[should_panic(expected: ('Option::unwrap failed.',))]
+    fn a_pitch_above_255_panics() {
+        let loud = array![255_u8, 255, 255, 255, 255, 255, 255];
+        realize(realizer(0, 96, loud.span()), 0);
+    }
+
+    #[test]
+    #[should_panic(expected: ('Option::unwrap failed.',))]
+    fn a_degree_below_the_bias_panics() {
+        realize(realizer(0, 60, mode_scale(5)), -100);
+    }
+
+    /// The candidates of a degree, in the order `choose_pitch` breaks ties by: each mapped
+    /// separately (the original `near`), and around an already mapped degree.
+    #[test]
+    fn candidates_keep_their_order() {
+        let r = realizer(2, 60, mode_scale(5));
+        let mut off: i32 = -11;
+        while off <= 7 {
+            let mut deg: i32 = -12;
+            while deg <= 12 {
+                for invert in array![false, true] {
+                    let m = VoiceMap { invert, off };
+                    let want = array![
+                        (0, realize(r, map_degree(m, deg))),
+                        (6, realize(r, map_degree(m, deg + 1))),
+                        (6, realize(r, map_degree(m, deg - 1))),
+                        (12, realize(r, map_degree(m, deg + 2))),
+                        (12, realize(r, map_degree(m, deg - 2))),
+                    ];
+                    assert!(near(r, m, deg).span() == want.span());
+                }
+                let want = array![
+                    (0, realize(r, deg)), (6, realize(r, deg + 1)), (6, realize(r, deg - 1)),
+                    (12, realize(r, deg + 2)), (12, realize(r, deg - 2)),
+                ];
+                assert!(around(r, deg, 1).span() == want.span());
+                deg += 1;
+            }
+            off += 1;
+        }
+    }
 }

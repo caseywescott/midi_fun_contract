@@ -225,47 +225,115 @@ mod degree_tests {
 
     /// `degree_ref` shifts with the home (`pitch_ref` is `home` plus a function of the degree), so
     /// its answers at home 0 for the pitches -96..=231 (the u8 pitches at the homes 24..=96) are
-    /// its answers at every home: `degree` equals them for every key and every pitch.
+    /// its answers at every home: `degree` equals them for every key and every pitch. One scale per
+    /// test: a cairo-test run keeps what it allocates, and CI runs several at once.
+    fn degree_matches_the_scan_at_every_home(scale: usize) {
+        let sc = *scales().at(scale);
+        let mut want: Array<i32> = array![];
+        let mut rel: i32 = -96;
+        while rel <= 231 {
+            want.append(degree_ref(YetiKey { home: 0, scale: sc }, rel));
+            rel += 1;
+        }
+        let mut home: u8 = 24;
+        while home <= 96 {
+            let k = YetiKey { home, scale: sc };
+            let mut p: u32 = 0;
+            while p <= 255 {
+                assert_eq!(degree(k, p.try_into().unwrap()), *want.at(p + 96 - home.into()));
+                p += 1;
+            }
+            home += 1;
+        }
+    }
+
     #[test]
     #[available_gas(1000000000000)]
-    fn degree_matches_the_scan_at_every_home() {
-        for sc in scales() {
-            let mut want: Array<i32> = array![];
-            let mut rel: i32 = -96;
-            while rel <= 231 {
-                want.append(degree_ref(YetiKey { home: 0, scale: sc }, rel));
-                rel += 1;
-            }
-            let mut home: u8 = 24;
-            while home <= 96 {
-                let k = YetiKey { home, scale: sc };
-                let mut p: u32 = 0;
-                while p <= 255 {
-                    assert_eq!(degree(k, p.try_into().unwrap()), *want.at(p + 96 - home.into()));
-                    p += 1;
+    fn degree_matches_the_scan_at_every_home_0() {
+        degree_matches_the_scan_at_every_home(0);
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_at_every_home_1() {
+        degree_matches_the_scan_at_every_home(1);
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_at_every_home_2() {
+        degree_matches_the_scan_at_every_home(2);
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_at_every_home_3() {
+        degree_matches_the_scan_at_every_home(3);
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_at_every_home_4() {
+        degree_matches_the_scan_at_every_home(4);
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_at_every_home_5() {
+        degree_matches_the_scan_at_every_home(5);
+    }
+
+    /// The shift above checked directly, at the lowest, highest and a middle home, one scale per
+    /// test.
+    fn degree_matches_the_scan_at_the_ends_and_middle(scale: usize) {
+        let sc = *scales().at(scale);
+        for home in array![24, 60, 96] {
+            let k = YetiKey { home, scale: sc };
+            let mut p: u8 = 0;
+            loop {
+                assert_eq!(degree(k, p), degree_ref(k, p.into()));
+                if p == 255 {
+                    break;
                 }
-                home += 1;
+                p += 1;
             }
         }
     }
 
-    /// The shift above checked directly, at the lowest, highest and a middle home.
     #[test]
     #[available_gas(1000000000000)]
-    fn degree_matches_the_scan_at_the_ends_and_middle() {
-        for sc in scales() {
-            for home in array![24, 60, 96] {
-                let k = YetiKey { home, scale: sc };
-                let mut p: u8 = 0;
-                loop {
-                    assert_eq!(degree(k, p), degree_ref(k, p.into()));
-                    if p == 255 {
-                        break;
-                    }
-                    p += 1;
-                }
-            }
-        }
+    fn degree_matches_the_scan_at_the_ends_and_middle_0() {
+        degree_matches_the_scan_at_the_ends_and_middle(0);
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_at_the_ends_and_middle_1() {
+        degree_matches_the_scan_at_the_ends_and_middle(1);
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_at_the_ends_and_middle_2() {
+        degree_matches_the_scan_at_the_ends_and_middle(2);
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_at_the_ends_and_middle_3() {
+        degree_matches_the_scan_at_the_ends_and_middle(3);
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_at_the_ends_and_middle_4() {
+        degree_matches_the_scan_at_the_ends_and_middle(4);
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_at_the_ends_and_middle_5() {
+        degree_matches_the_scan_at_the_ends_and_middle(5);
     }
 
     /// Every home against the scan itself, for one scale (about 40 s): the two tests above,

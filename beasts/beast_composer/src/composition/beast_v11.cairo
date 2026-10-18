@@ -1690,39 +1690,91 @@ mod realizer_tests {
         assert!(TABLE_ZERO == 70 - 7 * TABLE_OCT_LO.try_into().unwrap());
     }
 
-    /// Over every scale, tonic (`transposed_tonic`'s 24..=96) and shift (`degree_plan`'s -3..=3),
-    /// and the degrees well past the table on both sides: the table holds exactly the pitches
-    /// `degree_to_keynum` returns without panicking, and `realize` returns them.
+    /// For one of the scales (a test each: a cairo-test run keeps what it allocates, and CI runs
+    /// several at once), over every tonic (`transposed_tonic`'s 24..=96) and shift (`degree_plan`'s
+    /// -3..=3), and the degrees well past the table on both sides: the table holds exactly the
+    /// pitches `degree_to_keynum` returns without panicking, and `realize` returns them.
+    fn realize_is_degree_to_keynum(scale: usize) {
+        let scale = *scales().at(scale);
+        let mut tonic: u8 = 24;
+        while tonic <= 96 {
+            let mut shift: i32 = -3;
+            while shift <= 3 {
+                let r = realizer(shift, tonic, scale);
+                let mut d: i32 = -28;
+                while d < 28 {
+                    let want = keynum(d + shift, tonic, scale);
+                    let in_table = d + shift >= -TABLE_ZERO && d + shift < TABLE_ZERO;
+                    let tabled = tabled(r.table, d.into() + r.zero);
+                    assert!(tabled == if in_table {
+                        want
+                    } else {
+                        Option::None
+                    });
+                    if let Option::Some(pitch) = want {
+                        assert!(degree_to_keynum(d + shift, tonic, scale) == pitch);
+                        assert!(realize(r, d) == pitch);
+                    }
+                    d += 1;
+                }
+                shift += 1;
+            }
+            tonic += 1;
+        }
+    }
+
     #[test]
     #[available_gas(100000000000)]
-    fn realize_is_degree_to_keynum() {
-        for scale in scales().span() {
-            let mut tonic: u8 = 24;
-            while tonic <= 96 {
-                let mut shift: i32 = -3;
-                while shift <= 3 {
-                    let r = realizer(shift, tonic, *scale);
-                    let mut d: i32 = -28;
-                    while d < 28 {
-                        let want = keynum(d + shift, tonic, *scale);
-                        let in_table = d + shift >= -TABLE_ZERO && d + shift < TABLE_ZERO;
-                        let tabled = tabled(r.table, d.into() + r.zero);
-                        assert!(tabled == if in_table {
-                            want
-                        } else {
-                            Option::None
-                        });
-                        if let Option::Some(pitch) = want {
-                            assert!(degree_to_keynum(d + shift, tonic, *scale) == pitch);
-                            assert!(realize(r, d) == pitch);
-                        }
-                        d += 1;
-                    }
-                    shift += 1;
-                }
-                tonic += 1;
-            }
-        }
+    fn realize_is_degree_to_keynum_0() {
+        realize_is_degree_to_keynum(0);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn realize_is_degree_to_keynum_1() {
+        realize_is_degree_to_keynum(1);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn realize_is_degree_to_keynum_2() {
+        realize_is_degree_to_keynum(2);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn realize_is_degree_to_keynum_3() {
+        realize_is_degree_to_keynum(3);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn realize_is_degree_to_keynum_4() {
+        realize_is_degree_to_keynum(4);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn realize_is_degree_to_keynum_5() {
+        realize_is_degree_to_keynum(5);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn realize_is_degree_to_keynum_6() {
+        realize_is_degree_to_keynum(6);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn realize_is_degree_to_keynum_7() {
+        realize_is_degree_to_keynum(7);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn realize_is_degree_to_keynum_8() {
+        realize_is_degree_to_keynum(8);
     }
 
     #[test]
@@ -2568,22 +2620,68 @@ mod shape_tests {
         assert_same(a.span(), b.span());
     }
 
-    /// Every profile and ceiling, on the events of real scores.
-    #[test]
-    #[available_gas(100000000000)]
-    fn shape_matches_oracle_on_scores() {
-        for id in array![1_u64, 32, 68, 75].span() {
-            let score = score_of(*id);
-            for profile in array![0_u8, 1, 5, 7].span() {
-                for ceiling in array![0_u8, 1, 64, 127, 255].span() {
-                    let p = BeastCompositionParams {
-                        articulation_profile: *profile, velocity_ceiling: *ceiling, ..score.params,
-                    };
-                    check(score.events.span(), @p, score.section_ticks, 0);
-                    check(score.events.span(), @p, score.section_ticks, 3);
-                }
+    /// Every ceiling, with the given profiles, on the events of a real score (species 1, 32, 68 and
+    /// 75 with profiles 0, 1, 5 and 7 below, split so that no cairo-test run holds too much: a run
+    /// keeps what it allocates, and CI runs several at once).
+    fn shape_matches_oracle_on_score(id: u64, profiles: Span<u8>) {
+        let score = score_of(id);
+        for profile in profiles {
+            for ceiling in array![0_u8, 1, 64, 127, 255].span() {
+                let p = BeastCompositionParams {
+                    articulation_profile: *profile, velocity_ceiling: *ceiling, ..score.params,
+                };
+                check(score.events.span(), @p, score.section_ticks, 0);
+                check(score.events.span(), @p, score.section_ticks, 3);
             }
         }
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn shape_matches_oracle_on_scores_0() {
+        shape_matches_oracle_on_score(1, array![0, 1].span());
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn shape_matches_oracle_on_scores_1() {
+        shape_matches_oracle_on_score(1, array![5, 7].span());
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn shape_matches_oracle_on_scores_2() {
+        shape_matches_oracle_on_score(32, array![0, 1].span());
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn shape_matches_oracle_on_scores_3() {
+        shape_matches_oracle_on_score(32, array![5, 7].span());
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn shape_matches_oracle_on_scores_4() {
+        shape_matches_oracle_on_score(68, array![0, 1].span());
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn shape_matches_oracle_on_scores_5() {
+        shape_matches_oracle_on_score(68, array![5, 7].span());
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn shape_matches_oracle_on_scores_6() {
+        shape_matches_oracle_on_score(75, array![0, 1].span());
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn shape_matches_oracle_on_scores_7() {
+        shape_matches_oracle_on_score(75, array![5, 7].span());
     }
 
     fn next_random(ref seed: u64) -> u32 {
@@ -2637,16 +2735,20 @@ mod shape_tests {
     }
 
     /// Events in any order, stretches of a voice interleaved and repeated, keys colliding, pitches
-    /// over the whole u8 range, velocity sums past 255 and down to 0.
-    #[test]
-    #[available_gas(100000000000)]
-    fn shape_matches_oracle_on_any_layout() {
+    /// over the whole u8 range, velocity sums past 255 and down to 0: the layouts of kinds
+    /// `from..to` of the 16 (all 16 are drawn in order, so a kind's events do not depend on the
+    /// split; a test per range keeps each cairo-test run small).
+    fn shape_matches_oracle_on_layouts(from: u32, to: u32) {
         let score = score_of(32);
         let mut seed: u64 = 12345;
         let mut kind: u32 = 0;
         while kind < 16 {
             let section_ticks = *array![BAR * 4, BAR * 3, 2500, 7].span().at(kind % 4);
             let events = random_events(ref seed, kind, section_ticks, 80);
+            if kind < from || kind >= to {
+                kind += 1;
+                continue;
+            }
             for profile in array![0_u8, 1, 5].span() {
                 for ceiling in array![0_u8, 255].span() {
                     let p = BeastCompositionParams {
@@ -2660,6 +2762,24 @@ mod shape_tests {
             }
             kind += 1;
         }
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn shape_matches_oracle_on_any_layout_0() {
+        shape_matches_oracle_on_layouts(0, 6);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn shape_matches_oracle_on_any_layout_1() {
+        shape_matches_oracle_on_layouts(6, 11);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn shape_matches_oracle_on_any_layout_2() {
+        shape_matches_oracle_on_layouts(11, 16);
     }
 
     #[test]
@@ -2729,12 +2849,11 @@ mod dominant_tests {
         reaches
     }
 
-    #[test]
-    #[available_gas(100000000000)]
-    fn dominant_is_the_original() {
+    /// `from` in `lo..hi` (0..256 in two tests, so that no cairo-test run holds too much).
+    fn dominant_is_the_original_from(lo: u32, hi: u32) {
         let sets = class_sets();
-        let mut n: u32 = 0;
-        while n < 256 {
+        let mut n: u32 = lo;
+        while n < hi {
             let from: u8 = n.try_into().unwrap();
             for pcs in sets.span() {
                 if !reaches_past_255(from, pcs.span()) {
@@ -2743,6 +2862,18 @@ mod dominant_tests {
             }
             n += 1;
         }
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn dominant_is_the_original_0() {
+        dominant_is_the_original_from(0, 128);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn dominant_is_the_original_1() {
+        dominant_is_the_original_from(128, 256);
     }
 
     #[test]

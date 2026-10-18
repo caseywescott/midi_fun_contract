@@ -309,12 +309,11 @@ mod tests {
 
     /// Positions in and out of the register band, subjects well past it, the steps the generator
     /// uses (3, and 14 to relax them) and none, and the bands: ±7, a narrow one, one degree, none.
-    #[test]
-    #[available_gas(100000000000)]
-    fn candidates_are_the_original() {
+    /// `cs_cur` in `lo..=hi` (-8..=8 in three tests, so that no cairo-test run holds too much).
+    fn candidates_are_the_original_from(lo: i32, hi: i32) {
         let bands = array![(-7_i32, 7_i32), (-2, 4), (0, 0), (3, -3)];
-        let mut cs_cur: i32 = -8;
-        while cs_cur <= 8 {
+        let mut cs_cur: i32 = lo;
+        while cs_cur <= hi {
             let mut subject: i32 = -14;
             while subject <= 14 {
                 for max_step in array![0_u32, 3, 14] {
@@ -335,6 +334,24 @@ mod tests {
             }
             cs_cur += 1;
         }
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn candidates_are_the_original_0() {
+        candidates_are_the_original_from(-8, -3);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn candidates_are_the_original_1() {
+        candidates_are_the_original_from(-2, 3);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn candidates_are_the_original_2() {
+        candidates_are_the_original_from(4, 8);
     }
 
     #[test]

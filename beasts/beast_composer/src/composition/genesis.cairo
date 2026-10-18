@@ -415,14 +415,18 @@ mod run_tests {
         (mask / *array![1, 2, 4, 8, 16].span().at(v)) % 2 == 1
     }
 
-    #[test]
-    #[available_gas(100000000000)]
-    fn test_runs_match_the_scans() {
+    /// Cases `from..to` of 60 (all 60 are drawn in order, so a case's events do not depend on the
+    /// split; a test per range keeps each cairo-test run small).
+    fn runs_match_the_scans(from: u32, to: u32) {
         let mut seed: u64 = 20240607;
         let mut merged: u32 = 0;
         let mut case: u32 = 0;
         while case < 60 {
             let events = random_events(ref seed, 3 + case, 1 + (case % 7).into());
+            if case < from || case >= to {
+                case += 1;
+                continue;
+            }
             let section_ticks: u32 = *array![960, 1920, 3840].span().at(case % 3);
             let runs = voice_runs(events.span());
             let (sums, counts) = voice_stats(runs.span(), MAX_VOICES - 1);
@@ -468,6 +472,42 @@ mod run_tests {
             case += 1;
         }
         assert(merged > 0, 'no note was tied');
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn test_runs_match_the_scans_0() {
+        runs_match_the_scans(0, 22);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn test_runs_match_the_scans_1() {
+        runs_match_the_scans(22, 33);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn test_runs_match_the_scans_2() {
+        runs_match_the_scans(33, 41);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn test_runs_match_the_scans_3() {
+        runs_match_the_scans(41, 48);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn test_runs_match_the_scans_4() {
+        runs_match_the_scans(48, 54);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn test_runs_match_the_scans_5() {
+        runs_match_the_scans(54, 60);
     }
 
     #[test]

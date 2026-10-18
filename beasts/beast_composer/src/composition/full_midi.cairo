@@ -714,9 +714,7 @@ pub fn beast_form_to_full_tracks_arranged(
         Option::None => plain_programs(max_voice),
     };
     let extra_voice: u32 = match arr.extra {
-        Option::Some((
-            ev, prog,
-        )) => {
+        Option::Some((ev, prog)) => {
             let mut next: Array<u8> = array![];
             let mut v: u32 = 0;
             while v <= max_voice {

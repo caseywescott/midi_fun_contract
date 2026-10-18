@@ -1,6 +1,6 @@
 {
  "schema": "midi_bench/gas-snapshot/1",
- "created_utc": "2026-10-18T09:33:16+00:00",
+ "created_utc": "2026-10-18T10:44:47+00:00",
  "measurement": {
   "definition_version": 1,
   "quantity": "L2 gas (Sierra gas) of the case's one top-level call from the test, inclusive of the calls it makes (e.g. get_midi includes the NFT's get_beast_rank)",
@@ -16,12 +16,12 @@
    "version": "scarb 2.20.1 (dd18779a1 2026-08-21)\ncairo: 2.20.0 (https://crates.io/crates/cairo-lang-compiler/2.20.0)\nsierra: 1.9.3\narch: x86_64-unknown-linux-gnu"
   },
   "snforge": {
-   "path": "/home/ubuntu/.asdf/installs/starknet-foundry/0.64.0/bin/snforge",
-   "version": "snforge 0.64.0"
+   "path": "/home/ubuntu/.asdf/installs/starknet-foundry/0.64.1/bin/snforge",
+   "version": "snforge 0.64.1"
   },
   "universal_sierra_compiler": {
    "path": "/home/ubuntu/.local/bin/universal-sierra-compiler",
-   "version": "universal-sierra-compiler 2.10.1"
+   "version": "universal-sierra-compiler 2.10.2"
   },
   "node": {
    "path": "/home/ubuntu/.asdf/installs/nodejs/24.19.0/bin/node",
@@ -29,23 +29,23 @@
   }
  },
  "git": {
-  "rev": "bdfc78fd3ef8538bb284633b0867cfbd1319f2f1",
+  "rev": "9774eea48d3edaec2735ec4c7ec9f2d0be85b67c",
   "dirty": false,
   "status": [],
   "tracked_tree": {
-   "sha256": "ef7d44123ed96be0e7f14f018e74b2bed906b2057e23ff1ae39445c036aa4ae2",
-   "files": 446
+   "sha256": "4dadc8ded83d659950c7f61deb0eefeaf79d2f02144a8887368aab93029ac06a",
+   "files": 447
   },
   "production_tree": {
-   "sha256": "caf83c70b7c8dd11e8786ab9b6cc8ca344e6a9ca2aac344cc9e384cb944b0ee9",
+   "sha256": "a89f6745d04f5996d286435839e3ffd26a8fde078d80ecc57dd6fbf724cf49b0",
    "files": 73
   },
   "bench_tree": {
-   "sha256": "9faf88be9e49a158dbc23c5e62abdd14c3c4a6089304ce7d8b07b5cf5536c6af",
-   "files": 22
+   "sha256": "33bcdbf37b5eacea808ea7a390b7b0913e8070644be2dc5d4d60a0648e790f2b",
+   "files": 23
   },
-  "root_scarb_lock_sha256": "dbe79ca05a7e1b14bda4660f83a8692f357f6433aa2c33f8d550e94b6b0f3cf8",
-  "bench_scarb_lock_sha256": "347e01366dabf640b2638d441780cde2c7fbbc9a0786a9bb4199a48f82dde256"
+  "root_scarb_lock_sha256": "e35af5b12b2f74b2c571a076a0e91dc45970856b70570f2c5a6f1dcbd29a63e1",
+  "bench_scarb_lock_sha256": "8d7fe18eb4399e3a794df50f04e05478859fe56ed3a3bfcbbb9091103d586bd5"
  },
  "expected_table": {
   "cases_json_sha256": "cdbdfedfdcb57b1a386a5cf8698d382b90e9c97ee5c73f7d3fea83d5e8288f6b",
@@ -226,7 +226,7 @@
  },
  "run": {
   "command": [
-   "/home/ubuntu/.asdf/installs/starknet-foundry/0.64.0/bin/snforge",
+   "/home/ubuntu/.asdf/installs/starknet-foundry/0.64.1/bin/snforge",
    "test",
    "--no-optimization",
    "--tracked-resource",
@@ -242,8 +242,8 @@
    "4"
   ],
   "threads": 4,
-  "wall_s": 18.0,
-  "peak_rss_mb": 6257,
+  "wall_s": 36.7,
+  "peak_rss_mb": 6186,
   "tests_passed": 286
  },
  "checks": {

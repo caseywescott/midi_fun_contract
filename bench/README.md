@@ -19,7 +19,7 @@ from there), universal-sierra-compiler (snforge's own), node 20+ with `npm insta
 python3 bench/scripts/gas_bench.py run --out bench/snapshots/candidate.json
 
 # compare it with the baseline (plain text, or --markdown; --fail-on-regression exits 3)
-python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-bdfc78f.json \
+python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-25be776.json \
     bench/snapshots/candidate.json --markdown
 
 # run some bench tests with the pinned tools, no snapshot (e.g. after a change, or to see
@@ -113,7 +113,7 @@ clean captures.
 Limits: Starknet 0.14.x allows a transaction's execution `execute_max_sierra_gas` =
 1,110,000,000 L2 gas; snforge does not enforce it (a single call of 1,133,970,050 passes), so the
 runner flags any case above it (none at the baseline: the heaviest is `c_token_uri_e2e_s032_s` at
-466,035,973, the heaviest `get_midi` 361,826,223). snforge caps VM steps per test instead, at
+466,023,973, the heaviest `get_midi` 361,814,223). snforge caps VM steps per test instead, at
 10,000,000 by default (a test of 9,947,415 steps passes, one about 85,000 steps longer fails
 with "RunResources has no remaining steps"); the heaviest bench test takes
 4.2 M steps, and the runner passes `--max-n-steps 50000000` so that a heavier candidate is
@@ -250,5 +250,5 @@ baseline snapshot, since `compare` refuses different case sets.
 | `expected/frozen.json` | the baseline's outputs (`gas_bench.py freeze`) |
 | `scripts/gen_expected.mjs` | the matrix and the expected-table generator |
 | `scripts/gas_bench.py` | run, compare, test, freeze |
-| `snapshots/baseline-bdfc78f.json` | the current baseline: the classes after the gas work |
-| `snapshots/baseline-2ce04a9.json` | the classes before it (`2ce04a9`, where the bench was frozen) |
+| `snapshots/baseline-25be776.json` | the current baseline: the classes after the gas work, built with scarb 2.21.0 (25be776) |
+| `snapshots/baseline-2ce04a9.json` | the classes before it (`2ce04a9`'s sources, where the bench was frozen), built with scarb 2.21.0 |

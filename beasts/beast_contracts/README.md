@@ -106,16 +106,16 @@ From the repository root (artifacts land in the workspace `target/dev`, named
 `beast_contracts_<Contract>`):
 
 ```bash
-scarb build -p beast_contracts   # BeastMidiProvider: Sierra 35,948 felts, CASM 72,402 (Starknet limit 81,920)
+scarb build -p beast_contracts   # BeastMidiProvider: Sierra 35,997 felts, CASM 72,576 (Starknet limit 81,920)
 scarb test -p beast_contracts    # provider vs v11_score_full_midi on mock NFT + Death Mountain, sources,
                                  # rejections, get_sound, and onchain-midi-player's validate on the settings
 ```
 
 ## BeastMidiProvider gas (`bench/`)
 
-L2 (Sierra) gas of one call, nested calls included, from `bench/snapshots/baseline-bdfc78f.json`
-(snforge 0.64.1 on the classes `scarb build` makes; mock NFT and Death Mountain; no transaction
-overhead):
+L2 (Sierra) gas of one call, nested calls included, from `bench/snapshots/baseline-25be776.json`
+(scarb 2.21.0 and snforge 0.64.1 on the classes `scarb build` makes; mock NFT and Death Mountain;
+no transaction overhead):
 
 | Call | Gas |
 |---|---:|

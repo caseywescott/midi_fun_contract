@@ -32,7 +32,7 @@ Gas benchmark (needs `npm install --prefix offchain/beast-sound` once):
 
 ```bash
 python3 bench/scripts/gas_bench.py run --out bench/snapshots/candidate.json
-python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-bdfc78f.json \
+python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-25be776.json \
     bench/snapshots/candidate.json --markdown
 ```
 

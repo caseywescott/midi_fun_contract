@@ -1,6 +1,6 @@
 {
  "schema": "midi_bench/gas-snapshot/1",
- "created_utc": "2026-10-18T10:44:47+00:00",
+ "created_utc": "2026-10-18T11:50:29+00:00",
  "measurement": {
   "definition_version": 1,
   "quantity": "L2 gas (Sierra gas) of the case's one top-level call from the test, inclusive of the calls it makes (e.g. get_midi includes the NFT's get_beast_rank)",
@@ -12,8 +12,8 @@
  },
  "tools": {
   "scarb": {
-   "path": "/home/ubuntu/.asdf/installs/scarb/2.20.1/bin/scarb",
-   "version": "scarb 2.20.1 (dd18779a1 2026-08-21)\ncairo: 2.20.0 (https://crates.io/crates/cairo-lang-compiler/2.20.0)\nsierra: 1.9.3\narch: x86_64-unknown-linux-gnu"
+   "path": "/home/ubuntu/.asdf/installs/scarb/2.21.0/bin/scarb",
+   "version": "scarb 2.21.0 (fbd5bd03d 2026-10-09)\ncairo: 2.21.0 (https://crates.io/crates/cairo-lang-compiler/2.21.0)\nsierra: 1.9.5\narch: x86_64-unknown-linux-gnu"
   },
   "snforge": {
    "path": "/home/ubuntu/.asdf/installs/starknet-foundry/0.64.1/bin/snforge",
@@ -29,27 +29,27 @@
   }
  },
  "git": {
-  "rev": "9774eea48d3edaec2735ec4c7ec9f2d0be85b67c",
+  "rev": "b53db644aca4ae1220ab83ee96c0f7da2a7ac695",
   "dirty": false,
   "status": [],
   "tracked_tree": {
-   "sha256": "4dadc8ded83d659950c7f61deb0eefeaf79d2f02144a8887368aab93029ac06a",
-   "files": 447
+   "sha256": "21c0d88d32a6a0f02ef95bf7a4050e1b3fdad8739bbdddf4033e2116307fa46b",
+   "files": 448
   },
   "production_tree": {
-   "sha256": "a89f6745d04f5996d286435839e3ffd26a8fde078d80ecc57dd6fbf724cf49b0",
+   "sha256": "9c8d384cc1cf69bbc0cd737e742bce427b174a2a0acf6953168216a941bcc8c8",
    "files": 73
   },
   "bench_tree": {
-   "sha256": "33bcdbf37b5eacea808ea7a390b7b0913e8070644be2dc5d4d60a0648e790f2b",
+   "sha256": "b1a36ec372f8f684ad4143b301d647f8d9b1499d7be4c7efa229a1db1a94eaf2",
    "files": 23
   },
   "root_scarb_lock_sha256": "e35af5b12b2f74b2c571a076a0e91dc45970856b70570f2c5a6f1dcbd29a63e1",
   "bench_scarb_lock_sha256": "8d7fe18eb4399e3a794df50f04e05478859fe56ed3a3bfcbbb9091103d586bd5"
  },
  "expected_table": {
-  "cases_json_sha256": "cdbdfedfdcb57b1a386a5cf8698d382b90e9c97ee5c73f7d3fea83d5e8288f6b",
-  "frozen_json_sha256": "e5c5300a2f735c867e4b16fb74c7580c90bbd26ce234d68dd74d6b68b04085b6",
+  "cases_json_sha256": "0d87765517b3be08b7bd11c52105c5c8533f021049d5554c0f745455cbc6a0ec",
+  "frozen_json_sha256": "4bb5a0a4630c8c719196e6591fe6e211e9e4199c1a510ea0e1674e4bc3c8e46e",
   "generator_check": "286 cases, 292 checks (233 js, 59 baseline-frozen)"
  },
  "classes": [
@@ -57,27 +57,27 @@
    "contract": "BeastMidiProvider",
    "package": "beast_contracts",
    "module": "beast_contracts::provider::BeastMidiProvider",
-   "casm_bytecode_len": 72402,
-   "casm_bytecode_sha256": "c3a91ed66def7de9111788ec6848cb3507faf689cc96e286f8601786d2516057",
-   "casm_file_sha256": "54e131d560b9ed93b3031f0e69bdccfb2f838921832bfe7ec21022ac7a720e88",
-   "sierra_program_len": 35948,
-   "sierra_program_sha256": "027944be5a12565e675ac59265f367a8eb0c2390e9ef151e7cf5d8a7bf699390",
-   "sierra_file_sha256": "63dfedaaad98aa9ff9cd215e62116313aa77e61481d8dc475d23b057e295c035",
+   "casm_bytecode_len": 72576,
+   "casm_bytecode_sha256": "d8335ebae398471b2e67ef1692ff0868279884c3351e9636c5c61ddde90eac19",
+   "casm_file_sha256": "b2f24ce80f9edde376f2c181260c76a67075d89e86bb0d8eccc3af5ef2b3a8f8",
+   "sierra_program_len": 35997,
+   "sierra_program_sha256": "faf8ab9a12a341d2040a8095fd2b143670e497b2ebf663773fc0cae1b2a6eb5f",
+   "sierra_file_sha256": "c829a74e1f5baebcd7227e6ad3eee32444316b5e239cce659020d2ee65e749bf",
    "casm_limit": 81920,
-   "casm_headroom": 9518
+   "casm_headroom": 9344
   },
   {
    "contract": "BeastSoundComposer",
    "package": "beast_contracts",
    "module": "beast_contracts::BeastSoundComposer",
-   "casm_bytecode_len": 23952,
-   "casm_bytecode_sha256": "83f80610206bef59dff33eb7ce5d93adb2897ecf9fd13b3c42d36b3b9564bf8d",
-   "casm_file_sha256": "1bfb83707c534575173f24df4f673fe0ddab9e0460693e09a8f30c6c16042df3",
-   "sierra_program_len": 11301,
-   "sierra_program_sha256": "a98e9176c34ea8ce15e1832beac201be58316f37b0dfa619ccddbf27a9bf57c1",
-   "sierra_file_sha256": "39dd4501c49859627d86ba9727045b7609e0ae4f4af954f72452683b07d45aef",
+   "casm_bytecode_len": 23895,
+   "casm_bytecode_sha256": "6ea5d5a5e3c6bc2d5914038a107489c9bbd5a3e5c9b8f385fca158832a5be16f",
+   "casm_file_sha256": "ccbbeacd2c7d649dba743c713cba2e105adc1f6735356d46eda5fd15426089fa",
+   "sierra_program_len": 11264,
+   "sierra_program_sha256": "200e51004156bcb2f3cce65dc42904418382ed28c8e0b307d46364a5d8320b6e",
+   "sierra_file_sha256": "87f9d56b0f4e53682b2514057df2119d0d67e7e3c2695fa06b3cd0e98a7c2ede",
    "casm_limit": 81920,
-   "casm_headroom": 57968
+   "casm_headroom": 58025
   },
   {
    "contract": "MidiSoundPage",
@@ -85,10 +85,10 @@
    "module": "midi_contracts::page::MidiSoundPage",
    "casm_bytecode_len": 23378,
    "casm_bytecode_sha256": "bd46ae63ddf870d150630f853fdf7cbfeb97e9d85e9cbade2e5ad85b3ec3f591",
-   "casm_file_sha256": "042ca41ce204030a5ae93e4bfb75be5ae902690b480e87c698b16f39e3925918",
-   "sierra_program_len": 27137,
-   "sierra_program_sha256": "31734edfb93548e8b2f79100e427a6b4f145d5e58080e36ed4064579b433998e",
-   "sierra_file_sha256": "460281f78bdce24a73b4208069fce81cff403c457e999d885b0143543de2bf90",
+   "casm_file_sha256": "64d7570be47bdb0344418d79099d1f46cb82066284d10b9ec3db949c880da71e",
+   "sierra_program_len": 27135,
+   "sierra_program_sha256": "1a02c7c1fed4e8a605de5094983edfac3ef21909e85ffb762cb7d603660d2c4d",
+   "sierra_file_sha256": "22a2d22ac7314b837a85015d928ae5aade67e9d2ec0186b3b09dd564e39afc73",
    "casm_limit": 81920,
    "casm_headroom": 58542
   },
@@ -98,10 +98,10 @@
    "module": "midi_contracts::examples::scale::ScaleMidiProvider",
    "casm_bytecode_len": 7151,
    "casm_bytecode_sha256": "be61796056fd5a8576b3c26ee815c1b0e417eeaa43dd0f34694a7baa400410ea",
-   "casm_file_sha256": "bdf8d8e5b923015224fc8fee70b1d772424ea99846be3325a9e01c3d150f4792",
+   "casm_file_sha256": "7f41b243816264cbd008590f731595e6046a2c910ebaa4ebb49b8074b39d157e",
    "sierra_program_len": 3272,
-   "sierra_program_sha256": "2df1701992df83f42ffa2368478ea11d7a3810c3a4e7f7b27c54d809d4ba0a52",
-   "sierra_file_sha256": "a9908f7b253a4452e3e328b0c9fe48e5fa54c99ebd5872fd983f7c86bea815db",
+   "sierra_program_sha256": "0df8b6294827281d8fb763ae135a2c8c853f361a1f94883de346777ab5544fbc",
+   "sierra_file_sha256": "648f1e7e8604052e2e0f85396c85722b29caf6a09ebd27799e73f2e98cbcb1be",
    "casm_limit": 81920,
    "casm_headroom": 74769
   }
@@ -117,23 +117,23 @@
      {
       "manifest": "midi_bench.starknet_artifacts.json",
       "sierra": "midi_bench_BeastMidiProvider.contract_class.json",
-      "sierra_program_len": 35948,
-      "sierra_program_sha256": "027944be5a12565e675ac59265f367a8eb0c2390e9ef151e7cf5d8a7bf699390",
-      "sierra_file_sha256": "63dfedaaad98aa9ff9cd215e62116313aa77e61481d8dc475d23b057e295c035",
+      "sierra_program_len": 35997,
+      "sierra_program_sha256": "faf8ab9a12a341d2040a8095fd2b143670e497b2ebf663773fc0cae1b2a6eb5f",
+      "sierra_file_sha256": "c829a74e1f5baebcd7227e6ad3eee32444316b5e239cce659020d2ee65e749bf",
       "sierra_identical": true,
-      "scarb_casm_bytecode_sha256": "c3a91ed66def7de9111788ec6848cb3507faf689cc96e286f8601786d2516057",
+      "scarb_casm_bytecode_sha256": "d8335ebae398471b2e67ef1692ff0868279884c3351e9636c5c61ddde90eac19",
       "scarb_casm_identical": true,
-      "usc_casm_bytecode_sha256": "c3a91ed66def7de9111788ec6848cb3507faf689cc96e286f8601786d2516057",
+      "usc_casm_bytecode_sha256": "d8335ebae398471b2e67ef1692ff0868279884c3351e9636c5c61ddde90eac19",
       "usc_casm_identical": true
      },
      {
       "manifest": "midi_bench_unittest.test.starknet_artifacts.json",
       "sierra": "midi_bench_unittest_BeastMidiProvider.test.contract_class.json",
-      "sierra_program_len": 35948,
-      "sierra_program_sha256": "027944be5a12565e675ac59265f367a8eb0c2390e9ef151e7cf5d8a7bf699390",
-      "sierra_file_sha256": "63dfedaaad98aa9ff9cd215e62116313aa77e61481d8dc475d23b057e295c035",
+      "sierra_program_len": 35997,
+      "sierra_program_sha256": "faf8ab9a12a341d2040a8095fd2b143670e497b2ebf663773fc0cae1b2a6eb5f",
+      "sierra_file_sha256": "c829a74e1f5baebcd7227e6ad3eee32444316b5e239cce659020d2ee65e749bf",
       "sierra_identical": true,
-      "usc_casm_bytecode_sha256": "c3a91ed66def7de9111788ec6848cb3507faf689cc96e286f8601786d2516057",
+      "usc_casm_bytecode_sha256": "d8335ebae398471b2e67ef1692ff0868279884c3351e9636c5c61ddde90eac19",
       "usc_casm_identical": true
      }
     ]
@@ -145,23 +145,23 @@
      {
       "manifest": "midi_bench.starknet_artifacts.json",
       "sierra": "midi_bench_BeastSoundComposer.contract_class.json",
-      "sierra_program_len": 11301,
-      "sierra_program_sha256": "a98e9176c34ea8ce15e1832beac201be58316f37b0dfa619ccddbf27a9bf57c1",
-      "sierra_file_sha256": "39dd4501c49859627d86ba9727045b7609e0ae4f4af954f72452683b07d45aef",
+      "sierra_program_len": 11264,
+      "sierra_program_sha256": "200e51004156bcb2f3cce65dc42904418382ed28c8e0b307d46364a5d8320b6e",
+      "sierra_file_sha256": "87f9d56b0f4e53682b2514057df2119d0d67e7e3c2695fa06b3cd0e98a7c2ede",
       "sierra_identical": true,
-      "scarb_casm_bytecode_sha256": "83f80610206bef59dff33eb7ce5d93adb2897ecf9fd13b3c42d36b3b9564bf8d",
+      "scarb_casm_bytecode_sha256": "6ea5d5a5e3c6bc2d5914038a107489c9bbd5a3e5c9b8f385fca158832a5be16f",
       "scarb_casm_identical": true,
-      "usc_casm_bytecode_sha256": "83f80610206bef59dff33eb7ce5d93adb2897ecf9fd13b3c42d36b3b9564bf8d",
+      "usc_casm_bytecode_sha256": "6ea5d5a5e3c6bc2d5914038a107489c9bbd5a3e5c9b8f385fca158832a5be16f",
       "usc_casm_identical": true
      },
      {
       "manifest": "midi_bench_unittest.test.starknet_artifacts.json",
       "sierra": "midi_bench_unittest_BeastSoundComposer.test.contract_class.json",
-      "sierra_program_len": 11301,
-      "sierra_program_sha256": "a98e9176c34ea8ce15e1832beac201be58316f37b0dfa619ccddbf27a9bf57c1",
-      "sierra_file_sha256": "39dd4501c49859627d86ba9727045b7609e0ae4f4af954f72452683b07d45aef",
+      "sierra_program_len": 11264,
+      "sierra_program_sha256": "200e51004156bcb2f3cce65dc42904418382ed28c8e0b307d46364a5d8320b6e",
+      "sierra_file_sha256": "87f9d56b0f4e53682b2514057df2119d0d67e7e3c2695fa06b3cd0e98a7c2ede",
       "sierra_identical": true,
-      "usc_casm_bytecode_sha256": "83f80610206bef59dff33eb7ce5d93adb2897ecf9fd13b3c42d36b3b9564bf8d",
+      "usc_casm_bytecode_sha256": "6ea5d5a5e3c6bc2d5914038a107489c9bbd5a3e5c9b8f385fca158832a5be16f",
       "usc_casm_identical": true
      }
     ]
@@ -173,9 +173,9 @@
      {
       "manifest": "midi_bench.starknet_artifacts.json",
       "sierra": "midi_bench_MidiSoundPage.contract_class.json",
-      "sierra_program_len": 27137,
-      "sierra_program_sha256": "31734edfb93548e8b2f79100e427a6b4f145d5e58080e36ed4064579b433998e",
-      "sierra_file_sha256": "460281f78bdce24a73b4208069fce81cff403c457e999d885b0143543de2bf90",
+      "sierra_program_len": 27135,
+      "sierra_program_sha256": "1a02c7c1fed4e8a605de5094983edfac3ef21909e85ffb762cb7d603660d2c4d",
+      "sierra_file_sha256": "22a2d22ac7314b837a85015d928ae5aade67e9d2ec0186b3b09dd564e39afc73",
       "sierra_identical": true,
       "scarb_casm_bytecode_sha256": "bd46ae63ddf870d150630f853fdf7cbfeb97e9d85e9cbade2e5ad85b3ec3f591",
       "scarb_casm_identical": true,
@@ -185,9 +185,9 @@
      {
       "manifest": "midi_bench_unittest.test.starknet_artifacts.json",
       "sierra": "midi_bench_unittest_MidiSoundPage.test.contract_class.json",
-      "sierra_program_len": 27137,
-      "sierra_program_sha256": "31734edfb93548e8b2f79100e427a6b4f145d5e58080e36ed4064579b433998e",
-      "sierra_file_sha256": "460281f78bdce24a73b4208069fce81cff403c457e999d885b0143543de2bf90",
+      "sierra_program_len": 27135,
+      "sierra_program_sha256": "1a02c7c1fed4e8a605de5094983edfac3ef21909e85ffb762cb7d603660d2c4d",
+      "sierra_file_sha256": "22a2d22ac7314b837a85015d928ae5aade67e9d2ec0186b3b09dd564e39afc73",
       "sierra_identical": true,
       "usc_casm_bytecode_sha256": "bd46ae63ddf870d150630f853fdf7cbfeb97e9d85e9cbade2e5ad85b3ec3f591",
       "usc_casm_identical": true
@@ -202,8 +202,8 @@
       "manifest": "midi_bench.starknet_artifacts.json",
       "sierra": "midi_bench_ScaleMidiProvider.contract_class.json",
       "sierra_program_len": 3272,
-      "sierra_program_sha256": "2df1701992df83f42ffa2368478ea11d7a3810c3a4e7f7b27c54d809d4ba0a52",
-      "sierra_file_sha256": "a9908f7b253a4452e3e328b0c9fe48e5fa54c99ebd5872fd983f7c86bea815db",
+      "sierra_program_sha256": "0df8b6294827281d8fb763ae135a2c8c853f361a1f94883de346777ab5544fbc",
+      "sierra_file_sha256": "648f1e7e8604052e2e0f85396c85722b29caf6a09ebd27799e73f2e98cbcb1be",
       "sierra_identical": true,
       "scarb_casm_bytecode_sha256": "be61796056fd5a8576b3c26ee815c1b0e417eeaa43dd0f34694a7baa400410ea",
       "scarb_casm_identical": true,
@@ -214,8 +214,8 @@
       "manifest": "midi_bench_unittest.test.starknet_artifacts.json",
       "sierra": "midi_bench_unittest_ScaleMidiProvider.test.contract_class.json",
       "sierra_program_len": 3272,
-      "sierra_program_sha256": "2df1701992df83f42ffa2368478ea11d7a3810c3a4e7f7b27c54d809d4ba0a52",
-      "sierra_file_sha256": "a9908f7b253a4452e3e328b0c9fe48e5fa54c99ebd5872fd983f7c86bea815db",
+      "sierra_program_sha256": "0df8b6294827281d8fb763ae135a2c8c853f361a1f94883de346777ab5544fbc",
+      "sierra_file_sha256": "648f1e7e8604052e2e0f85396c85722b29caf6a09ebd27799e73f2e98cbcb1be",
       "sierra_identical": true,
       "usc_casm_bytecode_sha256": "be61796056fd5a8576b3c26ee815c1b0e417eeaa43dd0f34694a7baa400410ea",
       "usc_casm_identical": true
@@ -242,8 +242,8 @@
    "4"
   ],
   "threads": 4,
-  "wall_s": 36.7,
-  "peak_rss_mb": 6186,
+  "wall_s": 21.2,
+  "peak_rss_mb": 5974,
   "tests_passed": 286
  },
  "checks": {
@@ -266,7 +266,7 @@
  "groups": {
   "A": {
    "count": 180,
-   "sum": 17909158455,
+   "sum": 17909149515,
    "min": 1570,
    "max": 164133983
   },
@@ -290,7 +290,7 @@
   },
   "E": {
    "count": 62,
-   "sum": 2264045546,
+   "sum": 2264039586,
    "min": 4750,
    "max": 181737433
   },
@@ -443,7 +443,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 135632063,
+   "test_l2_gas": 135631593,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S001_N (js)",
    "labels": [
@@ -467,7 +467,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 143258160,
+   "test_l2_gas": 143257690,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S001_S (js)",
    "labels": [
@@ -491,7 +491,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 137336584,
+   "test_l2_gas": 137336114,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S002_N (js)",
    "labels": [
@@ -515,7 +515,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 144962681,
+   "test_l2_gas": 144962211,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S002_S (js)",
    "labels": [
@@ -539,7 +539,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 147540120,
+   "test_l2_gas": 147539650,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S003_N (js)",
    "labels": [
@@ -563,7 +563,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 155263417,
+   "test_l2_gas": 155262947,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S003_S (js)",
    "labels": [
@@ -587,7 +587,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 147500801,
+   "test_l2_gas": 147500331,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S004_N (js)",
    "labels": [
@@ -611,7 +611,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 155127568,
+   "test_l2_gas": 155127098,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S004_S (js)",
    "labels": [
@@ -635,7 +635,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 139882854,
+   "test_l2_gas": 139882384,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S005_N (js)",
    "labels": [
@@ -659,7 +659,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 147113600,
+   "test_l2_gas": 147113130,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S005_S (js)",
    "labels": [
@@ -683,7 +683,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 144084266,
+   "test_l2_gas": 144083796,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S006_N (js)",
    "labels": [
@@ -707,7 +707,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 151412042,
+   "test_l2_gas": 151411572,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S006_S (js)",
    "labels": [
@@ -731,7 +731,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 143029676,
+   "test_l2_gas": 143029206,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S007_N (js)",
    "labels": [
@@ -755,7 +755,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 150655773,
+   "test_l2_gas": 150655303,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S007_S (js)",
    "labels": [
@@ -779,7 +779,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 141077685,
+   "test_l2_gas": 141077215,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S008_N (js)",
    "labels": [
@@ -803,7 +803,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 148044610,
+   "test_l2_gas": 148044140,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S008_S (js)",
    "labels": [
@@ -827,7 +827,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 140571694,
+   "test_l2_gas": 140571224,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S009_N (js)",
    "labels": [
@@ -851,7 +851,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 147719679,
+   "test_l2_gas": 147719209,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S009_S (js)",
    "labels": [
@@ -875,7 +875,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 136850682,
+   "test_l2_gas": 136850212,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S010_N (js)",
    "labels": [
@@ -899,7 +899,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 143768176,
+   "test_l2_gas": 143767706,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S010_S (js)",
    "labels": [
@@ -923,7 +923,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 110345738,
+   "test_l2_gas": 110345268,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S011_N (js)",
    "labels": [
@@ -947,7 +947,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 115918068,
+   "test_l2_gas": 115917598,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S011_S (js)",
    "labels": [
@@ -971,7 +971,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 107767089,
+   "test_l2_gas": 107766619,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S012_N (js)",
    "labels": [
@@ -995,7 +995,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 113580660,
+   "test_l2_gas": 113580190,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S012_S (js)",
    "labels": [
@@ -1019,7 +1019,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 110202138,
+   "test_l2_gas": 110201668,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S013_N (js)",
    "labels": [
@@ -1043,7 +1043,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 115777108,
+   "test_l2_gas": 115776638,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S013_S (js)",
    "labels": [
@@ -1067,7 +1067,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 110598658,
+   "test_l2_gas": 110598188,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S014_N (js)",
    "labels": [
@@ -1091,7 +1091,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 116173628,
+   "test_l2_gas": 116173158,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S014_S (js)",
    "labels": [
@@ -1115,7 +1115,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 98730686,
+   "test_l2_gas": 98730216,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S015_N (js)",
    "labels": [
@@ -1139,7 +1139,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 104459727,
+   "test_l2_gas": 104459257,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S015_S (js)",
    "labels": [
@@ -1163,7 +1163,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 74753794,
+   "test_l2_gas": 74753324,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S016_N (js)",
    "labels": [
@@ -1187,7 +1187,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 78685818,
+   "test_l2_gas": 78685348,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S016_S (js)",
    "labels": [
@@ -1211,7 +1211,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 69110342,
+   "test_l2_gas": 69109872,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S017_N (js)",
    "labels": [
@@ -1235,7 +1235,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 72668965,
+   "test_l2_gas": 72668495,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S017_S (js)",
    "labels": [
@@ -1259,7 +1259,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 68657632,
+   "test_l2_gas": 68657162,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S018_N (js)",
    "labels": [
@@ -1283,7 +1283,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 72216255,
+   "test_l2_gas": 72215785,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S018_S (js)",
    "labels": [
@@ -1307,7 +1307,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 68915532,
+   "test_l2_gas": 68915062,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S019_N (js)",
    "labels": [
@@ -1331,7 +1331,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 72474155,
+   "test_l2_gas": 72473685,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S019_S (js)",
    "labels": [
@@ -1355,7 +1355,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 67874192,
+   "test_l2_gas": 67873722,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S020_N (js)",
    "labels": [
@@ -1379,7 +1379,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 71407304,
+   "test_l2_gas": 71406834,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S020_S (js)",
    "labels": [
@@ -1403,7 +1403,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 65993111,
+   "test_l2_gas": 65992641,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S021_N (js)",
    "labels": [
@@ -1428,7 +1428,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 69477903,
+   "test_l2_gas": 69477433,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S021_S (js)",
    "labels": [
@@ -1452,7 +1452,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 74237364,
+   "test_l2_gas": 74236894,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S022_N (js)",
    "labels": [
@@ -1476,7 +1476,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 78058488,
+   "test_l2_gas": 78058018,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S022_S (js)",
    "labels": [
@@ -1500,7 +1500,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 74309534,
+   "test_l2_gas": 74309064,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S023_N (js)",
    "labels": [
@@ -1524,7 +1524,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 78130658,
+   "test_l2_gas": 78130188,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S023_S (js)",
    "labels": [
@@ -1548,7 +1548,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 69041022,
+   "test_l2_gas": 69040552,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S024_N (js)",
    "labels": [
@@ -1572,7 +1572,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 72575245,
+   "test_l2_gas": 72574775,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S024_S (js)",
    "labels": [
@@ -1596,7 +1596,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 68591792,
+   "test_l2_gas": 68591322,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S025_N (js)",
    "labels": [
@@ -1620,7 +1620,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 72126015,
+   "test_l2_gas": 72125545,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S025_S (js)",
    "labels": [
@@ -1644,7 +1644,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 149360330,
+   "test_l2_gas": 149359860,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S026_N (js)",
    "labels": [
@@ -1668,7 +1668,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 156904158,
+   "test_l2_gas": 156903688,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S026_S (js)",
    "labels": [
@@ -1692,7 +1692,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 157061208,
+   "test_l2_gas": 157060738,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S027_N (js)",
    "labels": [
@@ -1716,7 +1716,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 164869187,
+   "test_l2_gas": 164868717,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S027_S (js)",
    "labels": [
@@ -1740,7 +1740,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 162788835,
+   "test_l2_gas": 162788365,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S028_N (js)",
    "labels": [
@@ -1764,7 +1764,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 170512132,
+   "test_l2_gas": 170511662,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S028_S (js)",
    "labels": [
@@ -1788,7 +1788,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 147943821,
+   "test_l2_gas": 147943351,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S029_N (js)",
    "labels": [
@@ -1812,7 +1812,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 155570588,
+   "test_l2_gas": 155570118,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S029_S (js)",
    "labels": [
@@ -1836,7 +1836,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 159178385,
+   "test_l2_gas": 159177915,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S030_N (js)",
    "labels": [
@@ -1860,7 +1860,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 166901682,
+   "test_l2_gas": 166901212,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S030_S (js)",
    "labels": [
@@ -1884,7 +1884,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 147018488,
+   "test_l2_gas": 147018018,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S031_N (js)",
    "labels": [
@@ -1908,7 +1908,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 154562316,
+   "test_l2_gas": 154561846,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S031_S (js)",
    "labels": [
@@ -1932,7 +1932,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 158460545,
+   "test_l2_gas": 158460075,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S032_N (js)",
    "labels": [
@@ -1956,7 +1956,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 166004373,
+   "test_l2_gas": 166003903,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S032_S (js)",
    "labels": [
@@ -1981,7 +1981,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 145298809,
+   "test_l2_gas": 145298339,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S033_N (js)",
    "labels": [
@@ -2006,7 +2006,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 153022106,
+   "test_l2_gas": 153021636,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S033_S (js)",
    "labels": [
@@ -2031,7 +2031,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 151136169,
+   "test_l2_gas": 151135699,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S034_N (js)",
    "labels": [
@@ -2055,7 +2055,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 158546536,
+   "test_l2_gas": 158546066,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S034_S (js)",
    "labels": [
@@ -2079,7 +2079,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 157046660,
+   "test_l2_gas": 157046190,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S035_N (js)",
    "labels": [
@@ -2103,7 +2103,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 164951839,
+   "test_l2_gas": 164951369,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S035_S (js)",
    "labels": [
@@ -2127,7 +2127,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 124938725,
+   "test_l2_gas": 124938255,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S036_N (js)",
    "labels": [
@@ -2151,7 +2151,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 130764966,
+   "test_l2_gas": 130764496,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S036_S (js)",
    "labels": [
@@ -2175,7 +2175,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 121242803,
+   "test_l2_gas": 121242333,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S037_N (js)",
    "labels": [
@@ -2199,7 +2199,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 126971844,
+   "test_l2_gas": 126971374,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S037_S (js)",
    "labels": [
@@ -2223,7 +2223,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 123716634,
+   "test_l2_gas": 123716164,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S038_N (js)",
    "labels": [
@@ -2247,7 +2247,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 129840856,
+   "test_l2_gas": 129840386,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S038_S (js)",
    "labels": [
@@ -2271,7 +2271,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 124058763,
+   "test_l2_gas": 124058293,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S039_N (js)",
    "labels": [
@@ -2296,7 +2296,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 130185246,
+   "test_l2_gas": 130184776,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S039_S (js)",
    "labels": [
@@ -2321,7 +2321,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 109901180,
+   "test_l2_gas": 109900710,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S040_N (js)",
    "labels": [
@@ -2346,7 +2346,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 115630221,
+   "test_l2_gas": 115629751,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S040_S (js)",
    "labels": [
@@ -2371,7 +2371,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 73089994,
+   "test_l2_gas": 73089524,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S041_N (js)",
    "labels": [
@@ -2395,7 +2395,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 77007207,
+   "test_l2_gas": 77006737,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S041_S (js)",
    "labels": [
@@ -2419,7 +2419,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 74459414,
+   "test_l2_gas": 74458944,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S042_N (js)",
    "labels": [
@@ -2443,7 +2443,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 78391438,
+   "test_l2_gas": 78390968,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S042_S (js)",
    "labels": [
@@ -2467,7 +2467,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 74637974,
+   "test_l2_gas": 74637504,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S043_N (js)",
    "labels": [
@@ -2491,7 +2491,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 78569998,
+   "test_l2_gas": 78569528,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S043_S (js)",
    "labels": [
@@ -2515,7 +2515,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 73320564,
+   "test_l2_gas": 73320094,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S044_N (js)",
    "labels": [
@@ -2539,7 +2539,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 77237777,
+   "test_l2_gas": 77237307,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S044_S (js)",
    "labels": [
@@ -2563,7 +2563,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 81570677,
+   "test_l2_gas": 81570207,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S045_N (js)",
    "labels": [
@@ -2587,7 +2587,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 85788302,
+   "test_l2_gas": 85787832,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S045_S (js)",
    "labels": [
@@ -2611,7 +2611,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 81074756,
+   "test_l2_gas": 81074286,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S046_N (js)",
    "labels": [
@@ -2635,7 +2635,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 85185712,
+   "test_l2_gas": 85185242,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S046_S (js)",
    "labels": [
@@ -2659,7 +2659,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 74203154,
+   "test_l2_gas": 74202684,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S047_N (js)",
    "labels": [
@@ -2683,7 +2683,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 78024278,
+   "test_l2_gas": 78023808,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S047_S (js)",
    "labels": [
@@ -2707,7 +2707,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 82092116,
+   "test_l2_gas": 82091646,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S048_N (js)",
    "labels": [
@@ -2731,7 +2731,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 86203072,
+   "test_l2_gas": 86202602,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S048_S (js)",
    "labels": [
@@ -2755,7 +2755,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 81373346,
+   "test_l2_gas": 81372876,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S049_N (js)",
    "labels": [
@@ -2779,7 +2779,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 85484302,
+   "test_l2_gas": 85483832,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S049_S (js)",
    "labels": [
@@ -2803,7 +2803,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 74723904,
+   "test_l2_gas": 74723434,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S050_N (js)",
    "labels": [
@@ -2827,7 +2827,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 78545028,
+   "test_l2_gas": 78544558,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S050_S (js)",
    "labels": [
@@ -2851,7 +2851,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 152460120,
+   "test_l2_gas": 152459650,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S051_N (js)",
    "labels": [
@@ -2875,7 +2875,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 160185678,
+   "test_l2_gas": 160185208,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S051_S (js)",
    "labels": [
@@ -2899,7 +2899,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 152431731,
+   "test_l2_gas": 152431261,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S052_N (js)",
    "labels": [
@@ -2923,7 +2923,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 160062059,
+   "test_l2_gas": 160061589,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S052_S (js)",
    "labels": [
@@ -2947,7 +2947,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 151327500,
+   "test_l2_gas": 151327030,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S053_N (js)",
    "labels": [
@@ -2971,7 +2971,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 158919597,
+   "test_l2_gas": 158919127,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S053_S (js)",
    "labels": [
@@ -2995,7 +2995,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 149443570,
+   "test_l2_gas": 149443100,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S054_N (js)",
    "labels": [
@@ -3019,7 +3019,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 156987398,
+   "test_l2_gas": 156986928,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S054_S (js)",
    "labels": [
@@ -3043,7 +3043,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 147891699,
+   "test_l2_gas": 147891229,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S055_N (js)",
    "labels": [
@@ -3067,7 +3067,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 155386596,
+   "test_l2_gas": 155386126,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S055_S (js)",
    "labels": [
@@ -3091,7 +3091,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 151403379,
+   "test_l2_gas": 151402909,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S056_N (js)",
    "labels": [
@@ -3115,7 +3115,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 158898276,
+   "test_l2_gas": 158897806,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S056_S (js)",
    "labels": [
@@ -3139,7 +3139,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 152656590,
+   "test_l2_gas": 152656120,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S057_N (js)",
    "labels": [
@@ -3163,7 +3163,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 160049006,
+   "test_l2_gas": 160048536,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S057_S (js)",
    "labels": [
@@ -3187,7 +3187,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 156080782,
+   "test_l2_gas": 156080312,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S058_N (js)",
    "labels": [
@@ -3211,7 +3211,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 163624610,
+   "test_l2_gas": 163624140,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S058_S (js)",
    "labels": [
@@ -3235,7 +3235,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 150667469,
+   "test_l2_gas": 150666999,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S059_N (js)",
    "labels": [
@@ -3259,7 +3259,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 158393027,
+   "test_l2_gas": 158392557,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S059_S (js)",
    "labels": [
@@ -3283,7 +3283,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 151435851,
+   "test_l2_gas": 151435381,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S060_N (js)",
    "labels": [
@@ -3307,7 +3307,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 159062618,
+   "test_l2_gas": 159062148,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S060_S (js)",
    "labels": [
@@ -3331,7 +3331,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 115037651,
+   "test_l2_gas": 115037181,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S061_N (js)",
    "labels": [
@@ -3355,7 +3355,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 120767362,
+   "test_l2_gas": 120766892,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S061_S (js)",
    "labels": [
@@ -3379,7 +3379,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 110940421,
+   "test_l2_gas": 110939951,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S062_N (js)",
    "labels": [
@@ -3403,7 +3403,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 116670132,
+   "test_l2_gas": 116669662,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S062_S (js)",
    "labels": [
@@ -3427,7 +3427,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 114751671,
+   "test_l2_gas": 114751201,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S063_N (js)",
    "labels": [
@@ -3451,7 +3451,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 120481382,
+   "test_l2_gas": 120480912,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S063_S (js)",
    "labels": [
@@ -3475,7 +3475,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 111606830,
+   "test_l2_gas": 111606360,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S064_N (js)",
    "labels": [
@@ -3499,7 +3499,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 117353500,
+   "test_l2_gas": 117353030,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S064_S (js)",
    "labels": [
@@ -3523,7 +3523,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 112436961,
+   "test_l2_gas": 112436491,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S065_N (js)",
    "labels": [
@@ -3547,7 +3547,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 118166672,
+   "test_l2_gas": 118166202,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S065_S (js)",
    "labels": [
@@ -3571,7 +3571,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 74594394,
+   "test_l2_gas": 74593924,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S066_N (js)",
    "labels": [
@@ -3595,7 +3595,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 78526418,
+   "test_l2_gas": 78525948,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S066_S (js)",
    "labels": [
@@ -3619,7 +3619,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 76245954,
+   "test_l2_gas": 76245484,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S067_N (js)",
    "labels": [
@@ -3643,7 +3643,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 80177978,
+   "test_l2_gas": 80177508,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S067_S (js)",
    "labels": [
@@ -3658,7 +3658,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 80513301,
+   "gas": 80510321,
    "nested": [
     {
      "depth": 1,
@@ -3667,7 +3667,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 85432227,
+   "test_l2_gas": 85428777,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S068_N (js)",
    "labels": [
@@ -3683,7 +3683,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_midi",
-   "gas": 82849041,
+   "gas": 82846061,
    "nested": [
     {
      "depth": 1,
@@ -3692,7 +3692,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 87978939,
+   "test_l2_gas": 87975489,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S068_S (js)",
    "labels": [
@@ -3717,7 +3717,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 76350484,
+   "test_l2_gas": 76350014,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S069_N (js)",
    "labels": [
@@ -3741,7 +3741,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 80282508,
+   "test_l2_gas": 80282038,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S069_S (js)",
    "labels": [
@@ -3765,7 +3765,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 78636755,
+   "test_l2_gas": 78636285,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S070_N (js)",
    "labels": [
@@ -3789,7 +3789,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 82590059,
+   "test_l2_gas": 82589589,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S070_S (js)",
    "labels": [
@@ -3813,7 +3813,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 76274604,
+   "test_l2_gas": 76274134,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S071_N (js)",
    "labels": [
@@ -3837,7 +3837,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 80095728,
+   "test_l2_gas": 80095258,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S071_S (js)",
    "labels": [
@@ -3861,7 +3861,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 75583014,
+   "test_l2_gas": 75582544,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S072_N (js)",
    "labels": [
@@ -3885,7 +3885,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 79404138,
+   "test_l2_gas": 79403668,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S072_S (js)",
    "labels": [
@@ -3909,7 +3909,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 76450305,
+   "test_l2_gas": 76449835,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S073_N (js)",
    "labels": [
@@ -3933,7 +3933,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 80379209,
+   "test_l2_gas": 80378739,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S073_S (js)",
    "labels": [
@@ -3957,7 +3957,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 75691914,
+   "test_l2_gas": 75691444,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S074_N (js)",
    "labels": [
@@ -3981,7 +3981,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 79513038,
+   "test_l2_gas": 79512568,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S074_S (js)",
    "labels": [
@@ -4005,7 +4005,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 76235634,
+   "test_l2_gas": 76235164,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S075_N (js)",
    "labels": [
@@ -4029,7 +4029,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 80056758,
+   "test_l2_gas": 80056288,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_S075_S (js)",
    "labels": [
@@ -4053,7 +4053,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 122899512,
+   "test_l2_gas": 122899042,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_C076 (js)",
    "labels": [
@@ -4074,7 +4074,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 156339587,
+   "test_l2_gas": 156339117,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_C077 (js)",
    "labels": [
@@ -4095,7 +4095,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 72773492,
+   "test_l2_gas": 72773022,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_C200 (js)",
    "labels": [
@@ -4116,7 +4116,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 136436053,
+   "test_l2_gas": 136435583,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_NAMED_WARLOCK (js)",
    "labels": [
@@ -4137,7 +4137,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 65968641,
+   "test_l2_gas": 65968171,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_FOR_S021_N (js)",
    "labels": [
@@ -4162,7 +4162,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 135607593,
+   "test_l2_gas": 135607123,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_FOR_S001_N (js)",
    "labels": [
@@ -4186,7 +4186,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 165979903,
+   "test_l2_gas": 165979433,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_MIDI_FOR_S032_S (js)",
    "labels": [
@@ -4211,7 +4211,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 138278331,
+   "test_l2_gas": 138277861,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_SOUND_S001_N_MIDI (js), A_GET_SOUND_S001_N_SETTINGS (baseline-frozen)",
    "labels": [
@@ -4235,7 +4235,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 146507697,
+   "test_l2_gas": 146507227,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_SOUND_S001_S_MIDI (js), A_GET_SOUND_S001_S_SETTINGS (baseline-frozen)",
    "labels": [
@@ -4250,7 +4250,7 @@
    "group": "A",
    "contract": "BeastMidiProvider",
    "selector": "get_sound",
-   "gas": 81130421,
+   "gas": 81127441,
    "nested": [
     {
      "depth": 1,
@@ -4259,7 +4259,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 88128365,
+   "test_l2_gas": 88124915,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_SOUND_S068_N_MIDI (js), A_GET_SOUND_S068_N_SETTINGS (baseline-frozen)",
    "labels": [
@@ -4284,7 +4284,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 126635533,
+   "test_l2_gas": 126635063,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_SOUND_S039_N_MIDI (js), A_GET_SOUND_S039_N_SETTINGS (baseline-frozen)",
    "labels": [
@@ -4309,7 +4309,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 68639379,
+   "test_l2_gas": 68638909,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_SOUND_S021_N_MIDI (js), A_GET_SOUND_S021_N_SETTINGS (baseline-frozen)",
    "labels": [
@@ -4334,7 +4334,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 125474432,
+   "test_l2_gas": 125473962,
    "over_execute_max_sierra_gas": false,
    "output": "checked: A_GET_SOUND_C076_MIDI (js), A_GET_SOUND_C076_SETTINGS (baseline-frozen)",
    "labels": [
@@ -5115,7 +5115,7 @@
      "gas": 24700
     }
    ],
-   "test_l2_gas": 69412822,
+   "test_l2_gas": 69412352,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_FIXED_L31 (js)",
    "labels": [
@@ -5137,7 +5137,7 @@
      "gas": 220900
     }
    ],
-   "test_l2_gas": 77340321,
+   "test_l2_gas": 77339851,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_FIXED_L1406 (js)",
    "labels": [
@@ -5159,7 +5159,7 @@
      "gas": 697450
     }
    ],
-   "test_l2_gas": 96482976,
+   "test_l2_gas": 96482506,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_FIXED_L4726 (js)",
    "labels": [
@@ -5181,7 +5181,7 @@
      "gas": 1053750
     }
    ],
-   "test_l2_gas": 110377797,
+   "test_l2_gas": 110377327,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_FIXED_L7197 (js)",
    "labels": [
@@ -5203,7 +5203,7 @@
      "gas": 220900
     }
    ],
-   "test_l2_gas": 78370450,
+   "test_l2_gas": 78369980,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_FIXED_L1406_ESCAPED (js)",
    "labels": [
@@ -5225,7 +5225,7 @@
      "gas": 220900
     }
    ],
-   "test_l2_gas": 35696211,
+   "test_l2_gas": 35695741,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_FIXED_L1406_SMALL (js)",
    "labels": [
@@ -5253,7 +5253,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 229755231,
+   "test_l2_gas": 229754761,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_E2E_S001_N (js)",
    "labels": [
@@ -5285,7 +5285,7 @@
      "gas": 76930
     }
    ],
-   "test_l2_gas": 272962822,
+   "test_l2_gas": 272962352,
    "over_execute_max_sierra_gas": false,
    "output": "checked: C_TOKEN_URI_E2E_S032_S (js)",
    "labels": [
@@ -5317,7 +5317,7 @@
    "selector": "get_midi",
    "gas": 1397302,
    "nested": [],
-   "test_l2_gas": 2230337,
+   "test_l2_gas": 2229867,
    "over_execute_max_sierra_gas": false,
    "output": "checked: D_SCALE_GET_MIDI_T1 (baseline-frozen)",
    "labels": [
@@ -5331,7 +5331,7 @@
    "selector": "get_midi_for",
    "gas": 1398912,
    "nested": [],
-   "test_l2_gas": 2232147,
+   "test_l2_gas": 2231677,
    "over_execute_max_sierra_gas": false,
    "output": "checked: D_SCALE_GET_MIDI_FOR_T1 (baseline-frozen)",
    "labels": [
@@ -5345,7 +5345,7 @@
    "selector": "get_midi",
    "gas": 1398102,
    "nested": [],
-   "test_l2_gas": 2231137,
+   "test_l2_gas": 2230667,
    "over_execute_max_sierra_gas": false,
    "output": "checked: D_SCALE_GET_MIDI_T42 (baseline-frozen)",
    "labels": [
@@ -5359,7 +5359,7 @@
    "selector": "get_midi_for",
    "gas": 1399712,
    "nested": [],
-   "test_l2_gas": 2232947,
+   "test_l2_gas": 2232477,
    "over_execute_max_sierra_gas": false,
    "output": "checked: D_SCALE_GET_MIDI_FOR_T42 (baseline-frozen)",
    "labels": [
@@ -5373,7 +5373,7 @@
    "selector": "get_midi",
    "gas": 1394712,
    "nested": [],
-   "test_l2_gas": 2227747,
+   "test_l2_gas": 2227277,
    "over_execute_max_sierra_gas": false,
    "output": "checked: D_SCALE_GET_MIDI_T_WARLOCK (baseline-frozen)",
    "labels": [
@@ -5387,7 +5387,7 @@
    "selector": "get_midi_for",
    "gas": 1396322,
    "nested": [],
-   "test_l2_gas": 2229557,
+   "test_l2_gas": 2229087,
    "over_execute_max_sierra_gas": false,
    "output": "checked: D_SCALE_GET_MIDI_FOR_T_WARLOCK (baseline-frozen)",
    "labels": [
@@ -5415,7 +5415,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 25800,
    "nested": [],
-   "test_l2_gas": 323101,
+   "test_l2_gas": 322531,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0000 (js)",
    "labels": [
@@ -5457,7 +5457,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 29210,
    "nested": [],
-   "test_l2_gas": 330742,
+   "test_l2_gas": 330172,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0001 (js)",
    "labels": [
@@ -5499,7 +5499,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 201180,
    "nested": [],
-   "test_l2_gas": 502712,
+   "test_l2_gas": 502142,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0030 (js)",
    "labels": [
@@ -5541,7 +5541,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 176930,
    "nested": [],
-   "test_l2_gas": 484152,
+   "test_l2_gas": 483682,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0031 (js)",
    "labels": [
@@ -5583,7 +5583,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 182860,
    "nested": [],
-   "test_l2_gas": 492052,
+   "test_l2_gas": 491582,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0032 (js)",
    "labels": [
@@ -5625,7 +5625,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 330580,
    "nested": [],
-   "test_l2_gas": 645462,
+   "test_l2_gas": 644992,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L0062 (js)",
    "labels": [
@@ -5667,7 +5667,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 7002760,
    "nested": [],
-   "test_l2_gas": 7698734,
+   "test_l2_gas": 7698264,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L1406 (js)",
    "labels": [
@@ -5709,7 +5709,7 @@
    "selector": "bytes_to_byte_array",
    "gas": 35699730,
    "nested": [],
-   "test_l2_gas": 38040658,
+   "test_l2_gas": 38040188,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_BYTES_TO_BYTE_ARRAY_L7197 (js)",
    "labels": [
@@ -5751,7 +5751,7 @@
    "selector": "append_base64",
    "gas": 279810,
    "nested": [],
-   "test_l2_gas": 589002,
+   "test_l2_gas": 588532,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_APPEND_BASE64_L0031 (js)",
    "labels": [
@@ -5765,7 +5765,7 @@
    "selector": "midi_html",
    "gas": 320470,
    "nested": [],
-   "test_l2_gas": 639583,
+   "test_l2_gas": 639113,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_MIDI_HTML_L0031 (js)",
    "labels": [
@@ -5793,7 +5793,7 @@
    "selector": "append_base64",
    "gas": 3410720,
    "nested": [],
-   "test_l2_gas": 4239682,
+   "test_l2_gas": 4239212,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_APPEND_BASE64_L1406 (js)",
    "labels": [
@@ -5807,7 +5807,7 @@
    "selector": "midi_html",
    "gas": 3440060,
    "nested": [],
-   "test_l2_gas": 4276682,
+   "test_l2_gas": 4276212,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_MIDI_HTML_L1406 (js)",
    "labels": [
@@ -5835,7 +5835,7 @@
    "selector": "append_base64",
    "gas": 10831370,
    "nested": [],
-   "test_l2_gas": 12916243,
+   "test_l2_gas": 12915773,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_APPEND_BASE64_L4726 (js)",
    "labels": [
@@ -5849,7 +5849,7 @@
    "selector": "midi_html",
    "gas": 10862790,
    "nested": [],
-   "test_l2_gas": 12957584,
+   "test_l2_gas": 12957114,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_MIDI_HTML_L4726 (js)",
    "labels": [
@@ -5877,7 +5877,7 @@
    "selector": "append_base64",
    "gas": 16430030,
    "nested": [],
-   "test_l2_gas": 19446696,
+   "test_l2_gas": 19446226,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_APPEND_BASE64_L7197 (js)",
    "labels": [
@@ -5891,7 +5891,7 @@
    "selector": "midi_html",
    "gas": 16471860,
    "nested": [],
-   "test_l2_gas": 19506107,
+   "test_l2_gas": 19505637,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_MIDI_HTML_L7197 (js)",
    "labels": [
@@ -6164,9 +6164,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 84807971,
+   "gas": 84804991,
    "nested": [],
-   "test_l2_gas": 95959345,
+   "test_l2_gas": 95956365,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S068_N (js)",
    "labels": [
@@ -6182,9 +6182,9 @@
    "group": "E",
    "contract": "BenchGenesis",
    "selector": "genesis_smf_bytes",
-   "gas": 88982961,
+   "gas": 88979981,
    "nested": [],
-   "test_l2_gas": 104082047,
+   "test_l2_gas": 104079067,
    "over_execute_max_sierra_gas": false,
    "output": "checked: E_GENESIS_SMF_BYTES_S068_S (js)",
    "labels": [
@@ -6330,7 +6330,7 @@
      "gas": 2018380
     }
    ],
-   "test_l2_gas": 67934561,
+   "test_l2_gas": 67934091,
    "over_execute_max_sierra_gas": false,
    "output": "checked: M_GET_MIDI_S021_N_BURN_RANK (js)",
    "labels": [

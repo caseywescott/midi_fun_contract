@@ -272,7 +272,9 @@ pub fn countersubject_invertible(subject: Span<i32>, cs: @Countersubject) -> boo
 mod tests {
     use crate::composition::canon_rules::{generic_class, is_consonant_class};
     use crate::composition::invertible_counterpoint::diatonic_ic_safe;
-    use super::{cs_candidates, cs_degree_valid};
+    use super::{
+        cs_candidates, cs_degree_valid, default_countersubject_config, generate_countersubject,
+    };
 
     fn reference_degree_valid(
         cs_deg: i32, subject_deg: i32, enforce_ic: bool, lo: i32, hi: i32,
@@ -392,5 +394,30 @@ mod tests {
     #[should_panic(expected: ('i32_neg Underflow',))]
     fn the_original_panics_on_it_too() {
         reference_candidates(-1, 0x7fffffff, 0, true, -7, 7);
+    }
+
+    /// The degrees are the walk over the subject from the seed: the octave, mode, tonic and time
+    /// unit only ride along, which is what lets `build_section` make them once for all sections.
+    #[test]
+    #[available_gas(100000000000)]
+    fn the_degrees_depend_on_the_subject_and_seed_alone() {
+        let subject = array![0, 2, 4, 2, 0, -2, 0, 3, 5, 4, 2, 1, -1, 0, 2, 0];
+        let config = default_countersubject_config();
+        let mut n: u32 = 1;
+        while n < 20 {
+            let seed: felt252 = n.into();
+            let want = generate_countersubject(subject.span(), @config, seed, 7, 5, 60, 480);
+            for octave in array![7_u32, 12] {
+                for mode in array![0_u8, 1, 5, 7] {
+                    for tonic in array![24_u8, 60, 96] {
+                        let got = generate_countersubject(
+                            subject.span(), @config, seed, octave, mode, tonic, 240,
+                        );
+                        assert!(got.degrees == want.degrees);
+                    }
+                }
+            }
+            n += 1;
+        }
     }
 }

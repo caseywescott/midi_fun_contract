@@ -1009,6 +1009,7 @@ fn build_section(
     s: u32,
     offset: u32,
     cs_seed: felt252,
+    ref cs_degrees: Array<i32>,
     section_ticks: u32,
     plan: Span<i32>,
     tr: Trajectory,
@@ -1135,13 +1136,21 @@ fn build_section(
     let mut cs_head: Array<Slot> = array![];
     if p.use_countersubject {
         // v1's countersubject in steady quarters against the rhythmic subject, voice-checked
-        let cs = generate_countersubject(
-            theme, @default_countersubject_config(), cs_seed, 7, mode, home, TU,
-        );
+        // The same in every section (it reads the theme, the seed and the config, and no section
+        // state), so the first section to get here makes it and hands it back in `cs_degrees`,
+        // empty until then (a countersubject has at least one degree).
+        let degrees = if cs_degrees.len() != 0 {
+            cs_degrees
+        } else {
+            generate_countersubject(
+                theme, @default_countersubject_config(), cs_seed, 7, mode, home, TU,
+            )
+                .degrees
+        };
         let mut prev: Option<NoteEvent> = Option::None;
         let mut i: u32 = 0;
         let ident = VoiceMap { invert: false, off: 0 };
-        for d in cs.degrees.span() {
+        for d in degrees.span() {
             let time = offset + i * TU;
             let cands = near(r, ident, *d);
             let pitch = choose_pitch(
@@ -1155,6 +1164,7 @@ fn build_section(
             }
             i += 1;
         }
+        cs_degrees = degrees;
         maps.append(ident);
         offs_used.append(99);
         lasts.append(prev.unwrap());
@@ -1515,6 +1525,7 @@ fn build_v11_score_with_boxed(
     );
     let plan = degree_plan(@p, ov.flip_side == Option::Some(true));
     let mut events: Array<NoteEvent> = array![];
+    let mut cs_degrees: Array<i32> = array![];
     let sc8: u32 = p.section_count.into();
     let mut s: u32 = 0;
     while s < sc8 {
@@ -1525,6 +1536,7 @@ fn build_v11_score_with_boxed(
             s,
             s * section_ticks,
             cs_seed,
+            ref cs_degrees,
             section_ticks,
             plan.span(),
             tr,

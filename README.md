@@ -6,7 +6,7 @@ Beasts V3 NFT and is the first consumer of that system.
 ## Layout
 
 The Cairo code is one Scarb workspace (the root `Scarb.toml`, scarb 2.20.1 as pinned in
-`.tool-versions`; tests run on Starknet Foundry, snforge 0.64.1, pinned there too). Packages are grouped by system; a package named `*_contracts` declares Starknet
+`.tool-versions`). Packages are grouped by system; a package named `*_contracts` declares Starknet
 contracts, and the others are libraries (`[lib]`, no contracts).
 
 | Package | Path | Kind | What it is |
@@ -35,11 +35,13 @@ Each package has a README with its API and details.
 
 ## Build and test
 
-From the repository root:
+Needs scarb 2.20.1 and Starknet Foundry 0.64.1 (`snforge`), both pinned in `.tool-versions` (with
+asdf: `asdf install`). The tests run on snforge: `scarb test` runs `snforge test` in each package
+through the root `Scarb.toml`'s `[workspace.scripts]`. From the repository root:
 
 ```bash
 scarb build                     # every package; artifacts in target/dev/<package>_<Contract>.*
-scarb test                      # every package's tests
+scarb test                      # every package's tests (snforge)
 scarb test -p beast_contracts   # one package
 scarb fmt --check
 ```

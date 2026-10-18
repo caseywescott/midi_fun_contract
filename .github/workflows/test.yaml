@@ -2,7 +2,7 @@ name: Tests
 
 on: [push, pull_request]
 
-# One Scarb workspace (the root Scarb.toml; scarb 2.20.1 and starknet-foundry 0.64.1, as in
+# One Scarb workspace (the root Scarb.toml; scarb 2.21.0 and starknet-foundry 0.64.1, as in
 # /.tool-versions). Each package runs its own tests, on snforge. The parity fixtures are #[ignore]d
 # here: they need several GB per batch; run them locally (beasts/beast_composer/README.md).
 jobs:
@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: software-mansion/setup-scarb@v1
         with:
-          scarb-version: "2.20.1"
+          scarb-version: "2.21.0"
       - run: scarb fmt --check
 
   test:
@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: software-mansion/setup-scarb@v1
         with:
-          scarb-version: "2.20.1"
+          scarb-version: "2.21.0"
       # `scarb test` runs snforge (the root Scarb.toml's [workspace.scripts]).
       - uses: foundry-rs/setup-snfoundry@v6
         with:

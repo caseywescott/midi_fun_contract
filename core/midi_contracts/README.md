@@ -131,8 +131,8 @@ provider returns for the same state.
 
 ## Build and test
 
-Needs Cairo 2.20 (scarb 2.20.1, the root `.tool-versions`), as `onchain_midi_player` does. From
-the repository root:
+Needs Cairo 2.21 (scarb 2.21.0, the root `.tool-versions`); `onchain_midi_player` needs 2.20 or
+later. From the repository root:
 
 ```bash
 scarb build -p midi_contracts

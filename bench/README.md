@@ -10,7 +10,7 @@ workspace with its own `Scarb.lock` and `.tool-versions`.
 
 ## Commands
 
-Needs scarb 2.20.1, snforge 0.64.1 (`bench/.tool-versions`; with asdf the runner resolves both
+Needs scarb 2.21.0, snforge 0.64.1 (`bench/.tool-versions`; with asdf the runner resolves both
 from there), universal-sierra-compiler (snforge's own), node 20+ with `npm install` run once in
 `offchain/beast-sound`, and python3. From the repository root:
 
@@ -61,7 +61,7 @@ python3 bench/scripts/gas_bench.py test a_get_midi_s021
 ## Tooling: snforge in its own workspace
 
 - **snforge 0.64.1, own workspace.** `bench/Scarb.toml` has `[workspace]`, its own `Scarb.lock`
-  and `.tool-versions` (scarb 2.20.1, starknet-foundry 0.64.1) and depends on the four packages by
+  and `.tool-versions` (scarb 2.21.0, starknet-foundry 0.64.1) and depends on the four packages by
   path. Scarb resolves `version.workspace`, `edition.workspace` and `midi.workspace = true` for
   path dependencies that belong to the root workspace (from the root manifest), and the bench's
   lock resolves every shared dependency to the root lock's versions and commits. With `bench/`

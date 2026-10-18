@@ -8,6 +8,6 @@ edition = "2025_12"
 
 [dependencies]
 midi = { path = "../../../core/midi" }
-starknet = "2.20.1"
+starknet = "2.21.0"
 
 [lib]

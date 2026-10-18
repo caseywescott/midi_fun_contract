@@ -32,7 +32,7 @@ provider: the page does, and the provider only calls the NFT's state getters
 
 ## Deploy (separate step, not done here)
 
-1. Declare and deploy `BeastMidiProvider` (`beasts/beast_contracts`, scarb 2.20.1). Constructor:
+1. Declare and deploy `BeastMidiProvider` (`beasts/beast_contracts`, scarb 2.21.0). Constructor:
    the Beasts NFT address, then the owner (OpenZeppelin Ownable), who can `upgrade(new_class_hash)`
    (OpenZeppelin Upgradeable) until it calls `renounce_ownership()`, after which the class can never
    change and `owner()` is zero.

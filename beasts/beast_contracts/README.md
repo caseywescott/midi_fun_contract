@@ -101,8 +101,9 @@ note of a section when articulation is accent.
 
 ## Build and test
 
-Needs Cairo 2.20 (scarb 2.20.1, the root `.tool-versions`), as onchain-midi-player does. From the
-repository root (artifacts land in the workspace `target/dev`, named `beast_contracts_<Contract>`):
+Needs Cairo 2.21 (scarb 2.21.0, the root `.tool-versions`); onchain-midi-player needs 2.20 or later.
+From the repository root (artifacts land in the workspace `target/dev`, named
+`beast_contracts_<Contract>`):
 
 ```bash
 scarb build -p beast_contracts   # BeastMidiProvider: Sierra 35,948 felts, CASM 72,402 (Starknet limit 81,920)

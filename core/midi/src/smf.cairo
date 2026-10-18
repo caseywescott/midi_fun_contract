@@ -13,6 +13,8 @@
 //! Event times are absolute ticks and must not go backwards within a track (the writer stores
 //! deltas). Channels are 0-based (9 is General MIDI percussion).
 
+use crate::pack::chunks_to_byte_array;
+
 pub const MTHD: u32 = 0x4D546864;
 pub const MTRK: u32 = 0x4D54726B;
 /// The largest delta time or length a variable-length quantity holds (4 bytes).
@@ -49,25 +51,55 @@ pub fn push_chunk(ref out: Array<u8>, tag: u32, body: Span<u8>) {
     out.append_span(body);
 }
 
-/// A whole file: the `MThd` header (`format` 0, 1 or 2, the track count, `division` ticks per
-/// quarter note) and one `MTrk` chunk per track body, in order.
-pub fn smf_bytes(format: u16, division: u16, tracks: Span<Array<u8>>) -> Array<u8> {
+/// The `MThd` chunk body (`format`, track count, `division`), after the checks every file writer
+/// makes.
+// On purpose (CASM size and gas): inlined, the checks fold away where `format` and `division` are
+// constants, as in the composer's calls; otherwise each call runs them.
+#[inline(always)]
+fn header_body(format: u16, division: u16, n: usize) -> Array<u8> {
     assert(format <= 2, 'midi: format');
-    assert(format != 0 || tracks.len() == 1, 'midi: format 0 has one track');
+    assert(format != 0 || n == 1, 'midi: format 0 has one track');
     assert(division > 0 && division < 0x8000, 'midi: division');
-    let n = tracks.len();
     assert(n < 0x10000, 'midi: too many tracks');
-    let mut out: Array<u8> = array![];
-    let header: Array<u8> = array![
+    array![
         (format / 256).try_into().unwrap(), (format % 256).try_into().unwrap(),
         (n / 256).try_into().unwrap(), (n % 256).try_into().unwrap(),
         (division / 256).try_into().unwrap(), (division % 256).try_into().unwrap(),
-    ];
+    ]
+}
+
+/// A whole file: the `MThd` header (`format` 0, 1 or 2, the track count, `division` ticks per
+/// quarter note) and one `MTrk` chunk per track body, in order.
+pub fn smf_bytes(format: u16, division: u16, tracks: Span<Array<u8>>) -> Array<u8> {
+    let header = header_body(format, division, tracks.len());
+    let mut out: Array<u8> = array![];
     push_chunk(ref out, MTHD, header.span());
     for track in tracks {
         push_chunk(ref out, MTRK, track.span());
     }
     out
+}
+
+/// A chunk's 4-byte tag and 4-byte big-endian length.
+fn chunk_head(tag: u32, len: usize) -> Array<u8> {
+    let mut head: Array<u8> = array![];
+    push_u32_be(ref head, tag);
+    push_u32_be(ref head, len);
+    head
+}
+
+/// `smf_bytes` as a `ByteArray` (what `bytes_to_byte_array` makes of it), read once: the track
+/// bodies are packed where they are instead of being copied into one array first.
+pub fn smf_byte_array(format: u16, division: u16, tracks: Span<Array<u8>>) -> ByteArray {
+    let header = header_body(format, division, tracks.len());
+    let mthd = chunk_head(MTHD, header.len());
+    let mut chunks: Array<Span<u8>> = array![mthd.span(), header.span()];
+    for track in tracks {
+        let mtrk = chunk_head(MTRK, track.len());
+        chunks.append(mtrk.span());
+        chunks.append(track.span());
+    }
+    chunks_to_byte_array(chunks.span())
 }
 
 /// A track body under construction.

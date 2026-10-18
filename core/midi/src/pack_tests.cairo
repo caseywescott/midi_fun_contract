@@ -139,3 +139,82 @@ fn packers_keep_extreme_bytes() {
     assert!(*felts.at(1) == 0, "zero word");
     assert!(*felts.at(3) == 0xFF00, "tail");
 }
+
+// `chunks_to_byte_array` against `bytes_to_byte_array` of the same bytes in one piece.
+
+use crate::pack::chunks_to_byte_array;
+
+/// `bytes` cut at the (ascending) `cuts`, packed as chunks and as one array.
+fn packs_alike(bytes: Span<u8>, cuts: Span<u32>) {
+    let mut chunks: Array<Span<u8>> = array![];
+    let mut from: u32 = 0;
+    for cut in cuts {
+        chunks.append(bytes.slice(from, *cut - from));
+        from = *cut;
+    }
+    chunks.append(bytes.slice(from, bytes.len() - from));
+    assert!(chunks_to_byte_array(chunks.span()) == bytes_to_byte_array(bytes), "chunks");
+}
+
+#[test]
+fn chunks_of_nothing_are_empty() {
+    let none: Array<Span<u8>> = array![];
+    assert!(chunks_to_byte_array(none.span()) == bytes_to_byte_array(array![].span()), "none");
+    let empties: Array<Span<u8>> = array![array![].span(), array![].span()];
+    assert!(chunks_to_byte_array(empties.span()) == "", "empties");
+}
+
+#[test]
+fn chunks_match_one_array_cut_in_two_anywhere() {
+    let mut len: u32 = 0;
+    while len != 71 {
+        let bytes = sample(len);
+        let mut at: u32 = 0;
+        while at <= len {
+            packs_alike(bytes.span(), array![at].span());
+            at += 1;
+        }
+        len += 1;
+    }
+}
+
+#[test]
+fn chunks_match_one_array_cut_in_three() {
+    let lens = array![1_u32, 30, 31, 32, 62, 93, 100];
+    for len in lens {
+        let bytes = sample(len);
+        let mut first: u32 = 0;
+        while first <= len {
+            let mut second = first;
+            while second <= len {
+                packs_alike(bytes.span(), array![first, second].span());
+                second += 3;
+            }
+            packs_alike(bytes.span(), array![first, len].span());
+            first += 1;
+        }
+    }
+}
+
+#[test]
+fn chunks_match_one_array_cut_every_byte() {
+    let bytes = sample(100);
+    let mut cuts: Array<u32> = array![];
+    let mut at: u32 = 1;
+    while at != 100 {
+        cuts.append(at);
+        at += 1;
+    }
+    packs_alike(bytes.span(), cuts.span());
+}
+
+#[test]
+fn chunks_match_one_array_cut_like_a_midi_file() {
+    // 14-byte header, then 8-byte chunk heads before bodies of every length class.
+    let bytes = sample(7197);
+    packs_alike(
+        bytes.span(), array![8, 14, 22, 52, 60, 91, 99, 4000, 4008, 4038, 7000, 7197].span(),
+    );
+    packs_alike(bytes.span(), array![8, 14, 22, 7197].span());
+    packs_alike(bytes.span(), array![31, 62, 93, 124, 3100].span());
+}

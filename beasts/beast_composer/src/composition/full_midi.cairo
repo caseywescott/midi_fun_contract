@@ -405,9 +405,11 @@ pub fn beast_form_to_full_smf_bytes(
     )
 }
 
+/// The file's `MThd` fields: format 1 (simultaneous tracks), 480 ticks per quarter note.
+pub const SMF_FORMAT: u16 = 1;
+pub const SMF_DIVISION: u16 = 480;
+
 /// The same with an arrangement (`beast_form_to_full_smf_bytes` is the plain one, drums on).
-// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
-#[inline(never)]
 pub fn beast_form_to_full_smf_bytes_arranged(
     form: @BeastForm,
     tempo_us: u32,
@@ -417,6 +419,26 @@ pub fn beast_form_to_full_smf_bytes_arranged(
     lead_pick: u32,
     arr: Arrangement,
 ) -> Array<u8> {
+    let tracks = beast_form_to_full_tracks_arranged(
+        form, tempo_us, tier, voicing, mega, lead_pick, arr,
+    );
+    smf_bytes(SMF_FORMAT, SMF_DIVISION, tracks.span())
+}
+
+/// The track bodies of that file: the tempo track, one per voice, the drum track. A caller that
+/// wants the file as a `ByteArray` passes them to `midi::smf::smf_byte_array` with `SMF_FORMAT`
+/// and `SMF_DIVISION`, which saves copying them into one array first.
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
+pub fn beast_form_to_full_tracks_arranged(
+    form: @BeastForm,
+    tempo_us: u32,
+    tier: u8,
+    voicing: Option<Voicing>,
+    mega: bool,
+    lead_pick: u32,
+    arr: Arrangement,
+) -> Array<Array<u8>> {
     let events = form.events.span();
     let (placeholder, base_pans) = voice_setup(form);
     let max_voice: u32 = placeholder.len() - 1;
@@ -666,5 +688,5 @@ pub fn beast_form_to_full_smf_bytes_arranged(
         }
     }
 
-    smf_bytes(1, 480, tracks.span())
+    tracks
 }

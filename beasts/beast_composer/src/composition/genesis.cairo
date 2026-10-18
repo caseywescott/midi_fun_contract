@@ -22,6 +22,7 @@
 
 use core::dict::{Felt252Dict, Felt252DictTrait};
 use core::poseidon::poseidon_hash_span;
+use midi::smf::{smf_byte_array, smf_bytes};
 use crate::composition::beast_score::BeastForm;
 use crate::composition::beast_trait_map::prefix2_ornament_policy;
 use crate::composition::beast_v11::{
@@ -32,7 +33,8 @@ use crate::composition::beast_v3_sound::{
 };
 use crate::composition::drift::{DriftClock, layered_drift, nudge_tempo};
 use crate::composition::full_midi::{
-    Arrangement, Voicing, beast_form_to_full_smf_bytes_arranged, mega_lead_pick,
+    Arrangement, SMF_DIVISION, SMF_FORMAT, Voicing, beast_form_to_full_tracks_arranged,
+    mega_lead_pick,
 };
 use crate::composition::melodic_canon::NoteEvent;
 use crate::composition::yeti::{
@@ -277,6 +279,12 @@ pub fn genesis_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
     compose(beast, 0, 0, 0, Option::None)
 }
 
+/// The same file as a `ByteArray` (what `IMidiProvider::get_midi` returns), packed straight from
+/// the track bodies instead of from one copy of the whole file.
+pub fn genesis_byte_array(beast: PackableBeastV3) -> ByteArray {
+    smf_byte_array(SMF_FORMAT, SMF_DIVISION, compose_tracks(beast, 0, 0, 0, Option::None).span())
+}
+
 /// A name track (the Beast Special Song): `sampleTrackMidi` at special name (prefix, suffix), seed
 /// 0, with the Genesis defaults. Everything is the Genesis Track's (channels, ties, mix,
 /// instruments, sections, the species' picked theme) except: no swap, the name's key, register and
@@ -416,11 +424,18 @@ fn seeded_pick(sums: Span<u64>, counts: Span<u64>, count: u32, seed: felt252) ->
 }
 
 /// The Genesis Track (prefix 0, seed 0), a name track (seed 0) or a bought track (a seed).
-// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
-#[inline(never)]
 fn compose(
     beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
 ) -> Array<u8> {
+    smf_bytes(SMF_FORMAT, SMF_DIVISION, compose_tracks(beast, prefix, suffix, seed, drift).span())
+}
+
+/// The track bodies of `compose`'s file.
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
+fn compose_tracks(
+    beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
+) -> Array<Array<u8>> {
     let named = prefix != 0;
     let seeded = seed != 0;
     let tm = if seeded {
@@ -598,7 +613,7 @@ fn compose(
             tempo_us = nudge_tempo(tempo_us, d.delta_bpm);
         }
     }
-    beast_form_to_full_smf_bytes_arranged(
+    beast_form_to_full_tracks_arranged(
         @form,
         tempo_us,
         p.tier,

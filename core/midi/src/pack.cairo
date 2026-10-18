@@ -66,6 +66,46 @@ pub fn bytes_to_byte_array(mut bytes: Span<u8>) -> ByteArray {
     Serde::deserialize(ref span).unwrap()
 }
 
+/// `bytes_to_byte_array` of the chunks end to end, without copying them into one array first. A
+/// word that straddles two chunks is carried over: `pending` holds its first `pending_len` bytes.
+pub fn chunks_to_byte_array(chunks: Span<Span<u8>>) -> ByteArray {
+    // The serialized `ByteArray` opens with its word count, so the whole length is needed first.
+    let mut total: usize = 0;
+    for chunk in chunks {
+        total += chunk.len();
+    }
+    let mut serialized: Array<felt252> = array![(total / 31).into()];
+    let mut pending: felt252 = 0;
+    let mut pending_len: usize = 0;
+    for chunk in chunks {
+        let mut bytes = *chunk;
+        loop {
+            // Whole words while no word is carried, then byte by byte: the end of the carried
+            // word, or fewer than 31 bytes to carry.
+            if pending_len == 0 {
+                if let Option::Some(words) = bytes.multi_pop_front::<31>() {
+                    serialized.append(pack_word(*words));
+                    continue;
+                }
+            }
+            let Option::Some(byte) = bytes.pop_front() else {
+                break;
+            };
+            pending = pending * 0x100 + (*byte).into();
+            pending_len += 1;
+            if pending_len == 31 {
+                serialized.append(pending);
+                pending = 0;
+                pending_len = 0;
+            }
+        }
+    }
+    serialized.append(pending);
+    serialized.append(pending_len.into());
+    let mut span = serialized.span();
+    Serde::deserialize(ref span).unwrap()
+}
+
 /// `[byte_len, words...]`: each word packs up to 31 bytes big-endian (the last one fewer, not
 /// padded). The RPC transport for Beast views; decoded by `bytesToFelts`'s inverse in
 /// offchain/beast-sound.

@@ -13,6 +13,7 @@
 //! Event times are absolute ticks and must not go backwards within a track (the writer stores
 //! deltas). Channels are 0-based (9 is General MIDI percussion).
 
+use core::num::traits::OverflowingSub;
 use crate::pack::chunks_to_byte_array;
 
 pub const MTHD: u32 = 0x4D546864;
@@ -22,26 +23,46 @@ pub const VLQ_MAX: u32 = 0x0FFFFFFF;
 
 /// `v` as 4 big-endian bytes.
 pub fn push_u32_be(ref out: Array<u8>, v: u32) {
-    out.append(((v / 0x1000000) % 256).try_into().unwrap());
-    out.append(((v / 0x10000) % 256).try_into().unwrap());
-    out.append(((v / 0x100) % 256).try_into().unwrap());
-    out.append((v % 256).try_into().unwrap());
+    let (b3, rest) = DivRem::div_rem(v, 0x1000000);
+    let (b2, rest) = DivRem::div_rem(rest, 0x10000);
+    let (b1, b0) = DivRem::div_rem(rest, 0x100);
+    out.append(b3.try_into().unwrap());
+    out.append(b2.try_into().unwrap());
+    out.append(b1.try_into().unwrap());
+    out.append(b0.try_into().unwrap());
 }
 
 /// `v` as a MIDI variable-length quantity: 7 bits per byte, most significant first, the high bit
 /// set on every byte but the last.
+///
+/// Nearly every delta is 1 or 2 bytes, so those two are straight-line code. The longer forms are a
+/// loop on purpose: a call to a function without a loop is charged for its most expensive path
+/// whichever one it takes, which would make a 1 byte quantity cost as much as a 4 byte one.
 pub fn push_vlq(ref out: Array<u8>, v: u32) {
-    assert(v <= VLQ_MAX, 'midi: vlq too large');
-    if v >= 0x200000 {
-        out.append((0x80 + (v / 0x200000) % 128).try_into().unwrap());
+    if v < 0x80 {
+        out.append(v.try_into().unwrap());
+    } else if v < 0x4000 {
+        let (high, low) = DivRem::div_rem(v, 0x80);
+        out.append((0x80 + high).try_into().unwrap());
+        out.append(low.try_into().unwrap());
+    } else {
+        assert(v <= VLQ_MAX, 'midi: vlq too large');
+        // the 7-bit groups above the lowest, from the top: three in 4 bytes, two in 3 bytes. What
+        // is left of `rest` is below `place * 0x80`, so each group fits 7 bits.
+        let mut place: u32 = if v >= 0x200000 {
+            0x200000
+        } else {
+            0x4000
+        };
+        let mut rest = v;
+        while place > 1 {
+            let (group, below) = DivRem::div_rem(rest, place.try_into().unwrap());
+            out.append((0x80 + group).try_into().unwrap());
+            rest = below;
+            place /= 0x80;
+        }
+        out.append(rest.try_into().unwrap());
     }
-    if v >= 0x4000 {
-        out.append((0x80 + (v / 0x4000) % 128).try_into().unwrap());
-    }
-    if v >= 0x80 {
-        out.append((0x80 + (v / 0x80) % 128).try_into().unwrap());
-    }
-    out.append((v % 128).try_into().unwrap());
 }
 
 /// A chunk: 4-byte tag, 4-byte big-endian length, body.
@@ -138,8 +159,9 @@ pub impl TrackWriterImpl of TrackWriterTrait {
 
     /// The delta to `time`, which becomes the track's time.
     fn delta(ref self: TrackWriter, time: u32) {
-        assert(time >= self.time, 'midi: time goes backwards');
-        push_vlq(ref self.data, time - self.time);
+        let (elapsed, backwards) = time.overflowing_sub(self.time);
+        assert(!backwards, 'midi: time goes backwards');
+        push_vlq(ref self.data, elapsed);
         self.time = time;
     }
 
@@ -219,5 +241,109 @@ pub impl TrackWriterImpl of TrackWriterTrait {
         };
         self.meta(end, 0x2F, [].span());
         self.data
+    }
+}
+
+#[cfg(test)]
+mod encoding_tests {
+    use super::{VLQ_MAX, push_u32_be, push_vlq};
+
+    /// `push_vlq` as it was before the 1 and 2 byte forms got their own code: one formula for all
+    /// four lengths.
+    fn formula_vlq(v: u32) -> Array<u8> {
+        assert(v <= VLQ_MAX, 'midi: vlq too large');
+        let mut out: Array<u8> = array![];
+        if v >= 0x200000 {
+            out.append((0x80 + (v / 0x200000) % 128).try_into().unwrap());
+        }
+        if v >= 0x4000 {
+            out.append((0x80 + (v / 0x4000) % 128).try_into().unwrap());
+        }
+        if v >= 0x80 {
+            out.append((0x80 + (v / 0x80) % 128).try_into().unwrap());
+        }
+        out.append((v % 128).try_into().unwrap());
+        out
+    }
+
+    fn assert_same(v: u32) {
+        let mut out: Array<u8> = array![];
+        push_vlq(ref out, v);
+        assert(out == formula_vlq(v), 'vlq differs');
+    }
+
+    /// `edge` and its neighbours.
+    fn assert_same_around(edge: u32) {
+        assert_same(edge - 1);
+        assert_same(edge);
+        assert_same(edge + 1);
+    }
+
+    #[test]
+    fn matches_the_formula_at_every_length_boundary() {
+        assert_same(0);
+        assert_same(1);
+        assert_same_around(0x80);
+        assert_same(0x7F);
+        assert_same_around(0x4000);
+        assert_same(0x3FFF);
+        assert_same_around(0x200000);
+        assert_same(0x1FFFFF);
+        assert_same(VLQ_MAX - 1);
+        assert_same(VLQ_MAX);
+    }
+
+    /// Every value of 1 and 2 bytes, and the start of 3.
+    #[test]
+    #[available_gas(1000000000000)]
+    fn matches_the_formula_below_0x4100() {
+        let mut v: u32 = 0;
+        while v < 0x4100 {
+            assert_same(v);
+            v += 1;
+        }
+    }
+
+    /// A deterministic spread over the whole range: each value a third more than the last, plus
+    /// 129.
+    #[test]
+    #[available_gas(1000000000000)]
+    fn matches_the_formula_across_the_range() {
+        let mut v: u32 = 1;
+        while v <= VLQ_MAX {
+            assert_same(v);
+            v += v / 3 + 129;
+        }
+    }
+
+    #[test]
+    #[should_panic(expected: ('midi: vlq too large',))]
+    fn rejects_one_past_the_largest() {
+        let mut out: Array<u8> = array![];
+        push_vlq(ref out, VLQ_MAX + 1);
+    }
+
+    #[test]
+    #[should_panic(expected: ('midi: vlq too large',))]
+    fn rejects_the_largest_u32() {
+        let mut out: Array<u8> = array![];
+        push_vlq(ref out, 0xFFFFFFFF);
+    }
+
+    #[test]
+    fn u32_be_is_the_four_bytes_most_significant_first() {
+        let mut out: Array<u8> = array![];
+        push_u32_be(ref out, 0);
+        push_u32_be(ref out, 0x01020304);
+        push_u32_be(ref out, 0xFF00FF00);
+        push_u32_be(ref out, 0x4D546864);
+        push_u32_be(ref out, 0xFFFFFFFF);
+        assert_eq!(
+            out,
+            array![
+                0, 0, 0, 0, 1, 2, 3, 4, 0xFF, 0, 0xFF, 0, 0x4D, 0x54, 0x68, 0x64, 0xFF, 0xFF, 0xFF,
+                0xFF,
+            ],
+        );
     }
 }

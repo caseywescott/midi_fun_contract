@@ -6,7 +6,7 @@ Beasts V3 NFT and is the first consumer of that system.
 ## Layout
 
 The Cairo code is one Scarb workspace (the root `Scarb.toml`, scarb 2.20.1 as pinned in
-`.tool-versions`). Packages are grouped by system; a package named `*_contracts` declares Starknet
+`.tool-versions`; tests run on Starknet Foundry, snforge 0.64.1, pinned there too). Packages are grouped by system; a package named `*_contracts` declares Starknet
 contracts, and the others are libraries (`[lib]`, no contracts).
 
 | Package | Path | Kind | What it is |

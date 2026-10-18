@@ -11,7 +11,10 @@ use midi::interfaces::{
     ISynthSettingsProviderDispatcherTrait,
 };
 use midi::types::TinySynthSound;
-use starknet::syscalls::deploy_syscall;
+use snforge_std::{
+    ContractClassTrait, DeclareResultTrait, EventSpy, EventSpyTrait, EventsFilterTrait, declare,
+    spy_events, start_cheat_caller_address,
+};
 use starknet::{ClassHash, ContractAddress};
 use crate::provider::{
     BeastMidiProvider, IBeastMidiProviderDispatcher, IBeastMidiProviderDispatcherTrait, StateSource,
@@ -146,8 +149,13 @@ struct World {
     provider: IBeastMidiProviderDispatcher,
 }
 
-fn deploy(class_hash: ClassHash, calldata: Array<felt252>, salt: felt252) -> ContractAddress {
-    let (address, _) = deploy_syscall(class_hash, salt, calldata.span(), false).unwrap();
+/// The class of the contract `name` (a contract of this package or of its tests).
+fn class(name: ByteArray) -> ClassHash {
+    declare(name).unwrap().contract_class().class_hash
+}
+
+fn deploy(name: ByteArray, calldata: Array<felt252>) -> ContractAddress {
+    let (address, _) = declare(name).unwrap().contract_class().deploy(@calldata).unwrap();
     address
 }
 
@@ -155,9 +163,9 @@ fn deploy(class_hash: ClassHash, calldata: Array<felt252>, salt: felt252) -> Con
 const OWNER: felt252 = 0x0a11ce;
 
 fn setup() -> World {
-    let nft = deploy(MockBeasts::TEST_CLASS_HASH, array![], 1);
-    let dm = deploy(MockDeathMountain::TEST_CLASS_HASH, array![], 2);
-    let provider = deploy(BeastMidiProvider::TEST_CLASS_HASH, array![nft.into(), OWNER], 3);
+    let nft = deploy("MockBeasts", array![]);
+    let dm = deploy("MockDeathMountain", array![]);
+    let provider = deploy("BeastMidiProvider", array![nft.into(), OWNER]);
     let world = World {
         nft: IMockBeastsDispatcher { contract_address: nft },
         dm: IMockDeathMountainDispatcher { contract_address: dm },
@@ -613,9 +621,10 @@ fn get_sound_rejects_unminted_tokens() {
         .get_sound(encode_v3_token_id(sorrow_peak_warlock()));
 }
 
-// ── gas probes (ignored): cairo-test's estimate of one `get_midi` / `get_sound` call is the
-// probe minus `gas_probe_baseline` (mock deploys and minting). Run:
-//   scarb test -- --include-ignored --filter gas_probe
+// ── gas probes (ignored): the L2 gas of one `get_midi` / `get_sound` call is the probe's minus
+// `gas_probe_baseline`'s (mock deploys and minting). Run:
+//   scarb test -p beast_contracts -- gas_probe --include-ignored
+// (`bench/` measures the calls themselves, from the production classes.)
 fn gas_beast(id: u64, shiny: u8) -> PackableBeastV3 {
     PackableBeastV3 {
         id,
@@ -765,8 +774,16 @@ fn upgradeable(w: World) -> IUpgradeableDispatcher {
     IUpgradeableDispatcher { contract_address: w.midi.contract_address }
 }
 
-fn as_caller(who: felt252) {
-    starknet::testing::set_contract_address(addr(who));
+/// The provider sees `who` as the caller from now on.
+fn as_caller(w: World, who: felt252) {
+    start_cheat_caller_address(w.midi.contract_address, addr(who));
+}
+
+/// The first event `contract` emitted since `spy` was made: its keys and data.
+fn first_event(ref spy: EventSpy, contract: ContractAddress) -> (Array<felt252>, Array<felt252>) {
+    let events = spy.get_events().emitted_by(contract).events;
+    let (_, event) = events.at(0);
+    (event.keys.clone(), event.data.clone())
 }
 
 fn version(w: World) -> u32 {
@@ -775,42 +792,42 @@ fn version(w: World) -> u32 {
 
 #[test]
 fn owner_is_set_at_deploy_and_announced() {
+    let mut spy = spy_events();
     let w = setup();
     assert_eq!(ownable(w).owner(), addr(OWNER));
-    let (keys, data) = starknet::testing::pop_log_raw(w.midi.contract_address).unwrap();
-    assert_eq!(keys, array![selector!("OwnershipTransferred"), 0, OWNER].span());
-    assert_eq!(data, array![].span());
+    let (keys, data) = first_event(ref spy, w.midi.contract_address);
+    assert_eq!(keys, array![selector!("OwnershipTransferred"), 0, OWNER]);
+    assert_eq!(data, array![]);
 }
 
 #[test]
 fn owner_upgrades_the_class() {
     let w = setup();
-    let a = w.midi.contract_address;
-    let _ = starknet::testing::pop_log_raw(a); // the constructor's
-    as_caller(OWNER);
-    upgradeable(w).upgrade(ProviderV2::TEST_CLASS_HASH);
+    let mut spy = spy_events(); // after the constructor's event
+    as_caller(w, OWNER);
+    upgradeable(w).upgrade(class("ProviderV2"));
     assert_eq!(version(w), 2);
-    let (keys, data) = starknet::testing::pop_log_raw(a).unwrap();
-    assert_eq!(keys, array![selector!("Upgraded")].span());
-    assert_eq!(data, array![ProviderV2::TEST_CLASS_HASH.into()].span());
+    let (keys, data) = first_event(ref spy, w.midi.contract_address);
+    assert_eq!(keys, array![selector!("Upgraded")]);
+    assert_eq!(data, array![class("ProviderV2").into()]);
 }
 
 #[test]
 #[should_panic(expected: ('Caller is not the owner', 'ENTRYPOINT_FAILED'))]
 fn others_cannot_upgrade() {
     let w = setup();
-    as_caller(0xbad);
-    upgradeable(w).upgrade(ProviderV2::TEST_CLASS_HASH);
+    as_caller(w, 0xbad);
+    upgradeable(w).upgrade(class("ProviderV2"));
 }
 
 #[test]
 fn ownership_transfers() {
     let w = setup();
-    as_caller(OWNER);
+    as_caller(w, OWNER);
     ownable(w).transfer_ownership(addr(0xb0b));
     assert_eq!(ownable(w).owner(), addr(0xb0b));
-    as_caller(0xb0b);
-    upgradeable(w).upgrade(ProviderV2::TEST_CLASS_HASH);
+    as_caller(w, 0xb0b);
+    upgradeable(w).upgrade(class("ProviderV2"));
     assert_eq!(version(w), 2);
 }
 
@@ -819,26 +836,27 @@ fn ownership_transfers() {
 #[should_panic(expected: ('Caller is not the owner', 'ENTRYPOINT_FAILED'))]
 fn renounced_ends_upgrades_for_good() {
     let w = setup();
-    as_caller(OWNER);
+    as_caller(w, OWNER);
     ownable(w).renounce_ownership();
     assert_eq!(ownable(w).owner(), addr(0));
-    upgradeable(w).upgrade(ProviderV2::TEST_CLASS_HASH);
+    upgradeable(w).upgrade(class("ProviderV2"));
 }
 
 #[test]
 #[should_panic(expected: ('Caller is not the owner', 'ENTRYPOINT_FAILED'))]
 fn renounced_cannot_be_reclaimed() {
     let w = setup();
-    as_caller(OWNER);
+    as_caller(w, OWNER);
     ownable(w).renounce_ownership();
     ownable(w).transfer_ownership(addr(OWNER));
 }
 
 #[test]
 fn constructor_rejects_a_zero_owner() {
-    let nft = deploy(MockBeasts::TEST_CLASS_HASH, array![], 1);
-    let result = deploy_syscall(
-        BeastMidiProvider::TEST_CLASS_HASH, 3, array![nft.into(), 0].span(), false,
-    );
-    assert_eq!(result.unwrap_err(), array!['New owner is the zero address', 'CONSTRUCTOR_FAILED']);
+    let nft = deploy("MockBeasts", array![]);
+    let result = declare("BeastMidiProvider")
+        .unwrap()
+        .contract_class()
+        .deploy(@array![nft.into(), 0]);
+    assert_eq!(result.unwrap_err(), array!['New owner is the zero address']);
 }

@@ -5,10 +5,9 @@ use midi::interfaces::{
     IMidiProviderDispatcher, IMidiProviderDispatcherTrait, IMidiSoundPageDispatcher,
     IMidiSoundPageDispatcherTrait,
 };
-use starknet::syscalls::deploy_syscall;
-use starknet::{ClassHash, ContractAddress};
-use crate::examples::scale::ScaleMidiProvider;
-use super::{MidiSoundPage, token_uri};
+use snforge_std::{ContractClassTrait, DeclareResultTrait, declare};
+use starknet::ContractAddress;
+use super::token_uri;
 
 /// Returns `token_id % 97` synthetic bytes, and only for its one collection.
 #[starknet::contract]
@@ -48,15 +47,13 @@ fn synthetic(n: usize) -> ByteArray {
     s
 }
 
-fn deploy(class_hash: ClassHash, calldata: Array<felt252>) -> ContractAddress {
-    let (address, _) = deploy_syscall(class_hash, 0, calldata.span(), false).unwrap();
+fn deploy(name: ByteArray, calldata: Array<felt252>) -> ContractAddress {
+    let (address, _) = declare(name).unwrap().contract_class().deploy(@calldata).unwrap();
     address
 }
 
 fn page_for(provider: ContractAddress) -> IMidiSoundPageDispatcher {
-    IMidiSoundPageDispatcher {
-        contract_address: deploy(MidiSoundPage::TEST_CLASS_HASH, array![provider.into()]),
-    }
+    IMidiSoundPageDispatcher { contract_address: deploy("MidiSoundPage", array![provider.into()]) }
 }
 
 fn members() -> ByteArray {
@@ -69,7 +66,7 @@ fn svg_b64() -> ByteArray {
 
 #[test]
 fn page_embeds_the_providers_midi() {
-    let provider = deploy(MockProvider::TEST_CLASS_HASH, array![]);
+    let provider = deploy("MockProvider", array![]);
     let page = page_for(provider);
     assert_eq!(page.get_midi_provider(), provider);
     let mut id: u256 = 0;
@@ -84,7 +81,7 @@ fn page_embeds_the_providers_midi() {
 #[test]
 fn page_works_with_a_second_provider() {
     // ScaleMidiProvider knows nothing about Beasts; the page does not care.
-    let provider = deploy(ScaleMidiProvider::TEST_CLASS_HASH, array![collection().into()]);
+    let provider = deploy("ScaleMidiProvider", array![collection().into()]);
     let uri = page_for(provider).token_uri(members(), svg_b64(), collection(), 42);
     let midi = IMidiProviderDispatcher { contract_address: provider }
         .get_midi_for(collection(), 42);
@@ -94,21 +91,21 @@ fn page_works_with_a_second_provider() {
 #[test]
 #[should_panic(expected: ('unsupported collection', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 fn provider_rejections_propagate() {
-    let provider = deploy(MockProvider::TEST_CLASS_HASH, array![]);
+    let provider = deploy("MockProvider", array![]);
     page_for(provider).token_uri(members(), svg_b64(), 'OTHER'.try_into().unwrap(), 1);
 }
 
 #[test]
 fn page_needs_a_provider() {
-    let result = deploy_syscall(MidiSoundPage::TEST_CLASS_HASH, 0, array![0].span(), false);
-    assert_eq!(result.unwrap_err(), array!['zero midi provider', 'CONSTRUCTOR_FAILED']);
+    let result = declare("MidiSoundPage").unwrap().contract_class().deploy(@array![0]);
+    assert_eq!(result.unwrap_err(), array!['zero midi provider']);
 }
 
 /// Gas for a whole page call (small members and SVG, MIDI from ScaleMidiProvider) without the
 /// test's own comparison work. `bench_*` in tests.cairo measures assembly with the real Warlock.
 #[test]
 fn bench_page_call_scale_provider() {
-    let provider = deploy(ScaleMidiProvider::TEST_CLASS_HASH, array![collection().into()]);
+    let provider = deploy("ScaleMidiProvider", array![collection().into()]);
     let uri = page_for(provider).token_uri(members(), svg_b64(), collection(), 42);
     assert!(uri.len() > 0);
 }

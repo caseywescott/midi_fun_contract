@@ -1,6 +1,6 @@
 // Parity: the Yeti special (ornaments by profile, avalanche, rock groove) on Yeti name tracks covering
 // every ornament placement, the lab (`sampleTrackMidi`) against Cairo (yeti.cairo via tracks.cairo).
-//   cd beasts/beast_composer && for i in 0 1; do scarb test -- --include-ignored --filter yeti_parity_fixture_$i; done | grep '^YETI' > /tmp/yeti.txt
+//   cd beasts/beast_composer && for i in 0 1; do scarb test -- yeti_parity_fixture_$i --include-ignored; done | grep '^YETI' > /tmp/yeti.txt
 //   node scripts/yeti_parity.mjs /tmp/yeti.txt
 import { readFileSync } from 'node:fs';
 import { engine as E, poseidonHashMany } from '../offchain/beast-sound/src/index.js';

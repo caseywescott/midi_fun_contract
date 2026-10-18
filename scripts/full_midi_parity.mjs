@@ -1,6 +1,6 @@
 // Parity: the self-contained Beast MIDI (programs, pan, drums), JS (offchain/beast-sound/src/full_midi.js)
 // against Cairo (beasts/beast_composer: full_midi_parity_fixture).
-//   (cd beasts/beast_composer && scarb test -- --include-ignored --filter full_midi_parity_fixture | grep FULL > /tmp/full.txt)
+//   (cd beasts/beast_composer && scarb test -- full_midi_parity_fixture --include-ignored | grep FULL > /tmp/full.txt)
 //   node scripts/full_midi_parity.mjs /tmp/full.txt
 import { readFileSync } from 'node:fs';
 import { engine as E, poseidonHashMany } from '../offchain/beast-sound/src/index.js';

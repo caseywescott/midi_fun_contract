@@ -82,7 +82,7 @@ golden fixtures in `test/golden.json` are the contract.
 ```bash
 npm test                                            # offchain only, uses test/golden.json
 # from midi_fun_contract/, to regenerate fixtures from the Cairo reference:
-(cd beasts/beast_composer && scarb test -- --include-ignored --filter beast_v3_parity_fixture | grep PARITY > /tmp/parity.txt)
+(cd beasts/beast_composer && scarb test -- beast_v3_parity_fixture --include-ignored | grep PARITY > /tmp/parity.txt)
 node scripts/beast_v3_parity.mjs /tmp/parity.txt --write
 ```
 

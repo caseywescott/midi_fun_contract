@@ -1690,7 +1690,7 @@ mod realizer_tests {
         assert!(TABLE_ZERO == 70 - 7 * TABLE_OCT_LO.try_into().unwrap());
     }
 
-    /// For one of the scales (a test each: a cairo-test run keeps what it allocates, and CI runs
+    /// For one of the scales (a test each: a test run keeps what it allocates, and CI runs
     /// several at once), over every tonic (`transposed_tonic`'s 24..=96) and shift (`degree_plan`'s
     /// -3..=3), and the degrees well past the table on both sides: the table holds exactly the
     /// pitches `degree_to_keynum` returns without panicking, and `realize` returns them.
@@ -2621,7 +2621,7 @@ mod shape_tests {
     }
 
     /// Every ceiling, with the given profiles, on the events of a real score (species 1, 32, 68 and
-    /// 75 with profiles 0, 1, 5 and 7 below, split so that no cairo-test run holds too much: a run
+    /// 75 with profiles 0, 1, 5 and 7 below, split so that no test run holds too much: a run
     /// keeps what it allocates, and CI runs several at once).
     fn shape_matches_oracle_on_score(id: u64, profiles: Span<u8>) {
         let score = score_of(id);
@@ -2737,7 +2737,7 @@ mod shape_tests {
     /// Events in any order, stretches of a voice interleaved and repeated, keys colliding, pitches
     /// over the whole u8 range, velocity sums past 255 and down to 0: the layouts of kinds
     /// `from..to` of the 16 (all 16 are drawn in order, so a kind's events do not depend on the
-    /// split; a test per range keeps each cairo-test run small).
+    /// split; a test per range keeps each test run small).
     fn shape_matches_oracle_on_layouts(from: u32, to: u32) {
         let score = score_of(32);
         let mut seed: u64 = 12345;
@@ -2849,7 +2849,7 @@ mod dominant_tests {
         reaches
     }
 
-    /// `from` in `lo..hi` (0..256 in two tests, so that no cairo-test run holds too much).
+    /// `from` in `lo..hi` (0..256 in two tests, so that no test run holds too much).
     fn dominant_is_the_original_from(lo: u32, hi: u32) {
         let sets = class_sets();
         let mut n: u32 = lo;

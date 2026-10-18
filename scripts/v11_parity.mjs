@@ -2,7 +2,7 @@
 // same mode, even phrases, history) against Cairo (beasts/beast_composer: beast_v11, v11_parity_fixture).
 // Compares each case's note count, section length, events hash and self-contained MIDI hash (with the
 // mega arrangement for shiny Beasts, as get_midi plays it).
-//   (cd beasts/beast_composer && scarb test -- --include-ignored --filter v11_parity_fixture | grep V11 > /tmp/v11.txt)
+//   (cd beasts/beast_composer && scarb test -- v11_parity_fixture --include-ignored | grep V11 > /tmp/v11.txt)
 //   node scripts/v11_parity.mjs /tmp/v11.txt
 import { readFileSync } from 'node:fs';
 import { engine as E, poseidonHashMany } from '../offchain/beast-sound/src/index.js';

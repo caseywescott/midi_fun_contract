@@ -1,6 +1,8 @@
 # Testing
 
-The Cairo packages are one Scarb workspace (scarb 2.20.1). Each package has its own tests:
+The Cairo packages are one Scarb workspace (scarb 2.20.1). Their tests run on Starknet Foundry
+(snforge 0.64.1, both pinned in `.tool-versions`): `scarb test` runs `snforge test` in each package
+(the root `Scarb.toml`'s `[workspace.scripts]`). Each package has its own tests:
 
 | Package | `scarb test -p …` covers |
 |---|---|
@@ -12,6 +14,7 @@ The Cairo packages are one Scarb workspace (scarb 2.20.1). Each package has its 
 ```bash
 scarb test                      # all four, as CI runs them (one job per package)
 scarb test -p beast_composer    # one package
+scarb test -p beast_composer -- smf_golden --include-ignored   # tests whose name contains a filter, ignored ones included
 scarb fmt --check               # CI checks formatting too
 ```
 

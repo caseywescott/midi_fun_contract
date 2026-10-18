@@ -12,13 +12,14 @@ use beast_composer::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, beast_sound_seed, encode_v3_token_id,
 };
 use beast_composer::composition::genesis::{species_tier, species_type};
-use starknet::syscalls::deploy_syscall;
-use crate::{BeastSoundComposer, IBeastSoundComposerDispatcher, IBeastSoundComposerDispatcherTrait};
+use snforge_std::{ContractClassTrait, DeclareResultTrait, declare};
+use crate::{IBeastSoundComposerDispatcher, IBeastSoundComposerDispatcherTrait};
 
 fn composer() -> IBeastSoundComposerDispatcher {
-    let (address, _) = deploy_syscall(
-        BeastSoundComposer::TEST_CLASS_HASH, 0, array!['salt', 500].span(), false,
-    )
+    let (address, _) = declare("BeastSoundComposer")
+        .unwrap()
+        .contract_class()
+        .deploy(@array!['salt', 500])
         .unwrap();
     IBeastSoundComposerDispatcher { contract_address: address }
 }

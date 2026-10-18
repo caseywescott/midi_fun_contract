@@ -309,7 +309,7 @@ mod tests {
 
     /// Positions in and out of the register band, subjects well past it, the steps the generator
     /// uses (3, and 14 to relax them) and none, and the bands: ±7, a narrow one, one degree, none.
-    /// `cs_cur` in `lo..=hi` (-8..=8 in three tests, so that no cairo-test run holds too much).
+    /// `cs_cur` in `lo..=hi` (-8..=8 in three tests, so that no test run holds too much).
     fn candidates_are_the_original_from(lo: i32, hi: i32) {
         let bands = array![(-7_i32, 7_i32), (-2, 4), (0, 0), (3, -3)];
         let mut cs_cur: i32 = lo;

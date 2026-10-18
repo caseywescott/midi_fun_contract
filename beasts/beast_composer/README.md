@@ -42,12 +42,12 @@ functions, types and imports were then removed until the package built with no w
   prints exactly the lines `koji` does, which `scripts/beast_v3_parity.mjs` matches against the JS
   engine (65 of 65 checks):
   ```bash
-  scarb test -- --include-ignored --filter beast_v3_parity_fixture | grep PARITY > /tmp/parity.txt
+  scarb test -- beast_v3_parity_fixture --include-ignored | grep PARITY > /tmp/parity.txt
   node ../../scripts/beast_v3_parity.mjs /tmp/parity.txt
   ```
 - `beasts/beast_contracts`'s 16 tests pass on it unchanged.
 
-`smf_golden` (ignored; `scarb test -- --include-ignored --filter smf_golden`) pins every byte both
+`smf_golden` (ignored; `scarb test -- smf_golden --include-ignored`) pins every byte both
 SMF writers produce for 50 Beasts in two live states; it held unchanged when the writers moved onto
 the `midi` package.
 

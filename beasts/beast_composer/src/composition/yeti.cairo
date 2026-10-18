@@ -226,7 +226,7 @@ mod degree_tests {
     /// `degree_ref` shifts with the home (`pitch_ref` is `home` plus a function of the degree), so
     /// its answers at home 0 for the pitches -96..=231 (the u8 pitches at the homes 24..=96) are
     /// its answers at every home: `degree` equals them for every key and every pitch. One scale per
-    /// test: a cairo-test run keeps what it allocates, and CI runs several at once.
+    /// test: a test run keeps what it allocates, and CI runs several at once.
     fn degree_matches_the_scan_at_every_home(scale: usize) {
         let sc = *scales().at(scale);
         let mut want: Array<i32> = array![];

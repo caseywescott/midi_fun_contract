@@ -10,6 +10,13 @@ onchain_midi_player.workspace = true
 starknet.workspace = true
 
 [dev-dependencies]
-cairo_test.workspace = true
+snforge_std.workspace = true
+assert_macros.workspace = true
 
 [lib]
+
+[scripts]
+test.workspace = true
+
+[tool.scarb]
+allow-prebuilt-plugins = ["snforge_std"]

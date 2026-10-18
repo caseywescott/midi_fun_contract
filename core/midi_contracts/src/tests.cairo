@@ -3,21 +3,18 @@ use midi::interfaces::{
     ISoundProviderDispatcherTrait,
 };
 use midi::settings::default_settings;
+use snforge_std::{ContractClassTrait, DeclareResultTrait, declare};
 use starknet::ContractAddress;
-use starknet::syscalls::deploy_syscall;
-use crate::examples::scale::ScaleMidiProvider;
 
 fn collection() -> ContractAddress {
     'COLLECTION'.try_into().unwrap()
 }
 
 fn deploy_scale() -> IMidiProviderDispatcher {
-    let (address, _) = deploy_syscall(
-        ScaleMidiProvider::TEST_CLASS_HASH.try_into().unwrap(),
-        0,
-        array![collection().into()].span(),
-        false,
-    )
+    let (address, _) = declare("ScaleMidiProvider")
+        .unwrap()
+        .contract_class()
+        .deploy(@array![collection().into()])
         .unwrap();
     IMidiProviderDispatcher { contract_address: address }
 }

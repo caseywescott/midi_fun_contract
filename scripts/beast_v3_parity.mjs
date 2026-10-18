@@ -1,6 +1,6 @@
 // Parity: offchain engine (offchain/beast-sound) vs the Cairo reference (beast_v3_parity_fixture).
 //
-//   (cd beasts/beast_composer && scarb test -- --include-ignored --filter beast_v3_parity_fixture | grep PARITY > /tmp/parity.txt)
+//   (cd beasts/beast_composer && scarb test -- beast_v3_parity_fixture --include-ignored | grep PARITY > /tmp/parity.txt)
 //   node scripts/beast_v3_parity.mjs /tmp/parity.txt           # compare
 //   node scripts/beast_v3_parity.mjs /tmp/parity.txt --write   # also refresh golden fixtures
 //

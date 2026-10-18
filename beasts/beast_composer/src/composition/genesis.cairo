@@ -416,7 +416,7 @@ mod run_tests {
     }
 
     /// Cases `from..to` of 60 (all 60 are drawn in order, so a case's events do not depend on the
-    /// split; a test per range keeps each cairo-test run small).
+    /// split; a test per range keeps each test run small).
     fn runs_match_the_scans(from: u32, to: u32) {
         let mut seed: u64 = 20240607;
         let mut merged: u32 = 0;

@@ -25,11 +25,19 @@ edition = "2025_12"
 
 [workspace.dependencies]
 midi = { git = "https://github.com/caseywescott/midi_fun_contract", rev = "<commit>" }
+openzeppelin_access = "4.0.1"
+openzeppelin_upgrades = "4.0.1"
+openzeppelin_interfaces = "2.2.0"
 starknet = "2.20.1"
-cairo_test = "2.20.1"
+snforge_std = "=0.64.1"
+assert_macros = "2.20.1"
+
+[workspace.scripts]
+test = "snforge test --max-n-steps 4294967295"
 ```
 
-with `scarb 2.20.1` in its `.tool-versions`. Both packages build and pass their tests that way.
+with `scarb 2.20.1` and `starknet-foundry 0.64.1` in its `.tool-versions`. Both packages build and
+pass their tests that way.
 
 Beast tooling that lives outside this directory and would move with it: `offchain/beast-sound/`
 (the JS engine and the generator of `beast_contracts/src/synth_settings.cairo`; it also generates

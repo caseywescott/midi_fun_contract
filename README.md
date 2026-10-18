@@ -48,6 +48,14 @@ scarb fmt --check
 
 `TESTING.md` covers the `#[ignore]`d parity fixtures and the generated Cairo files.
 
+snforge 0.64.1 was released before scarb 2.21.0, so `snforge check-requirements` warns "Scarb
+Version 2.21.0 doesn't satisfy maximal recommended 2.20.1". It is only a warning: that release
+was not tested with 2.21.0, and every test, parity fixture and the gas bench pass on this pair
+(`snforge test` itself does not print it). The next snforge release raises the maximum to 2.21.0
+([foundry-rs/starknet-foundry#4624](https://github.com/foundry-rs/starknet-foundry/pull/4624));
+then bump `.tool-versions`, `snforge_std` (root and `bench/`) and CI's
+`starknet-foundry-version` together.
+
 ### Gas
 
 `bench/` measures the per-call L2 gas of the four contract classes over 286 fixed cases (every

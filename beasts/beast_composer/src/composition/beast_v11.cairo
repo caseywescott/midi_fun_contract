@@ -1242,8 +1242,46 @@ fn trajectory(
     }
 }
 
+/// Consecutive events of one voice in one section, with their pitch range. `key` identifies the
+/// voice and section in `shape`'s dictionary, `start` is the tick the section starts at.
+#[derive(Copy, Drop)]
+struct Stretch {
+    voice: u32,
+    key: felt252,
+    start: u32,
+    len: u32,
+    lo: u8,
+    hi: u8,
+}
+
+/// The stretch at the front of `events`, which are not empty.
+fn stretch_at(events: Span<NoteEvent>, section_ticks: u32) -> Stretch {
+    let first = events.at(0);
+    let section = first.time / section_ticks;
+    let start = section * section_ticks;
+    let key: felt252 = (first.voice_id * 4096 + section).into();
+    let mut stretch = Stretch { voice: first.voice_id, key, start, len: 0, lo: 255, hi: 0 };
+    for e in events {
+        if e.voice_id != stretch.voice || e.time < start || e.time - start >= section_ticks {
+            break;
+        }
+        stretch.len += 1;
+        if e.pitch < stretch.lo {
+            stretch.lo = e.pitch;
+        }
+        if e.pitch > stretch.hi {
+            stretch.hi = e.pitch;
+        }
+    }
+    stretch
+}
+
 /// Phrase arc per voice and section, accents on bar downbeats (the first bar of each pair harder),
 /// the lead's prominence, articulation by profile, under the velocity ceiling.
+///
+/// The events come in a few long stretches (a voice's line, then its episode, in each section), so
+/// the pitch range of a voice and section is looked up once per stretch, and what depends only on
+/// the stretch is worked out once, not once per event.
 fn shape(
     ref events: Array<NoteEvent>, p: @BeastCompositionParams, section_ticks: u32, prominence: u32,
 ) {
@@ -1252,76 +1290,92 @@ fn shape(
     } else {
         p.velocity_ceiling.into()
     };
-    let mut lo: Felt252Dict<u8> = Default::default();
-    let mut hi: Felt252Dict<u8> = Default::default();
-    let mut seen: Felt252Dict<bool> = Default::default();
-    for e in events.span() {
-        let key: felt252 = (e.voice_id * 4096 + e.time / section_ticks).into();
-        if !seen.get(key) {
-            seen.insert(key, true);
-            lo.insert(key, e.pitch);
-            hi.insert(key, e.pitch);
-        } else {
-            if e.pitch < lo.get(key) {
-                lo.insert(key, e.pitch);
+    let profile = p.articulation_profile;
+    let all = events.span();
+    // pass 1: the stretches, and the pitch range of each voice and section over its stretches
+    // (0 until seen, then 1 + lo + 256 * hi)
+    let mut ranges: Felt252Dict<u32> = Default::default();
+    let mut stretches: Array<Stretch> = array![];
+    let mut at = 0;
+    while at < all.len() {
+        let s = stretch_at(all.slice(at, all.len() - at), section_ticks);
+        let (entry, packed) = ranges.entry(s.key);
+        let mut lo: u32 = s.lo.into();
+        let mut hi: u32 = s.hi.into();
+        if packed != 0 {
+            let (h, l) = DivRem::div_rem(packed - 1, 256);
+            if l < lo {
+                lo = l;
             }
-            if e.pitch > hi.get(key) {
-                hi.insert(key, e.pitch);
+            if h > hi {
+                hi = h;
             }
         }
+        ranges = entry.finalize(1 + lo + 256 * hi);
+        stretches.append(s);
+        at += s.len;
     }
+    // pass 2: the velocity and duration of each event
     let mut out: Array<NoteEvent> = array![];
-    for e in events.span() {
-        let e = *e;
-        let key: felt252 = (e.voice_id * 4096 + e.time / section_ticks).into();
-        let l: u32 = lo.get(key).into();
-        let h: u32 = hi.get(key).into();
-        let lead = e.voice_id == 0;
-        let arc: u32 = if h > l {
-            (32 * (e.pitch.into() - l) + (h - l)) / (2 * (h - l))
-        } else {
-            8
-        };
-        let mut v: u32 = if lead {
+    let mut at = 0;
+    for s in stretches {
+        let (h, l) = DivRem::div_rem(ranges.get(s.key) - 1, 256);
+        let lead = s.voice == 0;
+        let base: u32 = if lead {
             80 + 4 * prominence
         } else {
             70 - 2 * prominence
-        } + arc;
-        if e.time % BAR == 0 {
-            v += if ((e.time % section_ticks) / BAR) % 2 == 0 {
-                12
-            } else {
-                4
-            };
-            if lead {
-                v += 2 * prominence;
-            }
-        }
-        let vel: u8 = (if v > ceil {
-            ceil
-        } else if v < 1 {
-            1
-        } else {
-            v
-        }).try_into().unwrap();
-        let duration = if p.articulation_profile == 1 {
-            let x = e.duration / 2;
-            if x > 60 {
-                x
-            } else {
-                60
-            }
-        } else if p.articulation_profile == 5 {
-            let x = e.duration * 3 / 4;
-            if x > 60 {
-                x
-            } else {
-                60
-            }
-        } else {
-            e.duration
         };
-        out.append(NoteEvent { velocity: vel, duration, ..e });
+        // the arc divides by twice the spread; a single pitch sits at the middle
+        let spread = h - l;
+        let arc_den: Option<NonZero<u32>> = (2 * spread).try_into();
+        for e in all.slice(at, s.len) {
+            let e = *e;
+            let arc: u32 = match arc_den {
+                Option::Some(den) => {
+                    let (arc, _) = DivRem::div_rem(32 * (e.pitch.into() - l) + spread, den);
+                    arc
+                },
+                Option::None => 8,
+            };
+            let mut v: u32 = base + arc;
+            if e.time % BAR == 0 {
+                v += if ((e.time - s.start) / BAR) % 2 == 0 {
+                    12
+                } else {
+                    4
+                };
+                if lead {
+                    v += 2 * prominence;
+                }
+            }
+            let vel: u8 = (if v > ceil {
+                ceil
+            } else if v < 1 {
+                1
+            } else {
+                v
+            }).try_into().unwrap();
+            let duration = if profile == 1 {
+                let x = e.duration / 2;
+                if x > 60 {
+                    x
+                } else {
+                    60
+                }
+            } else if profile == 5 {
+                let x = e.duration * 3 / 4;
+                if x > 60 {
+                    x
+                } else {
+                    60
+                }
+            } else {
+                e.duration
+            };
+            out.append(NoteEvent { velocity: vel, duration, ..e });
+        }
+        at += s.len;
     }
     events = out;
 }
@@ -2181,5 +2235,252 @@ mod grid_tests {
             ref grid,
             NoteEvent { time: 120, duration: 0, pitch: 60, velocity: 90, voice_id: 0 },
         );
+    }
+}
+
+#[cfg(test)]
+mod shape_tests {
+    use core::dict::{Felt252Dict, Felt252DictTrait};
+    use crate::composition::beast_trait_map::BeastCompositionParams;
+    use crate::composition::beast_v3_sound::{BeastV3LiveState, PackableBeastV3};
+    use crate::composition::melodic_canon::NoteEvent;
+    use super::{BAR, V11Override, V11Score, build_v11_score_with, no_override, shape};
+
+    /// `shape` as first written: lo, hi and seen dictionaries, a key division per pass.
+    fn shape_oracle(
+        ref events: Array<NoteEvent>,
+        p: @BeastCompositionParams,
+        section_ticks: u32,
+        prominence: u32,
+    ) {
+        let ceil: u32 = if p.velocity_ceiling == 0 {
+            127
+        } else {
+            p.velocity_ceiling.into()
+        };
+        let mut lo: Felt252Dict<u8> = Default::default();
+        let mut hi: Felt252Dict<u8> = Default::default();
+        let mut seen: Felt252Dict<bool> = Default::default();
+        for e in events.span() {
+            let key: felt252 = (e.voice_id * 4096 + e.time / section_ticks).into();
+            if !seen.get(key) {
+                seen.insert(key, true);
+                lo.insert(key, e.pitch);
+                hi.insert(key, e.pitch);
+            } else {
+                if e.pitch < lo.get(key) {
+                    lo.insert(key, e.pitch);
+                }
+                if e.pitch > hi.get(key) {
+                    hi.insert(key, e.pitch);
+                }
+            }
+        }
+        let mut out: Array<NoteEvent> = array![];
+        for e in events.span() {
+            let e = *e;
+            let key: felt252 = (e.voice_id * 4096 + e.time / section_ticks).into();
+            let l: u32 = lo.get(key).into();
+            let h: u32 = hi.get(key).into();
+            let lead = e.voice_id == 0;
+            let arc: u32 = if h > l {
+                (32 * (e.pitch.into() - l) + (h - l)) / (2 * (h - l))
+            } else {
+                8
+            };
+            let mut v: u32 = if lead {
+                80 + 4 * prominence
+            } else {
+                70 - 2 * prominence
+            } + arc;
+            if e.time % BAR == 0 {
+                v += if ((e.time % section_ticks) / BAR) % 2 == 0 {
+                    12
+                } else {
+                    4
+                };
+                if lead {
+                    v += 2 * prominence;
+                }
+            }
+            let vel: u8 = (if v > ceil {
+                ceil
+            } else if v < 1 {
+                1
+            } else {
+                v
+            }).try_into().unwrap();
+            let duration = if p.articulation_profile == 1 {
+                let x = e.duration / 2;
+                if x > 60 {
+                    x
+                } else {
+                    60
+                }
+            } else if p.articulation_profile == 5 {
+                let x = e.duration * 3 / 4;
+                if x > 60 {
+                    x
+                } else {
+                    60
+                }
+            } else {
+                e.duration
+            };
+            out.append(NoteEvent { velocity: vel, duration, ..e });
+        }
+        events = out;
+    }
+
+    fn clone_events(events: Span<NoteEvent>) -> Array<NoteEvent> {
+        let mut out: Array<NoteEvent> = array![];
+        out.append_span(events);
+        out
+    }
+
+    fn score_of(id: u64) -> V11Score {
+        let beast = PackableBeastV3 {
+            id,
+            prefix: 0,
+            suffix: 0,
+            level: 50,
+            health: 200,
+            shiny: 0,
+            animated: 0,
+            tier: 1,
+            beast_type: 1,
+        };
+        let live = BeastV3LiveState {
+            adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1,
+        };
+        let ov = V11Override {
+            voice_count: Option::Some(4),
+            section_count: Option::Some(4),
+            use_countersubject: Option::Some(true),
+            ..no_override(),
+        };
+        build_v11_score_with(beast, live, ov)
+    }
+
+    fn assert_same(a: Span<NoteEvent>, b: Span<NoteEvent>) {
+        assert(a.len() == b.len(), 'event count');
+        let mut i = 0;
+        while i < a.len() {
+            let (x, y) = (*a.at(i), *b.at(i));
+            assert(x.time == y.time && x.pitch == y.pitch && x.voice_id == y.voice_id, 'identity');
+            assert(x.velocity == y.velocity, 'velocity');
+            assert(x.duration == y.duration, 'duration');
+            i += 1;
+        }
+    }
+
+    fn check(events: Span<NoteEvent>, p: @BeastCompositionParams, st: u32, prominence: u32) {
+        let mut a = clone_events(events);
+        let mut b = clone_events(events);
+        shape_oracle(ref a, p, st, prominence);
+        shape(ref b, p, st, prominence);
+        assert_same(a.span(), b.span());
+    }
+
+    /// Every profile and ceiling, on the events of real scores.
+    #[test]
+    #[available_gas(100000000000)]
+    fn shape_matches_oracle_on_scores() {
+        for id in array![1_u64, 32, 68, 75].span() {
+            let score = score_of(*id);
+            for profile in array![0_u8, 1, 5, 7].span() {
+                for ceiling in array![0_u8, 1, 64, 127, 255].span() {
+                    let p = BeastCompositionParams {
+                        articulation_profile: *profile, velocity_ceiling: *ceiling, ..score.params,
+                    };
+                    check(score.events.span(), @p, score.section_ticks, 0);
+                    check(score.events.span(), @p, score.section_ticks, 3);
+                }
+            }
+        }
+    }
+
+    fn next_random(ref seed: u64) -> u32 {
+        seed = (seed * 1664525 + 1013904223) % 0x100000000;
+        (seed / 16).try_into().unwrap()
+    }
+
+    /// `count` events in stretches of random length: a voice and a section, then another. Sections
+    /// 4096 and up make keys collide (voice 0 there is voice 1 in section 0).
+    fn random_events(ref seed: u64, kind: u32, section_ticks: u32, count: u32) -> Array<NoteEvent> {
+        let mut events: Array<NoteEvent> = array![];
+        let mut voice: u32 = 0;
+        let mut section: u32 = 0;
+        while events.len() < count {
+            let r = next_random(ref seed);
+            if r % 4 == 0 {
+                voice = (r / 4) % 6;
+                section =
+                    if section_ticks == 7 {
+                        *array![0_u32, 1, 4096, 4097].span().at((r / 32) % 4)
+                    } else {
+                        (r / 32) % 3
+                    };
+            }
+            let r = next_random(ref seed);
+            let from = section * section_ticks;
+            // a third of the events on a bar line, when the section holds one
+            let first_bar = (from + BAR - 1) / BAR * BAR;
+            let offset = if r % 3 == 0 && first_bar < from + section_ticks {
+                first_bar - from + (r / 4) % ((from + section_ticks - first_bar) / BAR + 1) * BAR
+            } else {
+                (r / 4) % section_ticks
+            };
+            let pitch = if kind % 5 == 0 {
+                r / 64 % 256
+            } else {
+                60 + r / 64 % (1 + kind % 5 * 12)
+            };
+            events
+                .append(
+                    NoteEvent {
+                        time: from + offset,
+                        duration: r / 16384 % 3000,
+                        pitch: pitch.try_into().unwrap(),
+                        velocity: 90,
+                        voice_id: voice,
+                    },
+                );
+        }
+        events
+    }
+
+    /// Events in any order, stretches of a voice interleaved and repeated, keys colliding, pitches
+    /// over the whole u8 range, velocity sums past 255 and down to 0.
+    #[test]
+    #[available_gas(100000000000)]
+    fn shape_matches_oracle_on_any_layout() {
+        let score = score_of(32);
+        let mut seed: u64 = 12345;
+        let mut kind: u32 = 0;
+        while kind < 16 {
+            let section_ticks = *array![BAR * 4, BAR * 3, 2500, 7].span().at(kind % 4);
+            let events = random_events(ref seed, kind, section_ticks, 80);
+            for profile in array![0_u8, 1, 5].span() {
+                for ceiling in array![0_u8, 255].span() {
+                    let p = BeastCompositionParams {
+                        articulation_profile: *profile, velocity_ceiling: *ceiling, ..score.params,
+                    };
+                    // 35: the largest prominence whose follower base 70 - 2 * prominence is >= 0
+                    for prominence in array![0_u32, 1, 3, 35].span() {
+                        check(events.span(), @p, section_ticks, *prominence);
+                    }
+                }
+            }
+            kind += 1;
+        }
+    }
+
+    #[test]
+    fn shape_of_no_events_is_empty() {
+        let score = score_of(1);
+        let mut events: Array<NoteEvent> = array![];
+        shape(ref events, @score.params, score.section_ticks, 1);
+        assert(events.is_empty(), 'no events');
     }
 }

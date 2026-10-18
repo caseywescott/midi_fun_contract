@@ -403,77 +403,149 @@ fn offsets(spacing: u8) -> Span<i32> {
     }
 }
 
-/// The placed notes on a 120-tick grid: (voice, cell) -> index into the section's notes + 1. Every
-/// onset and length the voice checks see is a multiple of 120 ticks (asserted), and a voice's notes
-/// never overlap, so a voice has at most one note per cell.
+/// The placed notes on a 120-tick grid. Every onset and length the voice checks see is a multiple
+/// of 120 ticks (asserted by `put`), and a voice's notes never overlap, so a voice has at most one
+/// note per cell.
 const CELL: u32 = 120;
 
-/// The grid key of a voice's cell, `voice * 2^20 + cell`, in felt252 arithmetic: no overflow
-/// checks. It is the same number as the u32 sum for voice ids below 4096 (`overlaps` asserts that
-/// there are no more voices).
-fn cell_key(voice: u32, cell: u32) -> felt252 {
-    voice.into() * 0x100000 + cell.into()
+/// The table entry of a cell with no note over it: past any index into the section's notes.
+const NO_NOTE: u32 = 0xFFFFFFFF;
+
+/// The cells of the notes a section has placed, for the voice checks: one table per voice.
+///
+/// A section places its notes one voice at a time and each voice in time order: the lines of voices
+/// 0, 1, ... (the countersubject's last), then their episodes in the same order. A voice's slots
+/// follow one another without overlap, and its episode starts where its line ends. So when a note
+/// is chosen, the voice it is for is the only one still growing, and it is never checked against;
+/// every other voice has its line (and, once placed, its episode) in a table that does not change
+/// any more.
+#[derive(Drop)]
+struct Grid {
+    /// The tables of the other voices.
+    others: Box<Others>,
+    /// The table of the voice being placed.
+    cells: Array<u32>,
+    /// The cell after the last one in `cells`.
+    next: u32,
 }
 
-/// Reserved grid key per voice (no section reaches this cell): the cell after the last cell of the
-/// voice's placed notes so far (0: nothing placed yet). A voice that has not started, or whose
-/// notes end before a new one starts, is skipped on this alone; its cells are not read.
-const SPAN_END: u32 = 0xFFFFF;
+/// The finished and the waiting voices of a `Grid`. Boxed so that the grid, which goes through
+/// every note placed, is small.
+#[derive(Drop)]
+struct Others {
+    /// The section's voices (the countersubject among them).
+    voices: u32,
+    /// The cell the section starts at.
+    origin: u32,
+    /// A voice's table has, for each cell from the section's start to the last cell of its notes so
+    /// far, the index into the section's notes of the note over it (`NO_NOTE`: none); its episode
+    /// goes on from its line. The voices that still wait for their episode come first, then those
+    /// that have had it, each group in voice order.
+    tables: Array<Array<u32>>,
+    /// The number of voices that have had their episode: the last `done` tables, the lowest voices.
+    done: u32,
+}
 
-/// Appends a note to the section and records it on the grid.
-// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
-#[inline(never)]
-fn put(ref out: Array<NoteEvent>, ref grid: Felt252Dict<u32>, e: NoteEvent) {
-    assert(e.time % CELL == 0 && e.duration % CELL == 0 && e.duration > 0, 'v11: off grid');
-    out.append(e);
-    let idx = out.len();
-    let first_cell = e.time / CELL;
-    let end_cell = (e.time + e.duration) / CELL;
-    let (entry, span_end) = grid.entry(cell_key(e.voice_id, SPAN_END));
-    grid = entry.finalize(if end_cell > span_end {
-        end_cell
-    } else {
-        span_end
-    });
-    // The note's cells, first_cell ..< end_cell, are one run of keys; there is at least one cell
-    // (the assert), so the loop may check at its end. Four to a pass: a pass costs more than an
-    // insert.
-    let mut key = cell_key(e.voice_id, first_cell);
-    let stop = cell_key(e.voice_id, end_cell);
-    loop {
-        grid.insert(key, idx);
-        key += 1;
-        if key == stop {
-            break;
-        }
-        grid.insert(key, idx);
-        key += 1;
-        if key == stop {
-            break;
-        }
-        grid.insert(key, idx);
-        key += 1;
-        if key == stop {
-            break;
-        }
-        grid.insert(key, idx);
-        key += 1;
-        if key == stop {
-            break;
-        }
+/// The grid of a section of `voices` voices that starts at `origin` (a cell).
+fn new_grid(voices: u32, origin: u32) -> Grid {
+    Grid {
+        others: BoxTrait::new(Others { voices, origin, tables: array![], done: 0 }),
+        cells: array![],
+        next: origin,
     }
 }
 
-/// The notes of the other voices that sound with a new note of `self_voice` (its own earlier notes
-/// end before it starts), voice by voice and in time order within a voice, read off the grid: each
-/// an `overlap` of its pitch, whether it meets the new note on a strong beat, and the interval
-/// class of the previous note's pitch against that voice's note before (12 when there is none).
+/// Finishes the line being placed: its voice waits for its episode.
+fn end_line(ref grid: Grid) {
+    let Grid { others, cells, .. } = grid;
+    let Others { voices, origin, mut tables, done } = others.unbox();
+    tables.append(cells);
+    grid =
+        Grid {
+            others: BoxTrait::new(Others { voices, origin, tables, done }),
+            cells: array![],
+            next: origin,
+        };
+}
+
+/// Starts the episode of the voice that waits longest: its table goes on from its line.
+fn start_episode(ref grid: Grid) {
+    let Grid { others, .. } = grid;
+    let Others { voices, origin, mut tables, done } = others.unbox();
+    let cells = tables.pop_front().unwrap();
+    let next = origin + cells.len();
+    grid = Grid { others: BoxTrait::new(Others { voices, origin, tables, done }), cells, next };
+}
+
+/// Finishes the episode being placed.
+fn end_episode(ref grid: Grid) {
+    let Grid { others, cells, .. } = grid;
+    let Others { voices, origin, mut tables, done } = others.unbox();
+    tables.append(cells);
+    grid =
+        Grid {
+            others: BoxTrait::new(Others { voices, origin, tables, done: done + 1 }),
+            cells: array![],
+            next: origin,
+        };
+}
+
+/// Appends a note to the section and records it in the table of the voice being placed.
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
+fn put(ref out: Array<NoteEvent>, ref grid: Grid, e: NoteEvent) {
+    assert(e.time % CELL == 0 && e.duration % CELL == 0 && e.duration > 0, 'v11: off grid');
+    let idx = out.len();
+    out.append(e);
+    let first_cell = e.time / CELL;
+    let end_cell = (e.time + e.duration) / CELL;
+    let Grid { others, mut cells, next } = grid;
+    if first_cell != next {
+        // The cells before the voice's first note, or a gap after its last (the lines and episodes
+        // of a section have none): no note over them. A note that starts before the voice's last
+        // ended (the section never places one) panics here.
+        let mut gap: felt252 = (first_cell - next).into();
+        while gap != 0 {
+            cells.append(NO_NOTE);
+            gap -= 1;
+        }
+    }
+    // The note's cells, first_cell ..< end_cell: there is at least one (the assert), so the loop
+    // may check at its end. Four to a pass: a pass costs more than an append.
+    let mut left: felt252 = (end_cell - first_cell).into();
+    loop {
+        cells.append(idx);
+        left -= 1;
+        if left == 0 {
+            break;
+        }
+        cells.append(idx);
+        left -= 1;
+        if left == 0 {
+            break;
+        }
+        cells.append(idx);
+        left -= 1;
+        if left == 0 {
+            break;
+        }
+        cells.append(idx);
+        left -= 1;
+        if left == 0 {
+            break;
+        }
+    }
+    grid = Grid { others, cells, next: end_cell };
+}
+
+/// The notes of the other voices that sound with a new note (its voice's own earlier notes end
+/// before it starts), voice by voice and in time order within a voice, read off the tables: each an
+/// `overlap` of its pitch, whether it meets the new note on a strong beat, and the interval class
+/// of the previous note's pitch against that voice's note before (12 when there is none).
 /// `has_prev`, `prev_pitch` and `prev_cell` describe the previous note.
 fn overlaps(
     placed: Span<NoteEvent>,
-    ref grid: Felt252Dict<u32>,
-    voices: u32,
-    self_voice: u32,
+    grid: @Grid,
     time: u32,
     duration: u32,
     has_prev: bool,
@@ -482,67 +554,81 @@ fn overlaps(
 ) -> Array<Overlap> {
     let mut ov: Array<Overlap> = array![];
     let end = time + duration;
-    // `cell_key` has room for 4096 voices; past that its checked u32 predecessor panicked, so do we
-    assert(voices <= 0x1000, 'u32_mul Overflow');
-    let mut u: u32 = if self_voice == 0 {
-        1
-    } else {
-        0
-    };
+    // The grid used to key a cell by `voice * 2^20 + cell` in checked u32 arithmetic, which
+    // panicked past 4096 voices; so do we
+    let others = grid.others.as_snapshot().unbox();
+    assert(others.voices <= 0x1000, 'u32_mul Overflow');
+    let tables = others.tables.span();
+    let n = tables.len();
     // a zero-length note covers no cell and overlaps nothing
-    if duration == 0 || u >= voices {
+    if duration == 0 || n == 0 {
         return ov;
     }
-    // The new note covers the cells c0 ..= c1. Both loops below check at their end, which saves a
-    // function call per pass over a `while`: a pass is certain for the voice (u < voices) and for
-    // the cells (c0 <= c_last).
-    let c0 = time / CELL;
-    let c1 = (end - 1) / CELL;
+    // The new note covers the cells c0 ..= c1 (counted from the section's start); a note that ends
+    // after `last_tick` covers cells past them.
+    let origin = others.origin;
+    let c1_abs = (end - 1) / CELL;
+    let c0 = time / CELL - origin;
+    let c1 = c1_abs - origin;
+    let last_tick = c1_abs * CELL;
+    // no previous note: a cell no table has
+    let prev_cell = if has_prev {
+        prev_cell - origin
+    } else {
+        NO_NOTE
+    };
+    // The tables in voice order: the last `done` ones, then the others.
+    let mut k = n - others.done;
+    if k == n {
+        k = 0;
+    }
+    let mut left: felt252 = n.into();
+    // Each pass reads the cell c of table k: the note over it, or else on to the next cell. After
+    // a note, on to the cell past it unless it covers the whole new note; at the end of a table,
+    // on to the next table. The cells past a table's last note are not in it. The loop checks at
+    // its end, which saves a function call per pass over a `while`: a pass is certain for the
+    // table (n > 0) and the cell (c0 <= c1).
+    let mut c = c0;
     loop {
-        // the cells before a voice's first note are empty, and those after its last are not read
-        let span_end = grid.get(cell_key(u, SPAN_END));
-        if span_end > c0 {
-            let c_last = if span_end - 1 < c1 {
-                span_end - 1
-            } else {
-                c1
-            };
-            let mut c = c0;
-            loop {
-                let idx = grid.get(cell_key(u, c));
-                if idx == 0 {
-                    c += 1;
+        let cells = tables.at(k);
+        let mut leave = true;
+        if let Option::Some(i) = cells.get(c) {
+            if let Option::Some(q) = placed.get(*i.unbox()) {
+                let q = *q.unbox();
+                let strong = (if time > q.time {
+                    time
                 } else {
-                    let q = *placed.at(idx - 1);
-                    c = (q.time + q.duration) / CELL; // jump past this note
-                    let strong = (if time > q.time {
-                        time
-                    } else {
-                        q.time
-                    }) % TU == 0;
-                    let before_ic: u32 = if has_prev {
-                        let b = grid.get(cell_key(u, prev_cell));
-                        if b != 0 {
-                            ic32(prev_pitch, (placed.at(b - 1).pitch).into())
-                        } else {
-                            12
-                        }
-                    } else {
-                        12
-                    };
-                    ov.append(overlap(q.pitch, strong, before_ic));
+                    q.time
+                }) % TU == 0;
+                // this voice's note over the previous note's cell
+                let before_ic: u32 = match cells.get(prev_cell) {
+                    Option::Some(b) => match placed.get(*b.unbox()) {
+                        Option::Some(b) => ic32(prev_pitch, (*b.unbox()).pitch.into()),
+                        Option::None => 12,
+                    },
+                    Option::None => 12,
+                };
+                ov.append(overlap(q.pitch, strong, before_ic));
+                let q_end = q.time + q.duration;
+                if q_end <= last_tick {
+                    c = q_end / CELL - origin; // jump past this note
+                    leave = false;
                 }
-                if c > c_last {
-                    break;
-                }
+            } else {
+                c += 1;
+                leave = c > c1;
             }
         }
-        u += 1;
-        if u == self_voice {
-            u += 1;
-        }
-        if u >= voices {
-            break;
+        if leave {
+            left -= 1;
+            if left == 0 {
+                break;
+            }
+            k += 1;
+            if k == n {
+                k = 0;
+            }
+            c = c0;
         }
     }
     ov
@@ -699,18 +785,14 @@ fn choose_pitch(
     time: u32,
     duration: u32,
     placed: Span<NoteEvent>,
-    ref grid: Felt252Dict<u32>,
-    voices: u32,
-    self_voice: u32,
+    grid: @Grid,
     prev: Option<NoteEvent>,
 ) -> u8 {
     let (has_prev, prev_pitch, prev_cell): (bool, u32, u32) = match prev {
         Option::Some(ps) => (true, ps.pitch.into(), ps.time / CELL),
         Option::None => (false, 0, 0),
     };
-    let ov = overlaps(
-        placed, ref grid, voices, self_voice, time, duration, has_prev, prev_pitch, prev_cell,
-    );
+    let ov = overlaps(placed, grid, time, duration, has_prev, prev_pitch, prev_cell);
     best_candidate(cands, ov.span(), has_prev, prev_pitch)
 }
 
@@ -809,15 +891,14 @@ fn near(r: Realizer, m: VoiceMap, deg: i32) -> Array<(i32, u8)> {
 
 fn place(
     ref out: Array<NoteEvent>,
-    ref grid: Felt252Dict<u32>,
-    voices: u32,
+    ref grid: Grid,
     ref prev: Option<NoteEvent>,
     time: u32,
     duration: u32,
     cands: Span<(i32, u8)>,
     voice: u32,
 ) {
-    let pitch = choose_pitch(cands, time, duration, out.span(), ref grid, voices, voice, prev);
+    let pitch = choose_pitch(cands, time, duration, out.span(), @grid, prev);
     let e = NoteEvent { time, duration, pitch, velocity: 90, voice_id: voice };
     put(ref out, ref grid, e);
     prev = Option::Some(e);
@@ -885,8 +966,7 @@ fn dominant(from: u8, pcs: Span<u8>) -> Array<(i32, u8)> {
 /// sequence, then sequence bars of the head motif, then a half cadence on the next key's dominant.
 fn episode(
     ref out: Array<NoteEvent>,
-    ref grid: Felt252Dict<u32>,
-    voices: u32,
+    ref grid: Grid,
     voice: u32,
     m: VoiceMap,
     last: NoteEvent,
@@ -934,16 +1014,7 @@ fn episode(
         } else {
             0
         };
-        place(
-            ref out,
-            ref grid,
-            voices,
-            ref prev,
-            t,
-            d,
-            near(r, m, target1 - dir * back).span(),
-            voice,
-        );
+        place(ref out, ref grid, ref prev, t, d, near(r, m, target1 - dir * back).span(), voice);
         t += d;
     }
     // 2. sequence: the head motif, a step further each bar
@@ -954,7 +1025,6 @@ fn episode(
             place(
                 ref out,
                 ref grid,
-                voices,
                 ref prev,
                 t + h.time,
                 h.duration,
@@ -972,13 +1042,10 @@ fn episode(
     let left = end - t;
     let sb: i32 = (seq_bars + 1).try_into().unwrap();
     if left >= BAR {
-        place(
-            ref out, ref grid, voices, ref prev, t, TU, near(r, m, head0 + dir * sb).span(), voice,
-        );
+        place(ref out, ref grid, ref prev, t, TU, near(r, m, head0 + dir * sb).span(), voice);
         place(
             ref out,
             ref grid,
-            voices,
             ref prev,
             t + TU,
             TU,
@@ -989,7 +1056,6 @@ fn episode(
         place(
             ref out,
             ref grid,
-            voices,
             ref prev,
             t + 2 * TU,
             left - 2 * TU,
@@ -998,7 +1064,7 @@ fn episode(
         );
     } else {
         let from = prev.unwrap().pitch;
-        place(ref out, ref grid, voices, ref prev, t, left, dominant(from, pcs).span(), voice);
+        place(ref out, ref grid, ref prev, t, left, dominant(from, pcs).span(), voice);
     }
 }
 
@@ -1094,13 +1160,13 @@ fn build_section(
     let r = realizer(*plan.at(s % plan.len()), home, scale);
     let next_shift = *plan.at(next % plan.len());
     let mut out: Array<NoteEvent> = array![];
-    let mut grid: Felt252Dict<u32> = Default::default();
     // canon voices, then the countersubject's voice id
     let voices = p.voice_count + if p.use_countersubject {
         1
     } else {
         0
     };
+    let mut grid = new_grid(voices, offset / CELL);
     // per voice: its map, offset and last note (the countersubject last, with offset 99)
     let mut maps: Array<VoiceMap> = array![];
     let mut offs_used: Array<i32> = array![];
@@ -1122,12 +1188,13 @@ fn build_section(
                 realize(r, base)
             } else {
                 let cands = around(r, base, 1);
-                choose_pitch(cands.span(), time, sl.duration, out.span(), ref grid, voices, v, prev)
+                choose_pitch(cands.span(), time, sl.duration, out.span(), @grid, prev)
             };
             let e = NoteEvent { time, duration: sl.duration, pitch, velocity: 90, voice_id: v };
             put(ref out, ref grid, e);
             prev = Option::Some(e);
         }
+        end_line(ref grid);
         maps.append(m);
         offs_used.append(off);
         lasts.append(prev.unwrap());
@@ -1153,9 +1220,7 @@ fn build_section(
         for d in degrees.span() {
             let time = offset + i * TU;
             let cands = near(r, ident, *d);
-            let pitch = choose_pitch(
-                cands.span(), time, TU, out.span(), ref grid, voices, p.voice_count, prev,
-            );
+            let pitch = choose_pitch(cands.span(), time, TU, out.span(), @grid, prev);
             let e = NoteEvent { time, duration: TU, pitch, velocity: 90, voice_id: p.voice_count };
             put(ref out, ref grid, e);
             prev = Option::Some(e);
@@ -1165,6 +1230,7 @@ fn build_section(
             i += 1;
         }
         cs_degrees = degrees;
+        end_line(ref grid);
         maps.append(ident);
         offs_used.append(99);
         lasts.append(prev.unwrap());
@@ -1211,20 +1277,11 @@ fn build_section(
         } else {
             dom_chord.span()
         };
+        start_episode(ref grid);
         episode(
-            ref out,
-            ref grid,
-            voices,
-            x,
-            *maps.at(x),
-            *lasts.at(x),
-            h,
-            dir,
-            section_end,
-            offset,
-            r,
-            pcs,
+            ref out, ref grid, x, *maps.at(x), *lasts.at(x), h, dir, section_end, offset, r, pcs,
         );
+        end_episode(ref grid);
         x += 1;
     }
     out
@@ -1899,13 +1956,17 @@ mod scoring_tests {
     }
 }
 
-/// The grid against the one it replaced: the same notes put into both must give the same
+/// The grid against the one it replaced: the same notes put into both, in the order a section
+/// places them (the lines of the voices one after another, then their episodes), must give the same
 /// overlapping notes for every query.
 #[cfg(test)]
 mod grid_tests {
     use core::dict::{Felt252Dict, Felt252DictTrait};
     use crate::composition::melodic_canon::NoteEvent;
-    use super::{CELL, Overlap, TU, cell_key, ic32, overlap, overlaps, put};
+    use super::{
+        CELL, Grid, Overlap, TU, end_episode, end_line, ic32, new_grid, overlap, overlaps, put,
+        start_episode,
+    };
 
     // The earlier grid: u32 keys, and the first and last tick of each voice's notes, plus 1.
     const OLD_SPAN_START: u32 = 0xFFFFE;
@@ -2006,13 +2067,16 @@ mod grid_tests {
         ((state / 65536) % n.into()).try_into().unwrap()
     }
 
-    /// Notes for a voice that never overlap, gaps of 0 to 3 cells, 1 to 8 cells long.
-    fn voice_notes(ref state: u64, voice: u32, count: u32) -> Array<NoteEvent> {
+    /// `count` notes of a voice that never overlap, from cell `first` on: gaps of 0 to `gaps` - 1
+    /// cells, 1 to 8 cells long.
+    fn voice_notes(
+        ref state: u64, voice: u32, first: u32, count: u32, gaps: u32,
+    ) -> Array<NoteEvent> {
         let mut notes: Array<NoteEvent> = array![];
-        let mut cell: u32 = rand(ref state, 6);
+        let mut cell: u32 = first;
         let mut i: u32 = 0;
         while i < count {
-            cell += rand(ref state, 4);
+            cell += rand(ref state, gaps);
             let cells = 1 + rand(ref state, 8);
             let pitch: u8 = (40 + rand(ref state, 60)).try_into().unwrap();
             notes
@@ -2029,20 +2093,6 @@ mod grid_tests {
             i += 1;
         }
         notes
-    }
-
-    /// The i-th note a voice places: in time order, backwards, or from both ends in, so the
-    /// first and last tick of its notes are not always set by the first and last put.
-    fn placement(order: u32, i: u32, n: u32) -> u32 {
-        if order == 0 {
-            i
-        } else if order == 1 {
-            n - 1 - i
-        } else if i % 2 == 0 {
-            i / 2
-        } else {
-            n - 1 - i / 2
-        }
     }
 
     /// The overlaps found against the earlier grid's (pitch, strong beat, interval class).
@@ -2064,20 +2114,20 @@ mod grid_tests {
         }
     }
 
-    /// One query against both grids, with random voices, previous note and (unaligned) span.
+    /// One query against both grids: the earlier one skips `self_voice`, the new one has not
+    /// finished the voice that is being placed.
     fn check(
         placed: Span<NoteEvent>,
         ref old_grid: Felt252Dict<u32>,
-        ref new_grid: Felt252Dict<u32>,
+        grid: @Grid,
         voices: u32,
         self_voice: u32,
         time: u32,
         duration: u32,
-        ref state: u64,
+        has_prev: bool,
+        prev_pitch: u32,
+        prev_cell: u32,
     ) {
-        let has_prev = rand(ref state, 3) != 0;
-        let prev_pitch = 40 + rand(ref state, 60);
-        let prev_cell = rand(ref state, 80);
         let old = old_overlaps(
             placed,
             ref old_grid,
@@ -2089,111 +2139,204 @@ mod grid_tests {
             prev_pitch,
             prev_cell,
         );
-        let new = overlaps(
+        let new = overlaps(placed, grid, time, duration, has_prev, prev_pitch, prev_cell);
+        assert_same(old.span(), new.span());
+    }
+
+    /// The queries when `e` is about to be placed after `prev`: its own, with its previous note as
+    /// `choose_pitch` has it, and random ones with a random previous note and an (unaligned) span.
+    fn queries(
+        placed: Span<NoteEvent>,
+        ref old_grid: Felt252Dict<u32>,
+        grid: @Grid,
+        voices: u32,
+        origin: u32,
+        e: NoteEvent,
+        prev: Option<NoteEvent>,
+        ref state: u64,
+    ) {
+        let (has_prev, prev_pitch, prev_cell): (bool, u32, u32) = match prev {
+            Option::Some(p) => (true, p.pitch.into(), p.time / CELL),
+            Option::None => (false, 0, 0),
+        };
+        check(
             placed,
-            ref new_grid,
+            ref old_grid,
+            grid,
             voices,
-            self_voice,
-            time,
-            duration,
+            e.voice_id,
+            e.time,
+            e.duration,
             has_prev,
             prev_pitch,
             prev_cell,
         );
-        assert_same(old.span(), new.span());
+        let mut k: u32 = 0;
+        while k < 4 {
+            let (qt, qd) = (origin * CELL + rand(ref state, 90 * CELL), rand(ref state, 14 * CELL));
+            let has_prev = rand(ref state, 3) != 0;
+            let prev_pitch = 40 + rand(ref state, 60);
+            let prev_cell = origin + rand(ref state, 80);
+            check(
+                placed,
+                ref old_grid,
+                grid,
+                voices,
+                e.voice_id,
+                if k == 0 {
+                    e.time
+                } else {
+                    qt
+                },
+                if k == 0 {
+                    e.duration
+                } else {
+                    qd
+                },
+                has_prev,
+                prev_pitch,
+                prev_cell,
+            );
+            k += 1;
+        }
     }
 
-    fn replay(seed: u64, voices: u32) {
+    /// Places the notes of one voice in both grids, in time order, after `prev`.
+    fn place_run(
+        notes: Span<NoteEvent>,
+        ref prev: Option<NoteEvent>,
+        ref old_out: Array<NoteEvent>,
+        ref new_out: Array<NoteEvent>,
+        ref old_grid: Felt252Dict<u32>,
+        ref grid: Grid,
+        voices: u32,
+        origin: u32,
+        ref state: u64,
+    ) {
+        for e in notes {
+            let e = *e;
+            queries(new_out.span(), ref old_grid, @grid, voices, origin, e, prev, ref state);
+            old_put(ref old_out, ref old_grid, e);
+            put(ref new_out, ref grid, e);
+            prev = Option::Some(e);
+        }
+    }
+
+    /// A section of `voices` voices from cell `origin`: every voice's line, then every voice's
+    /// episode (which may place nothing), with `gaps` - 1 the longest rest between two notes of a
+    /// voice (1: none, as the section's lines).
+    fn replay(seed: u64, voices: u32, origin: u32, gaps: u32) {
         let mut state = seed;
         let mut lines: Array<Array<NoteEvent>> = array![];
+        let mut episodes: Array<Array<NoteEvent>> = array![];
         let mut v: u32 = 0;
         while v < voices {
-            lines.append(voice_notes(ref state, v, 6 + rand(ref state, 8)));
+            let first = origin + rand(ref state, 6);
+            let count = 6 + rand(ref state, 8);
+            let line = voice_notes(ref state, v, first, count, gaps);
+            let last = *line.at(line.len() - 1);
+            let first = (last.time + last.duration) / CELL;
+            let count = rand(ref state, 7);
+            episodes.append(voice_notes(ref state, v, first, count, gaps));
+            lines.append(line);
             v += 1;
         }
         let mut old_out: Array<NoteEvent> = array![];
         let mut new_out: Array<NoteEvent> = array![];
         let mut old_grid: Felt252Dict<u32> = Default::default();
-        let mut new_grid: Felt252Dict<u32> = Default::default();
-        let mut round: u32 = 0;
-        while round < 14 {
-            let mut v: u32 = 0;
-            while v < voices {
-                let line = lines.at(v).span();
-                if round < line.len() {
-                    let e = *line
-                        .at(placement((seed.try_into().unwrap() + v) % 3, round, line.len()));
-                    // the note itself as the query, then others, on the grid so far
-                    let placed = new_out.span();
-                    check(
-                        placed,
-                        ref old_grid,
-                        ref new_grid,
-                        voices,
-                        v,
-                        e.time,
-                        e.duration,
-                        ref state,
-                    );
-                    let mut k: u32 = 0;
-                    while k < 3 {
-                        let (qt, qd) = (rand(ref state, 90 * CELL), rand(ref state, 14 * CELL));
-                        let qv = rand(ref state, voices + 2);
-                        let qn = rand(ref state, voices + 1);
-                        check(placed, ref old_grid, ref new_grid, qn, qv, qt, qd, ref state);
-                        k += 1;
-                    }
-                    old_put(ref old_out, ref old_grid, e);
-                    put(ref new_out, ref new_grid, e);
-                }
-                v += 1;
-            }
-            round += 1;
+        let mut grid = new_grid(voices, origin);
+        let mut v: u32 = 0;
+        while v < voices {
+            let mut prev: Option<NoteEvent> = Option::None;
+            place_run(
+                lines.at(v).span(),
+                ref prev,
+                ref old_out,
+                ref new_out,
+                ref old_grid,
+                ref grid,
+                voices,
+                origin,
+                ref state,
+            );
+            end_line(ref grid);
+            v += 1;
+        }
+        let mut x: u32 = 0;
+        while x < voices {
+            start_episode(ref grid);
+            let line = lines.at(x).span();
+            let mut prev = Option::Some(*line.at(line.len() - 1));
+            place_run(
+                episodes.at(x).span(),
+                ref prev,
+                ref old_out,
+                ref new_out,
+                ref old_grid,
+                ref grid,
+                voices,
+                origin,
+                ref state,
+            );
+            end_episode(ref grid);
+            x += 1;
         }
         // everything placed: a sweep of one-cell and longer queries over the whole range
         let placed = new_out.span();
-        let mut t: u32 = 0;
-        while t < 100 * CELL {
-            let mut qv: u32 = 0;
-            while qv < voices {
-                check(placed, ref old_grid, ref new_grid, voices, qv, t, CELL, ref state);
-                check(placed, ref old_grid, ref new_grid, voices, qv, t, 5 * CELL + 7, ref state);
-                qv += 1;
-            }
+        let mut t: u32 = origin * CELL;
+        while t < (origin + 100) * CELL {
+            check(placed, ref old_grid, @grid, voices, voices, t, CELL, false, 0, 0);
+            check(placed, ref old_grid, @grid, voices, voices, t, 5 * CELL + 7, true, 60, origin);
             t += 60;
         }
     }
 
     #[test]
-    fn cell_key_is_the_u32_sum() {
-        let voices = array![0, 1, 4, 255, 4095];
-        let cells = array![0, 1, 119, 0xFFFFD, 0xFFFFE, 0xFFFFF];
-        for voice in voices.span() {
-            for cell in cells.span() {
-                assert(cell_key(*voice, *cell) == old_key(*voice, *cell), 'cell_key');
-            }
-        }
+    fn overlaps_match_the_earlier_grid_with_one_voice() {
+        replay(3, 1, 0, 4);
     }
 
     #[test]
     fn overlaps_match_the_earlier_grid_with_two_voices() {
-        replay(11, 2);
+        replay(11, 2, 0, 4);
     }
 
     #[test]
     fn overlaps_match_the_earlier_grid_with_three_voices() {
-        replay(23, 3);
+        replay(23, 3, 0, 4);
+    }
+
+    #[test]
+    fn overlaps_match_the_earlier_grid_with_four_voices() {
+        replay(41, 4, 0, 4);
     }
 
     #[test]
     fn overlaps_match_the_earlier_grid_with_five_voices() {
-        replay(5, 5);
-        replay(97, 5);
+        replay(5, 5, 0, 4);
+        replay(97, 5, 0, 4);
+    }
+
+    #[test]
+    fn overlaps_match_the_earlier_grid_with_six_voices() {
+        replay(61, 6, 0, 4);
     }
 
     #[test]
     fn overlaps_match_the_earlier_grid_with_seven_voices() {
-        replay(1234, 7);
+        replay(1234, 7, 0, 4);
+    }
+
+    #[test]
+    fn overlaps_match_the_earlier_grid_with_voices_that_do_not_rest() {
+        replay(7, 3, 0, 1);
+        replay(8, 5, 0, 1);
+    }
+
+    #[test]
+    fn overlaps_match_the_earlier_grid_in_a_later_section() {
+        replay(19, 4, 128, 4);
+        replay(29, 5, 384, 1);
     }
 
     #[test]
@@ -2201,41 +2344,41 @@ mod grid_tests {
         let mut old_out: Array<NoteEvent> = array![];
         let mut new_out: Array<NoteEvent> = array![];
         let mut old_grid: Felt252Dict<u32> = Default::default();
-        let mut new_grid: Felt252Dict<u32> = Default::default();
-        let mut state = 9;
-        // nothing placed yet: no voice has a span to meet
-        check(new_out.span(), ref old_grid, ref new_grid, 3, 1, 0, CELL, ref state);
-        check(new_out.span(), ref old_grid, ref new_grid, 3, 1, 0, 0, ref state);
+        let mut grid = new_grid(3, 0);
+        // nothing placed yet: no voice has a table to meet
+        check(new_out.span(), ref old_grid, @grid, 3, 1, 0, CELL, false, 0, 0);
+        check(new_out.span(), ref old_grid, @grid, 3, 1, 0, 0, false, 0, 0);
         let e = NoteEvent { time: 0, duration: 4 * CELL, pitch: 62, velocity: 90, voice_id: 0 };
         old_put(ref old_out, ref old_grid, e);
-        put(ref new_out, ref new_grid, e);
-        // a zero-length note overlaps nothing, even at the first tick; a short one meets the note
-        check(new_out.span(), ref old_grid, ref new_grid, 3, 1, 0, 0, ref state);
-        check(new_out.span(), ref old_grid, ref new_grid, 3, 1, 4 * CELL, 0, ref state);
-        check(new_out.span(), ref old_grid, ref new_grid, 3, 1, 0, 1, ref state);
-        check(new_out.span(), ref old_grid, ref new_grid, 3, 1, 4 * CELL - 1, 1, ref state);
-        check(new_out.span(), ref old_grid, ref new_grid, 3, 1, 4 * CELL, CELL, ref state);
-        let found = overlaps(new_out.span(), ref new_grid, 3, 1, 0, 1, false, 0, 0);
-        assert(found.len() == 1, 'overlaps: first tick');
-        let found = overlaps(new_out.span(), ref new_grid, 3, 0, 0, 1, false, 0, 0);
+        put(ref new_out, ref grid, e);
+        // the voice being placed has no table yet: it does not meet its own note
+        let found = overlaps(new_out.span(), @grid, 0, 1, false, 0, 0);
         assert(found.len() == 0, 'overlaps: own note');
+        end_line(ref grid);
+        // a zero-length note overlaps nothing, even at the first tick; a short one meets the note
+        check(new_out.span(), ref old_grid, @grid, 3, 1, 0, 0, false, 0, 0);
+        check(new_out.span(), ref old_grid, @grid, 3, 1, 4 * CELL, 0, false, 0, 0);
+        check(new_out.span(), ref old_grid, @grid, 3, 1, 0, 1, false, 0, 0);
+        check(new_out.span(), ref old_grid, @grid, 3, 1, 4 * CELL - 1, 1, false, 0, 0);
+        check(new_out.span(), ref old_grid, @grid, 3, 1, 4 * CELL, CELL, false, 0, 0);
+        let found = overlaps(new_out.span(), @grid, 0, 1, false, 0, 0);
+        assert(found.len() == 1, 'overlaps: first tick');
     }
 
     #[test]
     fn overlaps_of_the_most_voices_the_key_has_room_for() {
         let placed: Array<NoteEvent> = array![];
         let mut old_grid: Felt252Dict<u32> = Default::default();
-        let mut new_grid: Felt252Dict<u32> = Default::default();
-        let mut state = 3;
-        check(placed.span(), ref old_grid, ref new_grid, 0x1000, 7, 480, 240, ref state);
+        let grid = new_grid(0x1000, 0);
+        check(placed.span(), ref old_grid, @grid, 0x1000, 7, 480, 240, false, 0, 0);
     }
 
     #[test]
     #[should_panic(expected: ('u32_mul Overflow',))]
     fn overlaps_panic_past_the_most_voices_as_the_u32_key_did() {
         let placed: Array<NoteEvent> = array![];
-        let mut grid: Felt252Dict<u32> = Default::default();
-        overlaps(placed.span(), ref grid, 0x1001, 7, 480, 240, false, 0, 0);
+        let grid = new_grid(0x1001, 0);
+        overlaps(placed.span(), @grid, 480, 240, false, 0, 0);
     }
 
     #[test]
@@ -2248,7 +2391,7 @@ mod grid_tests {
     #[should_panic(expected: ('v11: off grid',))]
     fn put_rejects_a_time_off_the_grid() {
         let mut out: Array<NoteEvent> = array![];
-        let mut grid: Felt252Dict<u32> = Default::default();
+        let mut grid = new_grid(1, 0);
         put(
             ref out,
             ref grid,
@@ -2260,7 +2403,7 @@ mod grid_tests {
     #[should_panic(expected: ('v11: off grid',))]
     fn put_rejects_a_duration_off_the_grid() {
         let mut out: Array<NoteEvent> = array![];
-        let mut grid: Felt252Dict<u32> = Default::default();
+        let mut grid = new_grid(1, 0);
         put(
             ref out,
             ref grid,
@@ -2272,7 +2415,7 @@ mod grid_tests {
     #[should_panic(expected: ('v11: off grid',))]
     fn put_rejects_a_zero_duration() {
         let mut out: Array<NoteEvent> = array![];
-        let mut grid: Felt252Dict<u32> = Default::default();
+        let mut grid = new_grid(1, 0);
         put(
             ref out,
             ref grid,

@@ -112,12 +112,11 @@ pub mod BeastMidiProvider {
         BEAST_V3_ENGINE_VERSION, BeastV3LiveState, GENESIS_SPECIES_MAX, PackableBeastV3,
         decode_v3_token_id,
     };
-    use beast_composer::composition::genesis::{genesis_smf_bytes, genesis_swap, species_type};
+    use beast_composer::composition::genesis::{genesis_byte_array, genesis_swap, species_type};
     use beast_composer::composition::yeti::YETI;
     use core::num::traits::Zero;
     use core::poseidon::poseidon_hash_span;
     use midi::interfaces::{IMidiProvider, ISoundProvider, ISynthSettingsProvider};
-    use midi::pack::bytes_to_byte_array;
     use midi::types::{TinySynthSettings, TinySynthSound};
     use openzeppelin_access::ownable::OwnableComponent;
     use openzeppelin_interfaces::upgrades::IUpgradeable;
@@ -236,7 +235,7 @@ pub mod BeastMidiProvider {
         assert(token_address == collection, 'unsupported collection');
         let beast = decode_v3_token_id(token_id);
         IBeastsLiveStateDispatcher { contract_address: collection }.get_beast_rank(token_id);
-        bytes_to_byte_array(genesis_smf_bytes(beast).span())
+        genesis_byte_array(beast)
     }
 
     /// The Beast sound settings.

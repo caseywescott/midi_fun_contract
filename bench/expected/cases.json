@@ -1,0 +1,5798 @@
+{
+  "generator": "bench/scripts/gen_expected.mjs",
+  "frozen_from": {
+    "rev": "2ce04a901303c4ddcb314b58118dda13630cfb35",
+    "production_tree": {
+      "sha256": "f56e6f1646ccfb279e54d1d7b479a783abbd0b97b8a6a941dabdb94195a3be0d",
+      "files": 72
+    },
+    "created_utc": "2026-10-18T05:58:20+00:00",
+    "scarb": "scarb 2.20.1 (dd18779a1 2026-08-21)",
+    "snforge": "snforge 0.64.0"
+  },
+  "cases": [
+    {
+      "name": "a_get_midi_s001_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Warlock",
+        "Magic",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S001_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4726,
+          "hash": "0xaf64f301f22bf2c2604c9521ee3e4687e4ecedb19c1e87d44e068b8b728db6"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s001_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Warlock",
+        "Magic",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S001_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6441,
+          "hash": "0x2ecbca7fc34dec6bdf953453b027b043d9a405011a6fabb29ac5e831e811bee"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s002_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Typhon",
+        "Magic",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S002_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4789,
+          "hash": "0x563045f7dd4cbdf9b6779dbb713593edb17e237a951ebfb69ccaf556ef5b124"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s002_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Typhon",
+        "Magic",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S002_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6504,
+          "hash": "0x3b204c95842a22b648ca94cd44ff85641027017176b68812bd0ea585a4d39bc"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s003_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Jiangshi",
+        "Magic",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S003_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5158,
+          "hash": "0x19628257f97c16fc0f59af428995a988651c636cda63ddf8a9bbb2c0e33d0dc"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s003_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Jiangshi",
+        "Magic",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S003_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6873,
+          "hash": "0xf28bb82d31b7979e9f32569fed1a72c2d1621afdf04a6d4da17fa791d023f6"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s004_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Anansi",
+        "Magic",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S004_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5221,
+          "hash": "0x7bc4e7cfa49b0a63c93e37213274d7c7f6ae3fa1ab2b077465b8a9862a4bd75"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s004_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Anansi",
+        "Magic",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S004_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6936,
+          "hash": "0xa1c584896642f28e9cea675be19e3f91bac9aac0beac3ddf201a61335c9cf1"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s005_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Basilisk",
+        "Magic",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S005_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4816,
+          "hash": "0x395be9213a90f104c6698ed442cde8a91a66dfa1ed39569b25745f74ac6a298"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s005_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Basilisk",
+        "Magic",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S005_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6423,
+          "hash": "0x7ac9106a741928b601072efe6179a5b638eb749dce9f511939eb258f2983bf4"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s006_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Gorgon",
+        "Magic",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S006_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4951,
+          "hash": "0x202b74c21aad11dff509cb7787ddebd3c2dafea077b29e22f6b9ab559d056e9"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s006_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Gorgon",
+        "Magic",
+        "tier 2",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S006_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6558,
+          "hash": "0x514ae2188e97e5a5802cc8cbe107d16b137c035136689ba457761b213616271"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s007_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Kitsune",
+        "Magic",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S007_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4915,
+          "hash": "0x21256079221fc19dcae9b74ebe73950df55195601b36a20664bd3283482e8a9"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s007_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Kitsune",
+        "Magic",
+        "tier 2",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S007_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6630,
+          "hash": "0x1d492f53a02c5e98f25d760b38aa360cecf03c1cb6dc082ef9e26a3906784b2"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s008_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Lich",
+        "Magic",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S008_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4897,
+          "hash": "0x29ce0c2386d2da8a49ba30e7e273b9787b4a101b1ea196a5defec92165ffcb0"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s008_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Lich",
+        "Magic",
+        "tier 2",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S008_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6432,
+          "hash": "0x1071ac5d963e009e96e943330a2e8bb0beb56e507aedd92fc8b4a1bde097c4e"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s009_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Chimera",
+        "Magic",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S009_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4807,
+          "hash": "0x1d71b0740e1ff2842fdad149e41588e846146434c0ff70d17b1f47d0dcd4ea4"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s009_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Chimera",
+        "Magic",
+        "tier 2",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S009_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6342,
+          "hash": "0x4b0d59318adb9301e5ebaf9493a8d2dce7e42d046264fc74191288f69874fef"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s010_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Wendigo",
+        "Magic",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S010_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4699,
+          "hash": "0x35a558e7aec82242a0263a8ce6aa4b5e15209a60959a998eb239da7de38e0aa"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s010_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Wendigo",
+        "Magic",
+        "tier 2",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S010_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6198,
+          "hash": "0x6a60254a39279f959836fd4c631348fe1c1114bb4df6439dcc898387a2ac754"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s011_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Rakshasa",
+        "Magic",
+        "tier 3",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S011_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3078,
+          "hash": "0x2da1b63c47d9c8789c9930cd43ed2efad7504d16eeee1695a4390a804b0507a"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s011_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Rakshasa",
+        "Magic",
+        "tier 3",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S011_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4319,
+          "hash": "0x7d641948b568e0ac078a5322b0f6017da8c66565b020371a9586f40af8327ea"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s012_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Werewolf",
+        "Magic",
+        "tier 3",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S012_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3132,
+          "hash": "0x33cc656ea18770fcbe85a274dfa95fc573cc5c7f2f8bdceaf05d777ccaf1eb6"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s012_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Werewolf",
+        "Magic",
+        "tier 3",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S012_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4427,
+          "hash": "0x4517a0533bd925f3aa4823f875da34b42f5d48828ffc9ac1298d559c0ec48fe"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s013_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Banshee",
+        "Magic",
+        "tier 3",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S013_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3069,
+          "hash": "0x497cf0f272c87cf7ce063a33692c4dac6c7df534e5661846afdee6459b3eefa"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s013_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Banshee",
+        "Magic",
+        "tier 3",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S013_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4310,
+          "hash": "0x56bb9db03cce0305e4a64274945cd1a05768a98ee29d1e6090fc8d32d81a01d"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s014_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Draugr",
+        "Magic",
+        "tier 3",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S014_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3069,
+          "hash": "0x379c6746fb678151df03df65e3c1957a97d4041b37185a9ad3b9be147ee0e5b"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s014_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Draugr",
+        "Magic",
+        "tier 3",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S014_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4310,
+          "hash": "0xcda26b2fdf863ee018c8820a235955cbc1f5b54ca5068ca84b6f4c7e15872c"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s015_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Vampire",
+        "Magic",
+        "tier 3",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S015_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2943,
+          "hash": "0x6b68497d250ed9f8d9572b101ca2955cb9a0d3114fb81af96ac31f05fb643c3"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s015_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Vampire",
+        "Magic",
+        "tier 3",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S015_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4238,
+          "hash": "0x5813ce5312057e1fd1b7bb65bb9d3f6f45a7c02de14525b47fc033ef9570bfa"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s016_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Goblin",
+        "Magic",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S016_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1612,
+          "hash": "0x71618dc29682261dc2370d7bd844e8a443b55b27b19dc1611f267c50f0879ed"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s016_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Goblin",
+        "Magic",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S016_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2465,
+          "hash": "0x399fb31fc7e839ab6d64d3ce085eef5986e0b4c00cb04a1db37a44be9322642"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s017_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Ghoul",
+        "Magic",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S017_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1486,
+          "hash": "0x2f96aeb086f8a699c84e69a98916df2994326d80cabbaa436c2e5dd2cb9bc35"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s017_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Ghoul",
+        "Magic",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S017_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2249,
+          "hash": "0x42174d6c2bf07da6af1dc6cab57c22e1885dfc36fc1e69343ed0c356bc63753"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s018_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Wraith",
+        "Magic",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S018_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1486,
+          "hash": "0x35c6b3b08cbc91cb212bc8865dad6001e5f65a802509d9780c786e1657bed6b"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s018_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Wraith",
+        "Magic",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S018_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2249,
+          "hash": "0x7cd4d8766d5585e7b187828dd377d57d9329fc2f89e56bae9e8591b38a0404d"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s019_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Sprite",
+        "Magic",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S019_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1486,
+          "hash": "0x9d36b08f9a75bd20cea4eab967dcb90f5826515cba1a35c9211af964521a33"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s019_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Sprite",
+        "Magic",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S019_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2249,
+          "hash": "0x2242af71f072a0b93dca11d2a73c30edee65b6fb8ae9017bb84828a3575ac16"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s020_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Kappa",
+        "Magic",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S020_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1450,
+          "hash": "0x34f6b08bdea9e6b2e80a311e302dcf73329dc43414b0467568164c7fa6567b"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s020_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Kappa",
+        "Magic",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S020_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2195,
+          "hash": "0x5d906ef3076393c538bd448bc34212ccfd9cdd915627565bb72e0ad7b96824b"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s021_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Fairy",
+        "Magic",
+        "tier 5",
+        "normal",
+        "lightest Genesis file (1,406 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S021_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1406,
+          "hash": "0x719c5cd0df2d9d0b1c202aa67533753b737983b167aa59b956d75cdf85427d3"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s021_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Fairy",
+        "Magic",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S021_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2129,
+          "hash": "0x7d047966d08b41457ac5aa92e78041dff65709fbcca8508367a94dd43074104"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s022_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Leprechaun",
+        "Magic",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S022_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1604,
+          "hash": "0x45bb32426b0c6482a07a099a752b20b6b777d134f41f3110071b0eba8af4775"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s022_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Leprechaun",
+        "Magic",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S022_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2453,
+          "hash": "0x3e705584dbb8919792f9a49f5d1a0db9889e29f483bcd0d497e2d939ae9d15"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s023_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Kelpie",
+        "Magic",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S023_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1604,
+          "hash": "0x4b2e71316254238a8c2f78965d144fa553bc69c46b5caf23827854334394531"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s023_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Kelpie",
+        "Magic",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S023_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2453,
+          "hash": "0x27d68cab567677a0b3632275b14021d6aa646d0358edf22dcce9f24c4f40bf"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s024_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Pixie",
+        "Magic",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S024_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1478,
+          "hash": "0x2ab38f2ad768b1c906ad5c1af93c74be3a5a15d3da8165f0f3cec3ba7de15d"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s024_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Pixie",
+        "Magic",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S024_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2237,
+          "hash": "0x5e39c69d815b6a17c4e8ee84d1410a3b820dd0ed0c51c6b43af1e8677d88e1b"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s025_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Gnome",
+        "Magic",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S025_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1478,
+          "hash": "0x448a327260a6ae197867088830cc26affa3fc422a30b97973772683a397ee70"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s025_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Gnome",
+        "Magic",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S025_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2237,
+          "hash": "0x38670833bc5dcafdf6ebbaee03f9f96353109c1ece32e5647273ae6af420a18"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s026_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Griffin",
+        "Hunter",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S026_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5203,
+          "hash": "0x6851cadf968bbd8f0c169e1d37b152351b868886c13f6d51559caefe2d2e039"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s026_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Griffin",
+        "Hunter",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S026_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6918,
+          "hash": "0x5308de31e18fcc86daf823a422f74cc463dceafbcea62e56902931ada6eb8ed"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s027_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Manticore",
+        "Hunter",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S027_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5041,
+          "hash": "0x3d24a4bbb1055cd0a4888087ade4a122c4ab0e4fb8b48cba84aba26728ab059"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s027_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Manticore",
+        "Hunter",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S027_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6828,
+          "hash": "0x77e5f20d4474510fc2e9a021efc494d4a2c33d7d8583a903129b85f1335e90a"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s028_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Phoenix",
+        "Hunter",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S028_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5464,
+          "hash": "0x79ccc6eefa52355ab0d348a843ceb16cdf0e6d55a4676ee8830d4eb79192a02"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s028_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Phoenix",
+        "Hunter",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S028_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 7179,
+          "hash": "0x3998b6be35f0bb66c77c4e90e20b4592b84c8ba064918dd2bf6ca73b6b6929c"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s029_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Dragon",
+        "Hunter",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S029_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5221,
+          "hash": "0x784e0102550a5881b7be4b7b47c6205b3780d7ea3268a34106089b1e4de2465"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s029_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Dragon",
+        "Hunter",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S029_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6936,
+          "hash": "0x35ba97cd2bd7a3dfd72084a19eac5f918d3d86332635baa396601284fd8d590"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s030_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Minotaur",
+        "Hunter",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S030_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5464,
+          "hash": "0x7efab5276d3e4e959a407cf0bdec6c64ddcecf46f8742ec39c172ae478dac70"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s030_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Minotaur",
+        "Hunter",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S030_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 7179,
+          "hash": "0x5593a4b3eb98c9a287b30adf955e0d9432f306fc49e4bb9c7e8fd77b2117e50"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s031_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Qilin",
+        "Hunter",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S031_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5050,
+          "hash": "0x2dc8164f53de77cf92bc5f4351aacb407dbbbe79db4d36e2a43dabc8dc4809e"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s031_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Qilin",
+        "Hunter",
+        "tier 2",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S031_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6765,
+          "hash": "0x35283063da47e8ca8463a146a058284d6ddb0a24ea6b2a24eabdfca4af7c2e2"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s032_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Ammit",
+        "Hunter",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S032_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5482,
+          "hash": "0x7ab9f35003c96f11dbe0d279c9df5093d071edbd8bd812dafb335b203b4b43f"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s032_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Ammit",
+        "Hunter",
+        "tier 2",
+        "shiny (mega)",
+        "largest Genesis file (7,197 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S032_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 7197,
+          "hash": "0x6f58d0031e0b2069755ff95860446efb908dfdf102ebe811bea292ccd373d90"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s033_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Nue",
+        "Hunter",
+        "tier 2",
+        "normal",
+        "Nue: Phrygian"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S033_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5095,
+          "hash": "0x1c915f720b5f383115828883693beb8ee73378929f63ce26992e176090d2ba"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s033_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Nue",
+        "Hunter",
+        "tier 2",
+        "shiny (mega)",
+        "Nue: Phrygian"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S033_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6810,
+          "hash": "0x50eee05b3b2c6f66b5ba9b966c3a9cf8c1a51aee18d6c8744070a5832e2d48f"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s034_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Skinwalker",
+        "Hunter",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S034_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5113,
+          "hash": "0x1f61e0be4f7199cfdbf8204ff9ecd6cafeb18783f8ad10c4d9a8f94efebac79"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s034_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Skinwalker",
+        "Hunter",
+        "tier 2",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S034_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6792,
+          "hash": "0x2dcd8069e6da7b0c0ad68598468c0a34837fc66ec463bdb8caf451d31238807"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s035_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Chupacabra",
+        "Hunter",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S035_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5176,
+          "hash": "0x796a05e55d2f5289b96f68c8cedef63f6a34c5e4937202e6466792bcc707e10"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s035_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Chupacabra",
+        "Hunter",
+        "tier 2",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S035_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6963,
+          "hash": "0x6bcc0243d43f63c63c352c019f1bb866c2fbcddc79b655d2b0fdf6fd83f80d9"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s036_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Weretiger",
+        "Hunter",
+        "tier 3",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S036_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3483,
+          "hash": "0x414b7b9010b6f30eeaec711e4bf62dd061263eb185f33cd06b99d245be34d16"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s036_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Weretiger",
+        "Hunter",
+        "tier 3",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S036_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4778,
+          "hash": "0x3368129c36c67fb74cf042882c83abe6e93d16b51e537f1233b5c007d637e29"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s037_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Wyvern",
+        "Hunter",
+        "tier 3",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S037_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3375,
+          "hash": "0x7d5d28a015a3ddcb89c57f9af87ced88ae56e915496778e414e6c5fe648ff95"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s037_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Wyvern",
+        "Hunter",
+        "tier 3",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S037_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4670,
+          "hash": "0x406bca1177d1d13a3760c65a5347527c9800f452913b4ae03a03ed066b116ed"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s038_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Roc",
+        "Hunter",
+        "tier 3",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S038_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3420,
+          "hash": "0x2ec2eefd77f7c1ea8b58852f0d47feb0cb1f76cf71236b32d7f82b35cf1b83c"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s038_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Roc",
+        "Hunter",
+        "tier 3",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S038_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4823,
+          "hash": "0x7b0099f4b790a823169771644efa3e380f79091287cbd51f905190144d165a5"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s039_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Harpy",
+        "Hunter",
+        "tier 3",
+        "normal",
+        "swap: plays species 40's Genesis Track"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S039_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3384,
+          "hash": "0x783877bac0f1fb2c94dfa26c5c9eba7aadd5fee1a23b15105d44d40f3215165"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s039_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Harpy",
+        "Hunter",
+        "tier 3",
+        "shiny (mega)",
+        "swap: plays species 40's Genesis Track"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S039_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4787,
+          "hash": "0x6537e7de45cbe418b0251df683d93207cf21e0b16a4f7d5000929805e45a9e1"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s040_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Pegasus",
+        "Hunter",
+        "tier 3",
+        "normal",
+        "swap: plays species 39's Genesis Track"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S040_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3186,
+          "hash": "0x2bc98ccfae3ca6143004654b572e1f80c23ebdff5e85bb69938f2185d806779"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s040_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Pegasus",
+        "Hunter",
+        "tier 3",
+        "shiny (mega)",
+        "swap: plays species 39's Genesis Track"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S040_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4481,
+          "hash": "0x635b7f2922c0f2ead084fcc16eb5cceda2f24c8cfc5e1f31783d824fec29abf"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s041_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Hippogriff",
+        "Hunter",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S041_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1576,
+          "hash": "0x3dbf24b3ce13d9abd5cf45d5b11af44fbdf3d906789d6b9c2500788a6856ba9"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s041_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Hippogriff",
+        "Hunter",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S041_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2411,
+          "hash": "0x27592c1976bc9f9ba796d2785b80bd4fd8914f0c1d27013fb44302ebd89d288"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s042_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Fenrir",
+        "Hunter",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S042_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1612,
+          "hash": "0x7c78c4e3777ae8747f6f22ffead228892be651769bd9771b379319b179b4209"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s042_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Fenrir",
+        "Hunter",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S042_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2465,
+          "hash": "0xe032212d8d064ecefead92775cd1976aa68ca109ead797391b60d5d3edad63"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s043_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Jaguar",
+        "Hunter",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S043_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1612,
+          "hash": "0x446de8a4ec22f150ada48c0d12bf2da66ddc93900753e1ebe6d759ebbd637b9"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s043_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Jaguar",
+        "Hunter",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S043_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2465,
+          "hash": "0x3046fbbeb619659014ca001786462129d684e10e1d83feb14bc8f161642d2cf"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s044_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Satori",
+        "Hunter",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S044_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1576,
+          "hash": "0x75498921dfc290cb8b97880ae6973a9b1dc84f0af657442388ac9375ff2678f"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s044_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Satori",
+        "Hunter",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S044_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2411,
+          "hash": "0x688cad156200d1f41e8c0c2cfa4ea0c0f1c9fcba31f9c548d8b967d179b5302"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s045_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Direwolf",
+        "Hunter",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S045_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1738,
+          "hash": "0x2ae50b45db7c3df97d0b1b6d5e8868603657f928ca3090c142afcca3c4efd21"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s045_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Direwolf",
+        "Hunter",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S045_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2681,
+          "hash": "0x43e3ebd73fbfd5db977c6aef4d219c5899a0a19f82ff5f3832b46cf5f4fe636"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s046_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Bear",
+        "Hunter",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S046_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1730,
+          "hash": "0xca4c39dcd17753b072e32c4a6e07661c644da423fd4bc9b3a9829b6fb6412"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s046_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Bear",
+        "Hunter",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S046_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2669,
+          "hash": "0xf9af3cbcd0e61e433c846dcbd5e18a918bd3e66a2fcd0f929df4da250b596e"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s047_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Wolf",
+        "Hunter",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S047_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1604,
+          "hash": "0x448e76e92fe587e0ed1d2905818c5539bb6ea4b66cbe152745c7fe3b7da7625"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s047_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Wolf",
+        "Hunter",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S047_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2453,
+          "hash": "0x24438dcc0e7bec7487ab0bd4460c9101ef3061da5a3f5ed8c82a1587b71e77f"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s048_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Mantis",
+        "Hunter",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S048_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1730,
+          "hash": "0x5fde5c6e8de96e189041aec4610056a9bb0186bee7aa821d4c594875da66d32"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s048_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Mantis",
+        "Hunter",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S048_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2669,
+          "hash": "0x404df93de52e8f0a1a162c1de5cf3320c3b22ea24953277759a9dbe79161352"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s049_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Spider",
+        "Hunter",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S049_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1730,
+          "hash": "0x1b63932c5e9d9279d191b78be1e5b8bbffc925074924da795b65fcf8a8f3d64"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s049_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Spider",
+        "Hunter",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S049_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2669,
+          "hash": "0x687f8c250e49a61e39a736d377a0ecca0909c1e11e4191048105a10d548a058"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s050_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Rat",
+        "Hunter",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S050_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1604,
+          "hash": "0x5245718003bdb010d8cb3fcb883163e4c801e5405b3cea11edeeed34b9da203"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s050_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Rat",
+        "Hunter",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S050_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2453,
+          "hash": "0x49f75f38f954eed04739d8c6c2754ee1f29fb04c7b646a4870433d2bc2d7fb4"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s051_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Kraken",
+        "Brute",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S051_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5185,
+          "hash": "0x7265f241daf3f13116ab24a34b0d414b24c8a593a77473cd6033c7095a72ee6"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s051_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Kraken",
+        "Brute",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S051_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6900,
+          "hash": "0x769ad50143ecbdc1e3525b3f877abaf57ae000f506e8fc32ea631ac4683533e"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s052_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Colossus",
+        "Brute",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S052_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5239,
+          "hash": "0x448443f104ef651bd63c0710d02bc13e6d60d20742e041901e47b5b64da9145"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s052_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Colossus",
+        "Brute",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S052_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6954,
+          "hash": "0x6715c6b4567a94b9bb268907e2609b7af556c8e74b606be8fcb36c99a7aeb94"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s053_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Balrog",
+        "Brute",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S053_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5158,
+          "hash": "0x62fb0c23114d483c361f2b0012c6710013eae929a73412b5771a0c14ac97d9a"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s053_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Balrog",
+        "Brute",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S053_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6837,
+          "hash": "0x7891255bd536b88278e1072e4ce6438a50c94a13ddbd7a18a70a57aaca94cf4"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s054_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Leviathan",
+        "Brute",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S054_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5203,
+          "hash": "0x4182260fe508a67e6feb52b3012117310839ba8b54ee69d49225a1160ff9861"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s054_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Leviathan",
+        "Brute",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S054_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6918,
+          "hash": "0x17ce81c0de7281f427d487b3eec683ab0422df71f5375d9383d8e50cc036fd1"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s055_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Tarrasque",
+        "Brute",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S055_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5122,
+          "hash": "0x754f88e09568bda44ddb630eb87a861140ec12e52fa349329e02332cbf34f97"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s055_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Tarrasque",
+        "Brute",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S055_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6801,
+          "hash": "0x6e4c07e27daf1ca3911a856503aec58f3e5f364da40df4b5f0ce420debeb4c4"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s056_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Titan",
+        "Brute",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S056_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5104,
+          "hash": "0x124db0a6efcdbb17c5a05f704a20aaaee2b385cb23e6a30da036c9072f2289a"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s056_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Titan",
+        "Brute",
+        "tier 2",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S056_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6783,
+          "hash": "0x7a5d6e5e44c6bfe7dd0479ea3899d5beaaef7640fdeb7595089dbcd43e4a641"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s057_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Nephilim",
+        "Brute",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S057_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5185,
+          "hash": "0x40e4d6ec346587120a27a9fa3e5d5aa195d788fc3d3448885dc103ea9057347"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s057_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Nephilim",
+        "Brute",
+        "tier 2",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S057_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6819,
+          "hash": "0x359c9d4ebb37a206aaee92b649be3e0bdc60e0f61be7ff3a2094143dcd591b9"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s058_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Behemoth",
+        "Brute",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S058_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5329,
+          "hash": "0x3f31599365cdb7a53e1cc4d82b7c0be11b157ec482c47cf3b85b9f056627de7"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s058_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Behemoth",
+        "Brute",
+        "tier 2",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S058_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 7044,
+          "hash": "0x258d1e51524c802cc5ec80feebf0d31e4331bfde91aa18de53f340d4f275348"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s059_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Hydra",
+        "Brute",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S059_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5122,
+          "hash": "0x3e84496832157599d80c1d7afdd77b0dcb3fbeb958e44e4fb9260a4f145f70e"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s059_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Hydra",
+        "Brute",
+        "tier 2",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S059_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6837,
+          "hash": "0x1957551294522b42b9bed5f8b9898d5c3e479e95fa7593b15e52c20379a651e"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s060_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Juggernaut",
+        "Brute",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S060_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5221,
+          "hash": "0x342896d9a6a4f7f52d4433cf9569d7604fc7e336efe7287787e42a42bcc36d7"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s060_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Juggernaut",
+        "Brute",
+        "tier 2",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S060_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6936,
+          "hash": "0x170c6e2030034d2fa3f1bd7c7fc6d35dcb74583d833b3894ebf2a1166541be7"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s061_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Oni",
+        "Brute",
+        "tier 3",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S061_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3240,
+          "hash": "0x116bff1f6ca8e65cd8d5653e727cf0e73753680603d8249f60396784346855d"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s061_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Oni",
+        "Brute",
+        "tier 3",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S061_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4535,
+          "hash": "0x2a1af5951677c344fd3745c1eacd50f75054aac141b515974b1d9594fc5b9bf"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s062_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Jotunn",
+        "Brute",
+        "tier 3",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S062_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3240,
+          "hash": "0x779a14790c640ef6df161889cbd5d2798d065375750f83e779114cfdf6c49eb"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s062_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Jotunn",
+        "Brute",
+        "tier 3",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S062_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4535,
+          "hash": "0x69d9eed0e18c78d936cd2740e0795bcdd1ce87bd64ee74ce9fa7e7e588026a2"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s063_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Ettin",
+        "Brute",
+        "tier 3",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S063_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3240,
+          "hash": "0x453d770b8e54f33dba28515b8ea0b2dc769ca46289dd4cc25690895d3b15feb"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s063_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Ettin",
+        "Brute",
+        "tier 3",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S063_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4535,
+          "hash": "0x301e70c87e2f63e0211890a1c573ee3ef871ef3b828a6c5ca3066bdb602456f"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s064_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Cyclops",
+        "Brute",
+        "tier 3",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S064_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3168,
+          "hash": "0x522ed865d2599e8d3e82255b224bbb4ac24df036f43507f33ac07b7db84ead1"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s064_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Cyclops",
+        "Brute",
+        "tier 3",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S064_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4436,
+          "hash": "0x608deff0d851f6f20ba272e0cdfd1247ce12f037b0886b8faf043f8828b17ac"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s065_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Giant",
+        "Brute",
+        "tier 3",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S065_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3240,
+          "hash": "0x1cf4cd12130b0aaa31a18a29c0587c7cc38d15ab8741038f4cd6e2a425b45ea"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s065_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Giant",
+        "Brute",
+        "tier 3",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S065_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4535,
+          "hash": "0x669b0bc1cfe8e5ee51e70fc73617151545087b0a79c5c438a327df62e178e1f"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s066_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Nemean Lion",
+        "Brute",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S066_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1612,
+          "hash": "0x6ff56acba55eaca8d30f4149654f2c7fd4038c8eb6bde0d7db1d380647d1cdb"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s066_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Nemean Lion",
+        "Brute",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S066_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2465,
+          "hash": "0x79fd48a5d3e97d8b60cc1b87ca207259b42eba31a69c4b2aef7402529484d89"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s067_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Berserker",
+        "Brute",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S067_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1612,
+          "hash": "0x1a691e1d4d184d10310eeafc18e79a7f52179029f281cba66a61ff13669de9f"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s067_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Berserker",
+        "Brute",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S067_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2465,
+          "hash": "0x7a9af21c58c0b68148ebff66c6d3b3922c00719eb19ed41f281e813136c82a6"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s068_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Yeti",
+        "Brute",
+        "tier 4",
+        "normal",
+        "Yeti (ornaments, avalanche, rock tempo)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S068_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2032,
+          "hash": "0x5d926863cba2abad15af63f7e834236bd55b8ef5d4325d20199a66bc137af6b"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s068_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Yeti",
+        "Brute",
+        "tier 4",
+        "shiny (mega)",
+        "Yeti (ornaments, avalanche, rock tempo)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S068_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2770,
+          "hash": "0x3c12660aaf1377c2281d74658bc6008fce2edf3f708eb32b32c108c23a49aab"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s069_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Golem",
+        "Brute",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S069_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1612,
+          "hash": "0x3f13b87765c6fc8e52cc68bfda72b28d5736aedb35f7ddcdf11ae5a8f26e88b"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s069_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Golem",
+        "Brute",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S069_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2465,
+          "hash": "0x59ca8cf28881a32238d7ef1d53921205a768fb4c29077ac42f70044c060bfef"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s070_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Ent",
+        "Brute",
+        "tier 4",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S070_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1648,
+          "hash": "0x25da8969f619762f7dfeae87e6e5e755f4bc2e248e6f273aeb610f47fd5d0e1"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s070_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Ent",
+        "Brute",
+        "tier 4",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S070_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2519,
+          "hash": "0x54b1772641bf70daf7d96d389525e1720dd9a437b990932f977b031ad941927"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s071_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Troll",
+        "Brute",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S071_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1604,
+          "hash": "0x161fbbd0171cd540f00c2d85b7f112e1f86e902d559bd0437b1437c6d8ed9d3"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s071_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Troll",
+        "Brute",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S071_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2453,
+          "hash": "0x5257ba0c2c3950728abf3fec23f5d6fc8caeaf63400fcb1c4ae0392625ba4a2"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s072_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Bigfoot",
+        "Brute",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S072_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1604,
+          "hash": "0x6d808721d6df34cd8154787aad576acf141948b1ab4b599eabacd818f6b0d0"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s072_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Bigfoot",
+        "Brute",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S072_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2453,
+          "hash": "0x3202f713ac88e634a1fba2eb9b61b4809f904238653d8dc5b7254396e540d26"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s073_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Ogre",
+        "Brute",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S073_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1640,
+          "hash": "0x677fdce757da0bca86ced6675eba1d87880472795a39bbb329664ba68d1b398"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s073_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Ogre",
+        "Brute",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S073_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2507,
+          "hash": "0x141f4230d59ef303eee7b3c916fdee62cb0c578246c6bfebc6a396bde3e0e36"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s074_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Orc",
+        "Brute",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S074_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1604,
+          "hash": "0x1435647fec95f974bdd3424c4cdd54454face8090959adb94e74a4d61e8be77"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s074_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Orc",
+        "Brute",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S074_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2453,
+          "hash": "0x61a9867a16d34d8fac250a4f5b735a55b9ad52939ad4882950719c47199a616"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s075_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Skeleton",
+        "Brute",
+        "tier 5",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S075_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1604,
+          "hash": "0x260f3e5068eb18be5f111ca4c477f9d9302ce36ee7c135a960282101c4dc4c"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_s075_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Skeleton",
+        "Brute",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_S075_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2453,
+          "hash": "0x60c3dd5fd5fcd54659c870436bcc4c2763fc8811e5df9def1daa21759858a78"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_c076",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Agony Bane Gloomfang (community_species_plays_its_genesis_track): Hunter, tier 3"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_C076",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3429,
+          "hash": "0x8b420bff96da618d84938636ddd4a119dd664078fbc365329c1f2b166ed2a6",
+          "note": "JS sampleTrackMidi with the Genesis defaults on the token's tier and type"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_c077",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "community species 77: Brute, tier 1, shiny (most sections and channels)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_C077",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6954,
+          "hash": "0x9ce7f40816c5b11156f7d2d9c810356f61685e1902f50b97ac42d2ce387393",
+          "note": "JS sampleTrackMidi with the Genesis defaults on the token's tier and type"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_c200",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "community species 200: Magic, tier 5"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_C200",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1568,
+          "hash": "0x6f710d37250cf3e6006efb5550bb24d00da3c0e01da01f77e65ddfc81804581",
+          "note": "JS sampleTrackMidi with the Genesis defaults on the token's tier and type"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_named_warlock",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "Sorrow Peak Warlock (prefix 57, suffix 15, level 126, health 229), live(2, 12, 1, 954): plays the Warlock Genesis Track"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_NAMED_WARLOCK",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4726,
+          "hash": "0xaf64f301f22bf2c2604c9521ee3e4687e4ecedb19c1e87d44e068b8b728db6"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_for_s021_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi_for",
+      "labels": [
+        "Fairy",
+        "Magic",
+        "tier 5",
+        "normal",
+        "lightest Genesis file (1,406 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_FOR_S021_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1406,
+          "hash": "0x719c5cd0df2d9d0b1c202aa67533753b737983b167aa59b956d75cdf85427d3"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_for_s001_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi_for",
+      "labels": [
+        "Warlock",
+        "Magic",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_FOR_S001_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4726,
+          "hash": "0xaf64f301f22bf2c2604c9521ee3e4687e4ecedb19c1e87d44e068b8b728db6"
+        }
+      ]
+    },
+    {
+      "name": "a_get_midi_for_s032_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi_for",
+      "labels": [
+        "Ammit",
+        "Hunter",
+        "tier 2",
+        "shiny (mega)",
+        "largest Genesis file (7,197 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_MIDI_FOR_S032_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 7197,
+          "hash": "0x6f58d0031e0b2069755ff95860446efb908dfdf102ebe811bea292ccd373d90"
+        }
+      ]
+    },
+    {
+      "name": "a_get_sound_s001_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_sound",
+      "labels": [
+        "Warlock",
+        "Magic",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SOUND_S001_N_MIDI",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4726,
+          "hash": "0xaf64f301f22bf2c2604c9521ee3e4687e4ecedb19c1e87d44e068b8b728db6"
+        },
+        {
+          "key": "A_GET_SOUND_S001_N_SETTINGS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 434,
+          "hash": "0x262e5597e7815983b98d2d9c4a94108ed93f7c292b8a3840b417455e7519e61"
+        }
+      ]
+    },
+    {
+      "name": "a_get_sound_s001_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_sound",
+      "labels": [
+        "Warlock",
+        "Magic",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SOUND_S001_S_MIDI",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6441,
+          "hash": "0x2ecbca7fc34dec6bdf953453b027b043d9a405011a6fabb29ac5e831e811bee"
+        },
+        {
+          "key": "A_GET_SOUND_S001_S_SETTINGS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 532,
+          "hash": "0x23de58ed5cc16d761f4092383d23f98b9a5db1849eb5949c88fc5788e41135a"
+        }
+      ]
+    },
+    {
+      "name": "a_get_sound_s068_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_sound",
+      "labels": [
+        "Yeti",
+        "Brute",
+        "tier 4",
+        "normal",
+        "Yeti (ornaments, avalanche, rock tempo)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SOUND_S068_N_MIDI",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2032,
+          "hash": "0x5d926863cba2abad15af63f7e834236bd55b8ef5d4325d20199a66bc137af6b"
+        },
+        {
+          "key": "A_GET_SOUND_S068_N_SETTINGS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 435,
+          "hash": "0x1aa1a2567c07fbfd30d703574916d6fd531619712a609f6f621657e1b216df"
+        }
+      ]
+    },
+    {
+      "name": "a_get_sound_s039_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_sound",
+      "labels": [
+        "Harpy",
+        "Hunter",
+        "tier 3",
+        "normal",
+        "swap: plays species 40's Genesis Track"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SOUND_S039_N_MIDI",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3384,
+          "hash": "0x783877bac0f1fb2c94dfa26c5c9eba7aadd5fee1a23b15105d44d40f3215165"
+        },
+        {
+          "key": "A_GET_SOUND_S039_N_SETTINGS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 419,
+          "hash": "0x6757f16a5c576c48f5ca9038489187670184572205057181845e7e858e2ffc8"
+        }
+      ]
+    },
+    {
+      "name": "a_get_sound_s021_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_sound",
+      "labels": [
+        "Fairy",
+        "Magic",
+        "tier 5",
+        "normal",
+        "lightest Genesis file (1,406 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SOUND_S021_N_MIDI",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1406,
+          "hash": "0x719c5cd0df2d9d0b1c202aa67533753b737983b167aa59b956d75cdf85427d3"
+        },
+        {
+          "key": "A_GET_SOUND_S021_N_SETTINGS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 434,
+          "hash": "0x262e5597e7815983b98d2d9c4a94108ed93f7c292b8a3840b417455e7519e61"
+        }
+      ]
+    },
+    {
+      "name": "a_get_sound_c076",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_sound",
+      "labels": [
+        "Agony Bane Gloomfang (community_species_plays_its_genesis_track): Hunter, tier 3"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SOUND_C076_MIDI",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3429,
+          "hash": "0x8b420bff96da618d84938636ddd4a119dd664078fbc365329c1f2b166ed2a6",
+          "note": "JS sampleTrackMidi with the Genesis defaults on the token's tier and type"
+        },
+        {
+          "key": "A_GET_SOUND_C076_SETTINGS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 419,
+          "hash": "0x6757f16a5c576c48f5ca9038489187670184572205057181845e7e858e2ffc8"
+        }
+      ]
+    },
+    {
+      "name": "a_get_settings_s001_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_settings",
+      "labels": [
+        "Warlock",
+        "Magic",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SETTINGS_S001_N",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 434,
+          "hash": "0x262e5597e7815983b98d2d9c4a94108ed93f7c292b8a3840b417455e7519e61"
+        }
+      ]
+    },
+    {
+      "name": "a_get_settings_s001_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_settings",
+      "labels": [
+        "Warlock",
+        "Magic",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SETTINGS_S001_S",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 532,
+          "hash": "0x23de58ed5cc16d761f4092383d23f98b9a5db1849eb5949c88fc5788e41135a"
+        }
+      ]
+    },
+    {
+      "name": "a_get_settings_s026_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_settings",
+      "labels": [
+        "Griffin",
+        "Hunter",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SETTINGS_S026_N",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 419,
+          "hash": "0x6757f16a5c576c48f5ca9038489187670184572205057181845e7e858e2ffc8"
+        }
+      ]
+    },
+    {
+      "name": "a_get_settings_s026_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_settings",
+      "labels": [
+        "Griffin",
+        "Hunter",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SETTINGS_S026_S",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 517,
+          "hash": "0x613355ee6a854f648ae2773236db4cecd3331084b8282925e67d40665a6b852"
+        }
+      ]
+    },
+    {
+      "name": "a_get_settings_s051_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_settings",
+      "labels": [
+        "Kraken",
+        "Brute",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SETTINGS_S051_N",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 407,
+          "hash": "0x2b60e54acfca3bcdec9f2ef3af961303e775dfd9b276e6e21e43d04a041250c"
+        }
+      ]
+    },
+    {
+      "name": "a_get_settings_s051_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_settings",
+      "labels": [
+        "Kraken",
+        "Brute",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SETTINGS_S051_S",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 505,
+          "hash": "0x1b7fdd21b0ce30bfd306ea036baa6dbc54203f482467955dffdb7d6de523ec5"
+        }
+      ]
+    },
+    {
+      "name": "a_get_settings_s068_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_settings",
+      "labels": [
+        "Yeti",
+        "Brute",
+        "tier 4",
+        "normal",
+        "Yeti (ornaments, avalanche, rock tempo)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SETTINGS_S068_N",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 435,
+          "hash": "0x1aa1a2567c07fbfd30d703574916d6fd531619712a609f6f621657e1b216df"
+        }
+      ]
+    },
+    {
+      "name": "a_get_settings_s068_s",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_settings",
+      "labels": [
+        "Yeti",
+        "Brute",
+        "tier 4",
+        "shiny (mega)",
+        "Yeti (ornaments, avalanche, rock tempo)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SETTINGS_S068_S",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 533,
+          "hash": "0xc5db949f559a177547691e079c0154d9f47dc7f1ebf61b8f1e53ac909190c7"
+        }
+      ]
+    },
+    {
+      "name": "a_get_settings_s039_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_settings",
+      "labels": [
+        "Harpy",
+        "Hunter",
+        "tier 3",
+        "normal",
+        "swap: plays species 40's Genesis Track"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SETTINGS_S039_N",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 419,
+          "hash": "0x6757f16a5c576c48f5ca9038489187670184572205057181845e7e858e2ffc8"
+        }
+      ]
+    },
+    {
+      "name": "a_get_settings_s040_n",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_settings",
+      "labels": [
+        "Pegasus",
+        "Hunter",
+        "tier 3",
+        "normal",
+        "swap: plays species 39's Genesis Track"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_SETTINGS_S040_N",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 419,
+          "hash": "0x6757f16a5c576c48f5ca9038489187670184572205057181845e7e858e2ffc8"
+        }
+      ]
+    },
+    {
+      "name": "a_get_live_state_genesis_warlock_dm",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_live_state",
+      "labels": [
+        "genesis Warlock (Sepolia 0x7006400010000000000000000001), Death Mountain set, all zero"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_LIVE_STATE_GENESIS_WARLOCK_DM",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 9,
+          "hash": "0x41343d91c6a0fb159847cb28046a8ddaa72492faf17f183c63cbef46be8894e"
+        }
+      ]
+    },
+    {
+      "name": "a_get_live_state_named_warlock_scars",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_live_state",
+      "labels": [
+        "Sorrow Peak Warlock with 3 kills, 4 scars, rank 7 (report_shows_sources)"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_LIVE_STATE_NAMED_WARLOCK_SCARS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 9,
+          "hash": "0x2bf5b22115246100915c8bf6760cee3e3b8651e9e45692b4dad4187c2aea865"
+        }
+      ]
+    },
+    {
+      "name": "a_get_live_state_named_warlock_no_dm",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_live_state",
+      "labels": [
+        "Sorrow Peak Warlock, no Death Mountain address: Unavailable"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_LIVE_STATE_NAMED_WARLOCK_NO_DM",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 9,
+          "hash": "0x5766fa7edff71e175fd358ce368a71dceca7f73aecdc96548b2b5f33e3c4ebb"
+        }
+      ]
+    },
+    {
+      "name": "a_get_live_state_c076",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_live_state",
+      "labels": [
+        "community species 76: cached kills, scars NotTracked"
+      ],
+      "checks": [
+        {
+          "key": "A_GET_LIVE_STATE_C076",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 9,
+          "hash": "0x30e171cc5e0b3d0cfd7f7736570c97a379452d7a23e55c38f069457d1a4f8bc"
+        }
+      ]
+    },
+    {
+      "name": "a_get_collection",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_collection",
+      "labels": [],
+      "checks": [
+        {
+          "key": "A_GET_COLLECTION",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x2860aa1ea2812eb03b8f7e74e8a1d82aadc82b202c3e9421dc30ceab054a5da"
+        }
+      ]
+    },
+    {
+      "name": "a_get_engine_version",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "get_engine_version",
+      "labels": [],
+      "checks": [
+        {
+          "key": "A_GET_ENGINE_VERSION",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x579e8877c7755365d5ec1ec7d3a94a457eff5d1f40482bbe9729c064cdead2"
+        }
+      ]
+    },
+    {
+      "name": "a_owner",
+      "group": "A",
+      "contract": "BeastMidiProvider",
+      "selector": "owner",
+      "labels": [
+        "OpenZeppelin Ownable"
+      ],
+      "checks": [
+        {
+          "key": "A_OWNER",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x731e1b5a620279c8f4bb027e109cf9e24176cc56bdacc040353ef2a1d87342e"
+        }
+      ]
+    },
+    {
+      "name": "b_has_sound_tier5_fresh",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "has_sound",
+      "labels": [
+        "tier 5, fresh: live(0, 0, 600, 1100)"
+      ],
+      "checks": [
+        {
+          "key": "B_HAS_SOUND_TIER5_FRESH",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x545d6f7d28a8a398e543948be5a026af60c4dea482867a6eeb2525b35d1e1e1"
+        }
+      ]
+    },
+    {
+      "name": "b_has_sound_sorrow_peak_warlock",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "has_sound",
+      "labels": [
+        "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+      ],
+      "checks": [
+        {
+          "key": "B_HAS_SOUND_SORROW_PEAK_WARLOCK",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x545d6f7d28a8a398e543948be5a026af60c4dea482867a6eeb2525b35d1e1e1"
+        }
+      ]
+    },
+    {
+      "name": "b_has_sound_tier1_3_sections",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "has_sound",
+      "labels": [
+        "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+      ],
+      "checks": [
+        {
+          "key": "B_HAS_SOUND_TIER1_3_SECTIONS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x545d6f7d28a8a398e543948be5a026af60c4dea482867a6eeb2525b35d1e1e1"
+        }
+      ]
+    },
+    {
+      "name": "b_has_sound_heaviest",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "has_sound",
+      "labels": [
+        "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+      ],
+      "checks": [
+        {
+          "key": "B_HAS_SOUND_HEAVIEST",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x545d6f7d28a8a398e543948be5a026af60c4dea482867a6eeb2525b35d1e1e1"
+        }
+      ]
+    },
+    {
+      "name": "b_get_composition_params_tier5_fresh",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_composition_params",
+      "labels": [
+        "tier 5, fresh: live(0, 0, 600, 1100)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_COMPOSITION_PARAMS_TIER5_FRESH",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 21,
+          "hash": "0x138bc9c9ca8588b2e02b9855b00880ac6ba93b3b336bbb7067226228bc52a9f"
+        }
+      ]
+    },
+    {
+      "name": "b_get_composition_params_sorrow_peak_warlock",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_composition_params",
+      "labels": [
+        "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_COMPOSITION_PARAMS_SORROW_PEAK_WARLOCK",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 21,
+          "hash": "0x4d2975a56e25d93306fb8a9ad7a59e3adfa18498ba40729016aa8256a50cf16"
+        }
+      ]
+    },
+    {
+      "name": "b_get_composition_params_tier1_3_sections",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_composition_params",
+      "labels": [
+        "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_COMPOSITION_PARAMS_TIER1_3_SECTIONS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 21,
+          "hash": "0x6d45aab442d37a7628308da2b8af6f56817be2be1b18cd08b7eda8685546907"
+        }
+      ]
+    },
+    {
+      "name": "b_get_composition_params_heaviest",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_composition_params",
+      "labels": [
+        "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_COMPOSITION_PARAMS_HEAVIEST",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 21,
+          "hash": "0x12fdeaf27ff98ed990f57c61b04a4d91bc3dfba7e496cf53cd2095a6256375b"
+        }
+      ]
+    },
+    {
+      "name": "b_get_music_state_hash_tier5_fresh",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_music_state_hash",
+      "labels": [
+        "tier 5, fresh: live(0, 0, 600, 1100)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_MUSIC_STATE_HASH_TIER5_FRESH",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x34f26a7f6d73cee59d98f11503144c9c5cbeb5c49b423e0bdda6478060b03d1"
+        }
+      ]
+    },
+    {
+      "name": "b_get_music_state_hash_sorrow_peak_warlock",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_music_state_hash",
+      "labels": [
+        "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_MUSIC_STATE_HASH_SORROW_PEAK_WARLOCK",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x2b1ebe3aa61824db6cc864da84e6b4ce29311660d860bc5adbf6d744744cbea"
+        }
+      ]
+    },
+    {
+      "name": "b_get_music_state_hash_tier1_3_sections",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_music_state_hash",
+      "labels": [
+        "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_MUSIC_STATE_HASH_TIER1_3_SECTIONS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x3a1a236ed3c4eee65c227d4b55da29cea79d31328b0351c2eadd162075d971d"
+        }
+      ]
+    },
+    {
+      "name": "b_get_music_state_hash_heaviest",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_music_state_hash",
+      "labels": [
+        "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_MUSIC_STATE_HASH_HEAVIEST",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x63c88296168a6ad669f3d64ee2a90d9bc573efab3c937faec005fbe20379153"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_hash_tier5_fresh",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_hash",
+      "labels": [
+        "tier 5, fresh: live(0, 0, 600, 1100)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_HASH_TIER5_FRESH",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x38921a07d1a151f683f90c766bbad547b8c4a643a03de2e6393412e94d1813f"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_hash_sorrow_peak_warlock",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_hash",
+      "labels": [
+        "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_HASH_SORROW_PEAK_WARLOCK",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x65aff1e2d861c57aae65fe3a7b3a493eaffb24766a059f150f448f869784f94"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_hash_tier1_3_sections",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_hash",
+      "labels": [
+        "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_HASH_TIER1_3_SECTIONS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x25bfa0af68eb0027f4be60261f1478da373d6753375c8961dc86b7ed3a997be"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_hash_heaviest",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_hash",
+      "labels": [
+        "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_HASH_HEAVIEST",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x3702fa23f398e5ec60b1804d3a151cfd63259ba3cab28595b89e12935be222e"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_notes_tier5_fresh",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_notes",
+      "labels": [
+        "tier 5, fresh: live(0, 0, 600, 1100)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_NOTES_TIER5_FRESH",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 3,
+          "hash": "0x719501b1934cad472455da0fa9480ff9c5675e501c20ca6fb1801899cafbbf"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_notes_sorrow_peak_warlock",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_notes",
+      "labels": [
+        "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_NOTES_SORROW_PEAK_WARLOCK",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 8,
+          "hash": "0x5be835621439c3f46d87ec5abf86a117af961f8ce0ecbc47176093a58823cc8"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_notes_tier1_3_sections",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_notes",
+      "labels": [
+        "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_NOTES_TIER1_3_SECTIONS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 11,
+          "hash": "0x3720eef9c730ca90ee79f87b60b1811c0ba3f5bafb7acde348fccc5870b7488"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_notes_heaviest",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_notes",
+      "labels": [
+        "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_NOTES_HEAVIEST",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 17,
+          "hash": "0x2e9e0b6ccd3a58e23e282ab1b66cc2e62df268c2bb831acbe90a2127659e632"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_instructions_tier5_fresh",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_instructions",
+      "labels": [
+        "tier 5, fresh: live(0, 0, 600, 1100)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_INSTRUCTIONS_TIER5_FRESH",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 5,
+          "hash": "0x30027d42dee3c85a3ea99424156d5b3bd4583aad5c34aa651a4226b073e8102"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_instructions_sorrow_peak_warlock",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_instructions",
+      "labels": [
+        "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_INSTRUCTIONS_SORROW_PEAK_WARLOCK",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 42,
+          "hash": "0x6e19b43ca73c1d5b865bd5f890d04f41abfe736ca4a405f09c0d606fd8fe623"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_instructions_tier1_3_sections",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_instructions",
+      "labels": [
+        "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_INSTRUCTIONS_TIER1_3_SECTIONS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 62,
+          "hash": "0x673c23b0738c3098ada00e9f5219f7ba27819988e9972c41ae104c0203c8a9f"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_instructions_heaviest",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_instructions",
+      "labels": [
+        "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_INSTRUCTIONS_HEAVIEST",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 102,
+          "hash": "0x2303373fda34ddc2b69637f52eecc5170153d49fb7861ca19e21e90df1095ab"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_midi_tier5_fresh",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_midi",
+      "labels": [
+        "tier 5, fresh: live(0, 0, 600, 1100)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_MIDI_TIER5_FRESH",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 7,
+          "hash": "0x4fd8b062dc1afc758f17a937ab9b66f26171ee4fdc549aa84a7043efaddc497"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_midi_sorrow_peak_warlock",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_midi",
+      "labels": [
+        "Sorrow Peak Warlock (mainnet rank-1 Warlock): live(2, 12, 1, 954)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_MIDI_SORROW_PEAK_WARLOCK",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 52,
+          "hash": "0x1d08266776aa2c94c9c2683749446d779699b2d5b38777e94ede2dc655543e0"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_midi_tier1_3_sections",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_midi",
+      "labels": [
+        "tier 1, 3 sections: kills 9, scars 25, Summit 100 h, rank 1 of 1200"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_MIDI_TIER1_3_SECTIONS",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 76,
+          "hash": "0x2c055f3ea443e5e287dcf24bca862146b126c17438471d1a1a6b64d704fcbca"
+        }
+      ]
+    },
+    {
+      "name": "b_get_score_midi_heaviest",
+      "group": "B",
+      "contract": "BeastSoundComposer",
+      "selector": "get_score_midi",
+      "labels": [
+        "heaviest(): tier 1, 4 voices + countersubject, 5 sections; live(200, 63, 1, 1243)"
+      ],
+      "checks": [
+        {
+          "key": "B_GET_SCORE_MIDI_HEAVIEST",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 122,
+          "hash": "0x4083985e5c97009c62140838296e6e0bb13bd710b157f3c191bf562ffd0e232"
+        }
+      ]
+    },
+    {
+      "name": "c_token_uri_fixed_l31",
+      "group": "C",
+      "contract": "MidiSoundPage",
+      "selector": "token_uri",
+      "labels": [
+        "31 synthetic bytes ((i * 37 + 11) % 256)",
+        "real Warlock members (2275 B) and svg_b64 (30128 B)"
+      ],
+      "checks": [
+        {
+          "key": "C_TOKEN_URI_FIXED_L31",
+          "kind": "bytes",
+          "source": "js",
+          "len": 128241,
+          "hash": "0x709f6235db892318d852178ad619c32ad48e7f3d964ddadd69a0465c658bc31"
+        }
+      ]
+    },
+    {
+      "name": "c_token_uri_fixed_l1406",
+      "group": "C",
+      "contract": "MidiSoundPage",
+      "selector": "token_uri",
+      "labels": [
+        "Genesis Track of species 21 (1,406 bytes)",
+        "real Warlock members (2275 B) and svg_b64 (30128 B)"
+      ],
+      "checks": [
+        {
+          "key": "C_TOKEN_URI_FIXED_L1406",
+          "kind": "bytes",
+          "source": "js",
+          "len": 130681,
+          "hash": "0x484937d296523ea03f6973bba79d81093a8b1b9c52d0c47d3f3426ab0efd86a"
+        }
+      ]
+    },
+    {
+      "name": "c_token_uri_fixed_l4726",
+      "group": "C",
+      "contract": "MidiSoundPage",
+      "selector": "token_uri",
+      "labels": [
+        "Genesis Track of species 1 (4,726 bytes)",
+        "real Warlock members (2275 B) and svg_b64 (30128 B)"
+      ],
+      "checks": [
+        {
+          "key": "C_TOKEN_URI_FIXED_L4726",
+          "kind": "bytes",
+          "source": "js",
+          "len": 136585,
+          "hash": "0x25d05fdafd96907eedeaeb2ea8ea109e9b8400c652faf87dc44c5613a705007"
+        }
+      ]
+    },
+    {
+      "name": "c_token_uri_fixed_l7197",
+      "group": "C",
+      "contract": "MidiSoundPage",
+      "selector": "token_uri",
+      "labels": [
+        "Genesis Track of species 32, shiny (7,197 bytes)",
+        "real Warlock members (2275 B) and svg_b64 (30128 B)"
+      ],
+      "checks": [
+        {
+          "key": "C_TOKEN_URI_FIXED_L7197",
+          "kind": "bytes",
+          "source": "js",
+          "len": 140977,
+          "hash": "0x7c4a8c815b7b6e3428c69089d60612a5e92b2d5dd7cbe20a9f00a48f095a309"
+        }
+      ]
+    },
+    {
+      "name": "c_token_uri_fixed_l1406_escaped",
+      "group": "C",
+      "contract": "MidiSoundPage",
+      "selector": "token_uri",
+      "labels": [
+        "Genesis Track of species 21 (1,406 bytes)",
+        "Warlock members plus a member with '#' and '%' (2320 B), Warlock svg_b64"
+      ],
+      "checks": [
+        {
+          "key": "C_TOKEN_URI_FIXED_L1406_ESCAPED",
+          "kind": "bytes",
+          "source": "js",
+          "len": 130743,
+          "hash": "0x50fa040c9da584e0c3e6fc9c0d706799909a152e62939fb6a2df7c71d5088b3"
+        }
+      ]
+    },
+    {
+      "name": "c_token_uri_fixed_l1406_small",
+      "group": "C",
+      "contract": "MidiSoundPage",
+      "selector": "token_uri",
+      "labels": [
+        "Genesis Track of species 21 (1,406 bytes)",
+        "small members (29 B) and svg_b64 (56 B) of the page's tests"
+      ],
+      "checks": [
+        {
+          "key": "C_TOKEN_URI_FIXED_L1406_SMALL",
+          "kind": "bytes",
+          "source": "js",
+          "len": 68307,
+          "hash": "0x5f2c5d8e2eb2e3ebb1952eefd448c61ebf7530b42498c868b40006a60ba9e7"
+        }
+      ]
+    },
+    {
+      "name": "c_token_uri_e2e_s001_n",
+      "group": "C",
+      "contract": "MidiSoundPage",
+      "selector": "token_uri",
+      "labels": [
+        "Warlock",
+        "Magic",
+        "tier 1",
+        "normal",
+        "end to end: the page calls the production BeastMidiProvider",
+        "real Warlock members (2275 B) and svg_b64 (30128 B)"
+      ],
+      "checks": [
+        {
+          "key": "C_TOKEN_URI_E2E_S001_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 136585,
+          "hash": "0x25d05fdafd96907eedeaeb2ea8ea109e9b8400c652faf87dc44c5613a705007"
+        }
+      ]
+    },
+    {
+      "name": "c_token_uri_e2e_s032_s",
+      "group": "C",
+      "contract": "MidiSoundPage",
+      "selector": "token_uri",
+      "labels": [
+        "Ammit",
+        "Hunter",
+        "tier 2",
+        "shiny (mega)",
+        "largest Genesis file (7,197 bytes)",
+        "end to end: the page calls the production BeastMidiProvider",
+        "real Warlock members (2275 B) and svg_b64 (30128 B)"
+      ],
+      "checks": [
+        {
+          "key": "C_TOKEN_URI_E2E_S032_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 140977,
+          "hash": "0x7c4a8c815b7b6e3428c69089d60612a5e92b2d5dd7cbe20a9f00a48f095a309"
+        }
+      ]
+    },
+    {
+      "name": "c_get_midi_provider",
+      "group": "C",
+      "contract": "MidiSoundPage",
+      "selector": "get_midi_provider",
+      "labels": [],
+      "checks": [
+        {
+          "key": "C_GET_MIDI_PROVIDER",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1,
+          "hash": "0x3843d97ea7b6b90104fbc91b17072f469ca90dec00f15625cb99917b637f140"
+        }
+      ]
+    },
+    {
+      "name": "d_scale_get_midi_t1",
+      "group": "D",
+      "contract": "ScaleMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "token 1, collection 'BEASTS'"
+      ],
+      "checks": [
+        {
+          "key": "D_SCALE_GET_MIDI_T1",
+          "kind": "bytes",
+          "source": "baseline-frozen",
+          "len": 247,
+          "hash": "0x23c3e922c77a235032de9bf88d10d8298b05e6183cf0db1a861be7c30aaf5ee"
+        }
+      ]
+    },
+    {
+      "name": "d_scale_get_midi_for_t1",
+      "group": "D",
+      "contract": "ScaleMidiProvider",
+      "selector": "get_midi_for",
+      "labels": [
+        "token 1, collection 'BEASTS'"
+      ],
+      "checks": [
+        {
+          "key": "D_SCALE_GET_MIDI_FOR_T1",
+          "kind": "bytes",
+          "source": "baseline-frozen",
+          "len": 247,
+          "hash": "0x23c3e922c77a235032de9bf88d10d8298b05e6183cf0db1a861be7c30aaf5ee"
+        }
+      ]
+    },
+    {
+      "name": "d_scale_get_midi_t42",
+      "group": "D",
+      "contract": "ScaleMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "token 42, collection 'BEASTS'"
+      ],
+      "checks": [
+        {
+          "key": "D_SCALE_GET_MIDI_T42",
+          "kind": "bytes",
+          "source": "baseline-frozen",
+          "len": 247,
+          "hash": "0x65b704edc9cb4d26d808ef228ca306a3e480d90365b502f9bea66ad67c0cd04"
+        }
+      ]
+    },
+    {
+      "name": "d_scale_get_midi_for_t42",
+      "group": "D",
+      "contract": "ScaleMidiProvider",
+      "selector": "get_midi_for",
+      "labels": [
+        "token 42, collection 'BEASTS'"
+      ],
+      "checks": [
+        {
+          "key": "D_SCALE_GET_MIDI_FOR_T42",
+          "kind": "bytes",
+          "source": "baseline-frozen",
+          "len": 247,
+          "hash": "0x65b704edc9cb4d26d808ef228ca306a3e480d90365b502f9bea66ad67c0cd04"
+        }
+      ]
+    },
+    {
+      "name": "d_scale_get_midi_t_warlock",
+      "group": "D",
+      "contract": "ScaleMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "token 0x7006400010000000000000000001, collection 'BEASTS'"
+      ],
+      "checks": [
+        {
+          "key": "D_SCALE_GET_MIDI_T_WARLOCK",
+          "kind": "bytes",
+          "source": "baseline-frozen",
+          "len": 247,
+          "hash": "0x3819abe38ffb6883385392563e6eab6bec35b3dbb2ae57f6db0726b7b4975d0"
+        }
+      ]
+    },
+    {
+      "name": "d_scale_get_midi_for_t_warlock",
+      "group": "D",
+      "contract": "ScaleMidiProvider",
+      "selector": "get_midi_for",
+      "labels": [
+        "token 0x7006400010000000000000000001, collection 'BEASTS'"
+      ],
+      "checks": [
+        {
+          "key": "D_SCALE_GET_MIDI_FOR_T_WARLOCK",
+          "kind": "bytes",
+          "source": "baseline-frozen",
+          "len": 247,
+          "hash": "0x3819abe38ffb6883385392563e6eab6bec35b3dbb2ae57f6db0726b7b4975d0"
+        }
+      ]
+    },
+    {
+      "name": "e_pack_input_l0000",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "pack_input",
+      "labels": [
+        "input only: synthetic(0)"
+      ],
+      "checks": [
+        {
+          "key": "E_PACK_INPUT_L0000",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x545d6f7d28a8a398e543948be5a026af60c4dea482867a6eeb2525b35d1e1e1"
+        }
+      ]
+    },
+    {
+      "name": "e_bytes_to_byte_array_l0000",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "bytes_to_byte_array",
+      "labels": [
+        "midi::pack::bytes_to_byte_array(synthetic(0))"
+      ],
+      "checks": [
+        {
+          "key": "E_BYTES_TO_BYTE_ARRAY_L0000",
+          "kind": "bytes",
+          "source": "js",
+          "len": 0,
+          "hash": "0x545d6f7d28a8a398e543948be5a026af60c4dea482867a6eeb2525b35d1e1e1"
+        }
+      ]
+    },
+    {
+      "name": "e_to_felt252_array_l0000",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "to_felt252_array",
+      "labels": [
+        "midi::pack::to_felt252_array(synthetic(0))"
+      ],
+      "checks": [
+        {
+          "key": "E_TO_FELT252_ARRAY_L0000",
+          "kind": "serde",
+          "source": "js",
+          "len": 2,
+          "hash": "0xa93bf5e58b9378d093aa86ddc2f61a3295a1d1e665bd0ef3384dd07b30e033"
+        }
+      ]
+    },
+    {
+      "name": "e_pack_input_l0001",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "pack_input",
+      "labels": [
+        "input only: synthetic(1)"
+      ],
+      "checks": [
+        {
+          "key": "E_PACK_INPUT_L0001",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x579e8877c7755365d5ec1ec7d3a94a457eff5d1f40482bbe9729c064cdead2"
+        }
+      ]
+    },
+    {
+      "name": "e_bytes_to_byte_array_l0001",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "bytes_to_byte_array",
+      "labels": [
+        "midi::pack::bytes_to_byte_array(synthetic(1))"
+      ],
+      "checks": [
+        {
+          "key": "E_BYTES_TO_BYTE_ARRAY_L0001",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1,
+          "hash": "0x3e89a0e415c274c3afdfb531abeb1da734b4ed89aee261a2b1fe59778a98b57"
+        }
+      ]
+    },
+    {
+      "name": "e_to_felt252_array_l0001",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "to_felt252_array",
+      "labels": [
+        "midi::pack::to_felt252_array(synthetic(1))"
+      ],
+      "checks": [
+        {
+          "key": "E_TO_FELT252_ARRAY_L0001",
+          "kind": "serde",
+          "source": "js",
+          "len": 3,
+          "hash": "0x336f53e3c527eb3c4c165ef5cec76d4fc0f6cd41863b984b5f1b074b3a2673a"
+        }
+      ]
+    },
+    {
+      "name": "e_pack_input_l0030",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "pack_input",
+      "labels": [
+        "input only: synthetic(30)"
+      ],
+      "checks": [
+        {
+          "key": "E_PACK_INPUT_L0030",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x563b29aabddf4daa8d7333721a84b5540f0afa6311882ea6ad5aeba826fa2c6"
+        }
+      ]
+    },
+    {
+      "name": "e_bytes_to_byte_array_l0030",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "bytes_to_byte_array",
+      "labels": [
+        "midi::pack::bytes_to_byte_array(synthetic(30))"
+      ],
+      "checks": [
+        {
+          "key": "E_BYTES_TO_BYTE_ARRAY_L0030",
+          "kind": "bytes",
+          "source": "js",
+          "len": 30,
+          "hash": "0x1b0051827cdb1c5dd43c9221c8094ea242e8bf753ef6beda4fbdf65308ccda6"
+        }
+      ]
+    },
+    {
+      "name": "e_to_felt252_array_l0030",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "to_felt252_array",
+      "labels": [
+        "midi::pack::to_felt252_array(synthetic(30))"
+      ],
+      "checks": [
+        {
+          "key": "E_TO_FELT252_ARRAY_L0030",
+          "kind": "serde",
+          "source": "js",
+          "len": 3,
+          "hash": "0x72d96daadcb23b7d99522ca36feea9acc9a53c43f2365b78f689c2b3de72a4e"
+        }
+      ]
+    },
+    {
+      "name": "e_pack_input_l0031",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "pack_input",
+      "labels": [
+        "input only: synthetic(31)"
+      ],
+      "checks": [
+        {
+          "key": "E_PACK_INPUT_L0031",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x11b3701c17ccf246317aa8f4f2d1845f6796a18870ed1acc30233480b44983e"
+        }
+      ]
+    },
+    {
+      "name": "e_bytes_to_byte_array_l0031",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "bytes_to_byte_array",
+      "labels": [
+        "midi::pack::bytes_to_byte_array(synthetic(31))"
+      ],
+      "checks": [
+        {
+          "key": "E_BYTES_TO_BYTE_ARRAY_L0031",
+          "kind": "bytes",
+          "source": "js",
+          "len": 31,
+          "hash": "0x37a702d1b4e2eec0c1eeb38d2951fbde8f48d5cec55effebdb70afeb36469d6"
+        }
+      ]
+    },
+    {
+      "name": "e_to_felt252_array_l0031",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "to_felt252_array",
+      "labels": [
+        "midi::pack::to_felt252_array(synthetic(31))"
+      ],
+      "checks": [
+        {
+          "key": "E_TO_FELT252_ARRAY_L0031",
+          "kind": "serde",
+          "source": "js",
+          "len": 3,
+          "hash": "0x4939d70d925bfde99d02472270c7ebd62c26894e5be43947e44144ada6d4b77"
+        }
+      ]
+    },
+    {
+      "name": "e_pack_input_l0032",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "pack_input",
+      "labels": [
+        "input only: synthetic(32)"
+      ],
+      "checks": [
+        {
+          "key": "E_PACK_INPUT_L0032",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x43b3c695793fe4013d53aeb0713670cca967e25b3d38970f717ec226f09a513"
+        }
+      ]
+    },
+    {
+      "name": "e_bytes_to_byte_array_l0032",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "bytes_to_byte_array",
+      "labels": [
+        "midi::pack::bytes_to_byte_array(synthetic(32))"
+      ],
+      "checks": [
+        {
+          "key": "E_BYTES_TO_BYTE_ARRAY_L0032",
+          "kind": "bytes",
+          "source": "js",
+          "len": 32,
+          "hash": "0x1071e9ad3b9d39ed27ed7b86d428dc9d8aa34683877dab04f60e9ad1fee769d"
+        }
+      ]
+    },
+    {
+      "name": "e_to_felt252_array_l0032",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "to_felt252_array",
+      "labels": [
+        "midi::pack::to_felt252_array(synthetic(32))"
+      ],
+      "checks": [
+        {
+          "key": "E_TO_FELT252_ARRAY_L0032",
+          "kind": "serde",
+          "source": "js",
+          "len": 4,
+          "hash": "0x20a40aaa6ee2a654c29c4fe8494228f2c47a519450c361d5027d3fc04fdda15"
+        }
+      ]
+    },
+    {
+      "name": "e_pack_input_l0062",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "pack_input",
+      "labels": [
+        "input only: synthetic(62)"
+      ],
+      "checks": [
+        {
+          "key": "E_PACK_INPUT_L0062",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x20d3df71ee60a3685c2163ba72f2f9effeee8ff9adb1dad3f5bab28366e0f9e"
+        }
+      ]
+    },
+    {
+      "name": "e_bytes_to_byte_array_l0062",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "bytes_to_byte_array",
+      "labels": [
+        "midi::pack::bytes_to_byte_array(synthetic(62))"
+      ],
+      "checks": [
+        {
+          "key": "E_BYTES_TO_BYTE_ARRAY_L0062",
+          "kind": "bytes",
+          "source": "js",
+          "len": 62,
+          "hash": "0x138046c70e379ad3d2f9a6b482aba4dd44423c3e3b06921a3fe0639c8a6b37d"
+        }
+      ]
+    },
+    {
+      "name": "e_to_felt252_array_l0062",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "to_felt252_array",
+      "labels": [
+        "midi::pack::to_felt252_array(synthetic(62))"
+      ],
+      "checks": [
+        {
+          "key": "E_TO_FELT252_ARRAY_L0062",
+          "kind": "serde",
+          "source": "js",
+          "len": 4,
+          "hash": "0x1f2f33f84b48237cbad48fc3aed39f1fb42955b8efbab2f07cad601d1920fd1"
+        }
+      ]
+    },
+    {
+      "name": "e_pack_input_l1406",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "pack_input",
+      "labels": [
+        "input only: synthetic(1406)"
+      ],
+      "checks": [
+        {
+          "key": "E_PACK_INPUT_L1406",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x48b023ab813927643af69e3467bec4d95232e637599dddc05820427635f57ba"
+        }
+      ]
+    },
+    {
+      "name": "e_bytes_to_byte_array_l1406",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "bytes_to_byte_array",
+      "labels": [
+        "midi::pack::bytes_to_byte_array(synthetic(1406))"
+      ],
+      "checks": [
+        {
+          "key": "E_BYTES_TO_BYTE_ARRAY_L1406",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1406,
+          "hash": "0x24d7d2b1fc128440b88d509dcbc6b171235cd2e607408646a77e22bb8c9da9f"
+        }
+      ]
+    },
+    {
+      "name": "e_to_felt252_array_l1406",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "to_felt252_array",
+      "labels": [
+        "midi::pack::to_felt252_array(synthetic(1406))"
+      ],
+      "checks": [
+        {
+          "key": "E_TO_FELT252_ARRAY_L1406",
+          "kind": "serde",
+          "source": "js",
+          "len": 48,
+          "hash": "0xc3eb0f5ccb4df554173b05e5f1bebf0ada9519edc80666b9b2e7fd03a01dc4"
+        }
+      ]
+    },
+    {
+      "name": "e_pack_input_l7197",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "pack_input",
+      "labels": [
+        "input only: synthetic(7197)"
+      ],
+      "checks": [
+        {
+          "key": "E_PACK_INPUT_L7197",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x6e39dfc4739ff73b6085be32a1470b60bc7a5cfcaee3b2c1efd5e5c1e28fdb7"
+        }
+      ]
+    },
+    {
+      "name": "e_bytes_to_byte_array_l7197",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "bytes_to_byte_array",
+      "labels": [
+        "midi::pack::bytes_to_byte_array(synthetic(7197))"
+      ],
+      "checks": [
+        {
+          "key": "E_BYTES_TO_BYTE_ARRAY_L7197",
+          "kind": "bytes",
+          "source": "js",
+          "len": 7197,
+          "hash": "0x7ff0c4331b533b4b61c2771b8de93dfe9c002ba5e8bdfe198d57b7fecff0751"
+        }
+      ]
+    },
+    {
+      "name": "e_to_felt252_array_l7197",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "to_felt252_array",
+      "labels": [
+        "midi::pack::to_felt252_array(synthetic(7197))"
+      ],
+      "checks": [
+        {
+          "key": "E_TO_FELT252_ARRAY_L7197",
+          "kind": "serde",
+          "source": "js",
+          "len": 235,
+          "hash": "0x220dc862c2413583638e8e35c9d8d50c0dd753a9bfb8cbecc278fb31702b844"
+        }
+      ]
+    },
+    {
+      "name": "e_b64_input_l0031",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "b64_input",
+      "labels": [
+        "input only: 31 synthetic bytes ((i * 37 + 11) % 256)"
+      ],
+      "checks": [
+        {
+          "key": "E_B64_INPUT_L0031",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x11b3701c17ccf246317aa8f4f2d1845f6796a18870ed1acc30233480b44983e"
+        }
+      ]
+    },
+    {
+      "name": "e_append_base64_l0031",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "append_base64",
+      "labels": [
+        "midi_contracts::page::append_base64 of 31 synthetic bytes ((i * 37 + 11) % 256)"
+      ],
+      "checks": [
+        {
+          "key": "E_APPEND_BASE64_L0031",
+          "kind": "bytes",
+          "source": "js",
+          "len": 44,
+          "hash": "0x3ba1182a5e43eacd8840c5d6b4d2e3b22b4b43dd7dda585f217f1a0ea1fc837"
+        }
+      ]
+    },
+    {
+      "name": "e_midi_html_l0031",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "midi_html",
+      "labels": [
+        "midi_contracts::page::midi_html of 31 synthetic bytes ((i * 37 + 11) % 256)"
+      ],
+      "checks": [
+        {
+          "key": "E_MIDI_HTML_L0031",
+          "kind": "bytes",
+          "source": "js",
+          "len": 90,
+          "hash": "0x1c3fa3da0f8916a7cb1cdf33d80cfef5e405beaa6942b29c5944808dad96d6"
+        }
+      ]
+    },
+    {
+      "name": "e_b64_input_l1406",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "b64_input",
+      "labels": [
+        "input only: Genesis Track of species 21 (1,406 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "E_B64_INPUT_L1406",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x48b023ab813927643af69e3467bec4d95232e637599dddc05820427635f57ba"
+        }
+      ]
+    },
+    {
+      "name": "e_append_base64_l1406",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "append_base64",
+      "labels": [
+        "midi_contracts::page::append_base64 of Genesis Track of species 21 (1,406 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "E_APPEND_BASE64_L1406",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1876,
+          "hash": "0x79b377e752fb50ae8e3b50f7c5fc3dd5930fb34793403fee2fe25e0330e7a27"
+        }
+      ]
+    },
+    {
+      "name": "e_midi_html_l1406",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "midi_html",
+      "labels": [
+        "midi_contracts::page::midi_html of Genesis Track of species 21 (1,406 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "E_MIDI_HTML_L1406",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1920,
+          "hash": "0x53db2d03bed2b3042a3715818fb87aad989c4053fc2f4341800ac5945ad659b"
+        }
+      ]
+    },
+    {
+      "name": "e_b64_input_l4726",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "b64_input",
+      "labels": [
+        "input only: Genesis Track of species 1 (4,726 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "E_B64_INPUT_L4726",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x758e52e1394a979a7af18e1b15d3ac09ae6e4d8d7fd1592541375608b07ed42"
+        }
+      ]
+    },
+    {
+      "name": "e_append_base64_l4726",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "append_base64",
+      "labels": [
+        "midi_contracts::page::append_base64 of Genesis Track of species 1 (4,726 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "E_APPEND_BASE64_L4726",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6304,
+          "hash": "0x519a779b53781454aeae4de1d31d6e0a1995526179458feb434f2b3f5b8fb85"
+        }
+      ]
+    },
+    {
+      "name": "e_midi_html_l4726",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "midi_html",
+      "labels": [
+        "midi_contracts::page::midi_html of Genesis Track of species 1 (4,726 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "E_MIDI_HTML_L4726",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6348,
+          "hash": "0x262180be69c5e59ccb86e7f1af80ab331fc54c5f412010883e3667450987c1e"
+        }
+      ]
+    },
+    {
+      "name": "e_b64_input_l7197",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "b64_input",
+      "labels": [
+        "input only: Genesis Track of species 32, shiny (7,197 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "E_B64_INPUT_L7197",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x6e39dfc4739ff73b6085be32a1470b60bc7a5cfcaee3b2c1efd5e5c1e28fdb7"
+        }
+      ]
+    },
+    {
+      "name": "e_append_base64_l7197",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "append_base64",
+      "labels": [
+        "midi_contracts::page::append_base64 of Genesis Track of species 32, shiny (7,197 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "E_APPEND_BASE64_L7197",
+          "kind": "bytes",
+          "source": "js",
+          "len": 9596,
+          "hash": "0x90b5e5a011dec3940cc0f8763f35d22a799bc614367c1323cb959ff7af0ac5"
+        }
+      ]
+    },
+    {
+      "name": "e_midi_html_l7197",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "midi_html",
+      "labels": [
+        "midi_contracts::page::midi_html of Genesis Track of species 32, shiny (7,197 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "E_MIDI_HTML_L7197",
+          "kind": "bytes",
+          "source": "js",
+          "len": 9642,
+          "hash": "0x2799a52b2ca5e449efc8667cc1a47d0bb9a708d263cc017dd1532626026ff5a"
+        }
+      ]
+    },
+    {
+      "name": "e_pack_input_l4726",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "pack_input",
+      "labels": [
+        "input only: synthetic(4726)"
+      ],
+      "checks": [
+        {
+          "key": "E_PACK_INPUT_L4726",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x758e52e1394a979a7af18e1b15d3ac09ae6e4d8d7fd1592541375608b07ed42"
+        }
+      ]
+    },
+    {
+      "name": "e_u8_output_l1406",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "u8_output",
+      "labels": [
+        "synthetic(1406) returned as Array<u8>"
+      ],
+      "checks": [
+        {
+          "key": "E_U8_OUTPUT_L1406",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1406,
+          "hash": "0x24d7d2b1fc128440b88d509dcbc6b171235cd2e607408646a77e22bb8c9da9f"
+        }
+      ]
+    },
+    {
+      "name": "e_u8_output_l4726",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "u8_output",
+      "labels": [
+        "synthetic(4726) returned as Array<u8>"
+      ],
+      "checks": [
+        {
+          "key": "E_U8_OUTPUT_L4726",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4726,
+          "hash": "0x7fc2f1ac5927444e2b6d45e38eef1fdba2113f1096cbbbe92958d9496415daa"
+        }
+      ]
+    },
+    {
+      "name": "e_u8_output_l7197",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "u8_output",
+      "labels": [
+        "synthetic(7197) returned as Array<u8>"
+      ],
+      "checks": [
+        {
+          "key": "E_U8_OUTPUT_L7197",
+          "kind": "bytes",
+          "source": "js",
+          "len": 7197,
+          "hash": "0x7ff0c4331b533b4b61c2771b8de93dfe9c002ba5e8bdfe198d57b7fecff0751"
+        }
+      ]
+    },
+    {
+      "name": "e_felt_input_n1073",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "felt_input",
+      "labels": [
+        "input only: [0..1073) as felts"
+      ],
+      "checks": [
+        {
+          "key": "E_FELT_INPUT_N1073",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x7134fb98a4d98a227f20acd6d17a3f426cf48525c6d016b339c608fdebbde5e"
+        }
+      ]
+    },
+    {
+      "name": "e_felt_output_n1073",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "felt_output",
+      "labels": [
+        "[0..1073) returned as Array<felt252>"
+      ],
+      "checks": [
+        {
+          "key": "E_FELT_OUTPUT_N1073",
+          "kind": "serde",
+          "source": "js",
+          "len": 1074,
+          "hash": "0x6cf884db20f91e16023b67dcb9ea8b3055c5018d347f2259c12e049e67fbdca"
+        }
+      ]
+    },
+    {
+      "name": "e_felt_input_n2203",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "felt_input",
+      "labels": [
+        "input only: [0..2203) as felts"
+      ],
+      "checks": [
+        {
+          "key": "E_FELT_INPUT_N2203",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x702e1190dc98f71920100acd3f11f904101440542a99a6f4fca41f891708dd4"
+        }
+      ]
+    },
+    {
+      "name": "e_felt_output_n2203",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "felt_output",
+      "labels": [
+        "[0..2203) returned as Array<felt252>"
+      ],
+      "checks": [
+        {
+          "key": "E_FELT_OUTPUT_N2203",
+          "kind": "serde",
+          "source": "js",
+          "len": 2204,
+          "hash": "0x78abf031e13b8ff9f43c775ed0b10260d9e582e0014a728831954e634d39ace"
+        }
+      ]
+    },
+    {
+      "name": "e_felt_input_n2763",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "felt_input",
+      "labels": [
+        "input only: [0..2763) as felts"
+      ],
+      "checks": [
+        {
+          "key": "E_FELT_INPUT_N2763",
+          "kind": "serde",
+          "source": "js",
+          "len": 1,
+          "hash": "0x44259da8993304d0612a1b50d67ea9f0fe193ca98cd592cac986ec057909173"
+        }
+      ]
+    },
+    {
+      "name": "e_felt_output_n2763",
+      "group": "E",
+      "contract": "BenchLib",
+      "selector": "felt_output",
+      "labels": [
+        "[0..2763) returned as Array<felt252>"
+      ],
+      "checks": [
+        {
+          "key": "E_FELT_OUTPUT_N2763",
+          "kind": "serde",
+          "source": "js",
+          "len": 2764,
+          "hash": "0x60baf888c66e490ee262f756f816278b5ee2edb96a701b5ccdaa2c982bf7dab"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_smf_bytes_s021_n",
+      "group": "E",
+      "contract": "BenchGenesis",
+      "selector": "genesis_smf_bytes",
+      "labels": [
+        "Fairy",
+        "Magic",
+        "tier 5",
+        "normal",
+        "lightest Genesis file (1,406 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SMF_BYTES_S021_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1406,
+          "hash": "0x719c5cd0df2d9d0b1c202aa67533753b737983b167aa59b956d75cdf85427d3"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_smf_bytes_s021_s",
+      "group": "E",
+      "contract": "BenchGenesis",
+      "selector": "genesis_smf_bytes",
+      "labels": [
+        "Fairy",
+        "Magic",
+        "tier 5",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SMF_BYTES_S021_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2129,
+          "hash": "0x7d047966d08b41457ac5aa92e78041dff65709fbcca8508367a94dd43074104"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_smf_bytes_s001_n",
+      "group": "E",
+      "contract": "BenchGenesis",
+      "selector": "genesis_smf_bytes",
+      "labels": [
+        "Warlock",
+        "Magic",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SMF_BYTES_S001_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 4726,
+          "hash": "0xaf64f301f22bf2c2604c9521ee3e4687e4ecedb19c1e87d44e068b8b728db6"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_smf_bytes_s001_s",
+      "group": "E",
+      "contract": "BenchGenesis",
+      "selector": "genesis_smf_bytes",
+      "labels": [
+        "Warlock",
+        "Magic",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SMF_BYTES_S001_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 6441,
+          "hash": "0x2ecbca7fc34dec6bdf953453b027b043d9a405011a6fabb29ac5e831e811bee"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_smf_bytes_s032_n",
+      "group": "E",
+      "contract": "BenchGenesis",
+      "selector": "genesis_smf_bytes",
+      "labels": [
+        "Ammit",
+        "Hunter",
+        "tier 2",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SMF_BYTES_S032_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5482,
+          "hash": "0x7ab9f35003c96f11dbe0d279c9df5093d071edbd8bd812dafb335b203b4b43f"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_smf_bytes_s032_s",
+      "group": "E",
+      "contract": "BenchGenesis",
+      "selector": "genesis_smf_bytes",
+      "labels": [
+        "Ammit",
+        "Hunter",
+        "tier 2",
+        "shiny (mega)",
+        "largest Genesis file (7,197 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SMF_BYTES_S032_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 7197,
+          "hash": "0x6f58d0031e0b2069755ff95860446efb908dfdf102ebe811bea292ccd373d90"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_smf_bytes_s028_s",
+      "group": "E",
+      "contract": "BenchGenesis",
+      "selector": "genesis_smf_bytes",
+      "labels": [
+        "Phoenix",
+        "Hunter",
+        "tier 1",
+        "shiny (mega)"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SMF_BYTES_S028_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 7179,
+          "hash": "0x3998b6be35f0bb66c77c4e90e20b4592b84c8ba064918dd2bf6ca73b6b6929c"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_smf_bytes_s068_n",
+      "group": "E",
+      "contract": "BenchGenesis",
+      "selector": "genesis_smf_bytes",
+      "labels": [
+        "Yeti",
+        "Brute",
+        "tier 4",
+        "normal",
+        "Yeti (ornaments, avalanche, rock tempo)"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SMF_BYTES_S068_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2032,
+          "hash": "0x5d926863cba2abad15af63f7e834236bd55b8ef5d4325d20199a66bc137af6b"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_smf_bytes_s068_s",
+      "group": "E",
+      "contract": "BenchGenesis",
+      "selector": "genesis_smf_bytes",
+      "labels": [
+        "Yeti",
+        "Brute",
+        "tier 4",
+        "shiny (mega)",
+        "Yeti (ornaments, avalanche, rock tempo)"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SMF_BYTES_S068_S",
+          "kind": "bytes",
+          "source": "js",
+          "len": 2770,
+          "hash": "0x3c12660aaf1377c2281d74658bc6008fce2edf3f708eb32b32c108c23a49aab"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_smf_bytes_s039_n",
+      "group": "E",
+      "contract": "BenchGenesis",
+      "selector": "genesis_smf_bytes",
+      "labels": [
+        "Harpy",
+        "Hunter",
+        "tier 3",
+        "normal",
+        "swap: plays species 40's Genesis Track"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SMF_BYTES_S039_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3384,
+          "hash": "0x783877bac0f1fb2c94dfa26c5c9eba7aadd5fee1a23b15105d44d40f3215165"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_smf_bytes_s040_n",
+      "group": "E",
+      "contract": "BenchGenesis",
+      "selector": "genesis_smf_bytes",
+      "labels": [
+        "Pegasus",
+        "Hunter",
+        "tier 3",
+        "normal",
+        "swap: plays species 39's Genesis Track"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SMF_BYTES_S040_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3186,
+          "hash": "0x2bc98ccfae3ca6143004654b572e1f80c23ebdff5e85bb69938f2185d806779"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_smf_bytes_s033_n",
+      "group": "E",
+      "contract": "BenchGenesis",
+      "selector": "genesis_smf_bytes",
+      "labels": [
+        "Nue",
+        "Hunter",
+        "tier 2",
+        "normal",
+        "Nue: Phrygian"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SMF_BYTES_S033_N",
+          "kind": "bytes",
+          "source": "js",
+          "len": 5095,
+          "hash": "0x1c915f720b5f383115828883693beb8ee73378929f63ce26992e176090d2ba"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_smf_bytes_c076",
+      "group": "E",
+      "contract": "BenchGenesis",
+      "selector": "genesis_smf_bytes",
+      "labels": [
+        "Agony Bane Gloomfang (community_species_plays_its_genesis_track): Hunter, tier 3"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SMF_BYTES_C076",
+          "kind": "bytes",
+          "source": "js",
+          "len": 3429,
+          "hash": "0x8b420bff96da618d84938636ddd4a119dd664078fbc365329c1f2b166ed2a6",
+          "note": "JS sampleTrackMidi with the Genesis defaults on the token's tier and type"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_score_s021_n",
+      "group": "E",
+      "contract": "BenchScore",
+      "selector": "genesis_score",
+      "labels": [
+        "Fairy",
+        "Magic",
+        "tier 5",
+        "normal",
+        "lightest Genesis file (1,406 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SCORE_S021_N",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 1074,
+          "hash": "0x7418e3136f9a9913338c8a748725f29453a314dfbc906dd71b57a92140b6b48"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_score_s001_n",
+      "group": "E",
+      "contract": "BenchScore",
+      "selector": "genesis_score",
+      "labels": [
+        "Warlock",
+        "Magic",
+        "tier 1",
+        "normal"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SCORE_S001_N",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 2204,
+          "hash": "0x4392950d6a6be880984bdd928eb90a1f1a777c1f657e3a4eeadf004a70d15b9"
+        }
+      ]
+    },
+    {
+      "name": "e_genesis_score_s032_s",
+      "group": "E",
+      "contract": "BenchScore",
+      "selector": "genesis_score",
+      "labels": [
+        "Ammit",
+        "Hunter",
+        "tier 2",
+        "shiny (mega)",
+        "largest Genesis file (7,197 bytes)"
+      ],
+      "checks": [
+        {
+          "key": "E_GENESIS_SCORE_S032_S",
+          "kind": "serde",
+          "source": "baseline-frozen",
+          "len": 2764,
+          "hash": "0x943bea549cffb6c401ee52fff651ffc0697950e7a3837ccea918b7d679ba89"
+        }
+      ]
+    },
+    {
+      "name": "m_get_midi_s021_n_burn_rank",
+      "group": "M",
+      "contract": "BeastMidiProvider",
+      "selector": "get_midi",
+      "labels": [
+        "as a_get_midi_s021_n, with BurnBeasts as the NFT (get_beast_rank does 200 extra poseidon rounds)"
+      ],
+      "checks": [
+        {
+          "key": "M_GET_MIDI_S021_N_BURN_RANK",
+          "kind": "bytes",
+          "source": "js",
+          "len": 1406,
+          "hash": "0x719c5cd0df2d9d0b1c202aa67533753b737983b167aa59b956d75cdf85427d3"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+# beasts/beast_contracts as a library for the bench (see bench/Scarb.toml): the production
+# package's name, version, edition and dependencies (OpenZeppelin pinned to the versions in the
+# root Scarb.lock), a [lib] target, and `src` -> ../../../beasts/beast_contracts/src.
+[package]
+name = "beast_contracts"
+version = "0.1.0"
+edition = "2025_12"
+
+[dependencies]
+beast_composer = { path = "../../../beasts/beast_composer" }
+midi = { path = "../../../core/midi" }
+openzeppelin_access = "=4.0.1"
+openzeppelin_upgrades = "=4.0.1"
+openzeppelin_interfaces = "=2.2.0"
+starknet = "2.20.1"
+
+[lib]

@@ -6,6 +6,7 @@ name = "beast_composer"
 version = "0.1.0"
 dependencies = [
  "midi",
+ "snforge_std",
 ]
 
 [[package]]
@@ -17,6 +18,7 @@ dependencies = [
  "openzeppelin_access",
  "openzeppelin_interfaces",
  "openzeppelin_upgrades",
+ "snforge_std",
 ]
 
 [[package]]
@@ -29,6 +31,7 @@ name = "midi"
 version = "0.1.0"
 dependencies = [
  "onchain_midi_player",
+ "snforge_std",
 ]
 
 [[package]]
@@ -36,6 +39,7 @@ name = "midi_contracts"
 version = "0.1.0"
 dependencies = [
  "midi",
+ "snforge_std",
 ]
 
 [[package]]
@@ -76,3 +80,18 @@ name = "openzeppelin_upgrades"
 version = "4.0.1"
 source = "registry+https://scarbs.xyz/"
 checksum = "sha256:100d56866be37531a68b886b2d2df19dfcf3e1a9abc64efa1d5a49c9de9b4e37"
+
+[[package]]
+name = "snforge_scarb_plugin"
+version = "0.64.1"
+source = "registry+https://scarbs.xyz/"
+checksum = "sha256:811790c3a1b0c4008c3da568ba2bb4204ecedadb15a0b73fed4b81572bb66e88"
+
+[[package]]
+name = "snforge_std"
+version = "0.64.1"
+source = "registry+https://scarbs.xyz/"
+checksum = "sha256:01fe1a1853f8899a455cdc99a408a56f76cc6c069abdf56dcf98709665c272e8"
+dependencies = [
+ "snforge_scarb_plugin",
+]

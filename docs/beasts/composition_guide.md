@@ -112,7 +112,7 @@ Run these in order. Every step must pass.
 2. **JS mirror**: make the same change in `offchain/beast-sound/src/engine.js`.
 3. **Parity fixture from Cairo**:
    ```bash
-   (cd beasts/beast_composer && scarb test -- --include-ignored --filter beast_v3_parity_fixture | grep PARITY > /tmp/p.txt)
+   (cd beasts/beast_composer && scarb test -- beast_v3_parity_fixture --include-ignored | grep PARITY > /tmp/p.txt)
    node scripts/beast_v3_parity.mjs /tmp/p.txt --write
    ```
    It must report every case matching Cairo.

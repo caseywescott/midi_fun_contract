@@ -181,3 +181,77 @@ fn readme_example() {
     assert_eq!(file.len(), 83);
     assert_eq!(*file.at(11), 3);
 }
+
+// `smf_byte_array` against `bytes_to_byte_array(smf_bytes(...))`.
+
+use crate::smf::smf_byte_array;
+
+fn body(len: u32) -> Array<u8> {
+    let mut out = array![];
+    let mut i: u32 = 0;
+    while i != len {
+        out.append(((i * 7 + 1) % 256).try_into().unwrap());
+        i += 1;
+    }
+    out
+}
+
+fn same_file(format: u16, division: u16, tracks: Span<Array<u8>>) {
+    assert_eq!(
+        smf_byte_array(format, division, tracks),
+        bytes_to_byte_array(smf_bytes(format, division, tracks).span()),
+    );
+}
+
+#[test]
+fn smf_byte_array_matches_smf_bytes() {
+    same_file(1, 480, array![].span());
+    same_file(0, 96, array![body(0)].span());
+    same_file(0, 96, array![body(31)].span());
+    same_file(2, 0x7FFF, array![body(1), body(30)].span());
+    same_file(1, 480, array![body(0), body(0), body(16)].span());
+    same_file(1, 480, array![body(17), body(31), body(32), body(62), body(100)].span());
+    let mut tracks = array![];
+    let mut len: u32 = 0;
+    while len != 70 {
+        tracks.append(body(len));
+        len += 1;
+    }
+    same_file(1, 480, tracks.span());
+    same_file(1, 480, array![body(2500), body(0), body(7197), body(3)].span());
+}
+
+#[test]
+fn smf_byte_array_matches_a_written_track() {
+    let mut tempo = TrackWriterTrait::new();
+    tempo.tempo(0, 500000);
+    let mut lead = TrackWriterTrait::new();
+    lead.program(0, 0, 80);
+    lead.note_on(0, 0, 60, 100);
+    lead.note_off(480, 0, 60, 64);
+    same_file(1, 480, array![tempo.finish_at(1920), lead.finish()].span());
+}
+
+#[test]
+#[should_panic(expected: ('midi: format',))]
+fn smf_byte_array_rejects_format_3() {
+    smf_byte_array(3, 480, array![body(1)].span());
+}
+
+#[test]
+#[should_panic(expected: ('midi: format 0 has one track',))]
+fn smf_byte_array_format_0_has_one_track() {
+    smf_byte_array(0, 480, array![body(1), body(1)].span());
+}
+
+#[test]
+#[should_panic(expected: ('midi: division',))]
+fn smf_byte_array_rejects_a_zero_division() {
+    smf_byte_array(1, 0, array![body(1)].span());
+}
+
+#[test]
+#[should_panic(expected: ('midi: division',))]
+fn smf_byte_array_rejects_a_timecode_division() {
+    smf_byte_array(1, 0x8000, array![body(1)].span());
+}

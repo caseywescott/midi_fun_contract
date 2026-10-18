@@ -35,16 +35,33 @@ Each package has a README with its API and details.
 
 ## Build and test
 
-From the repository root:
+Needs scarb 2.20.1 and Starknet Foundry 0.64.1 (`snforge`), both pinned in `.tool-versions` (with
+asdf: `asdf install`). The tests run on snforge: `scarb test` runs `snforge test` in each package
+through the root `Scarb.toml`'s `[workspace.scripts]`. From the repository root:
 
 ```bash
 scarb build                     # every package; artifacts in target/dev/<package>_<Contract>.*
-scarb test                      # every package's tests
+scarb test                      # every package's tests (snforge)
 scarb test -p beast_contracts   # one package
 scarb fmt --check
 ```
 
 `TESTING.md` covers the `#[ignore]`d parity fixtures and the generated Cairo files.
+
+### Gas
+
+`bench/` measures the per-call L2 gas of the four contract classes over 286 fixed cases (every
+species' Genesis Track, the sound page, the composer views, library probes), each checked against
+the expected output, plus their CASM and Sierra sizes:
+
+```bash
+npm install --prefix offchain/beast-sound   # once: the expected table is checked with the JS engine
+python3 bench/scripts/gas_bench.py run --out bench/snapshots/candidate.json
+python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-bdfc78f.json \
+    bench/snapshots/candidate.json --markdown
+```
+
+It is its own Scarb workspace (snforge 0.64.1, `bench/.tool-versions`); see `bench/README.md`.
 
 ## Outside the workspace
 
@@ -52,6 +69,7 @@ scarb fmt --check
   sources and the generators of `core/midi_contracts/src/page/page_data.cairo`, its golden tests and
   `beasts/beast_contracts/src/synth_settings.cairo`.
 - `scripts/*parity*`: compare the Cairo composer with the JS engine.
+- `bench/`: the gas benchmark (its own Scarb workspace, above).
 - `docs/beasts/`: the Beast Sound composition guide.
 
 The `koji` music library, its tooling and research, Beast Engine v2 and the old browser simulator

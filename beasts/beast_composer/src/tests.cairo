@@ -260,7 +260,7 @@ fn v3_score_notes_is_much_smaller_than_midi() {
 }
 
 /// Parity fixture: prints the canonical values the browser engine must reproduce.
-/// Run: scarb test -- --include-ignored --filter beast_v3_parity_fixture
+/// Run: scarb test -- beast_v3_parity_fixture --include-ignored
 #[test]
 #[ignore]
 fn beast_v3_parity_fixture() {
@@ -374,7 +374,7 @@ fn beast_v3_parity_fixture() {
 /// Full-MIDI parity fixture: the self-contained file (programs, pan, drums) for Beasts covering
 /// every tier's fill and 1 to 5 voices. Compared with offchain/beast-sound/src/full_midi.js by
 /// scripts/full_midi_parity.mjs.
-/// Run: scarb test -- --include-ignored --filter full_midi_parity_fixture
+/// Run: scarb test -- full_midi_parity_fixture --include-ignored
 #[test]
 #[ignore]
 fn full_midi_parity_fixture() {

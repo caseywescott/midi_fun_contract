@@ -2,7 +2,9 @@
 //! scripts/genesis_parity.mjs compares with `genesisMidi` (offchain/beast-sound/src/lab.js).
 //! Ignored (heavy): run in batches with scripts/genesis_parity_cairo.sh.
 use crate::composition::beast_v3_sound::PackableBeastV3;
-use crate::composition::genesis::{genesis_midi, species_tier, species_type};
+use crate::composition::genesis::{
+    genesis_byte_array, genesis_midi, genesis_smf_bytes, species_tier, species_type,
+};
 
 fn genesis_parity_range(lo: u64, hi: u64) {
     let mut id: u64 = lo;
@@ -165,4 +167,34 @@ fn genesis_parity_fixture_17() {
 #[available_gas(1000000000000)]
 fn genesis_parity_fixture_18() {
     genesis_parity_range(73, 75);
+}
+
+/// `genesis_byte_array` is the Genesis Track `genesis_smf_bytes` packs into a `ByteArray`.
+fn same_genesis_track(id: u64, shiny: u8) {
+    let b = PackableBeastV3 {
+        id,
+        prefix: 0,
+        suffix: 0,
+        level: 1,
+        health: 100,
+        shiny,
+        animated: 0,
+        tier: species_tier(id),
+        beast_type: species_type(id),
+    };
+    assert!(
+        genesis_byte_array(b) == midi::pack::bytes_to_byte_array(genesis_smf_bytes(b).span()),
+        "species {} shiny {}",
+        id,
+        shiny,
+    );
+}
+
+#[test]
+#[available_gas(1000000000000)]
+fn genesis_byte_array_matches_the_smf_bytes() {
+    // The lightest file, the Yeti (its extra voice), a normal and a shiny (mega arrangement).
+    same_genesis_track(21, 0);
+    same_genesis_track(68, 0);
+    same_genesis_track(32, 1);
 }

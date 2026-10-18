@@ -22,6 +22,7 @@
 
 use core::dict::{Felt252Dict, Felt252DictTrait};
 use core::poseidon::poseidon_hash_span;
+use midi::smf::{smf_byte_array, smf_bytes};
 use crate::composition::beast_score::BeastForm;
 use crate::composition::beast_trait_map::prefix2_ornament_policy;
 use crate::composition::beast_v11::{
@@ -32,7 +33,8 @@ use crate::composition::beast_v3_sound::{
 };
 use crate::composition::drift::{DriftClock, layered_drift, nudge_tempo};
 use crate::composition::full_midi::{
-    Arrangement, Voicing, beast_form_to_full_smf_bytes_arranged, mega_lead_pick,
+    Arrangement, SMF_DIVISION, SMF_FORMAT, VoiceRun, Voicing, beast_form_to_full_tracks_arranged,
+    mega_lead_pick, voice_runs, voice_stats,
 };
 use crate::composition::melodic_canon::NoteEvent;
 use crate::composition::yeti::{
@@ -131,26 +133,6 @@ const DRUMS: u32 = 1000;
 /// Voice ids the composer uses (four canon voices and the countersubject).
 const MAX_VOICES: u32 = 5;
 
-/// Pitch sum and note count per voice 0..MAX_VOICES, in one pass.
-fn voice_stats(events: Span<NoteEvent>) -> (Array<u64>, Array<u64>) {
-    let mut s: Felt252Dict<u64> = Default::default();
-    let mut n: Felt252Dict<u64> = Default::default();
-    for e in events {
-        let k: felt252 = e.voice_id.into();
-        s.insert(k, s.get(k) + e.pitch.into());
-        n.insert(k, n.get(k) + 1);
-    }
-    let mut sums: Array<u64> = array![];
-    let mut counts: Array<u64> = array![];
-    let mut v: u32 = 0;
-    while v < MAX_VOICES {
-        sums.append(s.get(v.into()));
-        counts.append(n.get(v.into()));
-        v += 1;
-    }
-    (sums, counts)
-}
-
 /// mean(a) < mean(b), cross-multiplied.
 fn mean_less(sums: Span<u64>, counts: Span<u64>, a: u32, b: u32) -> bool {
     *sums.at(a) * *counts.at(b) < *sums.at(b) * *counts.at(a)
@@ -203,9 +185,11 @@ fn genesis_pick(sums: Span<u64>, counts: Span<u64>, count: u32) -> Array<u32> {
 /// with 3 or more voices, never the bass (lowest mean), the topline (highest) or the theme; a note
 /// that repeats the one before, starts where it ends, in the same section, off beats 1 and 3, and
 /// keeps the tied note within a bar extends it. `picked` are the voices kept, `sums`/`counts` their
-/// pitch statistics. Returns the kept events voice by voice, each chronological.
+/// pitch statistics, `runs` the voice runs of `events`. Returns the kept events voice by voice,
+/// each chronological.
 fn tie_repeats(
     events: Span<NoteEvent>,
+    runs: Span<VoiceRun>,
     picked: Span<u32>,
     sums: Span<u64>,
     counts: Span<u64>,
@@ -234,33 +218,37 @@ fn tie_repeats(
     for v in voices.span() {
         let v = *v;
         if !(tie_any && v != 0 && v != bass && v != top) {
-            for e in events {
-                if e.voice_id == v {
-                    out.append(*e);
+            for r in runs {
+                if r.voice == v {
+                    out.append_span(events.slice(r.start, r.len));
                 }
             }
             continue;
         }
         let mut prev: Option<NoteEvent> = Option::None;
-        for e in events {
-            if e.voice_id != v {
-                continue;
-            }
-            let e = *e;
-            match prev {
-                Option::Some(p) => {
-                    if p.pitch == e.pitch && p.time
-                        + p.duration == e.time && p.time
-                            / section_ticks == e.time
-                            / section_ticks && p.duration
-                        + e.duration <= 1920 && e.time % 960 != 0 {
-                        prev = Option::Some(NoteEvent { duration: p.duration + e.duration, ..p });
-                    } else {
-                        out.append(p);
-                        prev = Option::Some(e);
+        for r in runs {
+            if r.voice == v {
+                for e in events.slice(r.start, r.len) {
+                    let e = *e;
+                    match prev {
+                        Option::Some(p) => {
+                            if p.pitch == e.pitch && p.time
+                                + p.duration == e.time && p.time
+                                    / section_ticks == e.time
+                                    / section_ticks && p.duration
+                                + e.duration <= 1920 && e.time % 960 != 0 {
+                                prev =
+                                    Option::Some(
+                                        NoteEvent { duration: p.duration + e.duration, ..p },
+                                    );
+                            } else {
+                                out.append(p);
+                                prev = Option::Some(e);
+                            }
+                        },
+                        Option::None => { prev = Option::Some(e); },
                     }
-                },
-                Option::None => { prev = Option::Some(e); },
+                }
             }
         }
         if let Option::Some(p) = prev {
@@ -270,11 +258,288 @@ fn tie_repeats(
     out
 }
 
+/// The shared voice runs' statistics and the tie pass over them against the per-voice scans they
+/// replaced.
+#[cfg(test)]
+mod run_tests {
+    use core::dict::{Felt252Dict, Felt252DictTrait};
+    use crate::composition::full_midi::{voice_runs, voice_stats};
+    use crate::composition::melodic_canon::NoteEvent;
+    use super::{MAX_VOICES, contains, mean_less, tie_repeats};
+
+    /// `voice_stats` as it was: two dictionaries filled event by event.
+    fn dict_stats(events: Span<NoteEvent>) -> (Array<u64>, Array<u64>) {
+        let mut s: Felt252Dict<u64> = Default::default();
+        let mut n: Felt252Dict<u64> = Default::default();
+        for e in events {
+            let k: felt252 = e.voice_id.into();
+            s.insert(k, s.get(k) + e.pitch.into());
+            n.insert(k, n.get(k) + 1);
+        }
+        let mut sums: Array<u64> = array![];
+        let mut counts: Array<u64> = array![];
+        let mut v: u32 = 0;
+        while v < MAX_VOICES {
+            sums.append(s.get(v.into()));
+            counts.append(n.get(v.into()));
+            v += 1;
+        }
+        (sums, counts)
+    }
+
+    /// `tie_repeats` as it was: one pass over all the events per kept voice.
+    fn scan_tie_repeats(
+        events: Span<NoteEvent>,
+        picked: Span<u32>,
+        sums: Span<u64>,
+        counts: Span<u64>,
+        section_ticks: u32,
+    ) -> Array<NoteEvent> {
+        let mut voices: Array<u32> = array![];
+        let mut v: u32 = 0;
+        while v < MAX_VOICES {
+            if *counts.at(v) > 0 && contains(picked, v) {
+                voices.append(v);
+            }
+            v += 1;
+        }
+        let mut bass: u32 = *voices.at(0);
+        let mut top: u32 = *voices.at(0);
+        for v in voices.span() {
+            if mean_less(sums, counts, *v, bass) {
+                bass = *v;
+            }
+            if mean_less(sums, counts, top, *v) {
+                top = *v;
+            }
+        }
+        let tie_any = voices.len() >= 3;
+        let mut out: Array<NoteEvent> = array![];
+        for v in voices.span() {
+            let v = *v;
+            if !(tie_any && v != 0 && v != bass && v != top) {
+                for e in events {
+                    if e.voice_id == v {
+                        out.append(*e);
+                    }
+                }
+                continue;
+            }
+            let mut prev: Option<NoteEvent> = Option::None;
+            for e in events {
+                if e.voice_id != v {
+                    continue;
+                }
+                let e = *e;
+                match prev {
+                    Option::Some(p) => {
+                        if p.pitch == e.pitch && p.time
+                            + p.duration == e.time && p.time
+                                / section_ticks == e.time
+                                / section_ticks && p.duration
+                            + e.duration <= 1920 && e.time % 960 != 0 {
+                            prev =
+                                Option::Some(NoteEvent { duration: p.duration + e.duration, ..p });
+                        } else {
+                            out.append(p);
+                            prev = Option::Some(e);
+                        }
+                    },
+                    Option::None => { prev = Option::Some(e); },
+                }
+            }
+            if let Option::Some(p) = prev {
+                out.append(p);
+            }
+        }
+        out
+    }
+
+    fn next(ref seed: u64) -> u64 {
+        seed = (seed * 1103515245 + 12345) % 2147483648;
+        seed / 65536
+    }
+
+    /// `count` runs of 1..=4 events over voices 0..voices (ids from MAX_VOICES on included), each
+    /// voice chronological, the pitches few so that repeats are common and the starts
+    /// sometimes adjacent.
+    fn random_events(ref seed: u64, count: u32, voices: u64) -> Array<NoteEvent> {
+        let mut cursors: Felt252Dict<u32> = Default::default();
+        let mut events: Array<NoteEvent> = array![];
+        let mut i: u32 = 0;
+        while i < count {
+            let voice: u32 = (next(ref seed) % voices).try_into().unwrap();
+            let mut left = 1 + next(ref seed) % 4;
+            while left > 0 {
+                let r = next(ref seed);
+                let gap: u32 = if r % 8 == 0 {
+                    480
+                } else {
+                    0
+                };
+                let time = cursors.get(voice.into()) + gap;
+                let duration: u32 = (240 * (1 + (r / 8) % 4)).try_into().unwrap();
+                let pitch: u8 = (60 + (r / 32) % 2).try_into().unwrap();
+                events.append(NoteEvent { time, duration, pitch, velocity: 90, voice_id: voice });
+                cursors.insert(voice.into(), time + duration);
+                left -= 1;
+            }
+            i += 1;
+        }
+        events
+    }
+
+    fn assert_same_events(got: Span<NoteEvent>, want: Span<NoteEvent>) {
+        assert(got.len() == want.len(), 'event count');
+        let mut i: u32 = 0;
+        while i < got.len() {
+            let (g, w) = (*got.at(i), *want.at(i));
+            assert(g.time == w.time && g.duration == w.duration, 'event time');
+            assert(g.pitch == w.pitch && g.velocity == w.velocity, 'event pitch');
+            assert(g.voice_id == w.voice_id, 'event voice');
+            i += 1;
+        }
+    }
+
+    fn assert_same_stats(got: Span<u64>, want: Span<u64>) {
+        assert(got.len() == MAX_VOICES && want.len() == MAX_VOICES, 'stats length');
+        let mut v: u32 = 0;
+        while v < MAX_VOICES {
+            assert(*got.at(v) == *want.at(v), 'stats value');
+            v += 1;
+        }
+    }
+
+    /// Bit `v` of `mask`.
+    fn bit(mask: u32, v: u32) -> bool {
+        (mask / *array![1, 2, 4, 8, 16].span().at(v)) % 2 == 1
+    }
+
+    /// Cases `from..to` of 60 (all 60 are drawn in order, so a case's events do not depend on the
+    /// split; a test per range keeps each test run small).
+    fn runs_match_the_scans(from: u32, to: u32) {
+        let mut seed: u64 = 20240607;
+        let mut merged: u32 = 0;
+        let mut case: u32 = 0;
+        while case < 60 {
+            let events = random_events(ref seed, 3 + case, 1 + (case % 7).into());
+            if case < from || case >= to {
+                case += 1;
+                continue;
+            }
+            let section_ticks: u32 = *array![960, 1920, 3840].span().at(case % 3);
+            let runs = voice_runs(events.span());
+            let (sums, counts) = voice_stats(runs.span(), MAX_VOICES - 1);
+            let (want_sums, want_counts) = dict_stats(events.span());
+            assert_same_stats(sums.span(), want_sums.span());
+            assert_same_stats(counts.span(), want_counts.span());
+            // every set of kept voices, with and without the drums
+            let mut mask: u32 = 1;
+            while mask < 64 {
+                let mut picked: Array<u32> = array![];
+                let mut kept = false;
+                let mut kept_events: u64 = 0;
+                let mut v: u32 = 0;
+                while v < MAX_VOICES {
+                    if bit(mask, v) {
+                        picked.append(v);
+                        kept = kept || *counts.at(v) > 0;
+                        kept_events += *counts.at(v);
+                    }
+                    v += 1;
+                }
+                if mask >= 32 {
+                    picked.append(1000);
+                }
+                // a set with no voice in the track panics, in the same way before and after
+                if kept {
+                    let got = tie_repeats(
+                        events.span(),
+                        runs.span(),
+                        picked.span(),
+                        sums.span(),
+                        counts.span(),
+                        section_ticks,
+                    );
+                    let want = scan_tie_repeats(
+                        events.span(), picked.span(), sums.span(), counts.span(), section_ticks,
+                    );
+                    assert_same_events(got.span(), want.span());
+                    merged += (kept_events - got.len().into()).try_into().unwrap();
+                }
+                mask += 1;
+            }
+            case += 1;
+        }
+        assert(merged > 0, 'no note was tied');
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn test_runs_match_the_scans_0() {
+        runs_match_the_scans(0, 22);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn test_runs_match_the_scans_1() {
+        runs_match_the_scans(22, 33);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn test_runs_match_the_scans_2() {
+        runs_match_the_scans(33, 41);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn test_runs_match_the_scans_3() {
+        runs_match_the_scans(41, 48);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn test_runs_match_the_scans_4() {
+        runs_match_the_scans(48, 54);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn test_runs_match_the_scans_5() {
+        runs_match_the_scans(54, 60);
+    }
+
+    #[test]
+    fn test_no_events_have_no_voices() {
+        let events: Array<NoteEvent> = array![];
+        let runs = voice_runs(events.span());
+        let (sums, counts) = voice_stats(runs.span(), MAX_VOICES - 1);
+        assert_same_stats(sums.span(), array![0, 0, 0, 0, 0].span());
+        assert_same_stats(counts.span(), array![0, 0, 0, 0, 0].span());
+    }
+
+    #[test]
+    #[should_panic(expected: ('Index out of bounds',))]
+    fn test_tie_repeats_without_a_kept_voice_panics() {
+        let events: Array<NoteEvent> = array![];
+        let runs = voice_runs(events.span());
+        let (sums, counts) = voice_stats(runs.span(), MAX_VOICES - 1);
+        tie_repeats(events.span(), runs.span(), array![0].span(), sums.span(), counts.span(), 1920);
+    }
+}
+
 /// The Genesis Track MIDI (self-contained, for onchain-midi-player) of a Beast: its species' (after
 /// the default swaps), with the mega arrangement when the Beast is shiny. Species past 75 compose
 /// with their own tier and type and their own theme.
 pub fn genesis_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
-    compose(beast, 0, 0, 0, Option::None)
+    smf_bytes(SMF_FORMAT, SMF_DIVISION, genesis_tracks(beast).span())
+}
+
+/// The same file as a `ByteArray` (what `IMidiProvider::get_midi` returns), packed straight from
+/// the track bodies instead of from one copy of the whole file.
+pub fn genesis_byte_array(beast: PackableBeastV3) -> ByteArray {
+    smf_byte_array(SMF_FORMAT, SMF_DIVISION, genesis_tracks(beast).span())
 }
 
 /// A name track (the Beast Special Song): `sampleTrackMidi` at special name (prefix, suffix), seed
@@ -416,22 +681,40 @@ fn seeded_pick(sums: Span<u64>, counts: Span<u64>, count: u32, seed: felt252) ->
 }
 
 /// The Genesis Track (prefix 0, seed 0), a name track (seed 0) or a bought track (a seed).
-// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+// On purpose (CASM size): one copy of `compose_tracks` for all of them, whatever constant arguments
+// the callers pass; the Genesis Track has its own copy (`genesis_tracks`).
 #[inline(never)]
 fn compose(
     beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
 ) -> Array<u8> {
-    let named = prefix != 0;
-    let seeded = seed != 0;
-    let tm = if seeded {
-        Option::Some(treatment(seed))
-    } else {
+    smf_bytes(SMF_FORMAT, SMF_DIVISION, compose_tracks(beast, prefix, suffix, seed, drift).span())
+}
+
+/// The track bodies of the Genesis Track. The compiler emits a copy of `compose_tracks` for these
+/// constant arguments, folded to the Genesis Track, so a class that plays only that carries none of
+/// the name, bought and drift code (a class that plays the others as well holds both copies).
+fn genesis_tracks(beast: PackableBeastV3) -> Array<Array<u8>> {
+    compose_tracks(beast, 0, 0, 0, Option::None)
+}
+
+/// The track bodies of `compose`'s file.
+// On purpose (CASM size): `== 0` tests rather than `!= 0`. Const folding of a call with constant
+// arguments sees through `==` but not through `!(==)` (`bool_not`), which `!=` is, so with `!=` the
+// unreachable branches stay in the Genesis copy.
+fn compose_tracks(
+    beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
+) -> Array<Array<u8>> {
+    let unnamed = prefix == 0;
+    let unseeded = seed == 0;
+    let tm = if unseeded {
         Option::None
-    };
-    let src = if named || seeded {
-        beast.id
     } else {
+        Option::Some(treatment(seed))
+    };
+    let src = if unnamed && unseeded {
         genesis_swap(beast.id)
+    } else {
+        beast.id
     };
     let (tier, beast_type) = if src >= 1 && src <= 75 {
         (species_tier(src), species_type(src))
@@ -506,7 +789,25 @@ fn compose(
             });
         }
     }
-    let ov = if named {
+    let ov = if unnamed {
+        V11Override {
+            voice_count: Option::Some(4),
+            section_count: Option::Some(sections),
+            mode_id: Option::Some(mode),
+            tonic_keynum: Option::Some(ks.tonic_keynum),
+            register_band: Option::Some(ks.register_band),
+            ornament_density: Option::Some(pg.ornament_density),
+            name_variant_id: Option::Some(0),
+            use_countersubject: Option::Some(true),
+            scale: named_mode_scale(mode),
+            trill: Option::Some(false),
+            rhythm_seed,
+            flip_side,
+            development,
+            direction,
+            spacing,
+        }
+    } else {
         let kn = map_v3_beast_to_composition_params(PackableBeastV3 { prefix, suffix, ..g }, live);
         V11Override {
             voice_count: Option::Some(4),
@@ -525,35 +826,18 @@ fn compose(
             direction,
             spacing,
         }
-    } else {
-        V11Override {
-            voice_count: Option::Some(4),
-            section_count: Option::Some(sections),
-            mode_id: Option::Some(mode),
-            tonic_keynum: Option::Some(ks.tonic_keynum),
-            register_band: Option::Some(ks.register_band),
-            ornament_density: Option::Some(pg.ornament_density),
-            name_variant_id: Option::Some(0),
-            use_countersubject: Option::Some(true),
-            scale: named_mode_scale(mode),
-            trill: Option::Some(false),
-            rhythm_seed,
-            flip_side,
-            development,
-            direction,
-            spacing,
-        }
     };
     let scale_used = ov.scale;
     let score = build_v11_score_with(cb, live, ov);
     let p = score.params;
     // the Genesis channels, then ties in the inner voices (statistics of the full score: the kept
     // voices' are the same, since a channel is kept or dropped whole)
-    let (sums, counts) = voice_stats(score.events.span());
-    let count = if seeded {
-        seeded_channels(seed)
-    } else {
+    let runs = voice_runs(score.events.span());
+    let (sums, counts) = voice_stats(runs.span(), MAX_VOICES - 1);
+    let count = if unseeded {
         genesis_channels(tier)
+    } else {
+        seeded_channels(seed)
     };
     let rotate = match dr {
         Option::Some(d) => d.rotate,
@@ -561,13 +845,18 @@ fn compose(
     };
     let picked = if let Option::Some(r) = rotate {
         seeded_pick(sums.span(), counts.span(), count, r)
-    } else if seeded {
-        seeded_pick(sums.span(), counts.span(), count, seed)
-    } else {
+    } else if unseeded {
         genesis_pick(sums.span(), counts.span(), count)
+    } else {
+        seeded_pick(sums.span(), counts.span(), count, seed)
     };
     let mut events = tie_repeats(
-        score.events.span(), picked.span(), sums.span(), counts.span(), score.section_ticks,
+        score.events.span(),
+        runs.span(),
+        picked.span(),
+        sums.span(),
+        counts.span(),
+        score.section_ticks,
     );
     // the Yeti special on every Yeti track: ornaments by the track's profile, then the avalanche
     let yeti = src == YETI;
@@ -598,7 +887,7 @@ fn compose(
             tempo_us = nudge_tempo(tempo_us, d.delta_bpm);
         }
     }
-    beast_form_to_full_smf_bytes_arranged(
+    beast_form_to_full_tracks_arranged(
         @form,
         tempo_us,
         p.tier,
@@ -631,4 +920,34 @@ fn compose(
 /// The same, packed 31 bytes per felt after the byte length.
 pub fn genesis_midi(beast: PackableBeastV3) -> Array<felt252> {
     midi::pack::to_felt252_array(genesis_smf_bytes(beast).span())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::composition::beast_v3_sound::PackableBeastV3;
+    use super::{genesis_smf_bytes, song_smf_bytes, species_tier, species_type};
+
+    /// `genesis_smf_bytes` composes with the copy of `compose_tracks` folded to the Genesis Track,
+    /// `song_smf_bytes` with the general copy (`compose` is `#[inline(never)]`): the same file.
+    fn same_file(id: u64, tier: u8, beast_type: u8, shiny: u8) {
+        let b = PackableBeastV3 {
+            id, prefix: 0, suffix: 0, level: 50, health: 200, shiny, animated: 0, tier, beast_type,
+        };
+        assert!(
+            genesis_smf_bytes(b) == song_smf_bytes(b, 0, 0, 0, Option::None),
+            "species {} shiny {}",
+            id,
+            shiny,
+        );
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn the_genesis_copy_composes_what_the_general_copy_does() {
+        // The lightest file, a default swap (Harpy), the Yeti (shiny), a species past 75.
+        same_file(21, species_tier(21), species_type(21), 0);
+        same_file(39, species_tier(39), species_type(39), 0);
+        same_file(68, species_tier(68), species_type(68), 1);
+        same_file(76, 3, 1, 0);
+    }
 }

@@ -27,4 +27,12 @@ openzeppelin_access = "4.0.1"
 openzeppelin_upgrades = "4.0.1"
 openzeppelin_interfaces = "2.2.0"
 starknet = "2.20.1"
-cairo_test = "2.20.1"
+# Tests run on Starknet Foundry (snforge, pinned in /.tool-versions); assert_macros gives them
+# assert_eq! and friends.
+snforge_std = "=0.64.1"
+assert_macros = "2.20.1"
+
+# `scarb test` runs snforge in every package (`[scripts] test.workspace = true`). The step cap is
+# lifted: some tests and every #[ignore]d parity fixture run far past snforge's default 10M steps.
+[workspace.scripts]
+test = "snforge test --max-n-steps 4294967295"

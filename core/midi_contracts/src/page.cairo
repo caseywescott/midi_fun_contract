@@ -76,9 +76,33 @@ pub fn token_uri(members: @ByteArray, svg_b64: @ByteArray, midi: @ByteArray) -> 
 }
 
 /// Append `s` with '%' → %25 and '#' → %23 (JSON data URIs must not carry them raw).
+///
+/// Walks `s` as the 31-byte words of its serialization: a word without '%' or '#' (nearly all of
+/// them) is appended whole, a word with one is escaped byte by byte.
 fn append_escaped(ref out: ByteArray, s: @ByteArray) {
-    for i in 0..s.len() {
-        let c = s[i];
+    let mut words: Array<felt252> = array![];
+    s.serialize(ref words);
+    // [word count, words…, pending word, pending length]
+    let mut words = words.span();
+    let pending_len: usize = (*words.pop_back().unwrap()).try_into().unwrap();
+    let pending = *words.pop_back().unwrap();
+    words.pop_front().unwrap(); // the word count
+    while let Some(word) = words.pop_front() {
+        append_escaped_word(ref out, *word, 31);
+    }
+    append_escaped_word(ref out, pending, pending_len);
+}
+
+/// Append the `len` bytes of `word` (big-endian, `len` <= 31), escaping them one by one only if
+/// the word has a '%' or '#'.
+fn append_escaped_word(ref out: ByteArray, word: felt252, len: usize) {
+    if !has_escapable(word) {
+        out.append_word(word, len);
+        return;
+    }
+    let mut bytes: ByteArray = Default::default();
+    bytes.append_word(word, len);
+    for c in bytes {
         if c == '%' {
             out.append(@"%25");
         } else if c == '#' {
@@ -87,6 +111,30 @@ fn append_escaped(ref out: ByteArray, s: @ByteArray) {
             out.append_byte(c);
         }
     }
+}
+
+// 0x7f, 0x80, '%' and '#' in each of the 16 bytes of a u128.
+const LOW_7_BITS: u128 = 0x7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f;
+const HIGH_BITS: u128 = 0x80808080808080808080808080808080;
+const PERCENTS: u128 = 0x25252525252525252525252525252525;
+const HASHES: u128 = 0x23232323232323232323232323232323;
+
+/// Whether `word` has a '%' or a '#' byte. Leading zero bytes of a short word are neither.
+fn has_escapable(word: felt252) -> bool {
+    let word: u256 = word.into();
+    has_byte(word.low, PERCENTS)
+        || has_byte(word.high, PERCENTS)
+        || has_byte(word.low, HASHES)
+        || has_byte(word.high, HASHES)
+}
+
+/// Whether `v` has a byte equal to the one `repeated` holds in all of its 16 bytes.
+fn has_byte(v: u128, repeated: u128) -> bool {
+    // `x` has a zero byte where `v` has the byte. In `nonzero` the high bit of a byte is set iff
+    // that byte of `x` is nonzero (low 7 bits + 0x7f carries into the high bit, never beyond it).
+    let x = v ^ repeated;
+    let nonzero = ((x & LOW_7_BITS) + LOW_7_BITS) | x;
+    nonzero & HIGH_BITS != HIGH_BITS
 }
 
 /// The player lives in this contract's code; the provider is fixed at deploy. A new player or
@@ -131,5 +179,7 @@ pub mod MidiSoundPage {
 
 #[cfg(test)]
 mod contract_tests;
+#[cfg(test)]
+mod escape_tests;
 #[cfg(test)]
 mod tests;

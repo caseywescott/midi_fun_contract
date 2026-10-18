@@ -616,7 +616,7 @@ pub fn v3_score_midi(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<fe
 // Runs appear in emission order (section by section, voices ascending), so a run whose voice is
 // not above the previous run's voice starts a new section. Bits are MSB-first, zero-padded to a
 // byte, then packed 31 bytes per felt after a byte-length felt (`to_felt252_array`).
-// `decodeBsn` in offchain/beast-sound/src/bsn.js rebuilds the exact canonical events and MIDI bytes.
+// `decodeBsn` (offchain/beast-sound/src/bsn.js) rebuilds the exact canonical events and MIDI.
 
 pub const BSN_VERSION: u8 = 1;
 

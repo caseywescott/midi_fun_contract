@@ -24,14 +24,15 @@ const S16: u32 = 120; // a sixteenth
 
 #[derive(Copy, Drop)]
 pub struct YetiKey {
-    home: i32,
+    /// The tonic, within 24..=96.
+    home: u8,
     scale: Span<u8>,
 }
 
 /// The key the track plays: the tonic (clamped to the composer's range) and the scale (the
 /// track's real scale, else the composer's melodic one for the mode).
 pub fn yeti_key(tonic_keynum: u8, mode_id: u8, scale: Option<Span<u8>>) -> YetiKey {
-    let home: i32 = transposed_tonic(tonic_keynum, 0).into();
+    let home = transposed_tonic(tonic_keynum, 0);
     let sc = match scale {
         Option::Some(s) => s,
         Option::None => melodic_scale(mode_id),
@@ -49,19 +50,17 @@ fn melodic_scale(mode_id: u8) -> Span<u8> {
     }
 }
 
-fn floor_div7(d: i32) -> i32 {
-    if d >= 0 {
-        d / 7
-    } else {
-        -((-d + 6) / 7)
-    }
-}
+const SEVEN: NonZero<u32> = 7;
 
+/// The pitch of a degree of the key (0 is the tonic, 7 an octave up), for degrees from -35 (the
+/// callers reach -30..=43).
 fn pitch(k: YetiKey, d: i32) -> i32 {
-    let o = floor_div7(d);
-    let i: u32 = (d - 7 * o).try_into().unwrap();
-    let off: i32 = (*k.scale.at(i)).into();
-    k.home + 12 * o + off
+    // the degree shifted up five octaves, to be unsigned: its octave is `o - 5`, its scale index
+    // `i`
+    let (o, i) = DivRem::div_rem((d + 35).try_into().unwrap(), SEVEN);
+    let off: u32 = (*k.scale.at(i)).into();
+    let shifted: u32 = k.home.into() + 12 * o + off; // the pitch, shifted up five octaves
+    shifted.try_into().unwrap() - 60
 }
 
 fn abs(x: i32) -> i32 {
@@ -72,20 +71,45 @@ fn abs(x: i32) -> i32 {
     }
 }
 
+const TWELVE: NonZero<u32> = 12;
+
 /// The nearest degree to a pitch (-28..=42; ties keep the earlier best, starting from 0).
-fn degree(k: YetiKey, p: i32) -> i32 {
-    let mut best: i32 = 0;
-    let mut bd = abs(pitch(k, 0) - p);
-    let mut d: i32 = -28;
-    while d <= 42 {
-        let x = abs(pitch(k, d) - p);
-        if x < bd {
-            best = d;
-            bd = x;
+///
+/// `pitch` rises with the degree (the scale rises within its octave), so only the degree at or
+/// below the pitch and the one above it can be nearest; beyond either end of the range, the end is.
+/// Of a tie the lower wins, unless 0 is in it: the scan this replaced started from 0 and gave way
+/// only to a strictly nearer degree.
+fn degree(k: YetiKey, p: u8) -> i32 {
+    // the pitch above the tonic, shifted up eight octaves to be unsigned (the tonic is at most 96,
+    // the pitch at least 0): its octave is `q - 8`, its semitones into the octave `rem`
+    let (q, rem) = DivRem::div_rem(p.into() + 96 - k.home.into(), TWELVE);
+    // the octave's degrees at or below `rem` (the first, 0, always is), and the semitones of the
+    // nearest degree below and above it (the next octave's first, 12, when none follows)
+    let mut hi = 7 * q; // the degree above the pitch, shifted up 56
+    let mut below: u32 = 0;
+    let mut above: u32 = 12;
+    for off in k.scale {
+        let off: u32 = (*off).into();
+        if off > rem {
+            above = off;
+            break;
         }
-        d += 1;
+        below = off;
+        hi += 1;
     }
-    best
+    if hi < 29 {
+        return -28;
+    }
+    if hi >= 99 {
+        return 42;
+    }
+    let hi: i32 = hi.try_into().unwrap() - 56;
+    let (to_lo, to_hi) = (rem - below, above - rem);
+    if to_hi < to_lo || to_hi == to_lo && hi == 0 {
+        hi
+    } else {
+        hi - 1
+    }
 }
 
 fn clamp_pitch(p: i32) -> u8 {
@@ -95,6 +119,214 @@ fn clamp_pitch(p: i32) -> u8 {
         108
     } else {
         p.try_into().unwrap()
+    }
+}
+
+#[cfg(test)]
+mod degree_tests {
+    use crate::composition::genesis::named_mode_scale;
+    use super::{YetiKey, abs, degree, melodic_scale, pitch};
+
+    // The scan `degree` and `pitch` replaced, as the oracle.
+    fn floor_div7_ref(d: i32) -> i32 {
+        if d >= 0 {
+            d / 7
+        } else {
+            -((-d + 6) / 7)
+        }
+    }
+
+    fn pitch_ref(k: YetiKey, d: i32) -> i32 {
+        let o = floor_div7_ref(d);
+        let i: u32 = (d - 7 * o).try_into().unwrap();
+        let off: i32 = (*k.scale.at(i)).into();
+        let home: i32 = k.home.into();
+        home + 12 * o + off
+    }
+
+    fn degree_ref(k: YetiKey, p: i32) -> i32 {
+        let mut best: i32 = 0;
+        let mut bd = abs(pitch_ref(k, 0) - p);
+        let mut d: i32 = -28;
+        while d <= 42 {
+            let x = abs(pitch_ref(k, d) - p);
+            if x < bd {
+                best = d;
+                bd = x;
+            }
+            d += 1;
+        }
+        best
+    }
+
+    /// Every scale a `YetiKey` can hold: `melodic_scale` and `named_mode_scale` for every mode.
+    fn scales() -> Array<Span<u8>> {
+        let mut all: Array<Span<u8>> = array![];
+        let mut mode: u8 = 0;
+        loop {
+            let mut found = array![melodic_scale(mode)];
+            if let Option::Some(named) = named_mode_scale(mode) {
+                found.append(named);
+            }
+            for sc in found {
+                let mut known = false;
+                for other in all.span() {
+                    if *other == sc {
+                        known = true;
+                    }
+                }
+                if !known {
+                    all.append(sc);
+                }
+            }
+            if mode == 255 {
+                break;
+            }
+            mode += 1;
+        }
+        all
+    }
+
+    #[test]
+    #[available_gas(1000000000000)]
+    fn scales_rise_within_an_octave() {
+        let all = scales();
+        // the other tests loop over these: this count flags a scale added to the composer
+        assert_eq!(all.len(), 6);
+        for sc in all {
+            assert_eq!(sc.len(), 7);
+            assert_eq!(*sc.at(0), 0);
+            assert!(*sc.at(6) < 12);
+            let mut i = 1;
+            while i < 7 {
+                assert!(*sc.at(i - 1) < *sc.at(i));
+                i += 1;
+            }
+        }
+    }
+
+    /// The callers' degrees are -28..=42 from `degree`, one or two steps off it.
+    #[test]
+    #[available_gas(1000000000000)]
+    fn pitch_matches_the_original() {
+        for sc in scales() {
+            let mut home: u8 = 24;
+            while home <= 96 {
+                let k = YetiKey { home, scale: sc };
+                let mut d: i32 = -35;
+                while d <= 49 {
+                    assert_eq!(pitch(k, d), pitch_ref(k, d));
+                    d += 1;
+                }
+                home += 1;
+            }
+        }
+    }
+
+    /// `degree_ref` shifts with the home (`pitch_ref` is `home` plus a function of the degree), so
+    /// its answers at home 0 for the pitches -96..=231 (the u8 pitches at the homes 24..=96) are
+    /// its answers at every home: `degree` equals them for every key and every pitch.
+    #[test]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_at_every_home() {
+        for sc in scales() {
+            let mut want: Array<i32> = array![];
+            let mut rel: i32 = -96;
+            while rel <= 231 {
+                want.append(degree_ref(YetiKey { home: 0, scale: sc }, rel));
+                rel += 1;
+            }
+            let mut home: u8 = 24;
+            while home <= 96 {
+                let k = YetiKey { home, scale: sc };
+                let mut p: u32 = 0;
+                while p <= 255 {
+                    assert_eq!(degree(k, p.try_into().unwrap()), *want.at(p + 96 - home.into()));
+                    p += 1;
+                }
+                home += 1;
+            }
+        }
+    }
+
+    /// The shift above checked directly, at the lowest, highest and a middle home.
+    #[test]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_at_the_ends_and_middle() {
+        for sc in scales() {
+            for home in array![24, 60, 96] {
+                let k = YetiKey { home, scale: sc };
+                let mut p: u8 = 0;
+                loop {
+                    assert_eq!(degree(k, p), degree_ref(k, p.into()));
+                    if p == 255 {
+                        break;
+                    }
+                    p += 1;
+                }
+            }
+        }
+    }
+
+    /// Every home against the scan itself, for one scale (about 40 s): the two tests above,
+    /// unshortcut. A run keeps what it allocates, so one test per scale.
+    fn degree_matches_the_scan_unshortcut(scale: usize) {
+        let sc = *scales().at(scale);
+        let mut home: u8 = 24;
+        while home <= 96 {
+            let k = YetiKey { home, scale: sc };
+            let mut p: u8 = 0;
+            loop {
+                assert_eq!(degree(k, p), degree_ref(k, p.into()));
+                if p == 255 {
+                    break;
+                }
+                p += 1;
+            }
+            home += 1;
+        }
+    }
+
+    #[test]
+    #[ignore]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_unshortcut_0() {
+        degree_matches_the_scan_unshortcut(0);
+    }
+
+    #[test]
+    #[ignore]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_unshortcut_1() {
+        degree_matches_the_scan_unshortcut(1);
+    }
+
+    #[test]
+    #[ignore]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_unshortcut_2() {
+        degree_matches_the_scan_unshortcut(2);
+    }
+
+    #[test]
+    #[ignore]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_unshortcut_3() {
+        degree_matches_the_scan_unshortcut(3);
+    }
+
+    #[test]
+    #[ignore]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_unshortcut_4() {
+        degree_matches_the_scan_unshortcut(4);
+    }
+
+    #[test]
+    #[ignore]
+    #[available_gas(1000000000000)]
+    fn degree_matches_the_scan_unshortcut_5() {
+        degree_matches_the_scan_unshortcut(5);
     }
 }
 
@@ -409,7 +641,7 @@ pub fn yeti_ornaments(
         if pick.get(j.into()) {
             let e = note_at(events, idx, j);
             let p: i32 = e.pitch.into();
-            let d = degree(key, p);
+            let d = degree(key, e.pitch);
             let up = pitch(key, d + 1);
             let down = pitch(key, d - 1);
             let vel: u8 = if e.velocity > 13 {
@@ -419,7 +651,7 @@ pub fn yeti_ornaments(
             };
             let can_run = if j + 1 < n {
                 let nx = note_at(events, idx, j + 1);
-                nx.time == e.time + e.duration && abs(degree(key, nx.pitch.into()) - d) >= 2
+                nx.time == e.time + e.duration && abs(degree(key, nx.pitch) - d) >= 2
             } else {
                 false
             };
@@ -431,7 +663,7 @@ pub fn yeti_ornaments(
                 f = UPPER;
             }
             let fig: Array<Seg> = if f == RUN {
-                let nd = degree(key, note_at(events, idx, j + 1).pitch.into());
+                let nd = degree(key, note_at(events, idx, j + 1).pitch);
                 let dir: i32 = if nd > d {
                     1
                 } else {

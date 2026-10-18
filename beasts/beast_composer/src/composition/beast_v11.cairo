@@ -823,25 +823,56 @@ fn place(
     prev = Option::Some(e);
 }
 
+/// `pcs[i]`, or 12, which no pitch class equals, past the end.
+fn class_at(pcs: Span<u8>, i: u32) -> u32 {
+    match pcs.get(i) {
+        Option::Some(pc) => (*pc.unbox()).into(),
+        Option::None => 12,
+    }
+}
+
+/// Whether `pc` is one of `pcs`.
+fn has_class(pcs: Span<u8>, pc: u32) -> bool {
+    for x in pcs {
+        if (*x).into() == pc {
+            return true;
+        }
+    }
+    false
+}
+
 /// Pitches within 9 semitones of `from` whose pitch class is in `pcs`, scored by distance.
+///
+/// Walks the window upwards in u32, counting the pitch class `pc` along (a signed `%` and a scan
+/// of `pcs` for every pitch cost most). A pitch is compared with the first three classes of
+/// `pcs` (a chord has one or three), and only a longer `pcs` is searched.
 fn dominant(from: u8, pcs: Span<u8>) -> Array<(i32, u8)> {
     let mut c: Array<(i32, u8)> = array![];
-    let f: i32 = from.into();
-    let mut m = f - 9;
-    while m <= f + 9 {
-        if m >= 0 {
-            let pc: u8 = (m % 12).try_into().unwrap();
-            let mut hit = false;
-            for x in pcs {
-                if *x == pc {
-                    hit = true;
-                    break;
-                }
-            }
-            if hit {
-                c.append((3 * abs_i32(m - f), m.try_into().unwrap()));
-            }
+    let f: u32 = from.into();
+    // from f - 9 (or 0, as no pitch is negative) to f + 9
+    let mut m = if f > 9 {
+        f - 9
+    } else {
+        0
+    };
+    let end = f + 10;
+    let mut pc = m % 12;
+    let (first, second, third) = (class_at(pcs, 0), class_at(pcs, 1), class_at(pcs, 2));
+    let more = pcs.len() > 3;
+    while m != end {
+        if pc == first || pc == second || pc == third || (more && has_class(pcs, pc)) {
+            let distance = if m > f {
+                m - f
+            } else {
+                f - m
+            };
+            c.append(((3 * distance).try_into().unwrap(), m.try_into().unwrap()));
         }
+        pc = if pc == 11 {
+            0
+        } else {
+            pc + 1
+        };
         m += 1;
     }
     if c.len() == 0 {
@@ -918,7 +949,7 @@ fn episode(
     // 2. sequence: the head motif, a step further each bar
     let mut k: u32 = 1;
     while k <= seq_bars {
-        let ki: i32 = k.try_into().unwrap();
+        let shift = dir * k.try_into().unwrap();
         for h in head {
             place(
                 ref out,
@@ -927,7 +958,7 @@ fn episode(
                 ref prev,
                 t + h.time,
                 h.duration,
-                near(r, m, h.degree + dir * ki).span(),
+                near(r, m, h.degree + shift).span(),
                 voice,
             );
         }
@@ -2482,5 +2513,92 @@ mod shape_tests {
         let mut events: Array<NoteEvent> = array![];
         shape(ref events, @score.params, score.section_ticks, 1);
         assert(events.is_empty(), 'no events');
+    }
+}
+
+/// `dominant` against the original: the window walked in i32, a pitch class by `%` and a scan of
+/// `pcs` for every pitch.
+#[cfg(test)]
+mod dominant_tests {
+    use super::{abs_i32, dominant};
+
+    fn reference(from: u8, pcs: Span<u8>) -> Array<(i32, u8)> {
+        let mut c: Array<(i32, u8)> = array![];
+        let f: i32 = from.into();
+        let mut m = f - 9;
+        while m <= f + 9 {
+            if m >= 0 {
+                let pc: u8 = (m % 12).try_into().unwrap();
+                let mut hit = false;
+                for x in pcs {
+                    if *x == pc {
+                        hit = true;
+                        break;
+                    }
+                }
+                if hit {
+                    c.append((3 * abs_i32(m - f), m.try_into().unwrap()));
+                }
+            }
+            m += 1;
+        }
+        if c.len() == 0 {
+            c.append((0, from));
+        }
+        c
+    }
+
+    /// Chords as the composer builds them (one class, three), and the shapes it does not: none,
+    /// two, repeats, classes that are no pitch class, and more than three.
+    fn class_sets() -> Array<Array<u8>> {
+        array![
+            array![], array![7], array![0], array![11], array![7, 11, 2], array![0, 4, 7],
+            array![11, 0, 1], array![5, 9], array![5, 5, 9], array![3, 3, 3], array![12],
+            array![200, 7], array![255, 3, 3, 3, 4], array![1, 2, 3, 4], array![0, 0, 0, 0, 9],
+            array![10, 11, 12, 13, 14, 8], array![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+        ]
+    }
+
+    /// Whether a pitch above 255 is a hit, which panics.
+    fn reaches_past_255(from: u8, pcs: Span<u8>) -> bool {
+        let mut m: u32 = 256;
+        let mut reaches = false;
+        while m <= from.into() + 9 {
+            for x in pcs {
+                if (*x).into() == m % 12 {
+                    reaches = true;
+                }
+            }
+            m += 1;
+        }
+        reaches
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn dominant_is_the_original() {
+        let sets = class_sets();
+        let mut n: u32 = 0;
+        while n < 256 {
+            let from: u8 = n.try_into().unwrap();
+            for pcs in sets.span() {
+                if !reaches_past_255(from, pcs.span()) {
+                    assert!(dominant(from, pcs.span()) == reference(from, pcs.span()));
+                }
+            }
+            n += 1;
+        }
+    }
+
+    #[test]
+    #[should_panic(expected: ('Option::unwrap failed.',))]
+    fn a_pitch_above_255_panics() {
+        dominant(255, array![4_u8].span());
+    }
+
+    #[test]
+    #[should_panic(expected: ('Option::unwrap failed.',))]
+    fn the_original_panics_there_too() {
+        reference(255, array![4_u8].span());
     }
 }

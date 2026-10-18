@@ -33,3 +33,12 @@ result; with unchanged sources, they reproduce the committed files byte for byte
 | `core/midi_contracts/src/page/page_data.cairo` | `node onchain/build.mjs` (needs `npx esbuild`) |
 | `core/midi_contracts/src/page/tests.cairo` | `node onchain/golden.mjs` |
 | `beasts/beast_contracts/src/synth_settings.cairo` | `node onchain/tinychip/synth_settings.mjs --cairo` |
+
+## Gas benchmark
+
+`bench/` (its own Scarb workspace, snforge 0.64.0) runs every production entry point it measures
+from the classes `scarb build` makes, and checks each call's whole output: the Genesis Tracks
+against the JS engine (`genesisMidi`), everything else against the outputs frozen at the baseline.
+A change that alters any output fails the bench instead of reporting a saving. Commands and the
+meaning of each number are in `bench/README.md`; `bench/snapshots/baseline-*.json` are the
+committed captures to compare against.

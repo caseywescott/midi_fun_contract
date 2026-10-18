@@ -105,10 +105,27 @@ Needs Cairo 2.20 (scarb 2.20.1, the root `.tool-versions`), as onchain-midi-play
 repository root (artifacts land in the workspace `target/dev`, named `beast_contracts_<Contract>`):
 
 ```bash
-scarb build -p beast_contracts   # BeastMidiProvider: Sierra 40,015 felts, CASM 79,526 (Starknet limit 81,920)
+scarb build -p beast_contracts   # BeastMidiProvider: Sierra 35,948 felts, CASM 72,402 (Starknet limit 81,920)
 scarb test -p beast_contracts    # provider vs v11_score_full_midi on mock NFT + Death Mountain, sources,
                                  # rejections, get_sound, and onchain-midi-player's validate on the settings
 ```
+
+## BeastMidiProvider gas (`bench/`)
+
+L2 (Sierra) gas of one call, nested calls included, from `bench/snapshots/baseline-bdfc78f.json`
+(snforge 0.64.0 on the classes `scarb build` makes; mock NFT and Death Mountain; no transaction
+overhead):
+
+| Call | Gas |
+|---|---:|
+| `get_midi`, the 150 Genesis Tracks (every species, normal and shiny) | 61.2M–164.1M, median 110.3M |
+| `get_midi`, lightest (#21) / heaviest (#28 shiny) | 61.2M / 164.1M |
+| `get_sound` | 0.58–0.71M more than `get_midi` |
+| `get_settings` | 0.57–0.74M |
+| `get_live_state` | 0.50–0.82M |
+
+`python3 bench/scripts/gas_bench.py run` remeasures them; the tables below are earlier devnet
+measurements of the v1.1 live-state path.
 
 ## BeastMidiProvider cost (starknet-devnet 0.10.2, 2 Oct 2026)
 

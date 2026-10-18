@@ -19,7 +19,7 @@ from there), universal-sierra-compiler (snforge's own), node 20+ with `npm insta
 python3 bench/scripts/gas_bench.py run --out bench/snapshots/candidate.json
 
 # compare it with the baseline (plain text, or --markdown; --fail-on-regression exits 3)
-python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-2ce04a9.json \
+python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-bdfc78f.json \
     bench/snapshots/candidate.json --markdown
 
 # run some bench tests with the pinned tools, no snapshot (e.g. after a change, or to see
@@ -244,4 +244,5 @@ baseline snapshot, since `compare` refuses different case sets.
 | `expected/frozen.json` | the baseline's outputs (`gas_bench.py freeze`) |
 | `scripts/gen_expected.mjs` | the matrix and the expected-table generator |
 | `scripts/gas_bench.py` | run, compare, test, freeze |
-| `snapshots/baseline-2ce04a9.json` | the baseline snapshot |
+| `snapshots/baseline-bdfc78f.json` | the current baseline: the classes after the gas work |
+| `snapshots/baseline-2ce04a9.json` | the classes before it (`2ce04a9`, where the bench was frozen) |

@@ -46,12 +46,28 @@ scarb fmt --check
 
 `TESTING.md` covers the `#[ignore]`d parity fixtures and the generated Cairo files.
 
+### Gas
+
+`bench/` measures the per-call L2 gas of the four contract classes over 286 fixed cases (every
+species' Genesis Track, the sound page, the composer views, library probes), each checked against
+the expected output, plus their CASM and Sierra sizes:
+
+```bash
+npm install --prefix offchain/beast-sound   # once: the expected table is checked with the JS engine
+python3 bench/scripts/gas_bench.py run --out bench/snapshots/candidate.json
+python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-bdfc78f.json \
+    bench/snapshots/candidate.json --markdown
+```
+
+It is its own Scarb workspace (snforge 0.64.0, `bench/.tool-versions`); see `bench/README.md`.
+
 ## Outside the workspace
 
 - `offchain/beast-sound/`: the JS Beast Sound engine (`beast-sound`), the TinySynth sound page
   sources and the generators of `core/midi_contracts/src/page/page_data.cairo`, its golden tests and
   `beasts/beast_contracts/src/synth_settings.cairo`.
 - `scripts/*parity*`: compare the Cairo composer with the JS engine.
+- `bench/`: the gas benchmark (its own Scarb workspace, above).
 - `docs/beasts/`: the Beast Sound composition guide.
 
 The `koji` music library, its tooling and research, Beast Engine v2 and the old browser simulator

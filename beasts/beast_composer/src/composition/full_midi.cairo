@@ -10,8 +10,7 @@
 //! into every section by tier (A tier 5, B tier 4, C tier 3, D tiers 1-2 with a cymbal on each
 //! section's downbeat). Drum hits are note-ons only (one-shots), written with running status.
 
-use core::dict::{Felt252Dict, Felt252DictTrait};
-use midi::smf::{TrackWriterTrait, smf_bytes};
+use midi::smf::{TrackWriter, TrackWriterTrait, smf_bytes};
 use crate::composition::beast_score::BeastForm;
 use crate::composition::melodic_canon::NoteEvent;
 use crate::composition::yeti::rock_drum_track;
@@ -20,54 +19,134 @@ use crate::composition::yeti::rock_drum_track;
 /// and its orchestration are chosen.
 pub const VOICE_PROGRAM: u8 = 0;
 
+/// A maximal stretch of consecutive events of one voice: `events[start..start + len]` and the sum
+/// of their pitches.
+#[derive(Copy, Drop)]
+struct VoiceRun {
+    voice: u32,
+    start: u32,
+    len: u32,
+    pitch_sum: u64,
+}
+
+/// The voice runs of `events`, in event order, from one pass. Events may come in any order (the
+/// Genesis path voice by voice, v1.1 section by section), so a voice can have several runs; reading
+/// a voice's runs in order reads its events in their original order.
+fn voice_runs(events: Span<NoteEvent>) -> Array<VoiceRun> {
+    let mut runs: Array<VoiceRun> = array![];
+    let mut voice: u32 = 0;
+    // felts, so no overflow checks per event, converted once per run (they fit: at most
+    // events.len() events, of pitch at most 255)
+    let mut start: felt252 = 0;
+    let mut end: felt252 = 0;
+    let mut pitch_sum: felt252 = 0;
+    for e in events {
+        if e.voice_id != voice {
+            // the run before it (none yet if the first event is not voice 0)
+            if end != start {
+                runs.append(voice_run(voice, start, end, pitch_sum));
+            }
+            voice = e.voice_id;
+            start = end;
+            pitch_sum = 0;
+        }
+        pitch_sum += e.pitch.into();
+        end += 1;
+    }
+    if end != start {
+        runs.append(voice_run(voice, start, end, pitch_sum));
+    }
+    runs
+}
+
+/// The run of `voice` over the events `start..end`.
+fn voice_run(voice: u32, start: felt252, end: felt252, pitch_sum: felt252) -> VoiceRun {
+    VoiceRun {
+        voice,
+        start: start.try_into().unwrap(),
+        len: (end - start).try_into().unwrap(),
+        pitch_sum: pitch_sum.try_into().unwrap(),
+    }
+}
+
+/// The highest voice id of the runs (0 when there are none).
+fn max_voice_of(runs: Span<VoiceRun>) -> u32 {
+    let mut max_voice: u32 = 0;
+    for r in runs {
+        if r.voice > max_voice {
+            max_voice = r.voice;
+        }
+    }
+    max_voice
+}
+
+/// The pitch sum and the event count of every voice id 0..=max_voice.
+fn voice_stats(runs: Span<VoiceRun>, max_voice: u32) -> (Array<u64>, Array<u64>) {
+    let mut sums: Array<u64> = array![];
+    let mut counts: Array<u64> = array![];
+    let mut v: u32 = 0;
+    while v <= max_voice {
+        let mut sum: u64 = 0;
+        let mut n: u64 = 0;
+        for r in runs {
+            if r.voice == v {
+                sum += r.pitch_sum;
+                n += r.len.into();
+            }
+        }
+        sums.append(sum);
+        counts.append(n);
+        v += 1;
+    }
+    (sums, counts)
+}
+
+/// `VOICE_PROGRAM` for every voice id 0..=max_voice.
+fn plain_programs(max_voice: u32) -> Array<u8> {
+    let mut programs: Array<u8> = array![];
+    let mut v: u32 = 0;
+    while v <= max_voice {
+        programs.append(VOICE_PROGRAM);
+        v += 1;
+    }
+    programs
+}
+
+/// The pan of every voice id (one per count): the voices with events panned left to right in voice
+/// order, the others 64.
+fn voice_pans(counts: Span<u64>) -> Array<u8> {
+    let mut nv: u32 = 0;
+    for n in counts {
+        if *n > 0 {
+            nv += 1;
+        }
+    }
+    // pan across the present voices in voice order: floor((960 (n-1) + 10880 i) / (100 (n-1)))
+    let mut pans: Array<u8> = array![];
+    let mut i: u32 = 0;
+    for n in counts {
+        if *n > 0 {
+            let pan: u32 = if nv < 2 {
+                64
+            } else {
+                (960 * (nv - 1) + 10880 * i) / (100 * (nv - 1))
+            };
+            pans.append(pan.try_into().unwrap());
+            i += 1;
+        } else {
+            pans.append(64);
+        }
+    }
+    pans
+}
+
 /// (programs, pans) indexed by voice id 0..=max voice: every voice on `VOICE_PROGRAM`, the present
 /// voices panned left to right in voice order (absent voices get 64).
 pub fn voice_setup(form: @BeastForm) -> (Array<u8>, Array<u8>) {
-    let events = form.events.span();
-    let mut max_voice: u32 = 0;
-    for e in events {
-        if e.voice_id > max_voice {
-            max_voice = e.voice_id;
-        }
-    }
-    let mut present: Felt252Dict<bool> = Default::default();
-    for e in events {
-        present.insert(e.voice_id.into(), true);
-    }
-    let mut ids: Array<u32> = array![];
-    let mut v: u32 = 0;
-    while v <= max_voice {
-        if present.get(v.into()) {
-            ids.append(v);
-        }
-        v += 1;
-    }
-    // pan across the present voices in voice order: floor((960 (n-1) + 10880 i) / (100 (n-1)))
-    let mut pans: Felt252Dict<u8> = Default::default();
-    let nv = ids.len();
-    let mut i: u32 = 0;
-    while i < nv {
-        let pan: u32 = if nv < 2 {
-            64
-        } else {
-            (960 * (nv - 1) + 10880 * i) / (100 * (nv - 1))
-        };
-        pans.insert((*ids.at(i)).into(), pan.try_into().unwrap());
-        i += 1;
-    }
-    let mut out_p: Array<u8> = array![];
-    let mut out_pan: Array<u8> = array![];
-    let mut v: u32 = 0;
-    while v <= max_voice {
-        out_p.append(VOICE_PROGRAM);
-        out_pan.append(if present.get(v.into()) {
-            pans.get(v.into())
-        } else {
-            64
-        });
-        v += 1;
-    }
-    (out_p, out_pan)
+    let runs = voice_runs(form.events.span());
+    let max_voice = max_voice_of(runs.span());
+    let (_, counts) = voice_stats(runs.span(), max_voice);
+    (plain_programs(max_voice), voice_pans(counts.span()))
 }
 
 /// The fill for a tier: 0 A (tier 5), 1 B (tier 4), 2 C (tier 3), 3 D (tiers 1-2).
@@ -246,6 +325,13 @@ pub struct Voicing {
 pub fn beast_voice_programs(
     events: Span<NoteEvent>, max_voice: u32, voicing: Voicing,
 ) -> Array<u8> {
+    let (sums, counts) = voice_stats(voice_runs(events).span(), max_voice);
+    voice_programs(sums.span(), counts.span(), voicing)
+}
+
+/// `beast_voice_programs` from the voices' pitch sums and event counts (one per voice id 0..=max).
+fn voice_programs(sums: Span<u64>, counts: Span<u64>, voicing: Voicing) -> Array<u8> {
+    let max_voice = counts.len() - 1;
     let leads = family_leads(voicing.beast_type).span();
     let plucks = family_plucks(voicing.beast_type).span();
     let lead: u32 = (voicing.species_id % 3).try_into().unwrap();
@@ -255,92 +341,48 @@ pub fn beast_voice_programs(
     } else {
         0xFFFFFFFF
     };
-    let mut sums: Array<u64> = array![];
-    let mut counts: Array<u64> = array![];
-    let mut v: u32 = 0;
-    while v <= max_voice {
-        let mut sum: u64 = 0;
-        let mut n: u64 = 0;
-        for e in events {
-            if e.voice_id == v {
-                sum += e.pitch.into();
-                n += 1;
-            }
-        }
-        sums.append(sum);
-        counts.append(n);
-        v += 1;
-    }
-    // the followers, lowest mean pitch first (insertion order by voice id breaks ties)
-    let mut followers: Array<u32> = array![];
-    let mut v: u32 = 1;
-    while v <= max_voice {
-        if v != cs && *counts.at(v) > 0 {
-            followers.append(v);
-        }
-        v += 1;
-    }
-    let mut sorted: Array<u32> = array![];
-    let mut placed: Felt252Dict<bool> = Default::default();
-    let nf = followers.len();
-    let mut k: u32 = 0;
-    while k < nf {
-        let mut best: u32 = 0;
-        let mut have = false;
-        for f in followers.span() {
-            let f = *f;
-            if placed.get(f.into()) {
-                continue;
-            }
-            if !have {
-                best = f;
-                have = true;
-            } else {
-                let lhs = *sums.at(f) * *counts.at(best);
-                let rhs = *sums.at(best) * *counts.at(f);
-                if lhs < rhs || (lhs == rhs && f < best) {
-                    best = f;
-                }
-            }
-        }
-        placed.insert(best.into(), true);
-        sorted.append(best);
-        k += 1;
-    }
-    let mut programs: Felt252Dict<u8> = Default::default();
-    let mut assigned: Felt252Dict<bool> = Default::default();
-    programs.insert(0, *leads.at(lead));
-    assigned.insert(0, true);
-    if voicing.use_countersubject && cs <= max_voice && *counts.at(cs) > 0 {
-        let pick = (lead + 1 + if name_odd {
-            1
-        } else {
-            0
-        }) % 3;
-        programs.insert(cs.into(), *leads.at(pick));
-        assigned.insert(cs.into(), true);
-    }
-    let mut i: u32 = 0;
-    for f in sorted.span() {
-        let prog = if i == 0 {
-            *plucks.at(0)
-        } else if (i == 1) != name_odd {
-            *plucks.at(1)
-        } else {
-            *plucks.at(2)
-        };
-        programs.insert((*f).into(), prog);
-        assigned.insert((*f).into(), true);
-        i += 1;
-    }
+    // the countersubject takes another family lead, if it has notes
+    let cs_pick = (lead + 1 + if name_odd {
+        1
+    } else {
+        0
+    }) % 3;
+    let has_cs = voicing.use_countersubject && cs <= max_voice && *counts.at(cs) > 0;
     let mut out: Array<u8> = array![];
     let mut v: u32 = 0;
     while v <= max_voice {
-        out.append(if assigned.get(v.into()) {
-            programs.get(v.into())
-        } else {
-            VOICE_PROGRAM
-        });
+        out
+            .append(
+                if v != 0 && v != cs && *counts.at(v) > 0 {
+                    // a follower: its rank among the followers, lowest mean pitch first (the lower
+                    // voice id breaks ties)
+                    let mut rank: u32 = 0;
+                    let mut u: u32 = 1;
+                    while u <= max_voice {
+                        if u != v && u != cs && *counts.at(u) > 0 {
+                            let lhs = *sums.at(u) * *counts.at(v);
+                            let rhs = *sums.at(v) * *counts.at(u);
+                            if lhs < rhs || (lhs == rhs && u < v) {
+                                rank += 1;
+                            }
+                        }
+                        u += 1;
+                    }
+                    if rank == 0 {
+                        *plucks.at(0)
+                    } else if (rank == 1) != name_odd {
+                        *plucks.at(1)
+                    } else {
+                        *plucks.at(2)
+                    }
+                } else if has_cs && v == cs {
+                    *leads.at(cs_pick)
+                } else if v == 0 {
+                    *leads.at(lead)
+                } else {
+                    VOICE_PROGRAM
+                },
+            );
         v += 1;
     }
     out
@@ -378,6 +420,16 @@ pub struct Arrangement {
 const PLUCK_ABOVE_BASS_BP: [u32; 13] = [
     10000, 9670, 9350, 9042, 8743, 8454, 8175, 7905, 7644, 7392, 7148, 6912, 6683,
 ];
+
+/// Each note of `notes` as a note on and a note off (velocity 64) on channel `ch`. Written as
+/// messages with note_on's and note_off's status bytes: `ch` is below 16, so they need no
+/// `channel % 16` per note.
+fn write_notes(ref track: TrackWriter, ch: u8, notes: Span<NoteEvent>) {
+    for e in notes {
+        track.message(e.time, 0x90 + ch, e.pitch, e.velocity);
+        track.message(e.time + e.duration, 0x80 + ch, e.pitch, 64);
+    }
+}
 
 /// The whole self-contained file: tempo track (End-of-Track at the form length), one track per
 /// voice (program and pan at tick 0, then the notes), and the drum track. `mega` (the Beast's shiny
@@ -440,12 +492,15 @@ pub fn beast_form_to_full_tracks_arranged(
     arr: Arrangement,
 ) -> Array<Array<u8>> {
     let events = form.events.span();
-    let (placeholder, base_pans) = voice_setup(form);
-    let max_voice: u32 = placeholder.len() - 1;
+    // the per-voice statistics (and where each voice's events are), from one pass over the events
+    let runs = voice_runs(events);
+    let max_voice = max_voice_of(runs.span());
+    let (sums, counts) = voice_stats(runs.span(), max_voice);
+    let base_pans = voice_pans(counts.span());
     // instruments by Beast, or VOICE_PROGRAM on every voice
     let mut base_programs = match voicing {
-        Option::Some(vc) => beast_voice_programs(events, max_voice, vc),
-        Option::None => placeholder,
+        Option::Some(vc) => voice_programs(sums.span(), counts.span(), vc),
+        Option::None => plain_programs(max_voice),
     };
     let extra_voice: u32 = match arr.extra {
         Option::Some((
@@ -488,20 +543,10 @@ pub fn beast_form_to_full_tracks_arranged(
     let mut lead_sum: u64 = 0;
     let mut lead_n: u64 = 0;
     let mut found = false;
-    let mut sums: Array<u64> = array![];
-    let mut counts: Array<u64> = array![];
     let mut v: u32 = 0;
     while v <= max_voice {
-        let mut sum: u64 = 0;
-        let mut n: u64 = 0;
-        for e in events {
-            if e.voice_id == v {
-                sum += e.pitch.into();
-                n += 1;
-            }
-        }
-        sums.append(sum);
-        counts.append(n);
+        let sum = *sums.at(v);
+        let n = *counts.at(v);
         if n > 0 && v != extra_voice && (!found || sum * lead_n >= lead_sum * n) {
             lead = v;
             lead_sum = sum;
@@ -568,23 +613,28 @@ pub fn beast_form_to_full_tracks_arranged(
         } else {
             (128 - lp).try_into().unwrap()
         });
-        for e in events {
-            if e.voice_id == lead && e.pitch + 12 <= 127 {
-                let vel: u32 = e.velocity.into() * 3 / 4;
-                doubled
-                    .append(
-                        NoteEvent {
-                            time: e.time,
-                            duration: e.duration,
-                            pitch: e.pitch + 12,
-                            velocity: if vel < 1 {
-                                1
-                            } else {
-                                vel.try_into().unwrap()
+        for r in runs.span() {
+            if r.voice != lead {
+                continue;
+            }
+            for e in events.slice(r.start, r.len) {
+                if e.pitch + 12 <= 127 {
+                    let vel: u32 = e.velocity.into() * 3 / 4;
+                    doubled
+                        .append(
+                            NoteEvent {
+                                time: e.time,
+                                duration: e.duration,
+                                pitch: e.pitch + 12,
+                                velocity: if vel < 1 {
+                                    1
+                                } else {
+                                    vel.try_into().unwrap()
+                                },
+                                voice_id: dbl,
                             },
-                            voice_id: dbl,
-                        },
-                    );
+                        );
+                }
             }
         }
     }
@@ -660,16 +710,15 @@ pub fn beast_form_to_full_tracks_arranged(
             track.control(0, ch, 7, *vols.at(v));
         }
         let mut any = false;
-        let source = if v == dbl {
-            doubled.span()
+        if v == dbl {
+            any = doubled.len() > 0;
+            write_notes(ref track, ch, doubled.span());
         } else {
-            events
-        };
-        for e in source {
-            if e.voice_id == v {
-                any = true;
-                track.note_on(e.time, ch, e.pitch, e.velocity);
-                track.note_off(e.time + e.duration, ch, e.pitch, 64);
+            for r in runs.span() {
+                if r.voice == v {
+                    any = true;
+                    write_notes(ref track, ch, events.slice(r.start, r.len));
+                }
             }
         }
         if any {
@@ -689,4 +738,136 @@ pub fn beast_form_to_full_tracks_arranged(
     }
 
     tracks
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::composition::beast_score::BeastForm;
+    use crate::composition::melodic_canon::NoteEvent;
+    use super::{
+        Arrangement, Voicing, beast_form_to_full_smf_bytes, beast_form_to_full_smf_bytes_arranged,
+        beast_voice_programs, voice_setup,
+    };
+
+    fn note(voice: u32, k: u32, pitch: u8) -> NoteEvent {
+        NoteEvent { time: k * 480, duration: 240, pitch, velocity: 90, voice_id: voice }
+    }
+
+    fn form(events: Array<NoteEvent>) -> BeastForm {
+        BeastForm { events, score_hash: 0, section_count: 1, length_ticks: 3840 }
+    }
+
+    fn voicing(beast_type: u8, species_id: u64, name_variant_id: u32, voice_count: u32) -> Voicing {
+        Voicing { beast_type, species_id, name_variant_id, voice_count, use_countersubject: true }
+    }
+
+    #[test]
+    fn voice_setup_pans_the_present_voices_left_to_right() {
+        let (programs, pans) = voice_setup(
+            @form(array![note(0, 0, 60), note(2, 0, 50), note(3, 0, 40)]),
+        );
+        assert_eq!(programs, array![0, 0, 0, 0]);
+        assert_eq!(pans, array![9, 64, 64, 118]);
+        let (_, pans) = voice_setup(@form(array![note(0, 0, 60), note(1, 0, 50)]));
+        assert_eq!(pans, array![9, 118]);
+        let (programs, pans) = voice_setup(@form(array![note(1, 0, 50)]));
+        assert_eq!(programs, array![0, 0]);
+        assert_eq!(pans, array![64, 64]);
+        let (programs, pans) = voice_setup(@form(array![]));
+        assert_eq!(programs, array![0]);
+        assert_eq!(pans, array![64]);
+    }
+
+    /// Voice 0 the theme, 1 and 3 followers of mean pitch 60 (tied with different counts: the lower
+    /// id first), 2 a follower of 55 (the lowest), 4 the countersubject.
+    fn five_voices() -> Array<NoteEvent> {
+        array![
+            note(0, 0, 70), note(1, 0, 60), note(2, 0, 55), note(3, 0, 58), note(3, 1, 62),
+            note(4, 0, 50), note(2, 1, 55),
+        ]
+    }
+
+    #[test]
+    fn programs_by_role() {
+        let events = five_voices();
+        // family 1 (leads 2, 1, 8; plucks 12, 19, 6), species 4 leads with 1
+        let even = beast_voice_programs(events.span(), 4, voicing(1, 4, 0, 4));
+        assert_eq!(even, array![1, 19, 12, 6, 8]);
+        // an odd name swaps the second and third pluck and the countersubject's lead
+        let odd = beast_voice_programs(events.span(), 4, voicing(1, 4, 1, 4));
+        assert_eq!(odd, array![1, 6, 12, 19, 2]);
+        // without a countersubject voice 4 is a follower, the lowest of all
+        let plain = Voicing { use_countersubject: false, ..voicing(1, 4, 0, 4) };
+        assert_eq!(beast_voice_programs(events.span(), 4, plain), array![1, 6, 19, 6, 12]);
+        // max_voice past the last voice adds absent voices, below it drops the higher ones
+        assert_eq!(
+            beast_voice_programs(events.span(), 6, voicing(1, 4, 0, 4)),
+            array![1, 19, 12, 6, 8, 0, 0],
+        );
+        assert_eq!(beast_voice_programs(events.span(), 2, voicing(1, 4, 0, 4)), array![1, 19, 12]);
+    }
+
+    #[test]
+    fn programs_countersubject_edge_cases() {
+        let events = array![note(0, 0, 70), note(1, 0, 58)];
+        // a countersubject id of 0 is the theme voice: it takes the countersubject's lead
+        assert_eq!(beast_voice_programs(events.span(), 1, voicing(2, 0, 0, 0)), array![4, 16]);
+        // a countersubject without notes is skipped
+        assert_eq!(beast_voice_programs(events.span(), 1, voicing(2, 0, 0, 3)), array![3, 16]);
+        // absent voices between keep VOICE_PROGRAM, the countersubject's too if it has no notes
+        let gaps = array![note(0, 0, 70), note(2, 0, 58), note(5, 0, 50)];
+        assert_eq!(
+            beast_voice_programs(gaps.span(), 5, voicing(0, 2, 1, 1)), array![7, 0, 13, 0, 0, 15],
+        );
+    }
+
+    /// Voices 0, 1 and 3 (2 absent) with four notes each, voice by voice.
+    fn grouped() -> Array<NoteEvent> {
+        let mut events = array![];
+        for v in array![0_u32, 1, 3] {
+            for k in 0..4_u32 {
+                events.append(note(v, k, (40 + 7 * v + 3 * k).try_into().unwrap()));
+            }
+        }
+        events
+    }
+
+    /// The same notes, a note of each voice in turn.
+    fn interleaved() -> Array<NoteEvent> {
+        let mut events = array![];
+        for k in 0..4_u32 {
+            for v in array![3_u32, 0, 1] {
+                events.append(note(v, k, (40 + 7 * v + 3 * k).try_into().unwrap()));
+            }
+        }
+        events
+    }
+
+    #[test]
+    fn the_file_does_not_depend_on_the_order_of_the_voices_events() {
+        let vc = voicing(1, 4, 1, 3);
+        let plain = |
+            events,
+        | beast_form_to_full_smf_bytes(@form(events), 500000, 3, Option::Some(vc), false, 0);
+        assert_eq!(plain(grouped()), plain(interleaved()));
+        let mega = |
+            events,
+        | beast_form_to_full_smf_bytes_arranged(
+            @form(events),
+            500000,
+            3,
+            Option::Some(vc),
+            true,
+            1,
+            Arrangement {
+                top_lead: true,
+                balanced: true,
+                drums: true,
+                rock: false,
+                extra: Option::Some((3, 33)),
+                programs: Option::None,
+            },
+        );
+        assert_eq!(mega(grouped()), mega(interleaved()));
+    }
 }

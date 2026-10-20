@@ -139,3 +139,15 @@ PLAYWRIGHT_CORE=... node onchain/tinychip/interim_check.mjs <onchain-midi-player
 | `test/tinychip.test.mjs` | Runtime matches the bank; orchestration determinism, roles and spread over the gallery; bare scores; Bank Select with and without the full bank; untouched MIDI |
 | `onchain/tinychip/interim_check.mjs` | The TinySynthSettings timbres against TinyChip's own presets and drums, rendered in Chrome through onchain-midi-player's engine: loudness within 0.5 dB (noise timbres 1 dB), brightness reported |
 | `onchain/browser-check.mjs` | Real pages in Chrome. With `TINYCHIP_ONCHAIN` on, bare scores report `tinychip-2` and each note channel plays 129 + its orchestrated preset; off, `1` and program 128 |
+
+## Preset audition page
+
+`presets/build.mjs` writes `public/onchain/presets.html` (beasts.autonomousaudio.net/onchain/presets.html):
+all 100 presets of the bank as onchain-midi-player timbres, installed as its player installs
+settings and played through the pinned engine, with Keep checkboxes and a pack export (program
+list, `TinySynthSettings` JSON, the page's `SETTINGS` text, and that text gzipped then base64). The
+launch 20 are checked against `synth_settings.mjs`; AM modulators (g > 10) become route 10 + target.
+
+```bash
+OMP=<onchain-midi-player checkout> node onchain/tinychip/presets/build.mjs <webaudio-tinysynth-4bf9829.min.js>
+```

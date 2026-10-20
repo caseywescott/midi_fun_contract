@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TinyChip Presets</title>
+<meta name="description" content="All 100 TinyChip presets as onchain-midi-player timbres: audition them and pick an optional preset pack.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#000;--panel:#07120a;--panel2:#0c1d10;--line:rgba(74,246,38,.28);--line2:rgba(74,246,38,.5);
+  --fg:#4af626;--dim:rgba(74,246,38,.72);--faint:rgba(74,246,38,.5);--amber:#ffb000;--amberdim:rgba(255,176,0,.7);--red:#ff5d4a;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--term:"VT323",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:14px;line-height:1.45}
+a{color:var(--amber)}
+main{max-width:1180px;margin:0 auto;padding:28px 16px 160px}
+h1{font-family:var(--term);font-weight:400;font-size:46px;line-height:1;margin:0 0 10px;text-transform:uppercase;text-shadow:0 0 12px rgba(74,246,38,.6)}
+h2{font-family:var(--term);font-weight:400;font-size:28px;margin:30px 0 10px;text-transform:uppercase;display:flex;align-items:baseline;gap:12px}
+h2 small{font-family:var(--mono);font-size:12px;color:var(--faint);text-transform:none}
+p{color:var(--dim);margin:6px 0 12px;max-width:78ch}
+code{color:var(--amber);font-family:var(--mono)}
+.crumbs{font-size:12px;color:var(--faint);margin-bottom:14px}
+.stats{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
+.stat{border:1px solid var(--line);padding:6px 10px;background:var(--panel)}
+.stat b{font-family:var(--term);font-size:24px;font-weight:400;color:var(--fg);margin-right:6px}
+.stat span{color:var(--dim);font-size:12px}
+
+/* controls */
+.bar{position:sticky;top:0;z-index:5;background:rgba(0,0,0,.94);border-bottom:1px solid var(--line);margin:18px -16px 0;padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;backdrop-filter:blur(4px)}
+.bar label{display:flex;align-items:center;gap:6px;color:var(--dim);font-size:12px}
+select,input[type=search],input[type=range]{font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line2);padding:4px 6px;border-radius:0}
+input[type=search]{width:150px}
+input[type=range]{padding:0;accent-color:var(--fg);width:90px}
+button{font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line2);padding:5px 10px;cursor:pointer;border-radius:0}
+button:hover{background:var(--panel2);border-color:var(--fg)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+button[aria-pressed=true]{background:var(--fg);color:#000;border-color:var(--fg)}
+button.amber{color:var(--amber);border-color:var(--amberdim)}
+button.amber:hover{border-color:var(--amber)}
+.seg{display:inline-flex}
+.seg button{margin-left:-1px}
+.spacer{flex:1}
+.cats{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 0}
+.cats button{font-size:12px;padding:3px 8px}
+
+/* cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.card{border:1px solid var(--line);background:var(--panel);padding:10px 10px 8px;display:flex;flex-direction:column;gap:6px;position:relative}
+.card.kept{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}
+.card.current{background:var(--panel2)}
+.card.playing{border-color:var(--fg);box-shadow:0 0 14px rgba(74,246,38,.35)}
+.top{display:flex;gap:8px;align-items:flex-start}
+.num{font-family:var(--term);font-size:26px;line-height:.9;min-width:34px;color:var(--fg)}
+.name{font-weight:500;color:var(--fg);line-height:1.25}
+.insp{font-size:11px;color:var(--faint)}
+.tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-size:10.5px;letter-spacing:.03em;text-transform:uppercase;border:1px solid var(--line);color:var(--dim);padding:0 5px}
+.tag.set{border-color:var(--fg);color:#000;background:var(--fg)}
+.tag.mega{border-color:var(--amber);color:var(--amber)}
+.tag.drop{border-color:var(--red);color:var(--red)}
+.meta{font-size:11px;color:var(--faint)}
+.row{display:flex;gap:6px;align-items:center;margin-top:auto}
+.row .play{flex:1}
+.keep{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--amber);cursor:pointer;user-select:none;border:1px solid var(--amberdim);padding:4px 8px}
+.keep input{accent-color:var(--amber);margin:0}
+.empty{color:var(--faint);padding:20px 0}
+
+/* keyboard dock */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:6;background:rgba(0,0,0,.96);border-top:1px solid var(--line2)}
+.dock-in{max-width:1180px;margin:0 auto;padding:8px 16px 10px;display:flex;gap:14px;align-items:stretch;flex-wrap:wrap}
+.now{min-width:200px;flex:1}
+.now .k{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+.now .v{font-family:var(--term);font-size:24px;line-height:1.05}
+.now .h{font-size:11px;color:var(--faint)}
+.keys{position:relative;height:66px;flex:2;min-width:300px;max-width:560px;touch-action:none;user-select:none}
+.keys div{position:absolute;top:0;border:1px solid var(--line2);cursor:pointer}
+.keys .w{height:100%;background:#0d1f11}
+.keys .b{height:60%;background:#000;z-index:1;border-color:var(--fg)}
+.keys div.on{background:var(--fg)}
+.keys span{position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:9px;color:var(--faint);pointer-events:none}
+.packbtn{align-self:center}
+.count{font-family:var(--term);font-size:22px;color:var(--amber)}
+
+/* export */
+dialog{background:#020803;color:var(--fg);border:1px solid var(--fg);max-width:820px;width:calc(100% - 32px);padding:0;font-family:var(--mono)}
+dialog::backdrop{background:rgba(0,0,0,.7)}
+.dlg{padding:18px 18px 16px}
+.dlg h3{font-family:var(--term);font-weight:400;font-size:30px;margin:0 0 6px;text-transform:uppercase}
+.opts{display:flex;flex-wrap:wrap;gap:6px 16px;margin:10px 0;font-size:12px;color:var(--dim)}
+.opts label{display:flex;gap:6px;align-items:center}
+.opts input{accent-color:var(--amber)}
+.sizes{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin:10px 0}
+.sizes div{border:1px solid var(--line);padding:6px 8px;font-size:11px;color:var(--faint)}
+.sizes b{display:block;font-family:var(--term);font-weight:400;font-size:22px;color:var(--fg)}
+.out{display:grid;gap:8px;margin-top:10px}
+.out .line{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.out .line span{font-size:12px;color:var(--dim);flex:1;min-width:200px}
+textarea{width:100%;height:120px;font:11px/1.35 var(--mono);color:var(--fg);background:#000;border:1px solid var(--line);padding:8px;resize:vertical}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:var(--amber);color:#000;padding:6px 12px;font-size:13px;z-index:20;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (max-width:640px){
+  h1{font-size:36px}
+  .dock-in{gap:6px 10px;padding:6px 12px 8px}
+  .now{min-width:0}.now .k,.now .h{display:none}.now .v{font-size:19px}
+  .packbtn{display:flex;align-items:center;gap:8px}.count{font-size:18px}
+  .keys{min-width:0;flex-basis:100%;max-width:none;height:46px;order:3}
+  .toast{top:12px;bottom:auto}
+  .bar{gap:8px}
+  main{padding-bottom:220px}
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="crumbs"><a href="/">Beast Sound</a> / <a href="/onchain/">onchain</a> / presets</div>
+  <h1>TinyChip presets</h1>
+  <p>All 100 presets of the TinyChip bank, converted to <code>TinySynthSettings</code> timbres for loothero's onchain-midi-player and played through its pinned TinySynth engine (fork <code>4bf9829</code>), installed the way the player installs settings: sampled chip waves via <code>setSampleWave</code>, one timbre per program slot. The 20 in the launch set have exactly the timbres <code>BeastMidiProvider.get_settings</code> serves (checked against <code>synth_settings.mjs</code> at build). The other 80 were left out of the launch build.</p>
+  <p>Tick <b style="color:var(--amber)">Keep</b> on the ones you want in the optional pack, then open <b style="color:var(--amber)">Export pack</b> to copy the program list, a share link, the settings JSON or a gzipped base64 payload.</p>
+  <div class="stats" id="stats"></div>
+
+  <div class="bar" role="toolbar" aria-label="Playback and filters">
+    <label>Phrase <select id="phrase"></select></label>
+    <label>Octave <select id="oct"><option value="-2">−2</option><option value="-1">−1</option><option value="0" selected>auto</option><option value="1">+1</option><option value="2">+2</option></select></label>
+    <label>Tempo <input type="range" id="bpm" min="70" max="200" value="120"><output id="bpmv">120</output></label>
+    <label><input type="checkbox" id="drums"> Chip drums</label>
+    <label><input type="checkbox" id="loop" checked> Loop</label>
+    <button id="stop">Stop</button>
+    <span class="spacer"></span>
+    <div class="seg" role="group" aria-label="Show">
+      <button data-show="all" aria-pressed="true">All 100</button><button data-show="unused">Not used</button><button data-show="set">Launch 20</button><button data-show="kept">Kept</button>
+    </div>
+    <input type="search" id="q" placeholder="Search" aria-label="Search presets">
+  </div>
+  <div class="cats" id="cats" aria-label="Jump to category"></div>
+
+  <div id="list"></div>
+</main>
+
+<div class="dock">
+  <div class="dock-in">
+    <div class="now">
+      <div class="k">Keyboard plays</div>
+      <div class="v" id="nowName">Pick a preset</div>
+      <div class="h">Click a card, then play here or with A W S E D F T G Y H U J K · Z/X octave</div>
+    </div>
+    <div class="keys" id="keys" aria-label="Keyboard"></div>
+    <div class="packbtn"><div class="count" id="count">0 kept</div><button class="amber" id="openExport">Export pack</button></div>
+  </div>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <div class="dlg">
+    <h3 id="dlgTitle">Optional preset pack</h3>
+    <p style="margin:0">Timbres keep their bank program numbers as slots, so a MIDI program change to <i>N</i> plays preset <i>N</i>. Only the waves the pack uses are included, re-indexed.</p>
+    <div class="opts">
+      <label><input type="checkbox" id="xSet"> Also include the launch 20</label>
+      <label><input type="checkbox" id="xDrums"> Include the chip drum kit (11 notes)</label>
+    </div>
+    <div class="sizes" id="sizes"></div>
+    <div class="out">
+      <div class="line"><span>Program numbers (bank numbering)</span><button id="cList">Copy list</button></div>
+      <div class="line"><span>Share link with this selection</span><button id="cLink">Copy link</button></div>
+      <div class="line"><span><code>TinySynthSettings</code> as JSON (onchain-midi-player field names, fixed point ×10000)</span><button id="cJson">Copy JSON</button><button id="dJson">Download</button></div>
+      <div class="line"><span>Page <code>SETTINGS</code> text (format v1, what <code>player/settings.js</code> parses)</span><button id="cText">Copy text</button></div>
+      <div class="line"><span><code>SETTINGS</code> text, gzipped, then base64</span><button id="cGz">Copy gzip+base64</button></div>
+      <textarea id="preview" readonly aria-label="Pack preview"></textarea>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <div style="display:flex;gap:6px"><button id="keepUnused">Keep all 80 not used</button><button id="clearKeep">Clear</button></div>
+      <button id="closeDlg">Close</button>
+    </div>
+  </div>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script>/*ENGINE*/</script>
+<script>
+(() => {
+const DATA = /*DATA*/null;
+const $ = (id) => document.getElementById(id);
+const P = DATA.presets, W = DATA.waves, D = DATA.drums;
+const WAVE_LABEL = { nP06: '6.25% pulse', nP12: '12.5% pulse', nP25: '25% pulse', nP37: '37.5% pulse', nP50: 'square', nTRI: 'NES triangle', nSAW: '4-bit saw', nVRS: 'VRC6 saw', nWV1: 'GB wave (sine)', nWV2: 'GB wave (organ)', nFDS: 'FDS wave', nN16: 'N163 wave', nSID: 'SID tri&saw', nTI4: 'TIA poly4', nTI5: 'TIA poly5', nTIB: 'TIA div-31', nPC1: 'PCE wave', nPC2: 'PCE wave 2', nMTP: 'LFSR tone' };
+const BUILTIN_LABEL = { Sine: 'sine', Square: 'square', Sawtooth: 'saw', Triangle: 'triangle', WhiteNoise: 'noise', MetallicNoise: 'metallic noise' };
+const DROPPED = { 10: 'Dropped from the set 2026-10-05' };
+const MEGA = { 50: 'Mega lead', 65: 'Mega lead' };
+const ROLE = { 0:'Lead',1:'Lead',2:'Lead',3:'Lead',4:'Lead',5:'Lead',6:'Lead',7:'Lead',8:'Lead',9:'Lead',12:'Pluck',13:'Pluck',14:'Pluck',15:'Pluck',16:'Pluck',17:'Pluck',18:'Pluck',19:'Pluck' };
+
+// ── the engine, installed as onchain-midi-player does (player/settings.js installSettings) ──
+const FIX = (x) => x / 10000;
+const TS_WAVE = { Sine: 'sine', Square: 'square', Sawtooth: 'sawtooth', Triangle: 'triangle', WhiteNoise: 'n0', MetallicNoise: 'n1' };
+const FIELDS = [['volume','v'],['ratio','t'],['offset_hz','f'],['attack','a'],['hold','h'],['decay','d'],['sustain','s'],['release','r'],['pitch_ratio','p'],['pitch_time','q'],['key_scale','k']];
+const toOps = (ops) => ops.map((o) => { const p = { g: o.route, w: typeof o.wave === 'object' ? 'nS' + o.wave.Custom : TS_WAVE[o.wave] }; for (const [n, k] of FIELDS) p[k] = FIX(o[n]); return p; });
+let synth = null;
+function getSynth() {
+  if (synth) return synth;
+  const s = DATA.settingsBase;
+  synth = new WebAudioTinySynth({ quality: s.quality, useReverb: s.reverb > 0 ? 1 : 0, voices: s.voices });
+  W.forEach((w, i) => synth.setSampleWave('nS' + i, w.Samples.map((v) => v / 128)));
+  synth.setQuality(s.quality); synth.setMasterVol(s.master_vol / 100); synth.setReverbLev(s.reverb / 100); synth.setVoices(s.voices);
+  for (const p of P) synth.setTimbre(0, p.program, toOps(p.operators));
+  for (const d of D) synth.setTimbre(1, d.key, toOps(d.operators));
+  return synth;
+}
+
+// ── phrases (MIDI files, played with loadMIDI/playMIDI like the page player) ──
+const TPQ = 480;
+const PHRASES = {
+  theme: { label: 'Beast theme', notes: [[0,0,1],[1,1,.5],[1.5,3,.5],[2,5,1],[3,7,.5],[3.5,8,.5],[4,7,1],[5,5,.5],[5.5,3,.5],[6,1,1],[7,0,1]] },
+  scale: { label: 'Scale run', notes: [0,2,4,5,7,9,11,12,11,9,7,5,4,2,0].map((n, i) => [i * .5, n, .5]).concat([[7.5,0,.5]]) },
+  arp: { label: 'Arpeggio', notes: Array.from({ length: 32 }, (_, i) => [i * .25, [0,4,7,12,16,12,7,4][i % 8] + (i >= 16 ? 5 : 0), .25]) },
+  long: { label: 'Long notes', notes: [[0,0,2],[2,7,2],[4,12,4]] },
+  chord: { label: 'Chords', notes: [[0,0,2],[0,4,2],[0,7,2],[2,-3,2],[2,0,2],[2,4,2],[4,-7,2],[4,-3,2],[4,0,2],[6,-5,2],[6,-1,2],[6,2,2]] },
+  bass: { label: 'Bass line', notes: [0,0,12,0,7,0,10,12,0,0,12,0,5,7,10,7].map((n, i) => [i * .5, n, .45]) },
+  stab: { label: 'Staccato', notes: Array.from({ length: 16 }, (_, i) => [i * .5, [0,0,3,0,5,0,3,7][i % 8], .12]) },
+};
+const BASE = { Lead: 72, Pluck: 72, Bass: 40, Pad: 60, 'Arp/FX': 72, Wave: 72, FM: 60, Noise: 60 };
+function baseNote(p) {
+  if (/Bass/.test(p.name)) return 40;
+  if (/Pad|Drone|Swell|Wind/.test(p.name)) return 60;
+  return BASE[p.category] ?? 72;
+}
+function vlq(n) { const b = [n & 0x7f]; while ((n >>= 7)) b.unshift((n & 0x7f) | 0x80); return b; }
+function smf(prog, root, phraseKey, bpm, drums) {
+  const ph = PHRASES[phraseKey], ev = [], len = Math.max(...ph.notes.map(([t, , d]) => t + d));
+  const bars = Math.ceil(len / 4) * 4;
+  ev.push([0, [0xff, 0x51, 3, ...(((x) => [x >> 16 & 255, x >> 8 & 255, x & 255])(Math.round(6e7 / bpm)))]]);
+  ev.push([0, [0xb0, 0, 0]], [0, [0xc0, prog]], [0, [0xb0, 7, 110]]);
+  for (const [t, n, d] of ph.notes) {
+    const k = Math.max(0, Math.min(127, root + n));
+    ev.push([Math.round(t * TPQ), [0x90, k, 100]], [Math.round((t + d) * TPQ) - 8, [0x80, k, 0]]);
+  }
+  if (drums) for (let b = 0; b < bars * 2; b++) {
+    const t = b * TPQ / 2, beat = b / 2;
+    if (b % 4 === 0) ev.push([t, [0x99, 36, 110]], [t + 60, [0x89, 36, 0]]);
+    if (b % 4 === 2) ev.push([t, [0x99, 38, 100]], [t + 60, [0x89, 38, 0]]);
+    ev.push([t, [0x99, 42, beat % 1 ? 60 : 80]], [t + 30, [0x89, 42, 0]]);
+  }
+  ev.push([bars * TPQ, [0xff, 0x2f, 0]]);
+  const pri = (m) => (m[0] === 0xff ? (m[1] === 0x2f ? 3 : 0) : (m[0] & 0xf0) === 0x80 ? 1 : 2);
+  ev.sort((a, b) => a[0] - b[0] || pri(a[1]) - pri(b[1]));
+  const body = []; let last = 0;
+  for (const [t, m] of ev) { body.push(...vlq(t - last), ...m); last = t; }
+  const hdr = [0x4d,0x54,0x68,0x64,0,0,0,6,0,0,0,1,TPQ >> 8,TPQ & 255];
+  const trk = [0x4d,0x54,0x72,0x6b,(body.length >>> 24) & 255,(body.length >> 16) & 255,(body.length >> 8) & 255,body.length & 255];
+  return new Uint8Array([...hdr, ...trk, ...body]).buffer;
+}
+
+// ── state ──
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+const kept = new Set();
+const fromUrl = new URLSearchParams(location.search).get('keep');
+const saved = fromUrl ?? store.get('tinychip-keep');
+if (saved) for (const x of saved.split(/[ ,]+/)) if (/^\d+$/.test(x) && P[+x]) kept.add(+x);
+let show = 'all', query = '', playing = null, current = null;
+const persist = () => { store.set('tinychip-keep', [...kept].sort((a, b) => a - b).join(',')); };
+
+for (const [k, v] of Object.entries(PHRASES)) $('phrase').add(new Option(v.label, k));
+$('phrase').value = store.get('tinychip-phrase') || 'theme';
+$('bpm').value = store.get('tinychip-bpm') || 120; $('bpmv').textContent = $('bpm').value;
+
+// ── rendering ──
+function waveSummary(p) {
+  const outs = [], mods = [];
+  for (const o of p.operators) {
+    const lbl = typeof o.wave === 'object' ? WAVE_LABEL[W[o.wave.Custom].name] : BUILTIN_LABEL[o.wave];
+    (o.route === 0 ? outs : mods).push(o.route > 10 ? 'AM ' + lbl : (o.route > 0 && o.ratio === 0 ? 'vibrato' : o.route > 0 ? 'FM ' + lbl : lbl));
+  }
+  return [...new Set(outs)].join(' + ') + (mods.length ? ' · ' + [...new Set(mods)].join(', ') : '');
+}
+const CATS = [...new Set(P.map((p) => p.category))];
+function matches(p) {
+  if (show === 'unused' && p.inSet) return false;
+  if (show === 'set' && !p.inSet) return false;
+  if (show === 'kept' && !kept.has(p.program)) return false;
+  if (query) { const hay = (p.program + ' ' + p.name + ' ' + p.category + ' ' + (p.inspired || '') + ' ' + waveSummary(p)).toLowerCase(); if (!query.split(/\s+/).every((w) => hay.includes(w))) return false; }
+  return true;
+}
+function render() {
+  const list = $('list'); list.textContent = '';
+  let total = 0;
+  for (const cat of CATS) {
+    const items = P.filter((p) => p.category === cat && matches(p));
+    if (!items.length) continue;
+    total += items.length;
+    const h = document.createElement('h2'); h.id = 'cat-' + cat.replace(/\W+/g, '-');
+    const all = P.filter((p) => p.category === cat), inSet = all.filter((p) => p.inSet).length;
+    h.innerHTML = '<span></span><small></small>'; h.firstChild.textContent = cat;
+    h.lastChild.textContent = all.length + ' presets · ' + (inSet ? inSet + ' in launch set' : 'none in launch set');
+    list.appendChild(h);
+    const grid = document.createElement('div'); grid.className = 'grid';
+    for (const p of items) grid.appendChild(card(p));
+    list.appendChild(grid);
+  }
+  if (!total) { const e = document.createElement('div'); e.className = 'empty'; e.textContent = show === 'kept' ? 'Nothing kept yet. Tick Keep on a card.' : 'No presets match.'; list.appendChild(e); }
+  $('count').textContent = kept.size + ' kept';
+}
+function card(p) {
+  const c = document.createElement('div'); c.className = 'card'; c.dataset.p = p.program;
+  if (kept.has(p.program)) c.classList.add('kept');
+  if (current === p.program) c.classList.add('current');
+  if (playing === p.program) c.classList.add('playing');
+  const tags = [];
+  if (p.inSet) tags.push(['set', 'Launch set' + (ROLE[p.program] ? ' · ' + ROLE[p.program] : '')]);
+  else tags.push(['', 'Not used']);
+  if (MEGA[p.program]) tags.push(['mega', MEGA[p.program]]);
+  if (DROPPED[p.program]) tags.push(['drop', DROPPED[p.program]]);
+  c.innerHTML = '<div class="top"><div class="num"></div><div><div class="name"></div><div class="insp"></div></div></div><div class="tags"></div><div class="meta"></div><div class="row"><button class="play"></button><label class="keep"><input type="checkbox"> Keep</label></div>';
+  c.querySelector('.num').textContent = p.program;
+  c.querySelector('.name').textContent = p.name;
+  c.querySelector('.insp').textContent = p.inspired ? 'after ' + p.inspired : '';
+  const tg = c.querySelector('.tags');
+  for (const [cls, t] of tags) { const s = document.createElement('span'); s.className = 'tag ' + cls; s.textContent = t; tg.appendChild(s); }
+  c.querySelector('.meta').textContent = waveSummary(p) + ' · ' + p.operators.length + ' op' + (p.operators.length > 1 ? 's' : '') + ' · ' + timbreBytes(p) + ' B';
+  const btn = c.querySelector('.play');
+  btn.textContent = playing === p.program ? '■ Stop' : '▶ Play';
+  btn.setAttribute('aria-label', (playing === p.program ? 'Stop ' : 'Play ') + p.name);
+  btn.addEventListener('click', (e) => { e.stopPropagation(); playing === p.program ? stop() : play(p.program); });
+  const cb = c.querySelector('input'); cb.checked = kept.has(p.program);
+  cb.setAttribute('aria-label', 'Keep ' + p.name);
+  c.querySelector('.keep').addEventListener('click', (e) => e.stopPropagation());
+  cb.addEventListener('change', () => { cb.checked ? kept.add(p.program) : kept.delete(p.program); c.classList.toggle('kept', cb.checked); persist(); $('count').textContent = kept.size + ' kept'; if (show === 'kept' && !cb.checked) render(); });
+  c.addEventListener('click', () => setCurrent(p.program));
+  return c;
+}
+function refreshCards() {
+  for (const c of document.querySelectorAll('.card')) {
+    const id = +c.dataset.p, b = c.querySelector('.play');
+    c.classList.toggle('playing', playing === id); c.classList.toggle('current', current === id);
+    b.textContent = playing === id ? '■ Stop' : '▶ Play';
+  }
+}
+function setCurrent(id) {
+  current = id; $('nowName').textContent = id + ' · ' + P[id].name; refreshCards();
+  const s = getSynth(); s.setProgram(1, id); s.send([0xb1, 7, 110]);
+}
+
+// ── playback ──
+function play(id) {
+  const s = getSynth(); s.getAudioContext().resume(); s.stopMIDI();
+  const oct = +$('oct').value, root = baseNote(P[id]) + oct * 12;
+  s.loadMIDI(smf(id, root, $('phrase').value, +$('bpm').value, $('drums').checked));
+  s.setLoop($('loop').checked ? 1 : 0); s.setLoopEnd(s.getPlayStatus().maxTick); s.playMIDI();
+  playing = id; setCurrent(id);
+  clearInterval(play.t); play.t = setInterval(() => { if (playing !== null && !$('loop').checked && !s.getPlayStatus().play) { playing = null; refreshCards(); clearInterval(play.t); } }, 300);
+}
+function stop() { if (synth) synth.stopMIDI(); playing = null; refreshCards(); }
+const replay = () => { if (playing !== null) play(playing); };
+$('stop').addEventListener('click', stop);
+$('phrase').addEventListener('change', () => { store.set('tinychip-phrase', $('phrase').value); replay(); });
+$('oct').addEventListener('change', replay);
+$('drums').addEventListener('change', replay);
+$('loop').addEventListener('change', replay);
+$('bpm').addEventListener('input', () => { $('bpmv').textContent = $('bpm').value; });
+$('bpm').addEventListener('change', () => { store.set('tinychip-bpm', $('bpm').value); replay(); });
+for (const b of document.querySelectorAll('[data-show]')) b.addEventListener('click', () => {
+  show = b.dataset.show; for (const x of document.querySelectorAll('[data-show]')) x.setAttribute('aria-pressed', String(x === b)); render();
+});
+$('q').addEventListener('input', () => { query = $('q').value.trim().toLowerCase(); render(); });
+for (const cat of CATS) {
+  const b = document.createElement('button'); b.textContent = cat;
+  b.addEventListener('click', () => { const el = $('cat-' + cat.replace(/\W+/g, '-')); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + scrollY - $('cats').previousElementSibling.offsetHeight - 8, behavior: 'smooth' }); });
+  $('cats').appendChild(b);
+}
+
+// ── keyboard ──
+let kbOct = 0; const KEYMAP = 'awsedftgyhujk';
+const keysEl = $('keys'), keyDivs = new Map();
+function buildKeys() {
+  keysEl.textContent = ''; keyDivs.clear();
+  const whites = [0,2,4,5,7,9,11,12,14,16,17,19,21,23,24], wW = 100 / whites.length;
+  whites.forEach((n, i) => { const d = document.createElement('div'); d.className = 'w'; d.style.left = i * wW + '%'; d.style.width = wW + '%'; d.dataset.n = n; keysEl.appendChild(d); keyDivs.set(n, d); });
+  whites.forEach((n, i) => { if ([0,2,5,7,9].includes(n % 12) && n < 24) { const d = document.createElement('div'); d.className = 'b'; d.style.left = (i + .68) * wW + '%'; d.style.width = wW * .64 + '%'; d.dataset.n = n + 1; keysEl.appendChild(d); keyDivs.set(n + 1, d); } });
+  const c = document.createElement('span'); c.style.left = '0'; c.style.width = wW + '%'; c.style.textAlign = 'center'; c.textContent = 'C' + (rootKey() / 12 - 1); keyDivs.get(0).appendChild(c);
+}
+const rootKey = () => (current === null ? 60 : Math.round(baseNote(P[current]) / 12) * 12) + kbOct * 12;
+const down = new Map();
+function kOn(n, src) {
+  if (current === null) { toast('Click a preset card first'); return; }
+  const s = getSynth(); s.getAudioContext().resume();
+  const k = rootKey() + n; if (down.has(src)) kOff(src);
+  s.noteOn(1, k, 100); down.set(src, [n, k]); keyDivs.get(n)?.classList.add('on');
+}
+function kOff(src) { const v = down.get(src); if (!v) return; down.delete(src); getSynth().noteOff(1, v[1]); keyDivs.get(v[0])?.classList.remove('on'); }
+keysEl.addEventListener('pointerdown', (e) => { const n = e.target.dataset?.n; if (n === undefined) return; keysEl.setPointerCapture(e.pointerId); kOn(+n, 'p' + e.pointerId); });
+keysEl.addEventListener('pointerover', (e) => { if (!down.has('p' + e.pointerId) || e.target.dataset?.n === undefined) return; kOn(+e.target.dataset.n, 'p' + e.pointerId); });
+for (const ev of ['pointerup', 'pointercancel']) keysEl.addEventListener(ev, (e) => kOff('p' + e.pointerId));
+addEventListener('keydown', (e) => {
+  if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName) && document.activeElement.type !== 'checkbox' || $('dlg').open) return;
+  const i = KEYMAP.indexOf(e.key.toLowerCase());
+  if (i >= 0) { kOn(i, 'k' + i); e.preventDefault(); }
+  else if (e.key === 'z') { kbOct = Math.max(-3, kbOct - 1); buildKeys(); }
+  else if (e.key === 'x') { kbOct = Math.min(3, kbOct + 1); buildKeys(); }
+  else if (e.key === ' ' && document.activeElement === document.body) { e.preventDefault(); playing !== null ? stop() : current !== null && play(current); }
+});
+addEventListener('keyup', (e) => { const i = KEYMAP.indexOf(e.key.toLowerCase()); if (i >= 0) kOff('k' + i); });
+
+// ── export ──
+function pack() {
+  const ids = [...new Set([...kept, ...($('xSet').checked ? P.filter((p) => p.inSet).map((p) => p.program) : [])])].sort((a, b) => a - b);
+  const sel = [...ids.map((id) => ({ drum: false, slot: id, ops: P[id].operators })), ...($('xDrums').checked ? D.map((d) => ({ drum: true, slot: d.key, ops: d.operators })) : [])];
+  const usedW = [...new Set(sel.flatMap((t) => t.ops.filter((o) => typeof o.wave === 'object').map((o) => o.wave.Custom)))].sort((a, b) => a - b);
+  const remap = new Map(usedW.map((w, i) => [w, i]));
+  const s = { ...DATA.settingsBase, waves: usedW.map((w) => ({ Samples: W[w].Samples })), timbres: sel.map((t) => ({ drum: t.drum, slot: t.slot, operators: t.ops.map((o) => ({ ...o, wave: typeof o.wave === 'object' ? { Custom: remap.get(o.wave.Custom) } : o.wave })) })) };
+  return { ids, settings: s, waveNames: usedW.map((w) => W[w].name) };
+}
+// onchain-midi-player player/encode.js encodeSettings (format v1)
+const TAG = ['Sine', 'Square', 'Sawtooth', 'Triangle', 'WhiteNoise', 'MetallicNoise'];
+const ORDER = FIELDS.map((f) => f[0]);
+function encodeTimbre(t, out) {
+  out.push(t.drum ? 1 : 0, t.slot, t.operators.length);
+  for (const o of t.operators) { out.push(o.route); typeof o.wave === 'object' ? out.push(6, o.wave.Custom) : out.push(TAG.indexOf(o.wave)); for (const k of ORDER) out.push(o[k]); out.push(0); }
+}
+function encodeSettings(s) {
+  const out = [1, s.quality, s.reverb, s.master_vol, s.voices, s.waves.length];
+  for (const w of s.waves) out.push(1, w.Samples.length, ...w.Samples);
+  out.push(s.timbres.length);
+  for (const t of s.timbres) encodeTimbre(t, out);
+  return out.join(',');
+}
+function timbreBytes(p) { const o = []; encodeTimbre({ drum: false, slot: p.program, operators: p.operators }, o); return o.join(',').length + 1; }
+async function gzipB64(text) {
+  const cs = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
+  const buf = new Uint8Array(await new Response(cs).arrayBuffer());
+  let bin = ''; for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+let last = null;
+async function refreshExport() {
+  const pk = pack(), json = JSON.stringify(pk.settings), text = encodeSettings(pk.settings);
+  const gz = pk.settings.timbres.length ? await gzipB64(text) : '';
+  last = { ...pk, json, text, gz };
+  const link = location.origin + location.pathname + '?keep=' + [...kept].sort((a, b) => a - b).join(',');
+  last.link = link;
+  $('sizes').innerHTML = '';
+  for (const [v, k] of [[pk.ids.length, 'presets'], [pk.settings.timbres.length, 'timbres'], [pk.settings.waves.length, 'sampled waves'], [text.length.toLocaleString(), 'SETTINGS bytes'], [gz.length.toLocaleString(), 'gzip+base64 chars']]) {
+    const d = document.createElement('div'); d.innerHTML = '<b></b>'; d.firstChild.textContent = v; d.append(k); $('sizes').appendChild(d);
+  }
+  $('preview').value = pk.ids.length ? 'programs: ' + pk.ids.join(', ') + '\n' + pk.ids.map((id) => id + '  ' + P[id].name + (P[id].inSet ? '  (launch set)' : '')).join('\n') + '\n\nwaves: ' + pk.waveNames.map((n) => n + ' (' + WAVE_LABEL[n] + ')').join(', ') : 'Nothing kept yet.';
+}
+async function copy(text, what) {
+  if (!text) { toast('Nothing kept yet'); return; }
+  try { await navigator.clipboard.writeText(text); toast('Copied ' + what); }
+  catch { $('preview').value = text; $('preview').select(); toast('Select-all is ready: press ⌘C'); }
+}
+$('openExport').addEventListener('click', async () => { await refreshExport(); $('dlg').showModal(); });
+$('closeDlg').addEventListener('click', () => $('dlg').close());
+$('xSet').addEventListener('change', refreshExport); $('xDrums').addEventListener('change', refreshExport);
+$('cList').addEventListener('click', () => copy(last.ids.join(', '), 'program list'));
+$('cLink').addEventListener('click', () => copy(kept.size ? last.link : '', 'link'));
+$('cJson').addEventListener('click', () => copy(last.ids.length ? JSON.stringify(last.settings, null, 1) : '', 'settings JSON'));
+$('cText').addEventListener('click', () => copy(last.ids.length ? last.text : '', 'SETTINGS text'));
+$('cGz').addEventListener('click', () => copy(last.gz, 'gzip+base64 (' + last.gz.length + ' chars)'));
+$('dJson').addEventListener('click', () => {
+  if (!last.ids.length) { toast('Nothing kept yet'); return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ name: 'tinychip-optional-pack', programs: last.ids, presets: last.ids.map((id) => ({ program: id, name: P[id].name, category: P[id].category })), waves: last.waveNames, settings: last.settings }, null, 1)], { type: 'application/json' }));
+  a.download = 'tinychip-optional-pack.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+$('keepUnused').addEventListener('click', async () => { for (const p of P) if (!p.inSet) kept.add(p.program); persist(); render(); await refreshExport(); });
+$('clearKeep').addEventListener('click', async () => { kept.clear(); persist(); render(); await refreshExport(); });
+
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 1800); }
+
+// stats
+const unused = P.filter((p) => !p.inSet).length;
+const st = [[P.length, 'presets in the bank'], [P.length - unused, 'in the launch set'], [unused, 'not used'], [W.length, 'sampled chip waves'], [CATS.length, 'categories']];
+for (const [v, k] of st) { const d = document.createElement('div'); d.className = 'stat'; d.innerHTML = '<b></b><span></span>'; d.firstChild.textContent = v; d.lastChild.textContent = k; $('stats').appendChild(d); }
+buildKeys(); render();
+if (fromUrl) toast(kept.size + ' kept from the link');
+})();
+</script>
+</body>
+</html>

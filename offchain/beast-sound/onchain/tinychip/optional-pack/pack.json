@@ -1,0 +1,1410 @@
+{
+ "name": "tinychip-optional-pack",
+ "format": "onchain-midi-player TinySynthSettings, SETTINGS format v1",
+ "programs": [
+  10,
+  21,
+  26,
+  28,
+  29,
+  31,
+  33,
+  39,
+  42,
+  44,
+  51,
+  58,
+  59,
+  60,
+  61,
+  62,
+  64,
+  68,
+  69,
+  71,
+  85,
+  86,
+  89,
+  95,
+  96
+ ],
+ "presets": [
+  {
+   "program": 10,
+   "name": "Detuned Duo (25%)",
+   "category": "Lead",
+   "inspired": null,
+   "operators": 2
+  },
+  {
+   "program": 21,
+   "name": "Pulse Bass",
+   "category": "Bass",
+   "inspired": null,
+   "operators": 1
+  },
+  {
+   "program": 26,
+   "name": "Pluck Bass",
+   "category": "Bass",
+   "inspired": null,
+   "operators": 1
+  },
+  {
+   "program": 28,
+   "name": "Pulse Swell",
+   "category": "Pad",
+   "inspired": null,
+   "operators": 2
+  },
+  {
+   "program": 29,
+   "name": "Square Swell",
+   "category": "Pad",
+   "inspired": null,
+   "operators": 2
+  },
+  {
+   "program": 31,
+   "name": "Detuned Square Pad",
+   "category": "Pad",
+   "inspired": null,
+   "operators": 2
+  },
+  {
+   "program": 33,
+   "name": "Triangle Pad",
+   "category": "Pad",
+   "inspired": null,
+   "operators": 2
+  },
+  {
+   "program": 39,
+   "name": "Square Blip",
+   "category": "Arp/FX",
+   "inspired": null,
+   "operators": 1
+  },
+  {
+   "program": 42,
+   "name": "GB Wave Lead",
+   "category": "Wave",
+   "inspired": null,
+   "operators": 2
+  },
+  {
+   "program": 44,
+   "name": "GB Wave Pluck",
+   "category": "Wave",
+   "inspired": null,
+   "operators": 1
+  },
+  {
+   "program": 51,
+   "name": "Vampire Hunter Lead",
+   "category": "NES",
+   "inspired": "Castlevania (NES)",
+   "operators": 2
+  },
+  {
+   "program": 58,
+   "name": "Triangle Kick Bass",
+   "category": "NES",
+   "inspired": "NES triangle bass lines",
+   "operators": 1
+  },
+  {
+   "program": 59,
+   "name": "Ninja Lead",
+   "category": "NES",
+   "inspired": "Ninja Gaiden (NES)",
+   "operators": 2
+  },
+  {
+   "program": 60,
+   "name": "Echo Pulse",
+   "category": "NES",
+   "inspired": "NES two-channel echo (DuckTales)",
+   "operators": 2
+  },
+  {
+   "program": 61,
+   "name": "Sunsoft Saw Bass",
+   "category": "NES",
+   "inspired": "Sunsoft bass (Batman, NES)",
+   "operators": 1
+  },
+  {
+   "program": 62,
+   "name": "VRC6 Saw Lead",
+   "category": "Famicom+",
+   "inspired": "Konami VRC6 (Akumajou Densetsu)",
+   "operators": 2
+  },
+  {
+   "program": 64,
+   "name": "FDS Wavetable Lead",
+   "category": "Famicom+",
+   "inspired": "Famicom Disk System (Zelda no Densetsu)",
+   "operators": 2
+  },
+  {
+   "program": 68,
+   "name": "Pocket Monster Lead",
+   "category": "Game Boy",
+   "inspired": "Pokémon Red/Blue (GB)",
+   "operators": 2
+  },
+  {
+   "program": 69,
+   "name": "Falling Blocks Lead",
+   "category": "Game Boy",
+   "inspired": "Tetris (GB)",
+   "operators": 1
+  },
+  {
+   "program": 71,
+   "name": "Wave Bass Pluck",
+   "category": "Game Boy",
+   "inspired": "Game Boy wave-channel bass",
+   "operators": 1
+  },
+  {
+   "program": 85,
+   "name": "TIA Poly Bass",
+   "category": "Atari 2600",
+   "inspired": "Atari 2600 TIA poly4",
+   "operators": 1
+  },
+  {
+   "program": 86,
+   "name": "TIA Div-31 Drone",
+   "category": "Atari 2600",
+   "inspired": "Atari 2600 TIA div-31",
+   "operators": 2
+  },
+  {
+   "program": 89,
+   "name": "MSX Square Lead",
+   "category": "AY / PSG",
+   "inspired": "MSX PSG (Konami)",
+   "operators": 2
+  },
+  {
+   "program": 95,
+   "name": "FM Organ",
+   "category": "Genesis FM",
+   "inspired": "Genesis FM organ",
+   "operators": 3
+  },
+  {
+   "program": 96,
+   "name": "FM Speed Lead",
+   "category": "Genesis FM",
+   "inspired": "Sonic the Hedgehog (Genesis)",
+   "operators": 3
+  }
+ ],
+ "waves": [
+  "nP12",
+  "nP25",
+  "nP50",
+  "nTRI",
+  "nSAW",
+  "nVRS",
+  "nWV1",
+  "nWV2",
+  "nFDS",
+  "nTI4",
+  "nTIB"
+ ],
+ "settings": {
+  "quality": 1,
+  "reverb": 30,
+  "master_vol": 40,
+  "voices": 64,
+  "waves": [
+   {
+    "Samples": [
+     64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64
+    ]
+   },
+   {
+    "Samples": [
+     64,
+     -64,
+     -64,
+     -64
+    ]
+   },
+   {
+    "Samples": [
+     64,
+     -64
+    ]
+   },
+   {
+    "Samples": [
+     77,
+     67,
+     56,
+     46,
+     36,
+     26,
+     15,
+     5,
+     -5,
+     -15,
+     -26,
+     -36,
+     -46,
+     -56,
+     -67,
+     -77,
+     -77,
+     -67,
+     -56,
+     -46,
+     -36,
+     -26,
+     -15,
+     -5,
+     5,
+     15,
+     26,
+     36,
+     46,
+     56,
+     67,
+     77
+    ]
+   },
+   {
+    "Samples": [
+     -58,
+     -50,
+     -42,
+     -35,
+     -27,
+     -19,
+     -12,
+     -4,
+     4,
+     12,
+     19,
+     27,
+     35,
+     42,
+     50,
+     58
+    ]
+   },
+   {
+    "Samples": [
+     -64,
+     -43,
+     -21,
+     0,
+     21,
+     43,
+     64
+    ]
+   },
+   {
+    "Samples": [
+     4,
+     13,
+     21,
+     38,
+     47,
+     55,
+     55,
+     64,
+     64,
+     64,
+     55,
+     55,
+     47,
+     38,
+     21,
+     13,
+     4,
+     -13,
+     -21,
+     -38,
+     -47,
+     -55,
+     -55,
+     -64,
+     -64,
+     -64,
+     -55,
+     -55,
+     -47,
+     -38,
+     -21,
+     -13
+    ]
+   },
+   {
+    "Samples": [
+     4,
+     21,
+     30,
+     47,
+     47,
+     47,
+     38,
+     30,
+     21,
+     21,
+     13,
+     13,
+     13,
+     13,
+     13,
+     4,
+     4,
+     -4,
+     -13,
+     -13,
+     -13,
+     -13,
+     -13,
+     -21,
+     -21,
+     -30,
+     -38,
+     -47,
+     -47,
+     -47,
+     -30,
+     -21
+    ]
+   },
+   {
+    "Samples": [
+     1,
+     9,
+     17,
+     25,
+     31,
+     38,
+     42,
+     44,
+     44,
+     44,
+     44,
+     42,
+     40,
+     38,
+     36,
+     36,
+     36,
+     36,
+     36,
+     38,
+     40,
+     42,
+     44,
+     44,
+     44,
+     44,
+     42,
+     38,
+     31,
+     25,
+     17,
+     9,
+     1,
+     -9,
+     -17,
+     -25,
+     -31,
+     -38,
+     -42,
+     -44,
+     -44,
+     -44,
+     -44,
+     -42,
+     -40,
+     -38,
+     -36,
+     -36,
+     -34,
+     -36,
+     -36,
+     -38,
+     -40,
+     -42,
+     -44,
+     -44,
+     -44,
+     -44,
+     -42,
+     -38,
+     -31,
+     -25,
+     -17,
+     -9
+    ]
+   },
+   {
+    "Samples": [
+     -64,
+     -64,
+     -64,
+     64,
+     -64,
+     -64,
+     64,
+     64,
+     -64,
+     64,
+     -64,
+     64,
+     64,
+     64,
+     64
+    ]
+   },
+   {
+    "Samples": [
+     64,
+     64,
+     64,
+     64,
+     64,
+     64,
+     64,
+     64,
+     64,
+     64,
+     64,
+     64,
+     64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64,
+     -64
+    ]
+   }
+  ],
+  "timbres": [
+   {
+    "drum": false,
+    "slot": 10,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 1
+      },
+      "volume": 2535,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 30,
+      "hold": 200,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 400,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 1
+      },
+      "volume": 2535,
+      "ratio": 10070,
+      "offset_hz": 0,
+      "attack": 30,
+      "hold": 200,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 400,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 21,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 1
+      },
+      "volume": 3952,
+      "ratio": 5000,
+      "offset_hz": 0,
+      "attack": 20,
+      "hold": 200,
+      "decay": 2500,
+      "sustain": 8000,
+      "release": 300,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 26,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 1
+      },
+      "volume": 7376,
+      "ratio": 5000,
+      "offset_hz": 0,
+      "attack": 20,
+      "hold": 200,
+      "decay": 1200,
+      "sustain": 0,
+      "release": 300,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 28,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 1
+      },
+      "volume": 4049,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 2500,
+      "hold": 500,
+      "decay": 5000,
+      "sustain": 10000,
+      "release": 2500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 1,
+      "wave": "Triangle",
+      "volume": 70,
+      "ratio": 0,
+      "offset_hz": 40000,
+      "attack": 3000,
+      "hold": 0,
+      "decay": 100,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 29,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 2
+      },
+      "volume": 3495,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 2500,
+      "hold": 500,
+      "decay": 5000,
+      "sustain": 10000,
+      "release": 2500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 1,
+      "wave": "Triangle",
+      "volume": 70,
+      "ratio": 0,
+      "offset_hz": 40000,
+      "attack": 3000,
+      "hold": 0,
+      "decay": 100,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 31,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 2
+      },
+      "volume": 3469,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 3000,
+      "hold": 200,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 3000,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 2
+      },
+      "volume": 3469,
+      "ratio": 10081,
+      "offset_hz": 0,
+      "attack": 3000,
+      "hold": 200,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 3000,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 33,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 3
+      },
+      "volume": 7404,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 3000,
+      "hold": 500,
+      "decay": 5000,
+      "sustain": 10000,
+      "release": 2500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 1,
+      "wave": "Triangle",
+      "volume": 87,
+      "ratio": 0,
+      "offset_hz": 40000,
+      "attack": 3000,
+      "hold": 0,
+      "decay": 100,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 39,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 2
+      },
+      "volume": 4943,
+      "ratio": 20000,
+      "offset_hz": 0,
+      "attack": 20,
+      "hold": 0,
+      "decay": 1200,
+      "sustain": 4000,
+      "release": 400,
+      "pitch_ratio": 5000,
+      "pitch_time": 120,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 42,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 6
+      },
+      "volume": 4648,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 30,
+      "hold": 200,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 300,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 1,
+      "wave": "Triangle",
+      "volume": 128,
+      "ratio": 0,
+      "offset_hz": 60000,
+      "attack": 1800,
+      "hold": 0,
+      "decay": 100,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 44,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 6
+      },
+      "volume": 8528,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 20,
+      "hold": 0,
+      "decay": 2000,
+      "sustain": 0,
+      "release": 300,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 51,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 1
+      },
+      "volume": 2511,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 120,
+      "hold": 200,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 400,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 1
+      },
+      "volume": 2511,
+      "ratio": 10046,
+      "offset_hz": 0,
+      "attack": 120,
+      "hold": 200,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 400,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 58,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 3
+      },
+      "volume": 4868,
+      "ratio": 20000,
+      "offset_hz": 0,
+      "attack": 20,
+      "hold": 100,
+      "decay": 3000,
+      "sustain": 8000,
+      "release": 300,
+      "pitch_ratio": 5000,
+      "pitch_time": 60,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 59,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 0
+      },
+      "volume": 4908,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 10,
+      "hold": 200,
+      "decay": 800,
+      "sustain": 8500,
+      "release": 300,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 1,
+      "wave": "Triangle",
+      "volume": 263,
+      "ratio": 0,
+      "offset_hz": 65000,
+      "attack": 3000,
+      "hold": 0,
+      "decay": 100,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 60,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 1
+      },
+      "volume": 3179,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 30,
+      "hold": 200,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 300,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 1
+      },
+      "volume": 1236,
+      "ratio": 10020,
+      "offset_hz": 0,
+      "attack": 1200,
+      "hold": 200,
+      "decay": 3000,
+      "sustain": 6000,
+      "release": 1500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 61,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 4
+      },
+      "volume": 6372,
+      "ratio": 5000,
+      "offset_hz": 0,
+      "attack": 20,
+      "hold": 200,
+      "decay": 2500,
+      "sustain": 7500,
+      "release": 300,
+      "pitch_ratio": 9700,
+      "pitch_time": 500,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 62,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 5
+      },
+      "volume": 4675,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 30,
+      "hold": 200,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 300,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 1,
+      "wave": "Triangle",
+      "volume": 128,
+      "ratio": 0,
+      "offset_hz": 55000,
+      "attack": 2000,
+      "hold": 0,
+      "decay": 100,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 64,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 8
+      },
+      "volume": 5814,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 30,
+      "hold": 200,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 300,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 1,
+      "wave": "Triangle",
+      "volume": 204,
+      "ratio": 0,
+      "offset_hz": 50000,
+      "attack": 1200,
+      "hold": 0,
+      "decay": 100,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 68,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 1
+      },
+      "volume": 4217,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 30,
+      "hold": 200,
+      "decay": 1500,
+      "sustain": 7000,
+      "release": 300,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 1,
+      "wave": "Triangle",
+      "volume": 87,
+      "ratio": 0,
+      "offset_hz": 60000,
+      "attack": 2500,
+      "hold": 0,
+      "decay": 100,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 69,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 2
+      },
+      "volume": 4198,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 30,
+      "hold": 200,
+      "decay": 1200,
+      "sustain": 5500,
+      "release": 300,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 71,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 7
+      },
+      "volume": 11599,
+      "ratio": 5000,
+      "offset_hz": 0,
+      "attack": 20,
+      "hold": 200,
+      "decay": 1500,
+      "sustain": 3000,
+      "release": 300,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 85,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 9
+      },
+      "volume": 3042,
+      "ratio": 5000,
+      "offset_hz": 0,
+      "attack": 20,
+      "hold": 200,
+      "decay": 2000,
+      "sustain": 10000,
+      "release": 300,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 86,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 10
+      },
+      "volume": 3042,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 1000,
+      "hold": 500,
+      "decay": 5000,
+      "sustain": 10000,
+      "release": 2500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 1,
+      "wave": "Triangle",
+      "volume": 29,
+      "ratio": 0,
+      "offset_hz": 40000,
+      "attack": 3000,
+      "hold": 0,
+      "decay": 100,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 89,
+    "operators": [
+     {
+      "route": 0,
+      "wave": {
+       "Custom": 2
+      },
+      "volume": 3139,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 30,
+      "hold": 200,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 300,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 1,
+      "wave": "Triangle",
+      "volume": 70,
+      "ratio": 0,
+      "offset_hz": 50000,
+      "attack": 2500,
+      "hold": 0,
+      "decay": 100,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 95,
+    "operators": [
+     {
+      "route": 0,
+      "wave": "Sine",
+      "volume": 2159,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 50,
+      "hold": 200,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 1,
+      "wave": "Sine",
+      "volume": 8000,
+      "ratio": 20000,
+      "offset_hz": 0,
+      "attack": 0,
+      "hold": 0,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 0,
+      "wave": "Sine",
+      "volume": 925,
+      "ratio": 20000,
+      "offset_hz": 0,
+      "attack": 50,
+      "hold": 200,
+      "decay": 1000,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   },
+   {
+    "drum": false,
+    "slot": 96,
+    "operators": [
+     {
+      "route": 0,
+      "wave": "Sine",
+      "volume": 2124,
+      "ratio": 10000,
+      "offset_hz": 0,
+      "attack": 30,
+      "hold": 100,
+      "decay": 3000,
+      "sustain": 8000,
+      "release": 1500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 1,
+      "wave": "Sine",
+      "volume": 20000,
+      "ratio": 20000,
+      "offset_hz": 0,
+      "attack": 0,
+      "hold": 0,
+      "decay": 2000,
+      "sustain": 5000,
+      "release": 1000,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     },
+     {
+      "route": 1,
+      "wave": "Triangle",
+      "volume": 116,
+      "ratio": 0,
+      "offset_hz": 60000,
+      "attack": 1500,
+      "hold": 0,
+      "decay": 100,
+      "sustain": 10000,
+      "release": 500,
+      "pitch_ratio": 10000,
+      "pitch_time": 10000,
+      "key_scale": 0,
+      "filter": null
+     }
+    ]
+   }
+  ]
+ }
+}

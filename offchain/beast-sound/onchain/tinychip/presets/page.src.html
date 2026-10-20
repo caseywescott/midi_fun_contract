@@ -60,6 +60,7 @@ button.amber:hover{border-color:var(--amber)}
 .tag.set{border-color:var(--fg);color:#000;background:var(--fg)}
 .tag.mega{border-color:var(--amber);color:var(--amber)}
 .tag.drop{border-color:var(--red);color:var(--red)}
+.tag.pack{border-color:var(--amber);color:#000;background:var(--amber)}
 .meta{font-size:11px;color:var(--faint)}
 .row{display:flex;gap:6px;align-items:center;margin-top:auto}
 .row .play{flex:1}
@@ -117,6 +118,7 @@ textarea{width:100%;height:120px;font:11px/1.35 var(--mono);color:var(--fg);back
   <div class="crumbs"><a href="/">Beast Sound</a> / <a href="/onchain/">onchain</a> / presets</div>
   <h1>TinyChip presets</h1>
   <p>All 100 presets of the TinyChip bank, converted to <code>TinySynthSettings</code> timbres for loothero's onchain-midi-player and played through its pinned TinySynth engine (fork <code>4bf9829</code>), installed the way the player installs settings: sampled chip waves via <code>setSampleWave</code>, one timbre per program slot. The 20 in the launch set have exactly the timbres <code>BeastMidiProvider.get_settings</code> serves (checked against <code>synth_settings.mjs</code> at build). The other 80 were left out of the launch build.</p>
+  <p>The <b style="color:var(--amber)">optional pack</b> (25 presets, chosen with loothero) ships pre-encoded alongside onchain-midi-player: its files are in <code>offchain/beast-sound/onchain/tinychip/optional-pack/</code> of midi_fun_contract (<code>pack.json</code>, <code>settings.txt</code>, and <code>settings.txt.gz.b64</code>, the gzipped base64 payload).</p>
   <p>Tick <b style="color:var(--amber)">Keep</b> on the ones you want in the optional pack, then open <b style="color:var(--amber)">Export pack</b> to copy the program list, a share link, the settings JSON or a gzipped base64 payload.</p>
   <div class="stats" id="stats"></div>
 
@@ -129,7 +131,7 @@ textarea{width:100%;height:120px;font:11px/1.35 var(--mono);color:var(--fg);back
     <button id="stop">Stop</button>
     <span class="spacer"></span>
     <div class="seg" role="group" aria-label="Show">
-      <button data-show="all" aria-pressed="true">All 100</button><button data-show="unused">Not used</button><button data-show="set">Launch 20</button><button data-show="kept">Kept</button>
+      <button data-show="all" aria-pressed="true">All 100</button><button data-show="unused">Not used</button><button data-show="set">Launch 20</button><button data-show="pack">Optional pack</button><button data-show="kept">Kept</button>
     </div>
     <input type="search" id="q" placeholder="Search" aria-label="Search presets">
   </div>
@@ -180,7 +182,7 @@ textarea{width:100%;height:120px;font:11px/1.35 var(--mono);color:var(--fg);back
 (() => {
 const DATA = /*DATA*/null;
 const $ = (id) => document.getElementById(id);
-const P = DATA.presets, W = DATA.waves, D = DATA.drums;
+const P = DATA.presets, W = DATA.waves, D = DATA.drums, PACK = new Set(DATA.optional || []);
 const WAVE_LABEL = { nP06: '6.25% pulse', nP12: '12.5% pulse', nP25: '25% pulse', nP37: '37.5% pulse', nP50: 'square', nTRI: 'NES triangle', nSAW: '4-bit saw', nVRS: 'VRC6 saw', nWV1: 'GB wave (sine)', nWV2: 'GB wave (organ)', nFDS: 'FDS wave', nN16: 'N163 wave', nSID: 'SID tri&saw', nTI4: 'TIA poly4', nTI5: 'TIA poly5', nTIB: 'TIA div-31', nPC1: 'PCE wave', nPC2: 'PCE wave 2', nMTP: 'LFSR tone' };
 const BUILTIN_LABEL = { Sine: 'sine', Square: 'square', Sawtooth: 'saw', Triangle: 'triangle', WhiteNoise: 'noise', MetallicNoise: 'metallic noise' };
 const DROPPED = { 10: 'Dropped from the set 2026-10-05' };
@@ -253,6 +255,7 @@ const kept = new Set();
 const fromUrl = new URLSearchParams(location.search).get('keep');
 const saved = fromUrl ?? store.get('tinychip-keep');
 if (saved) for (const x of saved.split(/[ ,]+/)) if (/^\d+$/.test(x) && P[+x]) kept.add(+x);
+if (saved === null) for (const id of PACK) kept.add(id); // first visit: start from the optional pack
 let show = 'all', query = '', playing = null, current = null;
 const persist = () => { store.set('tinychip-keep', [...kept].sort((a, b) => a - b).join(',')); };
 
@@ -274,6 +277,7 @@ function matches(p) {
   if (show === 'unused' && p.inSet) return false;
   if (show === 'set' && !p.inSet) return false;
   if (show === 'kept' && !kept.has(p.program)) return false;
+  if (show === 'pack' && !PACK.has(p.program)) return false;
   if (query) { const hay = (p.program + ' ' + p.name + ' ' + p.category + ' ' + (p.inspired || '') + ' ' + waveSummary(p)).toLowerCase(); if (!query.split(/\s+/).every((w) => hay.includes(w))) return false; }
   return true;
 }
@@ -303,6 +307,7 @@ function card(p) {
   if (playing === p.program) c.classList.add('playing');
   const tags = [];
   if (p.inSet) tags.push(['set', 'Launch set' + (ROLE[p.program] ? ' · ' + ROLE[p.program] : '')]);
+  else if (PACK.has(p.program)) tags.push(['pack', 'Optional pack']);
   else tags.push(['', 'Not used']);
   if (MEGA[p.program]) tags.push(['mega', MEGA[p.program]]);
   if (DROPPED[p.program]) tags.push(['drop', DROPPED[p.program]]);
@@ -464,7 +469,7 @@ function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add
 
 // stats
 const unused = P.filter((p) => !p.inSet).length;
-const st = [[P.length, 'presets in the bank'], [P.length - unused, 'in the launch set'], [unused, 'not used'], [W.length, 'sampled chip waves'], [CATS.length, 'categories']];
+const st = [[P.length, 'presets in the bank'], [P.length - unused, 'in the launch set'], [PACK.size, 'in the optional pack'], [unused - PACK.size, 'not used'], [W.length, 'sampled chip waves'], [CATS.length, 'categories']];
 for (const [v, k] of st) { const d = document.createElement('div'); d.className = 'stat'; d.innerHTML = '<b></b><span></span>'; d.firstChild.textContent = v; d.lastChild.textContent = k; $('stats').appendChild(d); }
 buildKeys(); render();
 if (fromUrl) toast(kept.size + ' kept from the link');

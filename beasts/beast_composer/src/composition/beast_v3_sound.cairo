@@ -82,20 +82,19 @@ pub struct PackableBeastV3 {
     pub beast_type: u8,
 }
 
-/// Live state read from contracts that already exist; nothing here is stored by Sound.
+/// A Beast's live state, for the compositions that read it (`map_v3_beast_to_composition_params`,
+/// the v1.1 score). The tracks `BeastMidiProvider` serves read none of it: they compose with the
+/// neutral live state (`genesis::neutral_live`). Nothing here is stored by Sound.
 #[derive(Copy, Drop, Serde)]
 pub struct BeastV3LiveState {
-    /// The Beast's verified kills: the Beasts NFT's `IBeastStats::get_beast_stats(entity_hash)`
-    /// (`adventurers_killed`), keyed by `poseidon(species, prefix, suffix)`.
+    /// Adventurers the Beast has killed.
     pub adventurers_killed: u64,
     /// Death Mountain defeats after the one that made the Beast mintable:
     /// `get_collectable_count - 1`. (Earlier drafts also added Summit deaths; Summit is retired.)
-    /// Beasts V3 exposes no collect count, so `BeastMidiProvider` supplies 0.
     pub scars: u64,
-    /// Retired input (Summit is obsolete). Kept so existing compositions stay reproducible;
-    /// `BeastMidiProvider` always supplies 0.
+    /// Retired input (Summit is obsolete). Kept so existing compositions stay reproducible; pass 0.
     pub summit_held_seconds: u64,
-    /// `get_beast_rank(token_id)`; 0 for the genesis token and an unranked Beast.
+    /// The Beast's rank in its species; 0 for the genesis token and an unranked Beast.
     pub rank: u16,
     /// `get_species_count(beast_id)`.
     pub species_count: u16,

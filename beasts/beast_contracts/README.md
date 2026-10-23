@@ -8,9 +8,9 @@ core MIDI types and interfaces it implements).
   manager**. It answers SRC5 `IBEASTS_SOUND_MANAGER_ID`, so the Beasts registry accepts it as a
   species' sound manager, and serves `ISoundManager::get_track_sound(token_id, track_number,
   block_number)`, which the Beasts renderer calls for a token's default track. It is also the only
-  caller the NFT accepts for a token's track mutations, which it forwards for its owner (the launch
-  rollout) and, for `set_default_track`, for the token's owner. It keeps the generic
-  `IMidiProvider` (`get_midi`, `get_midi_for`), `ISynthSettingsProvider::get_settings` and
+  caller the NFT accepts for a token's sound mutations, which it forwards for its owner (the launch
+  rollout) and, for `set_default_track` and `set_sound_mode`, for the token's owner. It keeps the
+  generic `IMidiProvider` (`get_midi`, `get_midi_for`), `ISynthSettingsProvider::get_settings` and
   onchain-midi-player's `ISoundProvider::get_sound`, which serve the token's Species Song.
 - **`BeastTrackComposer`** (`src/track_composer.cairo`): the composer as its own declared class,
   which the provider library-calls: the two do not fit in one class under Starknet's 81,920-felt
@@ -31,34 +31,35 @@ sound manager with the registry's `set_sound_manager`.
 
 ### Tracks
 
-The NFT stores each token's tracks as `TrackInputs { version, data }` and never reads them. The
-provider's versions:
+A Beast has exactly three tracks. The NFT stores each as `TrackInputs { version, data }` and never
+reads it; here a track is its version tag, with no data:
 
-| `version` | `data` | Plays |
+| Track | `version` | Plays |
 |---|---|---|
-| `TRACK_SOUND_CHECK` (1) | none | The Sound Check: the Beast's scale through each of its presets (composer track 0) |
-| `TRACK_SPECIES_SONG` (2) | none | The Species Song, the Genesis Track with the default swaps (composer track 1) |
-| `TRACK_COMPOSED` (3) | `[inputs]` | The Beast Special Song of the packed composer inputs `inputs` (composer track 2): the name track, or the Species Song for a Beast without a special name |
-| `TRACK_COMPOSED` (3) | `[inputs, seed]` | A bought track: `seed` (never 0) on the Beast of `inputs` (composer track 3+) |
+| 0, Sound Check | `TRACK_SOUND_CHECK` (1) | The Beast's scale through each of its presets (the composer's track 0) |
+| 1, Species Song | `TRACK_SPECIES_SONG` (2) | The Genesis Track, with the default swaps (the composer's track 1) |
+| 2, Custom Name Track | `TRACK_CUSTOM_NAME` (3) | The species' theme in the special name's key and style (the composer's name track, `TRACK_SPECIAL_SONG`); a Beast without a special name plays its Species Song |
 
-The Sound Check and the Species Song compose from the token itself (`get_beast`), so they store no
-per-token data and every token gets the same inputs. A `TRACK_COMPOSED` track carries its Beast in
-its data: `get_composer_inputs(token_id)` gives the token's own, and it plays whatever Beast its
-inputs describe. A track means its version, whatever its index.
+Each track composes from the Beast alone (`get_beast`), so a token stores only the version tag. A
+version names the track whatever its index; the rollout appends them at indices 0, 1 and 2.
+
+**Composition is unchanged.** For the same Beast and track, the MIDI is byte for byte the
+composer's on `main`: `track_smf_bytes` of the Beast's composer inputs, and the Genesis Track
+(`genesis_byte_array`) for the Species Song as written. No track reads live state (kills, rank):
+the composer's tracks compose with the neutral live state, so the provider reads none.
 
 `get_track_sound(token_id, track_number, block_number)` reads the track (`track_inputs`, which
-rejects an unminted token and an index at or above `num_tracks`) and, for the Sound Check and the
-Species Song, the Beast (`get_beast`), and returns `TinySynthSound { midi, settings }`. `block_number` is the renderer's resolution of the token's
-saved mode: `None` (Original) plays the track as written; `Some(n)` (Live asks for the current block
-minus 10, AtBlock(n) for `n`) plays the day of drift at block `n`
+rejects an unminted token and an index at or above `num_tracks`) and the Beast (`get_beast`), and
+returns `TinySynthSound { midi, settings }`. `block_number` is the renderer's resolution of the
+token's saved mode: `None` (Original) plays the track as written; `Some(n)` (Live asks for the
+current block minus 10, AtBlock(n) for `n`) plays the composer's day of drift at block `n`
 (`beast_composer::composition::drift`), from the hashes of its day's, week's and month's first
 blocks. `n` must not be in the future (`block in the future`). The Sound Check never drifts.
 
 It reverts for a token the NFT has not minted (the NFT's `ERC721: invalid token ID`), a track the
-token does not have (`Sound: invalid track`), a version the provider does not define
-(`unknown track version`), data that does not fit the version (`bad track data`,
-`bought track needs a seed`, `unknown params layout`) and a future block. The renderer calls it
-through a safe dispatcher, so a revert leaves the card silent rather than broken.
+token does not have (`Sound: invalid track`), a stored track of another version
+(`unknown track version`) or with data (`bad track data`), and a future block. The renderer calls
+it through a safe dispatcher, so a revert leaves the card silent rather than broken.
 
 ### The Beast
 
@@ -67,8 +68,8 @@ The provider reads the Beast from the NFT (`get_beast(token_id: felt252)`, the 2
 break it. The composer sees the species, special name, level, health, tier and type, and one sound
 flag: `sound_effects` is a preset whose meaning the sound manager defines, and here
 `SOUND_PRESET_MEGA` (1) plays the mega sound (the shiny arrangement and the mega leads) while every
-other value plays the normal sound. `visual_effects`, the image provider's preset, does not change
-the sound.
+other value plays the normal sound. The original species' Genesis Beasts are minted with sound
+preset 1. `visual_effects`, the image provider's preset, does not change the sound.
 
 ### Entry points
 
@@ -78,14 +79,12 @@ the sound.
 | `get_sound(token_id: u256)` | anyone | `TinySynthSound` of the token's Species Song as written (onchain-midi-player's `ISoundProvider`), whether or not the token has tracks |
 | `get_midi(token_id: u256)`, `get_midi_for(token_address, token_id: u256)` | anyone | Its MIDI (`IMidiProvider`); `get_midi_for` first checks `token_address` (`unsupported collection`) |
 | `get_settings(token_id: u256)` | anyone | Its settings, without composing (`ISynthSettingsProvider`) |
-| `get_live_state(token_id)` | anyone | The Beast's rank (`get_beast_rank`), its species' count (`get_species_count`) and its verified kills (the NFT's `IBeastStats::get_beast_stats(poseidon(species, prefix, suffix))`). Beasts V3 tracks no scars and Summit is retired: both 0. No track composes from it today |
-| `get_composer_inputs(token_id)` | anyone | The token's packed composer inputs, the `[inputs]` of a `TRACK_COMPOSED` track of its own Special Song |
 | `get_collection()`, `get_engine_version()`, `get_composer_class()` | anyone | The NFT, `1`, the composer class |
 | `supports_interface(id)` | anyone | SRC5: `IBEASTS_SOUND_MANAGER_ID` and `ISRC5_ID` |
 | `set_default_track(token_id, track_number)` | the token's owner | Forwards the NFT's `set_default_track` |
+| `set_sound_mode(token_id, mode)` | the token's owner | Forwards the NFT's `set_sound_mode`: Live, Original or AtBlock(n), `n` not in the future |
 | `batch_update_track_capacity(token_ids, new_capacity)` | owner | `update_track_capacity` for every token |
-| `batch_add_track(token_ids, inputs)` | owner | `add_track` with the same inputs for every token |
-| `batch_add_tracks(tracks)` | owner | `add_track` with each token's own inputs (`TokenTrack { token_id, inputs }`) |
+| `batch_add_track(token_ids, version)` | owner | Appends track `version` (one of the three) to every token |
 | `batch_set_default_track(token_ids, track_number)` | owner | `set_default_track` for every token |
 | `register_interface(interface_id)` | owner | Registers an SRC5 ID, for an instance upgraded from a class whose constructor did not register `IBEASTS_SOUND_MANAGER_ID` |
 | `set_composer_class(class_hash)` | owner | Replaces the composer class |
@@ -98,15 +97,15 @@ caches nothing.
 
 ### Launch rollout
 
-The owner drives the rollout while it owns the provider (the NFT accepts track mutations only from
+The owner drives the rollout while it owns the provider (the NFT accepts sound mutations only from
 the species' registered sound manager):
 
-1. `batch_update_track_capacity(ids, 3)`, `batch_add_track(ids, {TRACK_SOUND_CHECK, []})`: every
-   Beast gets the Sound Check as track 0, its default, for about 24 hours.
-2. `batch_add_track(ids, {TRACK_SPECIES_SONG, []})`, `batch_set_default_track(ids, 1)`: the
-   Species Song.
-3. `batch_add_tracks([(id, {TRACK_COMPOSED, [get_composer_inputs(id)]}), ...])`,
-   `batch_set_default_track(ids, 2)`: the transmission track.
+1. `batch_update_track_capacity(ids, 3)`, `batch_add_track(ids, TRACK_SOUND_CHECK)`: every Beast
+   gets the Sound Check as track 0, its default, for about 24 hours.
+2. `batch_add_track(ids, TRACK_SPECIES_SONG)`, `batch_set_default_track(ids, 1)`: the Species
+   Song.
+3. `batch_add_track(ids, TRACK_CUSTOM_NAME)`, `batch_set_default_track(ids, 2)`: the Custom Name
+   Track.
 
 `renounce_ownership` ends the rollout entry points with upgrades. Every NFT mutation emits two
 events (its own and an ERC-4906 `MetadataUpdate`) and Starknet caps a transaction at 1,000 events;
@@ -162,10 +161,11 @@ later. From the repository root (artifacts land in the workspace `target/dev`, n
 `beast_contracts_<Contract>`):
 
 ```bash
-scarb build -p beast_contracts   # CASM: BeastTrackComposer 77,216 felts, BeastMidiProvider 16,173
-                                 # (Starknet limit 81,920); Sierra 39,190 and 6,941
-scarb test -p beast_contracts    # the provider on a mock Beasts V3 NFT: every track version, drift,
-                                 # the rollout, SRC5, rejections, get_sound, and onchain-midi-player's
+scarb build -p beast_contracts   # CASM: BeastTrackComposer 75,392 felts, BeastMidiProvider 13,566
+                                 # (Starknet limit 81,920); Sierra 38,376 and 5,318
+scarb test -p beast_contracts    # the provider on a mock Beasts V3 NFT: the three tracks against the
+                                 # composer's bytes, drift, the rollout, the token owner's entry
+                                 # points, SRC5, rejections, get_sound, and onchain-midi-player's
                                  # validate on the settings
 ```
 
@@ -176,16 +176,15 @@ from the ignored `gas_probe_*` tests (`snforge test gas_probe --include-ignored
 --tracked-resource sierra-gas --trace-components contract-name gas` in this package; scarb 2.21.0,
 snforge 0.64.1, no transaction overhead). Live is a day of drift at block 130,100.
 
-| Beast | Track 0, Sound Check | Track 1, Species Song, Original | Track 1, Live | Track 2, Special Song, Original | Track 2, Live |
+| Beast | Track 0, Sound Check | Track 1, Species Song, Original | Track 1, Live | Track 2, Custom Name Track, Original | Track 2, Live |
 |---|---:|---:|---:|---:|---:|
-| Mega #32 (the largest Genesis Track), special name 13/6 | 8.4M | 162.6M | 170.9M | 183.1M | 183.4M |
-| Sorrow Peak Warlock (#1, normal) | 7.1M | 132.5M | 137.1M | 138.3M | 138.4M |
+| Mega #32 (the largest Genesis Track), special name 13/6 | 8.3M | 162.6M | 170.9M | 184.1M | 184.4M |
+| Sorrow Peak Warlock (#1, normal) | 7.0M | 132.5M | 137.1M | 139.2M | 139.4M |
 
-The provider's own share is about 2–3.3M: `track_inputs` (0.15–0.19M on the mock), for tracks 0
-and 1 `get_beast` (1.06M on the mock, which stores the Beast in 26 slots), the settings and the
-library call. The Species Song as
-written composes in the class's Genesis Track copy (`genesis_byte_array`); with drift, and for the
-other songs, the general composer.
+The provider's own share is about 2.4–3.3M: `track_inputs` (0.15M on the mock), `get_beast`
+(1.06M on the mock, which stores the Beast in 26 slots), the settings and the library call. The
+Species Song as written composes in the class's Genesis Track copy (`genesis_byte_array`); with
+drift, and for the other tracks, the general composer.
 
 ## BeastMidiProvider gas (`bench/`, the previous class)
 

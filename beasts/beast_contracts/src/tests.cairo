@@ -24,38 +24,37 @@ use starknet::{ClassHash, ContractAddress};
 use crate::beasts_v3::{
     CardCondition, IBEASTS_SOUND_MANAGER_ID, IBeastSoundTracksDispatcher,
     IBeastSoundTracksDispatcherTrait, ISoundManagerDispatcher, ISoundManagerDispatcherTrait,
-    PackableBeast, TrackInputs, get_hash,
+    PackableBeast, SoundMode, TrackInputs,
 };
 use crate::provider::BeastMidiProvider::composer_beast;
 use crate::provider::{
     IBeastMidiProviderDispatcher, IBeastMidiProviderDispatcherTrait, IBeastSoundAdminDispatcher,
     IBeastSoundAdminDispatcherTrait, IBeastSoundTokenOwnerDispatcher,
-    IBeastSoundTokenOwnerDispatcherTrait, SOUND_PRESET_MEGA, TRACK_COMPOSED, TRACK_SOUND_CHECK,
-    TRACK_SPECIES_SONG, TokenTrack,
+    IBeastSoundTokenOwnerDispatcherTrait, SOUND_PRESET_MEGA, TRACK_CUSTOM_NAME, TRACK_SOUND_CHECK,
+    TRACK_SPECIES_SONG,
 };
+use crate::track_composer::IBeastTrackComposerDispatcherTrait;
 
 // ── the mock NFT ──
 
 #[starknet::interface]
 pub trait IMockBeasts<T> {
     fn mint(ref self: T, token_id: felt252, owner: ContractAddress, beast: PackableBeast);
-    fn set_rank(ref self: T, token_id: felt252, rank: u16);
-    fn set_species_count(ref self: T, species_id: u64, count: u16);
-    fn set_kills(ref self: T, entity_hash: felt252, kills: u64);
-    /// The species' sound manager: the only caller the track mutations accept.
+    /// The species' sound manager: the only caller the sound mutations accept.
     fn set_sound_manager(ref self: T, manager: ContractAddress);
     /// `(track_capacity, num_tracks, default_track)`.
     fn config(self: @T, token_id: felt252) -> (u8, u8, u8);
+    fn sound_mode(self: @T, token_id: felt252) -> SoundMode;
 }
 
-/// The ERC-721 read the provider makes for the token-owner entry point.
+/// The ERC-721 read the provider makes for the token-owner entry points.
 #[starknet::interface]
 pub trait IMockOwnerOf<T> {
     fn owner_of(self: @T, token_id: u256) -> ContractAddress;
 }
 
 /// The Beasts V3 NFT entry points the provider calls, with the real contract's checks and error
-/// messages: every token read rejects an unminted token, the track mutations accept only the sound
+/// messages: every token read rejects an unminted token, the sound mutations accept only the sound
 /// manager, and the track rules are `IBeastSoundTracks`'. `token_uri` panics: the provider must
 /// never call it.
 #[starknet::contract]
@@ -66,9 +65,7 @@ pub mod MockBeasts {
         StoragePointerWriteAccess,
     };
     use starknet::{ContractAddress, get_caller_address};
-    use crate::beasts_v3::{
-        BeastLiveStats, IBeastSoundTracks, IBeastStats, IBeasts, PackableBeast, TrackInputs,
-    };
+    use crate::beasts_v3::{IBeastSoundTracks, IBeasts, PackableBeast, SoundMode, TrackInputs};
 
     const BEAST_FELTS: u32 = 26;
 
@@ -76,9 +73,6 @@ pub mod MockBeasts {
     struct Storage {
         owners: Map<felt252, ContractAddress>,
         beast_felts: Map<(felt252, u32), felt252>,
-        rank: Map<felt252, u16>,
-        species_count: Map<u64, u16>,
-        kills: Map<felt252, u64>,
         manager: ContractAddress,
         capacity: Map<felt252, u8>,
         num_tracks: Map<felt252, u8>,
@@ -86,6 +80,9 @@ pub mod MockBeasts {
         track_version: Map<(felt252, u8), u16>,
         track_len: Map<(felt252, u8), u32>,
         track_words: Map<(felt252, u8, u32), felt252>,
+        // the SoundMode's Serde felts: the tag, then the AtBlock block
+        mode_tag: Map<felt252, felt252>,
+        mode_block: Map<felt252, felt252>,
     }
 
     fn require_token(self: @ContractState, token_id: felt252) {
@@ -109,26 +106,6 @@ pub mod MockBeasts {
             }
             let mut span = felts.span();
             Serde::deserialize(ref span).unwrap()
-        }
-
-        fn get_beast_rank(self: @ContractState, token_id: felt252) -> u16 {
-            require_token(self, token_id);
-            self.rank.read(token_id)
-        }
-
-        fn get_species_count(self: @ContractState, species_id: u64) -> u16 {
-            self.species_count.read(species_id)
-        }
-    }
-
-    #[abi(embed_v0)]
-    impl Stats of IBeastStats<ContractState> {
-        fn get_beast_stats(self: @ContractState, entity_hash: felt252) -> BeastLiveStats {
-            BeastLiveStats {
-                adventurers_killed: self.kills.read(entity_hash),
-                last_killed_by: 0,
-                last_killed_timestamp: 0,
-            }
         }
     }
 
@@ -175,6 +152,18 @@ pub mod MockBeasts {
             );
             self.default_track.write(token_id, track_number);
         }
+
+        fn set_sound_mode(ref self: ContractState, token_id: felt252, mode: SoundMode) {
+            require_manager(@self, token_id);
+            let mut felts: Array<felt252> = array![];
+            mode.serialize(ref felts);
+            self.mode_tag.write(token_id, *felts.at(0));
+            self.mode_block.write(token_id, if felts.len() > 1 {
+                *felts.at(1)
+            } else {
+                0
+            });
+        }
     }
 
     #[abi(embed_v0)]
@@ -205,18 +194,6 @@ pub mod MockBeasts {
             }
         }
 
-        fn set_rank(ref self: ContractState, token_id: felt252, rank: u16) {
-            self.rank.write(token_id, rank);
-        }
-
-        fn set_species_count(ref self: ContractState, species_id: u64, count: u16) {
-            self.species_count.write(species_id, count);
-        }
-
-        fn set_kills(ref self: ContractState, entity_hash: felt252, kills: u64) {
-            self.kills.write(entity_hash, kills);
-        }
-
         fn set_sound_manager(ref self: ContractState, manager: ContractAddress) {
             self.manager.write(manager);
         }
@@ -227,6 +204,16 @@ pub mod MockBeasts {
                 self.num_tracks.read(token_id),
                 self.default_track.read(token_id),
             )
+        }
+
+        fn sound_mode(self: @ContractState, token_id: felt252) -> SoundMode {
+            let tag = self.mode_tag.read(token_id);
+            let mut felts: Array<felt252> = array![tag];
+            if tag == 2 {
+                felts.append(self.mode_block.read(token_id));
+            }
+            let mut span = felts.span();
+            Serde::deserialize(ref span).unwrap()
         }
     }
 
@@ -287,6 +274,10 @@ fn provider(w: World) -> IBeastMidiProviderDispatcher {
 
 fn admin(w: World) -> IBeastSoundAdminDispatcher {
     IBeastSoundAdminDispatcher { contract_address: w.provider }
+}
+
+fn token_owner(w: World) -> IBeastSoundTokenOwnerDispatcher {
+    IBeastSoundTokenOwnerDispatcher { contract_address: w.provider }
 }
 
 /// The provider sees `who` as the caller from now on.
@@ -408,35 +399,47 @@ fn assert_parity(w: World, b: PackableBeast) {
     assert_eq!(midi_of(w).get_midi_for(w.nft.contract_address, token_id.into()), midi);
 }
 
-/// Gives the token `capacity` slots and appends `inputs`, as its sound manager.
-fn add_tracks(w: World, token_id: felt252, capacity: u8, inputs: Span<TrackInputs>) {
+/// Gives the token `capacity` slots and appends the tracks `versions`, through the owner rollout.
+fn add_tracks(w: World, token_id: felt252, capacity: u8, versions: Span<u16>) {
     as_caller(w, OWNER);
     admin(w).batch_update_track_capacity(array![token_id].span(), capacity);
-    for i in inputs {
-        admin(w).batch_add_track(array![token_id].span(), *i);
+    for v in versions {
+        admin(w).batch_add_track(array![token_id].span(), *v);
     }
     stop_cheat_caller_address(w.provider);
 }
 
-fn sound_check_inputs() -> TrackInputs {
-    TrackInputs { version: TRACK_SOUND_CHECK, data: array![].span() }
-}
-
-fn species_song_inputs() -> TrackInputs {
-    TrackInputs { version: TRACK_SPECIES_SONG, data: array![].span() }
-}
-
-/// The launch tracks: the Sound Check, the Species Song and the Beast's own Special Song.
+/// Mints the Beast with its three tracks: the Sound Check, the Species Song and the Custom Name
+/// Track, at indices 0, 1 and 2.
 fn launch_tracks(w: World, b: PackableBeast) -> felt252 {
     let token_id = mint(w, b);
-    let inputs = provider(w).get_composer_inputs(token_id);
-    let special = TrackInputs { version: TRACK_COMPOSED, data: array![inputs].span() };
-    add_tracks(w, token_id, 3, array![sound_check_inputs(), species_song_inputs(), special].span());
+    add_tracks(
+        w, token_id, 3, array![TRACK_SOUND_CHECK, TRACK_SPECIES_SONG, TRACK_CUSTOM_NAME].span(),
+    );
     token_id
+}
+
+/// Stores `inputs` on the token as its sound manager would, bypassing the provider's own checks:
+/// a track an earlier manager of the species could have left.
+fn store_track(w: World, token_id: felt252, inputs: TrackInputs) {
+    let nft = IBeastSoundTracksDispatcher { contract_address: w.nft.contract_address };
+    start_cheat_caller_address(w.nft.contract_address, w.provider);
+    nft.update_track_capacity(token_id, 1);
+    nft.add_track(token_id, inputs);
+    stop_cheat_caller_address(w.nft.contract_address);
 }
 
 fn bytes(midi: Array<u8>) -> ByteArray {
     bytes_to_byte_array(midi.span())
+}
+
+/// The composer's own bytes of track `track` of `b`: `track_smf_bytes` of its packed inputs.
+fn composer_track_bytes(b: PackableBeast, track: u32, drift: Option<DriftClock>) -> ByteArray {
+    bytes(
+        track_smf_bytes(
+            pack_inputs(composer_inputs(composer_beast(b), neutral_live())), track, 0, drift,
+        ),
+    )
 }
 
 /// The hash the tests give block `block`.
@@ -519,14 +522,23 @@ fn packable_beast_serde_is_beasts_core() {
     assert_eq!(felts, expected);
 }
 
+/// `SoundMode` serializes as `beasts_core::sound::SoundMode`: the variant index is the stored tag.
 #[test]
-fn sound_manager_id_is_the_beasts_selector() {
-    assert_eq!(IBEASTS_SOUND_MANAGER_ID, selector!("beasts_sound_manager_v1"));
+fn sound_mode_serde_is_beasts_core() {
+    let mut live: Array<felt252> = array![];
+    SoundMode::Live.serialize(ref live);
+    let mut original: Array<felt252> = array![];
+    SoundMode::Original.serialize(ref original);
+    let mut at_block: Array<felt252> = array![];
+    SoundMode::AtBlock(1234567890123).serialize(ref at_block);
+    assert_eq!(live, array![0]);
+    assert_eq!(original, array![1]);
+    assert_eq!(at_block, array![2, 1234567890123]);
 }
 
 #[test]
-fn entity_hash_is_poseidon_of_species_and_name() {
-    assert_eq!(get_hash(1, 57, 15), core::poseidon::poseidon_hash_span(array![1, 57, 15].span()),);
+fn sound_manager_id_is_the_beasts_selector() {
+    assert_eq!(IBEASTS_SOUND_MANAGER_ID, selector!("beasts_sound_manager_v1"));
 }
 
 // ── the Species Song: get_midi, get_sound, get_settings ──
@@ -713,14 +725,15 @@ fn others_cannot_register_interfaces() {
     admin(w).register_interface(IBEASTS_SOUND_MANAGER_ID);
 }
 
-// ── get_track_sound ──
+// ── get_track_sound: the three tracks ──
 
 #[test]
-fn sound_check_track_plays_the_sound_check() {
+fn sound_check_track_is_the_composers_sound_check() {
     let w = setup();
     let b = sorrow_peak_warlock();
     let token_id = launch_tracks(w, b);
     let sound = manager(w).get_track_sound(token_id, 0, Option::None);
+    assert_eq!(sound.midi, composer_track_bytes(b, 0, Option::None));
     assert_eq!(sound.midi, bytes(sound_check_smf_bytes(composer_beast(b))));
     // the Beast's own type (the Warlock is Magic), not its partner's
     assert_eq!(sound.settings, crate::synth_settings::beast_synth_settings(0, false));
@@ -737,6 +750,7 @@ fn species_song_track_as_written_is_get_sound() {
     assert_eq!(
         sound, ISoundProviderDispatcher { contract_address: w.provider }.get_sound(token_id.into()),
     );
+    assert_eq!(sound.midi, composer_track_bytes(b, 1, Option::None));
 }
 
 #[test]
@@ -747,8 +761,7 @@ fn species_song_track_drifts_at_a_block() {
     let block = 3 * 43200 + 500; // day 4
     let clock = cheat_drift(w, block, block + 10);
     let sound = manager(w).get_track_sound(token_id, 1, Option::Some(block));
-    let cb = composer_beast(b);
-    assert_eq!(sound.midi, bytes(song_smf_bytes(cb, 0, 0, 0, Option::Some(clock))));
+    assert_eq!(sound.midi, composer_track_bytes(b, 1, Option::Some(clock)));
     assert_eq!(sound.settings, crate::synth_settings::beast_synth_settings(0, false));
     assert!(sound.midi != manager(w).get_track_sound(token_id, 1, Option::None).midi);
 }
@@ -766,33 +779,30 @@ fn block_zero_is_the_first_day() {
 }
 
 #[test]
-fn special_song_track_plays_the_name_track() {
+fn custom_name_track_is_the_composers_name_track() {
     let w = setup();
     let b = sorrow_peak_warlock();
     let token_id = launch_tracks(w, b);
-    let inputs = provider(w).get_composer_inputs(token_id);
-    assert_eq!(inputs, pack_inputs(composer_inputs(composer_beast(b), neutral_live())));
     let sound = manager(w).get_track_sound(token_id, 2, Option::None);
-    assert_eq!(sound.midi, bytes(track_smf_bytes(inputs, 2, 0, Option::None)));
+    assert_eq!(sound.midi, composer_track_bytes(b, 2, Option::None));
     assert_eq!(sound.midi, bytes(song_smf_bytes(composer_beast(b), 57, 15, 0, Option::None)));
     assert_eq!(sound.settings, crate::synth_settings::beast_synth_settings(0, false));
 }
 
 #[test]
-fn special_song_track_drifts_at_a_block() {
+fn custom_name_track_drifts_at_a_block() {
     let w = setup();
     let b = sorrow_peak_warlock();
     let token_id = launch_tracks(w, b);
-    let inputs = provider(w).get_composer_inputs(token_id);
     let block = 40 * 43200 + 7; // day 41: a new month's rhythm cells may apply
     let clock = cheat_drift(w, block, block + 100);
     let sound = manager(w).get_track_sound(token_id, 2, Option::Some(block));
-    assert_eq!(sound.midi, bytes(track_smf_bytes(inputs, 2, 0, Option::Some(clock))));
+    assert_eq!(sound.midi, composer_track_bytes(b, 2, Option::Some(clock)));
 }
 
-/// A Special Song track of a Beast without a special name plays its Species Song.
+/// The Custom Name Track of a Beast without a special name plays its Species Song.
 #[test]
-fn special_song_of_a_genesis_beast_is_its_species_song() {
+fn custom_name_track_of_a_genesis_beast_is_its_species_song() {
     let w = setup();
     let b = genesis_warlock();
     let token_id = launch_tracks(w, b);
@@ -802,42 +812,13 @@ fn special_song_of_a_genesis_beast_is_its_species_song() {
     );
 }
 
-#[test]
-fn composed_track_with_a_seed_is_a_bought_track() {
-    let w = setup();
-    let b = gloomfang();
-    let token_id = mint(w, b);
-    let inputs = provider(w).get_composer_inputs(token_id);
-    let bought = TrackInputs { version: TRACK_COMPOSED, data: array![inputs, 0xabc123].span() };
-    add_tracks(w, token_id, 1, array![bought].span());
-    let sound = manager(w).get_track_sound(token_id, 0, Option::None);
-    assert_eq!(sound.midi, bytes(track_smf_bytes(inputs, 3, 0xabc123, Option::None)));
-    assert_eq!(sound.settings, crate::synth_settings::beast_synth_settings(1, false));
-}
-
-/// A composed track plays the Beast its inputs describe, whichever token holds it.
-#[test]
-fn composed_track_plays_the_beast_of_its_inputs() {
-    let w = setup();
-    let warlock = sorrow_peak_warlock();
-    let warlock_id = mint(w, warlock);
-    let inputs = provider(w).get_composer_inputs(warlock_id);
-    let token_id = mint(w, gloomfang());
-    let track = TrackInputs { version: TRACK_COMPOSED, data: array![inputs].span() };
-    add_tracks(w, token_id, 1, array![track].span());
-    let sound = manager(w).get_track_sound(token_id, 0, Option::None);
-    assert_eq!(
-        sound.midi, bytes(song_smf_bytes(composer_beast(warlock), 57, 15, 0, Option::None)),
-    );
-}
-
-/// Tracks mean their version, not their index.
+/// A track means its version, not its index.
 #[test]
 fn versions_decide_whatever_the_index() {
     let w = setup();
     let b = sorrow_peak_warlock();
     let token_id = mint(w, b);
-    add_tracks(w, token_id, 2, array![species_song_inputs(), sound_check_inputs()].span());
+    add_tracks(w, token_id, 2, array![TRACK_SPECIES_SONG, TRACK_SOUND_CHECK].span());
     assert_eq!(
         manager(w).get_track_sound(token_id, 1, Option::None).midi,
         bytes(sound_check_smf_bytes(composer_beast(b))),
@@ -849,7 +830,7 @@ fn versions_decide_whatever_the_index() {
 fn rejects_a_track_the_token_does_not_have() {
     let w = setup();
     let token_id = mint(w, sorrow_peak_warlock());
-    add_tracks(w, token_id, 2, array![sound_check_inputs()].span());
+    add_tracks(w, token_id, 2, array![TRACK_SOUND_CHECK].span());
     manager(w).get_track_sound(token_id, 1, Option::None);
 }
 
@@ -868,71 +849,21 @@ fn get_track_sound_rejects_unminted_tokens() {
     manager(w).get_track_sound(token_of(sorrow_peak_warlock()), 0, Option::None);
 }
 
-fn one_track(w: World, version: u16, data: Array<felt252>) -> felt252 {
-    let token_id = mint(w, sorrow_peak_warlock());
-    add_tracks(w, token_id, 1, array![TrackInputs { version, data: data.span() }].span());
-    token_id
-}
-
 #[test]
 #[should_panic(expected: ('unknown track version', 'ENTRYPOINT_FAILED'))]
-fn rejects_an_unknown_version() {
+fn rejects_a_stored_track_of_another_version() {
     let w = setup();
-    let token_id = one_track(w, 9, array![]);
+    let token_id = mint(w, sorrow_peak_warlock());
+    store_track(w, token_id, TrackInputs { version: 4, data: array![].span() });
     manager(w).get_track_sound(token_id, 0, Option::None);
 }
 
 #[test]
 #[should_panic(expected: ('bad track data', 'ENTRYPOINT_FAILED'))]
-fn rejects_data_on_a_sound_check() {
+fn rejects_a_stored_track_with_data() {
     let w = setup();
-    let token_id = one_track(w, TRACK_SOUND_CHECK, array![1]);
-    manager(w).get_track_sound(token_id, 0, Option::None);
-}
-
-#[test]
-#[should_panic(expected: ('bad track data', 'ENTRYPOINT_FAILED'))]
-fn rejects_data_on_a_species_song() {
-    let w = setup();
-    let token_id = one_track(w, TRACK_SPECIES_SONG, array![1]);
-    manager(w).get_track_sound(token_id, 0, Option::None);
-}
-
-#[test]
-#[should_panic(expected: ('bad track data', 'ENTRYPOINT_FAILED'))]
-fn rejects_a_composed_track_without_inputs() {
-    let w = setup();
-    let token_id = one_track(w, TRACK_COMPOSED, array![]);
-    manager(w).get_track_sound(token_id, 0, Option::None);
-}
-
-#[test]
-#[should_panic(expected: ('bad track data', 'ENTRYPOINT_FAILED'))]
-fn rejects_a_composed_track_with_extra_data() {
-    let w = setup();
-    let inputs = pack_inputs(
-        composer_inputs(composer_beast(sorrow_peak_warlock()), neutral_live()),
-    );
-    let token_id = one_track(w, TRACK_COMPOSED, array![inputs, 1, 2]);
-    manager(w).get_track_sound(token_id, 0, Option::None);
-}
-
-#[test]
-#[should_panic(expected: ('bought track needs a seed', 'ENTRYPOINT_FAILED'))]
-fn rejects_a_zero_seed() {
-    let w = setup();
-    let inputs = pack_inputs(
-        composer_inputs(composer_beast(sorrow_peak_warlock()), neutral_live()),
-    );
-    let token_id = one_track(w, TRACK_COMPOSED, array![inputs, 0]);
-    manager(w).get_track_sound(token_id, 0, Option::None);
-}
-
-#[test]
-#[should_panic(expected: ('unknown params layout', 'ENTRYPOINT_FAILED'))]
-fn rejects_inputs_of_an_unknown_layout() {
-    let w = setup();
-    let token_id = one_track(w, TRACK_COMPOSED, array![2]);
+    let token_id = mint(w, sorrow_peak_warlock());
+    store_track(w, token_id, TrackInputs { version: TRACK_CUSTOM_NAME, data: array![1].span() });
     manager(w).get_track_sound(token_id, 0, Option::None);
 }
 
@@ -947,7 +878,7 @@ fn rejects_a_block_in_the_future() {
 
 // ── the composer class ──
 
-/// A Beast's songs compose the same from the Beast as from its packed inputs.
+/// A Beast's tracks compose the same from the Beast as from its packed inputs.
 #[test]
 fn composing_the_beast_is_composing_its_inputs_sound_check() {
     let b = composer_beast(sorrow_peak_warlock());
@@ -963,6 +894,15 @@ fn composing_the_beast_is_composing_its_inputs_species_song() {
     let inputs = pack_inputs(composer_inputs(b, neutral_live()));
     assert_eq!(
         beast_track_smf_bytes(b, 1, 0, Option::None), track_smf_bytes(inputs, 1, 0, Option::None),
+    );
+}
+
+#[test]
+fn composing_the_beast_is_composing_its_inputs_custom_name() {
+    let b = composer_beast(gloomfang());
+    let inputs = pack_inputs(composer_inputs(b, neutral_live()));
+    assert_eq!(
+        beast_track_smf_bytes(b, 2, 0, Option::None), track_smf_bytes(inputs, 2, 0, Option::None),
     );
 }
 
@@ -994,6 +934,15 @@ fn genesis_copy_is_the_general_composer_yeti() {
 #[test]
 fn genesis_copy_is_the_general_composer_community() {
     assert_genesis_copy(gloomfang());
+}
+
+/// The composer class plays the three tracks only.
+#[test]
+#[should_panic(expected: ('unknown track', 'ENTRYPOINT_FAILED'))]
+fn the_composer_class_rejects_other_tracks() {
+    let composer = deploy("BeastTrackComposer", array![]);
+    crate::track_composer::IBeastTrackComposerDispatcher { contract_address: composer }
+        .compose(composer_beast(sorrow_peak_warlock()), 3, Option::None);
 }
 
 #[test]
@@ -1028,75 +977,53 @@ fn the_composer_class_cannot_be_zero() {
     admin(w).set_composer_class(0.try_into().unwrap());
 }
 
-// ── live state ──
-
-#[test]
-fn live_state_reads_rank_count_and_verified_kills() {
-    let w = setup();
-    let b = sorrow_peak_warlock();
-    let token_id = mint(w, b);
-    w.nft.set_rank(token_id, 7);
-    w.nft.set_species_count(1, 954);
-    w.nft.set_kills(get_hash(1, 57, 15), 3);
-    // another Beast's kills are not this one's
-    w.nft.set_kills(get_hash(1, 57, 16), 99);
-    let live = provider(w).get_live_state(token_id);
-    assert_eq!(live.adventurers_killed, 3);
-    assert_eq!(live.rank, 7);
-    assert_eq!(live.species_count, 954);
-    assert_eq!(live.scars, 0);
-    assert_eq!(live.summit_held_seconds, 0);
-}
-
-#[test]
-#[should_panic(expected: ('ERC721: invalid token ID', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
-fn live_state_rejects_unminted_tokens() {
-    let w = setup();
-    provider(w).get_live_state(token_of(sorrow_peak_warlock()));
-}
-
 // ── the rollout ──
 
-fn composed(inputs: felt252) -> TrackInputs {
-    TrackInputs { version: TRACK_COMPOSED, data: array![inputs].span() }
-}
-
-/// The launch rollout over a batch: capacity, the Sound Check (the default), then the Species Song
-/// made the default, then each token's own Special Song made the default.
+/// The launch rollout over a batch: capacity and the Sound Check (the default), then the Species
+/// Song made the default, then the Custom Name Track made the default.
 #[test]
-fn owner_rolls_out_the_launch_tracks() {
+fn owner_rolls_out_the_three_tracks() {
     let w = setup();
     let a = mint(w, sorrow_peak_warlock());
     let b = mint(w, gloomfang());
     let c = mint(w, genesis_warlock());
     let tokens = array![a, b, c].span();
-    let inputs_a = provider(w).get_composer_inputs(a);
-    let inputs_b = provider(w).get_composer_inputs(b);
-    let inputs_c = provider(w).get_composer_inputs(c);
     as_caller(w, OWNER);
     admin(w).batch_update_track_capacity(tokens, 3);
-    admin(w).batch_add_track(tokens, sound_check_inputs());
+    admin(w).batch_add_track(tokens, TRACK_SOUND_CHECK);
     assert_eq!(w.nft.config(b), (3, 1, 0));
-    admin(w).batch_add_track(tokens, species_song_inputs());
+    admin(w).batch_add_track(tokens, TRACK_SPECIES_SONG);
     admin(w).batch_set_default_track(tokens, 1);
     assert_eq!(w.nft.config(c), (3, 2, 1));
-    admin(w)
-        .batch_add_tracks(
-            array![
-                TokenTrack { token_id: a, inputs: composed(inputs_a) },
-                TokenTrack { token_id: b, inputs: composed(inputs_b) },
-                TokenTrack { token_id: c, inputs: composed(inputs_c) },
-            ]
-                .span(),
-        );
+    admin(w).batch_add_track(tokens, TRACK_CUSTOM_NAME);
     admin(w).batch_set_default_track(tokens, 2);
+    let nft = IBeastSoundTracksDispatcher { contract_address: w.nft.contract_address };
     for t in tokens {
         assert_eq!(w.nft.config(*t), (3, 3, 2));
+        // each track is a version tag with no data
+        assert_eq!(
+            nft.track_inputs(*t, 0),
+            TrackInputs { version: TRACK_SOUND_CHECK, data: array![].span() },
+        );
+        assert_eq!(
+            nft.track_inputs(*t, 1),
+            TrackInputs { version: TRACK_SPECIES_SONG, data: array![].span() },
+        );
+        assert_eq!(
+            nft.track_inputs(*t, 2),
+            TrackInputs { version: TRACK_CUSTOM_NAME, data: array![].span() },
+        );
     }
-    // each token's track 2 holds its own inputs
-    let nft = IBeastSoundTracksDispatcher { contract_address: w.nft.contract_address };
-    assert_eq!(nft.track_inputs(b, 2), composed(inputs_b));
-    assert_eq!(nft.track_inputs(a, 0), sound_check_inputs());
+}
+
+#[test]
+#[should_panic(expected: ('unknown track version', 'ENTRYPOINT_FAILED'))]
+fn the_rollout_adds_only_the_three_tracks() {
+    let w = setup();
+    let token_id = mint(w, sorrow_peak_warlock());
+    as_caller(w, OWNER);
+    admin(w).batch_update_track_capacity(array![token_id].span(), 3);
+    admin(w).batch_add_track(array![token_id].span(), 4);
 }
 
 #[test]
@@ -1114,16 +1041,7 @@ fn others_cannot_add_tracks() {
     let w = setup();
     let token_id = mint(w, sorrow_peak_warlock());
     as_caller(w, 0xbad);
-    admin(w).batch_add_track(array![token_id].span(), sound_check_inputs());
-}
-
-#[test]
-#[should_panic(expected: ('Caller is not the owner', 'ENTRYPOINT_FAILED'))]
-fn others_cannot_add_tracks_per_token() {
-    let w = setup();
-    let token_id = mint(w, sorrow_peak_warlock());
-    as_caller(w, 0xbad);
-    admin(w).batch_add_tracks(array![TokenTrack { token_id, inputs: sound_check_inputs() }].span());
+    admin(w).batch_add_track(array![token_id].span(), TRACK_SOUND_CHECK);
 }
 
 #[test]
@@ -1144,10 +1062,10 @@ fn a_batch_reverts_on_any_token() {
     let b = mint(w, gloomfang());
     as_caller(w, OWNER);
     admin(w).batch_update_track_capacity(array![a].span(), 1);
-    admin(w).batch_add_track(array![a, b].span(), sound_check_inputs());
+    admin(w).batch_add_track(array![a, b].span(), TRACK_SOUND_CHECK);
 }
 
-/// The NFT accepts track mutations only from the species' sound manager.
+/// The NFT accepts sound mutations only from the species' sound manager.
 #[test]
 #[should_panic(expected: ('Sound: caller not manager', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
 fn the_rollout_needs_the_species_sound_manager() {
@@ -1158,12 +1076,14 @@ fn the_rollout_needs_the_species_sound_manager() {
     admin(w).batch_update_track_capacity(array![token_id].span(), 3);
 }
 
+// ── the token's owner ──
+
 #[test]
 fn token_owner_sets_the_default_track() {
     let w = setup();
     let token_id = launch_tracks(w, sorrow_peak_warlock());
     as_caller(w, HOLDER);
-    IBeastSoundTokenOwnerDispatcher { contract_address: w.provider }.set_default_track(token_id, 2);
+    token_owner(w).set_default_track(token_id, 2);
     assert_eq!(w.nft.config(token_id), (3, 3, 2));
 }
 
@@ -1173,7 +1093,7 @@ fn others_cannot_set_a_tokens_default_track() {
     let w = setup();
     let token_id = launch_tracks(w, sorrow_peak_warlock());
     as_caller(w, OWNER);
-    IBeastSoundTokenOwnerDispatcher { contract_address: w.provider }.set_default_track(token_id, 2);
+    token_owner(w).set_default_track(token_id, 2);
 }
 
 #[test]
@@ -1184,7 +1104,52 @@ fn token_owner_default_must_be_a_track() {
     let w = setup();
     let token_id = launch_tracks(w, sorrow_peak_warlock());
     as_caller(w, HOLDER);
-    IBeastSoundTokenOwnerDispatcher { contract_address: w.provider }.set_default_track(token_id, 3);
+    token_owner(w).set_default_track(token_id, 3);
+}
+
+#[test]
+fn token_owner_sets_the_sound_mode() {
+    let w = setup();
+    let token_id = launch_tracks(w, sorrow_peak_warlock());
+    start_cheat_block_number(w.provider, 5000);
+    as_caller(w, HOLDER);
+    token_owner(w).set_sound_mode(token_id, SoundMode::Original);
+    assert_eq!(w.nft.sound_mode(token_id), SoundMode::Original);
+    token_owner(w).set_sound_mode(token_id, SoundMode::AtBlock(4999));
+    assert_eq!(w.nft.sound_mode(token_id), SoundMode::AtBlock(4999));
+    // the current block itself is allowed
+    token_owner(w).set_sound_mode(token_id, SoundMode::AtBlock(5000));
+    assert_eq!(w.nft.sound_mode(token_id), SoundMode::AtBlock(5000));
+    token_owner(w).set_sound_mode(token_id, SoundMode::Live);
+    assert_eq!(w.nft.sound_mode(token_id), SoundMode::Live);
+}
+
+#[test]
+#[should_panic(expected: ('caller is not token owner', 'ENTRYPOINT_FAILED'))]
+fn others_cannot_set_a_tokens_sound_mode() {
+    let w = setup();
+    let token_id = launch_tracks(w, sorrow_peak_warlock());
+    as_caller(w, OWNER);
+    token_owner(w).set_sound_mode(token_id, SoundMode::Original);
+}
+
+/// A future block would leave the token silent until then (`get_track_sound` rejects it).
+#[test]
+#[should_panic(expected: ('block in the future', 'ENTRYPOINT_FAILED'))]
+fn token_owner_sound_mode_block_cannot_be_in_the_future() {
+    let w = setup();
+    let token_id = launch_tracks(w, sorrow_peak_warlock());
+    start_cheat_block_number(w.provider, 5000);
+    as_caller(w, HOLDER);
+    token_owner(w).set_sound_mode(token_id, SoundMode::AtBlock(5001));
+}
+
+#[test]
+#[should_panic(expected: ('ERC721: invalid token ID', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn token_owner_entry_points_reject_unminted_tokens() {
+    let w = setup();
+    as_caller(w, HOLDER);
+    token_owner(w).set_sound_mode(token_of(sorrow_peak_warlock()), SoundMode::Original);
 }
 
 // ── settings ──
@@ -1280,7 +1245,7 @@ fn beast_synth_settings_pass_the_class_checks() {
 // ── gas probes (ignored) ──
 // The L2 gas of one `get_track_sound` call. Run:
 //   snforge test gas_probe --include-ignored --tracked-resource sierra-gas \
-//       --trace-verbosity standard --trace-components contract-name call-type gas
+//       --trace-components contract-name gas
 // and read the provider call's gas in the trace (or subtract `gas_probe_baseline` from a probe's
 // test total).
 

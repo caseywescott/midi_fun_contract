@@ -11,7 +11,6 @@
 //! (`midi::types`). `beasts_core::sound_manager` declares the same type field for field, so the
 //! entry point, its calldata and its reply are the same.
 
-use core::poseidon::poseidon_hash_span;
 use midi::types::TinySynthSound;
 
 /// `beasts_core::sound_manager::IBEASTS_SOUND_MANAGER_ID`, `selector!("beasts_sound_manager_v1")`:
@@ -71,14 +70,6 @@ pub struct PackableBeast {
     pub condition: CardCondition,
 }
 
-/// `beasts_core::interfaces::BeastLiveStats`.
-#[derive(Copy, Drop, Serde, PartialEq, Debug)]
-pub struct BeastLiveStats {
-    pub adventurers_killed: u64,
-    pub last_killed_by: u64,
-    pub last_killed_timestamp: u64,
-}
-
 /// `beasts_core::sound::TrackInputs`: one stored track, a version tag and felts that only the
 /// species' sound manager reads.
 #[derive(Copy, Drop, Serde, PartialEq, Debug)]
@@ -87,20 +78,20 @@ pub struct TrackInputs {
     pub data: Span<felt252>,
 }
 
-/// The `beasts_core::interfaces::IBeasts` reads the provider makes. Each rejects a token that does
-/// not exist with the ERC721 invalid-token error.
+/// `beasts_core::sound::SoundMode`: how a token's tracks play, saved for all of them. Declared in
+/// storage-tag order, so the Serde encoding is Live `[0]`, Original `[1]` and AtBlock(n) `[2, n]`.
+#[derive(Copy, Drop, Serde, PartialEq, Debug)]
+pub enum SoundMode {
+    Live,
+    Original,
+    AtBlock: u64,
+}
+
+/// The `beasts_core::interfaces::IBeasts` read the provider makes. It rejects a token that does not
+/// exist with the ERC721 invalid-token error.
 #[starknet::interface]
 pub trait IBeasts<TContractState> {
     fn get_beast(self: @TContractState, token_id: felt252) -> PackableBeast;
-    fn get_beast_rank(self: @TContractState, token_id: felt252) -> u16;
-    fn get_species_count(self: @TContractState, species_id: u64) -> u16;
-}
-
-/// `beasts_core::interfaces::IBeastStats`, which the NFT implements with the kills `add_kill`
-/// credited, keyed by `get_hash(species, prefix, suffix)`.
-#[starknet::interface]
-pub trait IBeastStats<TContractState> {
-    fn get_beast_stats(self: @TContractState, entity_hash: felt252) -> BeastLiveStats;
 }
 
 /// The `beasts_core::sound::IBeastSoundTracks` entry points the provider calls. The mutations
@@ -113,9 +104,5 @@ pub trait IBeastSoundTracks<TContractState> {
     fn update_track_capacity(ref self: TContractState, token_id: felt252, new_capacity: u8);
     fn add_track(ref self: TContractState, token_id: felt252, inputs: TrackInputs) -> u8;
     fn set_default_track(ref self: TContractState, token_id: felt252, track_number: u8);
-}
-
-/// `beasts_core::pack::get_hash`: the Beast's entity hash, `poseidon(species, prefix, suffix)`.
-pub fn get_hash(species_id: u64, prefix: u8, suffix: u8) -> felt252 {
-    poseidon_hash_span(array![species_id.into(), prefix.into(), suffix.into()].span())
+    fn set_sound_mode(ref self: TContractState, token_id: felt252, mode: SoundMode);
 }

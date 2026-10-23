@@ -4,32 +4,25 @@
 //! `IBEASTS_SOUND_MANAGER_ID`, so the registry accepts it for a species, and implements
 //! `ISoundManager::get_track_sound(token_id, track_number, block_number)`, which the Beasts
 //! renderer calls for the token's default track. It is also the only caller the NFT accepts for a
-//! token's track mutations (`update_track_capacity`, `add_track`, `set_default_track`), so the
-//! provider forwards them: batched for its owner (the launch rollout), and `set_default_track` for
-//! the token's owner.
+//! token's sound mutations, so the provider forwards them: batched for its owner (the launch
+//! rollout), and `set_default_track` and `set_sound_mode` for the token's owner.
 //!
 //! # Tracks
 //!
-//! A token's tracks are stored on the NFT as `TrackInputs { version, data }`; the NFT never reads
-//! them. This provider's versions:
+//! A Beast has three tracks, stored on the NFT as `TrackInputs { version, data }` with no data:
 //!
-//! | `version` | `data` | Plays (`beast_composer::composition::tracks`) |
-//! |---|---|---|
-//! | `TRACK_SOUND_CHECK` (1) | none | track 0, the Sound Check: the Beast's scale through each of
-//! its presets |
-//! | `TRACK_SPECIES_SONG` (2) | none | track 1, the Species Song (the Genesis Track, default swaps)
-//! |
-//! | `TRACK_COMPOSED` (3) | `[inputs]` | track 2, the Beast Special Song of packed composer inputs
-//! `inputs` (`get_composer_inputs`): the name track, or the Species Song without a special name |
-//! | `TRACK_COMPOSED` (3) | `[inputs, seed]` | track 3+, a bought track: `seed` (never 0) on the
-//! Beast of `inputs` |
+//! - `TRACK_SOUND_CHECK` (version 1): the Sound Check, the Beast's scale through each of its
+//!   presets (the composer's track 0).
+//! - `TRACK_SPECIES_SONG` (version 2): the Species Song, the Genesis Track with the default swaps
+//!   (the composer's track 1).
+//! - `TRACK_CUSTOM_NAME` (version 3): the Custom Name Track, the species' theme in the special
+//!   name's key and style (the composer's name track, track 2); a Beast without a special name
+//!   plays its Species Song.
 //!
-//! The Sound Check and the Species Song compose from the token itself (`get_beast`), so they store
-//! no per-token data: the launch rollout appends them to every token with the same inputs. A
-//! `TRACK_COMPOSED` track (the launch's "transmission") carries its Beast in its data, so it plays
-//! whatever Beast its inputs describe. Versions are what a track means, whatever its index, so a
-//! token's tracks can come in any order. The composer's track numbers are the indices of the launch
-//! rollout (Sound Check 0, Species Song 1, the transmission 2).
+//! Each composes from the Beast alone (`get_beast`), so a token stores only the version tag.
+//! Composition is the composer's, unchanged: a track's MIDI is `track_smf_bytes` of the Beast's
+//! composer inputs, byte for byte. A version names the track whatever its index; the launch
+//! rollout appends them in this order, at indices 0, 1 and 2.
 //!
 //! `block_number` picks the day of drift (`beast_composer::composition::drift`): `None` (the
 //! Original mode) plays the track as written; `Some(n)` (Live and AtBlock) the day at block `n`,
@@ -42,13 +35,13 @@
 //! Beasts V3 token layout can change without it. `sound_effects` is a preset this provider
 //! defines: `SOUND_PRESET_MEGA` (1) plays the mega sound (the shiny arrangement and settings) and
 //! every other value plays the normal sound. `visual_effects`, the image provider's preset, does
-//! not change the sound.
+//! not change the sound. No track reads live state (kills, rank): the composer's tracks compose
+//! with the neutral live state, so the provider reads none.
 //!
 //! # Other entry points
 //!
 //! `get_sound(token_id)` (onchain-midi-player's `ISoundProvider`), `get_midi`, `get_midi_for` and
 //! `get_settings` serve the token's Species Song as written, whether or not the token has tracks.
-//! `get_live_state` reports the live state a composition could read (no track uses it today).
 //! Every read happens inside one call; nothing is cached. The provider only calls state getters on
 //! the NFT, never `token_uri`, so metadata cannot recurse.
 //!
@@ -70,58 +63,44 @@
 //!
 //! # Rollout batches
 //!
-//! Every NFT track mutation emits two events (its own and ERC-4906 `MetadataUpdate`), and Starknet
+//! Every NFT sound mutation emits two events (its own and ERC-4906 `MetadataUpdate`), and Starknet
 //! caps a transaction at 1,000 events; the batch entry points emit none of their own. So a
 //! transaction holds at most about 500 tokens of one batch call (`batch_set_default_track` alone),
 //! 250 of two (`batch_add_track` and `batch_set_default_track` in one multicall) and 166 of all
 //! three (capacity, track and default). Gas and steps bound a batch too: size it by a dry run.
 
-use beast_composer::composition::beast_v3_sound::BeastV3LiveState;
 use starknet::{ClassHash, ContractAddress};
-use crate::beasts_v3::TrackInputs;
+use crate::beasts_v3::SoundMode;
 
-/// `TrackInputs.version` of the Sound Check: no data.
+/// `TrackInputs.version` of the Sound Check (track 0). No data.
 pub const TRACK_SOUND_CHECK: u16 = 1;
-/// `TrackInputs.version` of the Species Song: no data.
+/// `TrackInputs.version` of the Species Song (track 1). No data.
 pub const TRACK_SPECIES_SONG: u16 = 2;
-/// `TrackInputs.version` of a track composed from stored composer inputs: `[inputs]` (the Beast
-/// Special Song) or `[inputs, seed]` (a bought track).
-pub const TRACK_COMPOSED: u16 = 3;
+/// `TrackInputs.version` of the Custom Name Track (track 2). No data.
+pub const TRACK_CUSTOM_NAME: u16 = 3;
 
 /// The `sound_effects` preset that plays the mega sound. Any other value plays the normal sound.
 pub const SOUND_PRESET_MEGA: u8 = 1;
 
-/// A token and the track to append to it (`batch_add_tracks`).
-#[derive(Copy, Drop, Serde, PartialEq, Debug)]
-pub struct TokenTrack {
-    pub token_id: felt252,
-    pub inputs: TrackInputs,
-}
-
 #[starknet::interface]
 pub trait IBeastMidiProvider<T> {
-    /// The Beast's live state: its rank (`get_beast_rank`), its species' count
-    /// (`get_species_count`) and its verified kills (the NFT's `IBeastStats`). Beasts V3 tracks no
-    /// scars and Summit is retired, so both are 0. No track composes from it today.
-    fn get_live_state(self: @T, token_id: felt252) -> BeastV3LiveState;
     /// The one Beasts collection this provider serves.
     fn get_collection(self: @T) -> ContractAddress;
     /// Composition engine (`BEAST_V3_ENGINE_VERSION`): a new engine means a new provider.
     fn get_engine_version(self: @T) -> u32;
     /// The `BeastTrackComposer` class every track composes in (a library call).
     fn get_composer_class(self: @T) -> ClassHash;
-    /// The token's packed composer inputs: the `[inputs]` of a `TRACK_COMPOSED` track that plays
-    /// its own Beast Special Song.
-    fn get_composer_inputs(self: @T, token_id: felt252) -> felt252;
 }
 
-/// What the token's owner can change through the provider (the NFT accepts track mutations only
-/// from the species' sound manager).
+/// What the token's owner can change through the provider (the NFT accepts sound mutations only
+/// from the species' sound manager). Only the token's current owner may call these.
 #[starknet::interface]
 pub trait IBeastSoundTokenOwner<T> {
     /// Makes track `track_number` the token's default (the NFT's `set_default_track` rules apply).
-    /// Only the token's current owner may call it.
     fn set_default_track(ref self: T, token_id: felt252, track_number: u8);
+    /// Saves how the token's tracks play: Live, Original or AtBlock(n) (the NFT's
+    /// `set_sound_mode`). `n` must not be in the future (`block in the future`).
+    fn set_sound_mode(ref self: T, token_id: felt252, mode: SoundMode);
 }
 
 /// The owner's administration and track rollout. Every entry point is owner-only. The batch entry
@@ -135,10 +114,9 @@ pub trait IBeastSoundAdmin<T> {
     fn set_composer_class(ref self: T, composer_class: ClassHash);
     /// `update_track_capacity(token_id, new_capacity)` for every token.
     fn batch_update_track_capacity(ref self: T, token_ids: Span<felt252>, new_capacity: u8);
-    /// `add_track(token_id, inputs)` for every token, with the same inputs.
-    fn batch_add_track(ref self: T, token_ids: Span<felt252>, inputs: TrackInputs);
-    /// `add_track(token_id, inputs)` for every pair, each with its own inputs.
-    fn batch_add_tracks(ref self: T, tracks: Span<TokenTrack>);
+    /// Appends track `version` (`TRACK_SOUND_CHECK`, `TRACK_SPECIES_SONG` or `TRACK_CUSTOM_NAME`)
+    /// to every token: `add_track(token_id, TrackInputs { version, data: [] })`.
+    fn batch_add_track(ref self: T, token_ids: Span<felt252>, version: u16);
     /// `set_default_track(token_id, track_number)` for every token.
     fn batch_set_default_track(ref self: T, token_ids: Span<felt252>, track_number: u8);
 }
@@ -146,11 +124,10 @@ pub trait IBeastSoundAdmin<T> {
 #[starknet::contract]
 pub mod BeastMidiProvider {
     use beast_composer::composition::beast_v3_sound::{
-        BEAST_V3_ENGINE_VERSION, BeastV3LiveState, GENESIS_SPECIES_MAX, PackableBeastV3,
+        BEAST_V3_ENGINE_VERSION, GENESIS_SPECIES_MAX, PackableBeastV3,
     };
     use beast_composer::composition::drift::{DriftClock, day_at_block, drift_anchor_blocks};
     use beast_composer::composition::genesis::{genesis_swap, species_type};
-    use beast_composer::composition::params_pack::unpack_inputs;
     use beast_composer::composition::tracks;
     use beast_composer::composition::yeti::YETI;
     use core::num::traits::Zero;
@@ -168,15 +145,15 @@ pub mod BeastMidiProvider {
     };
     use crate::beasts_v3::{
         IBEASTS_SOUND_MANAGER_ID, IBeastSoundTracksDispatcher, IBeastSoundTracksDispatcherTrait,
-        IBeastStatsDispatcher, IBeastStatsDispatcherTrait, IBeastsDispatcher,
-        IBeastsDispatcherTrait, ISoundManager, PackableBeast, TrackInputs, get_hash,
+        IBeastsDispatcher, IBeastsDispatcherTrait, ISoundManager, PackableBeast, SoundMode,
+        TrackInputs,
     };
     use crate::track_composer::{
         IBeastTrackComposerDispatcherTrait, IBeastTrackComposerLibraryDispatcher,
     };
     use super::{
         IBeastMidiProvider, IBeastSoundAdmin, IBeastSoundTokenOwner, SOUND_PRESET_MEGA,
-        TRACK_COMPOSED, TRACK_SOUND_CHECK, TRACK_SPECIES_SONG, TokenTrack,
+        TRACK_CUSTOM_NAME, TRACK_SOUND_CHECK, TRACK_SPECIES_SONG,
     };
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
@@ -244,21 +221,23 @@ pub mod BeastMidiProvider {
     #[abi(embed_v0)]
     impl SoundManagerImpl of ISoundManager<ContractState> {
         /// Rejects a token the NFT has not minted and a track at or above its `num_tracks` (both
-        /// `track_inputs`), a version this provider does not define or data that does not fit
-        /// it, and a block in the future.
+        /// `track_inputs`), a version this provider does not define (`unknown track version`) or
+        /// stored data (`bad track data`), and a block in the future.
         fn get_track_sound(
             self: @ContractState, token_id: felt252, track_number: u8, block_number: Option<u64>,
         ) -> TinySynthSound {
             let collection = self.collection.read();
             let inputs = IBeastSoundTracksDispatcher { contract_address: collection }
                 .track_inputs(token_id, track_number);
-            let (beast, track, seed) = composition(collection, token_id, inputs);
+            assert(inputs.data.len() == 0, 'bad track data');
+            let track = composer_track(inputs.version);
+            let beast = read_beast(collection, token_id);
             let drift = if track == tracks::TRACK_SOUND_CHECK {
                 Option::None
             } else {
                 drift_clock(block_number)
             };
-            sound(self, beast, track, seed, drift)
+            sound(self, beast, track, drift)
         }
     }
 
@@ -297,23 +276,6 @@ pub mod BeastMidiProvider {
 
     #[abi(embed_v0)]
     impl BeastMidiProviderImpl of IBeastMidiProvider<ContractState> {
-        fn get_live_state(self: @ContractState, token_id: felt252) -> BeastV3LiveState {
-            let collection = self.collection.read();
-            let nft = IBeastsDispatcher { contract_address: collection };
-            let beast = nft.get_beast(token_id);
-            let rank = nft.get_beast_rank(token_id);
-            let species_count = nft.get_species_count(beast.species_id);
-            let stats = IBeastStatsDispatcher { contract_address: collection }
-                .get_beast_stats(get_hash(beast.species_id, beast.prefix, beast.suffix));
-            BeastV3LiveState {
-                adventurers_killed: stats.adventurers_killed,
-                scars: 0,
-                summit_held_seconds: 0,
-                rank,
-                species_count,
-            }
-        }
-
         fn get_collection(self: @ContractState) -> ContractAddress {
             self.collection.read()
         }
@@ -325,22 +287,20 @@ pub mod BeastMidiProvider {
         fn get_composer_class(self: @ContractState) -> ClassHash {
             self.composer_class.read()
         }
-
-        fn get_composer_inputs(self: @ContractState, token_id: felt252) -> felt252 {
-            let beast = read_beast(self.collection.read(), token_id);
-            composer(self).composer_inputs(beast)
-        }
     }
 
     #[abi(embed_v0)]
     impl BeastSoundTokenOwnerImpl of IBeastSoundTokenOwner<ContractState> {
         fn set_default_track(ref self: ContractState, token_id: felt252, track_number: u8) {
-            let collection = self.collection.read();
-            let owner = IERC721Dispatcher { contract_address: collection }
-                .owner_of(token_id.into());
-            assert(get_caller_address() == owner, 'caller is not token owner');
-            IBeastSoundTracksDispatcher { contract_address: collection }
-                .set_default_track(token_id, track_number);
+            token_owner_tracks(@self, token_id).set_default_track(token_id, track_number);
+        }
+
+        fn set_sound_mode(ref self: ContractState, token_id: felt252, mode: SoundMode) {
+            if let SoundMode::AtBlock(block) = mode {
+                // `get_track_sound` rejects a future block, so it would play nothing until then.
+                assert(block <= get_block_number(), 'block in the future');
+            }
+            token_owner_tracks(@self, token_id).set_sound_mode(token_id, mode);
         }
     }
 
@@ -365,18 +325,12 @@ pub mod BeastMidiProvider {
             }
         }
 
-        fn batch_add_track(ref self: ContractState, token_ids: Span<felt252>, inputs: TrackInputs) {
+        fn batch_add_track(ref self: ContractState, token_ids: Span<felt252>, version: u16) {
             let nft = owner_tracks(@self);
+            composer_track(version);
+            let inputs = TrackInputs { version, data: array![].span() };
             for token_id in token_ids {
                 nft.add_track(*token_id, inputs);
-            }
-        }
-
-        fn batch_add_tracks(ref self: ContractState, tracks: Span<TokenTrack>) {
-            let nft = owner_tracks(@self);
-            for track in tracks {
-                let TokenTrack { token_id, inputs } = *track;
-                nft.add_track(token_id, inputs);
             }
         }
 
@@ -395,14 +349,34 @@ pub mod BeastMidiProvider {
         self.composer_class.write(composer_class);
     }
 
-    /// The NFT's track mutations, after checking that the caller is the owner.
+    /// The NFT's sound mutations, after checking that the caller is the owner.
     fn owner_tracks(self: @ContractState) -> IBeastSoundTracksDispatcher {
         self.ownable.assert_only_owner();
         IBeastSoundTracksDispatcher { contract_address: self.collection.read() }
     }
 
+    /// The NFT's sound mutations, after checking that the caller owns `token_id` now.
+    fn token_owner_tracks(self: @ContractState, token_id: felt252) -> IBeastSoundTracksDispatcher {
+        let collection = self.collection.read();
+        let owner = IERC721Dispatcher { contract_address: collection }.owner_of(token_id.into());
+        assert(get_caller_address() == owner, 'caller is not token owner');
+        IBeastSoundTracksDispatcher { contract_address: collection }
+    }
+
     fn composer(self: @ContractState) -> IBeastTrackComposerLibraryDispatcher {
         IBeastTrackComposerLibraryDispatcher { class_hash: self.composer_class.read() }
+    }
+
+    /// The composer's track number of track `version`.
+    fn composer_track(version: u16) -> u32 {
+        if version == TRACK_SOUND_CHECK {
+            tracks::TRACK_SOUND_CHECK
+        } else if version == TRACK_SPECIES_SONG {
+            tracks::TRACK_SPECIES_SONG
+        } else {
+            assert(version == TRACK_CUSTOM_NAME, 'unknown track version');
+            tracks::TRACK_SPECIAL_SONG
+        }
     }
 
     /// A `u256` token ID as the felt the Beasts interfaces take.
@@ -438,31 +412,6 @@ pub mod BeastMidiProvider {
         }
     }
 
-    /// What the token's stored track `inputs` composes: the Beast (the token's own, read from the
-    /// NFT, or the one its inputs describe), the composer's track number and the seed.
-    fn composition(
-        collection: ContractAddress, token_id: felt252, inputs: TrackInputs,
-    ) -> (PackableBeastV3, u32, felt252) {
-        let data = inputs.data;
-        if inputs.version == TRACK_SOUND_CHECK {
-            assert(data.len() == 0, 'bad track data');
-            return (read_beast(collection, token_id), tracks::TRACK_SOUND_CHECK, 0);
-        }
-        if inputs.version == TRACK_SPECIES_SONG {
-            assert(data.len() == 0, 'bad track data');
-            return (read_beast(collection, token_id), tracks::TRACK_SPECIES_SONG, 0);
-        }
-        assert(inputs.version == TRACK_COMPOSED, 'unknown track version');
-        assert(data.len() == 1 || data.len() == 2, 'bad track data');
-        let beast = tracks::beast_of(unpack_inputs(*data.at(0)));
-        if data.len() == 1 {
-            return (beast, tracks::TRACK_SPECIAL_SONG, 0);
-        }
-        let seed = *data.at(1);
-        assert(seed != 0, 'bought track needs a seed');
-        (beast, tracks::TRACK_SPECIAL_SONG + 1, seed)
-    }
-
     /// The day of drift at `block_number` (none: as written), its day, week and month read from
     /// their first blocks' hashes.
     fn drift_clock(block_number: Option<u64>) -> Option<DriftClock> {
@@ -486,18 +435,14 @@ pub mod BeastMidiProvider {
     /// The token's Species Song as written.
     fn species_song(self: @ContractState, token_id: u256) -> TinySynthSound {
         let beast = read_beast(self.collection.read(), felt_token_id(token_id));
-        sound(self, beast, tracks::TRACK_SPECIES_SONG, 0, Option::None)
+        sound(self, beast, tracks::TRACK_SPECIES_SONG, Option::None)
     }
 
     /// A composed track and the settings it is written for.
     fn sound(
-        self: @ContractState,
-        beast: PackableBeastV3,
-        track: u32,
-        seed: felt252,
-        drift: Option<DriftClock>,
+        self: @ContractState, beast: PackableBeastV3, track: u32, drift: Option<DriftClock>,
     ) -> TinySynthSound {
-        let midi = composer(self).compose(beast, track, seed, drift);
+        let midi = composer(self).compose(beast, track, drift);
         TinySynthSound { midi, settings: track_settings(beast, track) }
     }
 

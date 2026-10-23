@@ -15,7 +15,8 @@ if (!contractAddress) {
   contractAddress = res.deploy.contract_address;
   console.log('class_hash', res.declare.class_hash, '\ncontract', contractAddress);
 }
-const enc = (b) => BigInt(b.id) + (BigInt(b.prefix) << 64n) + (BigInt(b.suffix) << 71n) + (BigInt(b.level) << 76n) + (BigInt(b.health) << 92n) + (BigInt(b.shiny) << 108n) + (BigInt(b.animated) << 109n) + (BigInt(b.tier) << 110n) + (BigInt(b.beast_type) << 113n);
+// A PackableBeastV3 as calldata, in its Serde order (the views take the Beast, not a token ID).
+const beastCalldata = (b) => [b.id, b.prefix, b.suffix, b.level, b.health, b.shiny, b.animated, b.tier, b.beast_type];
 const cases = [
   ['Tier 5 common, fresh', { id: 47, prefix: 13, suffix: 6, level: 22, health: 60, shiny: 0, animated: 0, tier: 5, beast_type: 1 }, [0, 0, 0, 600, 1100]],
   ['Sorrow Peak Warlock (real, rank 1)', { id: 1, prefix: 57, suffix: 15, level: 126, health: 229, shiny: 0, animated: 0, tier: 1, beast_type: 0 }, [2, 12, 0, 1, 954]],
@@ -23,8 +24,7 @@ const cases = [
   ['HEAVIEST: Tier 1, 4 voices + countersubject, 5 sections, inverted', { id: 53, prefix: 69, suffix: 18, level: 255, health: 1023, shiny: 1, animated: 1, tier: 1, beast_type: 2 }, [200, 63, 500 * 3600, 1, 1243]],
 ];
 for (const [label, b, live] of cases) {
-  const tid = enc(b);
-  const calldata = [tid & ((1n << 128n) - 1n), tid >> 128n, ...live].map((x) => '0x' + BigInt(x).toString(16));
+  const calldata = [...beastCalldata(b), ...live].map((x) => '0x' + BigInt(x).toString(16));
   console.log(`\n== ${label}`);
   for (const fn of ['get_composition_params', 'get_music_state_hash', 'get_score_hash', 'get_score_notes', 'get_score_midi']) {
     const t0 = Date.now();

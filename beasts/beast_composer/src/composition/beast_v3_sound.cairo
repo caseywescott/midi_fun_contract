@@ -1,23 +1,26 @@
 //! Beasts V3 adapter for Beast Sound.
 //!
-//! Beasts V3 (Provable-Games/beasts `docs/community-beasts-design.md`) encodes every static
-//! Beast trait in a deterministic 116-bit token ID:
-//!
-//!   id u64 | prefix 7b | suffix 5b | level 16b | health 16b | shiny 1b | animated 1b
-//!   | tier 3b | type 3b
+//! The composer works on `PackableBeastV3`: the Beast's species, special name, level, health,
+//! tier, type and two sound flags. It does not decode token IDs. Beasts V3 token IDs (schema
+//! `beasts-v3-species-first-251-v2`, 251 bits) carry more than the composer needs, and their layout
+//! belongs to Beasts V3, so a contract reads the Beast from the NFT (`get_beast`) and maps it here
+//! (`beast_contracts::provider`). The earlier 116-bit layout, and its decoder, are gone: every
+//! current token ID is species-first and was rejected by it.
 //!
 //! Genesis tokens are `(id, 0, 0)`; dungeon mints have `prefix >= 1 && suffix >= 1`, so every
 //! species has exactly 1,243 tokens (75 x 1,243 = 93,225 for the original collection).
 //!
-//! This module maps a decoded V3 Beast plus its live dungeon state into the existing
+//! This module maps a V3 Beast plus its live dungeon state into the existing
 //! `BeastCompositionParams`, so the established `build_beast_form` renderer is reused unchanged.
-//! Everything here is a pure function of (token ID, live state): no storage, no external calls.
+//! Everything here is a pure function of (Beast, live state): no storage, no external calls.
 //!
 //! Differences from the legacy `map_beast_traits_to_composition_params` mapper:
 //! - species ids are the real Loot Survivor ids (1..75 genesis, 76+ community), not 0..74;
-//! - tier and type come from the token ID (authoritative), not a formula over species id;
+//! - tier and type come from the Beast (the species' registration), not a formula over species id;
 //! - prefix/suffix are used directly (1..69 / 1..18), genesis (0, 0) is the bare-name Beast;
-//! - shiny and animated are two independent flags, not a four-value enum;
+//! - shiny and animated are two independent flags, not a four-value enum. Beasts V3 tokens carry
+//!   provider-defined `visual_effects` and `sound_effects` presets instead; the provider decides
+//!   what sets `shiny` (`beast_contracts::provider::composer_beast`);
 //! - level and health (fixed at mint) now shape voice count and register;
 //! - rank is read relative to the species population, since species sizes differ;
 //! - the sound seed is derived from the entity hash inputs only, so it survives the V2 -> V3
@@ -28,8 +31,8 @@
 //!   so earlier renders stay reproducible, but `BeastMidiProvider` always passes 0, which keeps the
 //!   Summit ornament layer off.
 //!
-//! Authority for per-species sound settings follows Beasts V3: the species' creator is whoever
-//! holds its Genesis Beast `(id, 0, 0)` (see `genesis_token_id`).
+//! Authority over a species' sound follows Beasts V3: the registry's species owner
+//! (`get_species_owner`) chooses the species' sound manager.
 
 use core::poseidon::poseidon_hash_span;
 use midi::smf::{TrackWriterTrait, smf_bytes};
@@ -64,9 +67,8 @@ pub const SUMMIT_GLORY_BUCKET: u8 = 4;
 pub const GENESIS_LEVEL: u16 = 1;
 pub const GENESIS_HEALTH: u16 = 100;
 
-const TWO_POW_64: u256 = 0x10000000000000000;
-
-/// Mirror of Beasts V3 `pack::PackableBeast`.
+/// The Beast the composer sees: the traits of a Beasts V3 `PackableBeast` it uses, with the sound
+/// flags (`shiny`, `animated`) in place of the token's presets.
 #[derive(Copy, Drop, Serde, PartialEq)]
 pub struct PackableBeastV3 {
     pub id: u64,
@@ -83,16 +85,17 @@ pub struct PackableBeastV3 {
 /// Live state read from contracts that already exist; nothing here is stored by Sound.
 #[derive(Copy, Drop, Serde)]
 pub struct BeastV3LiveState {
-    /// Beasts NFT `get_adventurers_killed(token_id)`: live Death Mountain read for species
-    /// 1-75, the `refresh_stats` cache (`get_cached_stats`) for community species.
+    /// The Beast's verified kills: the Beasts NFT's `IBeastStats::get_beast_stats(entity_hash)`
+    /// (`adventurers_killed`), keyed by `poseidon(species, prefix, suffix)`.
     pub adventurers_killed: u64,
     /// Death Mountain defeats after the one that made the Beast mintable:
     /// `get_collectable_count - 1`. (Earlier drafts also added Summit deaths; Summit is retired.)
+    /// Beasts V3 exposes no collect count, so `BeastMidiProvider` supplies 0.
     pub scars: u64,
     /// Retired input (Summit is obsolete). Kept so existing compositions stay reproducible;
     /// `BeastMidiProvider` always supplies 0.
     pub summit_held_seconds: u64,
-    /// `get_beast_rank(token_id)`; 0 for the genesis token (unranked).
+    /// `get_beast_rank(token_id)`; 0 for the genesis token and an unranked Beast.
     pub rank: u16,
     /// `get_species_count(beast_id)`.
     pub species_count: u16,
@@ -114,50 +117,6 @@ pub struct BeastTypeTierFamily {
     pub canon_config_id: u32,
     pub profile_id: u32,
     pub base_voice_count: u32,
-}
-
-/// Decode a Beasts V3 token ID (same layout and validation as `pack::decode_token_id`).
-pub fn decode_v3_token_id(token_id: u256) -> PackableBeastV3 {
-    // The layout is 116 bits, all in the low word, so this decodes in u128 (u256 division costs
-    // far more CASM). A bit in the high word is a stray bit, rejected like those below.
-    assert(token_id.high == 0, 'invalid token id');
-    let mut packed: u128 = token_id.low;
-    let id: u64 = (packed % 0x10000000000000000).try_into().unwrap();
-    packed = packed / 0x10000000000000000;
-    let prefix: u8 = (packed % 0x80).try_into().unwrap();
-    packed = packed / 0x80;
-    let suffix: u8 = (packed % 0x20).try_into().unwrap();
-    packed = packed / 0x20;
-    let level: u16 = (packed % 0x10000).try_into().unwrap();
-    packed = packed / 0x10000;
-    let health: u16 = (packed % 0x10000).try_into().unwrap();
-    packed = packed / 0x10000;
-    let shiny: u8 = (packed % 2).try_into().unwrap();
-    packed = packed / 2;
-    let animated: u8 = (packed % 2).try_into().unwrap();
-    packed = packed / 2;
-    let tier: u8 = (packed % 8).try_into().unwrap();
-    packed = packed / 8;
-    let beast_type: u8 = (packed % 8).try_into().unwrap();
-    packed = packed / 8;
-    assert(packed == 0, 'invalid token id');
-    let beast = PackableBeastV3 {
-        id, prefix, suffix, level, health, shiny, animated, tier, beast_type,
-    };
-    assert_valid_v3_beast(beast);
-    beast
-}
-
-pub fn encode_v3_token_id(beast: PackableBeastV3) -> u256 {
-    beast.id.into()
-        + beast.prefix.into() * TWO_POW_64
-        + beast.suffix.into() * 0x800000000000000000
-        + beast.level.into() * 0x10000000000000000000
-        + beast.health.into() * 0x100000000000000000000000
-        + beast.shiny.into() * 0x1000000000000000000000000000
-        + beast.animated.into() * 0x2000000000000000000000000000
-        + beast.tier.into() * 0x4000000000000000000000000000
-        + beast.beast_type.into() * 0x20000000000000000000000000000
 }
 
 pub fn assert_valid_v3_beast(beast: PackableBeastV3) {
@@ -184,24 +143,6 @@ pub fn v3_name_variant_id(prefix: u8, suffix: u8) -> u32 {
         let s: u32 = (suffix - 1).into();
         1 + p * 18 + s
     }
-}
-
-/// Token ID of a species' Genesis Beast `(id, 0, 0)`. In Beasts V3 its holder is the species'
-/// artist, so this is the authority for per-species sound settings.
-pub fn genesis_token_id(id: u64, tier: u8, beast_type: u8) -> u256 {
-    encode_v3_token_id(
-        PackableBeastV3 {
-            id,
-            prefix: 0,
-            suffix: 0,
-            level: GENESIS_LEVEL,
-            health: GENESIS_HEALTH,
-            shiny: 1,
-            animated: 1,
-            tier,
-            beast_type,
-        },
-    )
 }
 
 /// Immutable sound identity. Same inputs as the Beasts entity hash `poseidon(id, prefix, suffix)`

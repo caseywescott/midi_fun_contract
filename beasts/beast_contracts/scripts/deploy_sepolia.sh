@@ -1,11 +1,13 @@
 #!/bin/sh
-# Declare and deploy BeastMidiProvider on Starknet Sepolia, then smoke-test get_sound on a genesis
-# Warlock. Run from anywhere; it builds beasts/beast_contracts with the workspace scarb (2.21.0).
+# Declare BeastTrackComposer and BeastMidiProvider and deploy the provider on Starknet Sepolia, then,
+# given a minted token ID, smoke-test get_sound on it. Run from anywhere; it builds
+# beasts/beast_contracts with the workspace scarb (2.21.0).
 #
-#   sh beasts/beast_contracts/scripts/deploy_sepolia.sh [beasts_v3_nft_address] [owner]
+#   sh beasts/beast_contracts/scripts/deploy_sepolia.sh [beasts_v3_nft_address] [owner] [token_id]
 #
-# The owner can upgrade the provider until it calls renounce_ownership(); it defaults to the
-# deploying account.
+# The owner can upgrade the provider, replace its composer class and drive the track rollout until
+# it calls renounce_ownership(); it defaults to the deploying account. The token ID is one felt (a
+# Beasts V3 token ID is 251 bits); without one the smoke test is skipped.
 #
 # Uses the sncast account profile `beast-sound-sepolia` in ~/.starknet_accounts (no key is read or
 # printed here; sncast signs). The account needs STRK for fees: the script stops before sending
@@ -36,27 +38,43 @@ if [ "$DEPLOYED" = "0" ]; then
   $SN account deploy --name $ACCOUNT --url "$RPC"
 fi
 
+# declare_class CONTRACT: prints the class hash (also when it is already declared). Declares run
+# one at a time (sncast reads the nonce before the previous declare is accepted).
+declare_class() {
+  if DECLARE=$($SN --wait declare --package beast_contracts --contract-name "$1" --url "$RPC" 2>&1); then
+    echo "$DECLARE" >&2
+    echo "$DECLARE" | grep -oE "(class_hash|Class Hash): *0x[0-9a-f]+" | grep -oE "0x[0-9a-f]+" | head -1
+  else
+    echo "$DECLARE" >&2
+    # already declared: sncast names the class hash in that error; any other error stops here
+    echo "$DECLARE" | grep "already declared" | grep -oE "0x[0-9a-f]+" | head -1
+  fi
+}
+
+echo "declaring BeastTrackComposer"
+COMPOSER=$(declare_class BeastTrackComposer)
+[ -n "$COMPOSER" ] || { echo "declare failed: no composer class hash"; exit 1; }
+echo "composer class $COMPOSER"
+
 echo "declaring BeastMidiProvider"
-if DECLARE=$($SN declare --package beast_contracts --contract-name BeastMidiProvider --url "$RPC" 2>&1); then
-  echo "$DECLARE"
-  CLASS=$(echo "$DECLARE" | grep -oE "(class_hash|Class Hash): *0x[0-9a-f]+" | grep -oE "0x[0-9a-f]+" | head -1)
-else
-  echo "$DECLARE"
-  # already declared: sncast names the class hash in that error; any other error stops here
-  CLASS=$(echo "$DECLARE" | grep "already declared" | grep -oE "0x[0-9a-f]+" | head -1)
-fi
+CLASS=$(declare_class BeastMidiProvider)
 [ -n "$CLASS" ] || { echo "declare failed: no class hash"; exit 1; }
 echo "class $CLASS"
 
 echo "deploying against the Beasts NFT $NFT"
 OWNER=${2:-$ADDRESS}
 echo "owner (may upgrade until renounced): $OWNER"
-DEPLOY=$($SN deploy --class-hash "$CLASS" --constructor-calldata "$NFT" "$OWNER" --url "$RPC")
+DEPLOY=$($SN --wait deploy --class-hash "$CLASS" --constructor-calldata "$NFT" "$OWNER" "$COMPOSER" --url "$RPC")
 echo "$DEPLOY"
 PROVIDER=$(echo "$DEPLOY" | grep -oE "(contract_address|Contract Address): *0x[0-9a-f]+" | grep -oE "0x[0-9a-f]+" | head -1)
 echo "provider $PROVIDER"
 
-# smoke test: the genesis Warlock 0x7006400010000000000000000001 (low, high)
-echo "get_sound(genesis Warlock):"
-$SNCAST call --contract-address "$PROVIDER" --function get_sound --calldata 0x7006400010000000000000000001 0x0 --url "$RPC" | head -c 400
-echo
+# smoke test: get_sound(token_id) takes a u256 (low, high)
+TOKEN=${3:-}
+if [ -n "$TOKEN" ]; then
+  LOW=$(python3 -c "print(hex(int('$TOKEN', 0) & ((1 << 128) - 1)))")
+  HIGH=$(python3 -c "print(hex(int('$TOKEN', 0) >> 128))")
+  echo "get_sound($TOKEN):"
+  $SNCAST call --contract-address "$PROVIDER" --function get_sound --calldata "$LOW" "$HIGH" --url "$RPC" | head -c 400
+  echo
+fi

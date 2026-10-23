@@ -13,7 +13,7 @@ modules), extracted into its own package; koji has since been removed from this 
 
 | Module | Contents |
 |---|---|
-| `composition::beast_v3_sound` | Token ID decoding, live state, the v1 mapping, the bare score as MIDI (on `midi::smf`), BSN1 / BSI1 writers |
+| `composition::beast_v3_sound` | The composer's Beast (`PackableBeastV3`), live state, the v1 mapping, the bare score as MIDI (on `midi::smf`), BSN1 / BSI1 writers |
 | `composition::beast_v11` | Composer v1.1 (same mode, even phrases, history): cadence, rhythm cells, voice-checked followers, episodes, diatonic key plan, even sections, trajectory; what `BeastMidiProvider` plays |
 | `composition::full_midi` | The self-contained MIDI for onchain-midi-player: programs, pan, drum track (on `midi::smf`) |
 | `composition::beast_trait_map` | Traits and live stats to composition parameters (whole file) |

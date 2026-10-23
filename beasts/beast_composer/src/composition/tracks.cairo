@@ -67,7 +67,15 @@ pub fn beast_of(x: ComposerInputs) -> PackableBeastV3 {
 pub fn track_smf_bytes(
     packed: felt252, track: u32, seed: felt252, drift: Option<DriftClock>,
 ) -> Array<u8> {
-    let beast = beast_of(unpack_inputs(packed));
+    beast_track_smf_bytes(beast_of(unpack_inputs(packed)), track, seed, drift)
+}
+
+/// The same track of `beast` itself: `track_smf_bytes` of its composer inputs, without packing
+/// them. The songs compose from the species, special name, tier, type and shiny flag alone, so a
+/// Beast and its unpacked inputs (`beast_of`) give the same file.
+pub fn beast_track_smf_bytes(
+    beast: PackableBeastV3, track: u32, seed: felt252, drift: Option<DriftClock>,
+) -> Array<u8> {
     if track == TRACK_SOUND_CHECK {
         return sound_check_smf_bytes(beast);
     }

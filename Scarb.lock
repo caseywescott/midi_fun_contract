@@ -17,6 +17,7 @@ dependencies = [
  "midi",
  "openzeppelin_access",
  "openzeppelin_interfaces",
+ "openzeppelin_introspection",
  "openzeppelin_upgrades",
  "snforge_std",
 ]

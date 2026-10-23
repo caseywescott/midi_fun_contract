@@ -27,9 +27,10 @@ midi = { path = "core/midi" }
 # `onchain_midi_types-v0.1.0` once it exists. Every package that reaches it must use this same
 # source string (a tag and a rev of one commit are two Scarb sources).
 onchain_midi_types = { git = "https://github.com/Provable-Games/onchain-midi-player", rev = "f5edc4ba68cffc3a14708fc92aabac9a422cd6be" }
-# OpenZeppelin Cairo: Ownable and Upgradeable for BeastMidiProvider.
+# OpenZeppelin Cairo: Ownable, Upgradeable and SRC5 for BeastMidiProvider.
 openzeppelin_access = "4.0.1"
 openzeppelin_upgrades = "4.0.1"
+openzeppelin_introspection = "4.0.1"
 openzeppelin_interfaces = "2.2.0"
 starknet = "2.21.0"
 # Tests run on Starknet Foundry (snforge, pinned in /.tool-versions); assert_macros gives them

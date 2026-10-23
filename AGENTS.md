@@ -5,7 +5,8 @@
 One Scarb workspace (root `Scarb.toml`) with four packages: `core/midi` (library: MIDI types,
 interfaces, SMF writing, packing), `core/midi_contracts` (MidiSoundPage, ScaleMidiProvider),
 `beasts/beast_composer` (library: the Beast Sound composer) and `beasts/beast_contracts`
-(BeastMidiProvider, BeastSoundComposer). `bench/` is a separate Scarb workspace, the gas benchmark.
+(BeastMidiProvider, the Beasts V3 sound manager; BeastTrackComposer, the class it composes in;
+BeastSoundComposer). `bench/` is a separate Scarb workspace, the gas benchmark.
 `offchain/beast-sound/` is the JS reference engine and the generators of three Cairo files
 (`TESTING.md`). See `README.md` for details.
 
@@ -53,7 +54,8 @@ python3 bench/scripts/gas_bench.py compare bench/snapshots/baseline-25be776.json
   four at once (split large differential tests by range).
 - Generated files (`core/midi_contracts/src/page/page_data.cairo`, `page/tests.cairo`,
   `beasts/beast_contracts/src/synth_settings.cairo`) change only through their generators.
-- BeastMidiProvider's CASM must stay under 81,920 felts; the bench reports it.
+- Every class's CASM must stay under 81,920 felts; BeastTrackComposer is the closest (`scarb build`
+  warns past it).
 
 ## Commits and pull requests
 

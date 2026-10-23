@@ -2,13 +2,14 @@
 name = "beast_contracts"
 version.workspace = true
 edition.workspace = true
-description = "BeastMidiProvider: the Beast Sound composer as a Starknet MIDI provider."
+description = "BeastMidiProvider: the Beast Sound composer as a Beasts V3 sound manager and a Starknet MIDI provider."
 
 [dependencies]
 beast_composer = { path = "../beast_composer" }
 midi.workspace = true
 openzeppelin_access.workspace = true
 openzeppelin_upgrades.workspace = true
+openzeppelin_introspection.workspace = true
 openzeppelin_interfaces.workspace = true
 starknet.workspace = true
 

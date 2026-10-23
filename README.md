@@ -13,8 +13,8 @@ contracts, and the others are libraries (`[lib]`, no contracts).
 |---|---|---|---|
 | `midi` | `core/midi` | library | The core MIDI types (`midi::types`) and interfaces (`midi::interfaces`: `IMidiProvider`, `ISynthSettingsProvider`, `ISoundProvider`, `IMidiSoundPage`), Standard MIDI File writing (`midi::smf`) and packing (`midi::pack`) |
 | `midi_contracts` | `core/midi_contracts` | contracts | `MidiSoundPage` (an NFT's `token_uri` with onchain sound) and an example provider |
-| `beast_composer` | `beasts/beast_composer` | library | The Beast Sound composer: a Beasts V3 token and its live state to MIDI |
-| `beast_contracts` | `beasts/beast_contracts` | contracts | `BeastMidiProvider`, the composer as an `IMidiProvider`, and the `BeastSoundComposer` benchmark |
+| `beast_composer` | `beasts/beast_composer` | library | The Beast Sound composer: a Beast and its live state to MIDI |
+| `beast_contracts` | `beasts/beast_contracts` | contracts | `BeastMidiProvider`, the Beasts V3 sound manager (and an `IMidiProvider`); `BeastTrackComposer`, the class it composes in; and the `BeastSoundComposer` benchmark |
 
 ```
                  midi  (core/midi)

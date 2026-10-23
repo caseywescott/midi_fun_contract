@@ -2,11 +2,11 @@ use crate::composition::beast_score::{
     build_beast_theme, derive_beast_sound_seeds, note_events_valid,
 };
 use crate::composition::beast_v3_sound::{
-    BeastV3LiveState, PackableBeastV3, beast_has_sound, beast_sound_seed, build_v3_beast_form,
-    decode_v3_token_id, encode_v3_token_id, genesis_token_id, map_v3_beast_to_composition_params,
-    standalone_sound_seed, type_tier_family, v3_music_state_hash, v3_name_variant_id,
-    v3_params_hash, v3_rank_tier, v3_score_full_midi, v3_score_full_smf_bytes,
-    v3_score_instructions, v3_score_midi, v3_score_notes, v3_score_smf_bytes,
+    BeastV3LiveState, PackableBeastV3, assert_valid_v3_beast, beast_has_sound, beast_sound_seed,
+    build_v3_beast_form, map_v3_beast_to_composition_params, standalone_sound_seed,
+    type_tier_family, v3_music_state_hash, v3_name_variant_id, v3_params_hash, v3_rank_tier,
+    v3_score_full_midi, v3_score_full_smf_bytes, v3_score_instructions, v3_score_midi,
+    v3_score_notes, v3_score_smf_bytes,
 };
 
 // "Sorrow Peak Warlock": live mainnet rank-1 Warlock (legacy token #52918).
@@ -37,26 +37,11 @@ fn veteran() -> BeastV3LiveState {
 }
 
 #[test]
-fn v3_token_id_round_trips() {
-    let b = sorrow_peak_warlock();
-    let decoded = decode_v3_token_id(encode_v3_token_id(b));
-    assert(decoded == b, 'round trip');
-}
-
-#[test]
 #[should_panic(expected: ('invalid affix combo',))]
 fn v3_rejects_mixed_zero_affix() {
     let mut b = sorrow_peak_warlock();
     b.suffix = 0;
-    decode_v3_token_id(encode_v3_token_id(b));
-}
-
-/// The layout is 116 bits: a bit in the high word is rejected like any other stray bit, even over
-/// a valid Beast.
-#[test]
-#[should_panic(expected: ('invalid token id',))]
-fn v3_rejects_high_word_bits() {
-    decode_v3_token_id(encode_v3_token_id(sorrow_peak_warlock()) + u256 { low: 0, high: 1 });
+    assert_valid_v3_beast(b);
 }
 
 #[test]
@@ -143,29 +128,6 @@ fn v3_community_species_render() {
     };
     let form = build_v3_beast_form(b, calm());
     assert(note_events_valid(form.events.span()), 'valid events');
-}
-
-#[test]
-fn v3_genesis_token_id_matches_sepolia_deployment() {
-    // Warlock Genesis Beast as minted by the Beasts V3 Sepolia constructor.
-    assert(genesis_token_id(1, 1, 0) == 0x7006400010000000000000000001, 'warlock genesis');
-}
-
-#[test]
-fn v3_agony_bane_gloomfang_matches_sepolia_token() {
-    // First community dungeon mint on Sepolia: species 76, Hunter, Tier 3.
-    let b = PackableBeastV3 {
-        id: 76,
-        prefix: 1,
-        suffix: 1,
-        level: 10,
-        health: 100,
-        shiny: 0,
-        animated: 1,
-        tier: 3,
-        beast_type: 1,
-    };
-    assert(encode_v3_token_id(b) == 0x2e0064000a081000000000000004c, 'gloomfang token');
 }
 
 #[test]

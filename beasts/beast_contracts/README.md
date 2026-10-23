@@ -1,90 +1,146 @@
 # beast_contracts
 
-The Beast composer (`beast_composer::composition::beast_v3_sound`, engine v1) as Starknet
-contracts. It depends on two libraries: `beast_composer` (`beasts/beast_composer`, the composer)
-and `midi` (`core/midi`, the core MIDI types and interfaces it implements).
+The Beast composer (`beast_composer`, engine v1) as Starknet contracts. It depends on two
+libraries: `beast_composer` (`beasts/beast_composer`, the composer) and `midi` (`core/midi`, the
+core MIDI types and interfaces it implements).
 
-- **`BeastMidiProvider`** (`src/provider.cairo`): the production path. It implements the generic
-  `IMidiProvider` (`midi::interfaces`): `get_midi(token_id)` for the NFT it serves, and
-  `get_midi_for(token_address, token_id)`, the same bytes with the collection checked. It also
-  serves its sounds (`ISynthSettingsProvider::get_settings`) and both in one call (onchain-midi-player's
-  `ISoundProvider::get_sound`). It reads the Beast's live state itself, so a caller needs nothing but
-  the token ID.
-- **`BeastSoundComposer`** (`src/lib.cairo`): benchmark views that take the live state as calldata.
+- **`BeastMidiProvider`** (`src/provider.cairo`): the production path, a Beasts V3 **sound
+  manager**. It answers SRC5 `IBEASTS_SOUND_MANAGER_ID`, so the Beasts registry accepts it as a
+  species' sound manager, and serves `ISoundManager::get_track_sound(token_id, track_number,
+  block_number)`, which the Beasts renderer calls for a token's default track. It is also the only
+  caller the NFT accepts for a token's track mutations, which it forwards for its owner (the launch
+  rollout) and, for `set_default_track`, for the token's owner. It keeps the generic
+  `IMidiProvider` (`get_midi`, `get_midi_for`), `ISynthSettingsProvider::get_settings` and
+  onchain-midi-player's `ISoundProvider::get_sound`, which serve the token's Species Song.
+- **`BeastTrackComposer`** (`src/track_composer.cairo`): the composer as its own declared class,
+  which the provider library-calls: the two do not fit in one class under Starknet's 81,920-felt
+  CASM limit.
+- **`BeastSoundComposer`** (`src/lib.cairo`): benchmark views that take a Beast and its live state
+  as calldata.
+- `src/beasts_v3.cairo`: the Beasts V3 interfaces and types the provider uses, declared locally
+  (TEMPORARY until beasts-v3 is public; then a git dependency on `beasts_core` replaces it).
 
 ## BeastMidiProvider
 
-Deploy with one constructor argument, the Beasts V3 NFT it serves. The address is fixed: another
-collection or engine is another deployment.
+Declare `BeastTrackComposer`, then deploy the provider with three constructor arguments: the
+Beasts V3 NFT it serves, its owner and the `BeastTrackComposer` class hash. The NFT is fixed:
+another collection or engine is another deployment. The constructor registers
+`IBEASTS_SOUND_MANAGER_ID` (`0x1f268c5b361211a8650d5f3a862f3108067a38059a190fd26aef2ac3425e7b1`,
+`selector!("beasts_sound_manager_v1")`); the species owner then sets the provider as the species'
+sound manager with the registry's `set_sound_manager`.
 
-| View | Returns |
-|---|---|
-| `get_midi(token_id)` | Self-contained Standard MIDI File bytes (format 1, 480 PPQN, one track per voice with its program and pan at tick 0, drums on channel 10; for a mega (shiny) Beast the mega arrangement: the lead on Robot Hero Lead or N163 Brass Wave, its octave double on the other, the mega drum groove) of composer v1.1 (`beast_composer::composition::beast_v11`), with the instruments by Beast (the type's family; the theme voice leads with the family lead its species picks, the followers play plucks, the countersubject another lead), byte-identical to `v11_score_full_midi` and the JS reference (`engine_v11.js` + `full_midi.js`) for the same state |
-| `get_midi_for(token_address, token_id)` | The same bytes, after checking `token_address` is the NFT it serves (the TinySynth page calls this) |
-| `get_settings(token_id)` | The `TinySynthSettings` the MIDI is written for (`ISynthSettingsProvider`), for onchain-midi-player's `midi_segment`: the Beast type's family of TinyChip presets (Magic, Hunter or Brute: three leads, three plucks) and the chip drum kit, reverb 30; a mega (shiny) Beast's also carry the mega leads, Robot Hero Lead (50) and N163 Brass Wave (65). Six generated values, picked by type and shiny flag from the token ID (no composition). Checks the token ID's format only |
-| `get_sound(token_id)` | `TinySynthSound { midi, settings }`: `get_midi` and `get_settings` in one call (onchain-midi-player's `ISoundProvider`), reading the live state once. Same reverts as `get_midi` |
-| `get_live_state(token_address, token_id)` | The exact `BeastV3LiveState` `get_midi` composes from, with each field's source |
-| `get_collection()` / `get_engine_version()` | The supported collection; `1` |
+### Tracks
 
-The MIDI selects TinyChip presets by program number, so it sounds as designed with the Beast sound
-settings: `synth_settings::beast_synth_settings()` is the `TinySynthSettings` value (onchain-midi-player's
-own type, re-exported by `midi::types`) to pass to `midi_segment`; with the
-class's default settings the same programs play TinySynth's General MIDI sounds. Generated by
-`offchain/beast-sound/onchain/tinychip/synth_settings.mjs --cairo` (see the TinyChip README).
+The NFT stores each token's tracks as `TrackInputs { version, data }` and never reads them. The
+provider's versions:
 
-`get_midi` (and `get_sound`) reverts only for a token ID that is not a
-116-bit Beasts V3 ID (`invalid token id` and the trait range checks) or an unminted token (the NFT's
-own `get_beast_rank` check); `get_midi_for` also for another collection (`unsupported collection`).
-Neither reverts because live state is unavailable: it runs inside the
-NFT's `token_uri`, where a failed call cannot be caught.
-
-### Live state
-
-Every read happens inside the one call (one state snapshot, nothing cached). The provider calls the
-NFT's state getters and Death Mountain, never `token_uri`.
-
-| Input | Source | When it cannot be read |
+| `version` | `data` | Plays |
 |---|---|---|
-| `rank` | NFT `get_beast_rank(token_id)` (0 for the genesis token) | — |
-| `species_count` | NFT `get_species_count(species)` (0 is real: Sepolia's genesis Warlock reads 0; the rank tier treats 0 like 1) | — |
-| `adventurers_killed`, species 1–75 | NFT `get_adventurers_killed(token_id)`: Death Mountain `get_entity_stats`, live | NFT has no Death Mountain address: 0, `Unavailable` |
-| `adventurers_killed`, community species | NFT `get_cached_stats(token_id)`, the value their `token_uri` shows (refreshed by `refresh_stats`) | — |
-| `scars`, species 1–75 | Death Mountain `get_collectable_count(dm, poseidon(id, prefix, suffix)) - 1` | no Death Mountain address: 0, `Unavailable` |
-| `scars`, community species | 0: Death Mountain does not track them | `NotTracked` |
-| `summit_held_seconds` | Retired: Summit is obsolete, always 0 | `Retired` |
+| `TRACK_SOUND_CHECK` (1) | none | The Sound Check: the Beast's scale through each of its presets (composer track 0) |
+| `TRACK_SPECIES_SONG` (2) | none | The Species Song, the Genesis Track with the default swaps (composer track 1) |
+| `TRACK_COMPOSED` (3) | `[inputs]` | The Beast Special Song of the packed composer inputs `inputs` (composer track 2): the name track, or the Species Song for a Beast without a special name |
+| `TRACK_COMPOSED` (3) | `[inputs, seed]` | A bought track: `seed` (never 0) on the Beast of `inputs` (composer track 3+) |
 
-`dm` is the NFT's `get_death_mountain_address()`, passed as the `dungeon` key exactly as the NFT's
-own metadata passes it (Death Mountain maps that key to the Beasts dungeon). The entity hash is the
-one both Beasts V3 (`pack::get_hash`) and Death Mountain (`ImplBeast::get_beast_hash`) use.
+The Sound Check and the Species Song compose from the token itself (`get_beast`), so they store no
+per-token data and every token gets the same inputs. A `TRACK_COMPOSED` track carries its Beast in
+its data: `get_composer_inputs(token_id)` gives the token's own, and it plays whatever Beast its
+inputs describe. A track means its version, whatever its index.
 
-Death Mountain's `add_collectable` runs on every defeat of a named Beast at or above the
-special-name level, and the NFT mints from collect 0, so `count - 1` is the number of defeats after
-the one that made the Beast mintable.
+`get_track_sound(token_id, track_number, block_number)` reads the track (`track_inputs`, which
+rejects an unminted token and an index at or above `num_tracks`) and, for the Sound Check and the
+Species Song, the Beast (`get_beast`), and returns `TinySynthSound { midi, settings }`. `block_number` is the renderer's resolution of the token's
+saved mode: `None` (Original) plays the track as written; `Some(n)` (Live asks for the current block
+minus 10, AtBlock(n) for `n`) plays the day of drift at block `n`
+(`beast_composer::composition::drift`), from the hashes of its day's, week's and month's first
+blocks. `n` must not be in the future (`block in the future`). The Sound Check never drifts.
 
-`get_live_state` reports each composed field as `Read` (a real value, including zero), `NotTracked`
-(zero by definition), `Unavailable` (zero because the source is not configured) or `Retired`, plus
-`complete` when nothing is `Unavailable`.
+It reverts for a token the NFT has not minted (the NFT's `ERC721: invalid token ID`), a track the
+token does not have (`Sound: invalid track`), a version the provider does not define
+(`unknown track version`), data that does not fit the version (`bad track data`,
+`bought track needs a seed`, `unknown params layout`) and a future block. The renderer calls it
+through a safe dispatcher, so a revert leaves the card silent rather than broken.
 
-### Verified against the deployments (2 Oct 2026)
+### The Beast
 
-- **Beasts V3 `main` (`dea2d1b`):** same getters and token layout (116-bit), genesis species read
-  Death Mountain live and community species read the stats cache. Draft PR #116 widens token IDs to
-  180 bits; this provider (and the composer's `decode_v3_token_id`) reverts on those, so that change
-  needs a new provider before it ships.
-- **Sepolia (`0x017e2cb5…`, and the older `0x01dac778…`):** `get_death_mountain_address()` is zero,
-  so kills and scars read `Unavailable` there; rank and species count read normally.
-- **Summit:** retired, not read. (It keyed Beasts by pre-V3 `u32` token numbers.)
+The provider reads the Beast from the NFT (`get_beast(token_id: felt252)`, the 26-felt
+`PackableBeast`), never from the token ID's bits, so a change of the Beasts V3 bit layout cannot
+break it. The composer sees the species, special name, level, health, tier and type, and one sound
+flag: `sound_effects` is a preset whose meaning the sound manager defines, and here
+`SOUND_PRESET_MEGA` (1) plays the mega sound (the shiny arrangement and the mega leads) while every
+other value plays the normal sound. `visual_effects`, the image provider's preset, does not change
+the sound.
+
+### Entry points
+
+| Entry point | Who | What |
+|---|---|---|
+| `get_track_sound(token_id, track_number, block_number)` | anyone | The track's `TinySynthSound` (above) |
+| `get_sound(token_id: u256)` | anyone | `TinySynthSound` of the token's Species Song as written (onchain-midi-player's `ISoundProvider`), whether or not the token has tracks |
+| `get_midi(token_id: u256)`, `get_midi_for(token_address, token_id: u256)` | anyone | Its MIDI (`IMidiProvider`); `get_midi_for` first checks `token_address` (`unsupported collection`) |
+| `get_settings(token_id: u256)` | anyone | Its settings, without composing (`ISynthSettingsProvider`) |
+| `get_live_state(token_id)` | anyone | The Beast's rank (`get_beast_rank`), its species' count (`get_species_count`) and its verified kills (the NFT's `IBeastStats::get_beast_stats(poseidon(species, prefix, suffix))`). Beasts V3 tracks no scars and Summit is retired: both 0. No track composes from it today |
+| `get_composer_inputs(token_id)` | anyone | The token's packed composer inputs, the `[inputs]` of a `TRACK_COMPOSED` track of its own Special Song |
+| `get_collection()`, `get_engine_version()`, `get_composer_class()` | anyone | The NFT, `1`, the composer class |
+| `supports_interface(id)` | anyone | SRC5: `IBEASTS_SOUND_MANAGER_ID` and `ISRC5_ID` |
+| `set_default_track(token_id, track_number)` | the token's owner | Forwards the NFT's `set_default_track` |
+| `batch_update_track_capacity(token_ids, new_capacity)` | owner | `update_track_capacity` for every token |
+| `batch_add_track(token_ids, inputs)` | owner | `add_track` with the same inputs for every token |
+| `batch_add_tracks(tracks)` | owner | `add_track` with each token's own inputs (`TokenTrack { token_id, inputs }`) |
+| `batch_set_default_track(token_ids, track_number)` | owner | `set_default_track` for every token |
+| `register_interface(interface_id)` | owner | Registers an SRC5 ID, for an instance upgraded from a class whose constructor did not register `IBEASTS_SOUND_MANAGER_ID` |
+| `set_composer_class(class_hash)` | owner | Replaces the composer class |
+| `upgrade(class_hash)`, `transfer_ownership`, `renounce_ownership` | owner | OpenZeppelin Upgradeable and Ownable |
+
+Every Beasts token ID is a `felt252`; only the inherited `IMidiProvider`, `ISynthSettingsProvider`
+and `ISoundProvider` take a `u256`, and reject one at or above the field prime
+(`invalid token id`). The provider only calls state getters on the NFT, never `token_uri`, and
+caches nothing.
+
+### Launch rollout
+
+The owner drives the rollout while it owns the provider (the NFT accepts track mutations only from
+the species' registered sound manager):
+
+1. `batch_update_track_capacity(ids, 3)`, `batch_add_track(ids, {TRACK_SOUND_CHECK, []})`: every
+   Beast gets the Sound Check as track 0, its default, for about 24 hours.
+2. `batch_add_track(ids, {TRACK_SPECIES_SONG, []})`, `batch_set_default_track(ids, 1)`: the
+   Species Song.
+3. `batch_add_tracks([(id, {TRACK_COMPOSED, [get_composer_inputs(id)]}), ...])`,
+   `batch_set_default_track(ids, 2)`: the transmission track.
+
+`renounce_ownership` ends the rollout entry points with upgrades. Every NFT mutation emits two
+events (its own and an ERC-4906 `MetadataUpdate`) and Starknet caps a transaction at 1,000 events;
+the batch entry points emit none of their own. So one transaction holds about:
+
+| Calls per token in the transaction | Events per token | Tokens per transaction |
+|---|---:|---:|
+| one batch call (for example `batch_set_default_track`) | 2 | at most 500 |
+| two (`batch_add_track` and `batch_set_default_track` in one multicall) | 4 | at most 250 |
+| three (capacity, track and default) | 6 | at most 166 |
+
+Gas and steps bound a batch too: size it by a dry-run estimate. A batch reverts as a whole if the NFT
+rejects any token.
+
+### Upgrading an earlier instance
+
+An upgrade does not rerun the constructor. An instance upgraded from the earlier provider class
+(constructor `(collection, owner)`) needs its owner to call `set_composer_class` with the declared
+`BeastTrackComposer` and `register_interface(IBEASTS_SOUND_MANAGER_ID)` before a species can use
+it.
 
 ## BeastSoundComposer
 
+Every view takes the Beast (`PackableBeastV3`: species, prefix, suffix, level, health, shiny,
+animated, tier, type) and rejects one out of range (`invalid tier`, `invalid affix combo`, ...).
+
 | View | Returns |
 |---|---|
-| `has_sound(token_id)` | Sound drop result (salt + bps set at deploy) |
-| `get_composition_params(token_id, live)` | Bounded musical parameters |
-| `get_music_state_hash(token_id, live)` | Renderer cache key |
-| `get_score_hash(token_id, live)` | Commitment to the full score |
-| `get_score_notes(token_id, live)` | BSN1 compact note stream (7 bits per note), same packing. `bsnToMidi` in `offchain/beast-sound/src/bsn.js` rebuilds the exact MIDI file |
-| `get_score_midi(token_id, live)` | Standard MIDI File bytes: `[byte_len, 31-byte chunks…]`, byte-identical to the browser engine |
+| `has_sound(beast)` | Sound drop result (salt + bps set at deploy) |
+| `get_composition_params(beast, live)` | Bounded musical parameters |
+| `get_music_state_hash(beast, live)` | Renderer cache key |
+| `get_score_hash(beast, live)` | Commitment to the full score |
+| `get_score_notes(beast, live)` | BSN1 compact note stream (7 bits per note), same packing. `bsnToMidi` in `offchain/beast-sound/src/bsn.js` rebuilds the exact MIDI file |
+| `get_score_midi(beast, live)` | Standard MIDI File bytes: `[byte_len, 31-byte chunks…]`, byte-identical to the browser engine |
 
 ## BSN1 layout
 
@@ -101,21 +157,42 @@ note of a section when articulation is accent.
 
 ## Build and test
 
-Needs Cairo 2.21 (scarb 2.21.0, the root `.tool-versions`); onchain-midi-player needs 2.20 or later.
-From the repository root (artifacts land in the workspace `target/dev`, named
+Needs Cairo 2.21 (scarb 2.21.0, the root `.tool-versions`); `onchain_midi_types` needs 2.20 or
+later. From the repository root (artifacts land in the workspace `target/dev`, named
 `beast_contracts_<Contract>`):
 
 ```bash
-scarb build -p beast_contracts   # BeastMidiProvider: Sierra 35,997 felts, CASM 72,576 (Starknet limit 81,920)
-scarb test -p beast_contracts    # provider vs v11_score_full_midi on mock NFT + Death Mountain, sources,
-                                 # rejections, get_sound, and onchain-midi-player's validate on the settings
+scarb build -p beast_contracts   # CASM: BeastTrackComposer 77,216 felts, BeastMidiProvider 16,173
+                                 # (Starknet limit 81,920); Sierra 39,190 and 6,941
+scarb test -p beast_contracts    # the provider on a mock Beasts V3 NFT: every track version, drift,
+                                 # the rollout, SRC5, rejections, get_sound, and onchain-midi-player's
+                                 # validate on the settings
 ```
 
-## BeastMidiProvider gas (`bench/`)
+## `get_track_sound` gas
 
-L2 (Sierra) gas of one call, nested calls included, from `bench/snapshots/baseline-25be776.json`
-(scarb 2.21.0 and snforge 0.64.1 on the classes `scarb build` makes; mock NFT and Death Mountain;
-no transaction overhead):
+L2 (Sierra) gas of one call, nested calls included (the mock NFT's reads and the library call),
+from the ignored `gas_probe_*` tests (`snforge test gas_probe --include-ignored
+--tracked-resource sierra-gas --trace-components contract-name gas` in this package; scarb 2.21.0,
+snforge 0.64.1, no transaction overhead). Live is a day of drift at block 130,100.
+
+| Beast | Track 0, Sound Check | Track 1, Species Song, Original | Track 1, Live | Track 2, Special Song, Original | Track 2, Live |
+|---|---:|---:|---:|---:|---:|
+| Mega #32 (the largest Genesis Track), special name 13/6 | 8.4M | 162.6M | 170.9M | 183.1M | 183.4M |
+| Sorrow Peak Warlock (#1, normal) | 7.1M | 132.5M | 137.1M | 138.3M | 138.4M |
+
+The provider's own share is about 2–3.3M: `track_inputs` (0.15–0.19M on the mock), for tracks 0
+and 1 `get_beast` (1.06M on the mock, which stores the Beast in 26 slots), the settings and the
+library call. The Species Song as
+written composes in the class's Genesis Track copy (`genesis_byte_array`); with drift, and for the
+other songs, the general composer.
+
+## BeastMidiProvider gas (`bench/`, the previous class)
+
+The bench (`bench/`) still measures the previous provider class (token ID decoding, Death Mountain
+mocks) and needs an update for this one. Its numbers, from `bench/snapshots/baseline-25be776.json`
+(scarb 2.21.0 and snforge 0.64.1 on the classes `scarb build` made; mock NFT and Death Mountain; no
+transaction overhead):
 
 | Call | Gas |
 |---|---:|
@@ -125,8 +202,7 @@ no transaction overhead):
 | `get_settings` | 0.57–0.74M |
 | `get_live_state` | 0.50–0.82M |
 
-`python3 bench/scripts/gas_bench.py run` remeasures them; the tables below are earlier devnet
-measurements of the v1.1 live-state path.
+The tables below are earlier devnet measurements of the v1.1 live-state path.
 
 ## BeastMidiProvider cost (starknet-devnet 0.10.2, 2 Oct 2026)
 

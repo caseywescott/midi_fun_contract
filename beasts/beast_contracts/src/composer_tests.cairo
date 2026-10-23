@@ -3,13 +3,13 @@
 //! of the form built from `get_composition_params`.
 //!
 //! These are the music-state and score-hash checks of the composer's earlier library API (a species
-//! index, name variant, visual rarity, sound seed and live stats), on the views' inputs: a Beasts
-//! V3 token and its live state. Level and health are token traits in V3, so the token keeps them
-//! while the live state carries the history; the sound seed comes from the token
+//! index, name variant, visual rarity, sound seed and live stats), on the views' inputs: a Beast
+//! and its live state. Level and health are Beast traits in V3, so the Beast keeps them while the
+//! live state carries the history; the sound seed comes from the Beast
 //! (`beast_sound_seed(id, prefix, suffix)`), and no view returns it.
 use beast_composer::composition::beast_score::{beast_params_hash, build_beast_form};
 use beast_composer::composition::beast_v3_sound::{
-    BeastV3LiveState, PackableBeastV3, beast_sound_seed, encode_v3_token_id,
+    BeastV3LiveState, PackableBeastV3, beast_sound_seed,
 };
 use beast_composer::composition::genesis::{species_tier, species_type};
 use snforge_std::{ContractClassTrait, DeclareResultTrait, declare};
@@ -57,7 +57,7 @@ fn high_history_stats() -> BeastV3LiveState {
 #[test]
 fn canonical_music_state_is_stable_for_same_inputs() {
     let c = composer();
-    let token = encode_v3_token_id(beast(13, 2, 2, 1, 10, 0));
+    let token = beast(13, 2, 2, 1, 10, 0);
     let a_params = beast_params_hash(c.get_composition_params(token, baseline_stats()));
     let b_params = beast_params_hash(c.get_composition_params(token, baseline_stats()));
     assert(a_params == b_params, 'params hash stable');
@@ -76,7 +76,7 @@ fn canonical_music_state_is_stable_for_same_inputs() {
 #[test]
 fn live_stats_change_state_hash_without_changing_identity() {
     let c = composer();
-    let token = encode_v3_token_id(beast(13, 2, 2, 1, 10, 0));
+    let token = beast(13, 2, 2, 1, 10, 0);
     let calm = c.get_composition_params(token, baseline_stats());
     let evolved = c.get_composition_params(token, high_history_stats());
     assert(calm.species_id == evolved.species_id, 'species identity');
@@ -97,8 +97,15 @@ fn live_stats_change_state_hash_without_changing_identity() {
 fn score_hash_api_matches_form_hash() {
     let c = composer();
     let b = beast(1, 69, 18, 128, 999, 1);
-    let token = encode_v3_token_id(b);
+    let token = b;
     let params = c.get_composition_params(token, high_history_stats());
     let form = build_beast_form(params, beast_sound_seed(b.id, b.prefix, b.suffix));
     assert(c.get_score_hash(token, high_history_stats()) == form.score_hash, 'score hash api');
+}
+
+/// Every view applies the Beast's trait range checks.
+#[test]
+#[should_panic(expected: ('invalid tier', 'ENTRYPOINT_FAILED'))]
+fn views_reject_an_invalid_beast() {
+    composer().has_sound(PackableBeastV3 { tier: 0, ..beast(13, 2, 2, 1, 10, 0) });
 }

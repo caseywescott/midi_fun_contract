@@ -68,8 +68,8 @@ uri.append(@synth.midi_segment(midi, settings));
 - `midi` re-exports the class's own types (`midi::types`: `TinySynthSettings`, `Timbre`, `Operator`,
   `Waveform`, `WaveDef`, `Filter`, `FilterKind`, `FIXED_POINT_SCALE`, `TinySynthSound`), its
   `ISoundProvider` with dispatchers (`midi::interfaces`), and `default_settings` and `validate`
-  (`midi::settings`) from the `onchain_midi_player` package, pinned by commit in the workspace
-  `Scarb.toml`. There is no copy to drift: a value is the class's own type.
+  (`midi::settings`) from onchain-midi-player's `onchain_midi_types` package, pinned by commit in
+  the workspace `Scarb.toml`. There is no copy to drift: a value is the class's own type.
 - The settings may depend on the token, never on anything else the caller passes, and follow the
   same revert rules as `get_midi`. A provider without one leaves the caller on the class's
   `default_settings()` (General MIDI sounds).
@@ -131,7 +131,7 @@ provider returns for the same state.
 
 ## Build and test
 
-Needs Cairo 2.21 (scarb 2.21.0, the root `.tool-versions`); `onchain_midi_player` needs 2.20 or
+Needs Cairo 2.21 (scarb 2.21.0, the root `.tool-versions`); `onchain_midi_types` needs 2.20 or
 later. From the repository root:
 
 ```bash

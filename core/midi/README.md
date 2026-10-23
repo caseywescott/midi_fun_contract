@@ -2,9 +2,9 @@
 
 The core MIDI system's library: its data types and interfaces, and Standard MIDI File writing. A
 Scarb `[lib]` package with no contracts, no storage and no syscalls. It depends on `starknet` (to
-declare interfaces) and `onchain_midi_player` (whose types it re-exports), and on nothing in
-`beasts/`. The Beast composer (`beasts/beast_composer`) and the contracts (`core/midi_contracts`,
-`beasts/beast_contracts`) build on it.
+declare interfaces) and `onchain_midi_types` (onchain-midi-player's types package, whose types it
+re-exports), and on nothing in `beasts/`. The Beast composer (`beasts/beast_composer`) and the
+contracts (`core/midi_contracts`, `beasts/beast_contracts`) build on it.
 
 ```toml
 [dependencies]

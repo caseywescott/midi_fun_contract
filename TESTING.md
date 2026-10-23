@@ -9,7 +9,7 @@ The Cairo packages are one Scarb workspace (scarb 2.21.0). Their tests run on St
 | `midi` | SMF writing (VLQ examples, deltas, End of Track, running status, chunks) and both packers |
 | `midi_contracts` | `ScaleMidiProvider` (behavior, pinned bytes, `get_sound`); `MidiSoundPage` (`token_uri` equal to the JS reference byte for byte, contract tests with real and mock providers) |
 | `beast_composer` | The composer; the parity fixtures are `#[ignore]`d (below) |
-| `beast_contracts` | `BeastMidiProvider` on a mock NFT and Death Mountain: sources, rejections, `get_sound`, onchain-midi-player's `validate` on the settings |
+| `beast_contracts` | `BeastMidiProvider` on a mock Beasts V3 NFT: `get_track_sound` for each of the three tracks and blocks, the rollout and token-owner entry points, SRC5, rejections, `get_sound`, onchain-midi-player's `validate` on the settings |
 
 ```bash
 scarb test                      # all four, as CI runs them (one job per package)

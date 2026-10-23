@@ -4,8 +4,8 @@ Beast Sound in Cairo: music for each Beasts V3 NFT, built on the core MIDI syste
 
 | Package | Kind | What it is |
 |---|---|---|
-| `beast_composer` | library | The composer: a Beasts V3 token and its live state to a Standard MIDI File |
-| `beast_contracts` | contracts | `BeastMidiProvider` (`midi::interfaces::IMidiProvider`, `ISynthSettingsProvider`, `ISoundProvider`) and the `BeastSoundComposer` benchmark |
+| `beast_composer` | library | The composer: a Beast and its live state to a Standard MIDI File |
+| `beast_contracts` | contracts | `BeastMidiProvider`, the Beasts V3 sound manager (`ISoundManager::get_track_sound`, and `midi::interfaces::IMidiProvider`, `ISynthSettingsProvider`, `ISoundProvider`); `BeastTrackComposer`, the class it composes in; and the `BeastSoundComposer` benchmark |
 
 Both depend on `midi` only through the workspace (`midi.workspace = true`), and on nothing else
 outside this directory; `beast_contracts` reaches `beast_composer` by a relative path.
@@ -27,6 +27,7 @@ edition = "2025_12"
 midi = { git = "https://github.com/caseywescott/midi_fun_contract", rev = "<commit>" }
 openzeppelin_access = "4.0.1"
 openzeppelin_upgrades = "4.0.1"
+openzeppelin_introspection = "4.0.1"
 openzeppelin_interfaces = "2.2.0"
 starknet = "2.21.0"
 snforge_std = "=0.64.1"

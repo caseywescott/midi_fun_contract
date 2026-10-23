@@ -5,8 +5,9 @@ edition.workspace = true
 description = "The core MIDI library: types, interfaces, Standard MIDI File writing and felt/ByteArray packing."
 
 [dependencies]
-# TinySynthSettings, TinySynthSound, ISoundProvider and settings::validate (Provable-Games/onchain-midi-player).
-onchain_midi_player.workspace = true
+# TinySynthSettings, TinySynthSound, ISoundProvider and settings::validate (onchain-midi-player's
+# `onchain_midi_types`).
+onchain_midi_types.workspace = true
 starknet.workspace = true
 
 [dev-dependencies]

@@ -75,6 +75,7 @@ export const GRAMMARS = {
   jazzy: { scale: 'ionian', label: 'bossa sevenths', progs: ['IM7 ii7 iii7 V7/ii', 'ii7 V7 IM7 VI7', 'IM7 bVII7 IM7 IV7', 'IM7 V7/V ii7 V7', 'IM7 IVM7 iii7 vi7'] },
   hymn: { scale: 'ionian', label: 'hymn', progs: ['I IV V I', 'I vi IV V', 'I ii V I', 'IV I ii V', 'I V vi iii', 'vi IV I V'] },
   hymnminor: { scale: 'harmonic', label: 'minor hymn', progs: ['i iv V i', 'i bVI iv V', 'i iio V i', 'bVI iv V i'] },
+  battle: { scale: 'aeolian', label: 'battle minor: bVI-bVII, Phrygian bII', progs: ['i bVI bVII i', 'i bII i bII', 'i bVI iv V', 'i bVII bVI V', 'i iv bVI V'] },
   dirge: { scale: 'phrygian', label: 'Phrygian dirge', progs: ['i bII i i', 'i bII bIII bII', 'i iv bII i', 'i bvii bII i'] },
 };
 
@@ -140,6 +141,11 @@ export const ENGINES = {
     grammars: ['dirge', 'andalusian', 'harmonic'], forms: ['AABA', 'ABAB'], accomp: ['tolling'], bass: ['drone'], drums: ['dirge'], feel: 'slow', counter: 'line', chordBars: 2,
     palette: { lead: [64, 72, 62], counter: [8, 9, 6], accomp: [44, 71, 19], bass: [86, 85, 88], pad: [29, 30, 28] },
   },
+  battle: {
+    label: 'Boss Battle', noun: 'Battle', desc: 'the motif as a galloping 16th bass riff, brass stabs, a half-time build, then phase 2 a half step higher', meter: [4, 4], bpm: [150, 172],
+    grammars: ['battle', 'harmonic'], forms: ['IABAS'], accomp: ['stab'], bass: ['riff'], drums: ['battle'], feel: 'heroic', counter: 'none', chordBars: 1,
+    palette: { lead: [62, 82, 96], counter: [76, 77, 89], accomp: [94, 81, 66], bass: [61, 79, 88], pad: [91, 41, 91] },
+  },
   march: {
     label: 'March', noun: 'March', desc: 'snare-driven march, oom-pah bass, brass lead with a countermelody in thirds', meter: [4, 4], bpm: [112, 124],
     grammars: ['pop', 'romantic', 'harmonic'], forms: ['AABB', 'ABAB'], accomp: ['oompah'], bass: ['rootfifth'], drums: ['march'], feel: 'march', counter: 'thirds', chordBars: 1,
@@ -177,6 +183,7 @@ export const CURATED = [
   { engine: 'blues', name: 'Boneyard Blues' },
   { engine: 'bossa', name: 'Sunken Bossa' },
   { engine: 'dirge', name: 'Requiem in Phrygian' },
+  { engine: 'battle', name: 'The Final Boss' },
 ];
 const ADJ = ['Ember', 'Hollow', 'Gilded', 'Shattered', 'Sunken', 'Howling', 'Crimson', 'Frost', 'Ashen', 'Verdant', 'Obsidian', 'Wandering', 'Midnight', 'Thorned', 'Silver', 'Abyssal', 'Storm', 'Lantern'];
 
@@ -410,6 +417,8 @@ const GROOVES = {
   waltz: { K: 'x...........', S: '', H: '....x...x...' },
   bossa: { K: 'x..xx..xx..xx..x', R: 'x..x..x...x..x..', H: 'oooooooooooooooo' },
   dirge: { K: 'X...............', T: '........x.......' },
+  battle: { K: 'x..x..x..x..x.x.', S: '....X.......X...', H: 'x.x.x.x.x.x.x.x.' },
+  battle16: { K: 'x..x..x..x..x.x.', S: '....X.......X...', H: 'xoxoxoxoxoxoxoxo' },
   minimal: { K: 'x.......x.......', H: '..o...o...o...o.' },
 };
 const DRUM = { K: 36, S: 38, H: 42, O: 46, T: 43, R: 41 };
@@ -587,6 +596,66 @@ function writeVariations(c) {
   return t0;
 }
 
+// Boss Battle: Intro (riff alone) -> A (motif lead over the riff) -> B (half time, the motif's head
+// sequenced upward, a riser) -> A' (A a half step higher, "phase 2") -> a 2-bar stinger.
+const GALLOP = [0, 3, 6, 9, 12, 14]; // 3+3+3+3+2+2 sixteenths
+function writeBattle(c) {
+  const B = c.barTicks, S = 120, n = c.scale.length;
+  const rel = c.sp.degrees.slice(0, 6).map((d) => c.scale[((d % n) + n) % n] + 12 * Math.floor(d / n));
+  const riffRel = rel.map((x) => Math.max(-5, Math.min(12, x - rel[0])));
+  const riffBar = (t, chord, light, up = 0) => {
+    const root = rootIn(c, chord, 36) + up;
+    for (let k = 0; k < 16; k++) {
+      const a = GALLOP.indexOf(k);
+      if (a >= 0) note(c, CH.bass, t + k * S, S - 10, root + riffRel[a % riffRel.length], 104);
+      else if (!light || k % 2 === 0) note(c, CH.bass, t + k * S, S - 30, root, 64);
+    }
+  };
+  const stabs = (t, chord, up = 0) => { const v = voicing(c, chord, 55, 69, null); for (const k of [0, 3, 6, 14]) v.forEach((p) => note(c, CH.accomp, t + k * S, S * 1.5, p + up, k ? 78 : 92)); };
+  const chordsA = chordsFor(c, c.progA, 8), chordsB = chordsFor(c, c.progB, 8);
+  let t0 = 0;
+  // Intro: 4 bars of riff and drums
+  for (let b = 0; b < 4; b++) riffBar(t0 + b * B, chordsA[b][0], false);
+  drums(c, t0, 4, 'battle', { crash: true });
+  t0 += 4 * B;
+  // A
+  const tA = t0, before = c.notes.length;
+  const mel = melody(c, chordsA, 8, { lo: 67, hi: 84, feel: 'heroic', motif: motifPitches(c.sp.degrees.slice(0, 8), c.tonicPc, c.scale, 74), R: rng(hash32('BOSS', c.R.int(1e9))) });
+  for (const m of mel) { note(c, CH.lead, tA + m.t, m.d - 20, m.p, 100); if (c.shiny) note(c, CH.mega, tA + m.t, m.d - 20, m.p + 12, 64); }
+  for (let b = 0; b < 8; b++) { riffBar(tA + b * B, chordsA[b][0], false); stabs(tA + b * B, chordsA[b][0]); }
+  const aNotes = c.notes.slice(before);
+  drums(c, tA, 8, 'battle', {});
+  t0 += 8 * B;
+  // B: half time, the motif's head sequenced up a step each bar
+  const head = motifPitches(c.sp.degrees.slice(0, 3), c.tonicPc, c.scale, 72);
+  for (let b = 0; b < 8; b++) {
+    const t = t0 + b * B, chord = chordsB[b][0], list = listPitches(chordScale(c.tonicPc, c.scale, chord).pcs, 60, 88);
+    const frag = head.map((p) => stepIn(list, nearest(list, p), Math.floor(b / 2)));
+    [[0, 1], [1, 1], [2, 2]].forEach(([i, beats], k) => note(c, CH.lead, t + [0, 1, 2][k] * TPQ, beats * TPQ - 30, frag[i], 96));
+    if (c.shiny) frag.forEach((p, k) => note(c, CH.mega, t + k * TPQ, TPQ - 30, p + 12, 60));
+    riffBar(t, chord, true);
+  }
+  accompany(c, CH.accomp, chordsB, t0, 8, 'arp16', 62);
+  drums(c, t0, 8, 'halftime', { crash: true });
+  note(c, CH.pad, t0 + 6 * B, 2 * B - 60, 72, 84); // the riser into phase 2
+  t0 += 8 * B;
+  // A': phase 2, everything a half step up, the lead doubled an octave above
+  for (const x of aNotes) { note(c, x.ch, x.t - tA + t0, x.d, x.p + 1, x.v); if (x.ch === CH.lead) note(c, CH.counter, x.t - tA + t0, x.d, x.p + 13, 70); }
+  drums(c, t0, 8, c.shiny ? 'battle16' : 'battle', {});
+  t0 += 8 * B;
+  // stinger: tonic hits, then the last one rings
+  const tonic = { r: 0, q: 'm', tones: QUAL.m, name: 'i' };
+  for (const [k, d] of [[0, 3], [6, 3], [12, 4], [16, 12]]) {
+    const t = t0 + k * S, v = voicing(c, tonic, 55, 69, null);
+    v.forEach((p) => note(c, CH.accomp, t, d * S, p + 1, 100));
+    note(c, CH.bass, t, d * S, rootIn(c, tonic, 36) + 1, 110); note(c, CH.lead, t, d * S, rootIn(c, tonic, 72) + 1, 104);
+    note(c, 9, t, 60, 36, 120); note(c, 9, t, 300, 49, 110);
+  }
+  t0 += 2 * B;
+  c.formLabel = 'Intro (riff) · A · B (half time) · A′ phase 2 (+1) · stinger';
+  return t0;
+}
+
 function makeRiff(c) {
   // the species motif's first 4 degrees as a 16th-note syncopated bass figure (semitones over the root)
   const n = c.scale.length, deg = c.sp.degrees.slice(0, 5).map((d) => c.scale[((d % n) + n) % n] + 12 * Math.floor(d / n));
@@ -607,6 +676,7 @@ export function editionTrack(sp, shiny, e, seedKey) {
   if (g.engine === 'chorale') ticks = writeChorale(c);
   else if (g.engine === 'phase') ticks = writePhase(c);
   else if (g.engine === 'variations') ticks = writeVariations(c);
+  else if (g.engine === 'battle') ticks = writeBattle(c);
   else {
     let t0 = 0; const mel0 = {};
     for (const [idx, sec] of sectionPlan(g).entries()) { writeSection(c, sec, t0, idx, mel0); t0 += sec.bars * c.barTicks; }
@@ -617,7 +687,7 @@ export function editionTrack(sp, shiny, e, seedKey) {
   const prog = (p) => p.map((x) => x.name).join(' ');
   const info = {
     edition: e, month: g.month, name: g.name, engine: ENGINES[g.engine].label, desc: ENGINES[g.engine].desc,
-    key: NOTE[c.tonicPc] + ' ' + c.gr.scale, grammar: c.gr.label, meter: g.meter.join('/'), bpm: c.bpm, form: g.engine === 'variations' ? c.varLabels.join(' · ') : g.form.split('').join(' '),
+    key: NOTE[c.tonicPc] + ' ' + c.gr.scale, grammar: c.gr.label, meter: g.meter.join('/'), bpm: c.bpm, form: g.engine === 'variations' ? c.varLabels.join(' · ') : c.formLabel || g.form.split('').join(' '),
     progA: prog(c.progA), progB: prog(c.progB), accomp: g.accomp, bass: g.bass, drums: g.drums, seconds: Math.round(ticks / TPQ * 60 / c.bpm),
   };
   return { notes: c.notes, programs, bpm: c.bpm, meter: g.meter, ticks, info };

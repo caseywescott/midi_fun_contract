@@ -90,7 +90,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin-top:10px
 <textarea id="vnote" placeholder="Notes on this edition (saved in this browser)"></textarea>
 <div class="ctl" style="margin-top:8px"><button id="export">Copy all verdicts</button></div><p class="note" id="vsum"></p></div>
 <div class="card"><div class="sec" style="margin-top:0">Calendar</div><div class="list" id="list"></div>
-<p class="note">0–11 are hand-picked (year one). From 12 on, each month is generated from its index: never an engine used in the previous three months, with its own tempo, harmony, accompaniment, drums and presets drawn from the whole bank.</p></div>
+<p class="note">0–12 are hand-picked (year one, then a Boss Battle for the first anniversary). From 13 on, each month is generated from its index: never an engine used in the previous three months, with its own tempo, harmony, accompaniment, drums and presets drawn from the whole bank.</p></div>
 </div></div>
 </main>
 <script>${inline(tiny)}</script>

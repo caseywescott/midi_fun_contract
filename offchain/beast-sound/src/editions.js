@@ -136,7 +136,7 @@ export const ENGINES = {
     palette: { lead: [70, 42, 98], counter: [0, 7, 64], accomp: [46, 17, 99], bass: [26, 27, 93], pad: [32, 75, 54] },
   },
   dirge: {
-    label: 'Dirge', noun: 'Requiem', desc: 'slow Phrygian, drone bass, tolling toms, long lead lines', meter: [4, 4], bpm: [60, 72],
+    label: 'Dirge', noun: 'Requiem', desc: 'Phrygian, drone bass, tolling toms, long lead lines', meter: [4, 4], bpm: [120, 144],
     grammars: ['dirge', 'andalusian', 'harmonic'], forms: ['AABA', 'ABAB'], accomp: ['tolling'], bass: ['drone'], drums: ['dirge'], feel: 'slow', counter: 'line', chordBars: 2,
     palette: { lead: [64, 72, 62], counter: [8, 9, 6], accomp: [44, 71, 19], bass: [86, 85, 88], pad: [29, 30, 28] },
   },

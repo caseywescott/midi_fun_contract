@@ -63,20 +63,20 @@ export function parseChord(tok) {
 
 export const GRAMMARS = {
   pop: { scale: 'ionian', label: 'pop diatonic', progs: ['I V vi IV', 'I vi IV V', 'vi IV I V', 'I IV vi V', 'I V IV V', 'IV I V vi'] },
-  romantic: { scale: 'ionian', label: 'Romantic: secondary dominants, borrowed iv', progs: ['I vi ii7 V7', 'I V7/vi vi IV', 'I IV iv I', 'I V7/ii ii7 V7', 'I iii IV iv', 'ii7 V7 I V7/IV'] },
-  minor: { scale: 'aeolian', label: 'natural minor', progs: ['i bVII bVI bVII', 'i iv bVII bIII', 'i bVI bIII bVII', 'i bVI iv V', 'i iv i V'] },
-  harmonic: { scale: 'harmonic', label: 'harmonic minor', progs: ['i iv V7 i', 'i bVI iio V7', 'i V7/iv iv V', 'i bVI iv V7', 'iv i V7 i'] },
-  dorian: { scale: 'dorian', label: 'Dorian vamp', progs: ['i IV i IV', 'i ii bIII IV', 'i bVII IV i', 'i IV bVII i'] },
+  romantic: { scale: 'ionian', label: 'Romantic', progs: ['I vi ii7 V7', 'I IV ii V7', 'I vi IV V7', 'I V7/vi vi IV', 'ii7 V7 I vi', 'I iii IV V7'] },
+  minor: { scale: 'aeolian', label: 'natural minor', progs: ['i bVII bVI bVII', 'i iv bVII bIII', 'i bVI bIII bVII', 'i bVI iv V', 'i iv v i'] },
+  harmonic: { scale: 'harmonic', label: 'harmonic minor', progs: ['i iv V7 i', 'i bVI iv V7', 'i iv bVI V', 'iv i V7 i'] },
+  dorian: { scale: 'dorian', label: 'Dorian vamp', progs: ['i IV i IV', 'i bVII IV i', 'i IV bVII i', 'i ii bIII IV'] },
   mixo: { scale: 'mixolydian', label: 'Mixolydian rock', progs: ['I bVII IV I', 'I bVII bVI bVII', 'I IV bVII IV', 'I v IV I'] },
-  mediant: { scale: 'ionian', label: 'chromatic mediants (fantasy)', progs: ['I bVI I bIII', 'I III IV iv', 'I bVI bVII I', 'I iii bVI IV', 'I bIII IV I', 'vi IV I bVI'] },
-  andalusian: { scale: 'phrygdom', label: 'Andalusian / Phrygian dominant', progs: ['i bVII bVI V', 'i bII i V', 'iv bIII bII i', 'i bII bIII bII'] },
-  lydian: { scale: 'lydian', label: 'Lydian float', progs: ['I II I II', 'I II iii II', 'IV II I II', 'I II vii IV'] },
+  mediant: { scale: 'ionian', label: 'fantasy (bVI-bVII)', progs: ['I bVI bVII I', 'I vi IV V', 'I IV bVI bVII', 'I iii IV V', 'vi IV I V'] },
+  andalusian: { scale: 'phrygdom', label: 'Andalusian / Phrygian dominant', progs: ['i bVII bVI V', 'i iv V i', 'i bVI bVII i'] },
+  lydian: { scale: 'lydian', label: 'Lydian float', progs: ['I II I II', 'IV I II I', 'I II vi IV'] },
   blues: { scale: 'mixolydian', label: '12-bar blues', twelve: true, progs: ['I7 IV7 I7 I7 IV7 IV7 I7 I7 V7 IV7 I7 V7', 'I7 IV7 I7 I7 IV7 IV7 I7 V7/V V7 IV7 I7 V7'] },
-  jazzy: { scale: 'ionian', label: 'bossa sevenths', progs: ['IM7 ii7 iii7 V7/ii', 'ii7 V7 IM7 VI7', 'IM7 bVII7 IM7 IV7', 'IM7 V7/V ii7 V7', 'IM7 IVM7 iii7 vi7'] },
+  jazzy: { scale: 'ionian', label: 'bossa sevenths', progs: ['IM7 vi7 ii7 V7', 'ii7 V7 IM7 IM7', 'IM7 IVM7 iii7 vi7', 'IM7 ii7 iii7 IVM7'] },
   hymn: { scale: 'ionian', label: 'hymn', progs: ['I IV V I', 'I vi IV V', 'I ii V I', 'IV I ii V', 'I V vi iii', 'vi IV I V'] },
-  hymnminor: { scale: 'harmonic', label: 'minor hymn', progs: ['i iv V i', 'i bVI iv V', 'i iio V i', 'bVI iv V i'] },
-  battle: { scale: 'aeolian', label: 'battle minor: bVI-bVII, Phrygian bII', progs: ['i bVI bVII i', 'i bII i bII', 'i bVI iv V', 'i bVII bVI V', 'i iv bVI V'] },
-  dirge: { scale: 'phrygian', label: 'Phrygian dirge', progs: ['i bII i i', 'i bII bIII bII', 'i iv bII i', 'i bvii bII i'] },
+  hymnminor: { scale: 'harmonic', label: 'minor hymn', progs: ['i iv V i', 'i bVI iv V', 'bVI iv V i', 'i bVII bVI V'] },
+  battle: { scale: 'aeolian', label: 'battle minor: bVI-bVII, Phrygian bII', progs: ['i bVI bVII i', 'i bVI iv V', 'i bVII bVI V', 'i iv bVI V', 'i bII i bII'] },
+  dirge: { scale: 'phrygian', label: 'Phrygian dirge', progs: ['i bII i i', 'i iv i bII', 'i bVI iv i', 'i iv bVII i'] },
 };
 
 // ── preset pools (TinyChip bank program numbers) ─────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export const ENGINES = {
   canon: { label: 'Canon / Fugue', noun: 'Canon', desc: "today's composer: the species theme in canon, seeded treatment" },
   waltz: {
     label: 'Waltz', noun: 'Waltz', desc: '3/4, oom-pah-pah, lyrical lead over a countermelody', meter: [3, 4], bpm: [140, 170],
-    grammars: ['romantic', 'harmonic', 'minor', 'mediant'], forms: ['AABA', 'ABAB', 'AABB'], accomp: ['waltz'], bass: ['waltz'], drums: ['waltz', 'none'], feel: 'waltz', counter: 'line', chordBars: 1,
+    grammars: ['romantic', 'harmonic', 'minor'], forms: ['AABA', 'ABAB', 'AABB'], accomp: ['waltz'], bass: ['waltz'], drums: ['waltz', 'none'], feel: 'waltz', counter: 'line', chordBars: 1,
     palette: { lead: [0, 70, 64], counter: [15, 44, 13], accomp: [17, 18, 99], bass: [20, 27, 24], pad: [33, 75, 32] },
   },
   chorale: {
@@ -102,7 +102,7 @@ export const ENGINES = {
     palette: { lead: [59, 1, 84], counter: [94, 66, 5], accomp: [66, 14, 94], bass: [61, 79, 88], pad: [28, 30, 29] },
   },
   anthem: {
-    label: 'Chip Anthem', noun: 'Anthem', desc: 'fast, 16th arpeggios, heroic lead in thirds, chromatic-mediant harmony, driving drums', meter: [4, 4], bpm: [150, 172],
+    label: 'Chip Anthem', noun: 'Anthem', desc: 'fast, 16th arpeggios, heroic lead in thirds, fantasy harmony, driving drums', meter: [4, 4], bpm: [150, 172],
     grammars: ['mediant', 'pop', 'mixo'], forms: ['ABAB', 'AABA', 'AABB'], accomp: ['arp16'], bass: ['octave8'], drums: ['drive', 'rock'], feel: 'heroic', counter: 'thirds', chordBars: 1,
     palette: { lead: [53, 62, 4], counter: [76, 82, 77], accomp: [34, 80, 35], bass: [21, 22, 23], pad: [31, 90, 30] },
   },

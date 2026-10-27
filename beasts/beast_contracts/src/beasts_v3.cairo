@@ -51,7 +51,7 @@ pub struct CardCondition {
 /// `beasts_core::pack::PackableBeast`: a whole Beast, as the NFT's `get_beast` returns it (26
 /// felts). `visual_effects` and `sound_effects` are presets (0..=31) whose meaning the species'
 /// image provider and sound manager define. `transfer_lock_hours` is a `u64` so that it holds
-/// `TRANSFER_LOCK_FOREVER` (`u64::MAX`, a soulbound Beast).
+/// `TRANSFER_LOCK_FOREVER` (`u64::MAX`, a Beast locked forever).
 #[derive(Copy, Drop, Serde, PartialEq, Debug)]
 pub struct PackableBeast {
     pub species_id: u64,

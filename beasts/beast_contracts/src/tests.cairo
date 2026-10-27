@@ -522,9 +522,9 @@ fn packable_beast_serde_is_beasts_core() {
     assert_eq!(felts, expected);
 }
 
-/// A soulbound Beast (`TRANSFER_LOCK_FOREVER`, `u64::MAX`) crosses `get_beast` like any other.
+/// A Beast locked forever (`TRANSFER_LOCK_FOREVER`, `u64::MAX`) crosses `get_beast` like any other.
 #[test]
-fn a_soulbound_beast_reads_and_plays() {
+fn a_beast_locked_forever_reads_and_plays() {
     let w = setup();
     let b = PackableBeast { transfer_lock_hours: 0xffffffffffffffff, ..sorrow_peak_warlock() };
     let mut felts: Array<felt252> = array![];

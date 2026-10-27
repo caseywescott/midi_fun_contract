@@ -522,6 +522,22 @@ fn packable_beast_serde_is_beasts_core() {
     assert_eq!(felts, expected);
 }
 
+/// A soulbound Beast (`TRANSFER_LOCK_FOREVER`, `u64::MAX`) crosses `get_beast` like any other.
+#[test]
+fn a_soulbound_beast_reads_and_plays() {
+    let w = setup();
+    let b = PackableBeast { transfer_lock_hours: 0xffffffffffffffff, ..sorrow_peak_warlock() };
+    let mut felts: Array<felt252> = array![];
+    b.serialize(ref felts);
+    assert_eq!(*felts.at(11), 0xffffffffffffffff);
+    let token_id = mint(w, b);
+    assert_eq!(
+        ISynthSettingsProviderDispatcher { contract_address: w.provider }
+            .get_settings(token_id.into()),
+        crate::synth_settings::beast_synth_settings(0, false),
+    );
+}
+
 /// `SoundMode` serializes as `beasts_core::sound::SoundMode`: the variant index is the stored tag.
 #[test]
 fn sound_mode_serde_is_beasts_core() {

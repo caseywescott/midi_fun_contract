@@ -2,9 +2,9 @@
 //! NFT reads and the sound-track mutations, and the types they carry.
 //!
 //! TEMPORARY until beasts-v3 is public. Each item is declared field for field and function for
-//! function from `beasts_core` at Provable-Games/beasts-v3 PR #194 (`token-id-v2`, head
-//! `35edcf8`), so the selectors, calldata and Serde encodings are the same; only what the provider
-//! calls is declared. Once beasts-v3 is public, replace this module with a git dependency on
+//! function from `beasts_core` at Provable-Games/beasts-v3 `main` `4856f91` (token ID v2, #194),
+//! so the selectors, calldata and Serde encodings are the same; only what the provider calls is
+//! declared. Once beasts-v3 is public, replace this module with a git dependency on
 //! `beasts_core` (`pack`, `sound`, `sound_manager`, `interfaces`).
 //!
 //! `ISoundManager::get_track_sound` returns onchain-midi-player's `TinySynthSound`
@@ -49,8 +49,9 @@ pub struct CardCondition {
 }
 
 /// `beasts_core::pack::PackableBeast`: a whole Beast, as the NFT's `get_beast` returns it (26
-/// felts). `visual_effects` and `sound_effects` are presets whose meaning the species' image
-/// provider and sound manager define.
+/// felts). `visual_effects` and `sound_effects` are presets (0..=31) whose meaning the species'
+/// image provider and sound manager define. `transfer_lock_hours` is a `u64` so that it holds
+/// `TRANSFER_LOCK_FOREVER` (`u64::MAX`, a soulbound Beast).
 #[derive(Copy, Drop, Serde, PartialEq, Debug)]
 pub struct PackableBeast {
     pub species_id: u64,
@@ -64,7 +65,7 @@ pub struct PackableBeast {
     pub beast_type: u8,
     pub minted_at_block_number: u64,
     pub transfer_damage_chance: u16,
-    pub transfer_lock_hours: u16,
+    pub transfer_lock_hours: u64,
     pub minted_at_minute: u32,
     pub minter_data: u32,
     pub condition: CardCondition,

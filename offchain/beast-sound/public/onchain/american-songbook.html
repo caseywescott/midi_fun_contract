@@ -1,0 +1,1348 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>American Songbook — A Harmonic Workbench</title>
+<meta name="description" content="An American harmonic workbench: seeded themes, jazz extensions, chromatic counterpoint, orchestral miniatures, playback and MIDI export.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@1,6..96,500;1,6..96,700&family=Figtree:wght@400;500;600&family=Fragment+Mono&display=swap">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #111820; --panel: #18222d; --raise: #22303d; --line: #34414b; --ink: #f0eadd; --muted: #b3bbc0; --faint: #89959e;
+  --mel: #f6c453; --cm: #7fd3e6; --dbl: #f49ac2; --har: #b9a6e8; --bass: #8ad19b; --fill: #f08a5d; --bad: #ff5d6c;
+  --perc: #d9b38c; --fT: #8ad19b; --fPD: #b9a6e8; --fD: #f6c453; --fX: #f49ac2;
+  --grid: #1b2732; --grid-bar: #34414b;
+  --display: "Bodoni Moda", Didot, "Bodoni 72", Georgia, serif;
+  --sans: "Figtree", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Fragment Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--bg); color: var(--ink); }
+body { font: 14px/1.5 var(--sans); }
+.app { max-width: 1440px; margin: 0 auto; padding-inline: 18px; padding-block: 0 40px; }
+header.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding-block: 14px; border-bottom: 1px solid var(--line); }
+h1 { font: italic 700 30px/1 var(--display); margin: 0; letter-spacing: .005em; }
+h1 span { color: var(--mel); }
+.tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.tabs button { font: 600 13px/1 var(--sans); background: var(--panel); color: var(--muted); border: 0; padding: 9px 13px; cursor: pointer; }
+.tabs button + button { border-left: 1px solid var(--line); }
+.tabs button[aria-pressed="true"] { background: var(--raise); color: var(--ink); }
+.spacer { margin-right: auto; }
+.btn { font: 600 13px/1 var(--sans); border: 1px solid var(--line); background: var(--raise); color: var(--ink); border-radius: 6px; padding: 9px 12px; cursor: pointer; }
+.btn:hover { border-color: var(--faint); }
+.btn.primary { background: var(--mel); color: #241500; border-color: var(--mel); min-width: 86px; }
+.btn.primary[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); }
+.btn:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, .tabs button:focus-visible { outline: 2px solid var(--mel); outline-offset: 2px; }
+select { font: 13px var(--sans); background: var(--raise); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; max-width: 100%; }
+.layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 22px; margin-top: 18px; }
+@media (max-width: 960px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+aside.controls { display: grid; gap: 12px; align-content: start; }
+details.grp { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+details.grp > summary { list-style: none; cursor: pointer; padding: 11px 14px; font: 600 12px/1 var(--sans); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; }
+details.grp > summary::-webkit-details-marker { display: none; }
+details.grp > summary::after { content: "+"; font: 14px/1 var(--mono); color: var(--faint); }
+details.grp[open] > summary::after { content: "−"; }
+details.grp .body { display: grid; gap: 10px; padding: 2px 14px 14px; }
+.row { display: grid; grid-template-columns: 116px minmax(0, 1fr) 44px; align-items: center; gap: 8px; }
+.row label { color: var(--muted); font-size: 12.5px; }
+.row output { font: 12px var(--mono); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.row input[type=range] { width: 100%; accent-color: var(--mel); }
+.row.sel, .row.chk { grid-template-columns: 116px minmax(0, 1fr); }
+.row select { width: 100%; min-width: 0; }
+aside.controls, details.grp { min-width: 0; }
+.hint { color: var(--faint); font-size: 12px; line-height: 1.45; }
+main.stage { display: grid; gap: 16px; min-width: 0; align-content: start; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.editor { padding: 14px 16px; display: grid; gap: 10px; }
+.editor .ed-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.editor .ed-head b { font: italic 700 20px/1 var(--display); margin-right: auto; }
+#lib { flex: 1 1 200px; min-width: 0; width: 0; }
+#texture { min-width: 0; max-width: 100%; }
+.stage > * { min-width: 0; }
+.editor textarea { width: 100%; min-height: 74px; font: 13px/1.5 var(--mono); background: var(--raise); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; }
+.err { color: var(--bad); font: 12px var(--mono); min-height: 1em; }
+.readout { padding: 14px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px 18px; }
+.kv .k { font: 600 11px/1.3 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.kv .v { font: 13px/1.45 var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+.rollwrap { overflow: hidden; }
+.rollwrap canvas { display: block; width: 100%; }
+#harm { height: 96px; border-bottom: 1px solid var(--line); }
+#roll { height: 380px; }
+#motion { height: 34px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 14px; font: 12px var(--mono); color: var(--muted); border-top: 1px solid var(--line); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.notes { padding: 14px 16px; color: var(--muted); font-size: 13px; }
+.notes p { margin: 0 0 8px; max-width: 82ch; }
+.notes code { font: 12px var(--mono); color: var(--ink); background: var(--raise); padding: 1px 5px; border-radius: 3px; }
+.toast { font: 12px var(--mono); color: var(--mel); }
+
+
+body { margin:0; } .app {max-width:1560px; padding:0 30px 32px;}
+header.bar {padding-block:18px; gap:12px;} h1 {font-size:27px;white-space:nowrap;}
+.brandmark {color:var(--mel);font:22px var(--display);border:1px solid var(--mel);padding:5px 9px;margin-right:2px;}
+.eyebrow {font:10px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--mel);}
+.intro {display:flex;justify-content:space-between;gap:24px;align-items:end;padding:22px 0 19px;border-bottom:1px solid var(--line);}
+.intro h2 {font:italic 500 36px/1.15 var(--display);margin:7px 0 9px;}
+.intro p {color:var(--muted);max-width:700px;margin:0;font-size:13px;}
+.edition {font:11px/1.9 var(--mono);color:var(--faint);white-space:nowrap;text-align:right;}
+.layout {grid-template-columns:310px minmax(0,1fr);gap:22px;margin-top:22px;}
+main.stage{gap:14px;} .card,details.grp {border-radius:5px;} details.grp>summary{padding:15px;}
+.work-title {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:17px 18px;border-bottom:1px solid var(--line);}
+.work-title h3{font:italic 500 24px var(--display);margin:3px 0 0;}.work-title p {margin:5px 0 0;color:var(--muted);font-size:12px;max-width:65ch;}
+.statusdot{color:var(--bass);font:10px var(--mono);white-space:nowrap;}
+.toolbar{display:flex;align-items:center;gap:7px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.toolbar .caption{font:10px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-right:auto;}
+.toolbar button{padding:7px 10px;font-size:11px;}.toolbar button[aria-pressed=true]{border-color:var(--mel);color:var(--mel);}
+#readout{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;padding:18px;}.kv .v{font-size:12px;margin-top:6px;}.kv:nth-child(3){grid-column:1/-1;}.kv .k{color:var(--faint);font-size:10px;}
+#roll{height:340px;}#harm{height:108px;}.notes{padding:18px;}.notes h3{font:italic 500 22px var(--display);color:var(--ink);margin:0 0 12px;}
+.notes p{font-size:12px;line-height:1.75;max-width:100ch;}.legend{font-size:10px;gap:7px 14px;}.hint{color:var(--faint);}footer{padding:24px 0 0;color:var(--faint);font:10px var(--mono);display:flex;justify-content:space-between;gap:12px;}
+#harm-list{padding:14px 18px;display:flex;flex-wrap:wrap;gap:8px;max-height:340px;overflow:auto;}
+.chord-chip {padding:10px 12px;border-left:2px solid var(--har);background:var(--raise);min-width:85px;}.chord-chip small{display:block;color:var(--muted);font:10px var(--mono);}.chord-chip strong{font:600 16px/2 var(--sans);}.chord-chip em{display:block;color:var(--mel);font:10px var(--mono);}
+.btn.primary{min-width:82px;}#texture{max-width:240px;}input[type=checkbox]{accent-color:var(--mel);}
+@media(min-width:1100px){aside.controls{max-height:calc(100vh - 125px);overflow-y:auto;scrollbar-width:thin;padding-right:4px;position:sticky;top:96px;}}
+@media(max-width:1100px){header.bar .spacer{display:none;}header.bar{position:relative;}header.bar h1{margin-right:auto;}.layout{grid-template-columns:280px minmax(0,1fr);}}
+@media(max-width:850px){.app{padding:0 16px 24px;}.layout{grid-template-columns:minmax(0,1fr);}aside.controls{grid-template-columns:1fr 1fr;gap:8px;}.intro h2{font-size:30px;}.edition{display:none;}#readout{grid-template-columns:1fr 1fr;} .brandmark{display:none;}}
+@media(max-width:560px){aside.controls{grid-template-columns:1fr;}.intro{padding:22px 0;}.intro h2{font-size:29px;}h1{font-size:24px;}header.bar{gap:9px;}#texture{max-width:100%;flex:1;}header.bar>.hint{display:none;}.tabs{order:2;width:100%;}.tabs button{flex:1;}#readout{grid-template-columns:1fr;}.kv:nth-child(3){grid-column:auto;}.statusdot{display:none;}footer{display:block;line-height:2;}}
+</style></head><body>
+
+<div class="app">
+<header class="bar">
+  <span class="brandmark" aria-hidden="true">♮</span><h1>American <span>Songbook</span></h1>
+  <div class="tabs" role="group" aria-label="Mode"><button id="m-gen" type="button" aria-pressed="true">Generate</button><button id="m-har" type="button" aria-pressed="false">Harmonize my melody</button></div>
+  <span class="spacer"></span>
+  <label class="hint" for="texture" style="color:var(--muted)">Texture</label>
+  <select id="texture"></select>
+  <button class="btn" id="regen" type="button">↻ New seeds</button>
+  <button class="btn" id="savemidi" type="button" hidden>↓ Save MIDI</button>
+  <button class="btn primary" id="play" type="button" aria-pressed="false">Play</button>
+</header>
+
+<section class="intro"><div><div class="eyebrow">Autonomous Audio / Composition studies no. 02</div><h2>Between Broadway and the wide-open sky.</h2><p>A small laboratory for American harmony. Turn a seed into a tune, take the scenic route through its chords, or bring a melody of your own.</p></div><div class="edition">SEE THE HARMONY. HEAR THE COLOUR.<br>Seeded · Browser synthesis · MIDI</div></section><div class="layout">
+<aside class="controls" id="controls"></aside>
+<main class="stage">
+  <div class="card editor" id="editor" hidden>
+    <div class="ed-head"><b>Your melody</b>
+      <select id="lib" aria-label="Melody library"></select>
+      <button class="btn" id="harmonize" type="button">Harmonize</button>
+    </div>
+    <textarea id="melody" spellcheck="false" aria-label="Melody in note names"></textarea>
+    <div class="hint">One note per token: name, octave and length, like <code>E4/q</code>, <code>F#5/e.</code>, <code>Bb3/h</code>. Lengths: w h q e s, a dot adds half. A token without a length repeats the last one; <code>r</code> is a rest; <code>|</code> bar lines are optional.</div>
+    <div class="err" id="err"></div>
+  </div>
+  <div class="card"><div class="work-title"><div><div class="eyebrow">The current study</div><h3 id="study-name">Metropolitan rhapsody</h3><p id="study-description"></p></div><span class="statusdot">● READY TO PLAY</span></div></div>
+  <div class="card rollwrap"><div class="toolbar"><span class="caption">Score explorer</span><button class="btn" id="v-roll" aria-pressed="true">Piano roll</button><button class="btn" id="v-harmony" aria-pressed="false">Harmony cards</button><select id="focus" aria-label="Focus on a section"></select></div><div id="harm-list" hidden></div>
+    <canvas id="harm" aria-label="Harmony lane: function, Roman numerals and chord symbols"></canvas>
+    <canvas id="roll" aria-label="Piano roll coloured by layer"></canvas>
+    <canvas id="motion" aria-label="Countermelody motion against the melody on each beat"></canvas>
+    <div class="legend" id="legend"></div>
+  </div><div class="card readout" id="readout"></div>
+  <div class="card notes">
+    <h3>The language of the study</h3>
+    <p><b style="color:var(--ink)">A very American set of possibilities.</b> Gershwin’s jazz-age concert music, Van Dyke Parks’s orchestral songcraft, Tin Pan Alley and spacious American concert harmonies meet here. These are original procedural studies of shared musical devices, with no quoted melodies. Choose a texture, then change the harmony, rhythm, orchestration or any of the three seeds.</p>
+    <p><b style="color:var(--ink)">Chords with somewhere to go.</b> Major ninths and sixths colour the tonic; minor ninths open the predominant; altered dominants and tritone substitutions lean into a resolution. Borrowed minor chords darken a major key. Quartal voicings open up the skyline. The chromatic inner line steps between the third and fifth while syncopated themes and walking bass keep the music moving.</p>
+    <p><b style="color:var(--ink)">From seed to score.</b> The three seeds independently guide melody, harmony and counterpoint. In Harmonize mode a scored chord path follows your tune. Theme variations preserve the tune while changing its surroundings; A–B–A′ travels to a contrasting key and returns. The motion lane marks contrary (C), oblique (O) and similar (S) movement. Save MIDI downloads a ZIP with a full arrangement, separate layer files, a tempo map and settings.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><button class="btn" id="tostudy" type="button">Study this melody in Harmonize</button><button class="btn" id="copy" type="button">Copy settings</button><span class="toast" id="toast"></span></div>
+  </div>
+</main>
+</div>
+<footer><span>AMERICAN SONGBOOK / A HARMONIC WORKBENCH</span><span>Built from the Kingdom of Sweets engine · Koji primitives</span></footer></div>
+
+<script>
+(() => {
+'use strict';
+const $ = (id) => document.getElementById(id);
+const mod = (a, n) => ((a % n) + n) % n;
+
+// ── Koji primitives ──────────────────────────────────────────────────────────────────────────
+// Koji's LCG (x → 5x + 3 mod 256) and a 32-bit one for long material
+function rng(seed, big) {
+  const a = big ? 1664525 : 5, c = big ? 1013904223 : 3, m = big ? 4294967296 : 256;
+  let x = mod(seed, m);
+  return { u() { x = (a * x + c) % m; return x / m; }, i(n) { return Math.floor(this.u() * n); }, pick(arr, w) { if (!w) return arr[this.i(arr.length)]; let t = w.reduce((s, v) => s + v, 0), r = this.u() * t; for (let k = 0; k < arr.length; k++) { r -= w[k]; if (r < 0) return arr[k]; } return arr[arr.length - 1]; } };
+}
+
+// ── keys and chords ──────────────────────────────────────────────────────────────────────────
+const MAJ = [0, 2, 4, 5, 7, 9, 11], MIN = [0, 2, 3, 5, 7, 8, 10];
+const NAMES = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];
+const ROMAN = { major: ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'], minor: ['i', 'ii°', 'III', 'iv', 'V', 'VI', 'vii°'] };
+const FN = ['T', 'PD', 'T', 'PD', 'D', 'T', 'D'];
+function K(tonic, mode, scale) {
+  const sc = scale || (mode === 'major' ? MAJ : MIN), n = sc.length;
+  return { tonic, mode, sc, pitch: (d, base) => base + 12 * Math.floor(d / n) + sc[mod(d, n)], pcRel: (d) => sc[mod(d, n)] };
+}
+const relSet = (arr) => [...new Set(arr.map((x) => mod(x, 12)))];
+function diatonic(k, deg, seventh) {
+  const raised = k.mode === 'minor' && (deg === 4 || deg === 6);
+  const rel = [0, 2, 4].concat(seventh ? [6] : []).map((o) => { let r = k.sc[mod(deg + o, 7)]; if (raised && r === 10) r = 11; return r; });
+  let label = ROMAN[k.mode][deg];
+  if (seventh) label = deg === 6 && k.mode === 'minor' ? 'vii°7' : deg === 6 ? 'viiø7' : label + '7';
+  return { label, rel, root: rel[0], bass: rel[0], fn: FN[deg], kind: 'dia', deg };
+}
+const dom7 = (r) => relSet([r, r + 4, r + 7, r + 10]);
+const dim7 = (r) => relSet([r, r + 3, r + 6, r + 9]);
+const CHROMA = {
+  applied: (k, t) => ({ label: 'V7/' + diatonic(k, t).label, rel: dom7(diatonic(k, t).root + 7), root: mod(diatonic(k, t).root + 7, 12), bass: mod(diatonic(k, t).root + 7, 12), fn: 'X', kind: 'applied', target: t }),
+  appliedDim: (k, t) => ({ label: 'vii°7/' + diatonic(k, t).label, rel: dim7(diatonic(k, t).root - 1), root: mod(diatonic(k, t).root - 1, 12), bass: mod(diatonic(k, t).root - 1, 12), fn: 'X', kind: 'applied', target: t }),
+  dimV: () => ({ label: 'vii°7', rel: dim7(11), root: 11, bass: 11, fn: 'D', kind: 'dim7' }),
+  ger: () => ({ label: 'Ger+6', rel: [8, 0, 3, 6], root: 8, bass: 8, fn: 'X', kind: 'aug6' }),
+  it: () => ({ label: 'It+6', rel: [8, 0, 6], root: 8, bass: 8, fn: 'X', kind: 'aug6' }),
+  nap: () => ({ label: 'N6', rel: [1, 5, 8], root: 1, bass: 5, fn: 'PD', kind: 'nap' }),
+  iv: () => ({ label: 'iv', rel: [5, 8, 0], root: 5, bass: 5, fn: 'PD', kind: 'mix', deg: 3 }),
+  bVI: () => ({ label: '♭VI', rel: [8, 0, 3], root: 8, bass: 8, fn: 'T', kind: 'mix', deg: 5 }),
+  cad64: (k) => ({ label: 'I⁶₄', rel: k.mode === 'major' ? [0, 4, 7] : [0, 3, 7], root: 0, bass: 7, fn: 'D', kind: 'cad64' }),
+  passDim: () => ({ label: '♯i°7', rel: dim7(1), root: 1, bass: 1, fn: 'X', kind: 'pass' }),
+  iiHalf: () => ({ label: 'iiø7', rel: [2, 5, 8, 0], root: 2, bass: 2, fn: 'PD', kind: 'halfdim', deg: 1 }),
+  bII: () => ({ label: '♭II', rel: [1, 5, 8], root: 1, bass: 1, fn: 'PD', kind: 'phr' }),
+  bVII: () => ({ label: '♭VII', rel: [10, 2, 5], root: 10, bass: 10, fn: 'D', kind: 'modal' }),
+  ctDim: () => ({ label: 'ct°7', rel: [3, 6, 9, 0], root: 3, bass: 0, fn: 'X', kind: 'ctdim' }),
+  ctAug: () => ({ label: 'ct+6', rel: [8, 0, 3, 6], root: 8, bass: 0, fn: 'X', kind: 'ctaug' }),
+};
+// functional flow between diatonic degrees (Koji's harmonic-walk weights, common-practice)
+const W = [
+  { 3: 3, 4: 3, 5: 2.5, 1: 2, 2: 0.6, 0: 0.4 }, { 4: 4, 6: 2, 0: 0.3, 1: 0.3 }, { 5: 3, 3: 2 }, { 4: 3, 1: 2, 0: 2, 6: 1 },
+  { 0: 4, 5: 1.5, 4: 0.6 }, { 1: 3, 3: 3, 4: 1.5 }, { 0: 4, 5: 0.5 },
+];
+
+function americanChord(ch,k,r,variant) {
+  if (ch.american) return ch;
+  let c={...ch,rel:[...ch.rel]}, root=ch.root, ints, quality, roman=ch.label;
+  const roll=()=>r.u()*100;
+  if(ch.deg===4 || (ch.kind==='applied' && ch.rel.length===4 && ch.rel.includes(mod(root+4,12)))) {
+    if(variant==='tritone' || (!variant && roll()<P.wTritone*P.chroma)) {root=mod(root+6,12);ints=[0,4,10,2];quality='9';roman='subV9'+(ch.target!==undefined?'/'+ROMAN[k.mode][ch.target]:'');c.american='tritone';}
+    else if(variant==='altered' || (!variant && roll()<P.wAlter*P.chroma)) {ints=[0,4,10,1,8];quality='7(♭9,♭13)';roman=ch.label.replace(/^V(?:7)?/,'V7alt');c.american='altered';}
+    else if(variant==='extended' || roll()<P.extensions){ints=[0,4,10,2,9];quality='13';roman=ch.label.replace(/^V(?:7)?/,'V13');c.american='extended';}
+  } else if(ch.kind==='dia' && ch.deg!==6 && (variant==='extended'||roll()<P.extensions)){
+    const minor=ch.rel.includes(mod(root+3,12));
+    if(!minor && (variant==='quartal'||roll()<P.wQuartal)){ints=[0,5,10,2];quality='7sus4(add9)';roman=ch.label+'7sus4(add9)';c.american='quartal';}
+    else {ints=minor?[0,3,7,10,2]:ch.deg===0?[0,4,7,9,2]:[0,4,7,11,2];quality=minor?'m9':ch.deg===0?'6/9':'maj9';roman=ch.label+(minor?'9':ch.deg===0?'6/9':'maj9');c.american='extended';}
+  }
+  if(ints){c.root=root;c.bass=root;c.rel=relSet(ints.map(x=>root+x));c.quality=quality;c.displayLabel=roman;}
+  return c;
+}
+function americanProgression(prog,k,r){for(const slot of prog)slot.ch=americanChord(slot.ch,k,r);return prog;}
+
+// ── parameters ───────────────────────────────────────────────────────────────────────────────
+const TEXTURES = {
+ metropolitan: ['Metropolitan rhapsody', {tonic:5,mode:'major',meter:4,tempo:112,cells:'swing',staccato:35,ornament:8,doubling:'none',bassType:'walking',offbeat:true,fills:'chromatic',counter:true,register:'tenor',iMel:'clarinet',iDbl:'trumpet',iCm:'cello',iBass:'pizz',iHar:'piano',iFill:'piano',lo:65,hi:86,pedal:'none',chroma:.7,contour:'arch',pent:false,form:'period',harmony:true,extensions:90,wAlter:60,wTritone:45,blues:32,swing:38,pedInner:true,wExpand:0,wAug:0,wNap:0,wCad64:0}],
+ canyon: ['Laurel Canyon overture', {tonic:2,mode:'major',meter:4,tempo:92,cells:'song',staccato:12,ornament:5,doubling:'thirds',bassType:'harp',offbeat:false,fills:'scale',counter:true,register:'alto',iMel:'oboe',iDbl:'strings',iCm:'clarinet',iBass:'cello',iHar:'piano',iFill:'harp',lo:64,hi:83,pedal:'none',chroma:.8,contour:'wave',pent:false,form:'ternary',trioKey:'flatsub',trioMel:'flute',harmony:true,extensions:90,wAlter:25,wTritone:20,blues:5,swing:0,pedInner:true,wMix:85,wExpand:0}],
+ prairie: ['Prairie, after rain', {tonic:0,mode:'major',meter:4,tempo:66,cells:'chorale',staccato:0,ornament:0,doubling:'none',bassType:'sustained',offbeat:false,fills:'none',counter:true,register:'descant',iMel:'horn',iDbl:'strings',iCm:'flute',iBass:'cello',iHar:'strings',iFill:'harp',lo:60,hi:79,pedal:'tonic',chroma:.28,contour:'arch',pent:true,form:'period',harmony:true,extensions:80,wQuartal:85,wAlter:0,wTritone:0,blues:0,swing:0,pedInner:false,wExpand:0}],
+ ragtime: ['Ragtime promenade', {tonic:10,mode:'major',meter:2,tempo:118,cells:'rag',staccato:62,ornament:10,doubling:'thirds',bassType:'stride',offbeat:true,fills:'chromatic',counter:false,register:'tenor',iMel:'piano',iDbl:'piano',iCm:'clarinet',iBass:'piano',iHar:'piano',iFill:'piano',lo:65,hi:88,pedal:'none',chroma:.65,contour:'wave',pent:false,form:'ternary',trioKey:'subdominant',harmony:false,extensions:55,wAlter:30,wTritone:20,blues:15,swing:0,pedInner:true,wPass:85,wExpand:0}],
+ nocturne: ['Blue-hour nocturne', {tonic:3,mode:'major',meter:4,tempo:70,cells:'song',staccato:5,ornament:4,doubling:'none',bassType:'sustained',offbeat:false,fills:'none',counter:true,register:'tenor',iMel:'piano',iDbl:'strings',iCm:'englishhorn',iBass:'cello',iHar:'strings',iFill:'harp',lo:60,hi:81,pedal:'none',chroma:.9,contour:'descending',pent:false,form:'period',harmony:true,extensions:100,wAlter:80,wTritone:70,blues:30,swing:24,pedInner:true,wSusp:65,wLament:50,wExpand:0}],
+ mosaic: ['New American mosaic', {tonic:7,mode:'major',meter:4,tempo:132,cells:'motor',staccato:65,ornament:0,doubling:'none',bassType:'ostinato',offbeat:true,fills:'none',counter:true,register:'alto',iMel:'piano',iDbl:'flute',iCm:'clarinet',iBass:'pizz',iHar:'piano',iFill:'celesta',lo:67,hi:88,pedal:'tonic',chroma:.45,contour:'wave',pent:true,form:'glinka',variations:2,harmony:true,extensions:70,wQuartal:70,wAlter:20,wTritone:10,blues:0,swing:0,pedInner:true,wExpand:0}]
+};
+const STUDY_DESCRIPTIONS = {
+ metropolitan:'A clarinet tune above walking bass, blue notes and a skyline of ninths and altered dominants.',
+ canyon:'An orchestral pop miniature: winding inner lines, borrowed harmony, harp and a distant-key middle section.',
+ prairie:'A slow, open landscape of fourths, pentatonic melody and a grounded tonic pedal.',
+ ragtime:'A bright piano promenade with syncopated figures, stride bass and a contrasting trio.',
+ nocturne:'A quiet piano study in chromatic bass, rich extensions and half-step resolutions.',
+ mosaic:'Interlocking pulses and quartal colour; one theme returns in changing registers and orchestrations.'
+};
+// what a texture sets at the level of the piece: reset to these before applying one
+const TEX_RESET = { extensions:80,wAlter:40,wTritone:30,wQuartal:0,blues:15,swing:0,pedInner:false, sub: 2, form: 'period', secForm: 'period', trioKey: 'relative', trioTex: 'same', trioMel: 'same', trioTempo: 0.9, intro: 0, coda: 'none', accel: 30, picardy: false, wPhryg: 0, wModal: 0, mutable: 0, magicEp: 'none', accent: 0, castanets: false, tamb: false, pedInner: false, harmony: false, chainCount: 3, variations: 3, adagioN: 3, augment: true, wSusp: 35, wFifths: 15, wLament: 15, wCtDim: 30, rubato: 6, swell: 25 };
+const DEF = {
+  extensions:90,wAlter:60,wTritone:45,wQuartal:0,blues:32,swing:38,mode2: 'gen', texture: 'metropolitan', tonic: 2, mode: 'major', meter: 2, tempo: 76, form: 'period', phraseBars: 4, hr: 1,
+  chroma: 0.45, wApplied: 60, wDim: 40, wAug: 45, wNap: 35, wMix: 40, wCad64: 50, wPass: 30, pedal: 'none',
+  cells: 'reed', lo: 69, hi: 88, contour: 'arch', staccato: 70, ornament: 10, reuse: 70, pent: false,
+  counter: false, register: 'tenor', contrary: 70, complement: 70, pull: 75, entry: 0, imperfect: 70,
+  doubling: 'triad', harmony: false, bassType: 'pizz', offbeat: true, fills: 'none',
+  iMel: 'flute', iDbl: 'flute', iCm: 'englishhorn', iBass: 'pizz', iHar: 'pizz', iFill: 'bassclarinet',
+  rubato: 6, swell: 25, reverb: 0.35, volume: 0.7, mSeed: 12, hSeed: 34, cSeed: 56, keyIn: 'auto', meterIn: 4,
+  // sections and forms
+  sub: 2, secForm: 'period', trioKey: 'relative', modType: 'commontone', trioTex: 'same', trioMel: 'same', trioTempo: 0.9, chainCount: 3,
+  variations: 3, vInst: true, vCounter: true, vHarm: true, vRegister: true, vDensity: true, adagioN: 3, augment: true,
+  intro: 0, coda: 'none', accel: 30, picardy: false, magicEp: 'none',
+  // Voice-leading devices
+  wExpand: 25, decTarget: 'mix', wHalfDim: 25, wPhryg: 0, wModal: 0, mutable: 0, wCtDim: 30, wCtAug: 15, wFifths: 15, wLament: 15, wSusp: 35, pedInner: false,
+  accent: 0, castanets: false, tamb: false,
+};
+let P = { ...DEF, ...TEXTURES.metropolitan[1] };
+try { const s = JSON.parse(localStorage.getItem('american-songbook.v1') || 'null'); if (s) P = { ...DEF, ...s }; } catch (e) {}
+const save = () => { try { localStorage.setItem('american-songbook.v1', JSON.stringify(P)); } catch (e) {} };
+
+const INSTR = { piano: 'Piano', trumpet: 'Trumpet', flute: 'Flute', piccolo: 'Piccolo', oboe: 'Oboe', englishhorn: 'English horn', clarinet: 'Clarinet', bassclarinet: 'Bass clarinet', bassoon: 'Bassoon', celesta: 'Celesta', harp: 'Harp', strings: 'Strings', cello: 'Cello (arco)', pizz: 'Pizzicato', horn: 'Horn' };
+const IOPTS = Object.entries(INSTR);
+const KEY_OPTS = [['same', 'Same key'], ['relative', 'Relative'], ['parallel', 'Parallel'], ['subdominant', 'Subdominant'], ['dominant', 'Dominant'], ['iii', 'Mediant (iii)'], ['mediant', 'Chromatic mediant III'], ['flatsub', 'Chromatic mediant ♭VI'], ['flatmed', 'Chromatic mediant ♭III'], ['submediant', 'Chromatic mediant VI']];
+const GROUPS = [
+  ['Key and form', true, [
+    ['tonic', 'Tonic', 'sel', NAMES.map((n, i) => [i, n])], ['mode', 'Mode', 'sel', [['major', 'Major'], ['minor', 'Minor']]],
+    ['meter', 'Beats per bar', 'sel', [[2, '2'], [3, '3'], [4, '4']]], ['sub', 'Beat division', 'sel', [[2, 'Simple'], [3, 'Compound (6/8)']]], ['tempo', 'Tempo (BPM)', 36, 180, 1],
+    ['form', 'Form', 'sel', [['period', 'Period (question, answer)'], ['double', 'Double period'], ['sentence', 'Sentence (2+2+4)'], ['sequence', 'Rising sequence'], ['ternary', 'Ternary with trio (A B A′)'], ['waltzchain', 'Waltz chain (cadenza, strains, coda)'], ['glinka', 'Theme variations'], ['adagio', 'Broad adagio']]],
+    ['phraseBars', 'Phrase (bars)', 2, 8, 1], ['hr', 'Chords per bar', 'sel', [[1, '1'], [2, '2']]],
+    ['intro', 'Intro vamp (bars)', 0, 4, 1, 'Accompaniment alone before the tune comes in.'],
+    ['coda', 'Coda', 'sel', [['none', 'None'], ['amen', 'Plagal Amen (iv–I)'], ['hammer', 'Hammer strokes'], ['presto', 'Presto, accelerating']]],
+    ['accel', 'Coda acceleration %', 0, 80, 1], ['picardy', 'Picardy close (minor)', 'chk'],
+  ]],
+  ['Sections', false, [
+    ['secForm', 'Each section is a', 'sel', [['period', 'Period'], ['double', 'Double period'], ['sentence', 'Sentence']]],
+    ['trioKey', 'Trio / second key', 'sel', KEY_OPTS],
+    ['modType', 'Key change', 'sel', [['commontone', 'Over a held common tone'], ['dim7', 'Diminished-seventh pivot'], ['ger6', 'German-sixth pivot'], ['direct', 'Direct']]],
+    ['trioTex', 'Trio texture', 'sel', [['same', 'Same']].concat(Object.keys(TEXTURES).map((k2) => [k2, TEXTURES[k2][0].split(' · ')[0]]))],
+    ['trioMel', 'Trio melody', 'sel', [['same', 'Same instrument']].concat(IOPTS)], ['trioTempo', 'Trio tempo ×', 0.6, 1.3, 0.01],
+    ['chainCount', 'Waltz strains', 2, 4, 1], ['variations', 'Variations', 1, 6, 1],
+    ['vInst', 'Vary the instrument', 'chk'], ['vCounter', 'Vary the countermelody', 'chk'], ['vHarm', 'Reharmonize each time', 'chk'], ['vRegister', 'Vary the register', 'chk'], ['vDensity', 'Thicken the texture', 'chk'],
+    ['adagioN', 'Adagio statements', 2, 4, 1], ['augment', 'Augment the climax', 'chk'],
+    ['magicEp', 'Colour episode', 'sel', [['none', 'None'], ['wholetone', "Whole-tone episode"], ['octatonic', 'Octatonic episode']]],
+  ]],
+  ['American harmony', true, [
+    ['extensions','Sixths / 9ths / 13ths',0,100,1], ['wAlter','Altered dominants',0,100,1], ['wTritone','Tritone substitutes',0,100,1], ['wQuartal','Quartal colour',0,100,1], ['blues','Blue notes %',0,60,1], ['swing','Swing %',0,100,1],
+    ['chroma', 'Chromaticism', 0, 1, 0.01, 'Scales every chromatic-chord weight below.'],
+    ['wApplied', 'Applied dominants', 0, 100, 1], ['wDim', 'Diminished 7ths', 0, 100, 1], ['wAug', 'Augmented 6ths', 0, 100, 1],
+    ['wNap', 'Neapolitan', 0, 100, 1], ['wMix', 'Borrowed iv, ♭VI', 0, 100, 1], ['wCad64', 'Cadential ⁶₄', 0, 100, 1], ['wPass', 'Passing dim 7th', 0, 100, 1],
+    ['wCtDim', 'Common-tone dim 7th', 0, 100, 1], ['wCtAug', 'Common-tone aug 6th', 0, 100, 1], ['wHalfDim', 'Half-diminished iiø7', 0, 100, 1], ['wPhryg', 'Phrygian ♭II', 0, 100, 1],
+    ['pedal', 'Pedal point', 'sel', [['none', 'None'], ['tonic', 'Tonic'], ['dominant', 'Dominant']]], ['pedInner', 'Chromatic inner voice', 'chk'],
+  ]],
+  ['Voice leading & colour', false, [
+    ['wExpand', 'Phrase expansion %', 0, 100, 1, 'A deceptive cadence that forces the phrase to go on.'],
+    ['decTarget', 'Deceptive to', 'sel', [['mix', 'vi or ♭VI'], ['vi', 'vi'], ['bVI', '♭VI']]],
+    ['wLament', 'Chromatic lament bass %', 0, 100, 1], ['wFifths', 'Descending-fifths sequence %', 0, 100, 1],
+    ['wSusp', 'Suspensions %', 0, 100, 1, 'Needs Sustained harmony (Layers).'],
+    ['wModal', 'Modal / plagal colour %', 0, 100, 1], ['mutable', 'Mutable tonality %', 0, 100, 1, 'Phrases that cadence in the relative key instead.'],
+  ]],
+  ['Melody', false, [
+    ['cells', 'Rhythm character', 'sel', [['swing','Swing eighths'], ['song','Lyrical song'], ['rag','Ragtime syncopation'], ['motor','Motor rhythm'],['reed', 'Dotted figures'], ['arabian', 'Long, ornamented'], ['chinese', 'Running sixteenths'], ['sugar', 'Staccato & rests'], ['waltz', 'Waltz (long-short)'], ['trepak', 'Driving eighths'], ['spanish', 'Snaps & turns'], ['jig', 'Jig (6/8)'], ['chorale', 'Chorale (plain)']]],
+    ['lo', 'Lowest note', 48, 84, 1], ['hi', 'Highest note', 64, 100, 1],
+    ['contour', 'Contour', 'sel', [['arch', 'Arch'], ['descending', 'Descending'], ['ascending', 'Rising'], ['wave', 'Wave']]],
+    ['reuse', 'Motif reuse %', 0, 100, 1], ['staccato', 'Staccato %', 0, 100, 1], ['ornament', 'Ornaments %', 0, 60, 1], ['pent', 'Pentatonic colour', 'chk'],
+  ]],
+  ['Countermelody', false, [
+    ['counter', 'Countermelody', 'chk'], ['register', 'Register', 'sel', [['tenor', 'Tenor (below)'], ['alto', 'Alto (below)'], ['descant', 'Descant (above)']]],
+    ['contrary', 'Contrary motion %', 0, 100, 1], ['complement', 'Rhythmic complement %', 0, 100, 1, 'How strongly it moves when the melody holds and holds when the melody moves.'],
+    ['imperfect', 'Thirds and sixths %', 0, 100, 1], ['pull', 'Chord-tone pull %', 0, 100, 1], ['entry', 'Enters after (beats)', 0, 8, 1],
+  ]],
+  ['Layers', false, [
+    ['doubling', 'Doubling', 'sel', [['none', 'None'], ['thirds', 'Thirds below'], ['sixths', 'Sixths below'], ['triad', 'Close triad below'], ['octave', 'Octave below']]],
+    ['harmony', 'Sustained harmony', 'chk'],
+    ['bassType', 'Bass', 'sel', [['walking','Walking bass'],['stride','Stride piano'],['pizz', 'Pizzicato on the beat'], ['waltz', 'Waltz (downbeat only)'], ['harp', 'Harp arpeggios'], ['drone', 'Drone fifth + rocking'], ['ostinato', 'Ostinato in fifths'], ['sustained', 'Sustained'], ['none', 'None']]],
+    ['offbeat', 'Offbeat chords', 'chk'], ['fills', 'Phrase-end runs', 'sel', [['none', 'None'], ['scale', 'Scale runs down'], ['chromatic', 'Chromatic runs down']]],
+    ['accent', 'Offbeat accents %', 0, 100, 1], ['castanets', 'Castanets', 'chk'], ['tamb', 'Tambourine', 'chk'],
+  ]],
+  ['Orchestration', false, [
+    ['iMel', 'Melody', 'sel', IOPTS], ['iDbl', 'Doubling', 'sel', IOPTS], ['iCm', 'Countermelody', 'sel', IOPTS],
+    ['iHar', 'Harmony', 'sel', IOPTS], ['iBass', 'Bass', 'sel', IOPTS], ['iFill', 'Runs', 'sel', IOPTS],
+  ]],
+  ['Expression', false, [['rubato', 'Rubato %', 0, 25, 1], ['swell', 'Phrase swell %', 0, 60, 1], ['reverb', 'Reverb', 0, 1, 0.01], ['volume', 'Volume', 0.1, 1, 0.01]]],
+  ['Seeds', false, [['mSeed', 'Melody seed', 0, 999, 1], ['hSeed', 'Harmony seed', 0, 999, 1], ['cSeed', 'Counter seed', 0, 999, 1]]],
+];
+function buildControls() {
+  const host = $('controls'); host.innerHTML = '';
+  for (const [title, open, items] of GROUPS) {
+    const d = document.createElement('details'); d.className = 'grp'; d.open = open; d.innerHTML = '<summary>' + title + '</summary>';
+    const body = document.createElement('div'); body.className = 'body';
+    for (const [key, label, a, b, step, hint] of items) {
+      const row = document.createElement('div'), id = 'c-' + key;
+      if (a === 'sel') {
+        row.className = 'row sel'; row.innerHTML = '<label for="' + id + '">' + label + '</label><select id="' + id + '">' + b.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('') + '</select>';
+        body.append(row); const el = row.querySelector('select'); el.value = String(P[key]);
+        el.addEventListener('change', () => { P[key] = typeof DEF[key] === 'number' ? +el.value : el.value; changed(); });
+      } else if (a === 'chk') {
+        row.className = 'row chk'; row.innerHTML = '<label for="' + id + '">' + label + '</label><input type="checkbox" id="' + id + '">';
+        body.append(row); const el = row.querySelector('input'); el.checked = !!P[key];
+        el.addEventListener('change', () => { P[key] = el.checked; changed(); });
+      } else {
+        row.className = 'row'; row.innerHTML = '<label for="' + id + '">' + label + '</label><input type="range" id="' + id + '" min="' + a + '" max="' + b + '" step="' + step + '"><output for="' + id + '"></output>';
+        body.append(row); const el = row.querySelector('input'), out = row.querySelector('output');
+        el.value = P[key]; out.textContent = fmt(P[key]);
+        el.addEventListener('input', () => { P[key] = +el.value; out.textContent = fmt(P[key]); changedSoon(); });
+      }
+      if (hint) { const h = document.createElement('div'); h.className = 'hint'; h.textContent = hint; body.append(h); }
+    }
+    d.append(body); host.append(d);
+  }
+}
+const fmt = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(2));
+function syncControls() {
+  for (const [, , items] of GROUPS) for (const [key, , a] of items) {
+    const el = $('c-' + key); if (!el) continue;
+    if (a === 'chk') el.checked = !!P[key]; else el.value = String(P[key]);
+    const out = el.parentElement.querySelector('output'); if (out) out.textContent = fmt(P[key]);
+  }
+}
+
+// ── melody input ─────────────────────────────────────────────────────────────────────────────
+const LIB = {
+ boulevard: ['Boulevard theme · original', 'F4/q A4/e Bb4 B4 C5/q A4/e | G4/q. Ab4/e A4/q F4 | D4/q F4/e G4 Ab4 G4 F4 Eb4 | E4/h C4/h', 4],
+ skyline: ['Open skyline · original', 'C5/h G4/q D5 | E5/h D5 | G4/q A4 C5 D5 | C5/w',4],
+ blue: ['Blue-window melody · original', 'Eb4/q Gb4/e G4 Bb4/q C5 | Db5/q Bb4/e G4 Gb4/q Eb4 | F4/q Ab4/e C5 B4/q Ab4 | G4/h Eb4/h',4],
+ ode: ['Simple diatonic theme · for reharmonizing', 'E4/q E4 F4 G4 | G4 F4 E4 D4 | C4 C4 D4 E4 | D4/q. C4/e C4/h',4]
+};
+function parseMelody(text) {
+  const toks = text.replace(/\|/g, ' ').trim().split(/\s+/).filter(Boolean);
+  const out = []; let t = 0, len = 1; const L = { w: 4, h: 2, q: 1, e: 0.5, s: 0.25 };
+  for (const tok of toks) {
+    const m = tok.match(/^(r|[A-Ga-g](?:#|b|♯|♭)?-?\d)(?:\/([whqes])(\.)?)?$/);
+    if (!m) throw new Error('Cannot read "' + tok + '". Write notes like E4/q or F#5/e.');
+    if (m[2]) len = L[m[2]] * (m[3] ? 1.5 : 1);
+    if (m[1] !== 'r') {
+      const n = m[1].match(/^([A-Ga-g])(#|b|♯|♭)?(-?\d)$/);
+      const base = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 }[n[1].toLowerCase()];
+      const acc = n[2] === '#' || n[2] === '♯' ? 1 : n[2] === 'b' || n[2] === '♭' ? -1 : 0;
+      const pitch=12*(+n[3]+1)+base+acc;if(pitch<21||pitch>108)throw new Error('Use pitches from A0 through C8.');out.push({t,d:len,p:pitch});
+    }
+    t += len;
+  }
+  if (!out.length) throw new Error('Enter at least one note.');
+  return out;
+}
+// Krumhansl–Kessler key profiles, correlated with the melody's duration-weighted pitch classes
+const KK_MAJ = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88], KK_MIN = [6.33, 2.68, 3.52, 5.38, 2.6, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+function detectKey(notes) {
+  const h = new Array(12).fill(0); for (const n of notes) h[n.p % 12] += n.d;
+  const corr = (prof, k) => { const x = h, y = prof.map((_, i) => prof[mod(i - k, 12)]); const mx = x.reduce((a, b) => a + b) / 12, my = y.reduce((a, b) => a + b) / 12; let s = 0, sx = 0, sy = 0; for (let i = 0; i < 12; i++) { s += (x[i] - mx) * (y[i] - my); sx += (x[i] - mx) ** 2; sy += (y[i] - my) ** 2; } return s / Math.sqrt(sx * sy || 1); };
+  let best = { tonic: 0, mode: 'major', r: -2 };
+  for (let k = 0; k < 12; k++) for (const [mode, prof] of [['major', KK_MAJ], ['minor', KK_MIN]]) { const r = corr(prof, k); if (r > best.r) best = { tonic: k, mode, r }; }
+  return best;
+}
+
+// ── harmony: generated progressions (functional walk + Romantic rewrites) ─────────────────────
+const w = (x) => (x / 100) * P.chroma;
+// one phrase's diatonic degrees: a walk, then the cadence (PAC to I, HC to V, MC to the relative key)
+function phraseDegs(S, cad, r, mutDeg) {
+  const degs = [0];
+  for (let i = 1; i < S; i++) {
+    const left = S - i;
+    if (cad !== 'HC' && left === 1) { degs.push(cad === 'MC' ? mutDeg : 0); continue; }
+    if (cad !== 'HC' && left === 2) { degs.push(4); continue; }
+    if (cad !== 'HC' && left === 3) { degs.push(r.pick([1, 3])); continue; }
+    if (cad === 'HC' && left === 1) { degs.push(4); continue; }
+    if (cad === 'HC' && left === 2) { degs.push(r.pick([1, 3, 0])); continue; }
+    const prev = degs[i - 1], opts = Object.keys(W[prev]).map(Number).filter((d) => d !== 4 || left > 2);
+    degs.push(r.pick(opts, opts.map((d) => W[prev][d])));
+  }
+  return degs;
+}
+// the chromatic lament: the bass falls by semitone from the tonic to the dominant
+function LAMENT(k) {
+  const t = k.mode === 'major' ? 4 : 3, I = k.mode === 'major' ? 'I' : 'i';
+  return [
+    { label: I, rel: [0, t, 7], root: 0, bass: 0, fn: 'T', kind: 'lament' },
+    { label: 'V6', rel: [7, 11, 2], root: 7, bass: 11, fn: 'D', kind: 'lament' },
+    { label: I + '⁴₂', rel: [0, t, 7, 10], root: 0, bass: 10, fn: 'X', kind: 'lament' },
+    { label: 'IV6', rel: [5, 9, 0], root: 5, bass: 9, fn: 'PD', kind: 'lament' },
+    { label: 'iv6', rel: [5, 8, 0], root: 5, bass: 8, fn: 'PD', kind: 'lament' },
+    { label: 'V', rel: [7, 11, 2], root: 7, bass: 7, fn: 'D', kind: 'lament' },
+  ];
+}
+const RN12 = ['I', '♭II', 'II', '♭III', 'III', 'IV', '♯IV', 'V', '♭VI', 'VI', '♭VII', 'VII'];
+// the Russian school's magic: augmented triads on a whole-tone scale, or major triads a minor third apart
+function magicChord(kind, b) {
+  if (kind === 'wholetone') { const r = [0, 2, 4, 6, 8, 10][b % 6]; return { label: RN12[r] + '+', rel: [r, r + 4, r + 8].map((x) => mod(x, 12)), root: r, bass: r, fn: 'X', kind: 'magic' }; }
+  const r = [0, 3, 6, 9][b % 4]; return { label: RN12[r], rel: [r, r + 4, r + 7].map((x) => mod(x, 12)), root: r, bass: r, fn: 'X', kind: 'magic' };
+}
+function genProgression(k, r) {
+  const hr = P.hr, slotDur = P.meter / hr;
+  const nPhr = P.form === 'double' ? 4 : P.form === 'sentence' ? 1 : 2, pb = P.form === 'sentence' ? P.phraseBars * 2 : P.phraseBars;
+  const mutDeg = k.mode === 'major' ? 5 : 2, slots = [], phrases = [];
+  let bar0 = 0;
+  for (let ph = 0; ph < nPhr; ph++) {
+    const last = ph === nPhr - 1;
+    let cad = P.form === 'sentence' || ph % 2 === 1 || last ? 'PAC' : 'HC';
+    if (cad === 'PAC' && !last && r.u() * 100 < P.mutable) cad = 'MC';
+    const S = pb * hr;
+    let degs = phraseDegs(S, cad, r, mutDeg), bars = pb, decAt = -1;
+    // phrase expansion: the cadence is evaded (deceptive), and the phrase goes on to cadence again
+    if (cad !== 'HC' && r.u() * 100 < P.wExpand) {
+      const ext = Math.max(2, Math.round(pb / 2)), more = phraseDegs(ext * hr, cad, r, mutDeg);
+      more[0] = r.pick([1, 3, 5]); decAt = S - 1; degs = degs.concat(more); bars += ext;
+    }
+    const shift = P.form === 'sequence' && ph === 1 ? 1 : 0, n = degs.length;
+    degs.forEach((d, i) => slots.push({ t: (bar0 * hr + i) * slotDur, d: slotDur, ch: diatonic(k, mod(d + (i < n - 2 ? shift : 0), 7), false), cad: i >= n - 2 ? cad : i === decAt || i === decAt - 1 ? 'DC' : null, dec: i === decAt, phrase: ph, end: i === n - 1 }));
+    phrases.push({ start: bar0, bars, cad }); bar0 += bars;
+  }
+  // phrase-level devices: a lament bass or a descending-fifths sequence opens the phrase
+  const lined = [];
+  phrases.forEach((pp, pi) => {
+    const its = slots.filter((s) => s.phrase === pi), free = its.filter((s) => !s.cad).length, roll = r.u() * 100;
+    if (its.length >= 4 && roll < P.wLament) { // the lament ends on V, where the cadence's dominant stands
+      const L = LAMENT(k);
+      for (let j = 0; j < 3; j++) { const s = its[j]; lined.push({ ...s, d: s.d / 2, ch: L[2 * j], fixed: true }, { ...s, t: s.t + s.d / 2, d: s.d / 2, ch: L[2 * j + 1], fixed: true }); }
+      its.slice(3).forEach((s) => lined.push(s)); pp.device = 'lament'; return;
+    }
+    if (free >= 2 && roll >= 100 - P.wFifths) {
+      const F = [diatonic(k, 0), ...[5, 1, 4].map((d) => ({ ...diatonic(k, d, true), kind: 'seq5' }))];
+      for (let j = 0; j < 2; j++) { const s = its[j]; lined.push({ ...s, d: s.d / 2, ch: F[2 * j], fixed: true }, { ...s, t: s.t + s.d / 2, d: s.d / 2, ch: F[2 * j + 1], fixed: true }); }
+      its.slice(2).forEach((s) => lined.push(s)); pp.device = 'fifths'; return;
+    }
+    its.forEach((s) => lined.push(s));
+  });
+  // Romantic rewrites, each by weight
+  const out = [];
+  for (let i = 0; i < lined.length; i++) {
+    const s = lined[i], next = lined[i + 1];
+    if (s.fixed) { out.push(s); continue; }
+    let ch = s.ch;
+    if (s.dec) { const flat = P.decTarget === 'bVI' || (P.decTarget === 'mix' && r.u() < 0.5); out.push({ ...s, ch: flat && k.mode === 'major' ? CHROMA.bVI() : diatonic(k, 5) }); continue; }
+    if (s.cad === 'MC' && ch.deg === 4) { out.push({ ...s, ch: CHROMA.applied(k, mutDeg), mutable: true }); continue; }
+    // plagal close (Russian modal): IV or iv where V would be
+    if (s.cad === 'PAC' && ch.deg === 4 && next && next.end && r.u() * 100 < P.wModal * 0.5) { out.push({ ...s, ch: k.mode === 'major' && r.u() < 0.5 ? CHROMA.iv() : diatonic(k, 3), plagal: true }); continue; }
+    // Phrygian close: ♭II straight to I
+    if (s.cad === 'PAC' && ch.deg === 4 && next && next.end && r.u() < w(P.wPhryg) * 0.4) { out.push({ ...s, ch: CHROMA.bII() }); continue; }
+    if (ch.deg === 4 && s.cad) ch = diatonic(k, 4, true);
+    else if (ch.deg === 4 && r.u() < w(P.wDim)) ch = CHROMA.dimV();
+    else if ((ch.deg === 4 || ch.deg === 6) && !s.cad && r.u() * 100 < P.wModal * 0.4) ch = CHROMA.bVII();
+    if (ch.deg === 3 && k.mode === 'major' && r.u() < w(P.wMix)) ch = CHROMA.iv();
+    if (ch.deg === 5 && k.mode === 'major' && r.u() < w(P.wMix) * 0.5) ch = CHROMA.bVI();
+    if (ch.deg === 1 && k.mode === 'major' && r.u() < w(P.wHalfDim)) ch = CHROMA.iiHalf();
+    // predominant before a cadential V: augmented sixth, Neapolitan or Phrygian ♭II
+    if (next && next.cad && next.ch.deg === 4 && ch.fn === 'PD') {
+      const x = r.u();
+      if (x < w(P.wAug)) ch = r.u() < 0.6 ? CHROMA.ger() : CHROMA.it(); else if (x < w(P.wAug) + w(P.wNap)) ch = CHROMA.nap(); else if (x < w(P.wAug) + w(P.wNap) + w(P.wPhryg)) ch = CHROMA.bII();
+    }
+    // cadential six-four: the V slot splits into I⁶₄ – V7
+    if (s.ch.deg === 4 && s.cad && s.cad !== 'DC' && r.u() < w(P.wCad64) && s.d >= 1) { out.push({ ...s, d: s.d / 2, ch: CHROMA.cad64(k) }); out.push({ ...s, t: s.t + s.d / 2, d: s.d / 2, ch: diatonic(k, 4, true) }); continue; }
+    // a common-tone diminished seventh (or augmented sixth) decorates a tonic that stays put
+    if (ch.kind === 'dia' && ch.deg === 0 && !s.cad && s.d >= 1 && r.u() < w(P.wCtDim) + w(P.wCtAug)) {
+      const c = r.u() * (P.wCtDim + P.wCtAug) < P.wCtDim ? CHROMA.ctDim() : CHROMA.ctAug();
+      out.push({ ...s, d: s.d / 2, ch }, { ...s, t: s.t + s.d / 2, d: s.d / 4, ch: c }, { ...s, t: s.t + (3 * s.d) / 4, d: s.d / 4, ch }); continue;
+    }
+    const target = next && next.ch.kind === 'dia' ? next.ch.deg : null;
+    if (target !== null && target !== 0 && target !== 6 && !(k.mode === 'minor' && target === 1) && s.d >= 1 && r.u() < w(P.wApplied)) {
+      out.push({ ...s, d: s.d / 2, ch }); out.push({ ...s, t: s.t + s.d / 2, d: s.d / 2, ch: r.u() < 0.65 ? CHROMA.applied(k, target) : CHROMA.appliedDim(k, target) }); continue;
+    }
+    if (ch.kind === 'dia' && ch.deg === 0 && next && next.ch.deg === 1 && s.d >= 1 && r.u() < w(P.wPass)) { out.push({ ...s, d: s.d / 2, ch }); out.push({ ...s, t: s.t + s.d / 2, d: s.d / 2, ch: CHROMA.passDim() }); continue; }
+    out.push({ ...s, ch });
+  }
+  out.phrases = phrases; out.total = bar0 * P.meter;
+  return out;
+}
+
+// ── harmony for a given melody: the best-scoring chord path (dynamic programming) ─────────────
+function harmonizeMelody(k, mel, total, jr) {
+  // chord slots: P.hr per bar; the last bar splits in two when the melody moves in its second half (V – I)
+  const slotDur = P.meter / P.hr, SL = [];
+  for (let t = 0; t < total - 1e-9; t += slotDur) SL.push([t, slotDur]);
+  const last = SL[SL.length - 1], half = last[0] + last[1] / 2;
+  if (last[1] >= 2 && mel.some((m) => !m.grace && m.t >= half - 1e-6 && m.t < last[0] + last[1])) { SL.pop(); SL.push([last[0], last[1] / 2], [half, last[1] / 2]); }
+  const n = SL.length;
+  const cands = [];
+  for (let d = 0; d < 7; d++) cands.push(diatonic(k, d, false));
+  cands.push(diatonic(k, 4, true));
+  if (w(P.wDim) > 0) cands.push(CHROMA.dimV());
+  if (w(P.wApplied) > 0) for (const t of [1, 2, 3, 4, 5]) { if (k.mode === 'minor' && t === 1) continue; cands.push(CHROMA.applied(k, t)); if (w(P.wDim) > 0) cands.push(CHROMA.appliedDim(k, t)); }
+  if (w(P.wAug) > 0) cands.push(CHROMA.ger(), CHROMA.it());
+  if (w(P.wNap) > 0) cands.push(CHROMA.nap());
+  if (w(P.wMix) > 0 && k.mode === 'major') cands.push(CHROMA.iv(), CHROMA.bVI());
+  if (w(P.wCad64) > 0) cands.push(CHROMA.cad64(k));
+  if (w(P.wPass) > 0) cands.push(CHROMA.passDim());
+  if (w(P.wHalfDim) > 0 && k.mode === 'major') cands.push(CHROMA.iiHalf());
+  if (w(P.wPhryg) > 0) cands.push(CHROMA.bII());
+  if (P.wModal > 0) cands.push(CHROMA.bVII());
+  const basic=[...cands];
+  for(const c of basic) for(const variant of [...(P.extensions?['extended']:[]),...(P.wAlter?['altered']:[]),...(P.wTritone?['tritone']:[])]) {
+    const ext=americanChord(c,k,rng(73),variant); if(ext.american)cands.push(ext);
+  }
+  const weightOf = (c) => c.kind === 'applied' ? w(P.wApplied) : c.kind === 'dim7' ? w(P.wDim) : c.kind === 'aug6' ? w(P.wAug) : c.kind === 'nap' ? w(P.wNap) : c.kind === 'mix' ? w(P.wMix) : c.kind === 'cad64' ? w(P.wCad64) : c.kind === 'pass' ? w(P.wPass) : c.kind === 'halfdim' ? w(P.wHalfDim) : c.kind === 'phr' ? w(P.wPhryg) : c.kind === 'modal' ? P.wModal / 100 : 1;
+  const pcs = (c) => c.rel.map((x) => mod(x + k.tonic, 12));
+  const emit = (c, i) => {
+    const t0 = SL[i][0], t1 = t0 + SL[i][1], set = pcs(c); let s = 0;
+    for (const m of mel) {
+      const a = Math.max(t0, m.t), b = Math.min(t1, m.t + m.d); if (b <= a) continue;
+      const dur = b - a, strong = Math.abs(a - t0) < 1e-6 || mod(a, P.meter) < 1e-6 || (P.meter === 4 && mod(a, 4) === 2), pc = m.p % 12;
+      if (set.includes(pc)) s += dur * (strong ? 3 : 1.5) + (pc === set[0] && strong ? 0.4 : 0);
+      else if (set.some((q) => [1, 2, 10, 11].includes(mod(pc - q, 12)))) s -= dur * (strong ? 2.6 : 0.5);
+      else s -= dur * (strong ? 5 : 2.5);
+    }
+    s += c.american==='extended'?P.extensions/100*.8:c.american==='altered'?P.wAlter/100*.6:c.american==='tritone'?P.wTritone/100*.6:0;
+    const wt = weightOf(c); if (wt < 1) s += Math.log(wt + 0.04) * 0.9;
+    return s;
+  };
+  const degOf = (c) => (c.kind === 'dia' || c.kind === 'mix' || c.kind === 'halfdim' ? c.deg : c.kind === 'dim7' ? 6 : c.kind === 'modal' ? 6 : null);
+  const trans = (a, b) => {
+    if (a.kind === 'applied') return b.deg === a.target && (b.kind === 'dia' || b.kind === 'mix') ? 3 : -7;
+    if (a.kind === 'aug6' || a.kind === 'nap') return b.label === 'V' || b.label === 'V7' || b.kind === 'cad64' ? 3 : -7;
+    if (a.kind === 'cad64') return b.label === 'V' || b.label === 'V7' ? 4 : -9;
+    if (a.kind === 'pass') return b.deg === 1 && b.kind === 'dia' ? 3 : -6;
+    if (a.kind === 'phr') return b.label === 'V' || b.label === 'V7' || b.label === ROMAN[k.mode][0] ? 3 : -7;
+    const da = degOf(a), db = degOf(b);
+    if (da === null || db === null) return 0;
+    const v = W[da][db]; return v ? Math.log(v) * 1.2 : da === db ? -0.4 : -2.2;
+  };
+  const N = cands.length, score = [], back = [];
+  for (let i = 0; i < n; i++) {
+    score.push(new Float64Array(N)); back.push(new Int32Array(N));
+    for (let j = 0; j < N; j++) {
+      const e = emit(cands[j], i) + (jr ? (jr.u() - 0.5) * 1.6 : 0);
+      if (i === 0) { score[0][j] = e + (cands[j].label === ROMAN[k.mode][0] ? 2.5 : cands[j].kind === 'dia' && cands[j].fn === 'T' ? 0.5 : -2); continue; }
+      let best = -1e9, bi = 0;
+      for (let q = 0; q < N; q++) { const v = score[i - 1][q] + trans(cands[q], cands[j]); if (v > best) { best = v; bi = q; } }
+      score[i][j] = best + e; back[i][j] = bi;
+    }
+  }
+  // end on the tonic when the melody does; the chord before it, a dominant
+  let bj = 0, bv = -1e9;
+  for (let j = 0; j < N; j++) { const c = cands[j]; const v = score[n - 1][j] + (c.label === ROMAN[k.mode][0] ? 4 : c.fn === 'D' ? 0.5 : -3) + (c.kind === 'applied' || c.kind === 'aug6' || c.kind === 'nap' || c.kind === 'cad64' || c.kind === 'pass' ? -20 : 0); if (v > bv) { bv = v; bj = j; } }
+  const path = new Array(n); path[n - 1] = bj; for (let i = n - 1; i > 0; i--) path[i - 1] = back[i][path[i]];
+  return path.map((j, i) => ({ t: SL[i][0], d: SL[i][1], ch: cands[j], end: i === n - 1, cad: i >= n - 2 ? 'PAC' : null }));
+}
+
+// ── melody generation: rhythm cells + Koji's bounded walk, chord tones on strong beats ─────────
+const CELLS = {
+ swing: [[[.5,.5],5],[[.5,-.5],2],[[1.5,.5],3],[[.5,1,.5],3]],
+ song: [[[1.5,.5],3],[[2],3],[[.5,.5,1],2],[[1],2]],
+ rag: [[[.5,1,.5],6],[[-.5,.5,.5,.5],3],[[.75,.25],2]],
+ motor: [[[.5,.5],4],[[.25,.25,.5],3],[[-.5,.5],2]],
+  reed: [[[0.75, 0.25], 3], [[0.5, 0.5], 3], [[0.25, 0.25, 0.25, 0.25], 2], [[1], 1]],
+  arabian: [[[1], 3], [[2], 2], [[1.5, 0.5], 2], [[0.5, 0.5], 1]],
+  chinese: [[[0.25, 0.25, 0.25, 0.25], 4], [[0.5, 0.25, 0.25], 3], [[0.5, 0.5], 2], [[0.25, 0.25, 0.5], 2]],
+  sugar: [[[0.5, 0.5], 3], [[0.5, -0.5], 3], [[0.25, 0.25, 0.5], 2], [[1], 1]],
+  chorale: [[[1], 4], [[2], 2], [[0.5, 0.5], 1]],
+  waltz: [[[2, 1], 3], [[3], 2], [[1, 1, 1], 2], [[1.5, 0.5, 1], 1]],
+  trepak: [[[0.5, 0.5], 4], [[0.25, 0.25, 0.5], 3], [[0.5, -0.5], 2], [[1], 1]],
+  spanish: [[[0.25, 0.25, 0.5], 3], [[0.5, 0.5], 2], [[0.75, 0.25], 3], [[1], 2]],
+  jig: [[[2 / 3, 1 / 3], 4], [[1 / 3, 1 / 3, 1 / 3], 3], [[1], 2]],
+};
+function genMelody(k, prog, total, r) {
+  const cells = CELLS[P.cells] || CELLS.reed, bar = P.meter, notes = [];
+  const chordAt = (t) => prog.find((s) => t >= s.t - 1e-9 && t < s.t + s.d - 1e-9) || prog[prog.length - 1];
+  const base = 60 + k.tonic - (k.tonic > 5 ? 12 : 0);
+  const pitchOf = (d) => k.pitch(d, base);
+  const isCT = (p, ch) => ch.rel.map((x) => mod(x + k.tonic, 12)).includes(p % 12);
+  const snap = (x) => Math.round(x * 1e6) / 1e6, N = k.sc.length;
+  const PH = prog.phrases || [{ start: 0, bars: Math.max(1, Math.round(total / bar)) }];
+  const phAt = (b) => PH.find((x) => b >= x.start && b < x.start + x.bars) || PH[PH.length - 1];
+  const shape = (x) => P.contour === 'arch' ? 0.15 + 0.75 * Math.sin(Math.PI * x) : P.contour === 'descending' ? 0.9 - 0.8 * x : P.contour === 'ascending' ? 0.1 + 0.8 * x : 0.5 + 0.38 * Math.sin(2 * Math.PI * x * 1.5);
+  const target = (t) => { const ph = phAt(Math.floor(t / bar + 1e-9)); return P.lo + (P.hi - P.lo) * shape(Math.min(1, Math.max(0, (t - ph.start * bar) / (ph.bars * bar)))); };
+  const degNear = (p) => { let best = 0; for (let d = -3 * N; d <= 4 * N; d++) if (Math.abs(pitchOf(d) - p) < Math.abs(pitchOf(best) - p)) best = d; return best; };
+  const PENT = [0, 1, 2, 4, 5];
+  let deg = degNear(target(0)), motif = null;
+  const barCells = [];
+  for (let b = 0; b * bar < total - 1e-9; b++) {
+    const t0 = b * bar, ph0 = phAt(b), inPhrase = b - ph0.start, lastBar = inPhrase === ph0.bars - 1, prevPh = PH[PH.indexOf(ph0) - 1];
+    let seq;
+    if (lastBar) seq = [[bar, 'cad']];
+    else if (inPhrase === 1 && barCells[b - 1] && r.u() * 100 < P.reuse) seq = barCells[b - 1];
+    else if (prevPh && inPhrase < prevPh.bars - 1 && barCells[prevPh.start + inPhrase] && r.u() * 100 < P.reuse) seq = barCells[prevPh.start + inPhrase];
+    else { seq = []; let beat = 0; while (beat < bar - 1e-9) { const c = r.pick(cells.map((x) => x[0]), cells.map((x) => x[1])); const len = c.reduce((s, v) => s + Math.abs(v), 0); if (beat + len > bar + 1e-9) { const f = Math.min(1, snap(bar - beat)); seq.push([f, null]); beat = snap(beat + f); continue; } for (const v of c) seq.push([v, null]); beat = snap(beat + len); } }
+    barCells.push(seq);
+    let t = t0, first = true, motifStart = deg;
+    const reuseShape = !lastBar && motif && r.u() * 100 < P.reuse;
+    seq.forEach(([len, tag], j) => {
+      const dur = Math.abs(len);
+      if (len < 0) { t = snap(t + dur); return; }
+      const ch = chordAt(t), strong = Math.abs(t - Math.round(t)) < 1e-6;
+      if (tag === 'cad') {
+        const s = prog.find((x) => x.end && t >= x.t - bar - 1e-9 && t < x.t + x.d) ;
+        const isPAC = chordAt(t).ch ? (chordAt(t).ch.label === ROMAN[k.mode][0]) : true;
+        const goal = isPAC ? [0] : ch.ch.rel.map((x) => x);
+        let best = deg; for (let d = deg - 4; d <= deg + 4; d++) { const pc = mod(pitchOf(d) - k.tonic, 12); if (goal.includes(pc) && Math.abs(d - deg) < Math.abs(best - deg) + (best === deg && !goal.includes(mod(pitchOf(best) - k.tonic, 12)) ? 99 : 0)) best = d; }
+        deg = best; notes.push({ t, d: dur, p: pitchOf(deg), layer: 'mel', v: 0.82, cad: true });
+        t = snap(t + dur); return;
+      }
+      if (reuseShape && motif[j] !== undefined) deg = motifStart + motif[j];
+      else if (strong || first) {
+        // a chord tone near the contour's target, close to where the line is
+        const goal = 0.55 * pitchOf(deg) + 0.45 * target(t); let best = null;
+        for (let d = deg - 5; d <= deg + 5; d++) { const p = pitchOf(d); if (!isCT(p, ch.ch) || p < P.lo || p > P.hi) continue; if (best === null || Math.abs(p - goal) < Math.abs(pitchOf(best) - goal)) best = d; }
+        if (best !== null) deg = best;
+      } else {
+        deg += target(t) > pitchOf(deg) ? 1 : -1;
+        if (r.u() < 0.25) deg += r.u() < 0.5 ? 1 : -1;
+        if (P.pent && k.mode === 'major' && N === 7) { while (!PENT.includes(mod(deg, 7))) deg += 1; }
+      }
+      if (pitchOf(deg) > P.hi + 2) deg -= N; if (pitchOf(deg) < P.lo - 2) deg += N;
+      let p = pitchOf(deg);
+      // the raised leading tone over dominant harmony in minor
+      if (k.mode === 'minor' && mod(p - k.tonic, 12) === 10 && ch.ch.rel.includes(11)) p += 1;
+      if (j === 0) { motifStart = deg; if (!motif || inPhrase === 0) motif = []; }
+      if (motif && !reuseShape && inPhrase === 0) motif[j] = deg - motifStart;
+      if(!strong && r.u()*100<P.blues && [4,7,11].includes(mod(p-k.tonic,12))) p-=1;
+      const n = { t, d: dur, p, layer: 'mel', v: strong ? 0.86 : 0.72 };
+      // ornaments: a grace note from above, or a turn on long notes
+      if (P.ornament && r.u() * 100 < P.ornament && strong) {
+        if (dur >= 1 && P.cells === 'arabian') { const q = dur / 8; notes.push({ t, d: q, p: pitchOf(deg + 1), layer: 'mel', v: 0.7, grace: true }, { t: t + q, d: q, p, layer: 'mel', v: 0.7, grace: true }, { t: t + 2 * q, d: q, p: pitchOf(deg - 1), layer: 'mel', v: 0.7, grace: true }); n.t0 = t; n.d0 = dur; n.t = t + 3 * q; n.d = dur - 3 * q; }
+        else if (t > 0.1) notes.push({ t: t - 0.08, d: 0.08, p: pitchOf(deg + 1), layer: 'mel', v: 0.6, grace: true });
+      }
+      notes.push(n); first = false; t = snap(t + dur);
+    });
+  }
+  return notes;
+}
+
+// ── the countermelody: Koji's countersubject logic, harmony-aware ─────────────────────────────
+function genCounter(k, mel, prog, total, r) {
+  const g = P.sub === 3 ? 1 / 3 : 0.5, out = [], motion = [];
+  const chordAt = (t) => prog.find((s) => t >= s.t - 1e-9 && t < s.t + s.d - 1e-9) || prog[prog.length - 1];
+  const melAt = (t) => mel.filter((m) => !m.grace).find((m) => t >= m.t - 1e-9 && t < m.t + m.d - 1e-9);
+  const melAttack = (t) => mel.some((m) => !m.grace && Math.abs(m.t - t) < 1e-6);
+  const nextAttack = (t) => { let b = Infinity; for (const m of mel) if (!m.grace && m.t > t + 1e-6) b = Math.min(b, m.t); return b; };
+  const melLo = Math.min(...mel.map((m) => m.p)), melHi = Math.max(...mel.map((m) => m.p));
+  const [lo, hi] = P.register === 'descant' ? [Math.max(melHi - 4, 60), Math.max(melHi - 4, 60) + 14] : P.register === 'alto' ? [Math.max(52, melLo - 12), Math.max(52, melLo - 12) + 13] : [Math.max(43, melLo - 19), Math.max(43, melLo - 19) + 14];
+  const scalePcs = k.sc.map((x) => mod(x + k.tonic, 12));
+  let prev = null, prevM = null, lastT = -9;
+  for (let gi = 0, t = P.entry; t < total - 1e-9; gi++, t = Math.round((P.entry + gi * g) * 1e6) / 1e6) {
+    const m = melAt(t), att = melAttack(t), strong = Math.abs(t - Math.round(t)) < 1e-6, ch = chordAt(t).ch;
+    let attack;
+    const c = P.complement / 100;
+    if (prev === null) attack = strong;
+    else if (t - lastT >= 2 - 1e-6) attack = true; // never hold longer than two beats
+    else if (!m) attack = r.u() < 0.8;
+    else if (att && nextAttack(t) - t <= g + 1e-6) attack = r.u() < (strong ? 0.6 - 0.35 * c : 0.25 * (1 - c)); // the melody is busy: hold
+    else if (!att) attack = r.u() < 0.35 + 0.6 * c; // the melody holds: move
+    else attack = r.u() < (strong ? 0.8 : 0.35);
+    if (!attack) continue;
+    const chordPcs = ch.rel.map((x) => mod(x + k.tonic, 12));
+    let best = null, bs = -1e9;
+    for (let p = lo; p <= hi; p++) {
+      const pc = p % 12, ct = chordPcs.includes(pc), inScale = scalePcs.includes(pc) || ct;
+      if (!inScale) continue;
+      if (strong && !ct && r.u() * 100 < P.pull) continue;
+      if (prev !== null && Math.abs(p - prev) > 7) continue;
+      let s = (ct ? 2 * P.pull / 100 : 0) + r.u() * 0.35;
+      if (m) {
+        const iv = mod(m.p - p, 12);
+        if ([3, 4, 8, 9].includes(iv)) s += 3 * P.imperfect / 100; else if (iv === 0 || iv === 7) s += 0.4; else if (iv === 5 && P.register !== 'descant') s -= strong ? 2 : 0.4; else s -= strong ? 5 : 1;
+        if (p === m.p) s -= 4;
+        if (P.register !== 'descant' && p > m.p) s -= 5;
+        if (P.register === 'descant' && p < m.p) s -= 5;
+        if (prev !== null && prevM !== null) {
+          const pi = mod(prevM - prev, 12), dm = Math.sign(m.p - prevM), dc = Math.sign(p - prev);
+          if ((pi === 0 || pi === 7) && iv === pi && dm === dc && dm !== 0) s -= 100; // parallel fifth or octave
+          if (dm * dc < 0) s += 2 * P.contrary / 100; else if (dm === 0 || dc === 0) s += 0.4;
+        }
+      }
+      if (prev !== null) { const st = Math.abs(p - prev); s += st <= 2 && st > 0 ? 1.4 : st <= 4 ? 0.5 : -1.2; if (st === 0) s -= 0.6; }
+      if (s > bs) { bs = s; best = p; }
+    }
+    if (best === null) continue;
+    if (strong && m && prev !== null && prevM !== null) {
+      const dm = Math.sign(m.p - prevM), dc = Math.sign(best - prev), pi = mod(prevM - prev, 12), iv = mod(m.p - best, 12);
+      motion.push({ t, kind: dm * dc < 0 ? 'C' : dm === 0 || dc === 0 ? 'O' : 'S', bad: (pi === 0 || pi === 7) && iv === pi && dm === dc && dm !== 0 });
+    }
+    out.push({ t, d: g, p: best, layer: 'cm', v: 0.66 }); lastT = t; prev = best; prevM = m ? m.p : prevM;
+  }
+  for (let i = 0; i < out.length; i++) out[i].d = Math.max(0.25, (out[i + 1] ? out[i + 1].t : total) - out[i].t);
+  return { notes: out, motion };
+}
+
+// ── accompaniment layers ─────────────────────────────────────────────────────────────────────
+function genLayers(k, mel, prog, total, r) {
+  const out = [], bar = P.meter, half = P.sub === 3 ? 2 / 3 : 0.5;
+  const pcsOf = (ch) => ch.rel.map((x) => mod(x + k.tonic, 12));
+  const near = (pc, around) => { let p = around - 6; while (mod(p, 12) !== pc) p++; return p; };
+  const pedalPc = P.pedal === 'tonic' ? k.tonic : P.pedal === 'dominant' ? mod(k.tonic + 7, 12) : null;
+  let bassPrev = 43, voices = [52, 57, 62, 67];
+  prog.forEach((s, si) => {
+    const ch = s.ch, pcs = pcsOf(ch), bassPc = pedalPc !== null ? pedalPc : mod(ch.bass + k.tonic, 12);
+    let bass = near(bassPc, bassPrev); if (bass < 33) bass += 12; if (bass > 52) bass -= 12; bassPrev = bass;
+    // voice-leading: each upper voice moves to the nearest chord tone
+    const melLow = Math.min(...mel.filter((m) => m.t < s.t + s.d && m.t + m.d > s.t).map((m) => m.p), 84);
+    const prevVoices = voices;
+    const taken=new Set();
+    voices = voices.map((v,i) => {let best=null,bd=Infinity;
+      const allowed=i===3 && ch.american ? [pcs[pcs.length-1]] : pcs;
+      for(let p=Math.max(bass+5,48);p<Math.min(melLow+3,80);p++) if(allowed.includes(mod(p,12))&&!taken.has(p)){
+        const distance=Math.abs(p-v);if(distance<bd){bd=distance;best=p;}
+      }
+      if(best===null)best=near(pcs[i%pcs.length],v);taken.add(best);return best;
+    });
+    const upper = [...new Set(voices)];
+    if (P.harmony) {
+      // a voice that would fall by step into the new chord is held over first: a suspension (4–3, 9–8, 7–6)
+      const done = new Set();
+      voices.forEach((p, i) => {
+        if (done.has(p)) return; done.add(p);
+        const pv = prevVoices[i];
+        if (si > 0 && pv - p >= 1 && pv - p <= 2 && !pcs.includes(mod(pv, 12)) && s.d >= 1 && r.u() * 100 < P.wSusp) out.push({ t: s.t, d: s.d / 2, p: pv, layer: 'har', v: 0.56, susp: true }, { t: s.t + s.d / 2, d: s.d / 2, p, layer: 'har', v: 0.46 });
+        else out.push({ t: s.t, d: s.d, p, layer: 'har', v: 0.5 });
+      });
+    }
+    const beatTimes = []; for (let b = s.t; b < s.t + s.d - 1e-9; b += 1) beatTimes.push(b);
+    if(P.bassType==='walking'||P.bassType==='stride') for(const b of beatTimes){
+      const step=Math.round(b-s.t), next=prog[si+1], nextPc=next?mod(next.ch.bass+k.tonic,12):bassPc;
+      let p=near(pcs[step%pcs.length],bass+3);if(step===0)p=bass;
+      if(P.bassType==='walking' && b+1>=s.t+s.d && next)p=near(mod(nextPc-1,12),p);
+      if(P.bassType==='stride')p=step%2===0?bass:bass+12;
+      out.push({t:b,d:P.bassType==='stride'?.4:.85,p,layer:'bass',v:.57,short:true});
+    }
+    if (P.bassType === 'sustained') out.push({ t: s.t, d: s.d, p: bass, layer: 'bass', v: 0.62 });
+    if (P.bassType === 'pizz') for (const b of beatTimes) { const onBeat1 = mod(b, bar) < 1e-6; if (onBeat1 || P.meter === 2 || mod(b, bar) === 2) out.push({ t: b, d: 0.4, p: onBeat1 ? bass : bass + (pcs.includes(mod(bass + 7, 12)) ? 7 : 0), layer: 'bass', v: onBeat1 ? 0.7 : 0.55, short: true }); }
+    if (P.bassType === 'waltz') for (const b of beatTimes) if (mod(b, bar) < 1e-6) out.push({ t: b, d: 0.9, p: bass, layer: 'bass', v: 0.7, short: true });
+    if (P.bassType === 'harp') {
+      out.push({ t: s.t, d: s.d, p: bass, layer: 'bass', v: 0.5 });
+      const tones = []; for (let p = bass + 7; p <= bass + 31; p++) if (pcs.includes(mod(p, 12))) tones.push(p);
+      const seq = tones.concat(tones.slice(1, -1).reverse()), st = P.sub === 3 ? 1 / 3 : 0.25;
+      let i = 0; for (let tt = s.t; tt < s.t + s.d - 1e-9; tt = Math.round((tt + st) * 1e6) / 1e6) out.push({ t: tt, d: st * 3, p: seq[i++ % seq.length], layer: 'har', v: 0.36, short: true, inst: 'harp' });
+    }
+    if (P.bassType === 'ostinato') { const root = pedalPc !== null ? near(pedalPc, 45) : bass; const pat = [0, 7, 12, 7]; let i = 0; for (let b = s.t; b < s.t + s.d - 1e-9; b += 0.5) out.push({ t: b, d: 0.3, p: root + pat[i++ % 4], layer: 'bass', v: 0.6, short: true }); }
+    if (P.bassType === 'drone' && mod(s.t, bar) < 1e-6) { const root = near(pedalPc !== null ? pedalPc : k.tonic, 43); out.push({ t: s.t, d: Math.min(bar, total - s.t), p: root, layer: 'bass', v: 0.45 }, { t: s.t, d: Math.min(bar, total - s.t), p: root + 7, layer: 'bass', v: 0.4 }); for (let b = s.t; b < Math.min(s.t + bar, total) - 1e-9; b += 1) out.push({ t: b, d: 0.9, p: root + 12 + (mod(b, 2) < 1e-6 ? 7 : 3 + (k.mode === 'major' ? 1 : 0)), layer: 'har', v: 0.42 }); }
+    if (P.offbeat) for (const b of beatTimes) { const tt = P.meter === 3 ? (mod(b, bar) > 1e-6 ? b : null) : b + half; if (tt === null || tt >= total) continue; for (const p of upper.slice(-2)) out.push({ t: tt, d: 0.3, p, layer: 'har', v: 0.48, short: true }); }
+    // over a pedal, an inner voice creeps chromatically (5–♯5–6–♯5, or 5–♭6–5–♯4)
+    if (P.pedInner) { const pat = k.mode === 'major' ? [7, 8, 9, 8] : [7, 8, 7, 6]; beatTimes.forEach((b, i) => out.push({ t: b, d: 0.95, p: near(mod(k.tonic + pat[Math.round(b) % 4], 12), 66), layer: 'har', v: 0.42, cinner: true })); }
+    // runs at phrase ends, where the melody holds its cadence note
+    const nx = prog[si + 1];
+    if (P.fills !== 'none' && (s.end || (s.cad === 'HC' && nx && nx.phrase !== s.phrase))) {
+      const start = s.t + s.d - Math.min(2, s.d), top = near(mod(k.tonic + 7, 12), 62);
+      const steps = []; let p = top;
+      for (let i = 0; i < 8; i++) { steps.push(p); if (P.fills === 'chromatic') p -= 1; else { p -= 1; while (!k.sc.map((x) => mod(x + k.tonic, 12)).includes(mod(p, 12))) p -= 1; } }
+      steps.forEach((pp, i) => out.push({ t: start + i * 0.25, d: 0.23, p: pp, layer: 'fill', v: 0.62 - i * 0.02, short: true }));
+    }
+  });
+  // doubling: diatonic thirds, sixths, a close triad or the octave below the melody
+  if (P.doubling !== 'none') {
+    const base = 60 + k.tonic - (k.tonic > 5 ? 12 : 0), N = k.sc.length;
+    const degOf = (p) => { for (let d = -3 * N; d <= 4 * N; d++) if (k.pitch(d, base) === p) return d; return null; };
+    for (const m of mel) {
+      if (P.doubling === 'octave') { out.push({ ...m, p: m.p - 12, layer: 'dbl', v: m.v * 0.8 }); continue; }
+      const d = degOf(m.p); const offs = P.doubling === 'thirds' ? [-2] : P.doubling === 'sixths' ? [-5] : [-2, -4];
+      for (const o of offs) { const p = d === null ? m.p - (o === -2 ? 3 : o === -5 ? 9 : 7) : k.pitch(d + o, base); out.push({ ...m, p, layer: 'dbl', v: m.v * 0.75 }); }
+    }
+  }
+  // percussion: castanets (Spanish), tambourine on the offbeats (Trepak)
+  if (P.castanets || P.tamb) for (let b0 = 0; b0 < total - 1e-9; b0 += bar) {
+    if (P.castanets) { const pat = bar === 3 ? [0, 1, 1.5, 2, 2.5] : bar === 2 ? [0, 0.5, 1, 1.25, 1.5] : [0, 1, 1.5, 2, 3, 3.5]; for (const x of pat) out.push({ t: b0 + x, d: 0.1, p: 0, layer: 'perc', drum: 'cast', v: x === 0 ? 0.7 : 0.45 }); }
+    if (P.tamb) { const st = P.sub === 3 ? 1 / 3 : 0.5; for (let i = 0; i * st < bar - 1e-9; i++) { const x = Math.round(i * st * 1e6) / 1e6; out.push({ t: b0 + x, d: 0.1, p: 0, layer: 'perc', drum: 'tamb', v: Math.abs(x - Math.round(x)) > 1e-6 ? 0.55 : 0.3 }); } }
+  }
+  return out;
+}
+
+// ── sections: forms built from periods, links, trios, variations and codas ───────────────────
+let SONG = null, SONG_KEY = null;
+const CLASSIC = { period: 1, double: 1, sentence: 1, sequence: 1 };
+const FORM_LABEL = { period: 'Period', double: 'Double period', sentence: 'Sentence', sequence: 'Rising sequence', ternary: 'Ternary with trio', waltzchain: 'Waltz chain', glinka: 'Theme variations', adagio: 'Broad adagio' };
+const REL_LABEL = { same: 'same key', relative: 'relative', parallel: 'parallel', subdominant: 'subdominant', dominant: 'dominant', iii: 'mediant iii', mediant: 'chromatic mediant III', flatsub: 'chromatic mediant ♭VI', flatmed: 'chromatic mediant ♭III', submediant: 'chromatic mediant VI' };
+const TRIO_KEYS = ['cells', 'staccato', 'ornament', 'doubling', 'bassType', 'offbeat', 'fills', 'counter', 'register', 'iMel', 'iDbl', 'iCm', 'iBass', 'iHar', 'iFill', 'lo', 'hi', 'contour', 'pent', 'chroma', 'pedal', 'castanets', 'tamb', 'accent'];
+const VAR_INST = ['flute', 'oboe', 'clarinet', 'celesta', 'strings', 'englishhorn', 'piccolo', 'horn'];
+function withP(over, fn) { const keep = P; P = { ...P, ...over }; try { return fn(); } finally { P = keep; } }
+function relKey(home, rel) {
+  const t = home.tonic, maj = home.mode === 'major';
+  switch (rel) {
+    case 'relative': return maj ? K(mod(t + 9, 12), 'minor') : K(mod(t + 3, 12), 'major');
+    case 'parallel': return K(t, maj ? 'minor' : 'major');
+    case 'subdominant': return K(mod(t + 5, 12), home.mode);
+    case 'dominant': return K(mod(t + 7, 12), home.mode);
+    case 'iii': return maj ? K(mod(t + 4, 12), 'minor') : K(mod(t + 3, 12), 'major');
+    case 'mediant': return K(mod(t + 4, 12), 'major');
+    case 'flatsub': return K(mod(t + 8, 12), 'major');
+    case 'flatmed': return K(mod(t + 3, 12), 'major');
+    case 'submediant': return K(mod(t + 9, 12), 'major');
+    default: return K(t, home.mode);
+  }
+}
+const keyLabel = (k) => (k.magic ? (k.magic === 'wholetone' ? 'whole-tone' : 'octatonic') + ' on ' + NAMES[k.tonic] : NAMES[k.tonic] + ' ' + k.mode);
+const sameKey = (a, b) => a.tonic === b.tonic && a.mode === b.mode && !a.magic && !b.magic;
+// fixed chords, each [chord, beats]; the last two carry the cadence mark
+function slotsOf(k, list, cad = 'PAC') {
+  let t = 0;
+  const prog = list.map(([ch, d], i) => { const s = { t, d, ch, cad: cad && i >= list.length - 2 ? cad : null, phrase: 0, end: i === list.length - 1, fixed: true }; t += d; return s; });
+  prog.phrases = [{ start: 0, bars: Math.max(1, Math.round(t / P.meter)), cad }]; prog.total = t;
+  return prog;
+}
+const nearPc = (pc, around) => { let p = around - 6; while (mod(p, 12) !== pc) p++; return p; };
+const LINK_OVER = { harmony: true, offbeat: false, fills: 'none', doubling: 'none', counter: false, bassType: 'sustained', pedal: 'none' };
+function pushLink(S, from, to) {
+  if (sameKey(from, to)) return;
+  const bar = P.meter, triad = (k) => diatonic(k, 0).rel.map((x) => mod(x + k.tonic, 12));
+  const shared = triad(from).filter((x) => triad(to).includes(x));
+  let type = P.modType; if (type === 'commontone' && !shared.length) type = 'dim7';
+  if (type === 'direct') return;
+  if (type === 'commontone') S.push({ name: 'link (held ' + NAMES[shared[0]] + ')', k: from, over: LINK_OVER, explicit: () => ({ prog: slotsOf(from, [[diatonic(from, 0), bar]], null), mel: [{ t: 0, d: bar, p: nearPc(shared[shared.length - 1], 74), v: 0.7 }], total: bar }) });
+  else if (type === 'dim7') S.push({ name: 'link (dim7 pivot)', k: to, over: LINK_OVER, explicit: () => ({ prog: slotsOf(to, [[CHROMA.dimV(), bar]], 'HC'), mel: [], total: bar }) });
+  else S.push({ name: 'link (German sixth)', k: to, over: LINK_OVER, explicit: () => ({ prog: slotsOf(to, [[CHROMA.ger(), bar / 2], [diatonic(to, 4, true), bar / 2]], 'HC'), mel: [], total: bar }) });
+}
+const vampSec = (home) => ({ name: 'intro', k: home, over: { counter: false, doubling: 'none', fills: 'none', harmony: P.harmony || (!P.offbeat && P.bassType === 'none') }, explicit: () => ({ prog: slotsOf(home, Array.from({ length: P.intro }, () => [diatonic(home, 0), P.meter]), null), mel: [], total: P.intro * P.meter }) });
+const retransSec = (home) => ({ name: 'retransition', k: home, over: { harmony: true, pedal: 'dominant', fills: 'scale', counter: false, doubling: 'none' }, explicit: () => ({ prog: slotsOf(home, [[CHROMA.appliedDim(home, 4), P.meter], [diatonic(home, 4, true), P.meter]], 'HC'), mel: [], total: 2 * P.meter }) });
+function cadenzaSec(home) {
+  return { name: 'harp cadenza', k: home, tempoMul: 0.8, over: { bassType: 'sustained', offbeat: false, harmony: false, counter: false, doubling: 'none', fills: 'none', pedal: 'dominant' }, explicit: () => {
+    const bar = P.meter, V7 = diatonic(home, 4, true), prog = slotsOf(home, [[V7, 3 * bar], [V7, bar]], 'HC');
+    const pcs = V7.rel.map((x) => mod(x + home.tonic, 12)), tones = []; for (let p = 50; p <= 91; p++) if (pcs.includes(p % 12)) tones.push(p);
+    const up = tones.concat(tones.slice(1, -1).reverse()), extra = [];
+    for (let i = 0; i * 0.25 < 3 * bar - 1e-9; i++) extra.push({ t: i * 0.25, d: 0.6, p: up[i % up.length], layer: 'fill', v: 0.48, short: true, inst: 'harp' });
+    const sc = home.sc.map((x) => mod(x + home.tonic, 12)); let p = 55;
+    for (let j = 0; j < 16; j++) { while (!sc.includes(p % 12)) p++; extra.push({ t: 3 * bar + j * (bar * 0.6 / 16), d: 0.5, p, layer: 'fill', v: 0.42, short: true, inst: 'harp' }); p++; }
+    extra.push({ t: 3 * bar + bar * 0.6, d: bar * 0.4, p: tones[tones.length - 1], layer: 'fill', v: 0.55, inst: 'harp' });
+    return { prog, mel: [], extra, total: 4 * bar };
+  } };
+}
+function codaSec(home) {
+  const bar = P.meter, I = diatonic(home, 0), V7 = diatonic(home, 4, true), abs = (ch) => ch.rel.map((x) => mod(x + home.tonic, 12));
+  if (P.coda === 'amen') return { name: 'coda (plagal Amen)', k: home, over: { harmony: true, offbeat: false, fills: 'none', counter: false, doubling: 'none', bassType: 'sustained' }, explicit: () => {
+    const prog = slotsOf(home, [[home.mode === 'major' ? CHROMA.iv() : diatonic(home, 3), bar], [I, bar]]); prog[0].plagal = true;
+    return { prog, mel: [{ t: 0, d: 2 * bar, p: nearPc(home.tonic, 74), v: 0.7, cad: true }], total: 2 * bar };
+  } };
+  if (P.coda === 'hammer') return { name: 'coda (hammer strokes)', k: home, over: { offbeat: false, harmony: false, fills: 'none', counter: false, doubling: 'none', staccato: 70, bassType: 'pizz' }, explicit: () => {
+    const prog = slotsOf(home, [[V7, bar / 2], [I, bar / 2], [V7, bar / 2], [I, bar / 2], [I, bar]]), mel = [], extra = [];
+    prog.forEach((s, i) => { const pcs = abs(s.ch), hits = i === prog.length - 1 ? Array.from({ length: bar }, (_, b) => s.t + b) : [s.t]; for (const h of hits) { mel.push({ t: h, d: 0.4, p: nearPc(s.ch === V7 ? pcs[1] : home.tonic, 76), v: 0.9 }); for (const pc of pcs) extra.push({ t: h, d: 0.35, p: nearPc(pc, 62), layer: 'har', v: 0.6, short: true }); } });
+    return { prog, mel, extra, total: 3 * bar };
+  } };
+  return { name: 'coda (presto)', k: home, accel: P.accel, over: { staccato: 55, counter: false, fills: 'none' }, explicit: () => {
+    const IV = diatonic(home, 3), h2 = bar / 2;
+    const prog = slotsOf(home, [[I, h2], [V7, h2], [I, h2], [V7, h2], [I, h2], [IV, h2], [V7, h2], [I, h2], [I, bar]]), mel = [], st = P.sub === 3 ? 1 / 3 : 0.5;
+    for (const s of prog.slice(0, -1)) { const pcs = abs(s.ch); let p = nearPc(pcs[0], 67); for (let j = 0; j * st < s.d - 1e-9; j++) { mel.push({ t: Math.round((s.t + j * st) * 1e6) / 1e6, d: st, p, v: j === 0 ? 0.85 : 0.7 }); do p++; while (!pcs.includes(mod(p, 12))); } }
+    const f = prog[prog.length - 1]; mel.push({ t: f.t, d: bar, p: nearPc(home.tonic, 72), v: 0.9, cad: true });
+    return { prog, mel, total: 5 * bar };
+  } };
+}
+function magicSec(home) {
+  const kind = P.magicEp, km = K(home.tonic, 'major', kind === 'wholetone' ? [0, 2, 4, 6, 8, 10] : [0, 1, 3, 4, 6, 7, 9, 10]); km.magic = kind;
+  return { name: (kind === 'wholetone' ? 'whole-tone' : 'octatonic') + ' episode', k: km, rel: kind === 'wholetone' ? "Glinka's whole-tone scale" : 'the octatonic scale', over: { pent: false, doubling: 'none', fills: 'none' }, explicit: (built, r, mr) => {
+    const bars = Math.max(2, P.phraseBars), list = [];
+    for (let b = 0; b < bars - 1; b++) list.push([magicChord(kind, b), P.meter]);
+    list.push([diatonic(home, 4, true), P.meter]);
+    const prog = slotsOf(km, list, 'HC');
+    return { prog, mel: genMelody(km, prog, bars * P.meter, mr), total: bars * P.meter };
+  } };
+}
+// the Pas de deux's descending scale, then an answer that closes
+function adagioMelody(k, shift, aug) {
+  const bar = P.meter, long = bar >= 3 ? bar - 1 : 1.5, short = bar - long, base = 60 + k.tonic - (k.tonic > 5 ? 12 : 0) + shift;
+  const notes = [], push = (t, d, deg, extra = {}) => notes.push({ t: t * aug, d: d * aug, p: k.pitch(deg, base), v: 0.78, ...extra });
+  let t = 0;
+  for (let j = 7; j > 0; j -= 2) { push(t, long, j); push(t + long, short, j - 1); t += bar; }
+  for (const pair of [[4, 3], [2, 4], [3, 1], [0]]) { if (pair.length === 1) push(t, bar, pair[0], { cad: true }); else { push(t, long, pair[0]); push(t + long, short, pair[1]); } t += bar; }
+  return { notes, total: t * aug };
+}
+function planSections() {
+  const home = K(P.tonic, P.mode), S = [], inner = CLASSIC[P.form] ? P.form : P.secForm;
+  const seeds = (n) => ({ mSeed: P.mSeed + 101 * n, hSeed: P.hSeed + 103 * n, cSeed: P.cSeed + 107 * n });
+  const A = { name: 'A', k: home, over: { form: inner } };
+  const again = (name) => ({ name, k: home, over: { form: inner, ornament: Math.min(60, P.ornament + 12), counter: true, cSeed: P.cSeed + 7, doubling: P.doubling === 'none' ? 'thirds' : P.doubling } });
+  if (P.intro > 0 && P.form !== 'waltzchain') S.push(vampSec(home));
+  switch (P.form) {
+    case 'ternary': {
+      const tk = relKey(home, P.trioKey), o = { form: inner, ...seeds(1) };
+      if (P.trioTex !== 'same' && TEXTURES[P.trioTex]) for (const key of TRIO_KEYS) if (key in TEXTURES[P.trioTex][1]) o[key] = TEXTURES[P.trioTex][1][key];
+      if (P.trioMel !== 'same') o.iMel = P.trioMel;
+      S.push(A); pushLink(S, home, tk);
+      S.push({ name: 'trio', k: tk, over: o, tempoMul: P.trioTempo, rel: REL_LABEL[P.trioKey] });
+      S.push(retransSec(home)); S.push(again('A′'));
+      break;
+    }
+    case 'waltzchain': {
+      S.push(cadenzaSec(home));
+      const keys = [['same', home], [P.trioKey, relKey(home, P.trioKey)], ['dominant', relKey(home, 'dominant')], ['subdominant', relKey(home, 'subdominant')]];
+      let prev = home;
+      for (let i = 0; i < P.chainCount; i++) {
+        const [rel, kk] = keys[i]; if (i > 0) pushLink(S, prev, kk);
+        S.push({ name: 'waltz ' + (i + 1), k: kk, over: { form: inner, ...seeds(i), iMel: i % 2 ? VAR_INST[(i * 3) % VAR_INST.length] : P.iMel }, rel: i ? REL_LABEL[rel] : '' });
+        prev = kk;
+      }
+      pushLink(S, prev, home); S.push(again('waltz 1 again'));
+      break;
+    }
+    case 'glinka': {
+      S.push({ name: 'theme', k: home, over: { form: inner } });
+      const ti = S.length - 1;
+      for (let i = 1; i <= P.variations; i++) S.push({ name: 'variation ' + i, k: home, over: {
+        iMel: P.vInst ? VAR_INST[(Math.max(0, VAR_INST.indexOf(P.iMel)) + i) % VAR_INST.length] : P.iMel,
+        counter: P.vCounter ? true : P.counter, register: P.vCounter ? ['tenor', 'descant', 'alto'][i % 3] : P.register, cSeed: P.cSeed + 13 * i,
+        chroma: P.vHarm ? Math.min(1, P.chroma + 0.15 * i) : P.chroma, wApplied: P.vHarm ? Math.min(100, P.wApplied + 10 * i) : P.wApplied,
+        doubling: P.vDensity ? ['thirds', 'sixths', 'triad', 'octave'][(i - 1) % 4] : P.doubling, harmony: P.vDensity && i >= 2 ? true : P.harmony, fills: P.vDensity && i >= 2 ? 'scale' : P.fills,
+      }, explicit: (built) => {
+        const th = built[ti]; let mel = th.mel.map((n) => ({ ...n }));
+        if (P.vRegister && i % 2 === 1) { const top = Math.max(...mel.map((n) => n.p)), sh = top + 12 <= 96 ? 12 : -12; mel = mel.map((n) => ({ ...n, p: n.p + sh })); }
+        const prog = P.vHarm ? harmonizeMelody(home, mel.filter((n) => !n.grace), th.total, rng(P.hSeed + 31 * i)) : th.prog.map((s) => ({ ...s }));
+        prog.phrases = th.prog.phrases; prog.total = th.total;
+        return { prog, mel, total: th.total };
+      } });
+      break;
+    }
+    case 'adagio': {
+      const N = P.adagioN;
+      for (let i = 0; i < N; i++) {
+        const last = i === N - 1;
+        S.push({ name: 'statement ' + (i + 1) + (last && P.augment ? ' (augmented)' : ''), k: home, velMul: 0.8 + 0.25 * (N > 1 ? i / (N - 1) : 1), over: {
+          chroma: Math.min(1, P.chroma * (0.45 + 0.35 * i)), iMel: i === 0 ? P.iMel : last ? 'strings' : P.iDbl, iDbl: last ? 'horn' : P.iDbl,
+          doubling: last ? 'octave' : 'none', counter: i > 0 ? true : P.counter, harmony: last ? true : P.harmony, cSeed: P.cSeed + 5 * i, swell: last ? Math.max(P.swell, 45) : P.swell,
+        }, explicit: () => {
+          const m = adagioMelody(home, i === 0 ? -12 : 0, last && P.augment ? 2 : 1), prog = harmonizeMelody(home, m.notes, m.total, rng(P.hSeed + 17 * i));
+          prog.phrases = [{ start: 0, bars: m.total / P.meter }]; prog.total = m.total;
+          return { prog, mel: m.notes, total: m.total };
+        } });
+      }
+      break;
+    }
+    default: S.push(A);
+  }
+  if (P.magicEp !== 'none') {
+    const music = S.filter((x) => x.name !== 'intro');
+    if (music.length > 1) S.splice(S.length - 1, 0, magicSec(home)); else S.push(magicSec(home), { ...A, name: 'A again' });
+  }
+  if (P.coda !== 'none') S.push(codaSec(home));
+  return S;
+}
+function buildSection(sec, built) {
+  return withP(sec.over || {}, () => {
+    const k = sec.k, r = rng(P.hSeed), mr = rng(P.mSeed), cr = rng(P.cSeed);
+    let prog, mel, total, extra = [];
+    if (sec.explicit) ({ prog, mel, total, extra = [] } = sec.explicit(built, r, mr));
+    else { prog = americanProgression(genProgression(k, r),k,r); total = prog.total; mel = genMelody(k, prog, total, mr); }
+    if(P.mode2!=='har' && !sec.explicit) americanProgression(prog,k,r);
+    mel = mel.map((n) => ({ ...n, layer: 'mel', v: (n.v ?? 0.78) * (sec.velMul || 1) }));
+    const cm = P.counter && mel.length ? genCounter(k, mel, prog, total, cr) : { notes: [], motion: [] };
+    const acc = genLayers(k, mel, prog, total, cr);
+    return { name: sec.name, k, prog, mel, cm, acc, extra, total, ped: P.pedal, tempoMul: sec.tempoMul || 1, accel: sec.accel || 0, rel: sec.rel || '', inst: { mel: P.iMel, dbl: P.iDbl, cm: P.iCm, har: P.iHar, bass: P.iBass, fill: P.iFill, perc: 'perc' }, stac: P.staccato / 100, swell: P.swell };
+  });
+}
+
+// ── putting it together ──────────────────────────────────────────────────────────────────────
+function build() {
+  let sections;
+  if (P.mode2 === 'har') {
+    let parsed, err = '';
+    try { parsed = parseMelody($('melody').value); } catch (e) { err = e.message; }
+    if (!parsed) { $('err').textContent = err; return; }
+    $('err').textContent = '';
+    const key = P.keyIn === 'auto' ? detectKey(parsed) : { tonic: +P.keyIn.split(':')[0], mode: P.keyIn.split(':')[1] };
+    SONG_KEY = key;
+    const k = K(key.tonic, key.mode), end = Math.max(...parsed.map((n) => n.t + n.d)), total = Math.ceil(end / P.meter - 1e-9) * P.meter;
+    sections = [{ name: 'your melody', k, explicit: () => { const mel = parsed.map((n) => ({ ...n, v: mod(n.t, 1) < 1e-6 ? 0.84 : 0.72 })), prog = harmonizeMelody(k, mel, total); prog.phrases = [{ start: 0, bars: total / P.meter }]; return { prog, mel, total }; } }];
+  } else { sections = planSections(); SONG_KEY = { tonic: P.tonic, mode: P.mode }; }
+  const built = []; for (const sec of sections) built.push(buildSection(sec, built));
+  // join the sections end to end
+  const all = [], prog = [], motion = [], secs = [], mel = [], cmNotes = [];
+  let off = 0;
+  built.forEach((b, si) => {
+    const sh = (n) => ({ ...n, t: n.t + off, ...(n.t0 !== undefined ? { t0: n.t0 + off } : {}), inst: n.inst || b.inst[n.layer], stac: b.stac, swell: b.swell, sec: si });
+    for (const n of b.mel) { const x = sh(n); all.push(x); mel.push(x); }
+    for (const n of b.cm.notes) { const x = sh(n); all.push(x); cmNotes.push(x); }
+    for (const n of [...b.acc, ...b.extra]) all.push(sh(n));
+    for (const s of b.prog) prog.push({ ...s, t: s.t + off, k: b.k, ped: b.ped, sec: si });
+    for (const m of b.cm.motion) motion.push({ ...m, t: m.t + off });
+    secs.push({ name: b.name, start: off, end: off + b.total, k: b.k, tempoMul: b.tempoMul, accel: b.accel, rel: b.rel });
+    off += b.total;
+  });
+  const total = off;
+  // a Picardy third on the very last chord of a minor piece
+  const lastSlot = prog[prog.length - 1];
+  if (P.picardy && lastSlot && lastSlot.k.mode === 'minor' && !lastSlot.k.magic && lastSlot.ch.root === 0) {
+    lastSlot.ch = { label: 'I (Picardy)', rel: [0, 4, 7], root: 0, bass: 0, fn: 'T', kind: 'picardy' };
+    const m3 = mod(lastSlot.k.tonic + 3, 12);
+    for (const n of all) if (n.layer !== 'perc' && n.t >= lastSlot.t - 1e-9 && n.t < lastSlot.t + lastSlot.d && mod(n.p, 12) === m3) n.p += 1;
+  }
+  // timing: section tempos, the coda's acceleration, rubato over each phrase, staccato on short notes
+  const bar = P.meter, period = P.phraseBars * bar, res = 64;
+  const secAt = (b) => secs.find((x) => b >= x.start - 1e-9 && b < x.end - 1e-9) || secs[secs.length - 1];
+  const bps = (b) => { const sc = secAt(b), x = (b - sc.start) / Math.max(1e-6, sc.end - sc.start); return (P.tempo / 60) * sc.tempoMul * (1 + (sc.accel / 100) * x * x) * (1 - (P.rubato / 100) * Math.sin(2 * Math.PI * b / period - Math.PI / 2)); };
+  const sec = new Float64Array(Math.ceil(total * res) + 2);
+  for (let i = 1; i < sec.length; i++) sec[i] = sec[i - 1] + 1 / res / bps((i - 0.5) / res);
+  const toSec = (b) => { const x = Math.max(0, Math.min(sec.length - 1.0001, b * res)), i = Math.floor(x); return sec[i] + (sec[i + 1] - sec[i]) * (x - i); };
+  const swingTime=(t)=>{const whole=Math.floor(t),f=t-whole,split=.5+P.swing/600;return whole+(f<=.5?f*split*2:split+(f-.5)*(1-split)*2);};
+  for (const n of all) {
+    const oldEnd=n.t+n.d;n.t=swingTime(n.t);n.d=Math.max(.02,swingTime(oldEnd)-n.t);
+    const stac = n.layer === 'mel' || n.layer === 'dbl' ? n.stac : 0;
+    const art = n.short || n.grace ? 1 : 1 - 0.55 * stac * (n.d <= 1 ? 1 : 0.3);
+    const ph = mod(n.t, period) / period, swell = 1 + (n.swell / 100) * Math.sin(Math.PI * ph);
+    let accent = 1;
+    if (P.accent && (n.layer === 'mel' || n.layer === 'har' || n.layer === 'dbl')) accent = Math.abs(mod(n.t, 1) - 0.5) < 1e-6 ? 1 + 0.45 * P.accent / 100 : 1 - 0.2 * P.accent / 100;
+    n.s = toSec(n.t); n.e = toSec(n.t + n.d * art); n.dd = n.d * art; n.vel = Math.min(1, n.v * swell * accent);
+  }
+  all.sort((a, b) => a.s - b.s);
+  SONG = { k: built[0].k, prog, mel, cm: { notes: cmNotes, motion }, notes: all, total, length: toSec(total), toSec, bps, secs };
+  render();
+}
+
+// ── readouts and drawing ─────────────────────────────────────────────────────────────────────
+const LAYERS = [['mel', 'melody', '--mel'], ['dbl', 'doubling', '--dbl'], ['cm', 'countermelody', '--cm'], ['har', 'harmony', '--har'], ['bass', 'bass / ostinato', '--bass'], ['fill', 'runs', '--fill'], ['perc', 'percussion', '--perc']];
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function render() {
+  const s = SONG, prog = s.prog;
+  const chrom = prog.filter((x) => x.ch.kind !== 'dia'||x.ch.american);
+  const count = (kind) => prog.filter((x) => x.ch.kind === kind).length;
+  const flag = (f) => prog.filter((x) => x[f]).length;
+  const mo = s.cm.motion, contr = mo.length ? Math.round(100 * mo.filter((m) => m.kind === 'C').length / mo.length) : 0, bad = mo.filter((m) => m.bad).length;
+  const path = []; for (const x of prog) if (!path.length || path[path.length - 1] !== x.ch.label) path.push(x.ch.displayLabel||x.ch.label);
+  const keys = []; for (const x of s.secs) { const l = keyLabel(x.k) + (x.rel ? ' (' + x.rel + ')' : ''); if (!keys.length || keys[keys.length - 1].split(' (')[0] !== keyLabel(x.k)) keys.push(l); }
+  const bars = Math.round(s.total / P.meter);
+  const named = (list) => list.filter(([n]) => n).map(([n, l]) => n + ' ' + l).join(', ');
+  const devices = named([
+    [flag('dec'), 'deceptive (phrase expanded)'], [flag('mutable'), 'cadence in the relative key'], [flag('plagal'), 'plagal'],
+    [Math.round(count('lament') / 6), 'lament bass'], [Math.round(count('seq5') / 3), 'descending fifths'],
+    [s.notes.filter((n) => n.susp).length, 'suspensions'], [s.notes.filter((n) => n.cinner).length, 'chromatic inner notes'], [count('magic'), 'magic chords'], [count('picardy'), 'Picardy third'],
+  ]);
+  const kv = [
+    ['Key', keys.join(' → ') + (P.mode2 === 'har' && P.keyIn === 'auto' ? ' (detected)' : '')],
+    ['Form', P.mode2 === 'har' ? bars + ' bars, your melody' : FORM_LABEL[P.form] + ', ' + bars + ' bars' + (s.secs.length > 1 ? ': ' + s.secs.map((x) => x.name).join(' · ') : '')],
+    ['Progression', path.slice(0, 14).join(' → ') + (path.length > 14 ? ' …' : '')],
+    ['Harmonic colour', chrom.length + ' of ' + prog.length + ' (' + (named([[prog.filter(x=>x.ch.american==='extended').length,'extended'], [prog.filter(x=>x.ch.american==='altered').length,'altered'], [prog.filter(x=>x.ch.american==='tritone').length,'tritone'], [prog.filter(x=>x.ch.american==='quartal').length,'quartal'], [count('applied'), 'applied'], [count('dim7'), 'dim7'], [count('aug6'), '+6'], [count('nap'), 'N6'], [count('mix'), 'borrowed'], [count('cad64'), '⁶₄'], [count('pass'), 'passing °7'], [count('ctdim'), 'ct°7'], [count('ctaug'), 'ct+6'], [count('halfdim'), 'iiø7'], [count('phr'), '♭II'], [count('modal'), '♭VII']]) || 'none') + ')'],
+    ['Voice-leading devices', devices || 'none'],
+    ['Countermelody', s.cm.notes.length ? s.cm.notes.length + ' notes, ' + contr + '% contrary, ' + (bad ? '<span style="color:var(--bad)">' + bad + ' parallel 5th/8ve</span>' : 'no parallel 5ths or 8ves') : 'off'],
+    ['Length', s.length.toFixed(1) + ' s at ' + P.tempo + ' BPM'],
+  ];
+  $('readout').innerHTML = kv.map(([a, b]) => '<div class="kv"><div class="k">' + a + '</div><div class="v">' + b + '</div></div>').join('');
+  const used = new Set(s.notes.map((n) => n.layer)), instOf = (l) => (s.notes.find((n) => n.layer === l) || {}).inst;
+  $('legend').innerHTML = LAYERS.filter(([l]) => used.has(l)).map(([l, name, c]) => '<span><i style="background:var(' + c + ')"></i>' + name + (l === 'perc' ? '' : ' · ' + (INSTR[instOf(l)] || '')) + '</span>').join('') +
+    '<span><i style="background:var(--fT)"></i>T</span><span><i style="background:var(--fPD)"></i>PD</span><span><i style="background:var(--fD)"></i>D</span><span><i style="background:var(--fX)"></i>chromatic</span>';
+  renderStudy(); save(); drawAll(-1);
+}
+let viewStart=0,viewEnd=0;
+function renderStudy(){
+  $('study-name').textContent=P.mode2==='har'?'Your melody, reimagined':TEXTURES[P.texture][0];
+  $('study-description').textContent=STUDY_DESCRIPTIONS[P.texture];
+  const selected=$('focus').value;
+  $('focus').innerHTML='<option value="all">Whole piece</option>'+SONG.secs.map((s,i)=>'<option value="'+i+'">'+s.name+' · '+keyLabel(s.k)+'</option>').join('');
+  $('focus').value=selected && (selected==='all'||SONG.secs[+selected])?selected:'all';updateFocus();
+}
+function updateFocus(){const section=SONG.secs[+$('focus').value];viewStart=$('focus').value==='all'?0:section?.start||0;viewEnd=$('focus').value==='all'?SONG.total:section?.end||SONG.total;
+ $('harm-list').innerHTML=SONG.prog.filter(s=>s.t>=viewStart&&s.t<viewEnd).map(s=>'<div class="chord-chip"><small>BAR '+(1+Math.floor(s.t/P.meter))+'</small><strong>'+chordSymbol(s.k,s.ch,s.ped)+'</strong><em>'+(s.ch.displayLabel||s.ch.label)+'</em><small>'+(s.ch.american||s.ch.fn)+'</small></div>').join('');
+}
+$('focus').addEventListener('change',()=>{updateFocus();drawAll(-1);});
+for(const mode of ['roll','harmony'])$('v-'+mode).addEventListener('click',()=>{$('roll').hidden=mode!=='roll';$('motion').hidden=mode!=='roll';$('harm-list').hidden=mode!=='harmony';for(const m of ['roll','harmony'])$('v-'+m).setAttribute('aria-pressed',String(m===mode));drawAll(-1);});
+function setup(c) { const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight; c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); return [g, w, h]; }
+const X = (b,w)=>6+((b-viewStart)/(viewEnd-viewStart||SONG.total))*(w-12);
+function drawAll(beat) { if (!SONG) return; drawHarm(beat); drawRoll(beat); drawMotion(beat); }
+// chord symbols to play along: root and quality from the chord's pitch classes, slash for the bass
+const SHARP_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'], FLAT_NAMES = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
+const QUALITY = { '0,4,7': '', '0,3,7': 'm', '0,3,6': '°', '0,4,8': '+', '0,4,7,10': '7', '0,4,10': '7', '0,3,6,9': '°7', '0,3,6,10': 'ø7', '0,4,7,11': 'maj7', '0,3,7,10': 'm7', '0,3,7,11': 'm(maj7)' };
+function chordSymbol(k, ch, ped = 'none') {
+  const major = k.mode === 'major' ? k.tonic : mod(k.tonic + 3, 12), names = [7, 2, 9, 4, 11, 6, 1].includes(major) ? SHARP_NAMES : FLAT_NAMES;
+  const root = mod(ch.root + k.tonic, 12), iv = [...new Set(ch.rel.map((x) => mod(x - ch.root, 12)))].sort((a, b) => a - b).join(',');
+  const pedalPc = ped === 'tonic' ? k.tonic : ped === 'dominant' ? mod(k.tonic + 7, 12) : null;
+  const bass = pedalPc !== null ? pedalPc : mod(ch.bass + k.tonic, 12);
+  return names[root] + (ch.quality ?? QUALITY[iv] ?? '') + (bass !== root ? '/' + names[bass] : '');
+}
+function drawHarm(beat) {
+  const [g, w, h] = setup($('harm')); g.fillStyle = css('--panel'); g.fillRect(0, 0, w, h);
+  for (const s of SONG.prog) {
+    const x0 = X(s.t, w), x1 = X(s.t + s.d, w), col = s.ch.fn === 'T' ? '--fT' : s.ch.fn === 'PD' ? '--fPD' : s.ch.fn === 'D' ? '--fD' : '--fX';
+    const now = beat >= s.t && beat < s.t + s.d;
+    if (now) { g.fillStyle = css('--raise'); g.fillRect(x0, 0, x1 - x0, h); }
+    g.fillStyle = css(col); g.globalAlpha = 0.85; g.fillRect(x0 + 1, 6, x1 - x0 - 2, 6); g.globalAlpha = 1;
+    g.save(); g.beginPath(); g.rect(x0, 14, x1 - x0 - 2, h - 14); g.clip();
+    g.fillStyle = css('--muted'); g.font = '12px "Fragment Mono", monospace'; g.fillText(s.ch.displayLabel||s.ch.label, x0 + 3, 30);
+    const sym = chordSymbol(s.k, s.ch, s.ped); let fs = 15; g.font = '600 15px "Figtree", sans-serif';
+    while (fs > 9 && g.measureText(sym).width > x1 - x0 - 6) { fs--; g.font = '600 ' + fs + 'px "Figtree", sans-serif'; }
+    g.fillStyle = now ? css('--mel') : css('--ink'); g.fillText(sym, x0 + 3, 52);
+    if (s.ped && s.ped !== 'none') { g.fillStyle = css('--faint'); g.font = '11px "Fragment Mono", monospace'; g.fillText('ped.', x0 + 3, 68); }
+    g.restore();
+  }
+  // section names along the bottom
+  g.font = '600 11px "Figtree", sans-serif';
+  for (const sc of SONG.secs) {
+    const x0 = X(sc.start, w), x1 = X(sc.end, w);
+    g.fillStyle = css('--line'); g.fillRect(x0, 74, 1, h - 74);
+    g.save(); g.beginPath(); g.rect(x0, 74, x1 - x0 - 2, h - 74); g.clip();
+    g.fillStyle = css('--mel'); g.fillText(sc.name + (sc.k && !sameKey(sc.k, SONG.k) ? ' · ' + keyLabel(sc.k) : ''), x0 + 4, 89); g.restore();
+  }
+  if (beat >= 0) { g.fillStyle = css('--mel'); g.fillRect(X(beat, w), 0, 2, h); }
+}
+function drawRoll(beat) {
+  const s = SONG, [g, w, h] = setup($('roll')), pitched = s.notes.filter((n) => n.layer !== 'perc'), perc = s.notes.length > pitched.length ? 12 : 0;
+  let lo = 127, hi = 0; for (const n of pitched) { lo = Math.min(lo, n.p); hi = Math.max(hi, n.p); } lo -= 2; hi += 2;
+  const row = (h - 8 - perc) / (hi - lo + 1), y = (p) => 4 + (hi - p) * row;
+  g.fillStyle = css('--bg'); g.fillRect(0, 0, w, h);
+  for (let p = lo; p <= hi; p++) if ([1, 3, 6, 8, 10].includes(p % 12)) { g.fillStyle = css('--grid'); g.fillRect(0, y(p), w, row); }
+  for (let b = 0; b <= s.total; b++) { g.fillStyle = b % P.meter === 0 ? css('--grid-bar') : css('--grid'); g.fillRect(Math.round(X(b, w)), 0, 1, h); }
+  g.fillStyle = css('--faint'); for (const sc of s.secs) g.fillRect(Math.round(X(sc.start, w)), 0, 2, h);
+  const order = ['har', 'bass', 'fill', 'dbl', 'cm', 'mel'];
+  for (const L of order) for (const n of pitched) {
+    if (n.layer !== L) continue;
+    g.fillStyle = css(LAYERS.find((x) => x[0] === L)[2]); g.globalAlpha = L === 'har' ? 0.45 : 0.4 + 0.6 * n.vel;
+    g.fillRect(X(n.t, w), y(n.p) + 0.5, Math.max(2, X(n.t + n.d, w) - X(n.t, w) - 1), Math.max(2, row - 1));
+    if (n.susp) { g.globalAlpha = 1; g.strokeStyle = css('--fX'); g.lineWidth = 1; g.strokeRect(X(n.t, w) - 0.5, y(n.p), Math.max(2, X(n.t + n.d, w) - X(n.t, w)), Math.max(2, row)); }
+  }
+  g.globalAlpha = 1;
+  if (perc) { g.fillStyle = css('--perc'); for (const n of s.notes) if (n.layer === 'perc') g.fillRect(X(n.t, w), h - perc + 2 + (n.drum === 'cast' ? 0 : 5), 2, 4); }
+  if (beat >= 0) { g.fillStyle = css('--mel'); g.fillRect(X(beat, w), 0, 2, h); }
+}
+function drawMotion(beat) {
+  const [g, w, h] = setup($('motion')); g.fillStyle = css('--panel'); g.fillRect(0, 0, w, h);
+  g.font = '11px "Fragment Mono", monospace'; g.textAlign = 'center';
+  for (const m of SONG.cm.motion) { g.fillStyle = m.bad ? css('--bad') : m.kind === 'C' ? css('--cm') : css('--faint'); g.fillText(m.bad ? '∥' : m.kind, X(m.t, w), 21); }
+  g.textAlign = 'left';
+  if (!SONG.cm.notes.length) { g.fillStyle = css('--faint'); g.fillText('countermelody off', 10, 21); }
+  if (beat >= 0) { g.fillStyle = css('--mel'); g.fillRect(X(beat, w), 0, 2, h); }
+}
+
+// ── synthesized orchestra ────────────────────────────────────────────────────────────────────
+const VOICES = { piano: {w:[['triangle',1,.55],['sine',2,.23],['sine',3,.08]],a:.003,tau:.65,sus:0,rel:.18,lp:8},
+  flute: { w: [['sine', 1, 0.7], ['triangle', 2, 0.12]], a: 0.04, tau: 3, sus: 0.85, rel: 0.12, lp: 6, vib: 0.006, breath: 0.06 },
+  piccolo: { w: [['sine', 1, 0.7], ['sine', 2, 0.08]], a: 0.03, tau: 3, sus: 0.85, rel: 0.08, lp: 6, vib: 0.006, breath: 0.05 },
+  oboe: { w: [['sawtooth', 1, 0.35], ['square', 1, 0.08]], a: 0.03, tau: 3, sus: 0.9, rel: 0.08, lp: 3.5, vib: 0.004, bp: 1300 },
+  englishhorn: { w: [['sawtooth', 1, 0.35]], a: 0.04, tau: 3, sus: 0.9, rel: 0.1, lp: 3, vib: 0.004, bp: 900 },
+  clarinet: { w: [['square', 1, 0.32], ['sine', 1, 0.2]], a: 0.03, tau: 3, sus: 0.9, rel: 0.08, lp: 4, vib: 0.002 },
+  bassclarinet: { w: [['square', 1, 0.35], ['sine', 1, 0.25]], a: 0.02, tau: 2, sus: 0.85, rel: 0.06, lp: 3 },
+  bassoon: { w: [['sawtooth', 1, 0.4]], a: 0.02, tau: 1.2, sus: 0.7, rel: 0.05, lp: 2.5, bp: 500 },
+  celesta: { w: [['sine', 1, 0.6], ['sine', 4, 0.16], ['sine', 2, 0.1]], a: 0.002, tau: 0.6, sus: 0, rel: 0.4, lp: 12 },
+  harp: { w: [['triangle', 1, 0.5], ['sine', 2, 0.18]], a: 0.003, tau: 0.9, sus: 0, rel: 0.5, lp: 6 },
+  strings: { w: [['sawtooth', 1, 0.2], ['sawtooth', 1.004, 0.2]], a: 0.12, tau: 4, sus: 0.9, rel: 0.35, lp: 3, vib: 0.005 },
+  cello: { w: [['sawtooth', 1, 0.24], ['sawtooth', 0.997, 0.18]], a: 0.08, tau: 4, sus: 0.9, rel: 0.3, lp: 2.6, vib: 0.004 },
+  pizz: { w: [['triangle', 1, 0.6], ['sine', 2, 0.15]], a: 0.002, tau: 0.22, sus: 0, rel: 0.12, lp: 5 },
+  horn: { w: [['sawtooth', 1, 0.25], ['sine', 1, 0.3]], a: 0.06, tau: 4, sus: 0.9, rel: 0.2, lp: 2.2, vib: 0.002 },
+  trumpet: { w: [['sawtooth', 1, 0.3], ['square', 1, 0.05]], a: 0.02, tau: 3, sus: 0.85, rel: 0.08, lp: 5, vib: 0.004, bp: 1400 },
+};
+let ac = null, master = null, wet = null, conv = null, playing = false, t0 = 0, cursor = 0, timer = null, raf = 0, noise = null;
+function audio() {
+  if (ac) return;
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 3; comp.connect(ac.destination);
+  master = ac.createGain(); master.connect(comp);
+  wet = ac.createGain(); wet.connect(master);
+  conv = ac.createConvolver(); const len = Math.floor(ac.sampleRate * 2.8), ir = ac.createBuffer(2, len, ac.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+  conv.buffer = ir; conv.connect(wet);
+  noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const nd = noise.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+}
+function playPerc(n, when) {
+  const s = ac.createBufferSource(), bf = ac.createBiquadFilter(), g = ac.createGain(), cast = n.drum === 'cast';
+  s.buffer = noise; bf.type = cast ? 'bandpass' : 'highpass'; bf.frequency.value = cast ? 3200 : 7000; bf.Q.value = cast ? 3 : 0.7;
+  const amp = (cast ? 0.5 : 0.16) * n.vel, dur = cast ? 0.035 : 0.12;
+  g.gain.setValueAtTime(amp, when); g.gain.exponentialRampToValueAtTime(0.001, when + dur);
+  s.connect(bf); bf.connect(g); g.connect(master); g.connect(conv); s.start(when, Math.random() * 0.5); s.stop(when + dur + 0.05);
+}
+function play(n, when) {
+  if (n.layer === 'perc') { master.gain.value = P.volume * 0.6; wet.gain.value = P.reverb; return playPerc(n, when); }
+  const V = VOICES[n.inst] || VOICES.flute, f = 440 * Math.pow(2, (n.p - 69) / 12), end = when + Math.max(0.05, n.e - n.s);
+  const out = ac.createGain(), lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = Math.min(15000, f * V.lp * (0.7 + 0.6 * n.vel));
+  let tail = lp;
+  if (V.bp) { const bp = ac.createBiquadFilter(); bp.type = 'peaking'; bp.frequency.value = V.bp; bp.gain.value = 6; bp.Q.value = 1.2; lp.connect(bp); tail = bp; }
+  out.connect(lp); tail.connect(master); tail.connect(conv);
+  master.gain.value = P.volume * 0.6; wet.gain.value = P.reverb;
+  const peak = 0.16 * n.vel;
+  out.gain.setValueAtTime(0, when); out.gain.linearRampToValueAtTime(peak, when + V.a);
+  if (V.sus > 0) out.gain.setTargetAtTime(peak * V.sus, when + V.a, V.tau * 0.3); else out.gain.setTargetAtTime(0, when + V.a, V.tau);
+  out.gain.setTargetAtTime(0, end, V.rel);
+  for (const [type, mul, amp] of V.w) {
+    const o = ac.createOscillator(), gg = ac.createGain(); o.type = type; o.frequency.value = f * mul; gg.gain.value = amp;
+    if (V.vib) { const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = 5.2; lg.gain.value = f * mul * V.vib; l.connect(lg); lg.connect(o.frequency); l.start(when + 0.15); l.stop(end + V.rel * 5); }
+    o.connect(gg); gg.connect(out); o.start(when); o.stop(end + V.rel * 5 + 0.1);
+  }
+  if (V.breath) { const s = ac.createBufferSource(), bf = ac.createBiquadFilter(), bg = ac.createGain(); s.buffer = noise; bf.type = 'bandpass'; bf.frequency.value = f * 2; bf.Q.value = 2; bg.gain.setValueAtTime(V.breath * n.vel, when); bg.gain.setTargetAtTime(0, when + 0.03, 0.05); s.connect(bf); bf.connect(bg); bg.connect(out); s.start(when); s.stop(when + 0.3); }
+}
+function schedule() {
+  const s = SONG, now = ac.currentTime; if (!s.notes.length) return;
+  while (true) { const loop = Math.floor(cursor / s.notes.length), n = s.notes[cursor % s.notes.length], when = t0 + loop * s.length + n.s; if (when > now + 0.15) break; if (when >= now - 0.05) play(n, when); cursor++; }
+}
+function beatNow() { const s = SONG, el = mod(ac.currentTime - t0, s.length); let lo = 0, hi = s.total; for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (s.toSec(m) < el) lo = m; else hi = m; } return lo; }
+function frame() { if (!playing) return; document.querySelector('.statusdot').textContent='● PLAYING · BAR '+(1+Math.floor(beatNow()/P.meter)); drawAll(beatNow()); raf = requestAnimationFrame(frame); }
+function start() { audio(); ac.resume(); playing = true; t0 = ac.currentTime + 0.08; cursor = 0; timer = setInterval(schedule, 25); schedule(); raf = requestAnimationFrame(frame); $('play').textContent = 'Stop'; $('play').setAttribute('aria-pressed', 'true'); }
+function stop() { document.querySelector('.statusdot').textContent='● READY TO PLAY'; playing = false; clearInterval(timer); cancelAnimationFrame(raf); if (master) { master.gain.setTargetAtTime(0, ac.currentTime, 0.04); } $('play').textContent = 'Play'; $('play').setAttribute('aria-pressed', 'false'); drawAll(-1); }
+function restartFromHere() {
+  if (!playing) return;
+  const b = beatNow(); clearInterval(timer); master.gain.setTargetAtTime(0, ac.currentTime, 0.03);
+  setTimeout(() => { master.gain.cancelScheduledValues(ac.currentTime); const s = SONG, pos = s.toSec(Math.min(b, s.total - 0.001)); t0 = ac.currentTime + 0.05 - pos; cursor = s.notes.findIndex((n) => n.s >= pos); if (cursor < 0) cursor = s.notes.length; timer = setInterval(schedule, 25); schedule(); }, 90);
+}
+
+// ── wiring ───────────────────────────────────────────────────────────────────────────────────
+let soon = 0;
+function changed() { build(); restartFromHere(); }
+function changedSoon() { clearTimeout(soon); soon = setTimeout(changed, 140); }
+function setMode(m) {
+  P.mode2 = m; $('m-gen').setAttribute('aria-pressed', String(m === 'gen')); $('m-har').setAttribute('aria-pressed', String(m === 'har'));
+  $('editor').hidden = m !== 'har'; changed();
+}
+$('m-gen').addEventListener('click', () => setMode('gen'));
+$('m-har').addEventListener('click', () => setMode('har'));
+$('play').addEventListener('click', () => (playing ? stop() : start()));
+$('regen').addEventListener('click', () => { P.mSeed = Math.floor(Math.random() * 1000); P.hSeed = Math.floor(Math.random() * 1000); P.cSeed = Math.floor(Math.random() * 1000); syncControls(); changed(); });
+const tex = $('texture');
+tex.innerHTML = Object.entries(TEXTURES).map(([k2, v]) => '<option value="' + k2 + '">' + v[0] + '</option>').join('');
+tex.value = P.texture;
+tex.addEventListener('change', () => { const keep = P.mode2 === 'har' ? { tonic: P.tonic, mode: P.mode, meter: P.meter } : {}; P = { ...P, ...TEX_RESET, ...TEXTURES[tex.value][1], texture: tex.value, ...keep }; syncControls(); changed(); });
+const lib = $('lib');
+lib.innerHTML = '<option value="">Pick a melody…</option>' + Object.entries(LIB).map(([k2, v]) => '<option value="' + k2 + '">' + v[0] + '</option>').join('');
+lib.addEventListener('change', () => { const v = LIB[lib.value]; if (!v) return; $('melody').value = v[1]; P.meter = v[2]; P.keyIn = 'auto'; syncControls(); changed(); });
+$('harmonize').addEventListener('click', changed);
+// a key choice for the editor: Auto or any key
+const keySel = document.createElement('select'); keySel.id = 'keyin'; keySel.setAttribute('aria-label', 'Key of your melody');
+keySel.innerHTML = '<option value="auto">Key: detect</option>' + NAMES.flatMap((n, i) => [['major', n + ' major'], ['minor', n + ' minor']].map(([m, t]) => '<option value="' + i + ':' + m + '">' + t + '</option>')).join('');
+keySel.value = P.keyIn; keySel.addEventListener('change', () => { P.keyIn = keySel.value; changed(); });
+document.querySelector('.ed-head').insertBefore(keySel, $('harmonize'));
+$('melody').value = (() => { try { return localStorage.getItem('american-songbook.melody') || LIB.boulevard[1]; } catch (e) { return LIB.boulevard[1]; } })();
+$('melody').addEventListener('input', () => { try { localStorage.setItem('american-songbook.melody', $('melody').value); } catch (e) {} });
+const toast = (t) => { $('toast').textContent = t; setTimeout(() => { $('toast').textContent = ''; }, 2200); };
+$('copy').addEventListener('click', () => { const t = JSON.stringify(P); navigator.clipboard.writeText(t).then(() => toast('Copied'), () => toast('Copy was blocked here')); });
+// send the generated melody to the editor, to study how Koji harmonizes it
+$('tostudy').addEventListener('click', () => {
+  if (!SONG) return;
+  const L = { 4: 'w', 3: 'h.', 2: 'h', 1.5: 'q.', 1: 'q', 0.75: 'e.', 0.5: 'e', 0.25: 's' };
+  const toks = []; let t = 0;
+  for (const n of SONG.mel.filter((m) => !m.grace).sort((a, b) => a.t - b.t)) {
+    const nt = n.t0 ?? n.t, nd = n.d0 ?? n.d;
+    if (nt > t + 1e-6) { const gap = nt - t; toks.push('r/' + (L[Math.round(gap * 4) / 4] || 'q')); }
+    const nm = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'][n.p % 12] + (Math.floor(n.p / 12) - 1);
+    toks.push(nm + '/' + (L[Math.round(nd * 4) / 4] || 'q')); t = nt + nd;
+  }
+  $('melody').value = toks.join(' '); P.keyIn = P.tonic + ':' + P.mode; keySel.value = P.keyIn; setMode('har');
+});
+window.addEventListener('resize', () => drawAll(playing ? beatNow() : -1));
+
+// ── MIDI export: a format-1 file per layer and one with every layer, zipped ───────────────────
+// (the viewer's save allowlist has no .mid, so the files travel in a .zip)
+const GM = { piano:0, trumpet: 56, flute: 73, piccolo: 72, oboe: 68, englishhorn: 69, clarinet: 71, bassclarinet: 71, bassoon: 70, celesta: 8, harp: 46, strings: 48, cello: 42, pizz: 45, horn: 60 };
+const PPQ = 480;
+function vlq(n) { const b = [n & 0x7f]; while ((n >>= 7) > 0) b.unshift((n & 0x7f) | 0x80); return b; }
+const u32 = (n) => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
+const txt = (str) => [...new TextEncoder().encode(str)];
+function mtrk(events) {
+  events.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const out = []; let last = 0;
+  for (const [tick, , bytes] of events) { out.push(...vlq(tick - last), ...bytes); last = tick; }
+  out.push(0, 0xff, 0x2f, 0);
+  return [...txt('MTrk'), ...u32(out.length), ...out];
+}
+function smf(layers) {
+  const s = SONG, sf = (() => { const maj = (s.k.mode === 'major' ? s.k.tonic : mod(s.k.tonic + 3, 12)); const f = [0, -5, 2, -3, 4, -1, 6, 1, -4, 3, -2, 5][maj]; return f & 255; })();
+  const ts = P.sub === 3 ? [P.meter * 3, 3, 12, 8] : [P.meter, 2, 24, 8];
+  const cond = [[0, 0, [0xff, 0x03, ...vlq(txt('American Songbook').length), ...txt('American Songbook')]], [0, 2, [0xff, 0x58, 4, ...ts]], [0, 3, [0xff, 0x59, 2, sf, s.k.mode === 'major' ? 0 : 1]]];
+  // a tempo map: section tempos, the coda's acceleration and the rubato, one event per beat when it moves
+  let lastUs = -1;
+  for (let b = 0; b <= s.total; b++) { const us = Math.round(60000000 / (s.bps(Math.min(b, s.total - 1e-3)) * 60)); if (lastUs < 0 || Math.abs(us - lastUs) / lastUs > 0.005) { cond.push([b * PPQ, 1, [0xff, 0x51, 3, (us >> 16) & 255, (us >> 8) & 255, us & 255]]); lastUs = us; } }
+  const tracks = [mtrk(cond)];
+  let chn = 0;
+  for (const L of layers) {
+    let ch = 9;
+    if (L !== 'perc') { if (chn === 9) chn++; ch = chn++; }
+    const notes = s.notes.filter((n) => n.layer === L), name = LAYERS.find((x) => x[0] === L)[1];
+    const ev = [[0, 0, [0xff, 0x03, ...vlq(txt(name).length), ...txt(name)]]];
+    let cur = null;
+    for (const n of notes) {
+      const on = Math.max(0, Math.round(n.t * PPQ)), off = Math.max(on + 1, Math.round((n.t + (n.dd ?? n.d)) * PPQ)), v = Math.max(1, Math.min(127, Math.round(n.vel * 127)));
+      if (L !== 'perc' && n.inst !== cur) { ev.push([on, 1, [0xc0 | ch, GM[n.inst] ?? 0]]); cur = n.inst; }
+      const key = L === 'perc' ? (n.drum === 'cast' ? 75 : 54) : n.p;
+      ev.push([on, 3, [0x90 | ch, key, v]], [off, 2, [0x80 | ch, key, 0]]);
+    }
+    tracks.push(mtrk(ev));
+  }
+  return new Uint8Array([...txt('MThd'), 0, 0, 0, 6, 0, 1, 0, tracks.length, (PPQ >> 8) & 255, PPQ & 255, ...tracks.flat()]);
+}
+const CRC = (() => { const t = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[i] = c >>> 0; } return t; })();
+const crc32 = (b) => { let c = 0xffffffff; for (const x of b) c = CRC[(c ^ x) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+function zip(files) {
+  const le16 = (n) => [n & 255, (n >> 8) & 255], le32 = (n) => [n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255];
+  const parts = [], central = []; let off = 0;
+  for (const [name, data] of files) {
+    const nm = new TextEncoder().encode(name), crc = crc32(data);
+    const head = [...le32(0x04034b50), ...le16(20), ...le16(0), ...le16(0), ...le16(0), ...le16(0x21), ...le32(crc), ...le32(data.length), ...le32(data.length), ...le16(nm.length), ...le16(0)];
+    parts.push(new Uint8Array(head), nm, data);
+    central.push(new Uint8Array([...le32(0x02014b50), ...le16(20), ...le16(20), ...le16(0), ...le16(0), ...le16(0), ...le16(0x21), ...le32(crc), ...le32(data.length), ...le32(data.length), ...le16(nm.length), ...le16(0), ...le16(0), ...le16(0), ...le16(0), ...le32(0), ...le32(off)]), nm);
+    off += head.length + nm.length + data.length;
+  }
+  const csize = central.reduce((a, b) => a + b.length, 0);
+  return new Blob([...parts, ...central, new Uint8Array([...le32(0x06054b50), 0, 0, 0, 0, ...le16(files.length), ...le16(files.length), ...le32(csize), ...le32(off), 0, 0])]);
+}
+function midiZip() {
+  const s = SONG, used = LAYERS.map((x) => x[0]).filter((L) => s.notes.some((n) => n.layer === L));
+  const base = ('american-songbook-' + (P.mode2 === 'har' ? 'harmonized' : P.texture) + '-' + NAMES[s.k.tonic].replace('♯', 's').replace('♭', 'b') + (s.k.mode === 'major' ? '' : 'm') + '-' + P.mSeed + '-' + P.hSeed + '-' + P.cSeed).toLowerCase();
+  const files = [[base + '.mid', smf(used)]];
+  for (const L of used) files.push([base + '-' + L + '.mid', smf([L])]);
+  files.push([base + '-settings.json', new TextEncoder().encode(JSON.stringify({ ...P, melodyText: P.mode2 === 'har' ? $('melody').value : undefined }, null, 2))]);
+  return [base + '.zip', zip(files)];
+}
+window.__americanMidiZip = midiZip;
+(async () => {
+  const dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null;
+  const b = $('savemidi'); b.hidden = false;
+  if (!dl) {
+    b.addEventListener('click', () => {
+      const [filename, data] = midiZip();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type: 'application/zip' }));
+      a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); toast('Saved ' + filename);
+    });
+    return;
+  }
+  b.addEventListener('click', async () => {
+    const [filename, data] = midiZip();
+    try { await dl.save({ filename, data }); toast('Saved ' + filename); }
+    catch (e) { const c = e && e.code; if (c === 'declined') return; if (c === 'rate_limited') toast('A save prompt is already open'); else { toast('Saving is not available here'); if (c === 'unavailable' || c === 'not_granted' || c === 'capability_disabled' || c === 'capability_removed') b.hidden = true; } }
+  });
+})();
+buildControls();
+$('editor').hidden = P.mode2 !== 'har';
+$('m-gen').setAttribute('aria-pressed', String(P.mode2 !== 'har')); $('m-har').setAttribute('aria-pressed', String(P.mode2 === 'har'));
+build();
+})();
+</script>
+
+<a href="/" class="beast-sound-home" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 12px/1 system-ui,-apple-system,sans-serif;color:#fff;background:rgba(0,0,0,.66);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:7px 11px;text-decoration:none" aria-label="All Beast Sound pages">&#9666; All pages</a>
+</body></html>

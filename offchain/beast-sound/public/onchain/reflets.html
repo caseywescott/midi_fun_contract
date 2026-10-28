@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reflets</title>
+<meta name="description" content="Impressionist harmony after Debussy, Ravel and Mel Bonis: planing, whole-tone and pentatonic colour, pedal points, ninth and eleventh chords, modal cadences, Fauré-style slides. Generate, listen, save MIDI.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Figtree:wght@400;500;600&family=Fragment+Mono&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f3f1ea; --panel: #fbfaf6; --raise: #ece8dd; --line: #d9d3c4; --ink: #1f2a33; --muted: #55626b; --faint: #8a949a;
+  --mel: #2f6db3; --cm: #b2507f; --acc: #4f8f6a; --bass: #8a6a2e; --color: #c08a12; --drum: #7d7d7d;
+  --d-modal: #4f8f6a; --d-plan: #2f6db3; --d-real: #6a4fb3; --d-wt: #b2507f; --d-pent: #c08a12; --d-ext: #2a8f8f; --d-slide: #d0602a; --d-func: #7d6a52; --d-phr: #c0392b; --d-quart: #5c7f9e; --d-plagal: #3e7d3e; --d-tonic: #55626b;
+  --grid: #ebe7dc; --grid-bar: #d4cdbd;
+  --display: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --sans: "Figtree", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Fragment Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  color-scheme: dark;
+  --bg: #12161b; --panel: #181e24; --raise: #212a32; --line: #2f3a44; --ink: #e9eef2; --muted: #a9b5be; --faint: #6f7c86;
+  --mel: #7fb2f0; --cm: #f08fbd; --acc: #84cfa0; --bass: #d8b46a; --color: #f2c45a; --drum: #9aa3a9;
+  --d-modal: #84cfa0; --d-plan: #7fb2f0; --d-real: #b39cf5; --d-wt: #f08fbd; --d-pent: #f2c45a; --d-ext: #6fd6d6; --d-slide: #ff9a62; --d-func: #c9b48f; --d-phr: #ff7b6b; --d-quart: #9cc0de; --d-plagal: #9bd99b; --d-tonic: #a9b5be;
+  --grid: #161c22; --grid-bar: #26313a;
+} }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #12161b; --panel: #181e24; --raise: #212a32; --line: #2f3a44; --ink: #e9eef2; --muted: #a9b5be; --faint: #6f7c86;
+  --mel: #7fb2f0; --cm: #f08fbd; --acc: #84cfa0; --bass: #d8b46a; --color: #f2c45a; --drum: #9aa3a9;
+  --d-modal: #84cfa0; --d-plan: #7fb2f0; --d-real: #b39cf5; --d-wt: #f08fbd; --d-pent: #f2c45a; --d-ext: #6fd6d6; --d-slide: #ff9a62; --d-func: #c9b48f; --d-phr: #ff7b6b; --d-quart: #9cc0de; --d-plagal: #9bd99b; --d-tonic: #a9b5be;
+  --grid: #161c22; --grid-bar: #26313a;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font: 14px/1.55 var(--sans); }
+.app { max-width: 1320px; margin: 0 auto; padding: 0 16px 56px; }
+header.bar { position: sticky; top: 0; z-index: 5; background: var(--bg); display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+h1 { font: 600 34px/1 var(--display); margin: 0; letter-spacing: .01em; }
+h1 em { font-style: italic; font-weight: 500; color: var(--muted); font-size: 20px; margin-left: 8px; }
+.spacer { margin-right: auto; }
+.btn { font: 600 13px/1 var(--sans); border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 10px 15px; cursor: pointer; }
+.btn:hover { border-color: var(--faint); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); min-width: 92px; }
+.intro { color: var(--muted); max-width: 820px; margin: 14px 0 18px; font-size: 15px; }
+.composers { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.composers button { font: 600 22px/1 var(--display); padding: 8px 16px 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); cursor: pointer; }
+.composers button[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); background: var(--raise); }
+.styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.style { text-align: left; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 12px; padding: 12px 14px; cursor: pointer; font: inherit; }
+.style b { font: 600 19px/1.15 var(--display); display: block; }
+.style i { color: var(--muted); font-size: 12.5px; display: block; margin: 2px 0 6px; }
+.style span { color: var(--muted); font-size: 13px; display: block; }
+.style[aria-pressed="true"] { border-color: var(--mel); box-shadow: 0 0 0 1px var(--mel) inset; background: color-mix(in srgb, var(--mel) 7%, var(--panel)); }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+.now { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline; margin-bottom: 10px; }
+.now b { font: 600 24px/1.1 var(--display); }
+.now span { color: var(--muted); font-size: 13px; }
+.lane { position: relative; height: 64px; border-radius: 8px; background: var(--grid); overflow: hidden; }
+.lane .ch { position: absolute; top: 4px; bottom: 4px; border-radius: 6px; padding: 4px 6px; font: 12px/1.2 var(--mono); color: var(--ink); overflow: hidden; white-space: nowrap; border-top: 4px solid var(--dc); background: color-mix(in srgb, var(--dc) 13%, var(--panel)); }
+.lane .ch small { display: block; color: var(--muted); font: 10.5px/1.2 var(--sans); }
+.lane .ch.on { background: color-mix(in srgb, var(--dc) 30%, var(--panel)); }
+.lane .sec { position: absolute; top: 0; bottom: 0; border-left: 2px solid var(--ink); opacity: .35; }
+canvas#roll { width: 100%; height: 300px; display: block; border-radius: 8px; background: var(--grid); margin-top: 8px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.ctl label { display: block; font-size: 12.5px; color: var(--muted); margin: 10px 0 3px; }
+.ctl label b { color: var(--ink); font-weight: 600; }
+.ctl input[type=range] { width: 100%; }
+.ctl select { width: 100%; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; }
+.layer { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: center; margin-top: 8px; }
+.layer label { margin: 0; display: flex; gap: 6px; align-items: center; color: var(--ink); font-size: 13px; }
+.layer label i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+h2 { font: 600 24px/1.2 var(--display); margin: 4px 0 10px; }
+.devs { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.dev { border: 1px solid var(--line); border-left: 4px solid var(--dc); border-radius: 10px; padding: 10px 12px; background: var(--panel); }
+.dev b { font-size: 14px; } .dev em { color: var(--faint); font-style: normal; font-size: 12px; margin-left: 6px; }
+.dev p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.dev p.ref { font-style: italic; font-size: 12.5px; }
+.listen { color: var(--muted); font-size: 14px; margin: 0; }
+.note { color: var(--faint); font-size: 12.5px; margin: 8px 0 0; }
+kbd { font: 11px var(--mono); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+</style>
+</head>
+<body>
+<div class="app">
+<header class="bar">
+  <h1>Reflets <em>Debussy · Ravel · Mel Bonis</em></h1>
+  <span class="spacer"></span>
+  <button class="btn primary" id="play">&#9654; Play</button>
+  <button class="btn" id="take">New take</button>
+  <button class="btn" id="save">Save MIDI</button>
+</header>
+<p class="intro">Impressionist harmony treats a chord as a colour, not a step toward the next one: shapes slide in parallel, the bass holds still while harmonies drift above, scales without a leading tone (whole-tone, pentatonic, the church modes) take away the pull home, and ninths and elevenths become places to rest. Pick a style, press Play, and New take writes another piece with the same devices. The coloured strip names every chord and the device that produced it.</p>
+<div class="composers" id="composers" role="group" aria-label="Composer"></div>
+<div class="styles" id="styles"></div>
+<div class="grid">
+  <div>
+    <div class="card">
+      <div class="now"><b id="nowTitle"></b><span id="nowMeta"></span></div>
+      <div class="lane" id="lane" aria-label="Chords and devices"></div>
+      <canvas id="roll" aria-label="Piano roll"></canvas>
+      <div class="legend" id="legend"></div>
+      <p class="note">Keys: <kbd>space</kbd> play/stop · <kbd>N</kbd> new take · <kbd>&larr;</kbd> <kbd>&rarr;</kbd> previous / next style. The address bar keeps the style and take.</p>
+    </div>
+    <div class="card"><h2>What you're hearing</h2><p class="listen" id="listen"></p><div class="devs" id="devs" style="margin-top:12px"></div></div>
+  </div>
+  <div class="ctl">
+    <div class="card">
+      <label for="key">Key: <b id="keyv"></b></label><select id="key"></select>
+      <label for="tempo">Tempo: <b id="tempov"></b></label><input type="range" id="tempo" min="40" max="180" step="1">
+      <label for="colour">Colour (ninths, elevenths, added notes): <b id="colourv"></b></label><input type="range" id="colour" min="0" max="100" step="1">
+      <label for="rubato">Rubato: <b id="rubatov"></b></label><input type="range" id="rubato" min="0" max="100" step="1">
+      <label for="reverb">Hall: <b id="reverbv"></b></label><input type="range" id="reverb" min="0" max="100" step="1">
+      <label for="volume">Volume: <b id="volumev"></b></label><input type="range" id="volume" min="0" max="100" step="1">
+    </div>
+    <div class="card" id="layers"><b style="font-size:13px">Layers and instruments</b></div>
+  </div>
+</div>
+</div>
+<a class="beast-sound-home" href="/" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 12px/1 system-ui,-apple-system,sans-serif;color:#fff;background:rgba(0,0,0,.66);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:7px 11px;text-decoration:none" aria-label="All Beast Sound pages">&#9666; All pages</a>
+<script>
+'use strict';
+const $ = (id) => document.getElementById(id);
+const mod = (a, n) => ((a % n) + n) % n;
+function rng(seed) {
+  let a = seed >>> 0;
+  const f = () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  f.int = (n) => Math.floor(f() * n); f.pick = (xs) => xs[f.int(xs.length)]; f.chance = (p) => f() < p;
+  return f;
+}
+const hash = (s) => { let h = 2166136261 >>> 0; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h; };
+
+// ── scales and chord shapes ─────────────────────────────────────────────────────────────────────
+const MODES = {
+  ionian: [0, 2, 4, 5, 7, 9, 11], dorian: [0, 2, 3, 5, 7, 9, 10], phrygian: [0, 1, 3, 5, 7, 8, 10], lydian: [0, 2, 4, 6, 7, 9, 11],
+  mixolydian: [0, 2, 4, 5, 7, 9, 10], aeolian: [0, 2, 3, 5, 7, 8, 10], harmonic: [0, 2, 3, 5, 7, 8, 11], phrygdom: [0, 1, 4, 5, 7, 8, 10],
+  pent: [0, 2, 4, 7, 9], mpent: [0, 3, 5, 7, 10], wt: [0, 2, 4, 6, 8, 10],
+};
+const SH = {
+  maj: [0, 4, 7], min: [0, 3, 7], aug: [0, 4, 8], dim: [0, 3, 6], sus2: [0, 2, 7], sus4: [0, 5, 7], add6: [0, 4, 7, 9], m6: [0, 3, 7, 9],
+  add9: [0, 4, 7, 14], madd9: [0, 3, 7, 14], six9: [0, 4, 7, 9, 14], maj7: [0, 4, 7, 11], m7: [0, 3, 7, 10], dom7: [0, 4, 7, 10], hd7: [0, 3, 6, 10],
+  dim7: [0, 3, 6, 9], maj9: [0, 4, 7, 11, 14], m9: [0, 3, 7, 10, 14], dom9: [0, 4, 7, 10, 14], dom13: [0, 4, 10, 14, 21], b9: [0, 4, 7, 10, 13],
+  maj7s11: [0, 4, 7, 11, 18], m11: [0, 3, 7, 10, 14, 17], dom11: [0, 7, 10, 14, 17], aug7: [0, 4, 8, 10], wt9: [0, 4, 8, 10, 14], mmaj9: [0, 3, 7, 11, 14],
+  fifths: [0, 7, 12], fifths9: [0, 7, 14], oct5: [0, 7, 12, 19], quart3: [0, 5, 10], quart4: [0, 5, 10, 15], m7b9: [0, 3, 7, 10, 13], maj13: [0, 4, 7, 11, 14, 21],
+};
+const SYM = {
+  maj: '', min: 'm', aug: '+', dim: '°', sus2: 'sus2', sus4: 'sus4', add6: '6', m6: 'm6', add9: 'add9', madd9: 'm(add9)', six9: '6/9', maj7: 'maj7', m7: 'm7', dom7: '7', hd7: 'ø7',
+  dim7: '°7', maj9: 'maj9', m9: 'm9', dom9: '9', dom13: '13', b9: '7♭9', maj7s11: 'maj7♯11', m11: 'm11', dom11: '11', aug7: '+7', wt9: '9♯5', mmaj9: 'm(maj9)',
+  fifths: '5', fifths9: '5(add9)', oct5: '5', quart3: ' in 4ths', quart4: ' in 4ths', m7b9: 'm7♭9', maj13: 'maj13',
+};
+const NOTE_S = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'], NOTE_F = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'C♭'];
+const FLAT_KEYS = new Set([1, 3, 5, 6, 8, 10]);
+const NOTE_SH = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+const nm = (pc, flats) => { const n = (flats === 'sharp' ? NOTE_SH : flats ? NOTE_F : NOTE_S)[mod(pc, 12)]; return n === 'C♭' && flats !== 'gb' ? 'B' : n; };
+const shapeName = (ints) => { const s = ints.join(','); for (const [k, v] of Object.entries(SH)) if (v.join(',') === s) return k; return null; };
+function chordSym(slot, flats) {
+  const k = shapeName(slot.ints), r = nm(slot.root, flats);
+  let s = k ? r + SYM[k] : r + '(' + slot.ints.slice(1).join(' ') + ')';
+  if (slot.bass !== null && slot.bass !== undefined && mod(slot.bass, 12) !== mod(slot.root, 12)) s += '/' + nm(slot.bass, flats);
+  return s;
+}
+
+// The style's chord vocabulary: diatonic stacks in the current key, named shapes, slots.
+function ctxFor(tonic, mode) {
+  const sc = MODES[mode];
+  const deg = (d) => tonic + sc[mod(d, sc.length)] + 12 * Math.floor(d / sc.length);
+  /** a diatonic chord on degree d (0-based): n notes stacked in thirds within the mode */
+  const st = (d, n = 3, skip = 2) => { const ps = []; for (let k = 0; k < n; k++) ps.push(deg(d + skip * k)); return { root: mod(ps[0], 12), ints: ps.map((p) => p - ps[0]) }; };
+  const ch = (semi, shape) => ({ root: mod(tonic + semi, 12), ints: SH[shape] });
+  return { tonic, mode, sc, deg, st, ch };
+}
+const S = (d, c, dev, bass = null) => ({ d, root: c.root, ints: c.ints, bass: bass === null ? null : mod(bass, 12), dev });
+/** add colour: the "Colour" control turns triads into 7ths and 9ths, 7ths into 9ths (diatonic to the chord's quality) */
+function colourise(slot, amount, r) {
+  if (!r.chance(amount)) return slot;
+  const k = shapeName(slot.ints);
+  const up = { maj: 'add9', min: 'm7', add6: 'six9', maj7: 'maj9', m7: 'm9', dom7: 'dom9', add9: 'maj9', m9: 'm11', madd9: 'm9' }[k];
+  return up ? { ...slot, ints: SH[up] } : slot;
+}
+
+// ── devices: names, colours, explanations ─────────────────────────────────────────────────────
+const DEV = {
+  modal: ['Modal harmony', '--d-modal', 'Chords drawn from a church mode (Dorian, Mixolydian, Aeolian, Lydian, Phrygian) rather than major or minor. Without a leading tone there is no V–I pull: the music hovers.', 'Debussy, Sarabande; Ravel, Pavane pour une infante défunte; Mel Bonis, Mélisande'],
+  plan: ['Diatonic planing', '--d-plan', 'One chord shape slides in parallel along the scale, its intervals adjusting to stay in key. The harmony becomes a thickened melody rather than a progression.', 'Debussy, La cathédrale engloutie; Arabesque No. 1'],
+  real: ['Real planing', '--d-real', 'The exact same chord (often a ninth or major seventh) moved in parallel onto roots outside the key. Colour replaces function: the chords never “resolve”, they glide.', 'Debussy, Nuages and Fêtes; Ravel, Jeux d’eau'],
+  wt: ['Whole-tone', '--d-wt', 'Six equal whole steps and the augmented chords they make. No step is a home, so nothing pulls anywhere: the classic sound of drifting mist.', 'Debussy, Voiles; Mel Bonis, Mélisande (touches)'],
+  pent: ['Pentatonic', '--d-pent', 'Five notes, no semitones (the black keys). Chords made from it are added-sixth and added-ninth clusters that can never clash.', 'Debussy, Pagodes and La fille aux cheveux de lin; Ravel, Laideronnette'],
+  pedal: ['Pedal point', '--d-tonic', 'The bass holds one note while the harmonies above change, so every chord is heard against the same ground.', 'Debussy, La cathédrale engloutie and Voiles; Ravel, Le gibet'],
+  ext: ['Extended chords', '--d-ext', 'Ninths, elevenths, thirteenths and added sixths used as stable sonorities. They are places to rest, not dissonances that must resolve.', 'Ravel, Jeux d’eau and Valses nobles; Debussy, Clair de lune; Mel Bonis'],
+  quart: ['Quartal chords', '--d-quart', 'Chords stacked in fourths instead of thirds: open, bell-like and without a clear major or minor quality.', 'Ravel, Laideronnette; Debussy, La cathédrale engloutie'],
+  slide: ['Fauré slide', '--d-slide', 'A sudden shift to a distant key: one note is held, the others move by a half step, and the music lands somewhere unexpected but smooth.', 'Fauré’s pupils and circle; Mel Bonis, salon pieces and Femmes de légende'],
+  func: ['Romantic function', '--d-func', 'The older grammar underneath: ii–V–I and secondary dominants, enriched with ninths and thirteenths. Bonis keeps it; Debussy mostly abandons it.', 'Mel Bonis; Ravel, Valses nobles et sentimentales'],
+  phr: ['Phrygian / Spanish', '--d-phr', 'The chord a half step above the tonic (♭II) and the Andalusian descent (i–♭VII–♭VI–V): the Spanish colour French composers loved.', 'Ravel, Rapsodie espagnole (Habanera); Debussy, La soirée dans Grenade'],
+  plagal: ['Modal cadence', '--d-plagal', 'Phrases close with IV–I, ♭VII–I or ii–I instead of V–I, often onto an added-sixth or ninth chord that stays open.', 'Debussy, La fille aux cheveux de lin; Ravel, Pavane'],
+  appog: ['Held appoggiatura', '--d-ext', 'A melody note a step above (or below) a chord tone lands on the beat and is held, so the “wrong” note becomes part of the chord: Ravel’s bittersweet seventh.', 'Ravel, Valses nobles et sentimentales and Pavane'],
+};
+
+// ── the styles ──────────────────────────────────────────────────────────────────────────────────
+// Each style: meter (beats a bar), unit (quarters per beat), its tempo, key and mode, the melody's scale,
+// rhythm and register, the textures, instruments, and harmony recipes per section (each returns 4 bars of slots).
+const STYLES = [
+  {
+    id: 'cathedral', composer: 'Debussy', title: 'Sunken Cathedral', ref: 'after La cathédrale engloutie (Préludes I, 1910)',
+    blurb: 'Open fifths and octaves planed over a held low C, a pentatonic chant in octaves, bells.',
+    listen: 'Listen for the bass that never moves while open-fifth chords rise above it like a cathedral surfacing, then the chant doubled in octaves, and the low bell on each phrase.',
+    meter: 4, unit: 1, bpm: 56, tonic: 0, mode: 'ionian', mel: { set: 'pent', rhythm: 'chant', lo: 64, hi: 81, octaves: true }, colourDef: 25,
+    tex: { acc: 'chorale', bass: 'pedal', color: 'bells', counter: null }, inst: { mel: 'piano', acc: 'piano', bass: 'piano', color: 'glock', cm: 'strings' },
+    keyB: 4, form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => { const line = r.pick([[7, 9, 2, 4], [2, 4, 7, 9], [9, 7, 4, 2]]); return [...line.map((s) => S(4, k.ch(s, 'oct5'), 'plan', k.tonic))]; },
+    A2: (k, r) => [S(2, k.st(4), 'plan', k.tonic), S(2, k.st(5), 'plan', k.tonic), S(2, k.st(3), 'plan', k.tonic), S(2, k.st(1), 'plan', k.tonic), S(4, k.ch(7, 'fifths9'), 'quart', k.tonic + 7), S(4, k.ch(0, 'add9'), 'plagal')],
+    B: (k, r) => [S(4, k.ch(0, 'maj'), 'modal', k.tonic - 4), S(4, k.ch(2, 'maj'), 'real', k.tonic - 4), S(4, k.ch(-1, 'dom9'), 'real'), S(4, k.ch(0, 'add9'), 'ext')],
+    coda: (k) => [S(4, k.ch(5, 'add9'), 'plagal', k.tonic), S(4, k.ch(0, 'oct5'), 'pedal', k.tonic)],
+  },
+  {
+    id: 'voiles', composer: 'Debussy', title: 'Sails', ref: 'after Voiles (Préludes I, 1910)',
+    blurb: 'Whole-tone mist over a B♭ pedal: augmented chords, a line in parallel thirds, a pentatonic gust in the middle.',
+    listen: 'Listen for the whole-tone scale: six equal steps, so there is no home note. The bass B♭ never changes. In the middle the scale suddenly becomes pentatonic and the harp sweeps.',
+    meter: 4, unit: 1, bpm: 66, tonic: 10, mode: 'wt', mel: { set: 'wt', rhythm: 'lyric', lo: 66, hi: 84, thirds: true }, colourDef: 0,
+    tex: { acc: 'arabesque', bass: 'pedal', color: 'none', counter: null }, inst: { mel: 'flute', acc: 'harp', bass: 'piano', color: 'celesta', cm: 'clarinet' },
+    keyB: 5, modeB: 'mpent', form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => { const a = r.pick([[0, 2, 0, 2], [0, 2, 4, 2], [2, 0, 2, 0]]); return a.map((s, i) => S(4, k.ch(s, i % 2 ? 'aug' : 'aug7'), 'wt', k.tonic)); },
+    A2: (k, r) => [S(2, k.ch(4, 'aug'), 'wt', k.tonic), S(2, k.ch(2, 'aug'), 'wt', k.tonic), S(2, k.ch(0, 'wt9'), 'wt', k.tonic), S(2, k.ch(-2, 'aug'), 'wt', k.tonic), S(8, k.ch(0, 'aug7'), 'pedal', k.tonic)],
+    B: (k, r) => [S(4, k.ch(0, 'madd9'), 'pent', k.tonic), S(4, k.ch(3, 'six9'), 'pent', k.tonic), S(4, k.ch(10, 'sus2'), 'pent', k.tonic), S(4, k.ch(0, 'm7'), 'pent', k.tonic)],
+    coda: (k) => [S(4, k.ch(0, 'aug'), 'wt', k.tonic), S(4, k.ch(0, 'wt9'), 'pedal', k.tonic)],
+  },
+  {
+    id: 'flaxen', composer: 'Debussy', title: 'Flaxen Hair', ref: 'after La fille aux cheveux de lin (Préludes I, 1910)',
+    blurb: 'A pentatonic tune, gentle planed triads, added sixths and soft plagal cadences in G♭ major.',
+    listen: 'Listen for phrases that end IV–I onto a chord with an added sixth, never V–I: gentle, open, unpushed. The tune itself uses only the five pentatonic notes.',
+    meter: 3, unit: 1, bpm: 66, tonic: 6, mode: 'ionian', mel: { set: 'pent', rhythm: 'lyric', lo: 63, hi: 80 }, colourDef: 35,
+    tex: { acc: 'arp', bass: 'root', color: 'none', counter: null }, inst: { mel: 'piano', acc: 'piano', bass: 'piano', color: 'celesta', cm: 'cello' },
+    keyB: 5, form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => [S(3, k.ch(0, 'add6'), 'pent'), S(3, k.st(5, 4), 'modal'), S(3, k.ch(5, 'add9'), 'modal'), S(3, k.ch(0, 'add6'), 'plagal')],
+    A2: (k, r) => { const d = r.pick([[4, 3, 2, 1], [5, 4, 3, 2], [3, 2, 1, 0]]); return [S(1.5, k.st(d[0]), 'plan'), S(1.5, k.st(d[1]), 'plan'), S(1.5, k.st(d[2]), 'plan'), S(1.5, k.st(d[3]), 'plan'), S(3, k.st(1, 4), 'modal'), S(3, k.ch(0, 'six9'), 'plagal', k.tonic)]; },
+    B: (k, r) => [S(3, k.ch(0, 'add9'), 'ext'), S(3, k.st(2, 4), 'modal'), S(3, k.ch(-2, 'maj'), 'modal'), S(3, k.ch(-5, 'add9'), 'plagal')],
+    coda: (k) => [S(3, k.st(1, 4), 'plagal', k.tonic), S(3, k.ch(0, 'six9'), 'ext')],
+  },
+  {
+    id: 'arabesque', composer: 'Debussy', title: 'Arabesque', ref: 'after Arabesque No. 1 (1888–91)',
+    blurb: 'Flowing triplets in E major, a descending chain of planed triads, ninth chords, harp and flute.',
+    listen: 'Listen for the opening chain: the same triad shape stepping down the scale one beat at a time (planing), then ninth chords that settle without a firm cadence. The harp never stops flowing in triplets.',
+    meter: 4, unit: 1, bpm: 76, tonic: 4, mode: 'ionian', mel: { set: 'mode', rhythm: 'arabesque', lo: 66, hi: 86 }, colourDef: 45,
+    tex: { acc: 'arabesque', bass: 'root', color: 'none', counter: 'line' }, inst: { mel: 'flute', acc: 'harp', bass: 'harp', color: 'celesta', cm: 'clarinet' },
+    keyB: 9, modeB: 'dorian', form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => { const top = r.pick([7, 5, 4]); return [0, 1, 2, 3, 4, 5, 6, 7].map((i) => S(1, k.st(top - i), 'plan')).concat([S(4, k.st(1, 5), 'ext'), S(4, k.st(4, 4), 'ext')]); },
+    A2: (k, r) => [S(4, k.st(5, 5), 'ext'), S(4, k.st(1, 5), 'ext'), S(4, k.ch(7, 'sus4'), 'modal'), S(4, k.ch(0, 'add9'), 'ext')],
+    B: (k, r) => [S(4, k.st(0, 5), 'modal'), S(4, k.st(3, 4), 'modal'), S(4, k.st(6, 4), 'modal'), S(4, k.st(0, 4), 'modal')],
+    coda: (k) => [S(4, k.st(1, 5), 'plagal', k.tonic), S(4, k.ch(0, 'maj9'), 'ext', k.tonic)],
+  },
+  {
+    id: 'clair', composer: 'Debussy', title: 'Moonlight', ref: 'after Clair de lune (Suite bergamasque, 1890–1905)',
+    blurb: 'D♭ major in 9/8: rippling broken chords, major-seventh and ninth colour, a middle section a third away.',
+    listen: 'Listen for the 9/8 lilt (three beats, each split in three), chords that add sevenths and ninths for colour, and the middle section that slips up a minor third to E major before drifting home.',
+    meter: 3, unit: 1.5, sub: 3, bpm: 50, tonic: 1, mode: 'ionian', mel: { set: 'mode', rhythm: 'nine', lo: 65, hi: 84 }, colourDef: 50,
+    tex: { acc: 'arp', bass: 'root', color: 'none', counter: null }, inst: { mel: 'piano', acc: 'piano', bass: 'piano', color: 'celesta', cm: 'cello' },
+    keyB: 3, form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => [S(3, k.st(2, 3), 'modal', k.tonic + 4), S(3, k.st(5, 4), 'ext'), S(3, k.st(3, 4), 'ext'), S(3, k.st(1, 4), 'ext')],
+    A2: (k, r) => [S(3, k.st(4, 4), 'modal'), S(3, k.ch(0, 'maj7'), 'ext'), S(3, k.st(1, 5), 'ext'), S(3, k.ch(0, 'add9'), 'plagal')],
+    B: (k, r) => [S(3, k.ch(0, 'maj9'), 'slide'), S(3, k.st(5, 5), 'ext'), S(1.5, k.st(1, 4), 'plan'), S(1.5, k.st(2, 4), 'plan'), S(3, k.ch(-3, 'dom9'), 'slide')],
+    coda: (k) => [S(3, k.ch(5, 'maj7'), 'plagal', k.tonic), S(3, k.ch(0, 'add9'), 'ext', k.tonic)],
+  },
+  {
+    id: 'pavane', composer: 'Ravel', title: 'Pavane', ref: 'after Pavane pour une infante défunte (1899)',
+    blurb: 'A slow processional in G: horn melody, plucked bass, modal chords with ♭VII, held appoggiaturas.',
+    listen: 'Listen for the F-major chord (♭VII) that shouldn’t be in G major, the slow plucked bass, and melody notes that lean on the chord a step away before (sometimes never) resolving.',
+    meter: 4, unit: 1, bpm: 54, tonic: 7, mode: 'mixolydian', mel: { set: 'mode', rhythm: 'chant', lo: 60, hi: 77, appog: true }, colourDef: 35,
+    tex: { acc: 'pavane', bass: 'pizz', color: 'none', counter: 'line' }, inst: { mel: 'horn', acc: 'strings', bass: 'contrabass', color: 'harp', cm: 'clarinet' },
+    keyB: 9, modeB: 'aeolian', form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => [S(4, k.ch(0, 'maj7'), 'modal'), S(2, k.st(5, 4), 'modal'), S(2, k.st(1, 4), 'modal'), S(4, k.ch(-2, 'maj'), 'modal'), S(2, k.ch(5, 'maj7'), 'plagal'), S(2, k.ch(0, 'maj'), 'plagal')],
+    A2: (k, r) => [S(2, k.st(1, 4), 'modal'), S(2, k.st(2, 4), 'modal'), S(4, k.ch(5, 'maj7'), 'modal'), S(4, k.ch(-2, 'add9'), 'modal'), S(4, k.ch(0, 'add6'), 'plagal')],
+    B: (k, r) => [S(4, k.ch(0, 'm7'), 'modal'), S(2, k.ch(5, 'm7'), 'modal'), S(2, k.ch(-2, 'maj'), 'modal'), S(4, k.ch(3, 'maj7'), 'modal'), S(2, k.ch(-4, 'maj7'), 'modal'), S(2, k.ch(7, 'min'), 'modal')],
+    coda: (k) => [S(2, k.ch(5, 'maj'), 'plagal'), S(2, k.ch(-2, 'maj'), 'plagal'), S(4, k.ch(0, 'add9'), 'plagal')],
+  },
+  {
+    id: 'jeux', composer: 'Ravel', title: 'Fountains', ref: 'after Jeux d’eau (1901)',
+    blurb: 'Glittering high sixteenths in E major: major sevenths, Lydian II over a pedal, planed major-seventh chords.',
+    listen: 'Listen for water in the high register: fast broken major-seventh and ninth chords. The F♯ major chord over an E bass is Lydian colour. Major-seventh chords slide in parallel by whole steps.',
+    meter: 4, unit: 1, bpm: 70, tonic: 4, mode: 'lydian', mel: { set: 'mode', rhythm: 'lyric', lo: 68, hi: 86 }, colourDef: 60,
+    tex: { acc: 'water', bass: 'root', color: 'glitter', counter: null }, inst: { mel: 'piano', acc: 'piano', bass: 'piano', color: 'celesta', cm: 'flute' },
+    keyB: 8, form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => [S(4, k.ch(0, 'maj9'), 'ext'), S(4, k.ch(2, 'maj'), 'modal', k.tonic), S(4, k.ch(5, 'maj7s11'), 'ext'), S(4, k.ch(0, 'maj7'), 'ext')],
+    A2: (k, r) => { const step = r.pick([-2, 2]); return [S(2, k.ch(0, 'maj7'), 'real'), S(2, k.ch(step, 'maj7'), 'real'), S(2, k.ch(2 * step, 'maj7'), 'real'), S(2, k.ch(step, 'maj7'), 'real'), S(4, k.ch(7, 'maj'), 'pedal', k.tonic), S(4, k.ch(0, 'maj9'), 'ext')]; },
+    B: (k, r) => [S(4, k.ch(0, 'dom9'), 'real'), S(4, k.ch(3, 'dom9'), 'real'), S(4, k.ch(6, 'dom9'), 'real'), S(4, k.ch(10, 'six9'), 'pent')],
+    coda: (k) => [S(4, k.ch(0, 'maj7s11'), 'ext', k.tonic), S(4, k.ch(0, 'six9'), 'ext', k.tonic)],
+  },
+  {
+    id: 'laideronnette', phraseScale: 2, sharps: true, composer: 'Ravel', title: 'Pagoda Empress', ref: 'after Laideronnette, impératrice des pagodes (Ma mère l’Oye, 1910)',
+    blurb: 'Black-key pentatonic on F♯: celesta ostinato, chords in fourths, a gong on each phrase.',
+    listen: 'Listen for the five black-key notes only, a bright repeating ostinato underneath, chords built in fourths, and the gong that marks each phrase.',
+    meter: 2, unit: 1, bpm: 108, tonic: 6, mode: 'pent', mel: { set: 'pent', rhythm: 'dance', lo: 66, hi: 85 }, colourDef: 0,
+    tex: { acc: 'ostinato', bass: 'fifths', color: 'gong', counter: null }, inst: { mel: 'flute', acc: 'celesta', bass: 'harp', color: 'gong', cm: 'glock' },
+    keyB: 0, form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => [S(2, k.ch(0, 'six9'), 'pent', k.tonic), S(2, k.ch(7, 'quart3'), 'quart', k.tonic), S(2, k.ch(2, 'sus2'), 'pent', k.tonic), S(2, k.ch(0, 'six9'), 'pent', k.tonic)],
+    A2: (k, r) => [S(2, k.ch(9, 'quart4'), 'quart'), S(2, k.ch(7, 'quart4'), 'quart'), S(2, k.ch(4, 'quart4'), 'quart'), S(2, k.ch(2, 'quart3'), 'quart')],
+    B: (k, r) => [S(2, k.ch(9, 'min'), 'pent', k.tonic + 9), S(2, k.ch(4, 'quart3'), 'quart', k.tonic + 9), S(2, k.ch(7, 'six9'), 'pent', k.tonic + 7), S(2, k.ch(0, 'six9'), 'pent', k.tonic)],
+    coda: (k) => [S(2, k.ch(7, 'quart4'), 'quart', k.tonic), S(2, k.ch(0, 'six9'), 'pent', k.tonic)],
+  },
+  {
+    id: 'valses', phraseScale: 2, composer: 'Ravel', title: 'Noble Waltzes', ref: 'after Valses nobles et sentimentales (1911)',
+    blurb: 'A waltz in G with bite: ninth, eleventh and thirteenth chords, held appoggiaturas, parallel ninths.',
+    listen: 'Listen for waltz chords that keep a “wrong” note in them (an appoggiatura that never resolves), elevenths and thirteenths on the downbeat, and a pair of ninth chords sliding down in parallel.',
+    meter: 3, unit: 1, bpm: 150, tonic: 7, mode: 'ionian', mel: { set: 'mode', rhythm: 'waltz', lo: 66, hi: 86, appog: true }, colourDef: 70,
+    tex: { acc: 'waltz', bass: 'waltz', color: 'none', counter: null }, inst: { mel: 'piano', acc: 'piano', bass: 'piano', color: 'celesta', cm: 'strings' },
+    keyB: 3, modeB: 'dorian', form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => [S(3, k.ch(0, 'maj9'), 'ext'), S(3, k.st(1, 6), 'ext'), S(3, k.ch(7, 'dom13'), 'func'), S(3, k.ch(0, 'maj7'), 'appog')],
+    A2: (k, r) => [S(3, k.ch(9, 'dom9'), 'real'), S(3, k.ch(7, 'dom9'), 'real'), S(3, k.st(2, 4), 'func'), S(3, k.st(5, 5), 'func'), S(3, k.st(1, 5), 'func'), S(3, k.ch(7, 'dom11'), 'func'), S(6, k.ch(0, 'six9'), 'ext')].slice(0, 4).concat([]),
+    B: (k, r) => [S(3, k.st(0, 5), 'modal'), S(3, k.ch(5, 'dom9'), 'modal'), S(3, k.st(0, 4), 'modal'), S(3, k.ch(-2, 'maj7'), 'modal')],
+    coda: (k) => [S(3, k.ch(7, 'dom13'), 'func'), S(3, k.ch(0, 'add9'), 'ext', k.tonic)],
+  },
+  {
+    id: 'habanera', phraseScale: 2, composer: 'Ravel', title: 'Habanera', ref: 'after Rapsodie espagnole, Habanera (1907)',
+    blurb: 'D minor, a dominant pedal, the habanera rhythm, Phrygian ♭II and the Andalusian descent, castanets.',
+    listen: 'Listen for the A held in the bass under everything, the dotted habanera rhythm, the E♭ chord a half step above D (the Phrygian ♭II), and the falling D–C–B♭–A line.',
+    meter: 2, unit: 1, bpm: 64, tonic: 2, mode: 'harmonic', mel: { set: 'mode', rhythm: 'habanera', lo: 62, hi: 79, ornaments: true }, colourDef: 20,
+    tex: { acc: 'habanera', bass: 'pedal5', color: 'castanets', counter: null }, inst: { mel: 'clarinet', acc: 'harp', bass: 'contrabass', color: 'harp', cm: 'strings' },
+    keyB: 3, modeB: 'ionian', form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => [S(2, k.ch(0, 'min'), 'phr', k.tonic + 7), S(2, k.ch(1, 'maj7'), 'phr', k.tonic + 7), S(2, k.ch(0, 'madd9'), 'phr', k.tonic + 7), S(2, k.ch(7, 'b9'), 'phr', k.tonic + 7)],
+    A2: (k, r) => [S(2, k.ch(0, 'min'), 'phr'), S(2, k.ch(-2, 'maj'), 'phr'), S(2, k.ch(-4, 'maj7'), 'phr'), S(2, k.ch(-5, 'maj'), 'phr')],
+    B: (k, r) => [S(2, k.ch(0, 'add6'), 'ext'), S(2, k.ch(2, 'm9'), 'ext'), S(2, k.ch(7, 'dom9'), 'func'), S(2, k.ch(1, 'dom9'), 'slide')],
+    coda: (k) => [S(2, k.ch(1, 'maj7'), 'phr'), S(2, k.ch(0, 'maj'), 'phr')],
+  },
+  {
+    id: 'melisande', composer: 'Mel Bonis', title: 'Mélisande', ref: 'after Femmes de légende: Mélisande (piano)',
+    blurb: 'Dorian on D: harp arpeggios, a flute line, ninth chords, a whole-tone shadow, a slide to a distant key.',
+    listen: 'Listen for the Dorian major IV (G major in D minor), an augmented chord that briefly clouds each phrase (a whole-tone shadow), and the middle section that slides by a half step into a faraway key.',
+    meter: 4, unit: 1, bpm: 60, tonic: 2, mode: 'dorian', mel: { set: 'mode', rhythm: 'lyric', lo: 64, hi: 82 }, colourDef: 50,
+    tex: { acc: 'arp', bass: 'root', color: 'none', counter: null }, inst: { mel: 'flute', acc: 'harp', bass: 'harp', color: 'celesta', cm: 'cello' },
+    keyB: 8, modeB: 'ionian', form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => [S(4, k.ch(0, 'm9'), 'modal'), S(4, k.ch(5, 'dom9'), 'modal'), S(4, k.ch(10, 'maj7'), 'modal'), S(4, k.ch(0, 'aug'), 'wt')],
+    A2: (k, r) => [S(4, k.ch(0, 'madd9'), 'modal'), S(4, k.ch(3, 'maj7'), 'modal'), S(2, k.ch(5, 'maj'), 'modal'), S(2, k.ch(7, 'm7'), 'modal'), S(4, k.ch(0, 'm9'), 'plagal')],
+    B: (k, r) => [S(4, k.ch(0, 'maj9'), 'slide'), S(4, k.ch(9, 'm9'), 'ext'), S(4, k.ch(5, 'maj7'), 'ext'), S(4, k.ch(-1, 'dom9'), 'slide')],
+    coda: (k) => [S(4, k.ch(5, 'maj'), 'plagal'), S(4, k.ch(0, 'madd9'), 'modal', k.tonic)],
+  },
+  {
+    id: 'salome', composer: 'Mel Bonis', title: 'Salomé', ref: 'after Femmes de légende: Salomé (piano)',
+    blurb: 'An exotic dance on E: harmonic minor with its augmented second, ♭II, ornamented melody, tambourine.',
+    listen: 'Listen for the augmented second in the tune (C to D♯), turns and grace notes, the F major chord a half step above E, and a middle section where E becomes a bright major chord with a Phrygian edge.',
+    meter: 4, unit: 1, bpm: 96, tonic: 4, mode: 'harmonic', mel: { set: 'mode', rhythm: 'dance', lo: 64, hi: 83, ornaments: true }, colourDef: 15,
+    tex: { acc: 'ostinato', bass: 'fifths', color: 'tamb', counter: null }, inst: { mel: 'clarinet', acc: 'harp', bass: 'cello', color: 'celesta', cm: 'flute' },
+    keyB: 0, modeB: 'phrygdom', form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => [S(4, k.ch(0, 'min'), 'phr'), S(4, k.ch(1, 'maj'), 'phr'), S(4, k.ch(0, 'min'), 'phr'), S(4, k.ch(7, 'b9'), 'func')],
+    A2: (k, r) => [S(4, k.ch(5, 'min'), 'modal'), S(4, k.ch(8, 'maj'), 'modal'), S(4, k.ch(7, 'aug'), 'wt'), S(4, k.ch(0, 'min'), 'phr')],
+    B: (k, r) => [S(4, k.ch(0, 'maj'), 'phr'), S(4, k.ch(1, 'maj'), 'phr'), S(4, k.ch(3, 'maj'), 'phr'), S(4, k.ch(1, 'maj7'), 'phr')],
+    coda: (k) => [S(4, k.ch(1, 'maj'), 'phr'), S(4, k.ch(0, 'min'), 'phr', k.tonic)],
+  },
+  {
+    id: 'barcarolle', composer: 'Mel Bonis', title: 'Salon Barcarolle', ref: 'after Bonis’s salon piano pieces',
+    blurb: 'A rocking 6/8 in A♭: Romantic ii–V–I warmed with ninths, then a Fauré slide to a distant key and back.',
+    listen: 'Listen for the boat-like 6/8 rocking in the left hand, a real ii–V–I (Bonis keeps Romantic function) with ninths and thirteenths, and the moment one note holds while the rest slip a half step into E major.',
+    meter: 6, unit: 0.5, bpm: 132, tonic: 8, mode: 'ionian', mel: { set: 'mode', rhythm: 'lyric', lo: 65, hi: 83 }, colourDef: 45,
+    tex: { acc: 'barcarolle', bass: 'none', color: 'none', counter: 'line' }, inst: { mel: 'piano', acc: 'piano', bass: 'piano', color: 'celesta', cm: 'cello' },
+    keyB: 8, form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => [S(6, k.ch(0, 'maj7'), 'func'), S(6, k.st(5, 5), 'func'), S(6, k.st(1, 5), 'func'), S(6, k.ch(7, 'dom13'), 'func')],
+    A2: (k, r) => [S(6, k.ch(0, 'add9'), 'func'), S(6, k.ch(4, 'dom7'), 'func'), S(6, k.st(5, 4), 'func'), S(3, k.ch(5, 'm6'), 'plagal'), S(3, k.ch(0, 'add6'), 'plagal')],
+    B: (k, r) => [S(6, k.ch(0, 'maj9'), 'slide'), S(6, k.st(1, 5), 'func'), S(6, k.ch(7, 'dom9'), 'func'), S(6, k.ch(4, 'dom7'), 'slide')],
+    coda: (k) => [S(6, k.ch(5, 'm6'), 'plagal'), S(6, k.ch(0, 'six9'), 'ext')],
+  },
+  {
+    id: 'foret', composer: 'Mel Bonis', title: 'Forest Scenes', ref: 'after Scènes de la forêt (flute, horn, piano)',
+    blurb: 'Pastoral F major: flute tune, horn countermelody, ninth chords, chromatic-mediant slides to D♭ and A.',
+    listen: 'Listen for the horn answering the flute, ninth chords over a held bass, and two slides to keys a major third away (D♭, then A) that return home through a plagal cadence with a minor iv.',
+    meter: 4, unit: 1, bpm: 72, tonic: 5, mode: 'ionian', mel: { set: 'mode', rhythm: 'lyric', lo: 67, hi: 86 }, colourDef: 45,
+    tex: { acc: 'arp', bass: 'root', color: 'none', counter: 'horn' }, inst: { mel: 'flute', acc: 'piano', bass: 'piano', color: 'celesta', cm: 'horn' },
+    keyB: 8, form: ['A', 'A2', 'B', 'A', 'coda'],
+    A: (k, r) => [S(4, k.ch(0, 'add9'), 'ext'), S(4, k.ch(5, 'maj'), 'pedal', k.tonic), S(4, k.st(1, 5), 'func'), S(4, k.ch(7, 'dom9'), 'func')],
+    A2: (k, r) => [S(4, k.ch(0, 'maj7'), 'ext'), S(4, k.st(5, 5), 'func'), S(2, k.ch(5, 'maj'), 'plagal'), S(2, k.ch(5, 'min'), 'plagal'), S(4, k.ch(0, 'add9'), 'plagal')],
+    B: (k, r) => [S(4, k.ch(0, 'maj9'), 'slide'), S(4, k.ch(5, 'maj7'), 'ext'), S(4, k.ch(8, 'maj9'), 'slide'), S(4, k.ch(7, 'dom9'), 'slide')],
+    coda: (k) => [S(4, k.ch(5, 'm6'), 'plagal'), S(4, k.ch(0, 'six9'), 'ext', k.tonic)],
+  },
+];
+STYLES.forEach((s) => { if (s.id === 'valses') s.A2 = (k) => [S(3, k.ch(9, 'dom9'), 'real'), S(3, k.ch(7, 'dom9'), 'real'), S(3, k.st(1, 5), 'func'), S(3, k.ch(7, 'dom11'), 'func')]; });
+const COMPOSERS = ['Debussy', 'Ravel', 'Mel Bonis'];
+
+// ── melody ──────────────────────────────────────────────────────────────────────────────────────
+const RH = {
+  chant: { 4: [[2, 2], [1, 1, 2], [4], [3, 1], [2, 1, 1]], 3: [[2, 1], [3], [1, 1, 1]], 2: [[1, 1], [2]] },
+  lyric: { 4: [[1.5, 0.5, 1, 1], [2, 1, 1], [3, 1], [1, 1, 2], [1, 0.5, 0.5, 2], [2, 2]], 3: [[2, 1], [1.5, 0.5, 1], [1, 1, 1], [3], [1, 2]], 2: [[1.5, 0.5], [1, 1], [0.5, 0.5, 1], [2]], 6: [[3, 2, 1], [2, 1, 3], [3, 3], [1, 1, 1, 3], [6], [4, 2]] },
+  arabesque: { 4: [[1 / 3, 1 / 3, 1 / 3, 1 / 3, 1 / 3, 1 / 3, 2], [2, 1 / 3, 1 / 3, 1 / 3, 1], [1 / 3, 1 / 3, 1 / 3, 1, 2], [1, 1, 1 / 3, 1 / 3, 1 / 3, 1], [3, 1]] },
+  nine: { 3: [[2, 1], [1, 2 / 3, 1 / 3, 1], [3], [1, 1, 1], [1 / 3, 1 / 3, 1 / 3, 2], [2, 1 / 3, 2 / 3]] },
+  waltz: { 3: [[2, 1], [1, 1, 1], [3], [1.5, 0.5, 1], [1, 2]] },
+  dance: { 4: [[0.5, 0.5, 1, 0.5, 0.5, 1], [1, 0.5, 0.5, 2], [0.75, 0.25, 0.5, 0.5, 2], [1, 1, 0.5, 0.5, 1]], 2: [[0.75, 0.25, 0.5, 0.5], [0.5, 0.5, 1], [1, 0.5, 0.5], [2]] },
+  habanera: { 2: [[1.5, 0.5], [0.75, 0.25, 1], [0.5, 0.5, 0.5, 0.5], [2], [1, 1]] },
+};
+const pcsOf = (slot) => [...new Set(slot.ints.map((i) => mod(slot.root + i, 12)))];
+function setPcs(st, sec) { // the melody's scale for a section, relative to its tonic
+  const name = st.mel.set === 'mode' ? sec.mode : st.mel.set === 'pent' ? (['aeolian', 'dorian', 'phrygian', 'harmonic', 'mpent'].includes(sec.mode) ? 'mpent' : 'pent') : st.mel.set === 'wt' ? (sec.mode === 'mpent' ? 'mpent' : 'wt') : sec.mode;
+  return MODES[name].map((x) => mod(x + sec.tonic, 12));
+}
+/** pitch classes the melody may use over a chord: the set, with any note a semitone from a chord tone replaced by that chord tone */
+function usable(set, slot) {
+  const ct = pcsOf(slot), out = new Set();
+  for (const p of set) { const clash = ct.find((c) => mod(p - c, 12) === 1 || mod(c - p, 12) === 1); out.add(clash !== undefined && !ct.includes(p) ? clash : p); }
+  ct.forEach((c) => { if (set.length >= 6) out.add(c); });
+  return [...out];
+}
+const inRange = (pcs, lo, hi) => { const o = []; for (let p = lo; p <= hi; p++) if (pcs.includes(mod(p, 12))) o.push(p); return o; };
+const nearest = (list, p) => list.reduce((a, b) => (Math.abs(b - p) < Math.abs(a - p) ? b : a), list[0]);
+const stepIn = (list, p, k) => { let i = list.indexOf(nearest(list, p)); return list[Math.max(0, Math.min(list.length - 1, i + k))]; };
+
+function melodyFor(st, sec, slots, r, push, t0) {
+  const M = st.mel, bar = st.meter, set = setPcs(st, sec), cells = (RH[M.rhythm] || RH.lyric)[bar] || RH.lyric[bar] || [[bar]];
+  const total = slots.reduce((a, s) => a + s.d, 0), bars = Math.round(total / bar);
+  const slotAt = (t) => { let a = 0; for (const s of slots) { if (t < a + s.d - 1e-9) return s; a += s.d; } return slots[slots.length - 1]; };
+  let prev = Math.round((M.lo + M.hi) / 2) + r.int(5) - 2;
+  const motif = [r.pick(cells), r.pick(cells)];
+  const out = [];
+  for (let b = 0; b < bars; b++) {
+    const last = b === bars - 1, cell = last ? r.pick(cells.filter((c) => c.length <= 2)) || [bar] : b === 2 ? motif[0] : b < 2 ? motif[b] : r.pick(cells);
+    let t = b * bar;
+    cell.forEach((d, i) => {
+      const slot = slotAt(t), list = inRange(usable(set, slot), M.lo, M.hi), tones = inRange(pcsOf(slot), M.lo, M.hi);
+      const strong = Math.abs(t % (bar === 6 ? 3 : bar >= 4 ? 2 : bar)) < 1e-6;
+      const pos = (t + d / 2) / total, target = M.lo + (M.hi - M.lo) * (0.3 + 0.5 * Math.sin(Math.PI * Math.min(1, pos * 1.15)));
+      const dir = prev < target - 2 ? 1 : prev > target + 2 ? -1 : r.chance(0.5) ? 1 : -1;
+      const x = r();
+      let p = stepIn(list, prev, x < 0.12 ? 0 : x < 0.72 ? dir : x < 0.92 ? 2 * dir : -dir);
+      if ((strong || d >= 2) && tones.length && !M.appog) p = nearest(tones, p);
+      if (last && i === cell.length - 1) p = nearest(tones.length ? tones : list, prev);
+      // a held appoggiatura (Ravel): on a strong beat, lean a step above a chord tone and resolve (or not)
+      if (M.appog && strong && d >= 1 && tones.length && r.chance(0.55)) {
+        const goal = nearest(tones, p), lean = stepIn(list, goal, 1);
+        if (lean !== goal && r.chance(0.6)) { out.push({ t: t0 + t, d: d * 0.6, p: lean, v: 0.82 }); out.push({ t: t0 + t + d * 0.6, d: d * 0.4, p: goal, v: 0.7 }); prev = goal; t += d; return; }
+        p = lean; // held: it stays as part of the chord
+      }
+      // ornaments: a turn or grace before longer notes
+      if (M.ornaments && d >= 1 && r.chance(0.35)) {
+        const up = stepIn(list, p, 1), dn = stepIn(list, p, -1), g = Math.min(0.25, d / 4);
+        [up, p, dn].forEach((q, k) => out.push({ t: t0 + t + k * g / 1.5, d: g / 1.5, p: q, v: 0.62 }));
+        out.push({ t: t0 + t + g * 2, d: d - g * 2, p, v: 0.84 }); prev = p; t += d; return;
+      }
+      out.push({ t: t0 + t, d, p, v: strong ? 0.86 : 0.74 });
+      prev = p; t += d;
+    });
+  }
+  for (const n of out) {
+    push('mel', n.t, n.d * 0.96, n.p, n.v);
+    if (M.octaves) push('mel', n.t, n.d * 0.96, n.p - 12, n.v * 0.8);
+    if (M.thirds) { const sl = slotAt(n.t - t0), l2 = inRange(usable(set, sl), M.lo - 12, M.hi); push('mel', n.t, n.d * 0.96, stepIn(l2, n.p, -1), n.v * 0.7); }
+  }
+  return out;
+}
+
+// ── textures ────────────────────────────────────────────────────────────────────────────────────
+function stackAt(slot, lo) { let base = lo; while (mod(base, 12) !== slot.root) base++; return slot.ints.map((i) => base + i); }
+function spread(slot, lo, hi) { return inRange(pcsOf(slot), lo, hi); }
+function bassPc(slot) { return slot.bass !== null && slot.bass !== undefined ? slot.bass : slot.root; }
+const lowNote = (pc, lo = 31) => { let p = lo; while (mod(p, 12) !== mod(pc, 12)) p++; return p; };
+
+function textures(st, sec, slots, r, push, t0, melNotes) {
+  const T = st.tex, bar = st.meter, sub = st.sub || (st.unit === 0.5 ? 1 : 2);
+  let t = t0;
+  slots.forEach((slot, si) => {
+    const d = slot.d, ps = spread(slot, 50, 79), stack = stackAt(slot, 52), bp = lowNote(bassPc(slot), 33);
+    // accompaniment
+    switch (T.acc) {
+      case 'chorale': stackAt(slot, 48).forEach((p) => push('acc', t, d * 0.98, p, 0.5)); stackAt(slot, 60).forEach((p) => push('acc', t, d * 0.98, p, 0.42)); break;
+      case 'arp': { const step = st.unit === 1.5 ? 1 / 3 : 0.5, seq = spread(slot, 48, 76); const up = [...seq, ...seq.slice(1, -1).reverse()]; for (let k = 0; k * step < d - 1e-6; k++) push('acc', t + k * step, Math.min(2.5, d - k * step), up[k % up.length], k % (bar * 2) ? 0.4 : 0.52); break; }
+      case 'arabesque': { const step = 1 / 3, seq = spread(slot, 52, 84); for (let k = 0; k * step < d - 1e-6; k++) { const i = k % (seq.length * 2 - 2 || 1); push('acc', t + k * step, 1.2, seq[i < seq.length ? i : seq.length * 2 - 2 - i], 0.38 + (k % 3 ? 0 : 0.08)); } break; }
+      case 'water': { const seq = spread(slot, 66, 96), step = 0.25; for (let k = 0; k * step < d - 1e-6; k++) { const i = k % (seq.length * 2 - 2 || 1); push('acc', t + k * step, 0.6, seq[i < seq.length ? i : seq.length * 2 - 2 - i], 0.3 + (k % 4 ? 0 : 0.1)); } stackAt(slot, 52).slice(0, 3).forEach((p) => push('acc', t, d, p, 0.3)); break; }
+      case 'pavane': stack.forEach((p) => push('acc', t, d * 0.98, p, 0.36)); break;
+      case 'waltz': for (let b = 0; b < d; b += 3) { [1, 2].forEach((k) => { if (b + k < d) stackAt(slot, 55).forEach((p) => push('acc', t + b + k, 0.6, p, k === 1 ? 0.42 : 0.36)); }); } break;
+      case 'barcarolle': { const seq = [bp + 12, bp + 19, ...spread(slot, bp + 22, bp + 34).slice(0, 2)]; const fig = [0, 1, 2, 3, 2, 1]; for (let k = 0; k < d; k++) push('acc', t + k, 1.6, seq[fig[k % 6] % seq.length], k % 3 ? 0.4 : 0.55); break; }
+      case 'ostinato': { const seq = spread(slot, 64, 82), fig = [0, 2, 1, 2]; for (let k = 0; k * 0.5 < d - 1e-6; k++) push('acc', t + k * 0.5, 0.45, seq[fig[k % 4] % seq.length], k % 2 ? 0.36 : 0.46); break; }
+      case 'habanera': { const ch = stackAt(slot, 57); for (let b = 0; b < d; b += 2) { [[0.75, 0.42], [1, 0.36], [1.5, 0.36]].forEach(([o, v]) => { if (b + o < d) ch.forEach((p) => push('acc', t + b + o, 0.35, p, v)); }); } break; }
+      default: break;
+    }
+    // bass
+    switch (T.bass) {
+      case 'pedal': if (si === 0 || slots[si - 1].bass !== slot.bass || true) push('bass', t, d * 0.99, lowNote(slot.bass ?? sec.tonic, 31), 0.6); push('bass', t, d * 0.99, lowNote(slot.bass ?? sec.tonic, 31) + 12, 0.4); break;
+      case 'pedal5': for (let b = 0; b < d; b += 2) { push('bass', t + b, 0.75, lowNote(slot.bass ?? sec.tonic + 7, 33), 0.62); push('bass', t + b + 0.75, 0.25, lowNote(slot.bass ?? sec.tonic + 7, 33), 0.5); push('bass', t + b + 1, 1, lowNote(slot.bass ?? sec.tonic + 7, 33), 0.55); } break;
+      case 'root': push('bass', t, d * 0.98, bp, 0.62); if (d >= 4) push('bass', t + d / 2, d / 2 * 0.95, bp + 12, 0.38); break;
+      case 'fifths': for (let b = 0; b < d; b += Math.min(2, d)) { push('bass', t + b, 0.9, bp, 0.6); push('bass', t + b + Math.min(1, d / 2), 0.9, bp + 7, 0.5); } break;
+      case 'pizz': for (let b = 0; b < d; b += 1) push('bass', t + b, 0.4, b % 2 ? bp + 7 : bp, b % 2 ? 0.45 : 0.6); break;
+      case 'waltz': for (let b = 0; b < d; b += 3) push('bass', t + b, 0.9, b % 6 ? bp + 7 - 12 * (bp + 7 > 50) : bp, 0.62); break;
+      default: break;
+    }
+    // colour
+    const top = spread(slot, 79, 98);
+    switch (T.color) {
+      case 'bells': if (si === 0 || d >= 4) { push('color', t, 2.5, top[0], 0.4); push('color', t + 0.02, 2.5, top[Math.min(2, top.length - 1)], 0.3); } break;
+      case 'glitter': for (let k = 0; k < d; k += 1) if (r.chance(0.45)) push('color', t + k + r.pick([0, 0.25, 0.5, 0.75]), 0.5, r.pick(top), 0.26); break;
+      case 'gong': if (si === 0) push('color', t, 4, lowNote(sec.tonic, 38), 0.55); break;
+      case 'castanets': for (let b = 0; b < d; b += 2) [0, 0.75, 1, 1.5].forEach((o, k) => { if (b + o < d) push('drum', t + b + o, 0.1, k ? 76 : 77, k ? 0.5 : 0.65, 'castanets'); }); break;
+      case 'tamb': for (let b = 0; b < d; b += 1) push('drum', t + b, 0.1, 54, b % 2 ? 0.5 : 0.35, 'tamb'); break;
+      default: break;
+    }
+    // countermelody: a slow line in the tenor, chord tones moving by step against the melody
+    if (T.counter) {
+      const lo = T.counter === 'horn' ? 55 : 50, hi = lo + 14, tones = spread(slot, lo, hi), step = Math.min(d, bar >= 4 ? 2 : bar);
+      for (let b = 0; b < d - 1e-6; b += step) {
+        const m = melNotes.find((n) => n.t <= t + b + 1e-6 && n.t + n.d > t + b);
+        const prevCm = textures.cm ?? Math.round((lo + hi) / 2);
+        let p = m && m.p > prevCm + 7 ? stepIn(tones, prevCm, 1) : stepIn(tones, prevCm, -1);
+        if (r.chance(0.3)) p = nearest(tones, prevCm);
+        push('cm', t + b, step * 0.97, p, 0.5); textures.cm = p;
+      }
+    }
+    t += d;
+  });
+}
+
+// ── the song ────────────────────────────────────────────────────────────────────────────────────
+const LAYERS = [['mel', 'melody', '--mel'], ['cm', 'countermelody', '--cm'], ['acc', 'accompaniment', '--acc'], ['bass', 'bass', '--bass'], ['color', 'colour', '--color'], ['drum', 'percussion', '--drum']];
+const INSTR = { piano: 'Piano', harp: 'Harp', flute: 'Flute', clarinet: 'Clarinet', oboe: 'Oboe', horn: 'French horn', strings: 'Strings', cello: 'Cello', contrabass: 'Double bass (pizz.)', celesta: 'Celesta', glock: 'Glockenspiel', vibes: 'Vibraphone', gong: 'Gong' };
+let ST = STYLES[0], SEED = 1, SONG = null;
+const P = { key: 0, bpm: 60, colour: 0.3, rubato: 0.35, reverb: 0.45, volume: 0.75, on: { mel: true, cm: true, acc: true, bass: true, color: true, drum: true }, inst: {} };
+
+function build() {
+  const st = ST, r = rng(hash(st.id + ':' + SEED)), shift = P.key;
+  const notes = [], slotsAll = [], secs = [];
+  const push = (layer, t, d, p, v, drum) => { if (p === undefined || p === null || isNaN(p) || d <= 0) return; notes.push({ layer, t, d, p, vel: Math.max(0.05, Math.min(1, v)), drum }); };
+  const home = { tonic: mod(st.tonic + shift, 12), mode: st.mode };
+  const away = { tonic: mod(st.tonic + shift + (st.keyB || 0), 12), mode: st.modeB || st.mode };
+  let t = 0, memo = {};
+  for (const name of st.form) {
+    const which = name === 'A2' ? 'A2' : name === 'B' ? 'B' : name === 'coda' ? 'coda' : 'A', sec = which === 'B' ? away : home;
+    const k = ctxFor(sec.tonic, sec.mode);
+    const rr = rng(hash(st.id + ':' + SEED + ':' + which));
+    let slots = memo[which] || (st[which] || st.A)(k, rr).map((s) => colourise(s, P.colour * (s.dev === 'pent' || s.dev === 'wt' || s.dev === 'quart' || s.dev === 'phr' ? 0.3 : 1), rr));
+    if (st.phraseScale && !memo[which]) slots = slots.map((x) => ({ ...x, d: x.d * st.phraseScale }));
+    memo[which] = slots;
+    // a return of A replays its first statement's melody (rr re-seeded the same way)
+    const mr = rng(hash(st.id + ':' + SEED + ':mel:' + which));
+    const melNotes = melodyFor(st, sec, slots, mr, push, t);
+    textures.cm = undefined;
+    textures(st, sec, slots, rng(hash(st.id + ':' + SEED + ':tex:' + which + t)), push, t, melNotes);
+    let a = t;
+    for (const s of slots) { slotsAll.push({ ...s, t: a, flats: st.sharps ? 'sharp' : sec.tonic === 6 && sec.mode !== 'wt' ? 'gb' : FLAT_KEYS.has(sec.tonic) || ['dorian', 'aeolian', 'phrygian', 'harmonic', 'mixolydian'].includes(sec.mode) && FLAT_KEYS.has(mod(sec.tonic + 3, 12)) }); a += s.d; }
+    const len = slots.reduce((x, s) => x + s.d, 0);
+    secs.push({ name: name === 'coda' ? 'Coda' : name === 'B' ? 'B' : 'A', t, d: len, key: sec });
+    t += len;
+  }
+  const total = t, bar = st.meter;
+  // tempo: beats per second with phrase-shaped rubato and a final ritardando
+  const bps0 = P.bpm / 60;
+  const bps = (b) => { const ph = (b % (bar * 4)) / (bar * 4); const swell = 1 + P.rubato * (0.07 * Math.sin(Math.PI * 2 * ph) - 0.12 * Math.max(0, (ph - 0.82) / 0.18) ** 2); const fin = b > total - bar * 2 ? 1 - 0.35 * P.rubato * ((b - (total - bar * 2)) / (bar * 2)) : 1; return bps0 * swell * Math.max(0.5, fin); };
+  const STEP = 1 / 24, tab = [0];
+  for (let i = 1; i * STEP <= total + 1e-9; i++) tab.push(tab[i - 1] + STEP / bps((i - 0.5) * STEP));
+  const toSec = (b) => { const i = Math.min(tab.length - 2, Math.floor(b / STEP)), f = b / STEP - i; return tab[i] + f * (tab[i + 1] - tab[i]); };
+  notes.sort((a, b) => a.t - b.t);
+  for (const n of notes) { n.s = toSec(n.t); n.e = toSec(Math.min(total, n.t + n.d)); if (n.e <= n.s) n.e = n.s + 0.05; }
+  const length = toSec(total) + 1.2;
+  SONG = { notes, slots: slotsAll, secs, total, toSec, bps, length, devs: countDevs(slotsAll) };
+}
+function countDevs(slots) { const c = {}; for (const s of slots) c[s.dev] = (c[s.dev] || 0) + 1; if (ST.mel.appog) c.appog = (c.appog || 0) + 1; if (ST.tex.bass === 'pedal' || ST.tex.bass === 'pedal5') c.pedal = (c.pedal || 0) + 1; return c; }
+
+// ── synth (after the Pocket Symphonies ensemble) ───────────────────────────────────────────────
+const VOICES = {
+  piano: { w: [['triangle', 1, 0.45], ['sine', 2, 0.2], ['sine', 3, 0.06], ['sine', 4.01, 0.03]], a: 0.002, tau: 1.4, sus: 0, rel: 0.5, lp: 7 },
+  harp: { w: [['triangle', 1, 0.5], ['sine', 2, 0.18]], a: 0.003, tau: 1.1, sus: 0, rel: 0.9, lp: 6 },
+  flute: { w: [['sine', 1, 0.7], ['triangle', 2, 0.1]], a: 0.05, tau: 3, sus: 0.85, rel: 0.15, lp: 6, vib: 0.006, breath: 0.07 },
+  clarinet: { w: [['square', 1, 0.26], ['sine', 1, 0.22]], a: 0.035, tau: 3, sus: 0.9, rel: 0.1, lp: 3.6, vib: 0.002 },
+  oboe: { w: [['sawtooth', 1, 0.2], ['square', 1, 0.08]], a: 0.03, tau: 3, sus: 0.88, rel: 0.1, lp: 4, vib: 0.005, bp: 1300 },
+  horn: { w: [['sawtooth', 1, 0.2], ['sine', 1, 0.34]], a: 0.08, tau: 4, sus: 0.9, rel: 0.25, lp: 2.2, vib: 0.002 },
+  strings: { w: [['sawtooth', 1, 0.18], ['sawtooth', 1.004, 0.18]], a: 0.22, tau: 4, sus: 0.9, rel: 0.5, lp: 2.8, vib: 0.005 },
+  cello: { w: [['sawtooth', 1, 0.24], ['sawtooth', 0.997, 0.18]], a: 0.07, tau: 4, sus: 0.9, rel: 0.3, lp: 2.6, vib: 0.005 },
+  contrabass: { w: [['triangle', 1, 0.6], ['sine', 2, 0.12]], a: 0.004, tau: 0.6, sus: 0.15, rel: 0.2, lp: 3 },
+  celesta: { w: [['sine', 1, 0.6], ['sine', 4, 0.16], ['sine', 2, 0.1]], a: 0.002, tau: 0.7, sus: 0, rel: 0.5, lp: 12 },
+  glock: { w: [['sine', 1, 0.5], ['sine', 2.76, 0.2], ['sine', 5.4, 0.08]], a: 0.001, tau: 1.1, sus: 0, rel: 0.8, lp: 14 },
+  vibes: { w: [['sine', 1, 0.55], ['sine', 4, 0.08]], a: 0.002, tau: 1.8, sus: 0, rel: 0.7, lp: 10, trem: 5.5 },
+  gong: { w: [['sine', 1, 0.5], ['sine', 1.48, 0.25], ['sine', 2.31, 0.18], ['sine', 3.07, 0.1]], a: 0.01, tau: 3.5, sus: 0, rel: 2.5, lp: 6 },
+};
+const LAYER_GAIN = { mel: 1, cm: 0.7, acc: 0.62, bass: 0.8, color: 0.55, drum: 0.8 };
+let ac = null, master = null, wet = null, conv = null, noise = null, playing = false, t0 = 0, cursor = 0, timer = null, raf = 0;
+function audio() {
+  if (ac) return;
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 3; comp.connect(ac.destination);
+  master = ac.createGain(); master.connect(comp); wet = ac.createGain(); wet.connect(master);
+  conv = ac.createConvolver(); const len = Math.floor(ac.sampleRate * 3.2), ir = ac.createBuffer(2, len, ac.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+  conv.buffer = ir; conv.connect(wet);
+  noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const nd = noise.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+}
+function playDrum(n, when) {
+  const v = n.vel * LAYER_GAIN.drum, o = ac.createGain(); o.connect(master); o.connect(conv);
+  const hiss = (f, q, dur, amp, at = when) => { const s = ac.createBufferSource(), bf = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = noise; bf.type = 'bandpass'; bf.frequency.value = f; bf.Q.value = q; g.gain.setValueAtTime(amp, at); g.gain.exponentialRampToValueAtTime(0.001, at + dur); s.connect(bf); bf.connect(g); g.connect(o); s.start(at, Math.random() * 0.5); s.stop(at + dur + 0.05); };
+  if (n.drum === 'castanets') { hiss(3200, 4, 0.04, 0.35 * v); hiss(2400, 5, 0.03, 0.2 * v, when + 0.012); }
+  else { hiss(7000, 0.8, 0.09, 0.14 * v); hiss(9500, 4, 0.06, 0.06 * v); }
+}
+function play(n, when) {
+  if (n.layer === 'drum') return playDrum(n, when);
+  const V = VOICES[P.inst[n.layer]] || VOICES.piano, f = 440 * Math.pow(2, (n.p - 69) / 12), end = when + Math.max(0.05, n.e - n.s);
+  const g = ac.createGain(), lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = Math.min(15000, f * V.lp * (0.7 + 0.6 * n.vel));
+  g.connect(lp); let tail = lp;
+  if (V.bp) { const bp = ac.createBiquadFilter(); bp.type = 'peaking'; bp.frequency.value = V.bp; bp.gain.value = 6; bp.Q.value = 1.2; tail.connect(bp); tail = bp; }
+  let final = tail;
+  if (V.trem) { const tg = ac.createGain(), l = ac.createOscillator(), lg = ac.createGain(); tg.gain.value = 0.8; l.frequency.value = V.trem; lg.gain.value = 0.2; l.connect(lg); lg.connect(tg.gain); l.start(when); l.stop(end + 3); tail.connect(tg); final = tg; }
+  final.connect(master); final.connect(conv);
+  const peak = 0.15 * n.vel * (LAYER_GAIN[n.layer] ?? 1);
+  g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(peak, when + V.a);
+  if (V.sus > 0) g.gain.setTargetAtTime(peak * V.sus, when + V.a, V.tau * 0.3); else g.gain.setTargetAtTime(0, when + V.a, V.tau);
+  g.gain.setTargetAtTime(0, end, V.rel);
+  for (const [type, mul, amp] of V.w) {
+    const o = ac.createOscillator(), gg = ac.createGain(); o.type = type; gg.gain.value = amp; o.frequency.value = f * mul;
+    if (V.vib && n.e - n.s > 0.35) { const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = 5.2; lg.gain.setValueAtTime(0, when); lg.gain.linearRampToValueAtTime(f * mul * V.vib, when + 0.4); l.connect(lg); lg.connect(o.frequency); l.start(when); l.stop(end + V.rel * 5); }
+    o.connect(gg); gg.connect(g); o.start(when); o.stop(end + V.rel * 5 + 0.1);
+  }
+  if (V.breath) { const s = ac.createBufferSource(), bf = ac.createBiquadFilter(), bg = ac.createGain(); s.buffer = noise; bf.type = 'bandpass'; bf.frequency.value = f * 2; bf.Q.value = 2; bg.gain.setValueAtTime(V.breath * n.vel, when); bg.gain.setTargetAtTime(0, when + 0.03, 0.05); s.connect(bf); bf.connect(bg); bg.connect(g); s.start(when, Math.random() * 0.5); s.stop(when + 0.3); }
+}
+function levels() { if (!ac) return; master.gain.value = P.volume * 0.7; wet.gain.value = P.reverb * 0.9; }
+function heard() { return SONG.notes.filter((n) => P.on[n.layer]); }
+let QUEUE = [];
+function schedule() {
+  const now = ac.currentTime; if (!QUEUE.length) return;
+  while (true) { const loop = Math.floor(cursor / QUEUE.length), n = QUEUE[cursor % QUEUE.length], when = t0 + loop * SONG.length + n.s; if (when > now + 0.2) break; if (when >= now - 0.05) play(n, when); cursor++; }
+}
+function beatNow() { const el = mod(ac.currentTime - t0, SONG.length); let lo = 0, hi = SONG.total; for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (SONG.toSec(m) < el) lo = m; else hi = m; } return lo; }
+function start() {
+  audio(); ac.resume(); levels(); stopSound();
+  QUEUE = heard(); t0 = ac.currentTime + 0.12; cursor = 0; playing = true; $('play').innerHTML = '&#9632; Stop';
+  timer = setInterval(schedule, 40); schedule();
+  const frame = () => { if (!playing) return; drawAll(beatNow()); raf = requestAnimationFrame(frame); }; raf = requestAnimationFrame(frame);
+}
+function stopSound() { clearInterval(timer); cancelAnimationFrame(raf); if (master) { const old = master; const ng = ac.createGain(); old.gain.setTargetAtTime(0, ac.currentTime, 0.05); setTimeout(() => old.disconnect(), 400); master = ng; const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 3; comp.connect(ac.destination); master.connect(comp); wet = ac.createGain(); wet.connect(master); conv.disconnect(); conv.connect(wet); levels(); } }
+function stop() { playing = false; stopSound(); $('play').innerHTML = '&#9654; Play'; drawAll(-1); }
+function restartIfPlaying() { if (playing) { const b = beatNow(); start(); t0 = ac.currentTime + 0.05 - SONG.toSec(b); cursor = QUEUE.findIndex((n) => n.s >= SONG.toSec(b)); if (cursor < 0) cursor = 0; } }
+
+// ── drawing ─────────────────────────────────────────────────────────────────────────────────────
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function renderLane() {
+  const L = $('lane'); L.innerHTML = '';
+  for (const s of SONG.slots) {
+    const el = document.createElement('div'); el.className = 'ch'; el.style.left = (s.t / SONG.total * 100) + '%'; el.style.width = 'calc(' + (s.d / SONG.total * 100) + '% - 2px)';
+    el.style.setProperty('--dc', 'var(' + (DEV[s.dev] || DEV.modal)[1] + ')');
+    el.innerHTML = chordSym(s, s.flats) + '<small>' + (DEV[s.dev] || ['', ''])[0] + '</small>';
+    el.title = chordSym(s, s.flats) + ' · ' + (DEV[s.dev] || [''])[0];
+    el.dataset.t = s.t; el.dataset.d = s.d; L.appendChild(el);
+  }
+  for (const sec of SONG.secs) { const m = document.createElement('div'); m.className = 'sec'; m.style.left = (sec.t / SONG.total * 100) + '%'; m.title = sec.name; L.appendChild(m); }
+}
+function setup(c) { const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight; c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); return [g, w, h]; }
+function drawAll(beat) {
+  if (!SONG) return;
+  const [g, w, h] = setup($('roll')), ns = SONG.notes.filter((n) => n.layer !== 'drum' && P.on[n.layer]);
+  if (!ns.length) { g.clearRect(0, 0, w, h); return; }
+  const lo = Math.min(...ns.map((n) => n.p)) - 1, hi = Math.max(...ns.map((n) => n.p)) + 1, X = (b) => 4 + b / SONG.total * (w - 8), Y = (p) => 6 + (hi - p) / (hi - lo) * (h - 22);
+  g.fillStyle = css('--grid'); g.fillRect(0, 0, w, h);
+  g.fillStyle = css('--grid-bar'); for (let b = 0; b <= SONG.total; b += ST.meter) g.fillRect(X(b), 0, 1, h);
+  const col = Object.fromEntries(LAYERS.map(([k, , v]) => [k, css(v)]));
+  for (const n of ns) { g.globalAlpha = n.layer === 'mel' ? 0.95 : 0.6; g.fillStyle = col[n.layer]; g.fillRect(X(n.t), Y(n.p) - 2, Math.max(2, X(n.t + n.d) - X(n.t) - 1), Math.max(3, (h - 22) / (hi - lo) - 1)); }
+  g.globalAlpha = 0.6; g.fillStyle = col.drum; for (const n of SONG.notes.filter((x) => x.layer === 'drum' && P.on.drum)) g.fillRect(X(n.t), h - 10, 2, 6);
+  g.globalAlpha = 1;
+  if (beat >= 0) { g.fillStyle = css('--ink'); g.fillRect(X(beat), 0, 2, h); }
+  for (const el of $('lane').querySelectorAll('.ch')) { const t = +el.dataset.t, d = +el.dataset.d; el.classList.toggle('on', beat >= t && beat < t + d); }
+}
+function renderInfo() {
+  const s0 = SONG.secs[0].key, flats = ST.sharps ? 'sharp' : FLAT_KEYS.has(s0.tonic);
+  const modeName = { ionian: 'major', aeolian: 'minor', harmonic: 'harmonic minor', wt: 'whole-tone', pent: 'pentatonic', mpent: 'minor pentatonic', phrygdom: 'Phrygian dominant' }[s0.mode] || s0.mode[0].toUpperCase() + s0.mode.slice(1);
+  $('nowTitle').textContent = ST.title + ' · take ' + SEED;
+  $('nowMeta').textContent = ST.ref + ' · ' + nm(s0.tonic, flats) + ' ' + modeName + ' · ' + (ST.unit === 1.5 ? '9/8' : ST.unit === 0.5 ? '6/8' : ST.meter + '/4') + ' · ' + Math.round(SONG.length) + ' s';
+  $('listen').textContent = ST.listen;
+  const order = Object.entries(SONG.devs).sort((a, b) => b[1] - a[1]);
+  $('devs').innerHTML = order.map(([k, n]) => { const D = DEV[k]; if (!D) return ''; return '<div class="dev" style="--dc:var(' + D[1] + ')"><b>' + D[0] + '</b><em>' + (k === 'appog' || (k === 'pedal' && /pedal/.test(ST.tex.bass)) ? 'throughout' : n + (n === 1 ? ' chord' : ' chords')) + '</em><p>' + D[2] + '</p><p class="ref">' + D[3] + '</p></div>'; }).join('');
+  $('legend').innerHTML = LAYERS.filter(([k]) => SONG.notes.some((n) => n.layer === k)).map(([k, l, v]) => '<span><i style="background:var(' + v + ')"></i>' + l + (k !== 'drum' ? ' (' + INSTR[P.inst[k]] + ')' : '') + '</span>').join('');
+}
+
+// ── controls ────────────────────────────────────────────────────────────────────────────────────
+const KEYS = Array.from({ length: 12 }, (_, i) => i - 5);
+function pickStyle(st, seed = 1, keep = false) {
+  ST = st; SEED = seed;
+  if (!keep) { P.key = 0; P.bpm = st.bpm; P.colour = st.colourDef / 100; P.inst = { ...st.inst }; P.on = { mel: true, cm: true, acc: true, bass: true, color: true, drum: true }; }
+  syncControls(); regen();
+}
+function regen() { build(); renderLane(); renderInfo(); renderLayers(); drawAll(-1); writeUrl(); restartIfPlaying(); }
+function syncControls() {
+  const tn = mod(ST.tonic + P.key, 12);
+  $('key').innerHTML = KEYS.map((k) => '<option value="' + k + '"' + (k === P.key ? ' selected' : '') + '>' + nm(ST.tonic + k, FLAT_KEYS.has(mod(ST.tonic + k, 12))) + (k === 0 ? ' (original)' : '') + '</option>').join('');
+  $('keyv').textContent = nm(tn, FLAT_KEYS.has(tn));
+  $('tempo').value = P.bpm; $('tempov').textContent = P.bpm + (ST.unit === 1.5 ? ' (dotted quarter)' : ST.unit === 0.5 ? ' (eighth)' : '') + ' BPM';
+  $('colour').value = Math.round(P.colour * 100); $('colourv').textContent = Math.round(P.colour * 100) + '%';
+  $('rubato').value = Math.round(P.rubato * 100); $('rubatov').textContent = Math.round(P.rubato * 100) + '%';
+  $('reverb').value = Math.round(P.reverb * 100); $('reverbv').textContent = Math.round(P.reverb * 100) + '%';
+  $('volume').value = Math.round(P.volume * 100); $('volumev').textContent = Math.round(P.volume * 100) + '%';
+  document.querySelectorAll('#composers button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.c === ST.composer)));
+  renderStyles();
+}
+function renderStyles() {
+  const box = $('styles'); box.innerHTML = '';
+  for (const st of STYLES.filter((s) => s.composer === ST.composer)) {
+    const b = document.createElement('button'); b.className = 'style'; b.setAttribute('aria-pressed', String(st === ST));
+    b.innerHTML = '<b>' + st.title + '</b><i>' + st.ref + '</i><span>' + st.blurb + '</span>';
+    b.onclick = () => pickStyle(st); box.appendChild(b);
+  }
+}
+function renderLayers() {
+  const box = $('layers'); box.querySelectorAll('.layer').forEach((x) => x.remove());
+  for (const [k, label, v] of LAYERS) {
+    if (!SONG.notes.some((n) => n.layer === k)) continue;
+    const row = document.createElement('div'); row.className = 'layer';
+    row.innerHTML = '<label><input type="checkbox"' + (P.on[k] ? ' checked' : '') + '><i style="background:var(' + v + ')"></i>' + label + '</label>' + (k === 'drum' ? '<span></span>' : '<select aria-label="' + label + ' instrument">' + Object.entries(INSTR).map(([id, n]) => '<option value="' + id + '"' + (P.inst[k] === id ? ' selected' : '') + '>' + n + '</option>').join('') + '</select>');
+    row.querySelector('input').onchange = (e) => { P.on[k] = e.target.checked; drawAll(-1); restartIfPlaying(); };
+    const sel = row.querySelector('select'); if (sel) sel.onchange = (e) => { P.inst[k] = e.target.value; renderInfo(); restartIfPlaying(); };
+    box.appendChild(row);
+  }
+}
+function writeUrl() { const q = new URLSearchParams({ style: ST.id, take: SEED }); if (P.key) q.set('key', P.key); if (P.bpm !== ST.bpm) q.set('bpm', P.bpm); history.replaceState(null, '', '?' + q); }
+$('composers').innerHTML = COMPOSERS.map((c) => '<button data-c="' + c + '" aria-pressed="false">' + c + '</button>').join('');
+document.querySelectorAll('#composers button').forEach((b) => b.onclick = () => pickStyle(STYLES.find((s) => s.composer === b.dataset.c)));
+$('key').onchange = (e) => { P.key = +e.target.value; syncControls(); regen(); };
+$('tempo').oninput = (e) => { P.bpm = +e.target.value; syncControls(); regen(); };
+$('colour').oninput = (e) => { P.colour = +e.target.value / 100; syncControls(); regen(); };
+$('rubato').oninput = (e) => { P.rubato = +e.target.value / 100; syncControls(); regen(); };
+$('reverb').oninput = (e) => { P.reverb = +e.target.value / 100; syncControls(); levels(); };
+$('volume').oninput = (e) => { P.volume = +e.target.value / 100; syncControls(); levels(); };
+$('play').onclick = () => (playing ? stop() : start());
+$('take').onclick = () => { SEED++; regen(); };
+$('save').onclick = saveMidi;
+document.addEventListener('keydown', (e) => {
+  if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName) || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === ' ') { e.preventDefault(); playing ? stop() : start(); }
+  else if (e.key === 'n' || e.key === 'N') { SEED++; regen(); }
+  else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); const i = STYLES.indexOf(ST); pickStyle(STYLES[mod(i + (e.key === 'ArrowRight' ? 1 : -1), STYLES.length)]); }
+});
+window.addEventListener('resize', () => drawAll(playing ? beatNow() : -1));
+
+// ── MIDI export: one format-1 file, a track per layer, the tempo map with the rubato ────────────
+const GM = { piano: 0, harp: 46, flute: 73, clarinet: 71, oboe: 68, horn: 60, strings: 48, cello: 42, contrabass: 45, celesta: 8, glock: 9, vibes: 11, gong: 14 };
+const PPQ = 480;
+function vlq(n) { const b = [n & 0x7f]; while ((n >>= 7) > 0) b.unshift((n & 0x7f) | 0x80); return b; }
+const u32 = (n) => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
+const txt = (s) => [...new TextEncoder().encode(s)];
+function mtrk(ev) { ev.sort((a, b) => a[0] - b[0] || a[1] - b[1]); const o = []; let last = 0; for (const [tk, , by] of ev) { o.push(...vlq(tk - last), ...by); last = tk; } o.push(0, 0xff, 0x2f, 0); return [...txt('MTrk'), ...u32(o.length), ...o]; }
+function smf() {
+  const s = SONG, q = (b) => Math.round(b * ST.unit * PPQ), title = 'Reflets: ' + ST.title + ' (take ' + SEED + ')';
+  const ts = ST.unit === 1.5 ? [9, 3, 12, 8] : ST.unit === 0.5 ? [6, 3, 12, 8] : [ST.meter, 2, 24, 8];
+  const cond = [[0, 0, [0xff, 0x03, ...vlq(txt(title).length), ...txt(title)]], [0, 1, [0xff, 0x58, 4, ...ts]]];
+  for (const sec of s.secs) cond.push([q(sec.t), 0, [0xff, 0x06, ...vlq(txt(sec.name).length), ...txt(sec.name)]]);
+  for (const sl of s.slots) { const sy = chordSym(sl, sl.flats); cond.push([q(sl.t), 0, [0xff, 0x01, ...vlq(txt(sy).length), ...txt(sy)]]); }
+  let last = -1;
+  for (let b = 0; b < s.total; b += 0.25) { const us = Math.round(1e6 / (s.bps(b) * ST.unit)); if (last < 0 || Math.abs(us - last) / last > 0.004) { cond.push([q(b), 2, [0xff, 0x51, 3, (us >> 16) & 255, (us >> 8) & 255, us & 255]]); last = us; } }
+  const tracks = [mtrk(cond)]; let chn = 0;
+  for (const [L, name] of LAYERS) {
+    const ns = s.notes.filter((n) => n.layer === L && P.on[L]); if (!ns.length) continue;
+    let ch = 9; if (L !== 'drum') { if (chn === 9) chn++; ch = chn++; }
+    const ev = [[0, 0, [0xff, 0x03, ...vlq(txt(name).length), ...txt(name)]]];
+    if (L !== 'drum') ev.push([0, 1, [0xc0 | ch, GM[P.inst[L]] ?? 0]]);
+    for (const n of ns) { const on = q(n.t), off = Math.max(on + 1, q(n.t + n.d)), v = Math.max(1, Math.min(127, Math.round(n.vel * 127))); ev.push([on, 3, [0x90 | ch, n.p, v]], [off, 2, [0x80 | ch, n.p, 0]]); }
+    tracks.push(mtrk(ev));
+  }
+  return new Uint8Array([...txt('MThd'), 0, 0, 0, 6, 0, 1, 0, tracks.length, (PPQ >> 8) & 255, PPQ & 255, ...tracks.flat()]);
+}
+function saveMidi() {
+  const bytes = smf(), name = ('reflets-' + ST.id + '-take' + SEED + '.mid');
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'audio/midi' })); const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+// ── start ───────────────────────────────────────────────────────────────────────────────────────
+(function init() {
+  const q = new URLSearchParams(location.search), st = STYLES.find((s) => s.id === q.get('style')) || STYLES[0];
+  pickStyle(st, Math.max(1, +q.get('take') || 1));
+  if (q.has('key')) P.key = Math.max(-5, Math.min(6, +q.get('key') || 0));
+  if (q.has('bpm')) P.bpm = Math.max(40, Math.min(180, +q.get('bpm') || st.bpm));
+  if (q.has('key') || q.has('bpm')) { syncControls(); regen(); }
+})();
+window.__reflets = { STYLES, get SONG() { return SONG; }, pickStyle, smf, chordSym };
+</script>
+</body>
+</html>

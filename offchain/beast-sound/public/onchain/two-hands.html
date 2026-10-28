@@ -1,0 +1,756 @@
+<title>Two Hands, Two Times</title>
+<meta name="description" content="A generative instrument for Debussy-style cross-rhythms between the hands, built from Koji's primitives in JavaScript.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #10162a; --panel: #151c33; --raise: #1c2541; --line: #2a3556; --ink: #e9e6f2; --muted: #9aa3c3; --faint: #5d678c;
+  --rh: #f3a38a; --lh: #6fd0c4; --gold: #e8cf8a; --grid: #1a2240; --grid-bar: #283358;
+  --serif: "Cormorant Garamond", "Cormorant", Georgia, serif;
+  --sans: "Work Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--ink); }
+body { font: 14px/1.5 var(--sans); }
+.app { max-width: 1440px; margin: 0 auto; padding-inline: 18px; padding-block: 0 40px; }
+header.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; padding-block: 14px; border-bottom: 1px solid var(--line); }
+h1 { font: italic 600 30px/1 var(--serif); margin: 0; letter-spacing: .01em; }
+h1 em { font-style: normal; color: var(--rh); }
+h1 b { font-weight: 600; color: var(--lh); }
+.sub { color: var(--muted); font-size: 13px; margin-right: auto; max-width: 52ch; }
+.btn { font: 600 13px/1 var(--sans); border: 1px solid var(--line); background: var(--raise); color: var(--ink); border-radius: 5px; padding: 9px 12px; cursor: pointer; }
+.btn:hover { border-color: var(--faint); }
+.btn.primary { background: var(--gold); color: #1b1606; border-color: var(--gold); min-width: 86px; }
+.btn.primary[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); }
+.btn:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+select { font: 13px var(--sans); background: var(--raise); color: var(--ink); border: 1px solid var(--line); border-radius: 5px; padding: 7px 8px; max-width: 100%; }
+.layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 22px; margin-top: 18px; }
+@media (max-width: 960px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+aside.controls { display: grid; gap: 12px; align-content: start; }
+details.grp { background: var(--panel); border: 1px solid var(--line); border-radius: 7px; }
+details.grp > summary { list-style: none; cursor: pointer; padding: 11px 14px; font: 600 12px/1 var(--sans); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; }
+details.grp > summary::-webkit-details-marker { display: none; }
+details.grp > summary::after { content: "+"; font: 500 14px/1 var(--mono); color: var(--faint); }
+details.grp[open] > summary::after { content: "−"; }
+details.grp .body { display: grid; gap: 10px; padding: 2px 14px 14px; }
+.row { display: grid; grid-template-columns: 112px 1fr 44px; align-items: center; gap: 8px; }
+.row label { color: var(--muted); font-size: 12.5px; }
+.row output { font: 500 12px var(--mono); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.row input[type=range] { width: 100%; accent-color: var(--gold); }
+.row.sel { grid-template-columns: 112px 1fr; }
+.row.chk { grid-template-columns: 112px 1fr; }
+.hint { color: var(--faint); font-size: 12px; line-height: 1.45; }
+.dice { display: flex; flex-wrap: wrap; gap: 6px; }
+.dice .btn { padding: 7px 9px; font-weight: 500; }
+main.stage { display: grid; gap: 16px; min-width: 0; align-content: start; }
+.top { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 16px; }
+@media (max-width: 700px) { .top { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 7px; }
+.wheel { padding: 12px; display: grid; justify-items: center; gap: 6px; }
+.wheel canvas { width: 226px; height: 226px; max-width: 100%; }
+.ratio { font: italic 600 34px/1 var(--serif); }
+.ratio .r { color: var(--rh); } .ratio .l { color: var(--lh); } .ratio .c { color: var(--faint); padding: 0 6px; }
+.readout { padding: 14px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px 18px; align-content: start; }
+.kv .k { font: 500 11px/1.3 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.kv .v { font: 500 13px/1.4 var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+.kv .v .r { color: var(--rh); } .kv .v .l { color: var(--lh); } .kv .v .g { color: var(--gold); }
+.rollwrap { padding: 0; overflow: hidden; }
+.rollwrap canvas { display: block; width: 100%; }
+#lanes { height: 64px; border-bottom: 1px solid var(--line); }
+#chords { height: 48px; border-bottom: 1px solid var(--line); }
+#roll { height: 380px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 14px; font: 12px var(--mono); color: var(--muted); border-top: 1px solid var(--line); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.trace { padding: 12px 14px; overflow-x: auto; }
+.trace table { border-collapse: collapse; font: 12px/1.5 var(--mono); white-space: nowrap; }
+.trace th { text-align: left; color: var(--faint); font-weight: 500; padding: 2px 10px 2px 0; }
+.trace td { padding: 2px 6px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.trace td.on { color: var(--ink); }
+.note-panel { padding: 14px 16px; color: var(--muted); font-size: 13px; }
+.note-panel p { margin: 0 0 8px; max-width: 80ch; }
+textarea#cfg { width: 100%; min-height: 70px; font: 11.5px var(--mono); background: var(--raise); color: var(--ink); border: 1px solid var(--line); border-radius: 5px; padding: 8px; }
+.toast { font: 12px var(--mono); color: var(--gold); min-height: 1em; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="app">
+<header class="bar">
+  <h1><em>Two</em> Hands, <b>Two</b> Times</h1>
+  <div class="sub">Cross-rhythms between the hands, generated with Koji's primitives: one hand divides the cycle one way, the other another way, over planed chords and pedal points.</div>
+  <label class="hint" for="preset" style="color:var(--muted)">Preset</label>
+  <select id="preset"></select>
+  <button class="btn" id="regen" type="button" title="New seeds, same settings">New seeds</button>
+  <button class="btn" id="savemidi" type="button" hidden>Save MIDI</button>
+  <button class="btn primary" id="play" type="button" aria-pressed="false">Play</button>
+</header>
+
+<div class="layout">
+<aside class="controls" id="controls"></aside>
+
+<main class="stage">
+  <div class="top">
+    <div class="card wheel">
+      <div class="ratio" id="ratio"></div>
+      <canvas id="wheel" width="226" height="226" aria-label="Polyrhythm wheel: the two hands' pulses around one cycle"></canvas>
+      <div class="hint" id="wheelnote"></div>
+    </div>
+    <div class="card readout" id="readout"></div>
+  </div>
+  <div class="card rollwrap">
+    <canvas id="lanes" aria-label="Pulse lanes: right-hand pulses above, left-hand pulses below, gold where they coincide"></canvas>
+    <canvas id="chords" aria-label="Chord symbols to play along with"></canvas>
+    <canvas id="roll" aria-label="Piano roll of the generated piece"></canvas>
+    <div class="legend"><span><i style="background:var(--rh)"></i>right hand</span><span><i style="background:var(--lh)"></i>left hand</span><span><i style="background:var(--gold)"></i>hands coincide · playhead</span><span><i style="background:var(--rh);opacity:.3"></i>faint tail: held by the pedal</span><span id="chordlegend"></span></div>
+  </div>
+  <div class="card trace" id="trace"></div>
+  <div class="card note-panel">
+    <p><b style="color:var(--ink)">How it is built.</b> Both hands share one cycle (a beat, two beats or a bar). The right hand divides it into one number of equal pulses and the left hand into another, so their onsets only meet where the two grids coincide: every 1/gcd of the cycle. Euclidean thinning (Toussaint's even distribution of k onsets in n pulses) removes pulses without clumping them. Melodies are Koji's bounded walk in scale degrees, driven by a linear congruential generator; harmony moves by planing (chords sliding in parallel, either inside the scale or with their exact intervals kept, which leaves the scale) over optional pedal points.</p>
+    <p>Settings are remembered in this browser. Copy them to keep a sound you like, and paste them back to restore it.</p>
+    <div class="dice" style="margin-bottom:8px"><button class="btn" id="copy" type="button">Copy settings</button><button class="btn" id="load" type="button">Load pasted settings</button><span class="toast" id="toast"></span></div>
+    <textarea id="cfg" spellcheck="false" aria-label="Settings as JSON"></textarea>
+  </div>
+</main>
+</div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = (id) => document.getElementById(id);
+
+// ── Koji primitives, in JavaScript ───────────────────────────────────────────────────────────
+// LCG: Koji's countersubject generator is x → (5x + 3) mod 256; a 32-bit one is offered for long pieces.
+const GENERATORS = {
+  koji: { name: 'Koji LCG 5x+3 mod 256', a: 5, c: 3, m: 256 },
+  nr: { name: 'LCG 1664525x+1013904223 mod 2³²', a: 1664525, c: 1013904223, m: 4294967296 },
+};
+function makeRng(seed, gen) {
+  const g = GENERATORS[gen] || GENERATORS.koji;
+  let x = ((seed % g.m) + g.m) % g.m;
+  const states = [];
+  return {
+    next() { x = (g.a * x + g.c) % g.m; if (states.length < 24) states.push(x); return x; },
+    // a fraction in [0, 1): the state's high part for the big generator, the whole state for Koji's
+    unit() { const v = this.next(); return v / g.m; },
+    int(n) { return Math.floor(this.unit() * n); },
+    states,
+  };
+}
+// Euclidean rhythm: k onsets spread as evenly as possible over n pulses, rotated by r (Toussaint 2005).
+function euclid(k, n, r) {
+  const out = [];
+  for (let i = 0; i < n; i++) { const j = (i + r) % n; out.push(Math.floor(((j + 1) * k) / n) !== Math.floor((j * k) / n)); }
+  return out;
+}
+const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+
+// pitch worlds: semitone offsets from the tonic
+const SCALES = {
+  ionian: ['Ionian (major)', [0, 2, 4, 5, 7, 9, 11]], lydian: ['Lydian', [0, 2, 4, 6, 7, 9, 11]], mixolydian: ['Mixolydian', [0, 2, 4, 5, 7, 9, 10]],
+  dorian: ['Dorian', [0, 2, 3, 5, 7, 9, 10]], aeolian: ['Aeolian', [0, 2, 3, 5, 7, 8, 10]], phrygian: ['Phrygian', [0, 1, 3, 5, 7, 8, 10]],
+  acoustic: ['Acoustic (Lydian ♭7)', [0, 2, 4, 6, 7, 9, 10]], wholetone: ['Whole-tone', [0, 2, 4, 6, 8, 10]],
+  penta: ['Pentatonic (major)', [0, 2, 4, 7, 9]], pentamin: ['Pentatonic (minor)', [0, 3, 5, 7, 10]],
+  octatonic: ['Octatonic (Messiaen 2)', [0, 1, 3, 4, 6, 7, 9, 10]], messiaen3: ['Messiaen mode 3', [0, 2, 3, 4, 6, 7, 8, 10, 11]],
+};
+const PC = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];
+const CHORDS = { triad: ['Triad', [0, 2, 4]], seventh: ['Seventh', [0, 2, 4, 6]], ninth: ['Ninth', [0, 2, 4, 6, 8]], add6: ['Added sixth', [0, 2, 4, 5]], quartal: ['Quartal (stacked 4ths)', [0, 3, 6, 9]], sus: ['Sus cluster', [0, 1, 4]] };
+
+// ── parameters ───────────────────────────────────────────────────────────────────────────────
+const DEF = {
+  rhDiv: 3, lhDiv: 2, cycle: 1, meter: 4, bars: 8, tempo: 66,
+  rhFill: 1, lhFill: 1, rhRot: 0, lhRot: 0, lhPhase: 0,
+  scale: 'ionian', tonic: 4, chord: 'ninth', motion: 'step', planing: 'diatonic', harmRhythm: 1, pedal: 'none', cadence: true,
+  lhPattern: 'updown', lhLow: 40, lhSpan: 2, lhVel: 62, lhLegato: 1,
+  rhPattern: 'arabesque', rhLow: 64, rhHigh: 86, rhVel: 76, stepProb: 72, maxLeap: 4, gravity: 60, holdProb: 15, restProb: 6, arabNotes: 3, phraseBars: 4, vary: true, plane: 'triad',
+  rubato: 12, rubatoBars: 4, humanize: 8, accent: 14, arc: 30, pedalMode: 'chord', blur: 0.6,
+  voice: 'piano', reverb: 0.38, bright: 0.55, gen: 'koji', mSeed: 77, hSeed: 201, rSeed: 5,
+};
+const PRESETS = {
+  arabesque: ['Arabesque · 3 against 2', { rhDiv: 3, lhDiv: 2, cycle: 1, meter: 4, tempo: 70, scale: 'ionian', tonic: 4, chord: 'ninth', motion: 'step', planing: 'diatonic', lhPattern: 'updown', rhPattern: 'arabesque', arabNotes: 3, pedal: 'none', rubato: 12, voice: 'piano' }],
+  water: ['Water · 4 against 3', { rhDiv: 4, lhDiv: 3, cycle: 1, meter: 4, tempo: 58, scale: 'lydian', tonic: 1, chord: 'ninth', motion: 'thirds', planing: 'diatonic', lhPattern: 'wide', lhSpan: 3, rhPattern: 'arabesque', arabNotes: 2, rubato: 18, rubatoBars: 2, blur: 0.85, reverb: 0.5, voice: 'piano' }],
+  haze: ['Whole-tone haze · 5 against 4', { rhDiv: 5, lhDiv: 4, cycle: 2, meter: 4, tempo: 54, scale: 'wholetone', tonic: 0, chord: 'triad', motion: 'whole', planing: 'real', pedal: 'tonic', lhPattern: 'up', rhPattern: 'melody', stepProb: 85, rhFill: 0.8, blur: 0.9, reverb: 0.55, voice: 'piano' }],
+  bells: ['Pentatonic bells · 2 against 3', { rhDiv: 2, lhDiv: 3, cycle: 1, meter: 3, tempo: 76, scale: 'penta', tonic: 6, chord: 'add6', motion: 'pedal', pedal: 'dominant', lhPattern: 'ostinato', rhPattern: 'octaves', rhFill: 0.75, rhLow: 70, rhHigh: 94, voice: 'celesta', reverb: 0.45 }],
+  planing: ['Planed ninths over a 3:4 ostinato', { rhDiv: 4, lhDiv: 3, cycle: 1, meter: 4, tempo: 62, scale: 'dorian', tonic: 2, chord: 'ninth', motion: 'step', planing: 'real', lhPattern: 'ostinato', rhPattern: 'planing', plane: 'triad', rhFill: 0.5, rhRot: 1, holdProb: 30, voice: 'piano', blur: 0.7 }],
+  hemiola: ['Hemiola · 3 against 2 over the bar', { rhDiv: 2, lhDiv: 3, cycle: 3, meter: 3, tempo: 92, scale: 'aeolian', tonic: 9, chord: 'seventh', motion: 'walk', lhPattern: 'bassChord', rhPattern: 'melody', arabNotes: 2, rubato: 6, voice: 'harp', reverb: 0.3 }],
+  shimmer: ['Octatonic shimmer · 7 against 4', { rhDiv: 7, lhDiv: 4, cycle: 1, meter: 4, tempo: 48, scale: 'octatonic', tonic: 3, chord: 'sus', motion: 'thirds', planing: 'real', lhPattern: 'up', lhSpan: 3, rhPattern: 'arabesque', arabNotes: 2, rhFill: 0.71, rhLow: 72, rhHigh: 96, voice: 'harp', reverb: 0.6, blur: 0.95 }],
+};
+let P = { ...DEF };
+try { const s = JSON.parse(localStorage.getItem('hands.v1') || 'null'); if (s) P = { ...DEF, ...s }; } catch (e) {}
+const save = () => { try { localStorage.setItem('hands.v1', JSON.stringify(P)); } catch (e) {} };
+
+// ── controls ─────────────────────────────────────────────────────────────────────────────────
+const GROUPS = [
+  ['Polyrhythm', true, [
+    ['rhDiv', 'Right hand ÷', 1, 9, 1], ['lhDiv', 'Left hand ÷', 1, 9, 1],
+    ['cycle', 'Cycle (beats)', 'sel', [[1, '1 beat'], [2, '2 beats'], [3, '3 beats'], [4, '4 beats'], [6, '6 beats']]],
+    ['meter', 'Beats per bar', 'sel', [[2, '2'], [3, '3'], [4, '4'], [6, '6']]],
+    ['lhPhase', 'Left phase', 0, 0.9, 0.05, 'Shifts the left hand by a fraction of its pulse, so the grids stop coinciding.'],
+    ['rhFill', 'Right fill', 0.2, 1, 0.01, 'Euclidean thinning: the share of right-hand pulses kept, spread evenly.'],
+    ['rhRot', 'Right rotate', 0, 8, 1], ['lhFill', 'Left fill', 0.2, 1, 0.01], ['lhRot', 'Left rotate', 0, 8, 1],
+  ]],
+  ['Pitch world', true, [
+    ['scale', 'Scale', 'sel', Object.entries(SCALES).map(([k, v]) => [k, v[0]])],
+    ['tonic', 'Tonic', 'sel', PC.map((n, i) => [i, n])],
+    ['chord', 'Chord', 'sel', Object.entries(CHORDS).map(([k, v]) => [k, v[0]])],
+    ['motion', 'Root motion', 'sel', [['step', 'Planing by step'], ['thirds', 'By thirds'], ['whole', 'By whole tones (exact)'], ['walk', 'Seeded walk'], ['pedal', 'Static root, colours change']]],
+    ['planing', 'Planing', 'sel', [['diatonic', 'Diatonic (stays in scale)'], ['real', 'Real (exact intervals)']]],
+    ['harmRhythm', 'Bars per chord', 'sel', [[0.5, '½'], [1, '1'], [2, '2'], [4, '4']]],
+    ['pedal', 'Pedal point', 'sel', [['none', 'None'], ['tonic', 'Tonic'], ['dominant', 'Dominant'], ['both', 'Tonic + fifth']]],
+    ['cadence', 'Cadence home', 'chk'],
+  ]],
+  ['Left hand', true, [
+    ['lhPattern', 'Figure', 'sel', [['up', 'Arpeggio up'], ['updown', 'Arpeggio up–down'], ['down', 'Arpeggio down'], ['wide', 'Wide (root–5th–10th)'], ['block', 'Block chords'], ['bassChord', 'Bass + chord'], ['ostinato', 'Ostinato (bar 1 repeated)']]],
+    ['lhLow', 'Lowest note', 24, 60, 1], ['lhSpan', 'Span (octaves)', 1, 4, 1], ['lhVel', 'Velocity', 20, 120, 1],
+    ['lhLegato', 'Legato', 0.3, 1.5, 0.05],
+  ]],
+  ['Right hand', true, [
+    ['rhPattern', 'Figure', 'sel', [['melody', 'Melody'], ['arabesque', 'Arabesque (turns)'], ['planing', 'Planed chords'], ['octaves', 'Octaves']]],
+    ['plane', 'Chord under melody', 'sel', [['triad', 'Triad below'], ['fourths', 'Fourths below'], ['fifth', 'Fifth + octave']]],
+    ['rhLow', 'Lowest note', 48, 84, 1], ['rhHigh', 'Highest note', 64, 100, 1], ['rhVel', 'Velocity', 20, 120, 1],
+    ['stepProb', 'Stepwise %', 0, 100, 1], ['maxLeap', 'Largest leap', 2, 7, 1], ['gravity', 'Chord-tone pull %', 0, 100, 1],
+    ['holdProb', 'Hold %', 0, 80, 1], ['restProb', 'Rest %', 0, 60, 1], ['arabNotes', 'Arabesque notes', 2, 4, 1],
+    ['phraseBars', 'Phrase (bars)', 1, 8, 1], ['vary', 'New phrase each time', 'chk'],
+  ]],
+  ['Expression', false, [
+    ['tempo', 'Tempo (BPM)', 30, 150, 1], ['bars', 'Bars', 2, 32, 1],
+    ['rubato', 'Rubato %', 0, 40, 1, 'Tempo breathes in a sine wave over the period below.'], ['rubatoBars', 'Rubato period', 1, 8, 1],
+    ['humanize', 'Humanize (ms)', 0, 40, 1], ['accent', 'Coincidence accent', 0, 40, 1, 'Extra velocity where both hands strike together.'],
+    ['arc', 'Phrase swell %', 0, 60, 1],
+    ['pedalMode', 'Sustain pedal', 'sel', [['chord', 'Change with each chord'], ['beat', 'Change each beat'], ['none', 'No pedal']]],
+    ['blur', 'Pedal blur', 0, 1, 0.05],
+  ]],
+  ['Sound', false, [
+    ['voice', 'Instrument', 'sel', [['piano', 'Piano'], ['harp', 'Harp'], ['celesta', 'Celesta']]],
+    ['reverb', 'Reverb', 0, 1, 0.01], ['bright', 'Brightness', 0.1, 1, 0.01],
+  ]],
+  ['Seeds', false, [
+    ['gen', 'Generator', 'sel', Object.entries(GENERATORS).map(([k, v]) => [k, v.name])],
+    ['mSeed', 'Melody seed', 0, 999, 1], ['hSeed', 'Harmony seed', 0, 999, 1], ['rSeed', 'Rhythm seed', 0, 999, 1],
+  ]],
+];
+function buildControls() {
+  const host = $('controls'); host.innerHTML = '';
+  for (const [title, open, items] of GROUPS) {
+    const d = document.createElement('details'); d.className = 'grp'; d.open = open;
+    d.innerHTML = '<summary>' + title + '</summary>';
+    const body = document.createElement('div'); body.className = 'body';
+    for (const [key, label, a, b, step, hint] of items) {
+      const row = document.createElement('div'); const id = 'c-' + key;
+      if (a === 'sel') {
+        row.className = 'row sel';
+        row.innerHTML = '<label for="' + id + '">' + label + '</label><select id="' + id + '">' + b.map(([v, t]) => '<option value="' + v + '">' + t + '</option>').join('') + '</select>';
+        body.append(row);
+        const el = row.querySelector('select'); el.value = String(P[key]);
+        el.addEventListener('change', () => { P[key] = typeof DEF[key] === 'number' ? +el.value : el.value; changed(); });
+      } else if (a === 'chk') {
+        row.className = 'row chk';
+        row.innerHTML = '<label for="' + id + '">' + label + '</label><input type="checkbox" id="' + id + '">';
+        body.append(row);
+        const el = row.querySelector('input'); el.checked = !!P[key];
+        el.addEventListener('change', () => { P[key] = el.checked; changed(); });
+      } else {
+        row.className = 'row';
+        row.innerHTML = '<label for="' + id + '">' + label + '</label><input type="range" id="' + id + '" min="' + a + '" max="' + b + '" step="' + step + '"><output for="' + id + '"></output>';
+        body.append(row);
+        const el = row.querySelector('input'), out = row.querySelector('output');
+        el.value = P[key]; out.textContent = fmt(P[key]);
+        el.addEventListener('input', () => { P[key] = +el.value; out.textContent = fmt(P[key]); changedSoon(); });
+      }
+      if (hint) { const h = document.createElement('div'); h.className = 'hint'; h.textContent = hint; body.append(h); }
+    }
+    if (title === 'Seeds') {
+      const dice = document.createElement('div'); dice.className = 'dice';
+      for (const [k, t] of [['mSeed', 'New melody'], ['hSeed', 'New harmony'], ['rSeed', 'New rhythm']]) {
+        const bt = document.createElement('button'); bt.className = 'btn'; bt.type = 'button'; bt.textContent = t;
+        bt.addEventListener('click', () => { P[k] = Math.floor(Math.random() * 1000); syncControls(); changed(); });
+        dice.append(bt);
+      }
+      body.append(dice);
+    }
+    d.append(body); host.append(d);
+  }
+}
+const fmt = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(2));
+function syncControls() {
+  for (const [, , items] of GROUPS) for (const [key, , a] of items) {
+    const el = $('c-' + key); if (!el) continue;
+    if (a === 'chk') el.checked = !!P[key]; else el.value = String(P[key]);
+    const out = el.parentElement.querySelector('output'); if (out) out.textContent = fmt(P[key]);
+  }
+}
+
+// ── generation ───────────────────────────────────────────────────────────────────────────────
+let SONG = null;
+function generate() {
+  const scale = SCALES[P.scale][1], L = scale.length, tonic = 48 + P.tonic;
+  const pitch = (d) => tonic + 12 * Math.floor(d / L) + scale[((d % L) + L) % L];
+  const degreeNear = (p) => { let best = 0; for (let d = -40; d <= 60; d++) if (Math.abs(pitch(d) - p) < Math.abs(pitch(best) - p)) best = d; return best; };
+  const bar = P.meter, total = P.bars * bar;
+  const cycle = P.cycle;
+  const hr = makeRng(P.hSeed, P.gen), mr = makeRng(P.mSeed, P.gen), rr = makeRng(P.rSeed, P.gen);
+
+  // harmony: one chord per harmonic-rhythm span
+  const span = P.harmRhythm * bar, nChords = Math.ceil(total / span), shape = CHORDS[P.chord][1];
+  const baseInts = shape.map((s) => pitch(s) - pitch(0)); // the chord on the tonic, in semitones
+  const chords = []; let root = 0, semi = 0;
+  for (let i = 0; i < nChords; i++) {
+    if (i > 0) {
+      if (P.motion === 'step') { const r = hr.int(4); root += [1, -1, 1, 2][r]; }
+      else if (P.motion === 'thirds') root += hr.int(2) ? 2 : -2;
+      else if (P.motion === 'whole') semi += hr.int(2) ? 2 : -2;
+      else if (P.motion === 'walk') root += [-3, -2, -1, 1, 2, 3][hr.int(6)];
+    }
+    if (root > 5) root -= L; if (root < -5) root += L;
+    if (semi > 6) semi -= 12; if (semi < -6) semi += 12;
+    const last = P.cadence && i === nChords - 1;
+    const r = last ? 0 : root, sh = last ? 0 : semi;
+    let pcs;
+    if (P.planing === 'real' || P.motion === 'whole') pcs = baseInts.map((x) => ((pitch(r) - tonic) + sh + x));
+    else pcs = shape.map((s) => pitch(r + s) - tonic);
+    // colour changes over a static root: rotate which upper tones sound
+    if (P.motion === 'pedal' && !last) { const k = hr.int(3); pcs = pcs.map((x, j) => (j > 0 && j === 1 + k ? x + (scale[1] || 2) : x)); }
+    chords.push({ start: i * span, end: Math.min(total, (i + 1) * span), rootSemi: pitch(r) - tonic + sh, pcs: pcs.map((x) => ((x % 12) + 12) % 12), raw: pcs, deg: r });
+  }
+  const chordAt = (t) => chords[Math.min(chords.length - 1, Math.floor(t / span))];
+
+  // pulse grids, thinned per bar with Euclidean masks
+  const pulses = (div, fill, rot, phase) => {
+    const step = cycle / div, perBar = Math.round(bar / step), list = [];
+    const mask = euclid(Math.max(1, Math.round(fill * perBar)), perBar, rot % Math.max(1, perBar));
+    for (let b = 0; b < P.bars; b++) for (let k = 0; k < perBar; k++) {
+      const t = b * bar + k * step + phase * step;
+      if (t < total - 1e-9) list.push({ t, on: mask[k], k, step });
+    }
+    return { list, step, perBar, mask };
+  };
+  const RH = pulses(P.rhDiv, P.rhFill, P.rhRot, 0), LH = pulses(P.lhDiv, P.lhFill, P.lhRot, P.lhPhase);
+  const near = (a, b) => Math.abs(a - b) < 1e-6;
+  const lhOn = LH.list.filter((p) => p.on), rhOn = RH.list.filter((p) => p.on);
+  const coincide = (t, other) => other.some((p) => near(p.t, t));
+
+  const notes = [];
+  const vel = (base, t, hit) => {
+    const ph = (t % (P.phraseBars * bar)) / (P.phraseBars * bar);
+    const swell = 1 + (P.arc / 100) * Math.sin(Math.PI * ph);
+    return Math.max(8, Math.min(127, Math.round(base * swell + (hit ? P.accent : 0) + (rr.int(9) - 4))));
+  };
+
+  // left hand
+  const lhPool = (ch) => {
+    const lo = P.lhLow, hi = P.lhLow + 12 * P.lhSpan, out = [];
+    const rootPc = (((ch.rootSemi + P.tonic) % 12) + 12) % 12, bass = lo + ((rootPc - (lo % 12)) % 12 + 12) % 12;
+    for (let p = bass; p <= hi; p++) if (ch.pcs.includes(((p - P.tonic) % 12 + 12) % 12)) out.push(p);
+    return out.length ? out : [bass];
+  };
+  let osti = null;
+  lhOn.forEach((p, i) => {
+    const ch = chordAt(p.t), pool = lhPool(ch), n = pool.length;
+    const next = lhOn[i + 1] ? lhOn[i + 1].t : total;
+    const dur = Math.max(0.05, (next - p.t) * P.lhLegato);
+    const j = Math.round((p.t - ch.start) / LH.step);
+    const hit = coincide(p.t, rhOn);
+    let ps;
+    switch (P.lhPattern) {
+      case 'up': ps = [pool[j % n]]; break;
+      case 'down': ps = [pool[(n - 1) - (j % n)]]; break;
+      case 'updown': { const per = Math.max(1, 2 * n - 2); const q = j % per; ps = [pool[q < n ? q : per - q]]; break; }
+      case 'wide': { const fifth = pool.find((x) => x - pool[0] >= 6 && x - pool[0] <= 8) || pool[Math.min(1, n - 1)]; const tenth = pool.find((x) => x - pool[0] >= 14 && x - pool[0] <= 17) || pool[n - 1]; ps = [[pool[0], fifth, tenth, fifth][j % 4]]; break; }
+      case 'block': ps = j % 2 === 0 ? pool.slice(0, Math.min(4, n)) : pool.slice(1, Math.min(4, n)); break;
+      case 'bassChord': ps = j % 2 === 0 ? [pool[0]] : pool.slice(Math.min(1, n - 1), Math.min(4, n)); break;
+      case 'ostinato': { if (!osti) osti = lhPool(chords[0]); const per = Math.max(1, 2 * osti.length - 2); const q = j % per; ps = [osti[q < osti.length ? q : per - q]]; break; }
+      default: ps = [pool[j % n]];
+    }
+    for (const pp of ps) notes.push({ t: p.t, d: dur, p: pp, v: vel(P.lhVel, p.t, hit), hand: 'lh', hit });
+  });
+  // pedal points
+  if (P.pedal !== 'none') {
+    const low = P.lhLow - 12 < 21 ? P.lhLow : P.lhLow - 12;
+    const tonicLow = low + ((P.tonic - low) % 12 + 12) % 12;
+    const fifthLow = tonicLow + 7 > P.lhLow + 4 ? tonicLow - 5 : tonicLow + 7;
+    const ps = P.pedal === 'tonic' ? [tonicLow] : P.pedal === 'dominant' ? [fifthLow] : [tonicLow, tonicLow + 7];
+    for (let b = 0; b < P.bars; b++) for (const pp of ps) notes.push({ t: b * bar, d: bar * 0.98, p: pp, v: Math.round(P.lhVel * 0.8), hand: 'lh', pedalPt: true });
+  }
+
+  // right hand: Koji's bounded walk in scale degrees, pulled to chord tones on strong pulses
+  const loD = degreeNear(P.rhLow), hiD = Math.max(loD + 2, degreeNear(Math.max(P.rhHigh, P.rhLow + 5)));
+  let deg = Math.round((loD + hiD) / 2), phraseStart = -1;
+  let walker = mr;
+  const isChordTone = (d, ch) => ch.pcs.includes(((pitch(d) - tonic) % 12 + 12) % 12);
+  let held = null;
+  rhOn.forEach((p, i) => {
+    const phrase = Math.floor(p.t / (P.phraseBars * bar));
+    if (phrase !== phraseStart) {
+      phraseStart = phrase;
+      walker = makeRng(P.mSeed + (P.vary ? phrase * 101 : 0), P.gen);
+      if (!P.vary) deg = Math.round((loD + hiD) / 2);
+    }
+    const ch = chordAt(p.t), next = rhOn[i + 1] ? rhOn[i + 1].t : total;
+    const hit = coincide(p.t, lhOn);
+    const lastNote = P.cadence && !rhOn[i + 1];
+    if (!lastNote && held && walker.int(100) < P.holdProb) { held.d = next - held.t; return; }
+    if (!lastNote && walker.int(100) < P.restProb) { held = null; return; }
+    // the walk
+    if (walker.int(100) < P.stepProb) deg += walker.int(2) ? 1 : -1;
+    else deg += (walker.int(2) ? 1 : -1) * (2 + walker.int(Math.max(1, P.maxLeap - 1)));
+    if (deg > hiD) deg = hiD - (deg - hiD); if (deg < loD) deg = loD + (loD - deg);
+    deg = Math.max(loD, Math.min(hiD, deg));
+    const strong = near(p.t % bar, 0) || near(p.t, ch.start) || hit;
+    if (strong && walker.int(100) < P.gravity && !isChordTone(deg, ch)) {
+      for (const o of [1, -1, 2, -2, 3, -3]) if (isChordTone(deg + o, ch) && deg + o >= loD && deg + o <= hiD) { deg += o; break; }
+    }
+    if (lastNote) { let d0 = loD; for (let d = loD; d <= hiD; d++) if (pitch(d) % 12 === tonic % 12 && Math.abs(d - deg) < Math.abs(d0 - deg)) d0 = d; deg = d0; }
+    const dur = lastNote ? Math.max(next - p.t, bar) : next - p.t;
+    const v = vel(P.rhVel, p.t, hit);
+    const add = (t, d, pp, vv) => { const n = { t, d, p: pp, v: vv, hand: 'rh', hit: t === p.t && hit }; notes.push(n); return n; };
+    if (P.rhPattern === 'arabesque' && !lastNote && dur > 0.2) {
+      const k = P.arabNotes, sub = dur / k, shape = [0, 1, 0, -1].slice(0, k);
+      if (walker.int(2)) shape.reverse();
+      held = null;
+      shape.forEach((o, j) => { const n = add(p.t + j * sub, sub * 0.95, pitch(deg + o), j === 0 ? v : Math.round(v * 0.82)); if (j === k - 1) held = n; });
+    } else if (P.rhPattern === 'planing') {
+      const top = pitch(deg);
+      const below = P.plane === 'triad' ? (P.planing === 'real' ? [top - 3, top - 7] : [pitch(deg - 2), pitch(deg - 4)])
+        : P.plane === 'fourths' ? (P.planing === 'real' ? [top - 5, top - 10] : [pitch(deg - 3), pitch(deg - 6)]) : [top - 7, top - 12];
+      held = add(p.t, dur, top, v); for (const b of below) add(p.t, dur, b, Math.round(v * 0.78));
+    } else if (P.rhPattern === 'octaves') {
+      held = add(p.t, dur, pitch(deg), v); add(p.t, dur, pitch(deg) - 12, Math.round(v * 0.8));
+    } else held = add(p.t, dur, pitch(deg), v);
+  });
+
+  // sustain pedal: notes ring to the next pedal change, scaled by blur
+  const changeAt = (t) => P.pedalMode === 'chord' ? chordAt(t).end : P.pedalMode === 'beat' ? Math.floor(t + 1e-9) + 1 : t;
+  for (const n of notes) {
+    n.key = n.d; // how long the key is held (drawn solid); the pedal's ring is drawn faint
+    if (P.pedalMode === 'none' || n.pedalPt) continue;
+    const ring = Math.max(n.t + n.d, changeAt(n.t) - 0.02) - n.t;
+    n.d = n.d + (ring - n.d) * P.blur;
+  }
+
+  // rubato: seconds from beats with a breathing tempo
+  const res = 96, beatsPerSec = (b) => (P.tempo / 60) * (1 + (P.rubato / 100) * Math.sin((2 * Math.PI * b) / (P.rubatoBars * bar)));
+  const secAt = new Float64Array(Math.ceil(total * res) + 2);
+  for (let i = 1; i < secAt.length; i++) secAt[i] = secAt[i - 1] + 1 / res / beatsPerSec((i - 0.5) / res);
+  const toSec = (b) => { const x = Math.max(0, Math.min(secAt.length - 1.0001, b * res)), i = Math.floor(x); return secAt[i] + (secAt[i + 1] - secAt[i]) * (x - i); };
+  const hz = makeRng(P.rSeed * 7 + 1, P.gen);
+  for (const n of notes) {
+    const j = P.humanize ? ((hz.int(2001) - 1000) / 1000) * (P.humanize / 1000) : 0;
+    n.s = Math.max(0, toSec(n.t) + j); n.e = toSec(n.t + n.d);
+  }
+  notes.sort((a, b) => a.s - b.s);
+  SONG = { notes, chords, RH, LH, total, length: toSec(total), toSec, bar, cycle, mStates: mr.states.length ? mr.states : makeRngStates(P.mSeed), hStates: hr.states, scale, tonic, pitch };
+  render();
+}
+function makeRngStates(seed) { const r = makeRng(seed, P.gen); for (let i = 0; i < 16; i++) r.next(); return r.states; }
+
+// ── readouts and drawing ─────────────────────────────────────────────────────────────────────
+const noteName = (p) => PC[((p % 12) + 12) % 12] + (Math.floor(p / 12) - 1);
+function render() {
+  const s = SONG, g = gcd(P.rhDiv, P.lhDiv), lcm = (P.rhDiv * P.lhDiv) / g;
+  $('ratio').innerHTML = '<span class="r">' + P.rhDiv + '</span><span class="c">:</span><span class="l">' + P.lhDiv + '</span>';
+  $('wheelnote').textContent = 'one cycle = ' + P.cycle + ' beat' + (P.cycle > 1 ? 's' : '') + (P.lhPhase ? ', left hand shifted' : '');
+  const coinc = P.lhPhase ? 'none (phase-shifted)' : g + ' per cycle';
+  const scaleNotes = s.scale.map((x) => PC[(x + P.tonic) % 12]).join(' ');
+  const pat = (m) => m.map((x) => (x ? 'x' : '·')).join('');
+  const kv = [
+    ['Cross-rhythm', '<span class="r">' + P.rhDiv + '</span> against <span class="l">' + P.lhDiv + '</span> per ' + P.cycle + ' beat' + (P.cycle > 1 ? 's' : '')],
+    ['Common grid', lcm + ' slots per cycle (lcm)'], ['Hands coincide', '<span class="g">' + coinc + '</span>'],
+    ['Scale', PC[P.tonic] + ' ' + SCALES[P.scale][0]], ['Notes', scaleNotes],
+    ['Right per bar', '<span class="r">' + pat(s.RH.mask) + '</span>'], ['Left per bar', '<span class="l">' + pat(s.LH.mask) + '</span>'],
+    ['Chords', s.chords.slice(0, 6).map(chordName).join(' → ') + (s.chords.length > 6 ? ' …' : '')],
+    ['Length', s.length.toFixed(1) + ' s, ' + P.bars + ' bars, ' + s.notes.length + ' notes'],
+  ];
+  $('readout').innerHTML = kv.map(([k, v]) => '<div class="kv"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>').join('');
+  const mr = makeRng(P.mSeed, P.gen); const st = []; for (let i = 0; i < 16; i++) st.push(mr.next());
+  $('trace').innerHTML = '<table><tr><th>melody LCG</th>' + st.map((x) => '<td class="on">' + x + '</td>').join('') + '</tr><tr><th>mod 100</th>' + st.map((x) => '<td>' + (x % 100) + '</td>').join('') + '</tr><tr><th>generator</th><td colspan="16" style="text-align:left">' + GENERATORS[P.gen].name + ' · seed ' + P.mSeed + '</td></tr></table>';
+  $('cfg').value = JSON.stringify(P);
+  $('chordlegend').textContent = '';
+  drawAll(-1);
+  save();
+}
+function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function setup(canvas) {
+  const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+  canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  const g = canvas.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); return [g, w, h];
+}
+function drawAll(beat) { drawRoll(beat); drawLanes(beat); drawChords(beat); drawWheel(beat); }
+// a chord symbol from the sounding pitch classes: third, fifth, seventh, then the highest extension
+function chordName(c) {
+  const root = (c.rootSemi + P.tonic + 120) % 12, s = new Set(c.pcs.map((x) => (x - c.rootSemi + 120) % 12)), has = (i) => s.has(i);
+  const third = has(4) ? 'M' : has(3) ? 'm' : null;
+  let sym, alt = [];
+  if (!third) {
+    const sev = has(10) ? '7' : has(11) ? 'maj7' : '';
+    sym = has(5) ? sev + 'sus4' : has(2) ? sev + 'sus2' : sev ? sev + '(no3)' : has(7) ? '5' : '';
+    if (has(5) && has(2)) alt.push('add9');
+    if (has(9) && sev) alt.push('13'); else if (has(9)) alt.push('6');
+    if (has(1)) alt.push('♭9');
+    if (has(6)) alt.push(has(7) ? '♯11' : '♭5');
+    if (has(8) && !has(7)) alt.push('♯5');
+  } else if (third === 'm' && has(6) && !has(7)) {
+    sym = has(9) && !has(10) ? '°7' : has(10) ? 'ø7' : '°';
+  } else if (third === 'M' && has(8) && !has(7)) {
+    sym = '+' + (has(10) ? '7' : has(11) ? '(maj7)' : '');
+  } else {
+    const sev = has(10) ? 'dom' : has(11) ? 'maj' : null, m = third === 'm';
+    if (sev) {
+      const ext = has(9) ? 13 : has(5) ? 11 : has(2) ? 9 : 7;
+      sym = sev === 'maj' ? (m ? 'm(maj' + ext + ')' : 'maj' + ext) : (m ? 'm' : '') + ext;
+      if (has(5) && ext === 13) alt.push('11');
+    } else {
+      sym = (m ? 'm' : '') + (has(9) ? (has(2) ? '69' : '6') : has(2) ? 'add9' : '');
+      if (has(5)) alt.push('add11');
+    }
+    if (has(1)) alt.push('♭9');
+    if (third === 'M' && has(3)) alt.push('♯9');
+    if (has(6)) alt.push(has(7) ? '♯11' : '♭5');
+    if (has(8) && has(7)) alt.push('♭13');
+  }
+  const pedal = P.pedal === 'dominant' ? (P.tonic + 7) % 12 : P.pedal === 'none' ? null : P.tonic;
+  const N = spelling();
+  return N[root] + sym + (alt.length ? '(' + alt.join(',') + ')' : '') + (pedal !== null && pedal !== root ? '/' + N[pedal] : '');
+}
+// sharps or flats: whichever spells the scale with the most distinct letter names (sharps on a tie
+// for sharp-side tonics), so E major reads G♯m, not A♭m
+const SHARPS = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'], FLATS = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
+function spelling() {
+  const pcs = SCALES[P.scale][1].map((x) => (x + P.tonic) % 12), letters = (N) => new Set(pcs.map((p) => N[p][0])).size;
+  const a = letters(SHARPS), b = letters(FLATS);
+  return a > b ? SHARPS : b > a ? FLATS : [2, 4, 6, 7, 9, 11].includes(P.tonic) ? SHARPS : FLATS;
+}
+function drawChords(beat) {
+  const s = SONG; if (!s) return;
+  const [g, w, h] = setup($('chords'));
+  g.fillStyle = css('--panel'); g.fillRect(0, 0, w, h);
+  const x = (b) => 6 + (b / s.total) * (w - 12);
+  for (const c of s.chords) {
+    const x0 = x(c.start), x1 = x(c.end), now = beat >= c.start && beat < c.end;
+    if (now) { g.fillStyle = css('--raise'); g.fillRect(x0, 0, x1 - x0, h); }
+    g.fillStyle = css('--grid-bar'); g.fillRect(Math.round(x0), 6, 1, h - 12);
+    g.save(); g.beginPath(); g.rect(x0, 0, x1 - x0 - 2, h); g.clip();
+    g.fillStyle = now ? css('--gold') : css('--ink'); g.font = '600 15px ' + css('--sans');
+    g.fillText(chordName(c), x0 + 5, h / 2 + 5);
+    g.restore();
+  }
+  if (beat >= 0) { g.fillStyle = css('--gold'); g.fillRect(x(beat), 0, 2, h); }
+}
+function drawRoll(beat) {
+  const s = SONG; if (!s) return;
+  const [g, w, h] = setup($('roll'));
+  let lo = 127, hi = 0; for (const n of s.notes) { lo = Math.min(lo, n.p); hi = Math.max(hi, n.p); }
+  lo -= 2; hi += 2;
+  const x = (b) => 6 + (b / s.total) * (w - 12), row = (h - 8) / (hi - lo + 1), y = (p) => 4 + (hi - p) * row;
+  g.fillStyle = css('--bg'); g.fillRect(0, 0, w, h);
+  for (let p = lo; p <= hi; p++) if ([1, 3, 6, 8, 10].includes(p % 12)) { g.fillStyle = css('--grid'); g.fillRect(0, y(p), w, row); }
+  for (const c of s.chords) { g.fillStyle = 'rgba(232,207,138,0.05)'; if ((s.chords.indexOf(c)) % 2) g.fillRect(x(c.start), 0, x(c.end) - x(c.start), h); }
+  for (let b = 0; b <= s.total; b++) { g.fillStyle = b % s.bar === 0 ? css('--grid-bar') : css('--grid'); g.fillRect(Math.round(x(b)), 0, 1, h); }
+  for (const n of s.notes) {
+    g.globalAlpha = 0.35 + 0.65 * (n.v / 127);
+    g.fillStyle = n.hand === 'rh' ? css('--rh') : css('--lh');
+    const keyEnd = n.t + Math.min(n.d, n.key ?? n.d);
+    g.fillRect(x(n.t), y(n.p) + 0.5, Math.max(2, x(keyEnd) - x(n.t) - 1), Math.max(2, row - 1));
+    if (n.d > (n.key ?? n.d) + 1e-6) { g.globalAlpha *= 0.28; g.fillRect(x(keyEnd), y(n.p) + 0.5, Math.max(1, x(n.t + n.d) - x(keyEnd) - 1), Math.max(2, row - 1)); }
+    if (n.hit) { g.globalAlpha = 1; g.fillStyle = css('--gold'); g.fillRect(x(n.t), y(n.p) + 0.5, 2, Math.max(2, row - 1)); }
+  }
+  g.globalAlpha = 1;
+  if (beat >= 0) { g.fillStyle = css('--gold'); g.fillRect(x(beat), 0, 2, h); }
+}
+function drawLanes(beat) {
+  const s = SONG; if (!s) return;
+  const [g, w, h] = setup($('lanes'));
+  g.fillStyle = css('--panel'); g.fillRect(0, 0, w, h);
+  const x = (b) => 6 + (b / s.total) * (w - 12);
+  for (let b = 0; b <= s.total; b += s.cycle) { g.fillStyle = css('--grid-bar'); g.fillRect(Math.round(x(b)), 6, 1, h - 12); }
+  const lane = (list, yy, colour, other) => {
+    for (const p of list) {
+      const hit = p.on && other.some((q) => q.on && Math.abs(q.t - p.t) < 1e-6);
+      g.fillStyle = hit ? css('--gold') : p.on ? colour : css('--line');
+      const r = p.on ? 4 : 2.5; g.beginPath(); g.arc(x(p.t), yy, r, 0, Math.PI * 2); g.fill();
+    }
+  };
+  lane(s.RH.list, h * 0.3, css('--rh'), s.LH.list); lane(s.LH.list, h * 0.72, css('--lh'), s.RH.list);
+  if (beat >= 0) { g.fillStyle = css('--gold'); g.fillRect(x(beat), 0, 2, h); }
+}
+function drawWheel(beat) {
+  const s = SONG; if (!s) return;
+  const [g, w, h] = setup($('wheel'));
+  const cx = w / 2, cy = h / 2, R1 = w * 0.43, R2 = w * 0.29;
+  g.clearRect(0, 0, w, h);
+  g.strokeStyle = css('--line'); g.lineWidth = 1;
+  for (const R of [R1, R2]) { g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.stroke(); }
+  const phase = beat >= 0 ? (beat % P.cycle) / P.cycle : -1;
+  const poly = (n, R, colour, offset) => {
+    const pts = []; for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + ((i + offset) / n) * Math.PI * 2; pts.push([cx + R * Math.cos(a), cy + R * Math.sin(a), (i + offset) / n]); }
+    g.strokeStyle = colour; g.globalAlpha = 0.5; g.beginPath(); pts.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py))); if (n > 2) g.closePath(); g.stroke(); g.globalAlpha = 1;
+    for (const [px, py, f] of pts) {
+      const coincide = Math.abs(f * P.rhDiv - Math.round(f * P.rhDiv)) < 1e-6 && Math.abs(f * P.lhDiv - Math.round(f * P.lhDiv)) < 1e-6 && !P.lhPhase;
+      const lit = phase >= 0 && Math.abs(phase - f) < 0.035;
+      g.fillStyle = coincide ? css('--gold') : colour; g.beginPath(); g.arc(px, py, lit ? 8 : 5, 0, Math.PI * 2); g.fill();
+    }
+  };
+  poly(P.rhDiv, R1, css('--rh'), 0); poly(P.lhDiv, R2, css('--lh'), P.lhPhase);
+  if (phase >= 0) { const a = -Math.PI / 2 + phase * Math.PI * 2; g.strokeStyle = css('--gold'); g.lineWidth = 2; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + R1 * 1.08 * Math.cos(a), cy + R1 * 1.08 * Math.sin(a)); g.stroke(); }
+}
+
+// ── sound ────────────────────────────────────────────────────────────────────────────────────
+let ac = null, master = null, wet = null, dry = null, playing = false, t0 = 0, cursor = 0, timer = null, raf = 0;
+function audio() {
+  if (ac) return ac;
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3; comp.connect(ac.destination);
+  master = ac.createGain(); master.gain.value = 0.55; master.connect(comp);
+  dry = ac.createGain(); wet = ac.createGain(); dry.connect(master); wet.connect(master);
+  const conv = ac.createConvolver(), len = Math.floor(ac.sampleRate * 3.2), ir = ac.createBuffer(2, len, ac.sampleRate);
+  for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+  conv.buffer = ir; conv.connect(wet);
+  ac._conv = conv;
+  return ac;
+}
+function voice(n, when) {
+  const f = 440 * Math.pow(2, (n.p - 69) / 12), vel = n.v / 127, end = when + Math.max(0.08, n.e - n.s);
+  const out = ac.createGain(), lp = ac.createBiquadFilter(); lp.type = 'lowpass';
+  lp.frequency.value = Math.min(16000, f * (1.5 + 10 * P.bright * vel)); lp.Q.value = 0.4;
+  out.connect(lp); lp.connect(dry); lp.connect(ac._conv);
+  dry.gain.value = 1 - P.reverb * 0.5; wet.gain.value = P.reverb * 0.9;
+  const partials = P.voice === 'celesta' ? [[1, 'sine', 0.7], [4, 'sine', 0.18], [2, 'sine', 0.12]]
+    : P.voice === 'harp' ? [[1, 'triangle', 0.55], [2, 'sine', 0.2], [3, 'sine', 0.06]]
+      : [[1, 'triangle', 0.5], [1.003, 'sine', 0.25], [2, 'sine', 0.16], [3, 'sine', 0.05]];
+  const tau = P.voice === 'celesta' ? 0.55 : P.voice === 'harp' ? 0.9 * Math.sqrt(220 / f) + 0.25 : 1.6 * Math.sqrt(220 / f) + 0.35;
+  const peak = 0.22 * vel * (n.hand === 'lh' ? 0.85 : 1);
+  out.gain.setValueAtTime(0, when); out.gain.linearRampToValueAtTime(peak, when + 0.005);
+  out.gain.setTargetAtTime(0, when + 0.005, tau);
+  out.gain.setTargetAtTime(0, end, P.voice === 'harp' ? 0.4 : 0.12);
+  for (const [mul, type, amp] of partials) {
+    const o = ac.createOscillator(), gg = ac.createGain(); o.type = type; o.frequency.value = f * mul; gg.gain.value = amp;
+    o.connect(gg); gg.connect(out); o.start(when); o.stop(end + 1.2);
+  }
+}
+function schedule() {
+  const s = SONG, now = ac.currentTime, ahead = 0.15;
+  if (!s.notes.length) return;
+  while (true) {
+    const loopIx = Math.floor(cursor / s.notes.length), n = s.notes[cursor % s.notes.length];
+    const when = t0 + loopIx * s.length + n.s;
+    if (when > now + ahead) break;
+    if (when >= now - 0.05) voice(n, when);
+    cursor++;
+  }
+}
+function beatNow() {
+  const s = SONG, el = ((ac.currentTime - t0) % s.length + s.length) % s.length;
+  let lo = 0, hi = s.total; for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (s.toSec(m) < el) lo = m; else hi = m; }
+  return lo;
+}
+function frame() { if (!playing) return; drawAll(beatNow()); raf = requestAnimationFrame(frame); }
+function start() {
+  audio(); ac.resume();
+  playing = true; t0 = ac.currentTime + 0.08; cursor = 0;
+  timer = setInterval(schedule, 25); schedule(); raf = requestAnimationFrame(frame);
+  $('play').textContent = 'Stop'; $('play').setAttribute('aria-pressed', 'true');
+}
+function stop() {
+  playing = false; clearInterval(timer); cancelAnimationFrame(raf);
+  if (master) { const m = master; m.gain.setTargetAtTime(0, ac.currentTime, 0.05); setTimeout(() => { m.gain.cancelScheduledValues(ac.currentTime); m.gain.value = 0.55; }, 400); }
+  $('play').textContent = 'Play'; $('play').setAttribute('aria-pressed', 'false'); drawAll(-1);
+}
+// after a change while playing: keep the position, reschedule the new notes from there
+function restartFromHere() {
+  if (!playing) return;
+  const b = beatNow(); clearInterval(timer);
+  master.gain.setTargetAtTime(0, ac.currentTime, 0.03);
+  setTimeout(() => {
+    master.gain.cancelScheduledValues(ac.currentTime); master.gain.value = 0.55;
+    const s = SONG, pos = s.toSec(Math.min(b, s.total - 0.001));
+    t0 = ac.currentTime + 0.05 - pos; cursor = s.notes.findIndex((n) => n.s >= pos); if (cursor < 0) cursor = s.notes.length;
+    timer = setInterval(schedule, 25); schedule();
+  }, 90);
+}
+
+// ── wiring ───────────────────────────────────────────────────────────────────────────────────
+let soon = 0;
+function changed() { generate(); restartFromHere(); }
+function changedSoon() { clearTimeout(soon); soon = setTimeout(changed, 120); }
+$('play').addEventListener('click', () => (playing ? stop() : start()));
+$('regen').addEventListener('click', () => { P.mSeed = Math.floor(Math.random() * 1000); P.hSeed = Math.floor(Math.random() * 1000); P.rSeed = Math.floor(Math.random() * 1000); syncControls(); changed(); });
+const pre = $('preset');
+pre.innerHTML = '<option value="">Choose a preset…</option>' + Object.entries(PRESETS).map(([k, v]) => '<option value="' + k + '">' + v[0] + '</option>').join('');
+pre.addEventListener('change', () => { const v = PRESETS[pre.value]; if (!v) return; P = { ...DEF, ...v[1], mSeed: P.mSeed, hSeed: P.hSeed, rSeed: P.rSeed }; syncControls(); changed(); });
+const toast = (t) => { $('toast').textContent = t; setTimeout(() => { $('toast').textContent = ''; }, 2200); };
+$('copy').addEventListener('click', () => { const t = JSON.stringify(P); navigator.clipboard.writeText(t).then(() => toast('Copied'), () => { $('cfg').select(); toast('Select and copy the text below'); }); });
+$('load').addEventListener('click', () => { try { const v = JSON.parse($('cfg').value); P = { ...DEF, ...v }; syncControls(); changed(); toast('Loaded'); } catch (e) { toast('That text is not valid settings JSON'); } });
+window.addEventListener('resize', () => drawAll(playing ? beatNow() : -1));
+
+// ── MIDI export: right hand and left hand as tracks, plus each hand alone, zipped ─────────────
+// (the viewer's save allowlist has no .mid, so the files travel in a .zip; note lengths include
+// the sustain pedal's ring, so the files sound the same on any instrument without CC64)
+const PPQ = 480, GM = { piano: 0, harp: 46, celesta: 8 };
+function vlq(n) { const b = [n & 0x7f]; while ((n >>= 7) > 0) b.unshift((n & 0x7f) | 0x80); return b; }
+const u32 = (n) => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
+const txt = (str) => [...new TextEncoder().encode(str)];
+const meta = (type, bytes) => [0xff, type, ...vlq(bytes.length), ...bytes];
+function mtrk(events) {
+  events.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const out = []; let last = 0;
+  for (const [tick, , bytes] of events) { out.push(...vlq(tick - last), ...bytes); last = tick; }
+  out.push(0, 0xff, 0x2f, 0);
+  return [...txt('MTrk'), ...u32(out.length), ...out];
+}
+function smf(hands) {
+  const s = SONG, tempo = Math.round(60000000 / P.tempo), title = 'Two Hands, Two Times - ' + P.rhDiv + ' against ' + P.lhDiv;
+  const tracks = [mtrk([[0, 0, meta(0x03, txt(title))], [0, 1, meta(0x51, [(tempo >> 16) & 255, (tempo >> 8) & 255, tempo & 255])], [0, 2, meta(0x58, [P.meter, 2, 24, 8])]])];
+  hands.forEach((h, ch) => {
+    const ev = [[0, 0, meta(0x03, txt(h === 'rh' ? 'Right hand' : 'Left hand'))], [0, 1, [0xc0 | ch, GM[P.voice] ?? 0]]];
+    for (const n of s.notes) {
+      if (n.hand !== h) continue;
+      const on = Math.max(0, Math.round(n.t * PPQ)), off = Math.max(on + 1, Math.round((n.t + n.d) * PPQ)), v = Math.max(1, Math.min(127, Math.round(n.v)));
+      ev.push([on, 3, [0x90 | ch, n.p, v]], [off, 2, [0x80 | ch, n.p, 0]]);
+    }
+    tracks.push(mtrk(ev));
+  });
+  return new Uint8Array([...txt('MThd'), 0, 0, 0, 6, 0, 1, 0, tracks.length, (PPQ >> 8) & 255, PPQ & 255, ...tracks.flat()]);
+}
+const CRC = (() => { const t = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[i] = c >>> 0; } return t; })();
+const crc32 = (b) => { let c = 0xffffffff; for (const x of b) c = CRC[(c ^ x) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+function zip(files) {
+  const le16 = (n) => [n & 255, (n >> 8) & 255], le32 = (n) => [n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255];
+  const parts = [], central = []; let off = 0;
+  for (const [name, data] of files) {
+    const nm = new TextEncoder().encode(name), crc = crc32(data);
+    const head = [...le32(0x04034b50), ...le16(20), ...le16(0), ...le16(0), ...le16(0), ...le16(0x21), ...le32(crc), ...le32(data.length), ...le32(data.length), ...le16(nm.length), ...le16(0)];
+    parts.push(new Uint8Array(head), nm, data);
+    central.push(new Uint8Array([...le32(0x02014b50), ...le16(20), ...le16(20), ...le16(0), ...le16(0), ...le16(0), ...le16(0x21), ...le32(crc), ...le32(data.length), ...le32(data.length), ...le16(nm.length), ...le16(0), ...le16(0), ...le16(0), ...le16(0), ...le32(0), ...le32(off)]), nm);
+    off += head.length + nm.length + data.length;
+  }
+  const csize = central.reduce((a, b) => a + b.length, 0);
+  return new Blob([...parts, ...central, new Uint8Array([...le32(0x06054b50), 0, 0, 0, 0, ...le16(files.length), ...le16(files.length), ...le32(csize), ...le32(off), 0, 0])]);
+}
+function midiZip() {
+  const base = ('hands-' + P.rhDiv + 'x' + P.lhDiv + '-' + P.scale + '-' + PC[P.tonic].replace('♯', 's').replace('♭', 'b') + '-' + P.mSeed + '-' + P.hSeed + '-' + P.rSeed).toLowerCase();
+  const enc = new TextEncoder();
+  return [base + '.zip', zip([[base + '.mid', smf(['rh', 'lh'])], [base + '-rh.mid', smf(['rh'])], [base + '-lh.mid', smf(['lh'])], [base + '-settings.json', enc.encode(JSON.stringify(P, null, 2))]])];
+}
+window.__handsMidiZip = midiZip;
+(async () => {
+  if (!(window.claude && window.claude.use)) {
+    // opened as a plain file (outside claude.ai): save through the browser
+    const b = $('savemidi'); b.hidden = false;
+    b.addEventListener('click', () => { const [filename, data] = midiZip(); const a = document.createElement('a'); a.href = URL.createObjectURL(data); a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); });
+    return;
+  }
+  const dl = await window.claude.use('downloads');
+  if (!dl) return;
+  const b = $('savemidi'); b.hidden = false;
+  b.addEventListener('click', async () => {
+    const [filename, data] = midiZip();
+    try { await dl.save({ filename, data }); toast('Saved ' + filename); }
+    catch (e) { const c = e && e.code; if (c === 'declined') return; if (c === 'rate_limited') toast('A save prompt is already open'); else { toast('Saving is not available here'); if (c === 'unavailable' || c === 'not_granted' || c === 'capability_disabled' || c === 'capability_removed') b.hidden = true; } }
+  });
+})();
+buildControls();
+generate();
+})();
+</script>
+<a href="/" class="beast-sound-home" style="position:fixed;left:12px;bottom:12px;z-index:9999;font:600 12px/1 system-ui,-apple-system,sans-serif;color:#fff;background:rgba(0,0,0,.66);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:7px 11px;text-decoration:none" aria-label="All Beast Sound pages">&#9666; All pages</a>

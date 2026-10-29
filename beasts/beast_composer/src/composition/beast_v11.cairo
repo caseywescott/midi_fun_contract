@@ -36,6 +36,7 @@ use crate::composition::beast_v3_sound::{
 };
 use crate::composition::countersubject::{default_countersubject_config, generate_countersubject};
 use crate::composition::melodic_canon::{NoteEvent, degree_to_keynum, mode_scale};
+use crate::opaque::opaque;
 
 const TU: u32 = 480;
 const BAR: u32 = 1920;
@@ -233,8 +234,7 @@ fn theme_rhythm(
     let fam = family(p.weakness);
     let seed: u256 = motif_seed.into();
     let mut h: u32 = (seed % 4294967291).try_into().unwrap();
-    let mut slots: Array<Slot> = array![];
-    let mut g: u32 = 0;
+    let (mut slots, mut g): (Array<Slot>, u32) = opaque((array![], 0));
     while g < groups {
         h = mix(h, g + 1);
         let name = if g == groups - 1 {
@@ -268,8 +268,7 @@ fn theme_rhythm(
     }
     // passing notes move toward the next slot: passing, upper neighbour or anticipation
     let n = slots.len();
-    let mut out: Array<Slot> = array![];
-    let mut i: u32 = 0;
+    let (mut out, mut i): (Array<Slot>, u32) = opaque((array![], 0));
     while i < n {
         let mut s = *slots.at(i);
         if s.src == SRC_PASSING {
@@ -1159,7 +1158,6 @@ fn build_section(
     };
     let r = realizer(*plan.at(s % plan.len()), home, scale);
     let next_shift = *plan.at(next % plan.len());
-    let mut out: Array<NoteEvent> = array![];
     // canon voices, then the countersubject's voice id
     let voices = p.voice_count + if p.use_countersubject {
         1
@@ -1167,11 +1165,11 @@ fn build_section(
         0
     };
     let mut grid = new_grid(voices, offset / CELL);
-    // per voice: its map, offset and last note (the countersubject last, with offset 99)
-    let mut maps: Array<VoiceMap> = array![];
-    let mut offs_used: Array<i32> = array![];
-    let mut lasts: Array<NoteEvent> = array![];
-    let mut v: u32 = 0;
+    // per voice: its map, offset and last note (the countersubject last, with offset 99); the
+    // loops start from `opaque` state, so each is compiled once
+    let (mut out, mut maps, mut offs_used, mut lasts, mut v, velocity, no_prev) = opaque(
+        (array![], array![], array![], array![], 0, 90, Option::None),
+    );
     while v < p.voice_count {
         let entry = v * lag * TU;
         let off = if v < 4 {
@@ -1180,7 +1178,7 @@ fn build_section(
             *offs.at(3)
         };
         let m = VoiceMap { invert: p.use_inversion && v == 1, off };
-        let mut prev: Option<NoteEvent> = Option::None;
+        let mut prev = no_prev;
         for sl in slots {
             let base = map_degree(m, sl.degree);
             let time = offset + entry + sl.time;
@@ -1190,7 +1188,7 @@ fn build_section(
                 let cands = around(r, base, 1);
                 choose_pitch(cands.span(), time, sl.duration, out.span(), @grid, prev)
             };
-            let e = NoteEvent { time, duration: sl.duration, pitch, velocity: 90, voice_id: v };
+            let e = NoteEvent { time, duration: sl.duration, pitch, velocity, voice_id: v };
             put(ref out, ref grid, e);
             prev = Option::Some(e);
         }
@@ -1214,14 +1212,14 @@ fn build_section(
             )
                 .degrees
         };
-        let mut prev: Option<NoteEvent> = Option::None;
-        let mut i: u32 = 0;
-        let ident = VoiceMap { invert: false, off: 0 };
+        let (mut prev, mut i, ident): (Option<NoteEvent>, u32, VoiceMap) = opaque(
+            (no_prev, 0, VoiceMap { invert: false, off: 0 }),
+        );
         for d in degrees.span() {
             let time = offset + i * TU;
             let cands = near(r, ident, *d);
             let pitch = choose_pitch(cands.span(), time, TU, out.span(), @grid, prev);
-            let e = NoteEvent { time, duration: TU, pitch, velocity: 90, voice_id: p.voice_count };
+            let e = NoteEvent { time, duration: TU, pitch, velocity, voice_id: p.voice_count };
             put(ref out, ref grid, e);
             prev = Option::Some(e);
             if i < 4 {

@@ -3,6 +3,7 @@
 use core::poseidon::poseidon_hash_span;
 use crate::composition::melodic_canon::NoteEvent;
 use crate::inputs::evolution::{EvolutionConfig, EvolutionInputs, validate_evolution_inputs};
+use crate::opaque::opaque;
 
 #[derive(Copy, Drop)]
 pub struct StaffControls {
@@ -27,11 +28,10 @@ pub fn resolve_evolution(
     } else {
         config.max_extra_channels
     };
-    let mut mask: u8 = 0;
-    let mut bit: u8 = 1;
-    let mut feature: u8 = 0;
+    // `opaque` state: each loop is compiled once
+    let (mut mask, mut bit, mut feature, first): (u8, u8, u8, u32) = opaque((0, 1, 0, 0));
     while feature < eligible {
-        let mut i: u32 = 0;
+        let mut i = first;
         for sample in x.milestones {
             let sample = *sample;
             let roll: u256 = poseidon_hash_span(

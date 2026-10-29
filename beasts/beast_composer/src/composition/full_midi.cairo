@@ -14,6 +14,7 @@ use midi::smf::{TrackWriter, TrackWriterTrait, smf_bytes};
 use crate::composition::beast_score::BeastForm;
 use crate::composition::melodic_canon::NoteEvent;
 use crate::composition::yeti::rock_drum_track;
+use crate::opaque::opaque;
 
 /// The program every voice plays: TinyChip's Triangle Lead (bank 0) for now, until the preset set
 /// and its orchestration are chosen.
@@ -33,13 +34,9 @@ pub(crate) struct VoiceRun {
 /// Genesis path voice by voice, v1.1 section by section), so a voice can have several runs; reading
 /// a voice's runs in order reads its events in their original order.
 pub(crate) fn voice_runs(events: Span<NoteEvent>) -> Array<VoiceRun> {
-    let mut runs: Array<VoiceRun> = array![];
-    let mut voice: u32 = 0;
-    // felts, so no overflow checks per event, converted once per run (they fit: at most
-    // events.len() events, of pitch at most 255)
-    let mut start: felt252 = 0;
-    let mut end: felt252 = 0;
-    let mut pitch_sum: felt252 = 0;
+    // `start`, `end`, `pitch_sum`: felts, so no overflow checks per event, converted once per run
+    // (they fit: at most events.len() events, of pitch at most 255)
+    let (mut runs, mut voice, mut start, mut end, mut pitch_sum) = opaque((array![], 0, 0, 0, 0));
     for e in events {
         if e.voice_id != voice {
             // the run before it (none yet if the first event is not voice 0)
@@ -82,12 +79,12 @@ fn max_voice_of(runs: Span<VoiceRun>) -> u32 {
 
 /// The pitch sum and the event count of every voice id 0..=max_voice.
 pub(crate) fn voice_stats(runs: Span<VoiceRun>, max_voice: u32) -> (Array<u64>, Array<u64>) {
-    let mut sums: Array<u64> = array![];
-    let mut counts: Array<u64> = array![];
-    let mut v: u32 = 0;
+    let (mut sums, mut counts, mut v, zero): (Array<u64>, Array<u64>, u32, u64) = opaque(
+        (array![], array![], 0, 0),
+    );
     while v <= max_voice {
-        let mut sum: u64 = 0;
-        let mut n: u64 = 0;
+        let mut sum = zero;
+        let mut n = zero;
         for r in runs {
             if r.voice == v {
                 sum += r.pitch_sum;
@@ -200,12 +197,11 @@ pub fn drum_track(length: u32, sec: u32, tier: u8, mega: bool) -> Array<u8> {
     let fill_kick0 = f == 2; // only fill C has a kick at its start
     // a cymbal on each section's downbeat: fill D, and every mega Beast
     let cymbal = mega || f == 3;
-    let mut track = TrackWriterTrait::with_running_status();
     // One step per 120 ticks. Whether it is on an eighth note (`u % 240 == 0`) and, if so, on a
     // quarter note (`u % 480 == 0`) is carried from step to step instead of divided out of `u`.
-    let mut u: u32 = 0;
-    let mut eighth = true;
-    let mut quarter = true;
+    let (mut track, mut u, mut eighth, mut quarter): (TrackWriter, u32, bool, bool) = opaque(
+        (TrackWriterTrait::with_running_status(), 0, true, true),
+    );
     while u < length {
         let rel = u % sec;
         let in_fill = rel >= fill_start;
@@ -715,8 +711,7 @@ pub fn beast_form_to_full_tracks_arranged(
     };
     let extra_voice: u32 = match arr.extra {
         Option::Some((ev, prog)) => {
-            let mut next: Array<u8> = array![];
-            let mut v: u32 = 0;
+            let (mut next, mut v): (Array<u8>, u32) = opaque((array![], 0));
             while v <= max_voice {
                 next.append(if v == ev {
                     prog
@@ -731,8 +726,7 @@ pub fn beast_form_to_full_tracks_arranged(
         Option::None => 0xFFFFFFFF,
     };
     if let Option::Some(ps) = arr.programs {
-        let mut next: Array<u8> = array![];
-        let mut v: u32 = 0;
+        let (mut next, mut v): (Array<u8>, u32) = opaque((array![], 0));
         while v <= max_voice {
             next.append(if v < ps.len() {
                 *ps.at(v)
@@ -747,23 +741,20 @@ pub fn beast_form_to_full_tracks_arranged(
     let sections: u32 = form.section_count.into();
     let sec = length / sections;
 
-    // the lead: the highest mean pitch (cross-multiplied), ties to the higher voice id
-    let mut lead: u32 = 0;
-    let mut lead_sum: u64 = 0;
-    let mut lead_n: u64 = 0;
-    let mut found = false;
-    let mut v: u32 = 0;
+    // the lead: the highest mean pitch (cross-multiplied), ties to the higher voice id; found once
+    // `lead_n` (a voice's note count) is not 0
+    let (mut lead, mut lead_sum, mut lead_n, mut v): (u32, u64, u64, u32) = opaque((0, 0, 0, 0));
     while v <= max_voice {
         let sum = *sums.at(v);
         let n = *counts.at(v);
-        if n > 0 && v != extra_voice && (!found || sum * lead_n >= lead_sum * n) {
+        if n > 0 && v != extra_voice && (lead_n == 0 || sum * lead_n >= lead_sum * n) {
             lead = v;
             lead_sum = sum;
             lead_n = n;
-            found = true;
         }
         v += 1;
     }
+    let found = lead_n != 0;
     // top_lead: when the highest voice drew a pluck, it takes the family's lead no voice plays
     let mut lead_program: u8 = *base_programs.at(lead);
     if arr.top_lead && found {
@@ -794,9 +785,9 @@ pub fn beast_form_to_full_tracks_arranged(
             }
         }
     }
-    let mut programs: Array<u8> = array![];
-    let mut pans: Array<u8> = array![];
-    let mut v: u32 = 0;
+    let (mut programs, mut pans, mut v): (Array<u8>, Array<u8>, u32) = opaque(
+        (array![], array![], 0),
+    );
     while v <= max_voice {
         programs
             .append(
@@ -869,8 +860,7 @@ pub fn beast_form_to_full_tracks_arranged(
             Option::None => (family_leads(0), 0xFFFFFFFF),
         };
         let fl = fl.span();
-        let mut new_pans: Array<u8> = array![];
-        let mut v: u32 = 0;
+        let (mut new_pans, mut v): (Array<u8>, u32) = opaque((array![], 0));
         while v <= last_voice {
             let prog = *programs.at(v);
             let is_lead = v == 0
@@ -909,7 +899,7 @@ pub fn beast_form_to_full_tracks_arranged(
     tempo.tempo(0, tempo_us);
     let mut tracks: Array<Array<u8>> = array![tempo.finish_at(length)];
 
-    let mut v: u32 = 0;
+    let mut v: u32 = opaque(0);
     while v <= last_voice {
         let ch: u8 = (v % 16).try_into().unwrap();
         let mut track = TrackWriterTrait::new();

@@ -22,6 +22,7 @@ use crate::composition::countersubject::{
 };
 use crate::composition::invertible_counterpoint::ic_pair_safe;
 use crate::composition::melodic_canon::{DEFAULT_VELOCITY, NoteEvent, realize_degree};
+use crate::opaque::opaque;
 
 pub const BEAST_SCORE_VERSION: u32 = 1;
 pub const BEAST_THEME_LEN: u32 = 12;
@@ -159,42 +160,37 @@ fn candidate_step_at(index: u32) -> i32 {
 
 pub fn walk_leader_hashed(seed: felt252, len: u32, register_band: i32) -> (Array<i32>, Array<i32>) {
     assert(len >= 2, 'beast len >=2');
-    let mut degrees: Array<i32> = ArrayTrait::new();
-    let mut steps: Array<i32> = ArrayTrait::new();
-    degrees.append(0);
+    // `opaque` state: each loop is compiled once
+    let (mut degrees, mut steps, mut p, first): (Array<i32>, Array<i32>, u32, u32) = opaque(
+        (array![0], array![], 1, 0),
+    );
     let mut prior_hash = hash2(seed, 'BEAST_PRIOR');
-    let mut p: u32 = 1;
     loop {
         if p >= len {
             break;
         }
         let cur = *degrees.at(degrees.len() - 1);
         let raw = degree_hash(seed, p, cur, prior_hash);
-        let mut picked = 0_i32;
-        let mut found = false;
-        let mut tries: u32 = 0;
-        loop {
-            if tries >= 4 || found {
-                break;
+        // the first of four candidate steps that stays in the band, else a step toward 0
+        let mut tries = first;
+        let picked = loop {
+            if tries >= 4 {
+                break if cur > 0 {
+                    -1
+                } else if cur < 0 {
+                    1
+                } else {
+                    0
+                };
             }
             let idx = (raw + tries) % 4;
             let cand = candidate_step_at(idx);
             let next = cur + cand;
             if next >= -register_band && next <= register_band {
-                picked = cand;
-                found = true;
+                break cand;
             }
             tries += 1;
-        }
-        if !found {
-            if cur > 0 {
-                picked = -1;
-            } else if cur < 0 {
-                picked = 1;
-            } else {
-                picked = 0;
-            }
-        }
+        };
         let next_degree = cur + picked;
         degrees.append(next_degree);
         steps.append(picked);

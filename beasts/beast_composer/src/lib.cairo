@@ -18,6 +18,7 @@ mod melodic_canon_tests;
 pub mod modes;
 #[cfg(test)]
 mod name_track_tests;
+pub mod opaque;
 #[cfg(test)]
 mod params_pack_tests;
 pub mod rng;

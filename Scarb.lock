@@ -25,8 +25,8 @@ dependencies = [
 name = "midi"
 version = "0.1.0"
 dependencies = [
- "onchain_midi_types",
  "snforge_std",
+ "tinysynth_interface",
 ]
 
 [[package]]
@@ -36,11 +36,6 @@ dependencies = [
  "midi",
  "snforge_std",
 ]
-
-[[package]]
-name = "onchain_midi_types"
-version = "0.1.0"
-source = "git+https://github.com/Provable-Games/onchain-midi-player?tag=onchain_midi_types-v0.1.0#88e62f910e1069c2d6c6ca870aa0979c4f654448"
 
 [[package]]
 name = "openzeppelin_access"
@@ -87,3 +82,8 @@ checksum = "sha256:01fe1a1853f8899a455cdc99a408a56f76cc6c069abdf56dcf98709665c27
 dependencies = [
  "snforge_scarb_plugin",
 ]
+
+[[package]]
+name = "tinysynth_interface"
+version = "0.1.0"
+source = "git+https://github.com/Provable-Games/onchain-midi-player?rev=0596f7a7580487480a23702f6a312625c1a05429#0596f7a7580487480a23702f6a312625c1a05429"

@@ -126,7 +126,8 @@ export function beastInstruments(result) {
   const followers = Object.keys(st).map(Number).filter((v) => v !== 0 && v !== cs)
     .sort((a, b) => (st[a].sum * st[b].n - st[b].sum * st[a].n) || a - b); // lowest first
   const others = name % 2 ? [fam.plucks[2], fam.plucks[1]] : [fam.plucks[1], fam.plucks[2]];
-  followers.forEach((v, i) => { out[v] = i === 0 ? fam.plucks[0] : others[i - 1]; });
+  // the third follower on take the second's other pluck too (full_midi.cairo voice_programs: rank 2 and up)
+  followers.forEach((v, i) => { out[v] = i === 0 ? fam.plucks[0] : others[Math.min(i - 1, 1)]; });
   return out;
 }
 

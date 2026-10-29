@@ -377,3 +377,72 @@ fn editions_staff_parity_fixture() {
         );
     }
 }
+
+/// Staffed Species Songs (the Genesis Track's inputs) through compose_staff: one SGS line per case,
+/// which scripts/songs_staff_parity.mjs recomposes in JS (lab.js genesisMidi on evolution.js's
+/// staff)
+/// and compares. Hashes as in `staff_context`.
+#[test]
+#[ignore]
+fn songs_staff_parity_fixture() {
+    // (species, unlock bps, max extra, velocity extent, ornament bps, birth, staff)
+    let cases: [(u64, u16, u8, u8, u16, u64, u64); 8] = [
+        (1, 10000, 5, 6, 800, 100, 300), (21, 10000, 5, 16, 3000, 100, 300),
+        (25, 0, 5, 6, 800, 100, 300), (39, 5000, 2, 10, 1500, 1000, 1500),
+        (40, 10000, 1, 0, 10000, 1000, 1500), (68, 10000, 5, 8, 2500, 100, 300),
+        (52, 4000, 3, 12, 0, 1000, 1500), (76, 10000, 5, 4, 1000, 100, 300),
+    ];
+    for c in cases.span() {
+        let (sp, unlock, extra, vel, orn, birth, staff) = *c;
+        let config = EvolutionConfig {
+            first_milestone_age: 10,
+            initial_unlock_bps: unlock,
+            unlock_step_bps: 0,
+            max_extra_channels: extra,
+            max_tempo_delta_bpm: 4,
+            max_velocity_delta: vel,
+            ornament_chance_bps: orn,
+        };
+        let inputs = genesis(beast_t(sp));
+        let midi = compose_staff_sound(inputs, 0, config, staff_context(config, birth, staff)).midi;
+        let mut hex: ByteArray = "";
+        let mut i: u32 = 0;
+        while i < midi.len() {
+            let b = midi.at(i).unwrap();
+            hex.append_byte(*HEX.span().at((b / 16).into()));
+            hex.append_byte(*HEX.span().at((b % 16).into()));
+            i += 1;
+        }
+        println!(
+            "SGS sp={} unlock={} extra={} vel={} orn={} birth={} staff={} len={} hex={}",
+            sp,
+            unlock,
+            extra,
+            vel,
+            orn,
+            birth,
+            staff,
+            midi.len(),
+            hex,
+        );
+    }
+}
+
+/// A Beast of species `id` (community species past 75: tier 2 Hunter).
+fn beast_t(id: u64) -> PackableBeastV3 {
+    if id <= 75 {
+        beast(id, 0, 0, 0)
+    } else {
+        PackableBeastV3 {
+            id,
+            prefix: 0,
+            suffix: 0,
+            level: 1,
+            health: 100,
+            shiny: 0,
+            animated: 0,
+            tier: 2,
+            beast_type: 1,
+        }
+    }
+}

@@ -142,7 +142,6 @@ export function decodeGenerationInputs(values) {
 export function applyPerformance(inputs, code) {
   encodeInputs(inputs);
   requireThat(Number.isInteger(code) && code >= 0 && code <= 3, 'invalid sound effects');
-  requireThat(inputs.kind === 'Song', 'Sound Check extension required');
   // Copies also canonicalize u64/felt values without ever mutating the authored recipe.
   const result = decodeInputs(encodeInputs(inputs));
   if (code === 0) return result;

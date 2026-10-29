@@ -82,7 +82,11 @@ test('performance codes0–3 have exact order, units, saturation and immutable o
     assert.deepEqual([p.tempo_us,p.velocity_ceiling,p.articulation_profile], [tempo,velocity,profile]);
     assert.deepEqual(encodeInputs(x), original);
   }
-  assert.throws(() => applyPerformance(decodeInputs(checkWire), 0), /Sound Check extension required/);
+  for (const code of [1,2,3]) {
+    const check = decodeInputs(checkWire); check.check.tempo_us = 1;
+    const p = applyPerformance(check,code).check;
+    assert.equal(p.tempo_us,1); assert.equal(p.velocity_ceiling,127);
+  }
   assert.throws(() => applyPerformance(x,4)); assert.throws(() => applyPerformance(x,1.5));
 });
 

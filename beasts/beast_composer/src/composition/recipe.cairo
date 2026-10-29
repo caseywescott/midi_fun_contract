@@ -50,9 +50,6 @@ pub fn is_mega(sound_effects: u8) -> bool {
 pub fn apply_performance(x: ComposerInputs, sound_effects: u8) -> ComposerInputs {
     validate_inputs(x);
     validate_performance(sound_effects);
-    if let ComposerInputs::SoundCheck(_) = x {
-        panic!("Sound Check extension required");
-    }
     if sound_effects == 0 {
         return x;
     }
@@ -78,7 +75,16 @@ pub fn apply_performance(x: ComposerInputs, sound_effects: u8) -> ComposerInputs
                     };
             ComposerInputs::Song(song)
         },
-        ComposerInputs::SoundCheck(_) => panic!("Sound Check extension required"),
+        ComposerInputs::SoundCheck(mut check) => {
+            check.tempo_us = if check.tempo_us > bump {
+                check.tempo_us - bump
+            } else {
+                1
+            };
+            check.velocity_ceiling = cap_velocity(check.velocity_ceiling, lift);
+            check.articulation_profile = profile;
+            ComposerInputs::SoundCheck(check)
+        },
     }
 }
 

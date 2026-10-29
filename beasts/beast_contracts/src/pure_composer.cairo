@@ -15,7 +15,7 @@ pub fn settings_for(inputs: ComposerInputs, sound_effects: u8) -> midi::types::T
     let mega = is_mega(sound_effects);
     let (family, special) = match inputs {
         ComposerInputs::Song(x) => (x.arrangement.family, x.arrangement.special),
-        ComposerInputs::SoundCheck(_) => panic!("Sound Check extension required"),
+        ComposerInputs::SoundCheck(x) => (x.family, SpecialArrangement::None),
     };
     let has_extra = match special {
         SpecialArrangement::None => false,
@@ -66,7 +66,9 @@ pub fn compose_sound(inputs: ComposerInputs, sound_effects: u8) -> TinySynthSoun
         ComposerInputs::Song(song) => beast_composer::composition::genesis::recipe_byte_array(
             song, mega,
         ),
-        ComposerInputs::SoundCheck(_) => panic!("Sound Check extension required"),
+        ComposerInputs::SoundCheck(check) => midi::pack::bytes_to_byte_array(
+            beast_composer::composition::sound_check::sound_check_from_inputs(check, mega).span(),
+        ),
     };
     TinySynthSound { midi, settings: settings_for(effective, sound_effects) }
 }

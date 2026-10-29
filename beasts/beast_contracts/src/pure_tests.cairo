@@ -229,15 +229,27 @@ fn test_actual_pure_song_all_four_presets() {
 }
 #[test]
 #[available_gas(1000000000)]
-#[should_panic(expected: ("Sound Check extension required", 'ENTRYPOINT_FAILED'))]
-fn test_reference_sound_check_requires_separate_extension() {
+fn test_actual_pure_sound_check_all_presets() {
+    use beast_composer::inputs::{MusicIdentity, SoundCheckInputs};
     let (_, composer) = targets();
-    let inputs = beast_composer::inputs::decode_inputs(
-        array![4, 0, 21, 0, 4, 60, 0, 500000, 112, 0].span(),
+    let x = ComposerInputs::SoundCheck(
+        SoundCheckInputs {
+            identity: MusicIdentity {
+                source_species_id: 0xffffffffffffffff, name_variant_id: 1242,
+            },
+            mode_id: 26,
+            tonic_keynum: 103,
+            family: 1,
+            tempo_us: 500000,
+            velocity_ceiling: 112,
+            articulation_profile: 0,
+        },
     );
-    composer.compose(inputs, 0);
+    for code in array![0_u8, 1, 2, 3].span() {
+        let normal = composer.compose(x, *code);
+        assert_sound(@normal);
+    }
 }
-
 fn rich_song() -> beast_composer::inputs::SongInputs {
     let wire = array![
         4, 1, 2, 2, 1, 4, 60, 3, 2, 4, 3, 2, 1, 1, 3, 0, 109, 500000, 47, 1, 1, 2, 0, 1, 2, 0, 0, 1,

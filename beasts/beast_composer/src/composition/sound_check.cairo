@@ -141,3 +141,133 @@ fn pitch(tonic: u32, scale: Span<u8>, d: i32) -> u8 {
 fn note(time: u32, duration: u32, pitch: u8, velocity: u8, voice_id: u32) -> NoteEvent {
     NoteEvent { time, duration, pitch, velocity, voice_id }
 }
+
+
+/// Explicit scale/preset recipe. Musical performance is already resolved by the
+/// caller and no temporal context/hash exists on the Sound Check path.
+pub fn sound_check_from_inputs(
+    x: beast_composer_inputs::SoundCheckInputs, mega: bool,
+) -> Array<u8> {
+    beast_composer_inputs::validate_inputs(beast_composer_inputs::ComposerInputs::SoundCheck(x));
+    let scale = named_mode_scale(x.mode_id).unwrap();
+    let tonic: u32 = x.tonic_keynum.into();
+    let hash: u256 = poseidon_hash_span(
+        array![
+            'BEAST_SOUND_CHECK', x.identity.source_species_id.into(),
+            x.identity.name_variant_id.into(),
+        ]
+            .span(),
+    )
+        .into();
+    let h: u32 = (hash % 0x100000000).try_into().unwrap();
+    let leads = family_leads(x.family).span();
+    let plucks = family_plucks(x.family).span();
+    let mut presets: Array<u8> = array![
+        *leads.at(0), *leads.at(1), *leads.at(2), *plucks.at(0), *plucks.at(1), *plucks.at(2),
+    ];
+    if mega {
+        presets.append(*MEGA_LEADS.span().at(0));
+        presets.append(*MEGA_LEADS.span().at(1));
+    }
+    let n = presets.len();
+    let rot = h % n;
+    let pattern: Span<i32> = match (h / 0x100) % 4 {
+        0 => array![0, 1, 2, 3].span(),
+        1 => array![0, 2, 4, 7].span(),
+        2 => array![7, 4, 2, 0].span(),
+        _ => array![0, 2, 1, 3].span(),
+    };
+    let held: i32 = if (h / 0x1000) % 2 == 1 {
+        4
+    } else {
+        7
+    };
+    let blips: Span<i32> = array![7, 9, 11, 14].span();
+
+    let mut events: Array<NoteEvent> = array![];
+    let mut programs: Array<u8> = array![];
+    let mut v: u32 = 0;
+    while v < n {
+        let t0 = v * BLOCK;
+        programs.append(*presets.at((v + rot) % n));
+        let mut k: u32 = 0;
+        for d in pattern {
+            events.append(note(t0 + k * 480, 420, pitch(tonic, scale, *d), 100, v));
+            k += 1;
+        }
+        events.append(note(t0 + 1920, 1380, pitch(tonic, scale, held), 96, v));
+        let mut k: u32 = 0;
+        for d in blips {
+            events.append(note(t0 + 3360 + k * 240, 60, pitch(tonic, scale, *d), 90, v));
+            k += 1;
+        }
+        v += 1;
+    }
+    while programs.len() <= KIT_VOICE {
+        programs.append(0);
+    }
+    let k0 = n * BLOCK;
+    let kit: Span<u8> = array![36, 38, 42, 46, 49, 50, 47, 45].span();
+    let mut k: u32 = 0;
+    for key in kit {
+        events.append(note(k0 + k * 480, 240, *key, 100, KIT_VOICE));
+        k += 1;
+    }
+    let length = k0 + BLOCK;
+    let mut performed = array![];
+    for e in events.span() {
+        let e = *e;
+        let duration = if x.articulation_profile == 1 {
+            {
+                let n = e.duration / 2;
+                if n > 60 {
+                    n
+                } else {
+                    60
+                }
+            }
+        } else if x.articulation_profile == 5 {
+            {
+                let n = e.duration * 3 / 4;
+                if n > 60 {
+                    n
+                } else {
+                    60
+                }
+            }
+        } else {
+            e.duration
+        };
+        let velocity: u32 = e.velocity.into()
+            + if x.articulation_profile == 3 && e.time % 1920 == 0 {
+                8
+            } else {
+                0
+            };
+        let velocity = if velocity > x.velocity_ceiling.into() {
+            x.velocity_ceiling
+        } else {
+            velocity.try_into().unwrap()
+        };
+        performed.append(NoteEvent { duration, velocity, ..e });
+    }
+    let form = BeastForm {
+        events: performed, score_hash: 0, section_count: 1, length_ticks: length,
+    };
+    beast_form_to_full_smf_bytes_arranged(
+        @form,
+        x.tempo_us,
+        5, // No generated groove/fills: the explicit kit audition is already in the form.
+        Option::None,
+        false,
+        0,
+        Arrangement {
+            top_lead: false,
+            balanced: false,
+            drums: false,
+            rock: false,
+            extra: Option::None,
+            programs: Option::Some(programs.span()),
+        },
+    )
+}

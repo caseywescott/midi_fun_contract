@@ -170,6 +170,8 @@ fn pitch(tonic: u32, scale: Span<u8>, d: i32) -> u8 {
 
 /// A note as performed: staccato (1) halves it and portato (5) keeps three quarters (at least 60
 /// ticks), an accent (3) adds 8 on each bar's downbeat, all under the velocity ceiling.
+// Out of line for CASM size: share the articulation body across note patterns.
+#[inline(never)]
 fn note(
     time: u32, duration: u32, pitch: u8, velocity: u8, voice_id: u32, x: SoundCheckInputs,
 ) -> NoteEvent {

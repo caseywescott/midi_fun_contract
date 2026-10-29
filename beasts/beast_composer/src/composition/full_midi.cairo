@@ -60,6 +60,8 @@ pub(crate) fn voice_runs(events: Span<NoteEvent>) -> Array<VoiceRun> {
 }
 
 /// The run of `voice` over the events `start..end`.
+// Out of line for CASM size: share the checked conversions across run boundaries.
+#[inline(never)]
 fn voice_run(voice: u32, start: felt252, end: felt252, pitch_sum: felt252) -> VoiceRun {
     VoiceRun {
         voice,
@@ -81,6 +83,8 @@ fn max_voice_of(runs: Span<VoiceRun>) -> u32 {
 }
 
 /// The pitch sum and the event count of every voice id 0..=max_voice.
+// Out of line for CASM size: share this loop for fixed and dynamic voice limits.
+#[inline(never)]
 pub(crate) fn voice_stats(runs: Span<VoiceRun>, max_voice: u32) -> (Array<u64>, Array<u64>) {
     let mut sums: Array<u64> = array![];
     let mut counts: Array<u64> = array![];
@@ -635,6 +639,8 @@ const PLUCK_ABOVE_BASS_BP: [u32; 13] = [
 /// Each note of `notes` as a note on and a note off (velocity 64) on channel `ch`. Written as
 /// messages with note_on's and note_off's status bytes: `ch` is below 16, so they need no
 /// `channel % 16` per note.
+// Out of line for CASM size: share the message-writing loop across track callers.
+#[inline(never)]
 fn write_notes(ref track: TrackWriter, ch: u8, notes: Span<NoteEvent>) {
     for e in notes {
         track.message(e.time, 0x90 + ch, e.pitch, e.velocity);

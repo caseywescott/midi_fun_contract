@@ -16,6 +16,7 @@ use crate::composition::full_midi::{
 use crate::composition::genesis::{genesis_mode, named_mode_scale, neutral_live};
 use crate::composition::melodic_canon::NoteEvent;
 use crate::inputs::{ComposerInputs, MusicIdentity, SoundCheckInputs, validate_inputs};
+use crate::opaque::opaque;
 
 const BLOCK: u32 = 4800;
 const KIT_VOICE: u32 = 9;
@@ -110,21 +111,30 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
     } else {
         7
     };
-    let blips: Span<i32> = array![7, 9, 11, 14].span();
-
-    let mut events: Array<NoteEvent> = array![];
-    let mut programs: Array<u8> = array![];
-    let mut v: u32 = 0;
+    // `opaque` state: each loop is compiled once
+    let (
+        blips, kit, mut events, mut programs, mut v, first,
+    ): (Span<i32>, Span<u8>, Array<NoteEvent>, Array<u8>, u32, u32) =
+        opaque(
+        (
+            array![7, 9, 11, 14].span(),
+            array![36, 38, 42, 46, 49, 50, 47, 45].span(),
+            array![],
+            array![],
+            0,
+            0,
+        ),
+    );
     while v < n {
         let t0 = v * BLOCK;
         programs.append(*presets.at((v + rot) % n));
-        let mut k: u32 = 0;
+        let mut k = first;
         for d in pattern {
             events.append(note(t0 + k * 480, 420, pitch(tonic, scale, *d), 100, v, x));
             k += 1;
         }
         events.append(note(t0 + 1920, 1380, pitch(tonic, scale, held), 96, v, x));
-        let mut k: u32 = 0;
+        let mut k = first;
         for d in blips {
             events.append(note(t0 + 3360 + k * 240, 60, pitch(tonic, scale, *d), 90, v, x));
             k += 1;
@@ -135,8 +145,7 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
         programs.append(0);
     }
     let k0 = n * BLOCK;
-    let kit: Span<u8> = array![36, 38, 42, 46, 49, 50, 47, 45].span();
-    let mut k: u32 = 0;
+    let mut k = first;
     for key in kit {
         events.append(note(k0 + k * 480, 240, *key, 100, KIT_VOICE, x));
         k += 1;

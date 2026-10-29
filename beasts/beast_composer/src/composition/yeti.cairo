@@ -5,9 +5,10 @@
 //! as `sampleTrackMidi` applies them.
 
 use core::dict::{Felt252Dict, Felt252DictTrait};
-use midi::smf::TrackWriterTrait;
+use midi::smf::{TrackWriter, TrackWriterTrait};
 use crate::composition::beast_score::transposed_tonic;
 use crate::composition::melodic_canon::NoteEvent;
+use crate::opaque::opaque;
 
 pub const YETI: u64 = 68;
 pub const YETI_ROCK_TEMPO_US: u32 = 342857;
@@ -54,6 +55,8 @@ const SEVEN: NonZero<u32> = 7;
 
 /// The pitch of a degree of the key (0 is the tonic, 7 an octave up), for degrees from -35 (the
 /// callers reach -30..=43).
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
 fn pitch(k: YetiKey, d: i32) -> i32 {
     // the degree shifted up five octaves, to be unsigned: its octave is `o - 5`, its scale index
     // `i`
@@ -453,9 +456,9 @@ struct Profile {
 fn profile(id: u64, prefix: u8, suffix: u8) -> Profile {
     let h = beast_hash(id, prefix, suffix, 5);
     let g = beast_hash(id, prefix, suffix, 6);
-    let mut pool: Array<u8> = array![MORDENT, UPPER, TURN, RUN, SLIDE, TRILL];
-    let mut figures: Array<u8> = array![];
-    let mut k: u32 = 0;
+    let (mut pool, mut figures, mut k): (Array<u8>, Array<u8>, u32) = opaque(
+        (array![MORDENT, UPPER, TURN, RUN, SLIDE, TRILL], array![], 0),
+    );
     while figures.len() < 3 {
         let at: u32 = (shr(g, (k * 3) % 32) % 6).try_into().unwrap();
         let f = *pool.at(at);
@@ -550,9 +553,11 @@ pub fn yeti_ornaments(
     prefix: u8,
     suffix: u8,
 ) -> Array<NoteEvent> {
-    // the theme's notes in the first section (event indices, chronological)
-    let mut idx: Array<u32> = array![];
-    let mut i: u32 = 0;
+    // the theme's notes in the first section (event indices, chronological); `opaque` state, so
+    // each loop is compiled once
+    let (mut idx, mut i, first, no_best): (Array<u32>, u32, u32, u32) = opaque(
+        (array![], 0, 0, 0xffffffff),
+    );
     while i < events.len() {
         let e = *events.at(i);
         if e.voice_id == 0 && e.time < section_ticks {
@@ -574,7 +579,7 @@ pub fn yeti_ornaments(
     let h = beast_hash(id, prefix, suffix, 7);
     // eligible: a quarter or longer, not the last note
     let mut elig: Array<u32> = array![];
-    let mut j: u32 = 0;
+    let mut j = first;
     while j < n {
         if note_at(events, idx, j).duration >= 480 && j < n - 1 {
             elig.append(j);
@@ -588,9 +593,9 @@ pub fn yeti_ornaments(
         pr.gap
     };
     let mut pick: Felt252Dict<bool> = Default::default();
-    let mut picked: u32 = 0;
+    let mut picked = first;
     if pr.placement == EVEN {
-        let mut k = 0;
+        let mut k = first;
         while k < ne {
             if k % gap == 0 {
                 pick.insert((*elig.at(k)).into(), true);
@@ -600,7 +605,7 @@ pub fn yeti_ornaments(
         }
     } else if pr.placement == BURSTS {
         let cycle = pr.burst + gap + 2;
-        let mut k = 0;
+        let mut k = first;
         while k < ne {
             if k % cycle < pr.burst {
                 pick.insert((*elig.at(k)).into(), true);
@@ -616,10 +621,10 @@ pub fn yeti_ornaments(
             35
         } + 99) / 100;
         let mut taken: Felt252Dict<bool> = Default::default();
-        let mut t = 0;
+        let mut t = first;
         while t < take {
-            let mut best: u32 = 0xffffffff;
-            let mut k = 0;
+            let mut best = no_best;
+            let mut k = first;
             while k < ne {
                 let c = *elig.at(k);
                 if !taken.get(c.into())
@@ -640,8 +645,8 @@ pub fn yeti_ornaments(
         } else {
             1
         };
-        let mut k = 0;
-        let mut m: u32 = 0;
+        let mut k = first;
+        let mut m = first;
         while k < ne {
             let c = *elig.at(k);
             if note_at(events, idx, c).time % 960 == 0 {
@@ -654,8 +659,8 @@ pub fn yeti_ornaments(
             k += 1;
         }
     } else if pr.placement == BAR_ENDS {
-        let mut k = 0;
-        let mut m: u32 = 0;
+        let mut k = first;
+        let mut m = first;
         while k < ne {
             let c = *elig.at(k);
             let e = note_at(events, idx, c);
@@ -676,7 +681,7 @@ pub fn yeti_ornaments(
             600
         };
         let sec: u64 = section_ticks.into();
-        let mut k = 0;
+        let mut k = first;
         while k < ne {
             let c = *elig.at(k);
             if roll(h, c, 1) * sec < 80 * sec + rise * note_at(events, idx, c).time.into() {
@@ -704,7 +709,7 @@ pub fn yeti_ornaments(
 
     // the figures, by note index
     let mut figs: Felt252Dict<Nullable<Span<Seg>>> = Default::default();
-    let mut j: u32 = 0;
+    let mut j = first;
     while j < n {
         if pick.get(j.into()) {
             let e = note_at(events, idx, j);
@@ -815,12 +820,12 @@ pub fn yeti_ornaments(
     }
     // the events with each ornamented note replaced by its figure
     let mut at: Felt252Dict<u32> = Default::default(); // event index -> note index + 1
-    let mut j: u32 = 0;
+    let mut j = first;
     while j < n {
         at.insert((*idx.at(j)).into(), j + 1);
         j += 1;
     }
-    let mut i: u32 = 0;
+    let mut i = first;
     while i < events.len() {
         let e = *events.at(i);
         let nj = at.get(i.into());
@@ -1030,15 +1035,14 @@ pub fn yeti_avalanche(
 /// The drum track body of the rock groove: kick on 1 and 3 (and the and of 3), snare on 2 and 4,
 /// eighth hats, a crash on each section's downbeat and a tom fill in its last beat.
 pub fn rock_drum_track(length: u32, sec: u32) -> Array<u8> {
-    let toms: Span<u8> = array![50, 48, 47, 45].span();
-    let mut track = TrackWriterTrait::with_running_status();
+    // One step per 120 ticks; `eighth`: u % 240 == 0, carried instead of divided out of `u`.
+    let (toms, mut track, mut u, mut eighth): (Span<u8>, TrackWriter, u32, bool) = opaque(
+        (array![50, 48, 47, 45].span(), TrackWriterTrait::with_running_status(), 0, true),
+    );
     if length == 0 {
         return track.finish_at(0);
     }
     let fill_start = sec - 480;
-    // One step per 120 ticks; `eighth`: u % 240 == 0, carried instead of divided out of `u`.
-    let mut u: u32 = 0;
-    let mut eighth = true;
     while u < length {
         let rel = u % sec;
         if rel == 0 {

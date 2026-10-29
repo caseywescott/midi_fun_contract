@@ -15,6 +15,7 @@
 //! current one.
 
 use core::poseidon::poseidon_hash_span;
+use crate::inputs::drift::{DriftInputs, validate_drift};
 
 /// About a day at 2-second blocks (a placeholder until the chain's block time is confirmed).
 pub const DRIFT_EPOCH_BLOCKS: u64 = 43200;
@@ -74,8 +75,36 @@ fn low32(x: felt252) -> u64 {
 
 /// The layered drift of a Beast (species `id`, special name `prefix`/`suffix`) on a day.
 pub fn layered_drift(id: u64, prefix: u8, suffix: u8, clock: DriftClock) -> Drift {
+    layered_drift_keyed(
+        poseidon_hash_span(array![id.into(), prefix.into(), suffix.into()].span()), clock,
+    )
+}
+
+/// The same from a song's shared inputs: its source species and the special name the drift belongs
+/// to (`DriftInputs`: 0 for a Species Song).
+pub fn drift_of(species: u32, drift: DriftInputs) -> Drift {
+    validate_drift(drift);
+    let nv = drift.name_variant_id;
+    let (prefix, suffix): (u16, u16) = if nv == 0 {
+        (0, 0)
+    } else {
+        ((nv - 1) / 18 + 1, (nv - 1) % 18 + 1)
+    };
+    layered_drift_keyed(
+        poseidon_hash_span(array![species.into(), prefix.into(), suffix.into()].span()),
+        DriftClock {
+            day: drift.day,
+            day_hash: drift.day_hash,
+            week_hash: drift.week_hash,
+            month_hash: drift.month_hash,
+        },
+    )
+}
+
+/// The layered drift of the Beast with key `k` (poseidon of its species and special name) on a day.
+#[inline(never)]
+fn layered_drift_keyed(k: felt252, clock: DriftClock) -> Drift {
     assert(clock.day >= 1, 'days count from 1');
-    let k = poseidon_hash_span(array![id.into(), prefix.into(), suffix.into()].span());
     let month: felt252 = ((clock.day - 1) / 30).into();
     let week: felt252 = ((clock.day - 1) / 7).into();
     let m = low32(poseidon_hash_span(array!['BEAST_DRIFT2_M', k, month, clock.month_hash].span()));

@@ -34,8 +34,7 @@ use crate::composition::beast_v11::{
 use crate::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, map_v3_beast_to_composition_params,
 };
-use crate::composition::drift::{DriftClock, layered_drift, nudge_tempo};
-use crate::composition::evolution::{StaffControls, extra_role_unlocked, perform_staff_events};
+use crate::composition::drift::{Drift, DriftClock, layered_drift, nudge_tempo};
 use crate::composition::full_midi::{
     Arrangement, SMF_DIVISION, SMF_FORMAT, VoiceRun, Voicing, beast_form_to_full_tracks_arranged,
     mega_lead_pick, voice_runs, voice_stats,
@@ -995,6 +994,38 @@ pub fn purchase_song_inputs(base: SongInputs, seed: felt252) -> SongInputs {
     x
 }
 
+/// A song's inputs on a day of drift (`drift.cairo` `layered_drift`): the month's rhythm cells,
+/// the week's channel order (same count) and the day's knob (the key plan the other way, the
+/// episodes' direction swapped, or the tempo nudged). The same overrides `compose` applies with a
+/// `DriftClock`, so a written song drifts as `song_smf_bytes` plays it.
+pub fn drifted_song_inputs(x: SongInputs, d: Drift) -> SongInputs {
+    let mut y = x;
+    if let Option::Some(r) = d.rhythm {
+        y.treatment.rhythm_seed = r;
+    }
+    if let Option::Some(r) = d.rotate {
+        y.arrangement.channel_policy = ChannelPolicy::Seeded(r);
+    }
+    if d.day_knob == 0 {
+        y.treatment.flip_side = !y.treatment.flip_side;
+    } else if d.day_knob == 1 {
+        // alternating episodes rise; rising fall; falling rise
+        y.treatment.direction = if y.treatment.direction == 1 {
+            2
+        } else {
+            1
+        };
+    } else {
+        let t = nudge_tempo(y.score.tempo_us, d.delta_bpm);
+        y.score.tempo_us = if t > MAX_TEMPO_US {
+            MAX_TEMPO_US
+        } else {
+            t
+        };
+    }
+    y
+}
+
 /// Episodes alternating (0), rising (1) or falling (-1) as the shared inputs' 0, 1, 2.
 fn direction_code(direction: i32) -> u8 {
     if direction == 0 {
@@ -1229,17 +1260,6 @@ fn special_name_id(prefix: u8, suffix: u8) -> u16 {
 /// The track bodies a song's shared inputs compose, with the mega arrangement when `mega`. Plays
 /// what this engine supports: tied inner voices and the written phrase in every section.
 pub fn song_tracks(x: SongInputs, mega: bool) -> Array<Array<u8>> {
-    song_tracks_with(x, mega, Option::None)
-}
-
-/// The same on a staff (evolution, `evolution.cairo`): the written channels plus the extra roles
-/// the staff unlocked (next in the written channel order), its note performance (velocity and
-/// octave ornaments) and its tempo.
-pub fn staff_song_tracks(x: SongInputs, mega: bool, staff: StaffControls) -> Array<Array<u8>> {
-    song_tracks_with(x, mega, Option::Some(staff))
-}
-
-fn song_tracks_with(x: SongInputs, mega: bool, staff: Option<StaffControls>) -> Array<Array<u8>> {
     let (theme, s, t, a) = (x.theme, x.score, x.treatment, x.arrangement);
     assert(a.weak_ties, 'untied voices unsupported');
     assert(!t.section_rhythm, 'section rhythm unsupported');
@@ -1299,38 +1319,10 @@ fn song_tracks_with(x: SongInputs, mega: bool, staff: Option<StaffControls>) -> 
     let order = song_pick(
         sums.span(), counts.span(), p.voice_count, p.use_countersubject, a.channel_policy,
     );
-    let written: u32 = a.channel_count.into();
-    let mut picked: Array<u32> = array![];
-    let mut i: u32 = 0;
-    for role in order.span() {
-        let include = i < written
-            || match staff {
-            Option::Some(c) => extra_role_unlocked(c.unlocked_extra_mask, i - written),
-            Option::None => false,
-            };
-        if include {
-            picked.append(*role);
-        }
-        i += 1;
-    }
+    let picked = order.span().slice(0, a.channel_count.into());
     let mut events = tie_repeats(
-        score.events.span(),
-        runs.span(),
-        picked.span(),
-        sums.span(),
-        counts.span(),
-        score.section_ticks,
+        score.events.span(), runs.span(), picked, sums.span(), counts.span(), score.section_ticks,
     );
-    let mut tempo_us = s.tempo_us;
-    if let Option::Some(c) = staff {
-        events = perform_staff_events(events.span(), p.velocity_ceiling, c);
-        let nudged = nudge_tempo(tempo_us, c.tempo_delta);
-        tempo_us = if nudged > MAX_TEMPO_US {
-            MAX_TEMPO_US
-        } else {
-            nudged
-        };
-    }
     // the Yeti special: ornaments by the track's profile, then the avalanche
     let yeti = if let SpecialArrangement::Yeti(name) = a.special {
         let (prefix, suffix) = if name == 0 {
@@ -1366,7 +1358,7 @@ fn song_tracks_with(x: SongInputs, mega: bool, staff: Option<StaffControls>) -> 
     };
     beast_form_to_full_tracks_arranged(
         @form,
-        tempo_us,
+        s.tempo_us,
         p.tier,
         Option::Some(
             Voicing {
@@ -1382,7 +1374,7 @@ fn song_tracks_with(x: SongInputs, mega: bool, staff: Option<StaffControls>) -> 
         Arrangement {
             top_lead: a.top_lead,
             balanced: a.balanced,
-            drums: contains(picked.span(), DRUMS),
+            drums: contains(picked, DRUMS),
             rock: yeti,
             extra: if yeti {
                 Option::Some((YETI_AVALANCHE_VOICE, YETI_AVALANCHE_PROGRAM))

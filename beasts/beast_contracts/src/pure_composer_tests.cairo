@@ -2,25 +2,23 @@
 //! song's or Sound Check's shared inputs and a token's `sound_effects`. One or two compositions per
 //! test (memory).
 use beast_composer::composition::beast_v3_sound::PackableBeastV3;
+use beast_composer::composition::drift::DriftClock;
 use beast_composer::composition::editions::edition_byte_array;
-use beast_composer::composition::evolution::resolve_evolution;
 use beast_composer::composition::genesis::{
-    genesis_byte_array, genesis_song_inputs, purchase_song_inputs, song_tracks, species_tier,
-    species_type,
+    genesis_byte_array, genesis_song_inputs, purchase_song_inputs, song_smf_bytes, song_tracks,
+    species_tier, species_type,
 };
 use beast_composer::composition::performance::apply_performance;
 use beast_composer::composition::sound_check::{sound_check_inputs, sound_check_smf_bytes};
-use beast_composer::inputs::evolution::{
-    EvolutionConfig, EvolutionInputs, MilestoneHash, milestone_blocks,
-};
+use beast_composer::inputs::drift::DriftInputs;
 use beast_composer::inputs::{
     BeastMusicalIdentity, ComposerInputs, EditionCompositionConfig, EditionInputs, MusicIdentity,
 };
 use midi::pack::bytes_to_byte_array;
 use snforge_std::{DeclareResultTrait, declare};
 use crate::pure_composer::{
-    IBeastPureComposerDispatcherTrait, IBeastPureComposerLibraryDispatcher, compose_sound,
-    compose_staff_sound,
+    IBeastPureComposerDispatcherTrait, IBeastPureComposerLibraryDispatcher, compose_drift_sound,
+    compose_sound,
 };
 use crate::pure_generator::{
     IBeastPureGeneratorDispatcherTrait, IBeastPureGeneratorLibraryDispatcher,
@@ -147,71 +145,6 @@ fn generated_purchase_composes_the_shaped_bought_track() {
     );
 }
 
-fn evolution_config(unlock_bps: u16) -> EvolutionConfig {
-    EvolutionConfig {
-        first_milestone_age: 10,
-        initial_unlock_bps: unlock_bps,
-        unlock_step_bps: 0,
-        max_extra_channels: 5,
-        max_tempo_delta_bpm: 2,
-        max_velocity_delta: 6,
-        ornament_chance_bps: 800,
-    }
-}
-
-/// The manager's resolved context: every milestone from birth to the staff, with its hash.
-fn staff_context(config: EvolutionConfig, birth: u64, staff: u64) -> EvolutionInputs {
-    let mut milestones = array![];
-    for block in milestone_blocks(config, birth, staff) {
-        milestones.append(MilestoneHash { block_number: block, block_hash: block.into() + 'h' });
-    }
-    EvolutionInputs {
-        birth_block: birth,
-        staff_block: staff,
-        drift_group: 'group',
-        staff_hash: 'staff',
-        milestones: milestones.span(),
-    }
-}
-
-#[test]
-fn staff_unlocks_the_next_written_roles_and_performs() {
-    // a tier 5 Genesis Track keeps 3 of its 6 roles; every milestone unlocks, so all 6 play
-    let b = beast(25, 0, 0, 0);
-    let x = genesis(b);
-    let config = evolution_config(10000);
-    let staff = compose_staff_sound(x, 0, config, staff_context(config, 100, 200));
-    let song = match x {
-        ComposerInputs::Song(song) => song,
-        _ => core::panic_with_felt252('not a song'),
-    };
-    assert(song.arrangement.channel_count == 3, 'tier 5 keeps 3');
-    // the header's track count (byte 11): the tempo track, then one per voice and the drums
-    let written = genesis_byte_array(b);
-    assert(staff.midi != written, 'staff changed nothing');
-    assert(staff.midi.at(11).unwrap() > written.at(11).unwrap(), 'no channel unlocked');
-    assert(staff.settings == beast_synth_settings(species_type(25), false), 'not the settings');
-}
-
-#[test]
-fn sound_check_has_no_staff() {
-    let x = ComposerInputs::SoundCheck(sound_check_inputs(beast(30, 0, 0, 0)));
-    let config = evolution_config(5000);
-    assert(
-        compose_staff_sound(x, 2, config, staff_context(config, 100, 300)) == compose_sound(x, 2),
-        'a staff changed the check',
-    );
-}
-
-#[test]
-#[should_panic(expected: 'staff before birth')]
-fn rejects_a_staff_before_birth() {
-    let config = evolution_config(5000);
-    let mut context = staff_context(config, 100, 100);
-    context.birth_block = 101;
-    compose_staff_sound(genesis(beast(1, 0, 0, 0)), 0, config, context);
-}
-
 /// From edition 1 a purchase is the edition's style engine on the species' theme, its seed the
 /// purchase's low 64 bits; the composer plays it with the style's presets for the species' type.
 #[test]
@@ -234,36 +167,15 @@ fn edition_purchase_composes_the_style_engine() {
     };
     assert(inputs == ComposerInputs::Edition(expected), 'not the edition');
     let plain = composer().compose(inputs, 0);
-    assert(
-        plain.midi == edition_byte_array(40, false, 3, 0xfedcba9876543210, Option::None),
-        'not the style',
-    );
+    assert(plain.midi == edition_byte_array(40, false, 3, 0xfedcba9876543210), 'not the style');
     // edition 3 is the lullaby (style 2); species 40 is a Hunter (type 1)
     assert(plain.settings == edition_synth_settings(2, 1, false), 'not the edition presets');
     // sound effect 1 (old shiny) brings the mega leads
     let mega = composer().compose(inputs, 1);
-    assert(
-        mega.midi == edition_byte_array(40, true, 3, 0xfedcba9876543210, Option::None),
-        'not the mega style',
-    );
+    assert(mega.midi == edition_byte_array(40, true, 3, 0xfedcba9876543210), 'not the mega style');
     assert(mega.settings == edition_synth_settings(2, 1, true), 'not the mega edition presets');
-    // on a staff an edition drifts: species 40 is tier 3, so its one extra role is the pad
-    let config = evolution_config(5000);
-    let context = staff_context(config, 100, 300);
-    let staffed = compose_staff_sound(inputs, 0, config, context);
-    assert(staffed.midi != plain.midi, 'the staff changed nothing');
-    assert(
-        staffed
-            .midi == edition_byte_array(
-                40,
-                false,
-                3,
-                0xfedcba9876543210,
-                Option::Some(resolve_evolution(config, context, 1)),
-            ),
-        'not the staffed edition',
-    );
-    assert(staffed.settings == plain.settings, 'a staff changed the presets');
+    // editions play as written on any day, for now
+    assert(compose_drift_sound(inputs, 0, day(0, 45)) == plain, 'an edition drifted');
 }
 
 /// Species past the style engine's 75 keep the bought Song in every edition.
@@ -310,131 +222,72 @@ fn edition_settings_serialize_as_generated_and_validate() {
     }
 }
 
-const HEX: [u8; 16] = [
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
-];
-
-/// Staffed editions through compose_staff: one EDS line per case (the whole file in hex), which
-/// scripts/editions_staff_parity.mjs recomposes in JS (evolution.js resolveEvolution and
-/// editions_lite.js on that staff) and compares. Milestone hashes are block + 'h', the staff hash
-/// 'staff', the drift group 'group' (`staff_context`).
-#[test]
-#[ignore]
-fn editions_staff_parity_fixture() {
-    // (edition, species, sound effects, seed, unlock bps, velocity extent, ornament bps, birth,
-    // staff)
-    let cases: [(u32, u32, u8, u64, u16, u8, u16, u64, u64); 8] = [
-        (1, 3, 0, 0xffffffffffffffff, 10000, 6, 800, 100, 300),
-        (2, 20, 0, 7, 10000, 16, 3000, 100, 300),
-        (3, 40, 1, 0xfedcba9876543210, 0, 6, 800, 100, 300),
-        (4, 49, 0, 12345, 10000, 0, 10000, 1000, 1500),
-        (5, 52, 3, 0x8000000000000001, 4000, 10, 1500, 1000, 1500),
-        (6, 61, 0, 99, 10000, 3, 0, 100, 300),
-        (7, 75, 1, 0x123456789abcdef0, 10000, 8, 2500, 1000, 1500),
-        (8, 1, 0, 42, 10000, 12, 5000, 100, 300),
-    ];
-    for c in cases.span() {
-        let (e, sp, fx, seed, unlock, vel, orn, birth, staff) = *c;
-        let config = EvolutionConfig {
-            first_milestone_age: 10,
-            initial_unlock_bps: unlock,
-            unlock_step_bps: 0,
-            max_extra_channels: 5,
-            max_tempo_delta_bpm: 4,
-            max_velocity_delta: vel,
-            ornament_chance_bps: orn,
-        };
-        let inputs = ComposerInputs::Edition(
-            EditionInputs {
-                identity: MusicIdentity { source_species_id: sp, name_variant_id: 0 },
-                edition: e,
-                seed,
-            },
-        );
-        let midi = compose_staff_sound(inputs, fx, config, staff_context(config, birth, staff))
-            .midi;
-        let mut hex: ByteArray = "";
-        let mut i: u32 = 0;
-        while i < midi.len() {
-            let b = midi.at(i).unwrap();
-            hex.append_byte(*HEX.span().at((b / 16).into()));
-            hex.append_byte(*HEX.span().at((b % 16).into()));
-            i += 1;
-        }
-        println!(
-            "EDS e={} sp={} fx={} seed={} unlock={} vel={} orn={} birth={} staff={} len={} hex={}",
-            e,
-            sp,
-            fx,
-            seed,
-            unlock,
-            vel,
-            orn,
-            birth,
-            staff,
-            midi.len(),
-            hex,
-        );
+/// Day `d` of drift for special name `name`, with stand-in hashes for its first blocks.
+fn day(name: u16, d: u64) -> DriftInputs {
+    DriftInputs {
+        name_variant_id: name,
+        day: d,
+        day_hash: 'day' + d.into(),
+        week_hash: 'week' + ((d - 1) / 7).into(),
+        month_hash: 'month' + ((d - 1) / 30).into(),
     }
 }
 
-/// Staffed Species Songs (the Genesis Track's inputs) through compose_staff: one SGS line per case,
-/// which scripts/songs_staff_parity.mjs recomposes in JS (lab.js genesisMidi on evolution.js's
-/// staff)
-/// and compares. Hashes as in `staff_context`.
-#[test]
-#[ignore]
-fn songs_staff_parity_fixture() {
-    // (species, unlock bps, max extra, velocity extent, ornament bps, birth, staff)
-    let cases: [(u64, u16, u8, u8, u16, u64, u64); 8] = [
-        (1, 10000, 5, 6, 800, 100, 300), (21, 10000, 5, 16, 3000, 100, 300),
-        (25, 0, 5, 6, 800, 100, 300), (39, 5000, 2, 10, 1500, 1000, 1500),
-        (40, 10000, 1, 0, 10000, 1000, 1500), (68, 10000, 5, 8, 2500, 100, 300),
-        (52, 4000, 3, 12, 0, 1000, 1500), (76, 10000, 5, 4, 1000, 100, 300),
-    ];
-    for c in cases.span() {
-        let (sp, unlock, extra, vel, orn, birth, staff) = *c;
-        let config = EvolutionConfig {
-            first_milestone_age: 10,
-            initial_unlock_bps: unlock,
-            unlock_step_bps: 0,
-            max_extra_channels: extra,
-            max_tempo_delta_bpm: 4,
-            max_velocity_delta: vel,
-            ornament_chance_bps: orn,
-        };
-        let inputs = genesis(beast_t(sp));
-        let midi = compose_staff_sound(inputs, 0, config, staff_context(config, birth, staff)).midi;
-        let mut hex: ByteArray = "";
-        let mut i: u32 = 0;
-        while i < midi.len() {
-            let b = midi.at(i).unwrap();
-            hex.append_byte(*HEX.span().at((b / 16).into()));
-            hex.append_byte(*HEX.span().at((b % 16).into()));
-            i += 1;
-        }
-        println!(
-            "SGS sp={} unlock={} extra={} vel={} orn={} birth={} staff={} len={} hex={}",
-            sp,
-            unlock,
-            extra,
-            vel,
-            orn,
-            birth,
-            staff,
-            midi.len(),
-            hex,
-        );
-    }
-}
-
-/// A Beast of species `id` (community species past 75: tier 2 Hunter).
-fn beast_t(id: u64) -> PackableBeastV3 {
-    if id <= 75 {
-        beast(id, 0, 0, 0)
+/// compose_drift on a track's stored inputs plays what song_smf_bytes plays with the same day of
+/// drift (the Beast's drift: its species and special name; a Species Song's, its species').
+fn same_drift(b: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, d: u64) {
+    let x = genesis_song_inputs(b, prefix, suffix, seed, Option::None);
+    let name: u16 = if prefix == 0 {
+        0
     } else {
+        (prefix.into() - 1) * 18 + suffix.into()
+    };
+    let inputs = day(name, d);
+    let clock = DriftClock {
+        day: d,
+        day_hash: inputs.day_hash,
+        week_hash: inputs.week_hash,
+        month_hash: inputs.month_hash,
+    };
+    assert(
+        compose_drift_sound(ComposerInputs::Song(x), 0, inputs)
+            .midi == bytes_to_byte_array(
+                song_smf_bytes(b, prefix, suffix, seed, Option::Some(clock)).span(),
+            ),
+        'not the song on that day',
+    );
+}
+
+#[test]
+fn species_song_drifts_as_casey_drift() {
+    same_drift(beast(21, 0, 0, 0), 0, 0, 0, 45);
+}
+
+#[test]
+fn swapped_species_song_drifts_with_its_source() {
+    same_drift(beast(39, 0, 0, 0), 0, 0, 0, 100);
+}
+
+#[test]
+fn name_track_drifts_by_its_name() {
+    same_drift(beast(12, 41, 7, 0), 41, 7, 0, 200);
+}
+
+#[test]
+fn bought_track_drifts() {
+    same_drift(beast(33, 0, 0, 0), 0, 0, 'block hash', 75);
+}
+
+#[test]
+fn yeti_bought_track_drifts() {
+    same_drift(beast(68, 5, 3, 0), 5, 3, 'another hash', 130);
+}
+
+#[test]
+fn community_species_song_drifts() {
+    same_drift(
         PackableBeastV3 {
-            id,
+            id: 76,
             prefix: 0,
             suffix: 0,
             level: 1,
@@ -443,6 +296,23 @@ fn beast_t(id: u64) -> PackableBeastV3 {
             animated: 0,
             tier: 2,
             beast_type: 1,
-        }
-    }
+        },
+        0,
+        0,
+        0,
+        300,
+    );
+}
+
+#[test]
+fn sound_check_does_not_drift() {
+    let x = ComposerInputs::SoundCheck(sound_check_inputs(beast(30, 0, 0, 0)));
+    assert(compose_drift_sound(x, 2, day(0, 77)) == compose_sound(x, 2), 'a sound check drifted');
+}
+
+#[test]
+#[should_panic(expected: 'days count from 1')]
+fn rejects_day_zero() {
+    let zero = DriftInputs { name_variant_id: 0, day: 0, day_hash: 1, week_hash: 1, month_hash: 1 };
+    compose_drift_sound(genesis(beast(1, 0, 0, 0)), 0, zero);
 }

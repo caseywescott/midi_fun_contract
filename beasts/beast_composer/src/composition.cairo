@@ -9,7 +9,6 @@ pub mod countersubject;
 pub mod drift;
 pub mod editions;
 pub mod editions_data;
-pub mod evolution;
 pub mod full_midi;
 pub mod generation;
 pub mod genesis;

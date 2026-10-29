@@ -6,7 +6,7 @@ description = "The core MIDI library: types, interfaces, Standard MIDI File writ
 
 [dependencies]
 # TinySynthSettings, TinySynthSound, ISoundProvider, default_settings and validate (Provable-Games/onchain-midi-player).
-onchain_midi_types.workspace = true
+tinysynth_interface.workspace = true
 starknet.workspace = true
 
 [dev-dependencies]

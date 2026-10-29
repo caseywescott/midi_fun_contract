@@ -21,8 +21,8 @@ edition = "2025_12"
 # (beasts/ moved to its own repository) points it at a git dependency on this repository instead.
 midi = { path = "core/midi" }
 # TinySynthSettings, TinySynthSound, ISoundProvider, default_settings and validate: the
-# onchain_midi_types package of Provable-Games/onchain-midi-player, which depends on starknet alone.
-onchain_midi_types = { git = "https://github.com/Provable-Games/onchain-midi-player", tag = "onchain_midi_types-v0.1.0" }
+# tinysynth_interface package of Provable-Games/onchain-midi-player, which depends on starknet alone.
+tinysynth_interface = { git = "https://github.com/Provable-Games/onchain-midi-player", tag = "tinysynth_interface-v0.1.0" }
 # OpenZeppelin Cairo: Ownable and Upgradeable for BeastMidiProvider.
 openzeppelin_access = "4.0.1"
 openzeppelin_upgrades = "4.0.1"

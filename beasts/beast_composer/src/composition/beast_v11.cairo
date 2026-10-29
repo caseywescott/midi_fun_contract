@@ -2332,7 +2332,7 @@ mod grid_tests {
             let e = *e;
             queries(new_out.span(), ref old_grid, @grid, voices, origin, e, prev, ref state);
             old_put(ref old_out, ref old_grid, e);
-            put(ref new_out, ref grid, e);
+            let _ = put(ref new_out, ref grid, e);
             prev = Option::Some(e);
         }
     }
@@ -2465,7 +2465,7 @@ mod grid_tests {
         check(new_out.span(), ref old_grid, @grid, 3, 1, 0, 0, false, 0, 0);
         let e = NoteEvent { time: 0, duration: 4 * CELL, pitch: 62, velocity: 90, voice_id: 0 };
         old_put(ref old_out, ref old_grid, e);
-        put(ref new_out, ref grid, e);
+        let _ = put(ref new_out, ref grid, e);
         // the voice being placed has no table yet: it does not meet its own note
         let found = overlaps(new_out.span(), @grid, 0, 1, false, 0, 0);
         assert(found.len() == 0, 'overlaps: own note');
@@ -2507,7 +2507,7 @@ mod grid_tests {
     fn put_rejects_a_time_off_the_grid() {
         let mut out: Array<NoteEvent> = array![];
         let mut grid = new_grid(1, 0);
-        put(
+        let _ = put(
             ref out,
             ref grid,
             NoteEvent { time: 60, duration: 120, pitch: 60, velocity: 90, voice_id: 0 },
@@ -2519,7 +2519,7 @@ mod grid_tests {
     fn put_rejects_a_duration_off_the_grid() {
         let mut out: Array<NoteEvent> = array![];
         let mut grid = new_grid(1, 0);
-        put(
+        let _ = put(
             ref out,
             ref grid,
             NoteEvent { time: 120, duration: 100, pitch: 60, velocity: 90, voice_id: 0 },
@@ -2531,7 +2531,7 @@ mod grid_tests {
     fn put_rejects_a_zero_duration() {
         let mut out: Array<NoteEvent> = array![];
         let mut grid = new_grid(1, 0);
-        put(
+        let _ = put(
             ref out,
             ref grid,
             NoteEvent { time: 120, duration: 0, pitch: 60, velocity: 90, voice_id: 0 },

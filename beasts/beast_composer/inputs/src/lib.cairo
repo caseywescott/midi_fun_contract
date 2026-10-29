@@ -6,7 +6,7 @@ pub const EDITION_COMPOSITION_CONFIG_VERSION: u16 = 1;
 pub const COMPOSER_INPUTS_VERSION: u16 = 5;
 pub const GENERATION_INPUTS_VERSION: u16 = 2;
 /// The Monthly Track Editions style engine plays species 1..=75.
-pub const EDITION_SPECIES_MAX: u64 = 75;
+pub const EDITION_SPECIES_MAX: u32 = 75;
 pub const MAX_TEMPO_US: u32 = 1048575;
 
 /// Immutable deterministic edition-template configuration. Clock and sale policy
@@ -19,7 +19,7 @@ pub struct EditionCompositionConfig {
 /// Static musical identity supplied by a manager, without NFT layout or flags.
 #[derive(Copy, Drop, Debug, Serde, PartialEq, starknet::Store)]
 pub struct BeastMusicalIdentity {
-    pub species_id: u64,
+    pub species_id: u32,
     pub name_variant_id: u16,
     pub tier: u8,
     pub family: u8,
@@ -27,7 +27,7 @@ pub struct BeastMusicalIdentity {
 
 #[derive(Copy, Drop, Debug, Serde, PartialEq, starknet::Store)]
 pub struct MusicIdentity {
-    pub source_species_id: u64,
+    pub source_species_id: u32,
     pub name_variant_id: u16,
 }
 

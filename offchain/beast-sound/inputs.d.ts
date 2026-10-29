@@ -1,5 +1,6 @@
 /** Canonical musical wire inputs. Integer seeds/u64 identities decode as bigint. */
 export type Integer = number | bigint;
+/** `source_species_id` is a u32 (the token's 32 bits). */
 export interface MusicIdentity { source_species_id: Integer; name_variant_id: number }
 export interface ThemeInputs { motif_seed: Integer; tier: number; register_band: number }
 export interface ScoreInputs {

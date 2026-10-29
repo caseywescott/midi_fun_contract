@@ -29,7 +29,7 @@ pub fn get_generation_inputs(
     };
     // species 1..=75 compose with their own tier and type; level and health are the Genesis ones
     let beast = PackableBeastV3 {
-        id: identity.species_id,
+        id: identity.species_id.into(),
         prefix,
         suffix,
         level: 50,

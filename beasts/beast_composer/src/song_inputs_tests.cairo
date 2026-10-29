@@ -91,7 +91,10 @@ fn identity_of(b: PackableBeastV3) -> crate::inputs::BeastMusicalIdentity {
         (b.prefix.into() - 1) * 18 + b.suffix.into()
     };
     crate::inputs::BeastMusicalIdentity {
-        species_id: b.id, name_variant_id: nv, tier: b.tier, family: b.beast_type,
+        species_id: b.id.try_into().unwrap(),
+        name_variant_id: nv,
+        tier: b.tier,
+        family: b.beast_type,
     }
 }
 

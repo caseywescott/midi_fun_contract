@@ -323,7 +323,7 @@ const HEX: [u8; 16] = [
 fn editions_staff_parity_fixture() {
     // (edition, species, sound effects, seed, unlock bps, velocity extent, ornament bps, birth,
     // staff)
-    let cases: [(u32, u64, u8, u64, u16, u8, u16, u64, u64); 8] = [
+    let cases: [(u32, u32, u8, u64, u16, u8, u16, u64, u64); 8] = [
         (1, 3, 0, 0xffffffffffffffff, 10000, 6, 800, 100, 300),
         (2, 20, 0, 7, 10000, 16, 3000, 100, 300),
         (3, 40, 1, 0xfedcba9876543210, 0, 6, 800, 100, 300),

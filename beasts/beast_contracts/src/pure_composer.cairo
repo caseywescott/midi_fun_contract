@@ -74,7 +74,7 @@ fn compose_with(
             sound_check_from_inputs(check, mega).span(),
         ),
         ComposerInputs::Edition(edition) => {
-            let species: u32 = edition.identity.source_species_id.try_into().unwrap();
+            let species = edition.identity.source_species_id;
             // the one role a staff may unlock: the pad of tiers 3 to 5
             let controls = match staff {
                 Option::Some((
@@ -108,7 +108,7 @@ pub fn settings_for(inputs: ComposerInputs, mega: bool) -> TinySynthSettings {
         // take the four styles in turn (`edition_genome`)
         ComposerInputs::Edition(x) => {
             let style = (x.edition - 1) % 4;
-            let beast_type: u32 = ((x.identity.source_species_id - 1) / 25).try_into().unwrap();
+            let beast_type = (x.identity.source_species_id - 1) / 25;
             return crate::synth_settings::edition_synth_settings(style, beast_type, mega);
         },
     };

@@ -5,7 +5,7 @@ import { encodeInputs, decodeInputs, encodeGenerationInputs, decodeGenerationInp
 
 // Literal field-order oracle also checked independently by Cairo inputs/src/tests.cairo.
 const songWire = [5,1,11,2,1,4,60,3,2,4,3,2,1,1,3,5,109,500000,13,1,1,2,0,1,2,0,0,1,37,4,1,17,1,9,1,0,1].map(BigInt);
-const checkWire = [5n,0n,18446744073709551615n,1242n,26n,103n,2n,1048575n,127n,3n];
+const checkWire = [5n,0n,4294967295n,1242n,26n,103n,2n,1048575n,127n,3n];
 const song = {
   theme: { motif_seed: 11n, tier: 2, register_band: 1 },
   score: { mode_id: 4, tonic_keynum: 60, tier: 3, weakness: 2, voice_count: 4,
@@ -13,16 +13,17 @@ const song = {
     ornament_density: 3, articulation_profile: 5, velocity_ceiling: 109, tempo_us: 500000 },
   treatment: { rhythm_seed: 13n, flip_side: true, development: 1, direction: 2,
     spacing: 0, trill: true, prominence: 2, section_rhythm: false },
-  arrangement: { family: 0, identity: { source_species_id: 1n, name_variant_id: 37 },
+  arrangement: { family: 0, identity: { source_species_id: 1, name_variant_id: 37 },
     channel_count: 4, channel_policy: { kind: 'Seeded', seed: 17n },
     special: { kind: 'Yeti', name_variant_id: 9 }, top_lead: true, balanced: false, weak_ties: true },
 };
 const recipe = () => structuredClone({ kind: 'Song', song });
-test('Song and u64-max Sound Check match literal Cairo wire vectors exactly', () => {
+test('Song and u32-max Sound Check match literal Cairo wire vectors exactly', () => {
   assert.deepEqual(encodeInputs(recipe()), songWire);
   assert.deepEqual(decodeInputs(songWire), recipe());
   assert.deepEqual(encodeInputs(decodeInputs(checkWire)), checkWire);
-  assert.equal(decodeInputs(checkWire).check.identity.source_species_id, (1n << 64n) - 1n);
+  assert.equal(decodeInputs(checkWire).check.identity.source_species_id, 4294967295);
+  assert.throws(() => decodeInputs(checkWire.with(2, 1n << 32n)));
 });
 test('generation has its own version and no recipe discriminator', () => {
   const expected = [2n, ...songWire.slice(2)];
@@ -79,7 +80,7 @@ test('generation codec rejects the previous version1 explicitly', () => {
 });
 
 test('Edition is tag 2 and matches the literal Cairo wire vector', () => {
-  const x = { kind: 'Edition', edition: { identity: { source_species_id: 75n, name_variant_id: 0 }, edition: 3, seed: (1n << 64n) - 1n } };
+  const x = { kind: 'Edition', edition: { identity: { source_species_id: 75, name_variant_id: 0 }, edition: 3, seed: (1n << 64n) - 1n } };
   const wire = [5n, 2n, 75n, 0n, 3n, (1n << 64n) - 1n];
   assert.deepEqual(encodeInputs(x), wire);
   assert.deepEqual(decodeInputs(wire), x);

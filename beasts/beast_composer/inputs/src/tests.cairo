@@ -67,9 +67,7 @@ fn song_matches_independent_wire() {
 fn sound_check_matches_independent_wire() {
     let x = ComposerInputs::SoundCheck(
         SoundCheckInputs {
-            identity: MusicIdentity {
-                source_species_id: 0xffffffffffffffff, name_variant_id: 1242,
-            },
+            identity: MusicIdentity { source_species_id: 0xffffffff, name_variant_id: 1242 },
             mode_id: 26,
             tonic_keynum: 103,
             family: 2,
@@ -78,7 +76,7 @@ fn sound_check_matches_independent_wire() {
             articulation_profile: 3,
         },
     );
-    let expected = array![5, 0, 0xffffffffffffffff, 1242, 26, 103, 2, 1048575, 127, 3];
+    let expected = array![5, 0, 0xffffffff, 1242, 26, 103, 2, 1048575, 127, 3];
     assert(encode_inputs(x) == expected, 'check wire');
     assert(decode_inputs(expected.span()) == x, 'check decode');
 }
@@ -315,4 +313,11 @@ fn reject_edition_zero() {
             },
         ),
     );
+}
+
+#[test]
+#[should_panic(expected: 'invalid inputs encoding')]
+fn reject_species_past_u32() {
+    // species ids are u32 (the token's 32 bits): 2^32 does not decode
+    decode_inputs(array![5, 0, 0x100000000, 1242, 26, 103, 2, 1048575, 127, 3].span());
 }

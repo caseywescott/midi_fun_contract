@@ -1193,7 +1193,8 @@ fn song_inputs(
         arrangement: ArrangementInputs {
             family: beast_type,
             identity: MusicIdentity {
-                source_species_id: p.species_id,
+                // species ids are u32 (the token's 32 bits); the engine keeps them as u64
+                source_species_id: p.species_id.try_into().unwrap(),
                 name_variant_id: p.name_variant_id.try_into().unwrap(),
             },
             channel_count: if unseeded {
@@ -1242,7 +1243,7 @@ fn song_tracks_with(x: SongInputs, mega: bool, staff: Option<StaffControls>) -> 
     let (theme, s, t, a) = (x.theme, x.score, x.treatment, x.arrangement);
     assert(a.weak_ties, 'untied voices unsupported');
     assert(!t.section_rhythm, 'section rhythm unsupported');
-    let species_id = a.identity.source_species_id;
+    let species_id: u64 = a.identity.source_species_id.into();
     let name_variant_id: u32 = a.identity.name_variant_id.into();
     let scale = named_mode_scale(s.mode_id);
     let score = build_v11_score_resolved(

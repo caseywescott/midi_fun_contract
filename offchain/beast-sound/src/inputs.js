@@ -23,7 +23,7 @@ function integer(x, max = FIELD_P - 1n) {
 const small = (x, max) => Number(integer(x, BigInt(max)));
 const bool = (x) => { if (typeof x !== 'boolean') throw new Error('invalid musical boolean'); return x; };
 const fields = {
-  identity: [['source_species_id', 'u64'], ['name_variant_id', 'u16']],
+  identity: [['source_species_id', 'u32'], ['name_variant_id', 'u16']],
   theme: [['motif_seed', 'felt'], ['tier', 'u8'], ['register_band', 'u8']],
   score: [['mode_id', 'u8'], ['tonic_keynum', 'u8'], ['tier', 'u8'], ['weakness', 'u8'],
     ['voice_count', 'u8'], ['section_count', 'u8'], ['stretto_lag', 'u8'],
@@ -81,7 +81,7 @@ function reader(values) {
 }
 const requireThat = (ok, message) => { if (!ok) throw new Error(message); };
 function identity(x) {
-  requireThat(integer(x.source_species_id, U64_MAX) > 0n, 'invalid music identity');
+  requireThat(integer(x.source_species_id, 4294967295n) > 0n, 'invalid music identity');
   requireThat(small(x.name_variant_id, 65535) <= 1242, 'invalid music name');
 }
 function expression(x) {

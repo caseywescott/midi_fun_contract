@@ -52,7 +52,7 @@ pub fn sound_check_inputs(beast: PackableBeastV3) -> SoundCheckInputs {
     let kp = map_v3_beast_to_composition_params(key_beast, neutral_live());
     SoundCheckInputs {
         identity: MusicIdentity {
-            source_species_id: beast.id,
+            source_species_id: beast.id.try_into().unwrap(),
             name_variant_id: name_variant(beast.prefix, beast.suffix).try_into().unwrap(),
         },
         mode_id: if named {

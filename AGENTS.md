@@ -2,10 +2,11 @@
 
 ## Layout
 
-One Scarb workspace (root `Scarb.toml`) with four packages: `core/midi` (library: MIDI types,
+One Scarb workspace (root `Scarb.toml`) with five packages: `core/midi` (library: MIDI types,
 interfaces, SMF writing, packing), `core/midi_contracts` (MidiSoundPage, ScaleMidiProvider),
-`beasts/beast_composer` (library: the Beast Sound composer) and `beasts/beast_contracts`
-(BeastMidiProvider, BeastSoundComposer). `bench/` is a separate Scarb workspace, the gas benchmark.
+`beasts/beast_composer` (library: the Beast Sound composer), `beasts/beast_composer/inputs`
+(canonical musical inputs and codecs), and `beasts/beast_contracts` (BeastMidiProvider,
+BeastSoundComposer). `bench/` is a separate Scarb workspace, the gas benchmark.
 `offchain/beast-sound/` is the JS reference engine and the generators of three Cairo files
 (`TESTING.md`). See `README.md` for details.
 

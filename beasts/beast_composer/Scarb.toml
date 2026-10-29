@@ -5,6 +5,7 @@ edition.workspace = true
 description = "The Beast Sound composer: a Beasts V3 token and its live state to a Standard MIDI File."
 
 [dependencies]
+beast_composer_inputs = { path = "inputs" }
 midi.workspace = true
 
 [dev-dependencies]

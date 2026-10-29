@@ -9,10 +9,11 @@ The Cairo packages are one Scarb workspace (scarb 2.21.0). Their tests run on St
 | `midi` | SMF writing (VLQ examples, deltas, End of Track, running status, chunks) and both packers |
 | `midi_contracts` | `ScaleMidiProvider` (behavior, pinned bytes, `get_sound`); `MidiSoundPage` (`token_uri` equal to the JS reference byte for byte, contract tests with real and mock providers) |
 | `beast_composer` | The composer; the parity fixtures are `#[ignore]`d (below) |
-| `beast_contracts` | `BeastMidiProvider` on a mock NFT and Death Mountain: sources, rejections, `get_sound`, onchain-midi-player's `validate` on the settings |
+| `beast_composer_inputs` | Canonical input codecs, version and range rejection, boolean canonicality, and Store support |
+| `beast_contracts` | Existing `BeastMidiProvider`/composer tests; shared pure call interfaces declare no replacement runtime |
 
 ```bash
-scarb test                      # all four, as CI runs them (one job per package)
+scarb test                      # all five, as CI runs them (one job per package)
 scarb test -p beast_composer    # one package
 scarb test -p beast_composer -- smf_golden --include-ignored   # tests whose name contains a filter, ignored ones included
 scarb fmt --check               # CI checks formatting too

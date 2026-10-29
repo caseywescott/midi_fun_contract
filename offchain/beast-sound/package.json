@@ -11,7 +11,11 @@
       "default": "./src/index.js"
     },
     "./engine": "./src/engine.js",
-    "./chain": "./src/chain.js"
+    "./chain": "./src/chain.js",
+    "./inputs": {
+      "types": "./inputs.d.ts",
+      "default": "./src/inputs.js"
+    }
   },
   "bin": {
     "beast-sound": "./bin/beast-sound.mjs"
@@ -21,7 +25,8 @@
     "bin",
     "index.d.ts",
     "server",
-    "src"
+    "src",
+    "inputs.d.ts"
   ],
   "scripts": {
     "test": "node --test 'test/*.test.mjs'",

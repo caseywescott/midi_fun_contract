@@ -1,3 +1,6 @@
+/// Shared canonical musical datatypes and codec; runtime interpretation is separate.
+pub use beast_composer_inputs as inputs;
+
 #[cfg(test)]
 mod articulation_tests;
 #[cfg(test)]

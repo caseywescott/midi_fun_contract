@@ -1,0 +1,22 @@
+[package]
+name = "beast_composer_inputs"
+version = "0.1.0"
+edition = "2024_07"
+cairo-version = ">=2.20.0"
+description = "Canonical compiler-portable inputs and codecs for the pure Beast MIDI composer."
+
+[dependencies]
+# Compiler-provided builtins only; no MIDI/player/engine dependency graph.
+# ^2.20 accepts the separately pinned Beasts2.20 and MIDI2.21 compilers.
+starknet = "2.20.0"
+
+[lib]
+
+[dev-dependencies]
+snforge_std.workspace = true
+
+[scripts]
+test.workspace = true
+
+[tool.scarb]
+allow-prebuilt-plugins = ["snforge_std"]

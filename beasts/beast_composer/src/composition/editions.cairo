@@ -14,8 +14,8 @@ use core::dict::{Felt252Dict, Felt252DictTrait};
 use core::num::traits::{WrappingAdd, WrappingMul};
 use midi::smf::{TrackWriterTrait, smf_bytes};
 use super::editions_data::{
-    CURATED, ENGINE_COUNT, EngineDef, P012, P030, P050, P066, P090, QUAL_LEN, QUAL_TONES, SCALES,
-    SPECIES, cells, contour_bounds, engine_def, grammar_progs, grammar_scale, groove, pool,
+    CURATED, ENGINE_COUNT, P012, P030, P050, P066, P090, QUAL_LEN, QUAL_TONES, SCALES, SPECIES,
+    cells, contour_bounds, engine_def, grammar_progs, grammar_scale, groove, pool,
 };
 
 const TPQ: u32 = 480;
@@ -86,8 +86,7 @@ const CH_DRUMS: u8 = 9;
 const MEGA_LEADS: [u8; 2] = [50, 65];
 const POW2: [u32; 12] = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048];
 
-// ── randomness
-// ──────────────────────────────────────────────────────────────────────────────────
+// ── randomness ──
 
 /// The source's `hash32`: FNV-1a over the key's characters, then a murmur-style finish.
 pub fn hash32(key: @ByteArray) -> u32 {
@@ -150,8 +149,7 @@ fn seeded(key: ByteArray) -> Rng {
     RngTrait::new(hash32(@key))
 }
 
-// ── pitch helpers
-// ───────────────────────────────────────────────────────────────────────────────
+// ── pitch helpers ──
 
 const TWELVE: NonZero<u32> = 12;
 const SEVEN: NonZero<u32> = 7;
@@ -283,8 +281,7 @@ fn motif_pitches(degrees: Span<i32>, tonic: i32, scale: Span<i32>, center: i32) 
     out
 }
 
-// ── species and genome
-// ──────────────────────────────────────────────────────────────────────────
+// ── species and genome ──
 
 #[derive(Copy, Drop)]
 struct Species {
@@ -420,8 +417,7 @@ pub fn edition_genome(e: u32) -> Genome {
     Genome { engine, grammar, form, accomp, bass, drums, bpm, palette: palette.span() }
 }
 
-// ── the context
-// ─────────────────────────────────────────────────────────────────────────────────
+// ── the track's context ──
 
 #[derive(Copy, Drop)]
 pub struct Note {
@@ -439,180 +435,219 @@ struct MelNote {
     p: i32,
 }
 
-/// A section's chords: `per` (1 or 2) per bar, bar-major.
+/// What every writer reads: the Beast, the key, the meter and the genome's choices. Passed boxed
+/// (one felt) rather than as a struct of thirty, which every call and loop would otherwise copy.
 #[derive(Copy, Drop)]
-struct Chords {
-    cells: Span<u8>,
-    per: u32,
-    bars: u32,
-}
-
-#[derive(Destruct)]
-struct Ctx {
-    r: Rng,
-    g: Genome,
-    d: EngineDef,
-    sp: Species,
+struct K {
+    id: u32,
+    tier: u32,
+    degrees: Span<i32>,
     shiny: bool,
-    scale: u8,
     tonic: i32,
+    scale: u8,
     num: u32,
     den: u32,
     bar: u32,
     six: bool,
     /// the second strong position in the bar (0: only the downbeat)
     strong2: u32,
-    bpm: u32,
+    engine: u8,
+    form: Span<u8>,
+    accomp: u8,
+    bass: u8,
+    drums: u8,
+    feel: u8,
+    counter: u8,
+    per_bar: u32,
+    chord_bars: u32,
+    swing: bool,
     prog_a: Span<u8>,
     prog_b: Span<u8>,
     riff: Span<(u32, i32, i32)>,
-    notes: Array<Note>,
-    /// (scale, chord) -> chord-scale masks | 1 << 24
-    cs_cache: Felt252Dict<u32>,
     /// lead, counter, accomp, bass, pad, mega
     pal: Span<u8>,
+    bpm: u32,
 }
 
-#[generate_trait]
-impl CtxImpl of CtxTrait {
-    fn note(ref self: Ctx, ch: u8, t: u32, d: i32, p: i32, v: i32) {
-        if d > 0 && p >= 0 && p < 128 {
-            let d: u32 = max_i(30, d).try_into().unwrap();
-            let v: u8 = max_i(1, min_i(127, v)).try_into().unwrap();
-            self.notes.append(Note { t, d, p: p.try_into().unwrap(), v, ch });
-        }
-    }
+/// A section's chords, `per` (1 or 2) per bar, bar-major, each with its chord-scale masks:
+/// chord | scale pcs << 8 | chord tones << 20.
+#[derive(Copy, Drop)]
+struct Chords {
+    cells: Span<u32>,
+    per: u32,
+    bars: u32,
+}
 
-    fn notes_at(ref self: Ctx, ch: u8, t: u32, d: i32, ps: Span<i32>, v: i32) {
-        for p in ps {
-            self.note(ch, t, d, *p, v);
-        }
-    }
-
-    fn is_strong(self: @Ctx, t: u32) -> bool {
-        let pos = t % self.bar;
-        pos == 0 || (self.strong2 != 0 && pos == self.strong2)
-    }
-
-    /// The source's chordScale as (scale pcs mask, chord tone mask): the scale with each chord
-    /// tone replacing the scale note it bends (within a semitone), else added.
-    fn chord_scale(ref self: Ctx, chord: u8) -> (u32, u32) {
-        let key: felt252 = (self.scale.into() * 256 + chord.into());
-        let cached = self.cs_cache.get(key);
-        if cached != 0 {
-            return (cached % 4096, (cached / 4096) % 4096);
-        }
-        let scale = scale_of(self.scale);
-        let mut pcs: Array<u32> = array![];
-        for s in scale {
-            pcs.append(md12(self.tonic + *s));
-        }
-        let r = chord_r(chord);
-        let tones = chord_tones(chord);
-        let mut ct_mask: u32 = 0;
-        for t in tones {
-            ct_mask = ct_mask | *POW2.span().at(md12(self.tonic + r + *t));
-        }
-        for t in tones {
-            let c = md12(self.tonic + r + *t);
-            let mut present = false;
-            for p in pcs.span() {
-                if *p == c {
-                    present = true;
-                    break;
-                }
-            }
-            if present {
-                continue;
-            }
-            let mut best: u32 = 99;
-            let mut bd: u32 = 9;
-            let mut i: u32 = 0;
-            for p in pcs.span() {
-                let p = *p;
-                let up = (p + 12 - c) % 12;
-                let down = (c + 12 - p) % 12;
-                let dd = if up < down {
-                    up
-                } else {
-                    down
-                };
-                if dd < bd && !has(ct_mask, p) {
-                    bd = dd;
-                    best = i;
-                }
-                i += 1;
-            }
-            if best != 99 && bd <= 1 {
-                let mut next: Array<u32> = array![];
-                let mut j: u32 = 0;
-                for p in pcs.span() {
-                    next.append(if j == best {
-                        c
-                    } else {
-                        *p
-                    });
-                    j += 1;
-                }
-                pcs = next;
-            } else {
-                pcs.append(c);
-            }
-        }
-        let mut mask: u32 = 0;
-        for p in pcs.span() {
-            mask = mask | *POW2.span().at(*p);
-        }
-        self.cs_cache.insert(key, mask + ct_mask * 4096 + 0x1000000);
-        (mask, ct_mask)
-    }
-
-    fn root_in(self: @Ctx, r: i32, lo: i32) -> i32 {
-        lo + to_i(md12(self.tonic + r - lo))
-    }
-
-    fn chords_for(self: @Ctx, prog: Span<u8>, bars: u32) -> Chords {
-        let per = self.d.per_bar;
-        let n = prog.len();
-        let mut cells: Array<u8> = array![];
-        for b in 0..bars {
-            if per == 2 {
-                cells.append(*prog.at((b * 2) % n));
-                cells.append(*prog.at((b * 2 + 1) % n));
-            } else {
-                cells.append(*prog.at((b / self.d.chord_bars) % n));
-            }
-        }
-        Chords { cells: cells.span(), per, bars }
-    }
-
-    fn chord_at_tick(self: @Ctx, chords: Chords, t: u32) -> u8 {
-        let mut b = t / self.bar;
-        if b >= chords.bars {
-            b = chords.bars - 1;
-        }
-        if chords.per == 1 {
-            *chords.cells.at(b)
-        } else if (t % self.bar) < self.bar / 2 {
-            *chords.cells.at(2 * b)
+/// A note, if it has a length and a MIDI pitch (the source's `note`).
+// On purpose (CASM size): one copy, not one per call site.
+#[inline(never)]
+fn note(ref notes: Array<Note>, ch: u8, t: u32, d: i32, p: i32, v: i32) {
+    if d > 0 && p >= 0 && p < 128 {
+        let d: u32 = if d < 30 {
+            30
         } else {
-            *chords.cells.at(2 * b + 1)
+            d.try_into().unwrap()
+        };
+        let v: u8 = if v < 1 {
+            1
+        } else if v > 127 {
+            127
+        } else {
+            v.try_into().unwrap()
+        };
+        notes.append(Note { t, d, p: p.try_into().unwrap(), v, ch });
+    }
+}
+
+#[inline(never)]
+fn notes_at(ref notes: Array<Note>, ch: u8, t: u32, d: i32, ps: Span<i32>, v: i32) {
+    for p in ps {
+        note(ref notes, ch, t, d, *p, v);
+    }
+}
+
+fn cell_chord(x: u32) -> u8 {
+    (x & 0xff).try_into().unwrap()
+}
+
+fn cell_pcs(x: u32) -> u32 {
+    (x / 0x100) & 0xfff
+}
+
+fn cell_ct(x: u32) -> u32 {
+    x / 0x100000
+}
+
+fn is_strong(k: Box<K>, t: u32) -> bool {
+    let k = k.unbox();
+    let pos = t % k.bar;
+    pos == 0 || (k.strong2 != 0 && pos == k.strong2)
+}
+
+fn root_in(tonic: i32, r: i32, lo: i32) -> i32 {
+    lo + to_i(md12(tonic + r - lo))
+}
+
+/// The source's chordScale as (scale pcs mask, chord tone mask): the scale with each chord tone
+/// replacing the scale note it bends (within a semitone, first in scale order), else added.
+#[inline(never)]
+fn chord_scale(tonic: i32, scale: u8, chord: u8) -> (u32, u32) {
+    let mut pcs: Array<u32> = array![];
+    for s in scale_of(scale) {
+        pcs.append(md12(tonic + *s));
+    }
+    let r = chord_r(chord);
+    let tones = chord_tones(chord);
+    let mut ct_mask: u32 = 0;
+    for t in tones {
+        ct_mask = ct_mask | *POW2.span().at(md12(tonic + r + *t));
+    }
+    for t in tones {
+        let c = md12(tonic + r + *t);
+        let mut present = false;
+        for p in pcs.span() {
+            if *p == c {
+                present = true;
+                break;
+            }
         }
+        if present {
+            continue;
+        }
+        let mut best: u32 = 99;
+        let mut bd: u32 = 9;
+        let mut i: u32 = 0;
+        for p in pcs.span() {
+            let p = *p;
+            let up = (p + 12 - c) % 12;
+            let down = (c + 12 - p) % 12;
+            let dd = if up < down {
+                up
+            } else {
+                down
+            };
+            if dd < bd && !has(ct_mask, p) {
+                bd = dd;
+                best = i;
+            }
+            i += 1;
+        }
+        if best != 99 && bd <= 1 {
+            let mut next: Array<u32> = array![];
+            let mut j: u32 = 0;
+            for p in pcs.span() {
+                next.append(if j == best {
+                    c
+                } else {
+                    *p
+                });
+                j += 1;
+            }
+            pcs = next;
+        } else {
+            pcs.append(c);
+        }
+    }
+    let mut mask: u32 = 0;
+    for p in pcs.span() {
+        mask = mask | *POW2.span().at(*p);
+    }
+    (mask, ct_mask)
+}
+
+/// `prog` laid out over `bars` (the source's chordsFor), with each chord's masks in `scale`.
+#[inline(never)]
+fn chords_for(k: Box<K>, prog: Span<u8>, bars: u32, scale: u8) -> Chords {
+    let k = k.unbox();
+    let n = prog.len();
+    let mut raw: Array<u8> = array![];
+    for b in 0..bars {
+        if k.per_bar == 2 {
+            raw.append(*prog.at((b * 2) % n));
+            raw.append(*prog.at((b * 2 + 1) % n));
+        } else {
+            raw.append(*prog.at((b / k.chord_bars) % n));
+        }
+    }
+    with_masks(k.tonic, scale, raw.span(), k.per_bar, bars)
+}
+
+fn with_masks(tonic: i32, scale: u8, raw: Span<u8>, per: u32, bars: u32) -> Chords {
+    let mut cells: Array<u32> = array![];
+    for ch in raw {
+        let (pcs, ct) = chord_scale(tonic, scale, *ch);
+        cells.append((*ch).into() + pcs * 0x100 + ct * 0x100000);
+    }
+    Chords { cells: cells.span(), per, bars }
+}
+
+/// The chord cell sounding at tick `t` of the section (past the end: its last bar).
+fn chord_at(bar: u32, chords: Chords, t: u32) -> u32 {
+    let mut b = t / bar;
+    if b >= chords.bars {
+        b = chords.bars - 1;
+    }
+    if chords.per == 1 {
+        *chords.cells.at(b)
+    } else if (t % bar) < bar / 2 {
+        *chords.cells.at(2 * b)
+    } else {
+        *chords.cells.at(2 * b + 1)
     }
 }
 
 fn chord_cell(chords: Chords, b: u32, h: u32) -> u8 {
-    *chords.cells.at(b * chords.per + h)
+    cell_chord(*chords.cells.at(b * chords.per + h))
 }
 
-// ── melody
-// ──────────────────────────────────────────────────────────────────────────────────────
+// ── melody ──
 
 /// A melody over `bars` bars: two-bar ideas (the first carrying the motif when given), an
 /// antecedent ending on a half cadence and a consequent restating its first two bars and closing
 /// on the tonic (`full`) or the chord's fifth.
+#[inline(never)]
 fn melody(
-    ref c: Ctx,
+    k: Box<K>,
     chords: Chords,
     bars: u32,
     lo: i32,
@@ -622,8 +657,10 @@ fn melody(
     full: bool,
     ref r: Rng,
 ) -> Array<MelNote> {
-    let cs = cells(c.six, feel);
-    let slow = cells(c.six, F_SLOW);
+    let kk = k.unbox();
+    let bt = kk.bar;
+    let cs = cells(kk.six, feel);
+    let slow = cells(kk.six, F_SLOW);
     let half = if bars / 2 > 2 {
         bars / 2
     } else {
@@ -650,22 +687,21 @@ fn melody(
     let mut out: Array<MelNote> = array![];
     let mut prev = (lo + hi + 1) / 2;
     let mut mi: u32 = 0; // motif notes used
-    let bt = c.bar;
     for b in 0..bars {
         let end_half = b == half - 1;
         let end_all = b == bars - 1;
         if b >= half && b < half + 2 && out.len() > 0 {
+            // the consequent's first two bars restate the antecedent's, refitted to the chords
             let src = out.span();
             let (s0, s1) = ((b - half) * bt, (b - half + 1) * bt);
             for n in src {
                 let n = *n;
                 if n.t >= s0 && n.t < s1 {
                     let t = n.t + half * bt;
-                    let chord = c.chord_at_tick(chords, t);
-                    let (pcs, ct) = c.chord_scale(chord);
-                    let mut p = nearest(list_pitches(pcs, lo, hi).span(), n.p);
-                    if c.is_strong(t) {
-                        p = nearest(list_pitches(ct, lo, hi).span(), p);
+                    let x = chord_at(bt, chords, t);
+                    let mut p = nearest(list_pitches(cell_pcs(x), lo, hi).span(), n.p);
+                    if is_strong(k, t) {
+                        p = nearest(list_pitches(cell_ct(x), lo, hi).span(), p);
                     }
                     out.append(MelNote { t, d: n.d, p });
                     prev = p;
@@ -678,15 +714,6 @@ fn melody(
         } else {
             *plan.at(b)
         };
-        // the bar (the source's writeBar)
-        let mut last: u32 = 0;
-        let mut i: u32 = 0;
-        for u in cell {
-            if *u > 0 {
-                last = i;
-            }
-            i += 1;
-        }
         let end_kind: u8 = if end_all {
             if full {
                 1
@@ -699,85 +726,132 @@ fn melody(
             0
         };
         let (bound_up, bound_down) = contour_bounds(lo, half, b % half);
-        let mut t = b * bt;
-        let mut i: u32 = 0;
-        for u in cell {
-            let u = *u;
-            let dur: u32 = (abs(u) * 240).try_into().unwrap();
-            if u > 0 {
-                let chord = c.chord_at_tick(chords, t);
-                let (pcs, ct) = c.chord_scale(chord);
-                let strong = c.is_strong(t);
-                let mut p: i32 = 0;
-                if mi < motif.len() {
-                    p = *motif.at(mi);
-                    mi += 1;
-                    while p > hi {
-                        p -= 12;
-                    }
-                    while p < lo {
-                        p += 12;
-                    }
-                    if strong && !has(ct, md12(p)) {
-                        p = nearest(list_pitches(ct, lo, hi).span(), p);
-                    }
-                } else {
-                    let dir: i32 = if prev < bound_up {
-                        1
-                    } else if prev > bound_down {
-                        -1
-                    } else if r.chance(P050) {
-                        1
-                    } else {
-                        -1
-                    };
-                    let x: u64 = r.next().into();
-                    let k = if x < P012 {
-                        0
-                    } else if x < P066 {
-                        dir
-                    } else if x < P090 {
-                        2 * dir
-                    } else if r.chance(P050) {
-                        3 * dir
-                    } else {
-                        -3 * dir
-                    };
-                    p = step_in(list_pitches(pcs, lo, hi).span(), prev, k);
-                    if strong || dur >= 3 * EIGHTH {
-                        p = nearest(list_pitches(ct, lo, hi).span(), p);
-                    }
-                }
-                if end_kind != 0 && i == last {
-                    let cr = chord_r(chord);
-                    let goal = if end_kind == 1 {
-                        md12(c.tonic + cr)
-                    } else {
-                        let tones = chord_tones(chord);
-                        md12(c.tonic + cr + *tones.at(2))
-                    };
-                    p = nearest(list_pitches(*POW2.span().at(goal), lo, hi).span(), prev);
-                }
-                out.append(MelNote { t, d: dur, p });
-                prev = p;
-            }
-            t += dur;
-            i += 1;
+        let bar_out = melody_bar(
+            k,
+            chords,
+            b * bt,
+            cell,
+            lo,
+            hi,
+            end_kind,
+            bound_up,
+            bound_down,
+            motif,
+            ref mi,
+            ref prev,
+            ref r,
+        );
+        out.append_span(bar_out.span());
+    }
+    out
+}
+
+/// One bar of the melody (the source's writeBar).
+#[inline(never)]
+fn melody_bar(
+    k: Box<K>,
+    chords: Chords,
+    t0: u32,
+    cell: Span<i32>,
+    lo: i32,
+    hi: i32,
+    end_kind: u8,
+    bound_up: i32,
+    bound_down: i32,
+    motif: Span<i32>,
+    ref mi: u32,
+    ref prev: i32,
+    ref r: Rng,
+) -> Array<MelNote> {
+    let kk = k.unbox();
+    let mut last: u32 = 0;
+    let mut i: u32 = 0;
+    for u in cell {
+        if *u > 0 {
+            last = i;
         }
+        i += 1;
+    }
+    let mut out: Array<MelNote> = array![];
+    let mut t = t0;
+    let mut i: u32 = 0;
+    for u in cell {
+        let u = *u;
+        let dur: u32 = (abs(u) * 240).try_into().unwrap();
+        if u > 0 {
+            let x = chord_at(kk.bar, chords, t);
+            let (pcs, ct) = (cell_pcs(x), cell_ct(x));
+            let strong = is_strong(k, t);
+            let mut p: i32 = 0;
+            if mi < motif.len() {
+                p = *motif.at(mi);
+                mi += 1;
+                while p > hi {
+                    p -= 12;
+                }
+                while p < lo {
+                    p += 12;
+                }
+                if strong && !has(ct, md12(p)) {
+                    p = nearest(list_pitches(ct, lo, hi).span(), p);
+                }
+            } else {
+                let dir: i32 = if prev < bound_up {
+                    1
+                } else if prev > bound_down {
+                    -1
+                } else if r.chance(P050) {
+                    1
+                } else {
+                    -1
+                };
+                let raw: u64 = r.next().into();
+                let step = if raw < P012 {
+                    0
+                } else if raw < P066 {
+                    dir
+                } else if raw < P090 {
+                    2 * dir
+                } else if r.chance(P050) {
+                    3 * dir
+                } else {
+                    -3 * dir
+                };
+                p = step_in(list_pitches(pcs, lo, hi).span(), prev, step);
+                if strong || dur >= 3 * EIGHTH {
+                    p = nearest(list_pitches(ct, lo, hi).span(), p);
+                }
+            }
+            if end_kind != 0 && i == last {
+                let chord = cell_chord(x);
+                let cr = chord_r(chord);
+                let goal = if end_kind == 1 {
+                    md12(kk.tonic + cr)
+                } else {
+                    md12(kk.tonic + cr + *chord_tones(chord).at(2))
+                };
+                p = nearest(list_pitches(*POW2.span().at(goal), lo, hi).span(), prev);
+            }
+            out.append(MelNote { t, d: dur, p });
+            prev = p;
+        }
+        t += dur;
+        i += 1;
     }
     out
 }
 
 /// The closest voicing of `chord` in [lo, hi] to `prev` (none: the middle candidate).
+#[inline(never)]
 fn voicing(
-    ref c: Ctx, chord: u8, lo: i32, hi: i32, prev: Option<Span<i32>>, size: u32,
-) -> Array<i32> {
+    tonic: i32, chord: u8, lo: i32, hi: i32, prev: Option<Span<i32>>, size: u32,
+) -> Span<i32> {
     let r = chord_r(chord);
     let tones = chord_tones(chord);
     let mut pcs: Array<u32> = array![];
     let mut mask: u32 = 0;
     for t in tones {
-        let pc = md12(c.tonic + r + *t);
+        let pc = md12(tonic + r + *t);
         pcs.append(pc);
         mask = mask | *POW2.span().at(pc);
     }
@@ -787,12 +861,14 @@ fn voicing(
     } else {
         pcs.len()
     };
-    let (p0, p1, p2) = (*pcs.at(0), *pcs.at(1), *pcs.at(2));
+    let first3 = *POW2.span().at(*pcs.at(0))
+        | *POW2.span().at(*pcs.at(1))
+        | *POW2.span().at(*pcs.at(2));
     let mut cands: Array<Span<i32>> = array![];
     let mut base = lo;
     let mut bpc = md12(lo);
     while base <= hi {
-        if bpc == p0 || bpc == p1 || bpc == p2 {
+        if has(first3, bpc) {
             let mut v: Array<i32> = array![base];
             let mut vmask = *POW2.span().at(bpc);
             let mut p = base;
@@ -830,12 +906,7 @@ fn voicing(
         return sort_small(xs.span());
     }
     match prev {
-        Option::None => {
-            let mid = *cands.at(cands.len() / 2);
-            let mut out: Array<i32> = array![];
-            out.append_span(mid);
-            out
-        },
+        Option::None => *cands.at(cands.len() / 2),
         Option::Some(pv) => {
             let mut best = *cands.at(0);
             let mut bc = voicing_cost(best, pv);
@@ -849,9 +920,7 @@ fn voicing(
                 }
                 i += 1;
             }
-            let mut out: Array<i32> = array![];
-            out.append_span(best);
-            out
+            best
         },
     }
 }
@@ -872,7 +941,7 @@ fn voicing_cost(v: Span<i32>, prev: Span<i32>) -> i32 {
     s
 }
 
-fn sort_small(xs: Span<i32>) -> Array<i32> {
+fn sort_small(xs: Span<i32>) -> Span<i32> {
     let mut out: Array<i32> = array![];
     let mut used: u32 = 0;
     let n = xs.len();
@@ -890,16 +959,21 @@ fn sort_small(xs: Span<i32>) -> Array<i32> {
         used = used | *POW2.span().at(bi);
         out.append(bv);
     }
-    out
+    out.span()
 }
 
-// ── accompaniment, bass and drums
-// ──────────────────────────────────────────────────────────────
+// ── accompaniment, bass and drums ──
 
-fn accompany(ref c: Ctx, ch: u8, chords: Chords, t0: u32, bars: u32, kind: u8, vel: i32) {
+#[inline(never)]
+fn accompany(
+    k: Box<K>, ref notes: Array<Note>, ref r: Rng, chords: Chords, t0: u32, kind: u8, vel: i32,
+) {
+    let kk = k.unbox();
     let mut prev: Option<Span<i32>> = Option::None;
-    let beat = 1920 / c.den;
-    let bt = c.bar;
+    let beat = 1920 / kk.den;
+    let bt = kk.bar;
+    let len = bt / chords.per;
+    let li = to_i(len);
     let lo: i32 = if kind == A_MUSICBOX {
         64
     } else if kind == A_ARP16 {
@@ -907,52 +981,58 @@ fn accompany(ref c: Ctx, ch: u8, chords: Chords, t0: u32, bars: u32, kind: u8, v
     } else {
         55
     };
-    for b in 0..bars {
+    let ch = CH_ACCOMP;
+    for b in 0..chords.bars {
         for h in 0..chords.per {
             let chord = chord_cell(chords, b, h);
-            let len = bt / chords.per;
             let t = t0 + b * bt + h * len;
             let size = if chord_tones(chord).len() > 3 {
                 4
             } else {
                 3
             };
-            let v = voicing(ref c, chord, lo, lo + 14, prev, size).span();
+            let v = voicing(kk.tonic, chord, lo, lo + 14, prev, size);
             prev = Option::Some(v);
-            let li = to_i(len);
             if kind == A_BLOCK {
-                c.notes_at(ch, t, li / 2 - 20, v, vel);
-                c.notes_at(ch, t + len / 2, li / 2 - 20, v, vel - 8);
+                notes_at(ref notes, ch, t, li / 2 - 20, v, vel);
+                notes_at(ref notes, ch, t + len / 2, li / 2 - 20, v, vel - 8);
             } else if kind == A_STRUM {
                 let mut i: u32 = 0;
                 for e in [0_u32, 3, 5, 6].span() {
                     if *e * EIGHTH < len {
-                        c.notes_at(ch, t + *e * EIGHTH, 460, v, if i > 0 {
-                            vel - 10
-                        } else {
-                            vel
-                        });
+                        notes_at(
+                            ref notes,
+                            ch,
+                            t + *e * EIGHTH,
+                            460,
+                            v,
+                            if i > 0 {
+                                vel - 10
+                            } else {
+                                vel
+                            },
+                        );
                     }
                     i += 1;
                 }
             } else if kind == A_STAB {
                 for e in [3_u32, 7].span() {
                     if *e * EIGHTH < len {
-                        c.notes_at(ch, t + *e * EIGHTH, 100, v, vel + 6);
+                        notes_at(ref notes, ch, t + *e * EIGHTH, 100, v, vel + 6);
                     }
                 }
-                if c.r.chance(P030) {
-                    c.notes_at(ch, t + 1320, 60, v, vel - 10);
+                if r.chance(P030) {
+                    notes_at(ref notes, ch, t + 1320, 60, v, vel - 10);
                 }
             } else if kind == A_WALTZ {
                 let d = to_i(beat * 3 / 5);
-                c.notes_at(ch, t + beat, d, v, vel - 6);
-                c.notes_at(ch, t + 2 * beat, d, v, vel - 12);
+                notes_at(ref notes, ch, t + beat, d, v, vel - 6);
+                notes_at(ref notes, ch, t + 2 * beat, d, v, vel - 12);
             } else if kind == A_OOMPAH {
-                let mut k: u32 = 1;
-                while k * beat < len {
-                    c.notes_at(ch, t + k * beat, to_i(beat / 2), v, vel - 4);
-                    k += 2;
+                let mut j: u32 = 1;
+                while j * beat < len {
+                    notes_at(ref notes, ch, t + j * beat, to_i(beat / 2), v, vel - 4);
+                    j += 2;
                 }
             } else if kind == A_ARP16 {
                 let mut seq: Array<i32> = array![];
@@ -972,101 +1052,113 @@ fn accompany(ref c: Ctx, ch: u8, chords: Chords, t0: u32, bars: u32, kind: u8, v
                     seq.append(*v.at(j));
                 }
                 let seq = seq.span();
-                let mut k: u32 = 0;
-                while k * 120 < len {
-                    c
-                        .note(
-                            ch,
-                            t + k * 120,
-                            110,
-                            *seq.at(k % seq.len()),
-                            if k % 4 != 0 {
-                                vel - 12
-                            } else {
-                                vel
-                            },
-                        );
-                    k += 1;
+                let mut j: u32 = 0;
+                while j * 120 < len {
+                    note(
+                        ref notes,
+                        ch,
+                        t + j * 120,
+                        110,
+                        *seq.at(j % seq.len()),
+                        if j % 4 != 0 {
+                            vel - 12
+                        } else {
+                            vel
+                        },
+                    );
+                    j += 1;
                 }
             } else if kind == A_ALBERTI {
                 let seq = [*v.at(0), *v.at(2), *v.at(1), *v.at(2)].span();
-                let mut k: u32 = 0;
-                while k * EIGHTH < len {
-                    c
-                        .note(
-                            ch,
-                            t + k * EIGHTH,
-                            220,
-                            *seq.at(k % 4),
-                            if k % 2 != 0 {
-                                vel - 10
-                            } else {
-                                vel
-                            },
-                        );
-                    k += 1;
+                let mut j: u32 = 0;
+                while j * EIGHTH < len {
+                    note(
+                        ref notes,
+                        ch,
+                        t + j * EIGHTH,
+                        220,
+                        *seq.at(j % 4),
+                        if j % 2 != 0 {
+                            vel - 10
+                        } else {
+                            vel
+                        },
+                    );
+                    j += 1;
                 }
             } else if kind == A_MUSICBOX {
                 let seq = [*v.at(0), *v.at(1), *v.at(2), *v.at(0) + 12, *v.at(2), *v.at(1)].span();
-                let mut k: u32 = 0;
-                while k * EIGHTH < len {
-                    c
-                        .note(
-                            ch,
-                            t + k * EIGHTH,
-                            384,
-                            *seq.at(k % 6),
-                            if k % 3 != 0 {
-                                vel - 14
-                            } else {
-                                vel
-                            },
-                        );
-                    k += 1;
+                let mut j: u32 = 0;
+                while j * EIGHTH < len {
+                    note(
+                        ref notes,
+                        ch,
+                        t + j * EIGHTH,
+                        384,
+                        *seq.at(j % 6),
+                        if j % 3 != 0 {
+                            vel - 14
+                        } else {
+                            vel
+                        },
+                    );
+                    j += 1;
                 }
             } else if kind == A_SHUFFLE {
                 let three = v.slice(0, 3);
-                let mut k: u32 = 0;
-                while k * beat < len {
-                    c.notes_at(ch, t + k * beat, to_i(beat * 11 / 20), three, vel - 6);
-                    c
-                        .notes_at(
-                            ch, t + k * beat + beat * 2 / 3, to_i(beat / 3) - 10, three, vel - 18,
-                        );
-                    k += 1;
+                let mut j: u32 = 0;
+                while j * beat < len {
+                    notes_at(ref notes, ch, t + j * beat, to_i(beat * 11 / 20), three, vel - 6);
+                    notes_at(
+                        ref notes,
+                        ch,
+                        t + j * beat + beat * 2 / 3,
+                        to_i(beat / 3) - 10,
+                        three,
+                        vel - 18,
+                    );
+                    j += 1;
                 }
             } else if kind == A_BOSSA {
                 for s in [0_u32, 3, 6, 10, 13].span() {
                     if *s * 120 < len {
-                        c
-                            .notes_at(
-                                ch, t + *s * 120, 200, v, if *s % 2 != 0 {
-                                    vel - 4
-                                } else {
-                                    vel
-                                },
-                            );
+                        notes_at(
+                            ref notes,
+                            ch,
+                            t + *s * 120,
+                            200,
+                            v,
+                            if *s % 2 != 0 {
+                                vel - 4
+                            } else {
+                                vel
+                            },
+                        );
                     }
                 }
             } else if kind == A_TOLLING {
                 let v0 = *v.at(0);
-                c.notes_at(ch, t, to_i(len * 9 / 10), [v0, v0 + 12].span(), vel - 10);
+                notes_at(ref notes, ch, t, to_i(len * 9 / 10), [v0, v0 + 12].span(), vel - 10);
             }
         }
     }
 }
 
-fn bass_line(ref c: Ctx, ch: u8, chords: Chords, t0: u32, bars: u32, kind: u8, vel: i32) {
-    let beat = 1920 / c.den;
+#[inline(never)]
+fn bass_line(k: Box<K>, ref notes: Array<Note>, chords: Chords, t0: u32, kind: u8, vel: i32) {
+    let kk = k.unbox();
+    let beat = 1920 / kk.den;
     let bi = to_i(beat);
-    let bt = c.bar;
+    let bt = kk.bar;
+    let len = bt / chords.per;
+    let li = to_i(len);
+    let ch = CH_BASS;
+    let bars = chords.bars;
     for b in 0..bars {
         for h in 0..chords.per {
             let chord = chord_cell(chords, b, h);
-            let len = bt / chords.per;
-            let li = to_i(len);
             let t = t0 + b * bt + h * len;
-            let root = c.root_in(chord_r(chord), 36);
+            let root = root_in(kk.tonic, chord_r(chord), 36);
             let fifth = root + *chord_tones(chord).at(2);
             let low5 = if fifth > 50 {
                 fifth - 12
@@ -1074,58 +1166,58 @@ fn bass_line(ref c: Ctx, ch: u8, chords: Chords, t0: u32, bars: u32, kind: u8, v
                 fifth
             };
             if kind == B_ROOT {
-                c.note(ch, t, li - 30, root, vel);
+                note(ref notes, ch, t, li - 30, root, vel);
             } else if kind == B_ROOTFIFTH {
-                let mut k: u32 = 0;
-                while k * 2 * beat < len {
-                    let odd = k % 2 == 1;
-                    c
-                        .note(
-                            ch,
-                            t + k * 2 * beat,
-                            bi * 7 / 5,
-                            if odd {
-                                low5
-                            } else {
-                                root
-                            },
-                            if odd {
-                                vel - 8
-                            } else {
-                                vel
-                            },
-                        );
-                    k += 1;
+                let mut j: u32 = 0;
+                while j * 2 * beat < len {
+                    let odd = j % 2 == 1;
+                    note(
+                        ref notes,
+                        ch,
+                        t + j * 2 * beat,
+                        bi * 7 / 5,
+                        if odd {
+                            low5
+                        } else {
+                            root
+                        },
+                        if odd {
+                            vel - 8
+                        } else {
+                            vel
+                        },
+                    );
+                    j += 1;
                 }
             } else if kind == B_WALTZ {
-                c.note(ch, t, bi * 9 / 10, root, vel);
+                note(ref notes, ch, t, bi * 9 / 10, root, vel);
             } else if kind == B_OCTAVE8 {
-                let mut k: u32 = 0;
-                while k * EIGHTH < len {
-                    let odd = k % 2 == 1;
-                    c
-                        .note(
-                            ch,
-                            t + k * EIGHTH,
-                            210,
-                            if odd {
-                                root + 12
-                            } else {
-                                root
-                            },
-                            if odd {
-                                vel - 10
-                            } else {
-                                vel
-                            },
-                        );
-                    k += 1;
+                let mut j: u32 = 0;
+                while j * EIGHTH < len {
+                    let odd = j % 2 == 1;
+                    note(
+                        ref notes,
+                        ch,
+                        t + j * EIGHTH,
+                        210,
+                        if odd {
+                            root + 12
+                        } else {
+                            root
+                        },
+                        if odd {
+                            vel - 10
+                        } else {
+                            vel
+                        },
+                    );
+                    j += 1;
                 }
             } else if kind == B_BOOGIE {
                 let st = [0_i32, 4, 7, 9, 10, 9, 7, 4].span();
-                for k in 0..8_u32 {
-                    let odd = k % 2 == 1;
-                    let at = t + (k / 2) * beat + if odd {
+                for j in 0..8_u32 {
+                    let odd = j % 2 == 1;
+                    let at = t + (j / 2) * beat + if odd {
                         beat * 2 / 3
                     } else {
                         0
@@ -1135,7 +1227,7 @@ fn bass_line(ref c: Ctx, ch: u8, chords: Chords, t0: u32, bars: u32, kind: u8, v
                     } else {
                         bi * 2 / 3 - 10
                     };
-                    c.note(ch, at, d, root + *st.at(k), if odd {
+                    note(ref notes, ch, at, d, root + *st.at(j), if odd {
                         vel - 12
                     } else {
                         vel
@@ -1148,50 +1240,57 @@ fn bass_line(ref c: Ctx, ch: u8, chords: Chords, t0: u32, bars: u32, kind: u8, v
                     } else {
                         (bars - b) * bt
                     };
-                    c.note(ch, t, to_i(span) - 40, root, vel - 10);
+                    note(ref notes, ch, t, to_i(span) - 40, root, vel - 10);
                 }
             } else if kind == B_BOSSA {
                 let next = if h + 1 < chords.per {
                     chord_cell(chords, b, h + 1)
-                } else if b + 1 < chords.bars {
+                } else if b + 1 < bars {
                     chord_cell(chords, b + 1, 0)
                 } else {
                     chord_cell(chords, 0, 0)
                 };
-                c.note(ch, t, bi * 7 / 5, root, vel);
-                c.note(ch, t + beat * 3 / 2, bi / 2 - 20, low5, vel - 12);
-                c.note(ch, t + 2 * beat, bi * 7 / 5, low5, vel - 6);
-                c.note(ch, t + beat * 7 / 2, bi / 2 - 20, c.root_in(chord_r(next), 36), vel - 12);
+                note(ref notes, ch, t, bi * 7 / 5, root, vel);
+                note(ref notes, ch, t + beat * 3 / 2, bi / 2 - 20, low5, vel - 12);
+                note(ref notes, ch, t + 2 * beat, bi * 7 / 5, low5, vel - 6);
+                note(
+                    ref notes,
+                    ch,
+                    t + beat * 7 / 2,
+                    bi / 2 - 20,
+                    root_in(kk.tonic, chord_r(next), 36),
+                    vel - 12,
+                );
             } else if kind == B_SIXEIGHT {
-                c.note(ch, t, 690, root, vel - 10);
-                c.note(ch, t + 720, 690, low5, vel - 18);
+                note(ref notes, ch, t, 690, root, vel - 10);
+                note(ref notes, ch, t + 720, 690, low5, vel - 18);
             } else if kind == B_DRONE {
                 if h == 0 {
-                    let r0 = c.root_in(0, 36);
-                    let r7 = c.root_in(7, 36);
-                    c.note(ch, t, li - 40, r0, vel - 10);
-                    c.note(ch, t, li - 40, if r7 < r0 {
+                    let r0 = root_in(kk.tonic, 0, 36);
+                    let r7 = root_in(kk.tonic, 7, 36);
+                    note(ref notes, ch, t, li - 40, r0, vel - 10);
+                    note(ref notes, ch, t, li - 40, if r7 < r0 {
                         r7 + 12
                     } else {
                         r7
                     }, vel - 30);
                 }
             } else if kind == B_RIFF {
-                for x in c.riff {
+                for x in kk.riff {
                     let (off, d, deg) = *x;
                     if off < len {
-                        c
-                            .note(
-                                ch,
-                                t + off,
-                                d,
-                                root + deg,
-                                if off % TPQ != 0 {
-                                    vel - 12
-                                } else {
-                                    vel
-                                },
-                            );
+                        note(
+                            ref notes,
+                            ch,
+                            t + off,
+                            d,
+                            root + deg,
+                            if off % TPQ != 0 {
+                                vel - 12
+                            } else {
+                                vel
+                            },
+                        );
                     }
                 }
             }
@@ -1201,19 +1300,30 @@ fn bass_line(ref c: Ctx, ch: u8, chords: Chords, t0: u32, bars: u32, kind: u8, v
 
 const TOMS: [i32; 6] = [50, 48, 47, 45, 43, 41];
 
-fn drums(ref c: Ctx, t0: u32, bars: u32, g: u8, fill: bool, crash: bool, quiet: bool) {
+#[inline(never)]
+fn drums(
+    k: Box<K>,
+    ref notes: Array<Note>,
+    t0: u32,
+    bars: u32,
+    g: u8,
+    fill: bool,
+    crash: bool,
+    quiet: bool,
+) {
     if g == G_NONE {
         return;
     }
+    let kk = k.unbox();
     let (steps, hits) = groove(g);
-    let bt = c.bar;
+    let bt = kk.bar;
     let step = bt / steps;
     let soft: i32 = if quiet {
         24
     } else {
         0
     };
-    let start = bt - if c.den == 8 {
+    let start = bt - if kk.den == 8 {
         720
     } else {
         960
@@ -1223,23 +1333,23 @@ fn drums(ref c: Ctx, t0: u32, bars: u32, g: u8, fill: bool, crash: bool, quiet: 
         let fill_bar = fill && b == bars - 1 && g != G_WALTZ && g != G_MINIMAL;
         for h in hits {
             let h = *h;
-            let at = t + (h % 256) * step;
-            let key = (h / 256) % 256;
+            let at = t + (h & 0xff) * step;
+            let key = (h / 0x100) & 0xff;
             // the fill replaces the bar's last beats, kicks kept
             if fill_bar && at >= t + start && key != 36 {
                 continue;
             }
-            c.note(CH_DRUMS, at, 60, to_i(key), to_i(h / 65536) - soft);
+            note(ref notes, CH_DRUMS, at, 60, to_i(key), to_i(h / 0x10000) - soft);
         }
         if crash && b == 0 {
-            c.note(CH_DRUMS, t, 200, 49, if quiet {
+            note(ref notes, CH_DRUMS, t, 200, 49, if quiet {
                 70
             } else {
                 96
             });
         }
         if fill_bar {
-            let n: u32 = if c.den == 8 {
+            let n: u32 = if kk.den == 8 {
                 6
             } else {
                 8
@@ -1250,19 +1360,27 @@ fn drums(ref c: Ctx, t0: u32, bars: u32, g: u8, fill: bool, crash: bool, quiet: 
                 } else {
                     *TOMS.span().at(i * 6 / n)
                 };
-                c.note(CH_DRUMS, t + start + i * (bt - start) / n, 60, key, 80 + 3 * to_i(i));
+                note(
+                    ref notes,
+                    CH_DRUMS,
+                    t + start + i * (bt - start) / n,
+                    60,
+                    key,
+                    80 + 3 * to_i(i),
+                );
             }
         }
     }
 }
 
-// ── sections
-// ────────────────────────────────────────────────────────────────────────────────────
+// ── sections ──
 
-fn counter_line(ref c: Ctx, mel: Span<MelNote>, chords: Chords, bars: u32, t0: u32) {
+#[inline(never)]
+fn counter_line(k: Box<K>, ref notes: Array<Note>, mel: Span<MelNote>, chords: Chords, t0: u32) {
+    let kk = k.unbox();
     let (lo, hi, vel) = (52_i32, 64_i32, 70_i32);
-    let bt = c.bar;
-    let step = if c.num == 3 || c.den == 8 {
+    let bt = kk.bar;
+    let step = if kk.num == 3 || kk.den == 8 {
         bt
     } else {
         bt / 2
@@ -1270,53 +1388,52 @@ fn counter_line(ref c: Ctx, mel: Span<MelNote>, chords: Chords, bars: u32, t0: u
     let mut prev: i32 = 58;
     let mut mi: u32 = 0;
     let mut t: u32 = 0;
-    while t < bars * bt {
-        let chord = c.chord_at_tick(chords, t);
-        let (_, ct) = c.chord_scale(chord);
-        let tones = list_pitches(ct, lo, hi).span();
-        // the melody note sounding at t (they do not overlap and ascend)
+    let end = chords.bars * bt;
+    while t < end {
+        let tones = list_pitches(cell_ct(chord_at(bt, chords, t)), lo, hi).span();
+        // the melody note sounding at t (they ascend and do not overlap)
         while mi < mel.len() && mel.at(mi).t + mel.at(mi).d <= t {
             mi += 1;
         }
-        let m = if mi < mel.len() && mel.at(mi).t <= t {
-            Option::Some(*mel.at(mi))
-        } else {
-            Option::None
-        };
-        let mut p = match m {
-            Option::Some(n) => if n.p > prev {
+        let mut p = if mi < mel.len() && mel.at(mi).t <= t {
+            let mp = mel.at(mi).p;
+            let q = if mp > prev {
                 step_in(tones, prev, -1)
             } else {
                 step_in(tones, prev, 1)
-            },
-            Option::None => nearest(tones, prev),
-        };
-        if let Option::Some(n) = m {
-            if abs(n.p - p) < 3 {
-                p = step_in(tones, p, -1);
+            };
+            if abs(mp - q) < 3 {
+                step_in(tones, q, -1)
+            } else {
+                q
             }
-        }
-        c.note(CH_COUNTER, t0 + t, to_i(step) - 30, p, vel);
+        } else {
+            nearest(tones, prev)
+        };
+        note(ref notes, CH_COUNTER, t0 + t, to_i(step) - 30, p, vel);
         prev = p;
         t += step;
     }
 }
 
-fn thirds_below(ref c: Ctx, mel: Span<MelNote>, chords: Chords, t0: u32, vel: i32) {
+#[inline(never)]
+fn thirds_below(k: Box<K>, ref notes: Array<Note>, mel: Span<MelNote>, chords: Chords, t0: u32) {
+    let bt = k.unbox().bar;
     for n in mel {
         let n = *n;
         if n.d < EIGHTH {
             continue;
         }
-        let chord = c.chord_at_tick(chords, n.t);
-        let (pcs, _) = c.chord_scale(chord);
-        let list = list_pitches(pcs, n.p - 12, n.p).span();
-        c.note(CH_COUNTER, t0 + n.t, to_i(n.d) - 20, step_in(list, n.p, -2), vel);
+        let list = list_pitches(cell_pcs(chord_at(bt, chords, n.t)), n.p - 12, n.p).span();
+        note(ref notes, CH_COUNTER, t0 + n.t, to_i(n.d) - 20, step_in(list, n.p, -2), 76);
     }
 }
 
+#[inline(never)]
 fn write_section(
-    ref c: Ctx,
+    k: Box<K>,
+    ref notes: Array<Note>,
+    ref r: Rng,
     kind: u8,
     bars: u32,
     t0: u32,
@@ -1324,20 +1441,19 @@ fn write_section(
     ref mel_a: Option<Span<MelNote>>,
     ref mel_b: Option<Span<MelNote>>,
 ) {
-    let g = c.g;
-    let bt = c.bar;
+    let kk = k.unbox();
+    let bt = kk.bar;
     let is_b = kind == K_B || kind == K_C;
-    let chords = c.chords_for(if is_b {
-        c.prog_b
+    let chords = chords_for(k, if is_b {
+        kk.prog_b
     } else {
-        c.prog_a
-    }, bars);
+        kk.prog_a
+    }, bars, kk.scale);
     let center: i32 = if is_b {
         74
     } else {
         69
     };
-    let (lo, hi) = (center - 8, center + 8);
     let cached = if is_b {
         mel_b
     } else {
@@ -1347,16 +1463,16 @@ fn write_section(
         Option::Some(m) => m,
         Option::None => {
             let motif = if !is_b && idx == 0 {
-                let k = if c.six {
+                let n = if kk.six {
                     6
                 } else {
                     8
                 };
-                motif_pitches(c.sp.degrees.slice(0, k), c.tonic, scale_of(c.scale), 69).span()
+                motif_pitches(kk.degrees.slice(0, n), kk.tonic, scale_of(kk.scale), 69).span()
             } else {
                 [].span()
             };
-            let seed = c.r.int(1000000000);
+            let seed = r.int(1000000000);
             let kch: ByteArray = if kind == K_B {
                 "B"
             } else if kind == K_C {
@@ -1370,9 +1486,10 @@ fn write_section(
             let feel = if kind == K_V {
                 F_VOCAL
             } else {
-                c.d.feel
+                kk.feel
             };
-            let m = melody(ref c, chords, bars, lo, hi, feel, motif, !is_b, ref mr).span();
+            let m = melody(k, chords, bars, center - 8, center + 8, feel, motif, !is_b, ref mr)
+                .span();
             if is_b {
                 mel_b = Option::Some(m);
             } else {
@@ -1385,58 +1502,60 @@ fn write_section(
     for n in mel {
         let n = *n;
         let (mut t, mut d) = (n.t, n.d);
-        if c.d.swing && t % TPQ == EIGHTH {
+        if kk.swing && t % TPQ == EIGHTH {
             t += 80;
             d -= 80;
-        } else if c.d.swing && d == EIGHTH {
+        } else if kk.swing && d == EIGHTH {
             d += 80;
         }
-        c.note(CH_LEAD, t0 + t, to_i(d) - 20, n.p, if t % bt != 0 {
+        note(ref notes, CH_LEAD, t0 + t, to_i(d) - 20, n.p, if t % bt != 0 {
             90
         } else {
             100
         });
-        if c.shiny {
-            c.note(CH_MEGA, t0 + t, to_i(d) - 20, n.p + 12, 70);
+        if kk.shiny {
+            note(ref notes, CH_MEGA, t0 + t, to_i(d) - 20, n.p + 12, 70);
         }
     }
-    if c.d.counter == C_LINE && c.sp.tier <= 3 {
-        counter_line(ref c, mel, chords, bars, t0);
+    if kk.counter == C_LINE && kk.tier <= 3 {
+        counter_line(k, ref notes, mel, chords, t0);
     }
-    if c.d.counter == C_THIRDS {
-        thirds_below(ref c, mel, chords, t0, 76);
+    if kk.counter == C_THIRDS {
+        thirds_below(k, ref notes, mel, chords, t0);
     }
-    if c.d.counter == C_RESPONSE {
+    if kk.counter == C_RESPONSE {
         for n in mel {
             let n = *n;
             if (n.t / (2 * bt)) % 2 == 0 {
-                c.note(CH_COUNTER, t0 + n.t + bt, to_i(n.d) - 20, n.p - 12, 72);
+                note(ref notes, CH_COUNTER, t0 + n.t + bt, to_i(n.d) - 20, n.p - 12, 72);
             }
         }
     }
-    accompany(ref c, CH_ACCOMP, chords, t0, bars, g.accomp, if quiet {
+    accompany(k, ref notes, ref r, chords, t0, kk.accomp, if quiet {
         60
     } else {
         72
     });
-    bass_line(ref c, CH_BASS, chords, t0, bars, g.bass, 96);
-    if g.drums != G_NONE && !(quiet && g.engine == E_SONG && idx == 0) {
-        drums(ref c, t0, bars, if quiet {
-            G_MINIMAL
-        } else {
-            g.drums
-        }, true, !quiet, quiet);
+    bass_line(k, ref notes, chords, t0, kk.bass, 96);
+    if kk.drums != G_NONE && !(quiet && kk.engine == E_SONG && idx == 0) {
+        drums(
+            k, ref notes, t0, bars, if quiet {
+                G_MINIMAL
+            } else {
+                kk.drums
+            }, true, !quiet, quiet,
+        );
     }
-    if c.sp.tier <= 2 && g.engine != E_BLUES {
+    if kk.tier <= 2 && kk.engine != E_BLUES {
         let mut b: u32 = 0;
         while b < bars {
-            let v = voicing(ref c, chord_cell(chords, b, 0), 52, 66, Option::None, 3);
+            let v = voicing(kk.tonic, chord_cell(chords, b, 0), 52, 66, Option::None, 3);
             let span = if bars - b < 2 {
                 bars - b
             } else {
                 2
             };
-            c.notes_at(CH_PAD, t0 + b * bt, to_i(span * bt) - 40, v.span(), 46);
+            notes_at(ref notes, CH_PAD, t0 + b * bt, to_i(span * bt) - 40, v, 46);
             b += 2;
         }
     }
@@ -1477,26 +1596,67 @@ fn pick_below(top: i32, lo: i32, prev: Option<i32>, want: u32) -> i32 {
 #[derive(Copy, Drop)]
 struct Sop {
     t: u32,
-    d: u32,
     p: i32,
     chord: u8,
 }
 
-fn write_chorale(ref c: Ctx) -> u32 {
-    let bt = c.bar;
-    let form = c.g.form;
+#[inline(never)]
+fn chorale_soprano(k: Box<K>, ref r: Rng, chords: Chords, is_b: bool, first: bool) -> Span<Sop> {
+    let kk = k.unbox();
+    let bt = kk.bar;
+    let mut sop: Array<Sop> = array![];
+    let mut prev: i32 = if is_b {
+        74
+    } else {
+        71
+    };
+    let motif = if first {
+        motif_pitches(kk.degrees.slice(0, 4), kk.tonic, scale_of(kk.scale), 70).span()
+    } else {
+        [].span()
+    };
+    let mut mi: u32 = 0;
+    for b in 0..chords.bars {
+        for h in 0..2_u32 {
+            let t = b * bt + h * bt / 2;
+            let x = *chords.cells.at(b * chords.per + h % chords.per);
+            let chord = cell_chord(x);
+            let tones = list_pitches(cell_ct(x), 64, 79).span();
+            let mut p = if mi < motif.len() {
+                mi += 1;
+                nearest(tones, *motif.at(mi - 1))
+            } else {
+                let step = r.pick_i32([-1, 0, 1, 1, -1].span());
+                step_in(tones, nearest(tones, prev), step)
+            };
+            if b == chords.bars - 1 && h == 1 {
+                let pc = md12(kk.tonic + chord_r(chord));
+                p = nearest(list_pitches(*POW2.span().at(pc), 64, 79).span(), prev);
+            }
+            sop.append(Sop { t, p, chord });
+            prev = p;
+        }
+    }
+    sop.span()
+}
+
+#[inline(never)]
+fn write_chorale(k: Box<K>, ref notes: Array<Note>, ref r: Rng) -> u32 {
+    let kk = k.unbox();
+    let bt = kk.bar;
     let mut t0: u32 = 0;
     let mut sop_a: Option<Span<Sop>> = Option::None;
     let mut sop_b: Option<Span<Sop>> = Option::None;
     let bars: u32 = 8;
+    let d = to_i(bt / 2) - 30;
     let mut idx: u32 = 0;
-    for kind in form {
+    for kind in kk.form {
         let is_b = *kind == K_B;
-        let chords = c.chords_for(if is_b {
-            c.prog_b
+        let chords = chords_for(k, if is_b {
+            kk.prog_b
         } else {
-            c.prog_a
-        }, bars);
+            kk.prog_a
+        }, bars, kk.scale);
         let cached = if is_b {
             sop_b
         } else {
@@ -1505,40 +1665,7 @@ fn write_chorale(ref c: Ctx) -> u32 {
         let sop = match cached {
             Option::Some(s) => s,
             Option::None => {
-                let mut sop: Array<Sop> = array![];
-                let mut prev: i32 = if is_b {
-                    74
-                } else {
-                    71
-                };
-                let motif = if !is_b && idx == 0 {
-                    motif_pitches(c.sp.degrees.slice(0, 4), c.tonic, scale_of(c.scale), 70).span()
-                } else {
-                    [].span()
-                };
-                let mut mi: u32 = 0;
-                for b in 0..bars {
-                    for h in 0..2_u32 {
-                        let t = b * bt + h * bt / 2;
-                        let chord = chord_cell(chords, b, h % chords.per);
-                        let (_, ct) = c.chord_scale(chord);
-                        let tones = list_pitches(ct, 64, 79).span();
-                        let mut p = if mi < motif.len() {
-                            mi += 1;
-                            nearest(tones, *motif.at(mi - 1))
-                        } else {
-                            let k = c.r.pick_i32([-1, 0, 1, 1, -1].span());
-                            step_in(tones, nearest(tones, prev), k)
-                        };
-                        if b == bars - 1 && h == 1 {
-                            let pc = md12(c.tonic + chord_r(chord));
-                            p = nearest(list_pitches(*POW2.span().at(pc), 64, 79).span(), prev);
-                        }
-                        sop.append(Sop { t, d: bt / 2, p, chord });
-                        prev = p;
-                    }
-                }
-                let s = sop.span();
+                let s = chorale_soprano(k, ref r, chords, is_b, !is_b && idx == 0);
                 if is_b {
                     sop_b = Option::Some(s);
                 } else {
@@ -1551,15 +1678,14 @@ fn write_chorale(ref c: Ctx) -> u32 {
         let mut pt: Option<i32> = Option::None;
         for s in sop {
             let s = *s;
-            let r = chord_r(s.chord);
+            let r0 = chord_r(s.chord);
             let tones = chord_tones(s.chord);
             let mut pcs: u32 = 0;
             for i in 0..3_u32 {
-                pcs = pcs | *POW2.span().at(md12(c.tonic + r + *tones.at(i)));
+                pcs = pcs | *POW2.span().at(md12(kk.tonic + r0 + *tones.at(i)));
             }
-            let bass = c.root_in(r, 40);
-            let sp_bit = *POW2.span().at(md12(s.p));
-            let need = pcs & ~sp_bit;
+            let bass = root_in(kk.tonic, r0, 40);
+            let need = pcs & ~*POW2.span().at(md12(s.p));
             let alto = pick_below(s.p, max_i(55, s.p - 9), pa, if need != 0 {
                 need
             } else {
@@ -1576,20 +1702,20 @@ fn write_chorale(ref c: Ctx) -> u32 {
             pa = Option::Some(alto);
             pt = Option::Some(tenor);
             let t = t0 + s.t;
-            let d = to_i(s.d) - 30;
-            c.note(CH_LEAD, t, d, s.p, 92);
-            c.note(CH_COUNTER, t, d, alto, 76);
-            c.note(CH_TENOR, t, d, tenor, 74);
-            c.note(CH_BASS, t, d, bass, 88);
-            if c.shiny {
-                c.note(CH_MEGA, t, d, s.p + 12, 64);
+            note(ref notes, CH_LEAD, t, d, s.p, 92);
+            note(ref notes, CH_COUNTER, t, d, alto, 76);
+            note(ref notes, CH_TENOR, t, d, tenor, 74);
+            note(ref notes, CH_BASS, t, d, bass, 88);
+            if kk.shiny {
+                note(ref notes, CH_MEGA, t, d, s.p + 12, 64);
             }
         }
-        if c.sp.tier <= 2 {
+        if kk.tier <= 2 {
             let mut b: u32 = 0;
             while b < bars {
-                let root = c.root_in(0, 36);
-                c.note(CH_PAD, t0 + b * bt, to_i(4 * bt) - 60, root, 50);
+                note(
+                    ref notes, CH_PAD, t0 + b * bt, to_i(4 * bt) - 60, root_in(kk.tonic, 0, 36), 50,
+                );
                 b += 4;
             }
         }
@@ -1599,86 +1725,85 @@ fn write_chorale(ref c: Ctx) -> u32 {
     t0
 }
 
-fn write_phase(ref c: Ctx) -> u32 {
-    let bt = c.bar;
-    let cell_notes = motif_pitches(c.sp.degrees.slice(0, 6), c.tonic, scale_of(c.scale), 72).span();
-    let len_a = 6 + c.r.int(2);
-    let len_b = len_a + 1 + c.r.int(2);
+#[inline(never)]
+fn write_phase(k: Box<K>, ref notes: Array<Note>, ref r: Rng) -> u32 {
+    let kk = k.unbox();
+    let bt = kk.bar;
+    let cell_notes = motif_pitches(kk.degrees.slice(0, 6), kk.tonic, scale_of(kk.scale), 72).span();
+    let len_a = 6 + r.int(2);
+    let len_b = len_a + 1 + r.int(2);
     let s_step: u32 = 240;
-    let form = c.g.form;
+    let form = kk.form;
     let bars: u32 = 8;
     let mut t0: u32 = 0;
     let mut mel_m: Option<Span<MelNote>> = Option::None;
     let mut idx: u32 = 0;
     for kind in form {
         let is_b = *kind == K_B;
-        let chords = c.chords_for(if is_b {
-            c.prog_b
+        let chords = chords_for(k, if is_b {
+            kk.prog_b
         } else {
-            c.prog_a
-        }, bars);
+            kk.prog_a
+        }, bars, kk.scale);
         let end = bars * bt;
-        let mut k: u32 = 0;
-        while k * s_step < end {
-            let t = k * s_step;
-            let chord = c.chord_at_tick(chords, t);
-            let (pcs, _) = c.chord_scale(chord);
-            let list = list_pitches(pcs, 60, 90).span();
-            let a = k % len_a;
+        let mut j: u32 = 0;
+        while j * s_step < end {
+            let t = j * s_step;
+            let list = list_pitches(cell_pcs(chord_at(bt, chords, t)), 60, 90).span();
+            let a = j % len_a;
             if a < cell_notes.len() {
-                c
-                    .note(
-                        CH_ACCOMP,
-                        t0 + t,
-                        210,
-                        nearest(list, *cell_notes.at(a)),
-                        if a == 0 {
-                            86
-                        } else {
-                            70
-                        },
-                    );
+                note(
+                    ref notes,
+                    CH_ACCOMP,
+                    t0 + t,
+                    210,
+                    nearest(list, *cell_notes.at(a)),
+                    if a == 0 {
+                        86
+                    } else {
+                        70
+                    },
+                );
             }
-            let bb = k % len_b;
+            let bb = j % len_b;
             if bb < cell_notes.len() && (is_b || idx > 0) {
                 let p = step_in(list, nearest(list, *cell_notes.at(bb) + 12), 0);
-                c.note(CH_COUNTER, t0 + t, 210, p, if bb == 0 {
+                note(ref notes, CH_COUNTER, t0 + t, 210, p, if bb == 0 {
                     76
                 } else {
                     62
                 });
             }
-            k += 1;
+            j += 1;
         }
         if is_b || idx == form.len() - 1 {
             let mel = match mel_m {
                 Option::Some(m) => m,
                 Option::None => {
-                    let seed = c.r.int(1000000000);
+                    let seed = r.int(1000000000);
                     let mut mr = seeded(format!("PH|{}", seed));
-                    let m = melody(ref c, chords, bars, 64, 79, F_SLOW, [].span(), true, ref mr)
-                        .span();
+                    let m = melody(k, chords, bars, 64, 79, F_SLOW, [].span(), true, ref mr).span();
                     mel_m = Option::Some(m);
                     m
                 },
             };
             for n in mel {
                 let n = *n;
-                c.note(CH_LEAD, t0 + n.t, to_i(n.d) - 20, n.p, 88);
-                if c.shiny {
-                    c.note(CH_MEGA, t0 + n.t, to_i(n.d) - 20, n.p + 12, 60);
+                note(ref notes, CH_LEAD, t0 + n.t, to_i(n.d) - 20, n.p, 88);
+                if kk.shiny {
+                    note(ref notes, CH_MEGA, t0 + n.t, to_i(n.d) - 20, n.p + 12, 60);
                 }
             }
         }
-        bass_line(ref c, CH_BASS, chords, t0, bars, B_PEDAL, 96);
+        bass_line(k, ref notes, chords, t0, B_PEDAL, 96);
         let mut b: u32 = 0;
         while b < bars {
-            let v = voicing(ref c, chord_cell(chords, b, 0), 52, 66, Option::None, 3);
-            c.notes_at(CH_PAD, t0 + b * bt, to_i(2 * bt) - 40, v.span(), 44);
+            let v = voicing(kk.tonic, chord_cell(chords, b, 0), 52, 66, Option::None, 3);
+            notes_at(ref notes, CH_PAD, t0 + b * bt, to_i(2 * bt) - 40, v, 44);
             b += 2;
         }
-        if c.g.drums != G_NONE && idx > 0 {
-            drums(ref c, t0, bars, c.g.drums, false, false, true);
+        if kk.drums != G_NONE && idx > 0 {
+            drums(k, ref notes, t0, bars, kk.drums, false, false, true);
         }
         t0 += end;
         idx += 1;
@@ -1721,20 +1846,22 @@ fn to_minor(ch: u8) -> u8 {
     nr * 16 + nq
 }
 
-fn write_variations(ref c: Ctx) -> u32 {
-    let bt = c.bar;
+#[inline(never)]
+fn write_variations(k: Box<K>, ref notes: Array<Note>, ref r: Rng) -> u32 {
+    let kk = k.unbox();
+    let bt = kk.bar;
     let bars: u32 = 8;
-    let chords_maj = c.chords_for(c.prog_a, bars);
-    let motif = motif_pitches(c.sp.degrees.slice(0, 8), c.tonic, scale_of(c.scale), 69).span();
-    let seed = c.r.int(1000000000);
+    let chords_maj = chords_for(k, kk.prog_a, bars, kk.scale);
+    let motif = motif_pitches(kk.degrees.slice(0, 8), kk.tonic, scale_of(kk.scale), 69).span();
+    let seed = r.int(1000000000);
     let mut mr = seeded(format!("VAR|{}", seed));
-    let theme = melody(ref c, chords_maj, bars, 64, 79, F_LYRIC, motif, true, ref mr).span();
-    let mut minor_cells: Array<u8> = array![];
-    for ch in chords_maj.cells {
-        minor_cells.append(to_minor(*ch));
+    let theme = melody(k, chords_maj, bars, 64, 79, F_LYRIC, motif, true, ref mr).span();
+    let mut minor_raw: Array<u8> = array![];
+    for x in chords_maj.cells {
+        minor_raw.append(to_minor(cell_chord(*x)));
     }
-    let chords_min = Chords { cells: minor_cells.span(), per: chords_maj.per, bars };
-    let home = c.scale;
+    // Var. II in the harmonic minor
+    let chords_min = with_masks(kk.tonic, 6, minor_raw.span(), chords_maj.per, bars);
     let mut t0: u32 = 0;
     // Theme, Var. I (sixteenths), Var. II (minor), Var. III (march), Finale
     for s in 0..5_u32 {
@@ -1743,34 +1870,27 @@ fn write_variations(ref c: Ctx) -> u32 {
         } else {
             chords_maj
         };
-        c.scale = if s == 2 {
-            6
-        } else {
-            home
-        };
         for n in theme {
             let n = *n;
-            let chord = c.chord_at_tick(chords, n.t);
-            let (pcs, _) = c.chord_scale(chord);
-            let list = list_pitches(pcs, 55, 91).span();
+            let list = list_pitches(cell_pcs(chord_at(bt, chords, n.t)), 55, 91).span();
             let p = nearest(list, n.p);
             if s == 1 && n.d >= TPQ {
                 let seq = [p, step_in(list, p, 1), p, step_in(list, p, -1)].span();
-                let mut k: u32 = 0;
-                while k * 120 < n.d {
-                    c
-                        .note(
-                            CH_LEAD,
-                            t0 + n.t + k * 120,
-                            110,
-                            *seq.at(k % 4),
-                            if k % 4 != 0 {
-                                82
-                            } else {
-                                92
-                            },
-                        );
-                    k += 1;
+                let mut j: u32 = 0;
+                while j * 120 < n.d {
+                    note(
+                        ref notes,
+                        CH_LEAD,
+                        t0 + n.t + j * 120,
+                        110,
+                        *seq.at(j % 4),
+                        if j % 4 != 0 {
+                            82
+                        } else {
+                            92
+                        },
+                    );
+                    j += 1;
                 }
             } else {
                 let d = if s == 3 && n.d > EIGHTH {
@@ -1778,9 +1898,9 @@ fn write_variations(ref c: Ctx) -> u32 {
                 } else {
                     n.d
                 };
-                c.note(CH_LEAD, t0 + n.t, to_i(d) - 20, p, 96);
-                if s == 4 || c.shiny {
-                    c.note(CH_MEGA, t0 + n.t, to_i(d) - 20, p + 12, 66);
+                note(ref notes, CH_LEAD, t0 + n.t, to_i(d) - 20, p, 96);
+                if s == 4 || kk.shiny {
+                    note(ref notes, CH_MEGA, t0 + n.t, to_i(d) - 20, p + 12, 66);
                 }
             }
         }
@@ -1800,14 +1920,13 @@ fn write_variations(ref c: Ctx) -> u32 {
         } else {
             B_ROOT
         };
-        accompany(ref c, CH_ACCOMP, chords, t0, bars, accomp, 66);
-        bass_line(ref c, CH_BASS, chords, t0, bars, bass, 96);
+        accompany(k, ref notes, ref r, chords, t0, accomp, 66);
+        bass_line(k, ref notes, chords, t0, bass, 96);
         if s == 3 {
-            drums(ref c, t0, bars, G_MARCH, true, true, false);
+            drums(k, ref notes, t0, bars, G_MARCH, true, true, false);
         } else if s == 4 {
-            drums(ref c, t0, bars, G_ROCK, true, true, false);
+            drums(k, ref notes, t0, bars, G_ROCK, true, true, false);
         }
-        c.scale = home;
         t0 += bars * bt;
     }
     t0
@@ -1815,140 +1934,141 @@ fn write_variations(ref c: Ctx) -> u32 {
 
 const GALLOP: [u32; 6] = [0, 3, 6, 9, 12, 14];
 
-fn riff_bar(ref c: Ctx, t: u32, chord: u8, light: bool, riff_rel: Span<i32>) {
-    let root = c.root_in(chord_r(chord), 36);
+#[inline(never)]
+fn riff_bar(
+    tonic: i32, ref notes: Array<Note>, t: u32, chord: u8, light: bool, riff_rel: Span<i32>,
+) {
+    let root = root_in(tonic, chord_r(chord), 36);
     let mut a: u32 = 0; // the next gallop step
-    for k in 0..16_u32 {
-        if a < 6 && *GALLOP.span().at(a) == k {
-            c.note(CH_BASS, t + k * 120, 110, root + *riff_rel.at(a % riff_rel.len()), 104);
+    for j in 0..16_u32 {
+        if a < 6 && *GALLOP.span().at(a) == j {
+            note(
+                ref notes, CH_BASS, t + j * 120, 110, root + *riff_rel.at(a % riff_rel.len()), 104,
+            );
             a += 1;
-        } else if !light || k % 2 == 0 {
-            c.note(CH_BASS, t + k * 120, 90, root, 64);
+        } else if !light || j % 2 == 0 {
+            note(ref notes, CH_BASS, t + j * 120, 90, root, 64);
         }
     }
 }
 
-fn stabs(ref c: Ctx, t: u32, chord: u8) {
-    let v = voicing(ref c, chord, 55, 69, Option::None, 3).span();
-    for k in [0_u32, 3, 6, 14].span() {
-        c.notes_at(CH_ACCOMP, t + *k * 120, 180, v, if *k != 0 {
-            78
-        } else {
-            92
-        });
-    }
-}
-
-fn write_battle(ref c: Ctx) -> u32 {
-    let bt = c.bar;
-    let scale = scale_of(c.scale);
-    let rel = motif_pitches(c.sp.degrees.slice(0, 6), 0, scale, 0).span();
+#[inline(never)]
+fn write_battle(k: Box<K>, ref notes: Array<Note>, ref r: Rng) -> u32 {
+    let kk = k.unbox();
+    let bt = kk.bar;
+    let tonic = kk.tonic;
+    let scale = scale_of(kk.scale);
+    let rel = motif_pitches(kk.degrees.slice(0, 6), 0, scale, 0).span();
     let mut riff_rel: Array<i32> = array![];
     for x in rel {
         riff_rel.append(max_i(-5, min_i(12, *x - *rel.at(0))));
     }
     let riff_rel = riff_rel.span();
-    let chords_a = c.chords_for(c.prog_a, 8);
-    let chords_b = c.chords_for(c.prog_b, 8);
+    let chords_a = chords_for(k, kk.prog_a, 8, kk.scale);
+    let chords_b = chords_for(k, kk.prog_b, 8, kk.scale);
     let mut t0: u32 = 0;
     // Intro: 4 bars of riff and drums
     for b in 0..4_u32 {
-        riff_bar(ref c, t0 + b * bt, chord_cell(chords_a, b, 0), false, riff_rel);
+        riff_bar(tonic, ref notes, t0 + b * bt, chord_cell(chords_a, b, 0), false, riff_rel);
     }
-    drums(ref c, t0, 4, G_BATTLE, true, true, false);
+    drums(k, ref notes, t0, 4, G_BATTLE, true, true, false);
     t0 += 4 * bt;
     // A
     let ta = t0;
-    let before = c.notes.len();
-    let motif = motif_pitches(c.sp.degrees.slice(0, 8), c.tonic, scale, 74).span();
-    let seed = c.r.int(1000000000);
+    let before = notes.len();
+    let motif = motif_pitches(kk.degrees.slice(0, 8), tonic, scale, 74).span();
+    let seed = r.int(1000000000);
     let mut mr = seeded(format!("BOSS|{}", seed));
-    let mel = melody(ref c, chords_a, 8, 67, 84, F_HEROIC, motif, true, ref mr).span();
+    let mel = melody(k, chords_a, 8, 67, 84, F_HEROIC, motif, true, ref mr).span();
     for m in mel {
         let m = *m;
-        c.note(CH_LEAD, ta + m.t, to_i(m.d) - 20, m.p, 100);
-        if c.shiny {
-            c.note(CH_MEGA, ta + m.t, to_i(m.d) - 20, m.p + 12, 64);
+        note(ref notes, CH_LEAD, ta + m.t, to_i(m.d) - 20, m.p, 100);
+        if kk.shiny {
+            note(ref notes, CH_MEGA, ta + m.t, to_i(m.d) - 20, m.p + 12, 64);
         }
     }
     for b in 0..8_u32 {
         let chord = chord_cell(chords_a, b, 0);
-        riff_bar(ref c, ta + b * bt, chord, false, riff_rel);
-        stabs(ref c, ta + b * bt, chord);
+        let t = ta + b * bt;
+        riff_bar(tonic, ref notes, t, chord, false, riff_rel);
+        let v = voicing(tonic, chord, 55, 69, Option::None, 3);
+        for j in [0_u32, 3, 6, 14].span() {
+            notes_at(ref notes, CH_ACCOMP, t + *j * 120, 180, v, if *j != 0 {
+                78
+            } else {
+                92
+            });
+        }
     }
-    let a_end = c.notes.len();
-    drums(ref c, ta, 8, G_BATTLE, true, true, false);
+    let a_notes = notes.span().slice(before, notes.len() - before);
+    drums(k, ref notes, ta, 8, G_BATTLE, true, true, false);
     t0 += 8 * bt;
     // B: half time, the motif's head sequenced up a step every two bars
-    let head = motif_pitches(c.sp.degrees.slice(0, 3), c.tonic, scale, 72).span();
+    let head = motif_pitches(kk.degrees.slice(0, 3), tonic, scale, 72).span();
     for b in 0..8_u32 {
         let t = t0 + b * bt;
-        let chord = chord_cell(chords_b, b, 0);
-        let (pcs, _) = c.chord_scale(chord);
-        let list = list_pitches(pcs, 60, 88).span();
+        let x = *chords_b.cells.at(b);
+        let list = list_pitches(cell_pcs(x), 60, 88).span();
         let up = to_i(b / 2);
         let mut frag: Array<i32> = array![];
         for p in head {
             frag.append(step_in(list, nearest(list, *p), up));
         }
         let frag = frag.span();
-        c.note(CH_LEAD, t, 450, *frag.at(0), 96);
-        c.note(CH_LEAD, t + TPQ, 450, *frag.at(1), 96);
-        c.note(CH_LEAD, t + 2 * TPQ, 930, *frag.at(2), 96);
-        if c.shiny {
-            let mut k: u32 = 0;
+        note(ref notes, CH_LEAD, t, 450, *frag.at(0), 96);
+        note(ref notes, CH_LEAD, t + TPQ, 450, *frag.at(1), 96);
+        note(ref notes, CH_LEAD, t + 2 * TPQ, 930, *frag.at(2), 96);
+        if kk.shiny {
+            let mut j: u32 = 0;
             for p in frag {
-                c.note(CH_MEGA, t + k * TPQ, 450, *p + 12, 60);
-                k += 1;
+                note(ref notes, CH_MEGA, t + j * TPQ, 450, *p + 12, 60);
+                j += 1;
             }
         }
-        riff_bar(ref c, t, chord, true, riff_rel);
+        riff_bar(tonic, ref notes, t, cell_chord(x), true, riff_rel);
     }
-    accompany(ref c, CH_ACCOMP, chords_b, t0, 8, A_ARP16, 62);
-    drums(ref c, t0, 8, G_HALFTIME, true, true, false);
-    c.note(CH_PAD, t0 + 6 * bt, to_i(2 * bt) - 60, 72, 84);
+    accompany(k, ref notes, ref r, chords_b, t0, A_ARP16, 62);
+    drums(k, ref notes, t0, 8, G_HALFTIME, true, true, false);
+    note(ref notes, CH_PAD, t0 + 6 * bt, to_i(2 * bt) - 60, 72, 84);
     t0 += 8 * bt;
     // A': phase 2, everything a half step up, the lead doubled an octave above
-    let mut i = before;
-    while i < a_end {
-        let x = *c.notes.at(i);
+    for x in a_notes {
+        let x = *x;
         let p: i32 = x.p.into();
-        c.note(x.ch, x.t - ta + t0, to_i(x.d), p + 1, x.v.into());
+        note(ref notes, x.ch, x.t - ta + t0, to_i(x.d), p + 1, x.v.into());
         if x.ch == CH_LEAD {
-            c.note(CH_COUNTER, x.t - ta + t0, to_i(x.d), p + 13, 70);
+            note(ref notes, CH_COUNTER, x.t - ta + t0, to_i(x.d), p + 13, 70);
         }
-        i += 1;
     }
-    drums(ref c, t0, 8, if c.shiny {
+    drums(k, ref notes, t0, 8, if kk.shiny {
         G_BATTLE16
     } else {
         G_BATTLE
     }, true, true, false);
     t0 += 8 * bt;
     // stinger: tonic hits, then the last one rings
-    let tonic_chord: u8 = 1; // i (minor)
+    let v = voicing(tonic, 1, 55, 69, Option::None, 3); // i (minor)
+    let rb = root_in(tonic, 0, 36) + 1;
+    let rl = root_in(tonic, 0, 72) + 1;
     for kd in [(0_u32, 3_i32), (6, 3), (12, 4), (16, 12)].span() {
-        let (k, d) = *kd;
-        let t = t0 + k * 120;
-        let v = voicing(ref c, tonic_chord, 55, 69, Option::None, 3);
-        for p in v.span() {
-            c.note(CH_ACCOMP, t, d * 120, *p + 1, 100);
+        let (j, d) = *kd;
+        let t = t0 + j * 120;
+        for p in v {
+            note(ref notes, CH_ACCOMP, t, d * 120, *p + 1, 100);
         }
-        let rb = c.root_in(0, 36);
-        let rl = c.root_in(0, 72);
-        c.note(CH_BASS, t, d * 120, rb + 1, 110);
-        c.note(CH_LEAD, t, d * 120, rl + 1, 104);
-        c.note(CH_DRUMS, t, 60, 36, 120);
-        c.note(CH_DRUMS, t, 300, 49, 110);
+        note(ref notes, CH_BASS, t, d * 120, rb, 110);
+        note(ref notes, CH_LEAD, t, d * 120, rl, 104);
+        note(ref notes, CH_DRUMS, t, 60, 36, 120);
+        note(ref notes, CH_DRUMS, t, 300, 49, 110);
     }
     t0 + 2 * bt
 }
 
 /// The species motif's first five degrees as a 16th-note syncopated bass figure, twice a bar.
-fn make_riff(ref c: Ctx) -> Span<(u32, i32, i32)> {
-    let rel = motif_pitches(c.sp.degrees.slice(0, 5), 0, scale_of(c.scale), 0).span();
+fn make_riff(ref r: Rng, degrees: Span<i32>, scale: u8) -> Span<(u32, i32, i32)> {
+    let rel = motif_pitches(degrees.slice(0, 5), 0, scale_of(scale), 0).span();
     let base = *rel.at(0);
-    let slots = match c.r.int(4) {
+    let slots = match r.int(4) {
         0 => [0_u32, 3, 6, 8, 11],
         1 => [0, 2, 3, 6, 10],
         2 => [0, 3, 4, 7, 10],
@@ -1973,20 +2093,23 @@ fn make_riff(ref c: Ctx) -> Span<(u32, i32, i32)> {
     out.span()
 }
 
-// ── the track
-// ───────────────────────────────────────────────────────────────────────────────────
+// ── the track ──
 
-fn make_ctx(sp: Species, shiny: bool, e: u32, g: Genome, seed: u64) -> Ctx {
+fn to_u(x: i32) -> u32 {
+    x.try_into().unwrap()
+}
+
+/// The track's context and its random stream, after the source's makeCtx and makeRiff draws.
+fn make_ctx(sp: Species, shiny: bool, e: u32, g: Genome, seed: u64) -> (Box<K>, Rng) {
     let mut r = seeded(format!("TRACK|{}|{}|seed:{}", e, sp.id, seed));
     let d = engine_def(g.engine);
     let scale = grammar_scale(g.grammar);
     let shift = r.pick_i32([0, 0, 0, 5, 7, -2, 2, 3].span());
     let tonic = to_i(md12(sp.tonic + shift));
     let bar = d.num * (1920 / d.den);
-    let kind = sp.kind;
     let mut pal: Array<u8> = array![];
     for role in 0..5_u32 {
-        pal.append(*g.palette.at(role * 3 + kind));
+        pal.append(*g.palette.at(role * 3 + sp.kind));
     }
     let leads = MEGA_LEADS.span();
     let pal = if shiny {
@@ -2014,78 +2137,82 @@ fn make_ctx(sp: Species, shiny: bool, e: u32, g: Genome, seed: u64) -> Ctx {
     } else {
         0
     };
-    Ctx {
-        r,
-        g,
-        d,
-        sp,
+    let riff = make_riff(ref r, sp.degrees, scale);
+    let k = K {
+        id: sp.id,
+        tier: sp.tier,
+        degrees: sp.degrees,
         shiny,
-        scale,
         tonic,
+        scale,
         num: d.num,
         den: d.den,
         bar,
         six: bar / EIGHTH == 6,
         strong2,
-        bpm,
+        engine: g.engine,
+        form: g.form,
+        accomp: g.accomp,
+        bass: g.bass,
+        drums: g.drums,
+        feel: d.feel,
+        counter: d.counter,
+        per_bar: d.per_bar,
+        chord_bars: d.chord_bars,
+        swing: d.swing,
         prog_a: *progs.at(pa),
         prog_b: *progs.at(pb),
-        riff: [].span(),
-        notes: array![],
-        cs_cache: Default::default(),
+        riff,
         pal,
-    }
+        bpm,
+    };
+    (BoxTrait::new(k), r)
 }
 
-fn to_u(x: i32) -> u32 {
-    x.try_into().unwrap()
-}
-
-/// The notes, ticks, tempo and programs of edition `e`'s track for a species (1-75), shiny or not,
-/// and a track seed (the source's key 'seed:<seed>').
-pub fn edition_track(species_id: u32, shiny: bool, e: u32, seed: u64) -> (Span<Note>, u32, Ctx) {
+/// The notes and length in ticks of edition `e`'s track for a species (1-75), shiny or not, and
+/// a track seed (the source's key 'seed:<seed>'), with its context.
+fn edition_track(species_id: u32, shiny: bool, e: u32, seed: u64) -> (Array<Note>, u32, Box<K>) {
     let g = edition_genome(e);
     let sp = species(species_id);
-    let mut c = make_ctx(sp, shiny, e, g, seed);
-    c.riff = make_riff(ref c);
+    let (k, mut r) = make_ctx(sp, shiny, e, g, seed);
+    let mut notes: Array<Note> = array![];
     let ticks = if g.engine == E_CHORALE {
-        write_chorale(ref c)
+        write_chorale(k, ref notes, ref r)
     } else if g.engine == E_PHASE {
-        write_phase(ref c)
+        write_phase(k, ref notes, ref r)
     } else if g.engine == E_VARIATIONS {
-        write_variations(ref c)
+        write_variations(k, ref notes, ref r)
     } else if g.engine == E_BATTLE {
-        write_battle(ref c)
+        write_battle(k, ref notes, ref r)
     } else {
         let bars = if g.engine == E_BLUES {
             12
         } else {
             8
         };
+        let bt = k.unbox().bar;
         let mut t0: u32 = 0;
         let mut mel_a: Option<Span<MelNote>> = Option::None;
         let mut mel_b: Option<Span<MelNote>> = Option::None;
         let mut idx: u32 = 0;
         for kind in g.form {
-            write_section(ref c, *kind, bars, t0, idx, ref mel_a, ref mel_b);
-            t0 += bars * c.bar;
+            write_section(k, ref notes, ref r, *kind, bars, t0, idx, ref mel_a, ref mel_b);
+            t0 += bars * bt;
             idx += 1;
         }
         t0
     };
-    let notes = c.notes.span();
-    (notes, ticks, c)
+    (notes, ticks, k)
 }
 
 /// Edition `e`'s track as a self-contained format-0 Standard MIDI File (the source's
 /// `editionMidi(...).midi`).
 pub fn edition_smf_bytes(species_id: u32, shiny: bool, e: u32, seed: u64) -> Array<u8> {
-    let (notes, ticks, c) = edition_track(species_id, shiny, e, seed);
-    to_smf(notes, ticks, @c)
+    let (notes, ticks, k) = edition_track(species_id, shiny, e, seed);
+    to_smf(notes.span(), ticks, k)
 }
 
-// ── SMF
-// ─────────────────────────────────────────────────────────────────────────────────────────
+// ── SMF ──
 
 const VOL: [u8; 7] = [100, 78, 74, 100, 58, 74, 62];
 const PAN: [u8; 7] = [64, 46, 82, 64, 64, 40, 88];
@@ -2093,7 +2220,9 @@ const IDX: u64 = 0x10000;
 
 /// A format-0 file: tempo, meter, programs with volume/pan/reverb, the notes (a note cut where
 /// the next one of its channel and pitch starts), End of Track at `ticks`.
-fn to_smf(notes: Span<Note>, ticks: u32, c: @Ctx) -> Array<u8> {
+#[inline(never)]
+fn to_smf(notes: Span<Note>, ticks: u32, k: Box<K>) -> Array<u8> {
+    let kk = k.unbox();
     // the notes before the end, stably by start
     let mut keys: Array<u64> = array![];
     let mut i: u32 = 0;
@@ -2111,7 +2240,7 @@ fn to_smf(notes: Span<Note>, ticks: u32, c: @Ctx) -> Array<u8> {
     let mut j = m;
     while j > 0 {
         j -= 1;
-        let n = *notes.at(((*order.at(j)) % IDX).try_into().unwrap());
+        let n = *notes.at((*order.at(j) % IDX).try_into().unwrap());
         let key: felt252 = (n.ch.into() * 128 + n.p.into());
         let ns = next_start.get(key);
         let mut d = n.d;
@@ -2124,12 +2253,11 @@ fn to_smf(notes: Span<Note>, ticks: u32, c: @Ctx) -> Array<u8> {
             };
         }
         next_start.insert(key, n.t + 1);
-        let end = if n.t + d < ticks {
+        ends_rev.append(if n.t + d < ticks {
             n.t + d
         } else {
             ticks
-        };
-        ends_rev.append(end);
+        });
     }
     let mut off_keys: Array<u64> = array![];
     let mut j: u32 = 0;
@@ -2140,26 +2268,25 @@ fn to_smf(notes: Span<Note>, ticks: u32, c: @Ctx) -> Array<u8> {
     let offs = sort_u64(off_keys.span());
 
     let mut tr = TrackWriterTrait::new();
-    let us = (120000000 + c.bpm) / (2 * c.bpm);
-    tr.tempo(0, us);
-    let den_log: u8 = if c.den == 8 {
+    tr.tempo(0, (120000000 + kk.bpm) / (2 * kk.bpm));
+    let den_log: u8 = if kk.den == 8 {
         3
     } else {
         2
     };
-    tr.meta(0, 0x58, [(c.num).try_into().unwrap(), den_log, 24, 8].span());
-    let channels: u8 = if c.shiny {
+    tr.meta(0, 0x58, [kk.num.try_into().unwrap(), den_log, 24, 8].span());
+    let channels: u8 = if kk.shiny {
         7
     } else {
         6
     };
     for ch in 0..channels {
         let prog = if ch == CH_TENOR {
-            *c.pal.at(2)
+            *kk.pal.at(2)
         } else if ch == CH_MEGA {
-            *c.pal.at(5)
+            *kk.pal.at(5)
         } else {
-            *c.pal.at(ch.into())
+            *kk.pal.at(ch.into())
         };
         tr.program(0, ch, prog);
         tr.control(0, ch, 7, *VOL.span().at(ch.into()));
@@ -2212,13 +2339,13 @@ fn sort_u64(xs: Span<u64>) -> Span<u64> {
     while runs.len() > 1 {
         let mut next: Array<Span<u64>> = array![];
         let rs = runs.span();
-        let mut k: u32 = 0;
-        while k + 1 < rs.len() {
-            next.append(merge(*rs.at(k), *rs.at(k + 1)));
-            k += 2;
+        let mut j: u32 = 0;
+        while j + 1 < rs.len() {
+            next.append(merge(*rs.at(j), *rs.at(j + 1)));
+            j += 2;
         }
-        if k < rs.len() {
-            next.append(*rs.at(k));
+        if j < rs.len() {
+            next.append(*rs.at(j));
         }
         runs = next;
     }

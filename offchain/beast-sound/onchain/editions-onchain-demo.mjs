@@ -99,7 +99,7 @@ a{color:var(--acc)}
 <div class="seg" role="group" aria-label="Instruments"><button id="i-new" class="on">Edition presets</button><button id="i-old">Before: family settings only</button></div>
 <div class="ctl" style="margin-top:12px"><button class="go" id="play">▶ Play</button><button id="stop">■ Stop</button></div>
 </div>
-<div class="card"><p class="note" style="margin-top:0">Editions drift day by day with Casey Drift: new melodies by month, a new accompaniment voicing by week, one knob by day. Hear it on the <a href="drift-lab.html?track=edition">Drift Lab</a>, Edition track tab.</p>
+<div class="card"><p class="note" style="margin-top:0">Editions drift day by day with Casey Drift: new melodies by month, a part swapped in or out and the chords inverted by week, one knob by day. Hear it on the <a href="drift-lab.html?track=edition">Drift Lab</a>, Edition track tab.</p>
 <p class="note">Keys: <span class="kbd">↑</span> <span class="kbd">↓</span> edition · <span class="kbd">←</span> <span class="kbd">→</span> Beast · <span class="kbd">[</span> <span class="kbd">]</span> purchase · <span class="kbd">i</span> instruments · <span class="kbd">space</span> play/stop. Changes play straight away while playing.</p>
 </div>
 <div class="card"><div class="ed-head"><div id="art" role="img" aria-label=""></div><div><div class="emonth" id="emonth"></div><p class="ename" id="ename"></p><p class="edesc" id="edesc"></p></div></div><dl id="info"></dl></div>
@@ -108,7 +108,7 @@ a{color:var(--acc)}
 <div class="card"><div class="sec">What the contracts do</div><div class="flow" id="flow"></div></div>
 <div class="card"><div class="sec">Instruments in the returned settings</div><div class="presets" id="presets"></div><p class="note" id="setnote"></p></div>
 <div class="card"><div class="sec">Calendar</div><div class="list" id="list"></div>
-<p class="note">Edition 0's purchases are bought songs from the Beast's own composer, not shown here. From edition 1 the four styles take turns, and each pass through them changes the mode, tempo and form. An edition is a period on the Sound Manager's edition clock; the months here are the editions page's calendar.</p></div>
+<p class="note">Edition 0's purchases are bought songs from the Beast's own composer, not shown here. From edition 1 the four styles take turns, and each pass through them changes the tempo. Within an edition every purchase rolls its own key, mode, form, progressions, accompaniment, bass and percussion figures, theme opening, phrasing and parts (step through purchases with [ and ]). An edition is a period on the Sound Manager's edition clock; the months here are the editions page's calendar.</p></div>
 </div></div>
 <p class="note"><a href="../">All pages</a> · <a href="editions.html">Editions prototype</a></p>
 </main>
@@ -138,7 +138,7 @@ function compose() {
   return { ...out, sp, seed, g, i, settings, wire };
 }
 
-const ROLE = { 0: 'lead', 2: 'accomp', 3: 'bass', 4: 'pad', 5: 'mega double' };
+const ROLE = { 0: 'lead', 1: 'descant', 2: 'accomp', 3: 'bass', 4: 'pad', 5: 'mega double', 9: 'percussion' };
 const COLORS = ['#7a3cff', '#e0742a', '#1f9d8c', '#c0392b', '#7f8c8d', '#2a7ae0'];
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 function show() {
@@ -149,7 +149,9 @@ function show() {
   $('s-val').innerHTML = '#' + st.n + ' <small>0x' + cur.seed.toString(16).padStart(16, '0') + '</small>';
   $('emonth').textContent = 'Edition ' + st.e + ' · ' + g.month;
   $('ename').textContent = g.name; $('edesc').textContent = ED.ENGINES[g.engine].desc || ED.ENGINES[g.engine].label;
-  $('info').innerHTML = [['Style', ED.ENGINES[g.engine].label], ['Key', info.key], ['Meter / tempo', info.meter + ' · ' + info.bpm + ' BPM'], ['Form', info.form], ['Harmony', info.grammar], ['Progressions', 'A: ' + info.progA + '   B: ' + info.progB]]
+  $('info').innerHTML = [['Style', ED.ENGINES[g.engine].label], ['Key', info.key], ['Meter / tempo', info.meter + ' · ' + info.bpm + ' BPM'], ['Form', info.form], ['Progressions', 'A: ' + info.progA + '   B: ' + info.progB + (info.progC ? '   C: ' + info.progC : '')],
+    ['Parts', info.parts.join(', ')], ['Figures', 'accompaniment ' + info.accomp.split(' ').pop() + (info.bass !== 'none' ? ' · bass ' + info.bass.split(' ').pop() : '') + (info.drums !== 'none' ? ' · percussion ' + info.drums.split(' ').pop() : '')],
+    ['Theme', 'opens ' + info.theme], ['Phrasing', info.phrasing + (info.ornaments !== 'none' ? ', ' + info.ornaments : '')]]
     .filter(([, v]) => v !== undefined).map(([a, b]) => '<dt>' + a + '</dt><dd>' + esc(b) + '</dd>').join('');
   const wire = '[' + cur.wire.map((v) => v > 0xffffffffn ? '0x' + v.toString(16) : v.toString()).join(', ') + ']';
   $('flow').innerHTML = [
@@ -204,16 +206,19 @@ function notesOf(u8) {
 function roll(midi) {
   rollData = notesOf(midi);
   const chans = [...new Set(rollData.notes.map((n) => n[3]))].sort((a, b) => a - b);
-  $('legend').innerHTML = chans.map((ch) => '<span><i style="background:' + COLORS[ch % 6] + '"></i>' + (ROLE[ch] || 'ch' + (ch + 1)) + ' · ' + esc(DATA.names[rollData.prog[ch]] || '') + '</span>').join('');
+  $('legend').innerHTML = chans.map((ch) => '<span><i style="background:' + (ch === 9 ? 'var(--mut)' : COLORS[ch % 6]) + '"></i>' + (ch === 9 ? 'percussion · chip drums' : (ROLE[ch] || 'ch' + (ch + 1)) + ' · ' + esc(DATA.names[rollData.prog[ch]] || '')) + '</span>').join('');
   draw(-1);
 }
 function draw(play) {
   const c = $('roll'), x = c.getContext('2d'), W = c.width, H = c.height, d = rollData; x.clearRect(0, 0, W, H); if (!d || !d.notes.length) return;
-  const lo = Math.min(...d.notes.map((n) => n[2])) - 2, hi = Math.max(...d.notes.map((n) => n[2])) + 2, top = 6, ph = H - 12, sx = W / d.end;
+  const tones = d.notes.filter((n) => n[3] !== 9), lo = Math.min(...tones.map((n) => n[2])) - 2, hi = Math.max(...tones.map((n) => n[2])) + 2, top = 6, ph = H - 30, sx = W / d.end;
   const fg = getComputedStyle(document.body).color;
   const [mn, md] = String(cur.info.meter || '4/4').split('/').map(Number), bar = d.tpq * 4 * mn / md;
   x.globalAlpha = 0.12; x.fillStyle = fg; for (let t = 0; t < d.end; t += bar) x.fillRect(t * sx, 0, 1, H); x.globalAlpha = 1;
-  for (const [a, b, p, ch] of d.notes) { x.fillStyle = COLORS[ch % 6]; x.fillRect(a * sx, top + (hi - p) / (hi - lo) * ph, Math.max(2, (b - a) * sx - 1), Math.max(3, ph / (hi - lo) - 1)); }
+  for (const [a, b, p, ch] of d.notes) {
+    if (ch === 9) { x.fillStyle = fg; x.globalAlpha = 0.6; x.fillRect(a * sx, H - 20 + (p % 8) * 2, Math.max(2, (b - a) * sx * 0.5), 3); x.globalAlpha = 1; continue; }
+    x.fillStyle = COLORS[ch % 6]; x.fillRect(a * sx, top + (hi - p) / (hi - lo) * ph, Math.max(2, (b - a) * sx - 1), Math.max(3, ph / (hi - lo) - 1));
+  }
   if (play >= 0) { x.fillStyle = fg; x.fillRect((play % d.end) * sx, 0, 3, H); }
 }
 (function loop() { if (playing && synth && synth.tick2Time) { const t = synth.playTick - (synth.playTime - synth.actx.currentTime) / synth.tick2Time; draw(t); } requestAnimationFrame(loop); })();

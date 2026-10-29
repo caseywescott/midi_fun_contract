@@ -3,8 +3,9 @@
 //! data-driven engine small enough to sit beside the Genesis Track in BeastMidiProvider: diatonic
 //! triads on scale degrees, pattern tables for the accompaniment and bass (editions_data.cairo,
 //! generated from the source), and one track per channel written in time order, so nothing is
-//! sorted. No drums or counter line, and root-position chords: that is what fits. Edition 0 is
-//! the seeded canon, not this engine.
+//! sorted. The edition sets the style and tempo; each purchase rolls its key, mode, form, chords,
+//! figures and parts (descant, bass, pad, chip percussion). Edition 0 is the seeded canon, not
+//! this engine.
 //!
 //! Scale degrees are unsigned here, offset by `O` (70): the source's degree d is d + 70, so 70 is
 //! the tonic, 77 the tonic an octave up and 67 the dominant below (CASM size: no signed overflow
@@ -21,8 +22,15 @@ const TWO32: u64 = 0x100000000;
 /// The degree offset: degree d of the source is d + O here.
 const O: u32 = 70;
 const MEGA_LEADS: [u8; 2] = [50, 65];
-const VOL: [u8; 6] = [100, 78, 74, 100, 58, 62];
-const PAN: [u8; 6] = [64, 46, 82, 64, 64, 88];
+const VOL: [u8; 10] = [100, 64, 74, 100, 58, 62, 0, 0, 0, 70];
+const PAN: [u8; 10] = [64, 46, 82, 64, 64, 88, 0, 0, 0, 64];
+/// The forms' sections, 2 bits each: AABA, ABAB, AABB, ABAC (tunes A 0, B 1, C 2).
+const FORMS: [u32; 4] = [16, 68, 80, 132];
+/// The parts beside the lead and accompaniment: descant, bass, pad, percussion (bits 0-3).
+const DESCANT: u32 = 1;
+const BASS: u32 = 2;
+const PAD: u32 = 4;
+const PERC: u32 = 8;
 /// To the nearest chord tone, by degrees above the chord's root: the source's SNAP + 1.
 const SNAP1: [u32; 7] = [1, 0, 1, 0, 1, 0, 2];
 
@@ -267,41 +275,31 @@ fn melody(
     out.span()
 }
 
-/// Edition `e`'s style (index and tables), mode, tempo and form (e >= 1).
+/// Edition `e`'s style (index and tables) and tempo (e >= 1): the four styles in turn, each pass
+/// through them a tempo stepping by 7 BPM.
 #[inline(never)]
-pub fn edition_genome(e: u32) -> (u32, Box<Style>, u32, u32, u32) {
+pub fn edition_genome(e: u32) -> (u32, Box<Style>, u32) {
     assert(e >= 1, 'editions: 0 is the canon');
     let st = (e - 1) % 4;
     let sb = style(st);
     let s = sb.unbox();
-    // each pass of the four styles takes the next mode, a tempo stepping by 7 BPM and the other
-    // form
     let pass = (e - 1) / 4;
-    let mode = *s.modes.at(pass % s.modes.len());
     let bpm = s.bpm_lo + (pass * 7 + st * 3) % (s.bpm_hi - s.bpm_lo + 1);
-    let form = pass % 2;
-    (st, sb, mode, bpm, form)
+    (st, sb, bpm)
 }
 
-fn is_b_section(form: u32, sec: u32) -> bool {
-    if form == 0 {
-        sec == 2
-    } else {
-        sec % 2 == 1
-    }
+/// The tune (0 A, 1 B, 2 C) of section `sec` of form `form`.
+fn kind_of(form: u32, sec: u32) -> u32 {
+    (form / *[1_u32, 4, 16, 64].span().at(sec)) % 4
 }
 
-/// The chords of the form's 32 bars, in order.
+/// The eight chords of a section on progression `p`.
 #[inline(never)]
-fn form_chords(progs: Span<u32>, chord_bars: u32, form: u32, pa: u32, pb: u32) -> Span<u32> {
+fn section_chords(progs: Span<u32>, chord_bars: u32, p: u32) -> Span<u32> {
+    let prog = *progs.at(p);
     let mut out: Array<u32> = array![];
-    for b in 0..32_u32 {
-        let prog = *progs.at(if is_b_section(form, b / 8) {
-            pb
-        } else {
-            pa
-        });
-        out.append((prog / *[1_u32, 16, 256, 4096].span().at((b % 8 / chord_bars) % 4)) % 16);
+    for b in 0..8_u32 {
+        out.append((prog / *[1_u32, 16, 256, 4096].span().at((b / chord_bars) % 4)) % 16);
     }
     out.span()
 }
@@ -313,62 +311,97 @@ struct Ctx {
     scale: Span<u32>,
     base: u32,
     bar: u32,
-    tier: u32,
     kind: u32,
     shiny: bool,
     species: u32,
     /// the accompaniment's triads in root position (0) or first or second inversion (the week's
     /// drift)
     rot: u32,
+    /// the purchase's accompaniment, bass and percussion figures
+    accomp: Span<u32>,
+    bass: Span<u32>,
+    perc: Span<u32>,
+    /// grace notes: the share of long notes (percent) and the seed placing them; detached phrasing
+    orn: u32,
+    orn_seed: u32,
+    detached: bool,
     /// the 32 bars' chords, and the lead's notes over the whole form
     chords: Span<u32>,
     lead: Span<MelNote>,
     ticks: u32,
 }
 
-/// The lead (channel 0), or its mega double an octave up (channel 5).
+/// The lead (channel 0), its mega double an octave up (channel 5, `role` 1) or the descant a third
+/// above its long notes (channel 1, `role` 2, the lead's preset).
 #[inline(never)]
-fn lead_track(k: Box<Ctx>, mega: bool) -> Array<u8> {
+fn lead_track(k: Box<Ctx>, role: u32) -> Array<u8> {
     let c = k.unbox();
     let leads = MEGA_LEADS.span();
-    let (ch, program, up): (u8, u8, u8) = if mega {
-        (5, *leads.at((c.species + 1) % 2), 12)
-    } else if c.shiny {
-        (0, *leads.at(c.species % 2), 0)
+    let lead_program = if c.shiny {
+        *leads.at(c.species % 2)
     } else {
-        (0, *c.s.unbox().palette.at(c.kind), 0)
+        *c.s.unbox().palette.at(c.kind)
+    };
+    let (ch, program, up): (u8, u8, u8) = if role == 1 {
+        (5, *leads.at((c.species + 1) % 2), 12)
+    } else if role == 2 {
+        (1, lead_program, 0)
+    } else {
+        (0, lead_program, 0)
     };
     let (base, scale, bar) = (c.base, c.scale, c.bar);
     let mut tw = channel_track(ch, program);
     for n in c.lead {
-        let vel: u8 = if mega {
+        let n = *n;
+        let len = n.len - if c.detached && n.len <= 240 {
+            n.len / 2
+        } else {
+            20
+        };
+        if role == 2 {
+            if n.len >= 480 {
+                block(ref tw, 1, n.t, len, [pitch(base, scale, n.d + 2)].span(), 64);
+            }
+            continue;
+        }
+        let vel: u8 = if role == 1 {
             70
         } else if n.t % bar != 0 {
             90
         } else {
             100
         };
-        block(ref tw, ch, n.t, n.len - 20, [pitch(base, scale, n.d) + up].span(), vel);
+        // an upper-neighbour grace note before some long notes
+        if c.orn > 0 && n.len >= 480 && ((n.t / 240) * 7 + n.d * 13 + c.orn_seed) % 100 < c.orn {
+            block(ref tw, ch, n.t, 80, [pitch(base, scale, n.d + 1) + up].span(), vel - 10);
+            block(ref tw, ch, n.t + 80, len - 80, [pitch(base, scale, n.d) + up].span(), vel);
+        } else {
+            block(ref tw, ch, n.t, len, [pitch(base, scale, n.d) + up].span(), vel);
+        }
     }
     finish(tw, c.ticks)
 }
 
-/// The parts that follow the chords, bar by bar: the accompaniment (channel 2: the style's
-/// pattern on the triad), the bass (channel 3: its pattern on the root, two octaves below the
-/// tonic) and the pad (channel 4: a held triad every two bars, tiers 1 and 2).
+/// The parts that follow the chords, bar by bar: the accompaniment (channel 2: its figure on the
+/// triad), the bass (channel 3: its figure on the root, two octaves below the tonic), the pad
+/// (channel 4: a held triad every two bars) and the percussion (channel 10: its figure).
 #[inline(never)]
 fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
     let c = k.unbox();
     let s = c.s.unbox();
     let role: u32 = ch.into();
-    let mut tw = channel_track(ch, *s.palette.at(role * 3 + c.kind));
-    if ch == 4 && c.tier > 2 {
-        return finish(tw, c.ticks);
-    }
-    let (pattern, low, vel0) = if ch == 3 {
-        (s.bass, c.base - 24, 64)
+    let program = if ch == 9 {
+        0
     } else {
-        (s.accomp, c.base, 40)
+        *s.palette.at(role * 3 + c.kind)
+    };
+    let mut tw = channel_track(ch, program);
+    let (pattern, low, vel0) = if ch == 3 {
+        (c.bass, c.base - 24, 64)
+    } else if ch == 9 {
+        (c.perc, 0, 36)
+    } else {
+        (c.accomp, c.base, 40)
     };
     let (scale, bar) = (c.scale, c.bar);
     let mut t: u32 = 0;
@@ -379,6 +412,13 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
                 let r = triad_root(chord, O - 7);
                 let ps = [pitch(low, scale, r), pitch(low, scale, r + 2), pitch(low, scale, r + 4)];
                 block(ref tw, 4, t, 2 * bar - 40, ps.span(), 46);
+            }
+        } else if ch == 9 {
+            for x in pattern {
+                let x = *x;
+                let note: u8 = ((x / 0x800) % 0x80).try_into().unwrap();
+                let vel: u8 = (vel0 + x / 0x40000).try_into().unwrap();
+                block(ref tw, 9, t + x % 0x800, 120, [note].span(), vel);
             }
         } else {
             let r = triad_root(chord, O - 3);
@@ -396,10 +436,10 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
                 let ps = if ch == 3 {
                     if voice == 4 {
                         [pitch(low, scale, O), pitch(low, scale, O + 4)].span()
-                    } else if voice == 1 {
-                        [pitch(low, scale, chord + O - 3)].span()
                     } else {
-                        [pitch(low, scale, chord + O)].span()
+                        // the root, the fifth below or above, or the octave
+                        [pitch(low, scale, chord + O + *[3_u32, 0, 7, 10].span().at(voice) - 3)]
+                            .span()
                     }
                 } else if voice == 9 {
                     [p0, p1, p2].span()
@@ -424,17 +464,22 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
 }
 
 /// The track bodies of edition `e`'s track for a species (1-75), shiny or not, and a track seed:
-/// the tempo track, then lead, accompaniment, bass, pad and the mega double when shiny.
+/// the tempo track, then the lead, the playing parts and the mega double when shiny.
 pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Array<u8>> {
     edition_tracks_on(species, shiny, e, seed, Option::None)
 }
 
 /// The same on a day of drift (`drift.cairo` `layered_drift`, the song layers in the style
 /// engine's terms): the month's new melodies (their rhythm cells and contour drawn from the
-/// month's hash; same key, chords and tempo), the week's accompaniment voicing (its triads in
-/// their first or second inversion) and the day's knob (0 the A and B progressions swap, 1 the A
-/// and B tunes swap, 2-5 the tempo nudged -4, -2, +2, +4 BPM). No drift (`None`) is the track as
-/// written.
+/// month's hash; same key, chords and tempo), the week's part swap (one part in, or out when all
+/// four play) and accompaniment voicing (its triads in first or second inversion), and the day's
+/// knob (0 the A and B progressions swap, 1 the A and B tunes swap, 2-5 the tempo nudged -4, -2,
+/// +2, +4 BPM). No drift (`None`) is the track as written.
+///
+/// The edition sets the style and its tempo; the purchase seed rolls the rest: key, mode, form,
+/// the A, B (and C) progressions, the accompaniment, bass and percussion figures, how the A tune
+/// opens on the species theme, the grace notes and phrasing, and which parts join the lead and
+/// accompaniment (descant, bass, pad, percussion: one to four, one more on tiers 1 and 2).
 #[inline(never)]
 pub fn edition_tracks_on(
     species: u32, shiny: bool, e: u32, seed: u64, drift: Option<Drift>,
@@ -444,19 +489,18 @@ pub fn edition_tracks_on(
         Option::None => (Option::None, Option::None, 6, 0),
     };
     assert(species >= 1 && species <= 75, 'editions: species');
-    let (_, sb, mode, bpm0, form) = edition_genome(e);
+    let (_, sb, bpm0) = edition_genome(e);
     let s = sb.unbox();
-    let scale = (*SCALES.span().at(mode)).span();
     // the Beast: tier, type, tonic and the opening of its Genesis theme (degree + 8, 4 bits each)
     let k = species - 1;
     let mut v: u32 = *SPECIES.span().at(k);
     let tonic0 = v % 16;
-    let mut motif: Array<u32> = array![];
+    let mut theme: Array<u32> = array![];
     for _ in 0..6_u32 {
         v /= 16;
-        motif.append(v % 16 + O - 8);
+        theme.append(v % 16 + O - 8);
     }
-    // the track's draws: transposition, tempo nudge, the A and B progressions, the melodies
+    // the track's draws
     let lo32: u32 = (seed % TWO32).try_into().unwrap();
     let hi32: u32 = (seed / TWO32).try_into().unwrap();
     let mut r = Rng {
@@ -464,15 +508,96 @@ pub fn edition_tracks_on(
     };
     let tonic = (tonic0 + *[0_u32, 0, 0, 5, 7, 10, 2, 3].span().at(r.int(8))) % 12;
     let bpm = bpm0 + *[0_u32, 2, 4, 4, 6, 8].span().at(r.int(6)) - 4;
-    let mut pa = r.int(4);
-    let mut pb = r.int(4);
+    let mut pa = r.int(8);
+    let mut pb = r.int(8);
     if pb == pa {
-        pb = (pa + 1) % 4;
+        pb = (pa + 1) % 8;
+    }
+    let mut pc = (pa + 1 + r.int(6)) % 8;
+    if pc == pb {
+        pc = (pc + 1) % 8;
     }
     if knob == 0 {
         let a = pa;
         pa = pb;
         pb = a;
+    }
+    let scale = (*SCALES.span().at(*s.modes.at(r.int(s.modes.len())))).span();
+    let form_id = r.int(4);
+    let form = *FORMS.span().at(form_id);
+    let accomp = *s.accomps.at(r.int(4));
+    let bass = *s.basses.at(r.int(3));
+    let perc = *s.percs.at(r.int(2));
+    let treatment = r.int(4);
+    let orn = *[0_u32, 0, 15, 30].span().at(r.int(4));
+    let orn_seed = r.int(100);
+    let detached = r.int(2) == 1;
+    // the parts beside the lead and accompaniment: a seeded order, the first `count` play
+    let roll = r.int(100);
+    let mut count = if roll < 20 {
+        1
+    } else if roll < 60 {
+        2
+    } else if roll < 88 {
+        3
+    } else {
+        4
+    };
+    if k % 25 < 10 && count < 4 {
+        count += 1;
+    }
+    let mut order: Array<u32> = array![DESCANT, BASS, PAD, PERC];
+    let mut i: u32 = 3;
+    while i > 0 {
+        let j = r.int(i + 1);
+        let o = order.span();
+        let mut next: Array<u32> = array![];
+        for x in 0..4_u32 {
+            next.append(*o.at(if x == i {
+                j
+            } else if x == j {
+                i
+            } else {
+                x
+            }));
+        }
+        order = next;
+        i -= 1;
+    }
+    let order = order.span();
+    let mut parts: u32 = 0;
+    for x in order.slice(0, count) {
+        parts += *x;
+    }
+    // the week's drift swaps one part in (or out, when all four play) and inverts the accompaniment
+    let rot = match rotate {
+        Option::Some(h) => {
+            let h = low32(h);
+            if count == 4 {
+                parts -= *order.at(h % 4);
+            } else {
+                parts = parts - *order.at(h % count) + *order.at(count + (h / 4) % (4 - count));
+            }
+            1 + (h / 16) % 2
+        },
+        Option::None => 0,
+    };
+    // the theme as the A tune opens with it: as written, inverted, reversed or a third up
+    let theme = theme.span();
+    let mut motif: Array<u32> = array![];
+    for x in 0..6_u32 {
+        let d = *theme.at(if treatment == 2 {
+            5 - x
+        } else {
+            x
+        });
+        motif.append(if treatment == 1 {
+            2 * O - d
+        } else if treatment == 3 {
+            d + 2
+        } else {
+            d
+        });
     }
     let bar = s.num * (1920 / s.den);
     let strong2 = if s.den == 8 {
@@ -482,37 +607,45 @@ pub fn edition_tracks_on(
     } else {
         0
     };
-    let chords = form_chords(s.progs, s.chord_bars, form, pa, pb);
-    // A's chords are the first section's, B's the first B section's (the third or the second)
-    let b0 = if form == 0 {
-        16
-    } else {
-        8
-    };
+    let ca = section_chords(s.progs, s.chord_bars, pa);
+    let cb = section_chords(s.progs, s.chord_bars, pb);
+    let cc = section_chords(s.progs, s.chord_bars, pc);
     let ma = BoxTrait::new(Mel { bar, strong2, lo: O - 1, motif: motif.span() });
     let mb = BoxTrait::new(Mel { bar, strong2, lo: O + 1, motif: [].span() });
-    // the month's drift draws the melodies from its own hash, the rest of the track unchanged
+    // the tunes, A (with the theme), B and C: the month's drift draws them from its own hash
     let mut mr = match rhythm {
         Option::Some(h) => Rng { a: low32(h) },
         Option::None => r,
     };
-    let mel_a = melody(s.cells, s.end, ma, chords.slice(0, 8), true, ref mr);
-    let mel_b = melody(s.cells, s.end, mb, chords.slice(b0, 8), false, ref mr);
+    let mel_a = melody(s.cells, s.end, ma, ca, true, ref mr);
+    let mel_b = melody(s.cells, s.end, mb, cb, kind_of(form, 3) == 1, ref mr);
+    let mel_c = if form_id == 3 {
+        melody(s.cells, s.end, mb, cc, true, ref mr)
+    } else {
+        [].span()
+    };
     let (mel_a, mel_b) = if knob == 1 {
         (mel_b, mel_a)
     } else {
         (mel_a, mel_b)
     };
     let mut lead: Array<MelNote> = array![];
+    let mut chords: Array<u32> = array![];
     for sec in 0..4_u32 {
         let t0 = sec * 8 * bar;
-        let mel = if is_b_section(form, sec) {
-            mel_b
+        let kind = kind_of(form, sec);
+        let (mel, cs) = if kind == 2 {
+            (mel_c, cc)
+        } else if kind == 1 {
+            (mel_b, cb)
         } else {
-            mel_a
+            (mel_a, ca)
         };
         for n in mel {
             lead.append(MelNote { t: t0 + n.t, len: n.len, d: n.d });
+        }
+        for x in cs {
+            chords.append(*x);
         }
     }
     let ticks = 32 * bar;
@@ -527,15 +660,17 @@ pub fn edition_tracks_on(
             scale,
             base,
             bar,
-            tier: (k % 25) / 5 + 1,
-            rot: match rotate {
-                Option::Some(h) => 1 + low32(h) % 2,
-                Option::None => 0,
-            },
+            rot,
             kind: k / 25,
             shiny,
             species,
-            chords,
+            accomp,
+            bass,
+            perc,
+            orn,
+            orn_seed,
+            detached,
+            chords: chords.span(),
             lead: lead.span(),
             ticks,
         },
@@ -562,12 +697,22 @@ pub fn edition_tracks_on(
         2
     };
     tempo.meta(0, 0x58, [s.num.try_into().unwrap(), den_log, 24, 8].span());
-    let mut tracks: Array<Array<u8>> = array![
-        finish(tempo, ticks), lead_track(ctx, false), chord_track(ctx, 2), chord_track(ctx, 3),
-        chord_track(ctx, 4),
-    ];
+    let mut tracks: Array<Array<u8>> = array![finish(tempo, ticks), lead_track(ctx, 0)];
+    if parts & DESCANT != 0 {
+        tracks.append(lead_track(ctx, 2));
+    }
+    tracks.append(chord_track(ctx, 2));
+    if parts & BASS != 0 {
+        tracks.append(chord_track(ctx, 3));
+    }
+    if parts & PAD != 0 {
+        tracks.append(chord_track(ctx, 4));
+    }
+    if parts & PERC != 0 {
+        tracks.append(chord_track(ctx, 9));
+    }
     if shiny {
-        tracks.append(lead_track(ctx, true));
+        tracks.append(lead_track(ctx, 1));
     }
     tracks
 }

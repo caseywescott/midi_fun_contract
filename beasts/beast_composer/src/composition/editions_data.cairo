@@ -34,9 +34,12 @@ pub struct Style {
     /// melody rhythm cells and the phrase-end ones: eighths, 4 bits each from the low end
     pub cells: Span<u32>,
     pub end: Span<u32>,
-    /// events per bar: offset | duration << 11 | voice << 22 | (velocity delta + 32) << 26
-    pub accomp: Span<u32>,
-    pub bass: Span<u32>,
+    /// the figures a purchase picks from, events per bar: offset | duration << 11 | voice (bass:
+    /// tone) << 22 | (velocity delta + 32) << 26
+    pub accomps: Span<Span<u32>>,
+    pub basses: Span<Span<u32>>,
+    /// percussion figures: offset | drum note << 11 | (velocity delta + 64) << 18
+    pub percs: Span<Span<u32>>,
     /// [lead, counter (unused), accomp, bass, pad] x [Magic, Hunter, Brute]
     pub palette: Span<u8>,
     /// progressions: four chord roots (scale degrees), 4 bits each from the low end
@@ -56,12 +59,18 @@ pub fn style(s: u32) -> Box<Style> {
                 bpm_hi: 170,
                 modes: [0, 1, 2].span(),
                 chord_bars: 1,
-                cells: [36, 546, 6, 531, 8466].span(),
+                cells: [36, 546, 6, 531, 8466, 8721, 66, 135441].span(),
                 end: [6, 36].span(),
-                accomp: [1783169504, 1380516800].span(),
-                bass: [2148368384].span(),
+                accomps: [
+                    [1783169504, 1380516800].span(), [1783169504, 1246119088].span(),
+                    [1611063776, 1346822864, 1485235136, 1212605616].span(), [1247551968].span(),
+                ]
+                    .span(),
+                basses: [[2148368384].span(), [2148368384, 1351451584].span(), [1747697664].span()]
+                    .span(),
+                percs: [[14229504, 11620832, 10572736].span(), [14229504, 11621312].span()].span(),
                 palette: [0, 70, 64, 15, 44, 13, 17, 18, 99, 20, 27, 24, 33, 75, 32].span(),
-                progs: [17232, 1072, 13632, 16437].span(),
+                progs: [17232, 1072, 13632, 16437, 1040, 17696, 20547, 16720].span(),
             },
             1 => Style {
                 num: 4,
@@ -70,12 +79,22 @@ pub fn style(s: u32) -> Box<Style> {
                 bpm_hi: 84,
                 modes: [0, 2].span(),
                 chord_bars: 1,
-                cells: [68].span(),
-                end: [8].span(),
-                accomp: [2187137024, 1918702528].span(),
-                bass: [1612517376, 1612518336].span(),
+                cells: [68, 1058, 548, 38, 8738].span(),
+                end: [8, 68].span(),
+                accomps: [
+                    [2187137024, 1918702528].span(), [2054864896].span(),
+                    [2051936256, 1649283552, 1917719488, 1649284512].span(),
+                    [2014187520, 1615729120, 1888359360, 1615730080].span(),
+                ]
+                    .span(),
+                basses: [
+                    [1612517376, 1612518336].span(), [1614462976].span(),
+                    [1612517376, 1482494912].span(),
+                ]
+                    .span(),
+                percs: [[10569728, 9522112].span(), [10577920].span()].span(),
                 palette: [95, 43, 47, 95, 43, 47, 95, 43, 47, 95, 43, 47, 33, 31, 29].span(),
-                progs: [1072, 17232, 1040, 16643].span(),
+                progs: [1072, 17232, 1040, 16643, 13632, 1045, 16688, 17184].span(),
             },
             2 => Style {
                 num: 6,
@@ -84,13 +103,24 @@ pub fn style(s: u32) -> Box<Style> {
                 bpm_hi: 100,
                 modes: [0, 3, 1].span(),
                 chord_bars: 1,
-                cells: [51, 786, 291, 12561, 6].span(),
+                cells: [51, 786, 291, 12561, 6, 801, 4371, 546].span(),
                 end: [6, 51].span(),
-                accomp: [2147934208, 1212604656, 1216799200, 2160517840, 1216799680, 1212605616]
+                accomps: [
+                    [2147934208, 1212604656, 1216799200, 2160517840, 1216799680, 1212605616].span(),
+                    [2147934208, 1216798960, 1212604896, 2160517840, 1212605376, 1216799920].span(),
+                    [1515577344, 1112924880].span(),
+                    [2147934208, 1212604656, 1216799200, 1879499472, 1212605376, 1216799920].span(),
+                ]
                     .span(),
-                bass: [1477808128, 945132240].span(),
+                basses: [
+                    [1477808128, 945132240].span(), [1345044480].span(),
+                    [1477808128, 949326544].span(),
+                ]
+                    .span(),
+                percs: [[8998912, 8999632].span(), [8998912, 7426528, 8999632, 7427248].span()]
+                    .span(),
                 palette: [45, 78, 17, 33, 0, 70, 17, 44, 99, 20, 27, 20, 33, 75, 32].span(),
-                progs: [16432, 17232, 13632, 67].span(),
+                progs: [16432, 17232, 13632, 67, 1040, 17712, 1077, 17184].span(),
             },
             _ => Style {
                 num: 4,
@@ -99,12 +129,18 @@ pub fn style(s: u32) -> Box<Style> {
                 bpm_hi: 144,
                 modes: [4, 2].span(),
                 chord_bars: 2,
-                cells: [8, 68, 38].span(),
-                end: [8].span(),
-                accomp: [1521876992].span(),
-                bass: [825933824].span(),
+                cells: [8, 68, 38, 98, 548].span(),
+                end: [8, 38].span(),
+                accomps: [
+                    [1521876992].span(), [1520181248, 1113334720].span(), [1249558528].span(),
+                    [1624014848, 1208779232, 1489798080, 1074562464].span(),
+                ]
+                    .span(),
+                basses: [[825933824].span(), [1077592064].span(), [1075585024, 811344832].span()]
+                    .span(),
+                percs: [[14239744].span(), [13719552, 12143552].span()].span(),
                 palette: [64, 72, 62, 8, 9, 6, 44, 71, 19, 86, 85, 88, 29, 30, 28].span(),
-                progs: [16, 4144, 848, 1584].span(),
+                progs: [16, 4144, 848, 1584, 1376, 784, 101, 320].span(),
             },
         },
     )

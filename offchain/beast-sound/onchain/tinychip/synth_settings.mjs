@@ -31,7 +31,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { poseidonHashMany } from '../../src/index.js';
 import { FAMILIES } from '../../src/full_midi.js';
-import { STYLES } from '../../src/editions_lite.js';
+import { EDITION_DRUMS, STYLES } from '../../src/editions_lite.js';
 import { fileURLToPath } from 'node:url';
 import { bankData, ESSENTIALS, loadBank } from './essentials.mjs';
 
@@ -262,17 +262,20 @@ const TIMBRES_${up}: [u32; ${timbres.length}] = [${timbres.join(', ')}];
 /**
  * The Monthly Track Editions' settings (editions_lite.js, edition 1 and later): for each style and
  * Beast type, the presets its lead, accompaniment, bass and pad play (palette rows 0, 2, 3, 4; row 1
- * plays nothing), untrimmed as the editions page plays them, and the mega leads when mega; no
- * drums. Every edition settings value carries the same waves (all the editions' presets use), so a
+ * plays the lead's preset), untrimmed as the editions page plays them, the mega leads when mega,
+ * and the chip drums the percussion figures play. Every edition settings value carries the same waves (all the editions' presets use), so a
  * preset's operators (its waves as \`Custom(i)\`) are the same in each and stored once.
  */
 export const editionPrograms = (style, type, mega) => [...new Set([0, 2, 3, 4].map((row) => STYLES[style].palette[row][type])), ...(mega ? MEGA_LEAD_PROGRAMS : [])];
 export const EDITION_PROGRAMS = [...new Set(STYLES.flatMap((_, s) => [0, 1, 2].flatMap((t) => editionPrograms(s, t, true))))];
 export const editionData = () => bankData(undefined, [...new Set([...ESSENTIALS, ...EDITION_PROGRAMS])]);
-export const editionWaves = (data = editionData()) => sampledWaves(EDITION_PROGRAMS.map((id) => data.presets[id]));
+export const editionWaves = (data = editionData()) => sampledWaves([...EDITION_PROGRAMS.map((id) => data.presets[id]), ...EDITION_DRUMS.map((key) => data.drums[key])]);
 export function editionSynthSettings(style, type, mega, data = editionData()) {
   const waves = editionWaves(data), tables = chipTables(waves);
-  const timbres = editionPrograms(style, type, mega).map((id) => ({ drum: false, slot: id, operators: timbreOperators(data.presets[id], 1, waves) }));
+  const timbres = [
+    ...editionPrograms(style, type, mega).map((id) => ({ drum: false, slot: id, operators: timbreOperators(data.presets[id], 1, waves) })),
+    ...EDITION_DRUMS.map((key) => ({ drum: true, slot: key, operators: timbreOperators(data.drums[key], 1, waves) })),
+  ];
   return { quality: 1, reverb: 30, master_vol: 40, voices: 64, waves: waves.map((w) => ({ Samples: tables[w] })), timbres };
 }
 
@@ -282,13 +285,14 @@ function editionsCairo() {
   const s = editionSynthSettings(0, 0, false, data);
   const waveCodes = s.waves.map((w) => { const start = samplesAt(w.Samples); check(w.Samples.length < 0x100, 'wave'); return start * 0x100 + w.Samples.length; });
   const wave = (w) => (typeof w === 'string' ? w : `Custom(${w.Custom})`);
-  const timbreCode = (id) => {
-    const ops = timbreOperators(data.presets[id], 1, waves).map((o) => `    Operator { route: ${o.route}, wave: Waveform::${wave(o.wave)}, ${OP_FIELDS.map((k) => `${k}: ${o[k]}`).join(', ')}, filter: Option::None },`);
+  const timbreCode = (id, drum = false) => {
+    const ops = timbreOperators(drum ? data.drums[id] : data.presets[id], 1, waves).map((o) => `    Operator { route: ${o.route}, wave: Waveform::${wave(o.wave)}, ${OP_FIELDS.map((k) => `${k}: ${o[k]}`).join(', ')}, filter: Option::None },`);
     const first = operatorsAt(ops);
     check(ops.length < 0x100 && first < 0x10000, 'timbre');
-    return (first * 0x100 + ops.length) * 2 * 0x100 + id;
+    return ((first * 0x100 + ops.length) * 2 + (drum ? 1 : 0)) * 0x100 + id;
   };
-  const codes = EDITION_PROGRAMS.map(timbreCode);
+  const codes = EDITION_PROGRAMS.map((id) => timbreCode(id));
+  const drumCodes = EDITION_DRUMS.map((key) => timbreCode(key, true));
   const at = (id) => EDITION_PROGRAMS.indexOf(id);
   // a palette: its count * 2^20 + its timbres' indices into EDITION_TIMBRES, 5 bits each
   const palettes = STYLES.flatMap((_, st) => [0, 1, 2].map((t) => {
@@ -300,8 +304,8 @@ function editionsCairo() {
   return `
 /// The settings a Monthly Track Edition's file selects (editions_lite.js, edition 1 and later): style
 /// \`style\` (0 waltz, 1 chorale, 2 lullaby, 3 dirge) for a Beast of \`beast_type\`, its lead,
-/// accompaniment, bass and pad presets as the editions page plays them (untrimmed), and the mega
-/// leads when mega; no drums. Every edition value carries the editions' ${waves.length} waves: ${waves.join(', ')}.
+/// accompaniment, bass and pad presets as the editions page plays them (untrimmed), the mega leads
+/// when mega, and the drums ${EDITION_DRUMS.join(', ')} (the percussion figures). Every edition value carries the editions' ${waves.length} waves: ${waves.join(', ')}.
 pub fn edition_synth_settings(style: u32, beast_type: u32, mega: bool) -> TinySynthSettings {
     let palette = *EDITION_PALETTES.span().at(style * 3 + beast_type);
     let timbres = EDITION_TIMBRES.span();
@@ -317,6 +321,9 @@ pub fn edition_synth_settings(style: u32, beast_type: u32, mega: bool) -> TinySy
         picked.append(*timbres.at(${at(MEGA_LEAD_PROGRAMS[0])}));
         picked.append(*timbres.at(${at(MEGA_LEAD_PROGRAMS[1])}));
     }
+    for d in EDITION_DRUM_TIMBRES.span() {
+        picked.append(*d);
+    }
     settings_from(1, 30, 40, 64, EDITION_WAVES.span(), picked.span())
 }
 #[cairofmt::skip]
@@ -324,6 +331,9 @@ const EDITION_WAVES: [u32; ${waveCodes.length}] = [${waveCodes.join(', ')}];
 /// One timbre per editions preset, programs ${EDITION_PROGRAMS.join(', ')}.
 #[cairofmt::skip]
 const EDITION_TIMBRES: [u32; ${codes.length}] = [${codes.join(', ')}];
+/// The chip drums ${EDITION_DRUMS.join(', ')}.
+#[cairofmt::skip]
+const EDITION_DRUM_TIMBRES: [u32; ${drumCodes.length}] = [${drumCodes.join(', ')}];
 /// Each style and type's presets (index style * 3 + type): count * 2^20 + indices into
 /// EDITION_TIMBRES, 5 bits each.
 #[cairofmt::skip]

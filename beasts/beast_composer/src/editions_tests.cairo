@@ -50,7 +50,7 @@ fn parity_edition(e: u32) {
 fn the_calendar_cycles_the_four_styles() {
     let mut e: u32 = 1;
     for x in STYLES.span() {
-        let (st, _, _, _, _) = edition_genome(e);
+        let (st, _, _) = edition_genome(e);
         assert_eq!(st, *x);
         e += 1;
     }

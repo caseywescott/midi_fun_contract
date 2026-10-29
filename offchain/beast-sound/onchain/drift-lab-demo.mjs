@@ -1,7 +1,7 @@
 // Build public/onchain/drift-lab.html: Casey Drift, the layered drift the composer plays
 // (BeastPureComposer.compose_drift), on a Beast's Species Song or on a Monthly Track Edition track.
 //   month (30 days)  2 in 3: songs re-pick their rhythm cells; editions get new melodies
-//   week (7 days)    3 in 4: songs rotate which channels play; editions invert the accompaniment's chords
+//   week (7 days)    3 in 4: songs rotate which channels play; editions swap one part in or out and invert the accompaniment's chords
 //   day              one knob: songs turn the key plan, swap episode directions or nudge the tempo;
 //                    editions swap the A and B progressions or tunes, or nudge the tempo
 // Each clock is seeded by the hash of its own first block (simulated here), and nothing accumulates.
@@ -57,9 +57,9 @@ const html = `<!doctype html>
 <link rel="icon" href="data:,">
 <meta name="description" content="Casey Drift, the layered drift the Beast composer plays, on Species Songs and Monthly Track Edition tracks, day by day.">
 <style>
-:root{--bg:#f6f4ef;--fg:#1d1b18;--mut:#6b655c;--card:#fff;--line:#e2ddd3;--acc:#7a3cff;--ok:#1f9d55;--c1:#7a3cff;--c2:#e0742a;--c3:#1f9d8c}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15141a;--fg:#ece8f4;--mut:#9a94a8;--card:#1f1d26;--line:#2e2b38;--acc:#a77bff;--ok:#3ccf7e;--c1:#a77bff;--c2:#f08a48;--c3:#3cc8b4}}
-:root[data-theme="dark"]{--bg:#15141a;--fg:#ece8f4;--mut:#9a94a8;--card:#1f1d26;--line:#2e2b38;--acc:#a77bff;--ok:#3ccf7e;--c1:#a77bff;--c2:#f08a48;--c3:#3cc8b4}
+:root{--bg:#f6f4ef;--fg:#1d1b18;--mut:#6b655c;--card:#fff;--line:#e2ddd3;--acc:#7a3cff;--ok:#1f9d55;--c1:#7a3cff;--c2:#e0742a;--c3:#1f9d8c;--c4:#c0392b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15141a;--fg:#ece8f4;--mut:#9a94a8;--card:#1f1d26;--line:#2e2b38;--acc:#a77bff;--ok:#3ccf7e;--c1:#a77bff;--c2:#f08a48;--c3:#3cc8b4;--c4:#ff6b5e}}
+:root[data-theme="dark"]{--bg:#15141a;--fg:#ece8f4;--mut:#9a94a8;--card:#1f1d26;--line:#2e2b38;--acc:#a77bff;--ok:#3ccf7e;--c1:#a77bff;--c2:#f08a48;--c3:#3cc8b4;--c4:#ff6b5e}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}
 main{max-width:1120px;margin:0 auto;padding:24px 16px 48px}h1{font-size:22px;margin:0 0 4px}p.sub{color:var(--mut);margin:0 0 16px;max-width:820px}
 .tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}.tabs button{padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--fg);text-align:left;cursor:pointer;font:inherit}
@@ -110,7 +110,7 @@ a{color:var(--acc)}
 <ul class="how"><li><b>Month</b> (30 days): two months in three re-pick the rhythm cells.</li><li><b>Week</b>: three weeks in four rotate which channels play, keeping the count, the theme and the low voice.</li><li><b>Day</b>: turns one knob. The key plan turns the other way, the episode directions swap, or the tempo moves −4, −2, +2 or +4 BPM.</li></ul>
 <p class="note">A Species Song's drift belongs to its species: all Beasts of a species hear the same day. A Beast's other tracks drift by its own special name.</p></div>
 <div class="card mode" id="m-edition"><div class="sec"><span>On an edition track</span></div>
-<ul class="how"><li><b>Month</b>: two months in three bring new melodies. Their rhythms and contour are drawn from the month's hash; the key, chords and tempo stay.</li><li><b>Week</b>: three weeks in four put the accompaniment's chords in their first or second inversion.</li><li><b>Day</b>: turns one knob. The A and B progressions swap, the A and B tunes swap, or the tempo moves −4, −2, +2 or +4 BPM.</li></ul></div>
+<ul class="how"><li><b>Month</b>: two months in three bring new melodies. Their rhythms and contour are drawn from the month's hash; the key, chords and tempo stay.</li><li><b>Week</b>: three weeks in four swap one part in or out (descant, bass, pad or percussion; one drops out when all four play) and put the accompaniment's chords in their first or second inversion.</li><li><b>Day</b>: turns one knob. The A and B progressions swap, the A and B tunes swap, or the tempo moves −4, −2, +2 or +4 BPM.</li></ul></div>
 <div class="card"><div class="sec"><span>Share</span></div><div class="ctl"><button id="link">Copy link</button></div><p class="note" id="copied"></p>
 <p class="note">The page assumes 43,200 blocks a day, as the lab does: a placeholder until the chain's block time is set. Block hashes are simulated. Keys: <span class="kbd">space</span> play/stop, <span class="kbd">,</span> <span class="kbd">.</span> day, <span class="kbd">1</span> <span class="kbd">2</span> track.</p></div>
 </div></div>
@@ -146,7 +146,7 @@ function trackOn(day) {
   const w = Math.floor((day - 1) / 7) + 1, m = Math.floor((day - 1) / 30) + 1;
   const knob = d.dayKnob === 0 ? 'A and B progressions swap' : d.dayKnob === 1 ? 'A and B tunes swap' : 'tempo ' + (d.delta > 0 ? '+' : '') + d.delta + ' BPM';
   const label = ['month ' + m + (d.rhythm !== null ? ': new melodies' : ': melodies as written'),
-    'week ' + w + (d.rotate !== null ? ': chords inverted' : ': chords as written'), 'day: ' + knob].join(' \u00b7 ');
+    'week ' + w + (d.rotate !== null ? ': a part swaps, chords inverted' : ': parts and chords as written'), 'day: ' + knob].join(' \u00b7 ');
   return { ...o, drift: { ...d, label } };
 }
 let writtenKey = '', written = null;
@@ -171,7 +171,7 @@ function buildSeries() {
   (function run() {
     if (job !== seriesJob) return;
     const t0 = performance.now();
-    while (i < days.length && performance.now() - t0 < 30) { const o = trackOn(days[i]); series.pts.push({ day: days[i], tempo: tempoOf(o), rhythm: rhythmOf(o), ...diff(o) }); i++; }
+    while (i < days.length && performance.now() - t0 < 30) { const o = trackOn(days[i]); series.pts.push({ day: days[i], tempo: tempoOf(o), rhythm: rhythmOf(o), chans: channelDiff(o).changed, ...diff(o) }); i++; }
     chart();
     if (i < days.length) setTimeout(run, 0);
   })();
@@ -179,8 +179,8 @@ function buildSeries() {
 function chart() {
   const cv = $('chart'), x = cv.getContext('2d'), W = cv.width, H = cv.height, css = getComputedStyle(document.body), col = (v) => css.getPropertyValue(v).trim(), fg = css.color;
   x.clearRect(0, 0, W, H);
-  const rTop = 14, rH = 40, tTop = 70, tH = 150, oTop = 240, oH = 200, X = (d) => 20 + (d - 1) / (DAYS - 1) * (W - 40);
-  x.font = '22px system-ui'; x.fillStyle = fg; x.globalAlpha = 0.55; x.fillText('rhythm', 24, rTop + 26); x.fillText('tempo', 24, tTop + 22); x.fillText('notes changed', 24, oTop + 22); x.globalAlpha = 1;
+  const rTop = 8, rH = 24, cTop = 38, cH = 24, tTop = 70, tH = 150, oTop = 240, oH = 200, X = (d) => 20 + (d - 1) / (DAYS - 1) * (W - 40);
+  x.font = '22px system-ui'; x.fillStyle = fg; x.globalAlpha = 0.55; x.fillText('rhythm', 24, rTop + 20); x.fillText('channels', 24, cTop + 20); x.fillText('tempo', 24, tTop + 22); x.fillText('notes changed', 24, oTop + 22); x.globalAlpha = 1;
   for (let d = 1; d <= DAYS; d++) { if ((d - 1) % 30 === 0) { x.globalAlpha = 0.3; x.fillStyle = fg; x.fillRect(X(d), 0, 2, H); } else if ((d - 1) % 7 === 0) { x.globalAlpha = 0.08; x.fillStyle = fg; x.fillRect(X(d), 0, 1, H); } }
   x.globalAlpha = 0.25; x.fillRect(20, tTop + tH / 2, W - 40, 1); x.globalAlpha = 1;
   if (series) {
@@ -188,6 +188,7 @@ function chart() {
     for (const p of series.pts) {
       const x0 = X(p.day);
       if (p.rhythm) { x.fillStyle = col('--c1'); x.fillRect(x0, rTop, w, rH); }
+      if (p.chans) { x.fillStyle = col('--c4'); x.fillRect(x0, cTop, w, cH); }
       x.fillStyle = col('--c2'); x.beginPath(); x.arc(x0, tTop + tH / 2 - p.tempo / 4 * (tH / 2 - 10), 4, 0, 7); x.fill();
       x.fillStyle = col('--c3'); const h = p.changed / maxO * (oH - 30); x.fillRect(x0, oTop + oH - h, w, h);
     }
@@ -198,7 +199,16 @@ $('chart').addEventListener('pointerdown', (ev) => { const r = $('chart').getBou
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const COLORS = ['#7a3cff', '#e0742a', '#1f9d8c', '#c0392b', '#7f8c8d', '#2a7ae0', '#b8860b', '#888'];
-const EDITION_ROLES = { 0: 'lead', 2: 'accomp', 3: 'bass', 4: 'pad', 5: 'mega double' };
+const EDITION_ROLES = { 0: 'lead', 1: 'descant', 2: 'accomp', 3: 'bass', 4: 'pad', 5: 'mega double' };
+// a channel's name: drums, an edition part, or the song channel's preset
+const chName = (ch, prog) => (ch === 9 ? 'drums' : st.kind === 'edition' ? EDITION_ROLES[ch] || 'ch' + (ch + 1) : DATA.names[prog] || 'ch' + (ch + 1));
+const chansOf = (m) => { const d = notesOf(m); return [...new Set(d.notes.map((n) => n[3]))].sort((a, b) => a - b).map((ch) => [ch, d.prog[ch]]); };
+/** Today's channels against the written track's: the set, and what joined or left. */
+function channelDiff(o) {
+  const w = chansOf(writtenTrack().midi), d = chansOf(o.midi), wk = new Set(w.map((c) => c[0])), dk = new Set(d.map((c) => c[0]));
+  const added = d.filter((c) => !wk.has(c[0])), gone = w.filter((c) => !dk.has(c[0]));
+  return { now: d, added, gone, changed: added.length + gone.length > 0 };
+}
 function show() {
   for (const k of ['song', 'edition']) { $('t-' + k).classList.toggle('on', st.kind === k); $('m-' + k).classList.toggle('on', st.kind === k); }
   $('row-e').classList.toggle('off', st.kind !== 'edition'); $('row-p').classList.toggle('off', st.kind !== 'edition');
@@ -213,8 +223,9 @@ function show() {
   $('title').textContent = st.kind === 'song' ? s.name + "'s Species Song" : g.name;
   $('subtitle').textContent = st.kind === 'song' ? o.info.key + ' · ' + o.info.voices + ' voices' : o.info.key + ' · ' + o.info.meter + ' · ' + o.info.bpm + ' BPM written';
   $('day').value = st.day; $('day-val').textContent = st.day + ' (week ' + (Math.floor((st.day - 1) / 7) + 1) + ', month ' + (Math.floor((st.day - 1) / 30) + 1) + ')';
-  const t = tempoOf(o);
-  $('readout').innerHTML = [['Today', o.drift.label || ''], ['Tempo', (t >= 0 ? '+' : '') + t + ' BPM'], ['From written', dd.changed + ' of ' + dd.total + ' notes changed']].map(([a, b]) => '<dt>' + a + '</dt><dd>' + esc(b) + '</dd>').join('');
+  const t = tempoOf(o), cd = channelDiff(o), nm = (cs) => cs.map(([ch, pr]) => chName(ch, pr)).join(', ');
+  const chText = cd.now.length + ' playing' + (cd.changed ? ' (' + [cd.added.length ? '+ ' + nm(cd.added) : '', cd.gone.length ? '− ' + nm(cd.gone) : ''].filter(Boolean).join('; ') + ' vs written)' : ', as written') + ': ' + nm(cd.now);
+  $('readout').innerHTML = [['Today', o.drift.label || ''], ['Channels', chText], ['Tempo', (t >= 0 ? '+' : '') + t + ' BPM'], ['From written', dd.changed + ' of ' + dd.total + ' notes changed']].map(([a, b]) => '<dt>' + a + '</dt><dd>' + esc(b) + '</dd>').join('');
   roll(st.written ? writtenTrack().midi : o.midi);
   $('ab').textContent = st.written ? 'Compare: drifted' : 'Compare: written';
   history.replaceState(null, '', query());

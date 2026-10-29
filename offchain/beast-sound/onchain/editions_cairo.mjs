@@ -30,6 +30,12 @@ const event = ([off, d, voice, dv]) => {
   if (off >= 2048 || d >= 2048 || voice >= 16 || dv < -32 || dv > 31) throw new Error('event ' + [off, d, voice, dv]);
   return off + d * 2048 + voice * 2 ** 22 + (dv + 32) * 2 ** 26;
 };
+// a percussion event: offset | drum note << 11 | (velocity delta + 64) << 18
+const hit = ([off, note, dv]) => {
+  if (off >= 2048 || note >= 128 || dv < -64 || dv > 63) throw new Error('hit ' + [off, note, dv]);
+  return off + note * 2048 + (dv + 64) * 2 ** 18;
+};
+const figures = (fs, f) => '[' + fs.map((x) => span(x.map(f))).join(', ') + '].span()';
 
 function main() {
   const SP = speciesRecords();
@@ -59,9 +65,12 @@ function main() {
   w('    /// melody rhythm cells and the phrase-end ones: eighths, 4 bits each from the low end');
   w('    pub cells: Span<u32>,');
   w('    pub end: Span<u32>,');
-  w('    /// events per bar: offset | duration << 11 | voice << 22 | (velocity delta + 32) << 26');
-  w('    pub accomp: Span<u32>,');
-  w('    pub bass: Span<u32>,');
+  w('    /// the figures a purchase picks from, events per bar: offset | duration << 11 | voice (bass:');
+  w('    /// tone) << 22 | (velocity delta + 32) << 26');
+  w('    pub accomps: Span<Span<u32>>,');
+  w('    pub basses: Span<Span<u32>>,');
+  w('    /// percussion figures: offset | drum note << 11 | (velocity delta + 64) << 18');
+  w('    pub percs: Span<Span<u32>>,');
   w('    /// [lead, counter (unused), accomp, bass, pad] x [Magic, Hunter, Brute]');
   w('    pub palette: Span<u8>,');
   w('    /// progressions: four chord roots (scale degrees), 4 bits each from the low end');
@@ -77,7 +86,7 @@ function main() {
     w(`        ${i === STYLES.length - 1 ? '_' : i} => Style {`);
     w(`            num: ${S.num}, den: ${S.den}, bpm_lo: ${S.bpm[0]}, bpm_hi: ${S.bpm[1]}, modes: ${span(S.modes)}, chord_bars: ${S.chordBars},`);
     w(`            cells: ${span(S.cells.map(nibbles))}, end: ${span(S.end.map(nibbles))},`);
-    w(`            accomp: ${span(S.accomp.map(event))}, bass: ${span(S.bass.map(event))},`);
+    w(`            accomps: ${figures(S.accomps, event)}, basses: ${figures(S.basses, event)}, percs: ${figures(S.percs, hit)},`);
     w(`            palette: ${span(S.palette.flat())}, progs: ${span(S.progs.map(nibbles))},`);
     w('        },');
   });

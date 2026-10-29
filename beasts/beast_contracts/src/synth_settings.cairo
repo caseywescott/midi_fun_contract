@@ -165,9 +165,10 @@ const TIMBRES_YETI_MEGA: [u32; 20] = [7341059, 7603204, 7864837, 7995920, 812699
 
 /// The settings a Monthly Track Edition's file selects (editions_lite.js, edition 1 and later):
 /// style `style` (0 waltz, 1 chorale, 2 lullaby, 3 dirge) for a Beast of `beast_type`, its lead,
-/// accompaniment, bass and pad presets as the editions page plays them (untrimmed), and the mega
-/// leads when mega; no drums. Every edition value carries the editions' 14 waves: nP12, nP25, nP50,
-/// nTRI, nSAW, nVRS, nWV1, nWV2, nFDS, nN16, nTI4, nTIB, nPC2, nMTP.
+/// accompaniment, bass and pad presets as the editions page plays them (untrimmed), the mega leads
+/// when mega, and the drums 36, 41, 42, 43, 45 (the percussion figures). Every edition value
+/// carries the editions' 14 waves: nP12, nP25, nP50, nTRI, nSAW, nVRS, nWV1, nWV2, nFDS, nN16,
+/// nTI4, nTIB, nPC2, nMTP.
 pub fn edition_synth_settings(style: u32, beast_type: u32, mega: bool) -> TinySynthSettings {
     let palette = *EDITION_PALETTES.span().at(style * 3 + beast_type);
     let timbres = EDITION_TIMBRES.span();
@@ -183,6 +184,9 @@ pub fn edition_synth_settings(style: u32, beast_type: u32, mega: bool) -> TinySy
         picked.append(*timbres.at(4));
         picked.append(*timbres.at(5));
     }
+    for d in EDITION_DRUM_TIMBRES.span() {
+        picked.append(*d);
+    }
     settings_from(1, 30, 40, 64, EDITION_WAVES.span(), picked.span())
 }
 #[cairofmt::skip]
@@ -190,6 +194,9 @@ const EDITION_WAVES: [u32; 14] = [8, 2052, 3074, 3616, 19984, 24071, 25888, 3408
 /// One timbre per editions preset, programs 0, 17, 20, 33, 50, 65, 70, 18, 27, 75, 64, 99, 24, 32, 95, 43, 31, 47, 29, 45, 78, 44, 86, 72, 71, 85, 30, 62, 19, 88, 28.
 #[cairofmt::skip]
 const EDITION_TIMBRES: [u32; 31] = [1024, 9831441, 10093076, 10224673, 2884658, 10486849, 10748998, 11010578, 11141659, 11273803, 11666496, 11928163, 12059160, 12190752, 12453471, 12845611, 12977183, 13239343, 13501469, 13763629, 14025806, 14287404, 14419030, 14680648, 14811719, 14942805, 15074334, 15336510, 15598099, 15729752, 15991836];
+/// The chip drums 36, 41, 42, 43, 45.
+#[cairofmt::skip]
+const EDITION_DRUM_TIMBRES: [u32; 5] = [1311524, 1704745, 1835818, 1966891, 2097965];
 /// Each style and type's presets (index style * 3 + type): count * 2^20 + indices into
 /// EDITION_TIMBRES, 5 bits each.
 #[cairofmt::skip]
@@ -198,7 +205,7 @@ const EDITION_PALETTES: [u32; 12] = [4294688, 4497638, 4632938, 2097262, 2097679
 /// generator computes it, at (style * 3 + beast_type) * 2 + mega (tests check Cairo agrees).
 #[cfg(test)]
 #[cairofmt::skip]
-pub const EDITION_SERDE_HASHES: [felt252; 24] = [0x5af84d950e9765b9b9acbb6f96097cdef34fac856f9f1d8a4e3cab5f4392ff9, 0x3322233bd9964c1a1828d62a82fce8214dc2438f7296ddd187c6e5d8f01da25, 0xa0c23759307389516e2e9020d3f421ffd48c6ecfa4a3bcc130477e4e41b6ac, 0x3812b49dc7961d2f87c744fa0426e22d0e7972d1b2ab8b0d917936d3932715f, 0x5004b0ed376f84b0c3178e6061d0f01bb03b7c6d7db89230f24d45fd55456, 0x38438e8cc53d2a1273b2e845fcf11cd74c5737bd188ecfc04190ae938acf122, 0x5fa40c739e114602d2ea9729d61f756cbe4b7a3035a14d47375e43ac643812a, 0x20680de47d7d6e60bf073e68d84cd0786812b4f6f29edc3f565fcbdf29e1f0e, 0xb81442c5bee99a52793bb6ceb154504112449ed5fe3b8419ac5dfb4c56d8d2, 0x46a9d01ab397ec20416ea25a80e1a43870ec7535c668d421fccdc81ae748207, 0x5b63cfe73b3661ec45e279d2cca7fd6336812cc4a730b63df627217f6fe8d98, 0x462b5baeddbc1765496f1f1f07d91907d0a90d1d8f3dc1aa837ed8b93b619d2, 0x7dc310a484bdae920b8b3e3b0a68990053287e60b921b3b094e8103dc81a0b6, 0x29c7cc12437355e71effaf965dee96096d275cef4d934d2f063d1f7b42b11e7, 0x5378627e4a8c029ae5ccbf472d3b888bf171a7d3c5ba6d6bfd350dd912b84bc, 0x46acd1f208c11fc25b2b580d249830f0d2bfd3624bbc7d0ac4fd19f0f553893, 0x24cb30d62815e4f6cadde53f81c93a24bf1f19d685a88c1b150d5f4992db1bc, 0x254ba79da84204fb98b11649f18c8b04014eeb129f26314d01e5d616169b45, 0x49aa6a69ebdb6095e438b523d05d96f49332ea4700f1d88bd7401afedd67b38, 0x7fcd1b767fd2a1c689a8df4a6fef77997cfa992cdd5ee1ba3e46b0a7e824e7e, 0x4038de24d4bc1d721ff86ef95718d96af3b2c84e9ec194ba5631b3a8189e0bd, 0x3d236d4c33078bb632b6df55bdb0335ba634908ed3a69f9d5bfcf94ae7732f4, 0x55f535be6af2af8fb45184d31fc5bb1db4176824e4612bc514c45788f93b6a5, 0x425ff179cf544db6c4c5b10d5591ff24a353fd0ba3b938f1ca3dc9a28b5cdc8];
+pub const EDITION_SERDE_HASHES: [felt252; 24] = [0x17ba7b318e781aca80974de10bd8e6257f94d0770028101b1391317751d3854, 0x4d5027429cc6b358ab94681ff70a3be6a246f54318feb20330a7ba8818778c0, 0x609b5ebc20531e77e7dcb2429e0e618eef1eb290df7b6088582efe75daa5026, 0x701e19fedb339335426d6930216283733f9bd085572f874a27f88f5e48ec665, 0x4e43462aa9cab2db3ccba193ce02592e1f664f11cb0c89256607bcd427401f9, 0xc39d112a7e29e4c88a495b3bada7c39b6ac440a812426e8756cdaf3713aae4, 0x5566e8b2dad4748e04ecd1858479d3aec7e0456f95526f73d6125ed856258c9, 0x6fab5f4256674d4fd0aa0bcc338f32dc06778feaff485462ea64cd7458838a6, 0x7548b5b104369f0616367e67849e1f8670d62d25980255f034b6d381b15a6c, 0x488aa74e0612040b0587718bbcf6d65b78b4b068d37b30696a7a6de81e97f30, 0x63c1a6467ecfe7506810424d13c41494a39a278031efafe148ac6c0b42630ae, 0x59b37a887ec5a76ad308dcadeedd00904e8f190c1485f642d6dfb6da3bdbcb4, 0x5dc5059f95d6db83a68b5feccd44ad99e37a7edf2ef04f0d91d4105472a662d, 0x6e2ff3527e10eebe1ea288f38f6149fa0efc331b44f2e8efdd1e6895da07d8e, 0x1136b2854d7db57bb81a79e5a9aaa2b04bbefcd1f22ab6a8ed8b62723d6ced2, 0x1eccd5c7d91b8ba95c4f31489618465da5ea19bcfed371bbd47489e343b249e, 0x73393f35ecf34060f10926b8539a24e2a66cd6e2f9fe475ee7030f7eae96000, 0x6ac884abe137223464830ffa314dbafe546bd8a3e286b0e11835bbedf260473, 0x55aecbff9d12289c25a5f697bcfe851ea2cab2f46b5ccb160c6faef6cd89c67, 0x7757aed4f59dea8d14ee7209058a625e0e4ff742198b16b702085cdcb04279f, 0x33e5198d22e2843e1c6361ff5369d3564b4f4d155b21422ea0588d1d3f726ce, 0x64a4ef6d80e17307e82fd0785cab09d60b72f999beda77e9e7706913fe82426, 0x138859382b6f42cf0f318fb63327b62d9aec652e7d961160db45f56ca3326c4, 0x69b99074e24008e06ce91ae92414c5102f9a57961462083ee5253d6874e0e20];
 /// Every wave's samples, each once (`WAVES_*`: start * 0x100 + length).
 #[cairofmt::skip]
 const SAMPLES: [i8; 400] = [64, -64, -64, -64, -64, -64, -64, -64, 64, -64, -64, -64, 64, -64, 77, 67, 56, 46, 36, 26, 15, 5, -5, -15, -26, -36, -46, -56, -67, -77, -77, -67, -56, -46, -36, -26, -15, -5, 5, 15, 26, 36, 46, 56, 67, 77, -30, -25, -20, -15, -44, -38, -33, -28, 11, 16, 21, 26, -3, 3, 8, 13, 47, 42, 37, 32, -8, -13, -18, -23, 6, 1, -4, -9, -49, -54, -59, -64, -58, -50, -42, -35, -27, -19, -12, -4, 4, 12, 19, 27, 35, 42, 50, 58, -64, -43, -21, 0, 21, 43, 64, 4, 13, 21, 38, 47, 55, 55, 64, 64, 64, 55, 55, 47, 38, 21, 13, 4, -13, -21, -38, -47, -55, -55, -64, -64, -64, -55, -55, -47, -38, -21, -13, 4, 21, 30, 47, 47, 47, 38, 30, 21, 21, 13, 13, 13, 13, 13, 4, 4, -4, -13, -13, -13, -13, -13, -21, -21, -30, -38, -47, -47, -47, -30, -21, 1, 9, 17, 25, 31, 38, 42, 44, 44, 44, 44, 42, 40, 38, 36, 36, 36, 36, 36, 38, 40, 42, 44, 44, 44, 44, 42, 38, 31, 25, 17, 9, 1, -9, -17, -25, -31, -38, -42, -44, -44, -44, -44, -42, -40, -38, -36, -36, -34, -36, -36, -38, -40, -42, -44, -44, -44, -44, -42, -38, -31, -25, -17, -9, -64, -64, -64, 64, -64, -64, 64, 64, -64, 64, -64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -58, -46, -35, -24, -13, -2, 9, 20, 32, 43, 54, -54, -43, -32, -20, -9, 2, 13, 24, 35, 46, 58, -50, -39, -28, -17, -6, 6, 17, 28, 39, 50, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, 64, -64, -64, -64, -64, -64, -64, -64, -64, 64, -64, -64, -64, -64, -64, 64, -64, -64, 64, -64, -64, -64, -64, -64, -64, -64, -64, 64, -64, -64, 64, -64, -64, 64, -64, -64, 64, -64, -64, 64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, 64, -64, -64, 64, -64, -64, -64, -64, -64, 64, -64, -64, 64, -64, -64, 64, -64, -64, -64, -64, -64, 64, -64, -64, -64, -64, -64, 64];

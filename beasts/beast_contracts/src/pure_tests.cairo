@@ -86,6 +86,41 @@ fn test_actual_pure_yeti_original_smoke() {
     assert(sound.midi == legacy, 'legacy Yeti parity');
 }
 
+#[test]
+#[available_gas(1000000000)]
+fn test_actual_pure_staff_smoke_and_replay() {
+    use beast_composer::inputs::evolution::{EvolutionConfig, EvolutionInputs, MilestoneHash};
+    let (generator, composer) = targets();
+    let base = generator
+        .get_generation_inputs(
+            EditionCompositionConfig { composition_seed: 0 },
+            0,
+            BeastMusicalIdentity { species_id: 21, name_variant_id: 37, tier: 5, family: 0 },
+        );
+    let inputs = generator.generate_inputs(base, 123);
+    let config = EvolutionConfig {
+        first_milestone_age: 10,
+        initial_unlock_bps: 10000,
+        unlock_step_bps: 0,
+        max_extra_channels: 3,
+        max_tempo_delta_bpm: 2,
+        max_velocity_delta: 8,
+        ornament_chance_bps: 1000,
+    };
+    let hashes = array![MilestoneHash { block_number: 110, block_hash: 9 }];
+    let context = EvolutionInputs {
+        birth_block: 100,
+        staff_block: 110,
+        drift_group: 37,
+        staff_hash: 999,
+        milestones: hashes.span(),
+    };
+    let sound = composer.compose_staff(inputs, 3, config, context);
+    assert_sound(@sound);
+    let replay = composer.compose_staff(inputs, 3, config, context);
+    assert(sound.midi == replay.midi && sound.settings == replay.settings, 'actual staff replay');
+}
+
 // Parse actual emitted SMF rather than counting internal masks. Every channel
 // message is bounded and every sounding program/drum has a matching timbre in
 // the very same returned TinySynthSound.
@@ -229,8 +264,9 @@ fn test_actual_pure_song_all_four_presets() {
 }
 #[test]
 #[available_gas(1000000000)]
-fn test_actual_pure_sound_check_all_presets() {
+fn test_actual_pure_sound_check_all_presets_and_no_temporal_hashes() {
     use beast_composer::inputs::{MusicIdentity, SoundCheckInputs};
+    use beast_composer::inputs::evolution::{EvolutionConfig, EvolutionInputs};
     let (_, composer) = targets();
     let x = ComposerInputs::SoundCheck(
         SoundCheckInputs {
@@ -245,11 +281,138 @@ fn test_actual_pure_sound_check_all_presets() {
             articulation_profile: 0,
         },
     );
+    let invalid_unused_config = EvolutionConfig {
+        first_milestone_age: 0,
+        initial_unlock_bps: 0,
+        unlock_step_bps: 0,
+        max_extra_channels: 0,
+        max_tempo_delta_bpm: 0,
+        max_velocity_delta: 0,
+        ornament_chance_bps: 0,
+    };
+    let context = EvolutionInputs {
+        birth_block: 100,
+        staff_block: 100,
+        drift_group: 0,
+        staff_hash: 0,
+        milestones: array![].span(),
+    };
     for code in array![0_u8, 1, 2, 3].span() {
         let normal = composer.compose(x, *code);
         assert_sound(@normal);
+        let temporal = composer.compose_staff(x, *code, invalid_unused_config, context);
+        assert(
+            normal.midi == temporal.midi && normal.settings == temporal.settings,
+            'Sound Check never drifts',
+        );
     }
 }
+fn unlock_witness(cfg: beast_composer::inputs::evolution::EvolutionConfig) -> (felt252, felt252) {
+    use beast_composer::inputs::evolution::{EvolutionInputs, MilestoneHash};
+    let mut a: u64 = 1;
+    while a <= 64 {
+        let one = array![MilestoneHash { block_number: 110, block_hash: a.into() }];
+        let first = beast_composer::composition::evolution::resolve_evolution(
+            cfg,
+            EvolutionInputs {
+                birth_block: 100,
+                staff_block: 110,
+                drift_group: 9,
+                staff_hash: 123,
+                milestones: one.span(),
+            },
+            3,
+        )
+            .unlocked_extra_mask;
+        if first / 4 % 2 == 1 && first % 2 == 0 {
+            let mut b: u64 = 1;
+            while b <= 64 {
+                let two = array![
+                    MilestoneHash { block_number: 110, block_hash: a.into() },
+                    MilestoneHash { block_number: 120, block_hash: b.into() }
+                ];
+                let later = beast_composer::composition::evolution::resolve_evolution(
+                    cfg,
+                    EvolutionInputs {
+                        birth_block: 100,
+                        staff_block: 120,
+                        drift_group: 9,
+                        staff_hash: 456,
+                        milestones: two.span(),
+                    },
+                    3,
+                )
+                    .unlocked_extra_mask;
+                if later % 2 == 1 {
+                    return (a.into(), b.into());
+                }
+                b += 1;
+            }
+        }
+        a += 1;
+    }
+    panic!("missing out of order witness")
+}
+#[test]
+#[available_gas(1000000000)]
+fn test_actual_pure_unlocked_role_survives_lower_unlock_and_new_staff_preset() {
+    use beast_composer::inputs::evolution::{EvolutionConfig, EvolutionInputs, MilestoneHash};
+    let (_, composer) = targets();
+    let ComposerInputs::Song(mut song) = authored_song() else {
+        panic!("fixture");
+    };
+    song.arrangement.channel_count = 1;
+    let x = ComposerInputs::Song(song);
+    let config = EvolutionConfig {
+        first_milestone_age: 10,
+        initial_unlock_bps: 5000,
+        unlock_step_bps: 0,
+        max_extra_channels: 3,
+        max_tempo_delta_bpm: 2,
+        max_velocity_delta: 8,
+        ornament_chance_bps: 1000,
+    };
+    let (a, b) = unlock_witness(config);
+    let one = array![MilestoneHash { block_number: 110, block_hash: a }];
+    let early = composer
+        .compose_staff(
+            x,
+            0,
+            config,
+            EvolutionInputs {
+                birth_block: 100,
+                staff_block: 110,
+                drift_group: 9,
+                staff_hash: 123,
+                milestones: one.span(),
+            },
+        );
+    let two = array![
+        MilestoneHash { block_number: 110, block_hash: a },
+        MilestoneHash { block_number: 120, block_hash: b }
+    ];
+    let later = composer
+        .compose_staff(
+            x,
+            3,
+            config,
+            EvolutionInputs {
+                birth_block: 100,
+                staff_block: 120,
+                drift_group: 9,
+                staff_hash: 456,
+                milestones: two.span(),
+            },
+        );
+    assert_sound(@early);
+    assert_sound(@later);
+    let earlier_roles = midi_role_mask(@early);
+    let later_roles = midi_role_mask(@later);
+    assert(earlier_roles & later_roles == earlier_roles, 'emitted role permanence');
+    assert(earlier_roles != later_roles, 'new structural role audible');
+    assert(early.midi != later.midi, 'new staff interpretation');
+}
+
 fn rich_song() -> beast_composer::inputs::SongInputs {
     let wire = array![
         4, 1, 2, 2, 1, 4, 60, 3, 2, 4, 3, 2, 1, 1, 3, 0, 109, 500000, 47, 1, 1, 2, 0, 1, 2, 0, 0, 1,
@@ -421,6 +584,73 @@ fn actual_sound_sample_preset2() {
 fn actual_sound_sample_preset3() {
     sample_original(3);
 }
+fn sample_staff(index: u8) {
+    use beast_composer::inputs::evolution::{EvolutionConfig, EvolutionInputs, MilestoneHash};
+    let (generator, composer) = production_targets();
+    let base = generator
+        .get_generation_inputs(
+            EditionCompositionConfig { composition_seed: 9 },
+            2,
+            BeastMusicalIdentity { species_id: 21, name_variant_id: 37, tier: 5, family: 0 },
+        );
+    let inputs = generator.generate_inputs(base, 2);
+    let config = EvolutionConfig {
+        first_milestone_age: 10,
+        initial_unlock_bps: 5000,
+        unlock_step_bps: 0,
+        max_extra_channels: 3,
+        max_tempo_delta_bpm: 2,
+        max_velocity_delta: 8,
+        ornament_chance_bps: 1000,
+    };
+    let (a, b) = unlock_witness(config);
+    let mut milestones = array![];
+    if index >= 1 {
+        milestones.append(MilestoneHash { block_number: 110, block_hash: a });
+    }
+    if index >= 2 {
+        milestones.append(MilestoneHash { block_number: 120, block_hash: b });
+    }
+    let (name, staff_block, staff_hash) = match index {
+        0 => ("early-live", 109_u64, 123_felt252),
+        1 => ("post-unlock", 110, 999),
+        _ => ("later-live", 120, 456),
+    };
+    let sound = composer
+        .compose_staff(
+            inputs,
+            0,
+            config,
+            EvolutionInputs {
+                birth_block: 100,
+                staff_block,
+                drift_group: 9,
+                staff_hash,
+                milestones: milestones.span(),
+            },
+        );
+    emit_sample(name, inputs, @sound);
+    println!("PURE_SAMPLE_CONTEXT first_hash={} second_hash={}", a, b);
+}
+#[test]
+#[ignore]
+#[available_gas(1000000000)]
+fn actual_sound_sample_early_live() {
+    sample_staff(0);
+}
+#[test]
+#[ignore]
+#[available_gas(1000000000)]
+fn actual_sound_sample_post_unlock() {
+    sample_staff(1);
+}
+#[test]
+#[ignore]
+#[available_gas(1000000000)]
+fn actual_sound_sample_later_live() {
+    sample_staff(2);
+}
+
 #[test]
 #[available_gas(1000000000)]
 fn test_actual_pure_repeat_purchase_and_adjacent_edition_outputs() {

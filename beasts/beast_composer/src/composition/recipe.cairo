@@ -46,7 +46,7 @@ pub fn is_mega(sound_effects: u8) -> bool {
 }
 
 /// Performance never mutates the stored written recipe. Code0 is identity.
-/// Apply integer microseconds/quarter subtraction before composition.
+/// Apply integer microseconds/quarter subtraction before any staff interpretation.
 pub fn apply_performance(x: ComposerInputs, sound_effects: u8) -> ComposerInputs {
     validate_inputs(x);
     validate_performance(sound_effects);

@@ -1104,20 +1104,62 @@ fn recipe_pick(
 /// Complete written musical inputs, consumed directly. No Beast reconstruction,
 /// Genesis shortcut, live counters, clock reads or implicit variation seed.
 pub fn recipe_byte_array(x: beast_composer_inputs::SongInputs, mega: bool) -> ByteArray {
+    render_recipe(x, mega, Option::None)
+}
+
+pub fn staff_recipe_byte_array(
+    x: beast_composer_inputs::SongInputs,
+    mega: bool,
+    staff: crate::composition::evolution::StaffControls,
+) -> ByteArray {
+    render_recipe(x, mega, Option::Some(staff))
+}
+
+fn render_recipe(
+    x: beast_composer_inputs::SongInputs,
+    mega: bool,
+    staff: Option<crate::composition::evolution::StaffControls>,
+) -> ByteArray {
     use beast_composer_inputs::SpecialArrangement;
     beast_composer_inputs::validate_song(x);
     let score = crate::composition::beast_v11::build_v11_score_from_inputs(x);
     let p = score.params;
     let runs = voice_runs(score.events.span());
     let (sums, counts) = voice_stats(runs.span(), MAX_VOICES - 1);
-    let picked = recipe_pick(
+    let roles = p.voice_count + if p.use_countersubject {
+        1
+    } else {
+        0
+    } + 1;
+    // Determine the entire written priority order before current-staff note
+    // changes. Each eligible extra index is fixed for this immutable recipe.
+    let priority = recipe_pick(
         sums.span(),
         counts.span(),
         p.voice_count,
         p.use_countersubject,
-        x.arrangement.channel_count.into(),
+        roles,
         x.arrangement.channel_policy,
     );
+    let mut picked = array![];
+    let mut i: u32 = 0;
+    for role in priority.span() {
+        let base_count: u32 = x.arrangement.channel_count.into();
+        let include = if i < base_count {
+            true
+        } else {
+            match staff {
+                Option::Some(c) => crate::composition::evolution::extra_role_unlocked(
+                    c.unlocked_extra_mask, i - base_count,
+                ),
+                Option::None => false,
+            }
+        };
+        if include {
+            picked.append(*role);
+        }
+        i += 1;
+    }
     let mut events = if x.arrangement.weak_ties {
         tie_repeats(
             score.events.span(),
@@ -1136,6 +1178,20 @@ pub fn recipe_byte_array(x: beast_composer_inputs::SongInputs, mega: bool) -> By
         }
         kept
     };
+    let mut tempo_us = p.tempo_us;
+    if let Option::Some(c) = staff {
+        events =
+            crate::composition::evolution::perform_staff_events(
+                events.span(), p.velocity_ceiling, c,
+            );
+        let nudged = crate::composition::drift::nudge_tempo(tempo_us, c.tempo_delta);
+        tempo_us =
+            if nudged > beast_composer_inputs::MAX_TEMPO_US {
+                beast_composer_inputs::MAX_TEMPO_US
+            } else {
+                nudged
+            };
+    }
     let yeti = match x.arrangement.special {
         SpecialArrangement::None => false,
         SpecialArrangement::Yeti(name) => {
@@ -1174,7 +1230,7 @@ pub fn recipe_byte_array(x: beast_composer_inputs::SongInputs, mega: bool) -> By
     };
     let tracks = beast_form_to_full_tracks_arranged(
         @form,
-        p.tempo_us,
+        tempo_us,
         p.tier,
         Option::Some(
             Voicing {

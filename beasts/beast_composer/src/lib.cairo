@@ -10,8 +10,10 @@ pub mod composition;
 mod contrapuntal_tests;
 
 #[cfg(test)]
-mod explicit_sound_check_tests;
+mod evolution_tests;
 
+#[cfg(test)]
+mod explicit_sound_check_tests;
 #[cfg(test)]
 mod genesis_tests;
 pub mod lcg;

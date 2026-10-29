@@ -129,7 +129,7 @@ pub struct GenerationInputs {
     pub base_song: SongInputs,
 }
 
-/// Canonical named musical identity. Paid generation never applies the
+/// Canonical named evolution identity. Paid generation never applies the
 /// shared Species Song39/40 source swap, and score/program name0 is separate.
 pub fn normalize_generation_identity(x: BeastMusicalIdentity) -> MusicIdentity {
     let identity = MusicIdentity {
@@ -261,6 +261,7 @@ pub fn decode_generation_inputs(mut values: Span<felt252>) -> GenerationInputs {
     x
 }
 
+pub mod evolution;
 
 #[cfg(test)]
 mod tests;

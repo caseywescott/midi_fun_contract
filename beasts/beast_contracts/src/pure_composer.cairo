@@ -2,11 +2,19 @@
 //! hash availability; this class owns one matching MIDI/settings interpretation.
 use beast_composer::composition::recipe::{apply_performance, is_mega};
 use beast_composer::inputs::ComposerInputs;
+use beast_composer::inputs::evolution::{EvolutionConfig, EvolutionInputs};
 use midi::types::TinySynthSound;
 
 #[starknet::interface]
 pub trait IBeastPureComposer<T> {
     fn compose(self: @T, inputs: ComposerInputs, sound_effects: u8) -> TinySynthSound;
+    fn compose_staff(
+        self: @T,
+        inputs: ComposerInputs,
+        sound_effects: u8,
+        evolution: EvolutionConfig,
+        context: EvolutionInputs,
+    ) -> TinySynthSound;
 }
 
 pub fn settings_for(inputs: ComposerInputs, sound_effects: u8) -> midi::types::TinySynthSettings {
@@ -73,9 +81,38 @@ pub fn compose_sound(inputs: ComposerInputs, sound_effects: u8) -> TinySynthSoun
     TinySynthSound { midi, settings: settings_for(effective, sound_effects) }
 }
 
+pub fn compose_staff_sound(
+    inputs: ComposerInputs, sound_effects: u8, evolution: EvolutionConfig, context: EvolutionInputs,
+) -> TinySynthSound {
+    assert(context.staff_block >= context.birth_block, 'staff before birth');
+    let effective = apply_performance(inputs, sound_effects);
+    match effective {
+        // Birth is still checked, but Sound Check needs no temporal hashes.
+        ComposerInputs::SoundCheck(_) => compose_sound(inputs, sound_effects),
+        ComposerInputs::Song(song) => {
+            let roles = song.score.voice_count
+                + if song.score.use_countersubject {
+                    1
+                } else {
+                    0
+                }
+                + 1;
+            let available = roles - song.arrangement.channel_count;
+            let controls = beast_composer::composition::evolution::resolve_evolution(
+                evolution, context, available,
+            );
+            let midi = beast_composer::composition::genesis::staff_recipe_byte_array(
+                song, is_mega(sound_effects), controls,
+            );
+            TinySynthSound { midi, settings: settings_for(effective, sound_effects) }
+        },
+    }
+}
+
 #[starknet::contract]
 pub mod BeastPureComposer {
     use beast_composer::inputs::ComposerInputs;
+    use beast_composer::inputs::evolution::{EvolutionConfig, EvolutionInputs};
     use midi::types::TinySynthSound;
     #[storage]
     struct Storage {}
@@ -85,6 +122,15 @@ pub mod BeastPureComposer {
             self: @ContractState, inputs: ComposerInputs, sound_effects: u8,
         ) -> TinySynthSound {
             super::compose_sound(inputs, sound_effects)
+        }
+        fn compose_staff(
+            self: @ContractState,
+            inputs: ComposerInputs,
+            sound_effects: u8,
+            evolution: EvolutionConfig,
+            context: EvolutionInputs,
+        ) -> TinySynthSound {
+            super::compose_staff_sound(inputs, sound_effects, evolution, context)
         }
     }
 }

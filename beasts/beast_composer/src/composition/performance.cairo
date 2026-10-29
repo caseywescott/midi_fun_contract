@@ -21,34 +21,39 @@ pub fn is_mega(sound_effects: u8) -> bool {
 pub fn apply_performance(x: ComposerInputs, sound_effects: u8) -> ComposerInputs {
     validate_inputs(x);
     validate_performance(sound_effects);
-    if sound_effects == 0 {
-        return x;
+    match x {
+        ComposerInputs::Song(mut song) => {
+            let p = song.score;
+            let (tempo_us, velocity_ceiling, articulation_profile) = performed(
+                p.tempo_us, p.velocity_ceiling, p.articulation_profile, sound_effects,
+            );
+            song.score = ScoreInputs { tempo_us, velocity_ceiling, articulation_profile, ..p };
+            ComposerInputs::Song(song)
+        },
+        ComposerInputs::SoundCheck(mut check) => {
+            let (tempo_us, velocity_ceiling, articulation_profile) = performed(
+                check.tempo_us, check.velocity_ceiling, check.articulation_profile, sound_effects,
+            );
+            check.tempo_us = tempo_us;
+            check.velocity_ceiling = velocity_ceiling;
+            check.articulation_profile = articulation_profile;
+            ComposerInputs::SoundCheck(check)
+        },
     }
+}
+
+/// The performed tempo, velocity ceiling and articulation. 0 keeps them: the written tempo is at
+/// least 1 and the ceiling at most 127 (`validate_inputs`), so no change and no lift leave them as
+/// written. One copy for songs and Sound Checks (CASM size).
+#[inline(never)]
+fn performed(tempo_us: u32, ceiling: u8, articulation: u8, sound_effects: u8) -> (u32, u8, u8) {
     let (faster, lift, articulation): (u32, u8, u8) = match sound_effects {
+        0 => (0, 0, articulation),
         1 => (25000, 12, 2),
         2 => (30000, 8, 5),
         _ => (45000, 15, 3),
     };
-    match x {
-        ComposerInputs::Song(mut song) => {
-            let p = song.score;
-            song
-                .score =
-                    ScoreInputs {
-                        tempo_us: faster_tempo(p.tempo_us, faster),
-                        velocity_ceiling: lifted(p.velocity_ceiling, lift),
-                        articulation_profile: articulation,
-                        ..p,
-                    };
-            ComposerInputs::Song(song)
-        },
-        ComposerInputs::SoundCheck(mut check) => {
-            check.tempo_us = faster_tempo(check.tempo_us, faster);
-            check.velocity_ceiling = lifted(check.velocity_ceiling, lift);
-            check.articulation_profile = articulation;
-            ComposerInputs::SoundCheck(check)
-        },
-    }
+    (faster_tempo(tempo_us, faster), lifted(ceiling, lift), articulation)
 }
 
 fn faster_tempo(tempo_us: u32, faster: u32) -> u32 {

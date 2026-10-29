@@ -20,15 +20,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "game_components_encoding"
-version = "2.7.0"
-source = "git+https://github.com/Provable-Games/game-components?tag=v3.1.0#66ce934e750f8162de4f6a377357b2b8f8e5c4c0"
-
-[[package]]
 name = "midi"
 version = "0.1.0"
 dependencies = [
- "onchain_midi_player",
+ "onchain_midi_types",
 ]
 
 [[package]]
@@ -50,12 +45,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "onchain_midi_player"
+name = "onchain_midi_types"
 version = "0.1.0"
-source = "git+https://github.com/Provable-Games/onchain-midi-player?rev=38d76ce6120d964502891c16445ce083bf1bfedd#38d76ce6120d964502891c16445ce083bf1bfedd"
-dependencies = [
- "game_components_encoding",
-]
+source = "git+https://github.com/Provable-Games/onchain-midi-player?tag=onchain_midi_types-v0.1.0#88e62f910e1069c2d6c6ca870aa0979c4f654448"
 
 [[package]]
 name = "openzeppelin_access"

@@ -14,7 +14,7 @@
 //! - `IMidiSoundPage`: the sound page (`midi_contracts::page::MidiSoundPage`): an NFT's full
 //!   `token_uri` with its music as `animation_url`.
 
-pub use onchain_midi_player::interface::{
+pub use onchain_midi_types::interface::{
     ISoundProvider, ISoundProviderDispatcher, ISoundProviderDispatcherTrait,
     ISoundProviderLibraryDispatcher, ISoundProviderSafeDispatcher,
     ISoundProviderSafeDispatcherTrait,

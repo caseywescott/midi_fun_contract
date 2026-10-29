@@ -31,45 +31,51 @@ pub trait IBeastPureComposer<T> {
 const AVALANCHE_SLOT: u8 = 13;
 
 pub fn compose_sound(inputs: ComposerInputs, sound_effects: u8) -> TinySynthSound {
-    let performed = apply_performance(inputs, sound_effects);
-    let mega = is_mega(sound_effects);
-    let midi = match performed {
-        ComposerInputs::Song(song) => smf_byte_array(
-            SMF_FORMAT, SMF_DIVISION, song_tracks(song, mega).span(),
-        ),
-        ComposerInputs::SoundCheck(check) => bytes_to_byte_array(
-            sound_check_from_inputs(check, mega).span(),
-        ),
-    };
-    TinySynthSound { midi, settings: settings_for(performed, mega) }
+    compose_with(inputs, sound_effects, Option::None)
 }
 
 pub fn compose_staff_sound(
     inputs: ComposerInputs, sound_effects: u8, evolution: EvolutionConfig, context: EvolutionInputs,
 ) -> TinySynthSound {
     assert(context.staff_block >= context.birth_block, 'staff before birth');
+    compose_with(inputs, sound_effects, Option::Some((evolution, context)))
+}
+
+/// `compose`, and on a staff (`Some`) `compose_staff` after its birth check: one body for both
+/// (CASM size). A Sound Check has no staff.
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
+fn compose_with(
+    inputs: ComposerInputs, sound_effects: u8, staff: Option<(EvolutionConfig, EvolutionInputs)>,
+) -> TinySynthSound {
     let performed = apply_performance(inputs, sound_effects);
-    match performed {
-        ComposerInputs::SoundCheck(_) => compose_sound(inputs, sound_effects),
+    let mega = is_mega(sound_effects);
+    let midi = match performed {
         ComposerInputs::Song(song) => {
-            // the roles past the written channels, in order, that the staff may unlock
-            let roles = song.score.voice_count
-                + if song.score.use_countersubject {
-                    1
-                } else {
-                    0
-                }
-                + 1;
-            let staff = resolve_evolution(
-                evolution, context, roles - song.arrangement.channel_count,
-            );
-            let mega = is_mega(sound_effects);
-            let midi = smf_byte_array(
-                SMF_FORMAT, SMF_DIVISION, staff_song_tracks(song, mega, staff).span(),
-            );
-            TinySynthSound { midi, settings: settings_for(performed, mega) }
+            let tracks = match staff {
+                Option::None => song_tracks(song, mega),
+                Option::Some((evolution, context)) => {
+                    // the roles past the written channels, in order, that the staff may unlock
+                    let roles = song.score.voice_count
+                        + if song.score.use_countersubject {
+                            1
+                        } else {
+                            0
+                        }
+                        + 1;
+                    let controls = resolve_evolution(
+                        evolution, context, roles - song.arrangement.channel_count,
+                    );
+                    staff_song_tracks(song, mega, controls)
+                },
+            };
+            smf_byte_array(SMF_FORMAT, SMF_DIVISION, tracks.span())
         },
-    }
+        ComposerInputs::SoundCheck(check) => bytes_to_byte_array(
+            sound_check_from_inputs(check, mega).span(),
+        ),
+    };
+    TinySynthSound { midi, settings: settings_for(performed, mega) }
 }
 
 /// The sounds the file can select: the family's presets and the drum kit, plus the mega leads when

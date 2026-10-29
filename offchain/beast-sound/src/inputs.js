@@ -139,3 +139,17 @@ export function decodeGenerationInputs(values) {
   requireThat(r.take() === BigInt(GENERATION_INPUTS_VERSION), 'unknown generation version');
   const x = { base_song: r.read('song') }; r.end(); encodeGenerationInputs(x); return x;
 }
+export function applyPerformance(inputs, code) {
+  encodeInputs(inputs);
+  requireThat(Number.isInteger(code) && code >= 0 && code <= 3, 'invalid sound effects');
+  requireThat(inputs.kind === 'Song', 'Sound Check extension required');
+  // Copies also canonicalize u64/felt values without ever mutating the authored recipe.
+  const result = decodeInputs(encodeInputs(inputs));
+  if (code === 0) return result;
+  const [bump, lift, profile] = [[0, 0, 0], [25000, 12, 2], [30000, 8, 5], [45000, 15, 3]][code];
+  const p = result.kind === 'Song' ? result.song.score : result.check;
+  p.tempo_us = Math.max(1, p.tempo_us - bump);
+  p.velocity_ceiling = Math.min(127, p.velocity_ceiling + lift);
+  p.articulation_profile = profile;
+  return result;
+}

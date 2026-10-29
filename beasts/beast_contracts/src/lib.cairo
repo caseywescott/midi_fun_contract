@@ -100,5 +100,8 @@ pub mod BeastSoundComposer {
 
 #[cfg(test)]
 mod composer_tests;
+
+#[cfg(test)]
+mod pure_tests;
 #[cfg(test)]
 mod tests;

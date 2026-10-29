@@ -1,3 +1,5 @@
+import { encodeInputs } from './inputs.js';
+
 // Engine v1.1 (prototype, JS only): engine v1's themes and form with three compositional fixes, for
 // listening tests before anything moves to Cairo. v1 is untouched; this reuses its building blocks.
 //
@@ -157,6 +159,7 @@ export function createEngineV11(engine) {
   };
   let FAM = null;       // set for the duration of a render
   let TRUEV = false;    // override.trueDominant, for the duration of a render
+  let BOUNDED = false;  // explicit normalized API24..108 audible pitch range
 
   const IC = (a, b) => Math.abs(a - b) % 12;
   const dissonant = (ic) => ic === 1 || ic === 2 || ic === 6 || ic === 10 || ic === 11;
@@ -203,7 +206,7 @@ export function createEngineV11(engine) {
     const tonic = diatonic ? home : sectionTonic(p, plan, s);
     const shift = diatonic ? plan[s % plan.length].degrees : 0, nextShift = diatonic ? plan[next % plan.length].degrees : 0;
     const out = [], ends = [];
-    const realize = (d) => R(d + shift, tonic, mode);
+    const realize = (d) => { const pitch = R(d + shift, tonic, mode); return BOUNDED ? Math.max(24,Math.min(108,pitch)) : pitch; };
     // family drone: the tonic an octave below, a bar at a time, placed first so every voice hears it
     if (FAM && FAM.drone) {
       const dv = p.voice_count + (p.use_countersubject ? 1 : 0);
@@ -297,7 +300,7 @@ export function createEngineV11(engine) {
     if (left <= 0) return;
     const dominant = (from) => {
       const c = [];
-      for (let m = from - 9; m <= from + 9; m++) if (pcs.includes(((m % 12) + 12) % 12)) c.push([Math.abs(m - from) / 2, m]);
+      for (let m = from - 9; m <= from + 9; m++) if ((!BOUNDED || (m >=24 && m <=108)) && pcs.includes(((m % 12) + 12) % 12)) c.push([Math.abs(m - from) / 2, m]);
       return c.length ? c : [[0, from]];
     };
     if (left >= BAR) {
@@ -393,6 +396,55 @@ export function createEngineV11(engine) {
     return { ...r, params: p, form: { ...f, theme, events, section_ticks: ticks, sections }, v11: { keyPlan: plan, keys, even, breathed, trajectory: tr, scale, family: family && { id: family, name: FAMILIES[family].name, mode: FAMILIES[family].mode } } };
   }
 
+  // Direct normalized score reference. No Beast/token reconstruction and no
+  // overrides that discard supplied musical parameters. Arrangement is a later step.
+  function renderInputs(song) {
+    encodeInputs({ kind: 'Song', song });
+    const p = { ...song.score, species_id: song.arrangement.identity.source_species_id,
+      name_variant_id: song.arrangement.identity.name_variant_id, register_band: song.theme.register_band };
+    const t = song.treatment;
+    const tr = { development: ['sequence', 'stretto', 'inversion'][t.development],
+      direction: [0, 1, -1][t.direction], spacing: ['wide', 'normal', 'close'][t.spacing],
+      prominence: t.prominence, trill: t.trill };
+    const scales = { 4: [0,2,3,5,7,9,10], 5: [0,1,3,5,7,8,10], 6: [0,1,3,5,6,8,10],
+      7: [0,2,3,5,7,8,10], 8: [0,2,3,5,7,8,11], 26: [0,2,3,6,7,9,10] };
+    FAM = null; TRUEV = false; BOUNDED = true; R = scaleRealize(scales[p.mode_id]);
+    try {
+      const base = I.buildTheme({ ...p, tier: song.theme.tier, register_band: song.theme.register_band }, song.theme.motif_seed);
+      const theme = { ...base, degrees: cadenceTheme(base.degrees) };
+      const slotsFor = (seed) => {
+        let slots = themeRhythm(p, theme.degrees, seed);
+      if (tr.trill) slots = slots.flatMap((sl, i) => sl.src === 'p' && sl.duration >= 240
+        ? [{ ...sl, src: 't', duration: sl.duration / 2, degree: slots[i - 1].degree + 1 },
+          { ...sl, src: 't', time: sl.time + sl.duration / 2, duration: sl.duration / 2, degree: slots[i - 1].degree }]
+        : [sl]);
+        return slots;
+      };
+      const firstSeed = t.section_rhythm ? I.H('BEAST_SECTION_RHYTHM_V1', t.rhythm_seed, 0) : t.rhythm_seed;
+      const slots = slotsFor(firstSeed);
+      const themeEnd = Math.max(...slots.map((x) => x.time + x.duration));
+      const canonEnd = themeEnd + (p.voice_count - 1) * p.stretto_lag * TU;
+      const bars = Math.ceil(canonEnd / BAR);
+      const ticks = ((bars + 1) % 2 === 0 ? bars + 1 : bars + 2) * BAR;
+      const csSeed = I.H(p.name_variant_id, p.species_id);
+      const seed = Number(BigInt(t.rhythm_seed) % 4294967291n);
+      const plan = keyPlan(p, t.flip_side);
+      let events = [];
+      for (let s = 0; s < p.section_count; s++) {
+        const sectionSlots = t.section_rhythm && s > 0
+          ? slotsFor(I.H('BEAST_SECTION_RHYTHM_V1', t.rhythm_seed, s)) : slots;
+        events.push(...buildSection(p, theme, sectionSlots, s, s * ticks, csSeed, ticks, seed, plan, true, tr));
+      }
+      events = shape(events, p, ticks, true, tr.prominence);
+      if (p.articulation_profile === 3) events = events.map((e) => e.time % BAR === 0
+        ? { ...e, velocity: Math.min(p.velocity_ceiling, e.velocity + 8) } : e);
+      events.sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
+      return { params: p, form: { theme, events, section_ticks: ticks,
+        sections: Array.from({ length: p.section_count }, (_, id) => ({ id, start: id * ticks })) },
+        v11: { keyPlan: plan, trajectory: tr } };
+    } finally { R = I.realize; FAM = null; TRUEV = false; BOUNDED = false; }
+  }
+
   // numbers for the comparison: rhythm, consonance, texture, cadence
   function metrics(events, form) {
     const durations = new Set(events.map((e) => e.duration)), voices = [...new Set(events.map((e) => e.voice_id))];
@@ -461,5 +513,5 @@ export function createEngineV11(engine) {
 
   // v1's section shifts, for comparison
   const v1KeyPlan = (p) => Array.from({ length: p.section_count }, (_, s) => ({ shift: I.sectionTonicShift(p, s) }));
-  return { render, metrics, keyPlan, v1KeyPlan, trajectory, CELLS, FAMILY, REACH, FAMILIES };
+  return { render, renderInputs, metrics, keyPlan, v1KeyPlan, trajectory, CELLS, FAMILY, REACH, FAMILIES };
 }

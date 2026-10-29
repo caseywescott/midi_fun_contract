@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { encodeInputs, decodeInputs, encodeGenerationInputs, decodeGenerationInputs,
-  FIELD_P } from '../src/inputs.js';
+  applyPerformance, FIELD_P } from '../src/inputs.js';
 
 // Literal field-order oracle also checked independently by Cairo inputs/src/tests.cairo.
 const songWire = [4,1,11,2,1,4,60,3,2,4,3,2,1,1,3,5,109,500000,13,1,1,2,0,1,2,0,0,1,37,4,1,17,1,9,1,0,1].map(BigInt);
@@ -74,6 +74,18 @@ test('rejects every semantic constraint covered by canonical Cairo validation', 
   const check = decodeInputs(checkWire); check.check.tonic_keynum = 104;
   assert.throws(() => encodeInputs(check));
 });
+test('performance codes0–3 have exact order, units, saturation and immutable originals', () => {
+  const x = recipe(); const original = encodeInputs(x);
+  for (const [code,tempo,velocity,profile] of [[0,500000,109,5],[1,475000,121,2],
+    [2,470000,117,5],[3,455000,124,3]]) {
+    const p = applyPerformance(x,code).song.score;
+    assert.deepEqual([p.tempo_us,p.velocity_ceiling,p.articulation_profile], [tempo,velocity,profile]);
+    assert.deepEqual(encodeInputs(x), original);
+  }
+  assert.throws(() => applyPerformance(decodeInputs(checkWire), 0), /Sound Check extension required/);
+  assert.throws(() => applyPerformance(x,4)); assert.throws(() => applyPerformance(x,1.5));
+});
+
 test('generation codec rejects the previous version1 explicitly', () => {
   assert.throws(() => decodeGenerationInputs([1n]), /unknown generation version/);
 });

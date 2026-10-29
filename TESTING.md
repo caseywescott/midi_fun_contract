@@ -10,7 +10,7 @@ The Cairo packages are one Scarb workspace (scarb 2.21.0). Their tests run on St
 | `midi_contracts` | `ScaleMidiProvider` (behavior, pinned bytes, `get_sound`); `MidiSoundPage` (`token_uri` equal to the JS reference byte for byte, contract tests with real and mock providers) |
 | `beast_composer` | The composer; the parity fixtures are `#[ignore]`d (below) |
 | `beast_composer_inputs` | Canonical input codecs, version and range rejection, boolean canonicality, and Store support |
-| `beast_contracts` | Existing `BeastMidiProvider`/composer tests; shared pure call interfaces declare no replacement runtime |
+| `beast_contracts` | Existing `BeastMidiProvider`/composer tests; optional Song/generator reference tests (explicit-input SoundCheck and Evolution are separate add-ons) |
 
 ```bash
 scarb test                      # all five, as CI runs them (one job per package)

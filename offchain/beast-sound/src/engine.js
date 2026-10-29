@@ -388,7 +388,7 @@ export function createCoreEngine({ poseidonHashMany }) {
   // Building blocks reused by composer v1.1 (engine_v11.js) and the Lab (lab.js). Not part of the
   // public API.
   const internals = {
-    H, enc, realize, articulate, generateCountersubject, paramsHash, deriveSeeds, sectionTonicShift,
+    H, enc, realize, articulate, generateCountersubject, paramsHash, deriveSeeds, buildTheme, sectionTonicShift,
     transposedTonic, canonicalToMelodic, mapV3, soundSeed, prefix2Policy, typeTierFamily,
     themeHash: (degrees) => H('BEAST_THEME_V1', ...degrees.map(enc)),
   };

@@ -814,6 +814,7 @@ fn map_degree(m: VoiceMap, d: i32) -> i32 {
 #[derive(Copy, Drop)]
 struct Realizer {
     shift: i32,
+    bounded: bool,
     /// Where degree 0 is in `table` (a felt, see `realize`).
     zero: felt252,
     tonic: u8,
@@ -854,14 +855,44 @@ fn realizer(shift: i32, tonic: u8, scale: Span<u8>) -> Realizer {
         }
         oct += 1;
     }
-    Realizer { shift, zero: (shift + TABLE_ZERO).into(), tonic, scale, table: table.span() }
+    Realizer {
+        shift, bounded: false, zero: (shift + TABLE_ZERO).into(), tonic, scale, table: table.span(),
+    }
 }
 
 fn realize(r: Realizer, d: i32) -> u8 {
-    // The index is in felts: below the table it wraps to a huge one that `try_into` rejects.
-    match tabled(r.table, d.into() + r.zero) {
+    // Legacy realization retains its exact panic behavior. Normalized recipes
+    // accept the full24..96 home range and clamp audible pitches to24..108.
+    let pitch = match tabled(r.table, d.into() + r.zero) {
         Option::Some(pitch) => pitch,
-        Option::None => degree_to_keynum(d + r.shift, r.tonic, r.scale),
+        Option::None => {
+            if !r.bounded {
+                return degree_to_keynum(d + r.shift, r.tonic, r.scale);
+            }
+            let biased = d + r.shift + 70;
+            if biased < 0 {
+                return 24;
+            }
+            let du: u32 = biased.try_into().unwrap();
+            let total: i64 = Into::<u8, i64>::into(r.tonic)
+                + 12 * Into::<u32, i64>::into(du / 7)
+                + Into::<u8, i64>::into(*r.scale.at(du % 7))
+                - 120;
+            return if total < 24 {
+                24
+            } else if total > 108 {
+                108
+            } else {
+                total.try_into().unwrap()
+            };
+        },
+    };
+    if r.bounded && pitch < 24 {
+        24
+    } else if r.bounded && pitch > 108 {
+        108
+    } else {
+        pitch
     }
 }
 
@@ -1059,13 +1090,31 @@ fn episode(
             ref prev,
             t + 2 * TU,
             left - 2 * TU,
-            dominant(from, pcs).span(),
+            dominant_for(r, from, pcs).span(),
             voice,
         );
     } else {
         let from = prev.unwrap().pitch;
-        place(ref out, ref grid, ref prev, t, left, dominant(from, pcs).span(), voice);
+        place(ref out, ref grid, ref prev, t, left, dominant_for(r, from, pcs).span(), voice);
     }
+}
+
+fn dominant_for(r: Realizer, from: u8, pcs: Span<u8>) -> Array<(i32, u8)> {
+    let all = dominant(from, pcs);
+    if !r.bounded {
+        return all;
+    }
+    let mut out = array![];
+    for candidate in all.span() {
+        let (distance, pitch) = *candidate;
+        if pitch >= 24 && pitch <= 108 {
+            out.append((distance, pitch));
+        }
+    }
+    if out.is_empty() {
+        out.append((0, from));
+    }
+    out
 }
 
 fn build_section(
@@ -1080,6 +1129,7 @@ fn build_section(
     plan: Span<i32>,
     tr: Trajectory,
     scale_override: Option<Span<u8>>,
+    bounded: bool,
 ) -> Array<NoteEvent> {
     // development: sections after the first follow the Beast's dominant history
     let dev = if s > 0 {
@@ -1157,7 +1207,7 @@ fn build_section(
         Option::Some(sc) => sc,
         Option::None => mode_scale(mode),
     };
-    let r = realizer(*plan.at(s % plan.len()), home, scale);
+    let r = Realizer { bounded, ..realizer(*plan.at(s % plan.len()), home, scale) };
     let next_shift = *plan.at(next % plan.len());
     let mut out: Array<NoteEvent> = array![];
     // canon voices, then the countersubject's voice id
@@ -1534,8 +1584,82 @@ fn build_v11_score_with_boxed(
         Option::Some(x) => x,
         Option::None => seeds.motif_seed,
     };
-    let mut slots = theme_rhythm(@p, theme.span(), rhythm_seed);
-    if tr.trill {
+    BoxTrait::new(
+        build_score_from_material(
+            p,
+            theme.span(),
+            tr,
+            rhythm_seed,
+            ov.flip_side == Option::Some(true),
+            ov.scale,
+            false,
+            false,
+        ),
+    )
+}
+
+
+/// The normalized recipe is already musical content: never rebuild a Beast or
+/// remap supplied key, rhythm, form, expression or trajectory from token traits.
+pub fn build_v11_score_from_inputs(inputs: beast_composer_inputs::SongInputs) -> V11Score {
+    beast_composer_inputs::validate_song(inputs);
+    let p = crate::composition::recipe::score_params(inputs);
+    let theme_params = BeastCompositionParams {
+        tier: inputs.theme.tier, register_band: inputs.theme.register_band, ..p,
+    };
+    let theme_v1 = build_beast_theme(theme_params, inputs.theme.motif_seed);
+    let theme = cadence_theme(theme_v1.degrees.span());
+    let t = inputs.treatment;
+    let tr = Trajectory {
+        direction: match t.direction {
+            0 => 0,
+            1 => 1,
+            _ => -1,
+        },
+        development: t.development,
+        spacing: t.spacing,
+        prominence: t.prominence.into(),
+        trill: t.trill,
+    };
+    let score = build_score_from_material(
+        p,
+        theme.span(),
+        tr,
+        t.rhythm_seed,
+        t.flip_side,
+        crate::composition::genesis::named_mode_scale(p.mode_id),
+        true,
+        t.section_rhythm,
+    );
+    // Accent is an explicit strong-beat dynamic layer. Tenuto retains the
+    // already full-length normal gates; that intentional equivalence is tested.
+    if p.articulation_profile != 3 {
+        return score;
+    }
+    let mut events = array![];
+    for e in score.events.span() {
+        let e = *e;
+        let velocity = if e.time % BAR == 0 {
+            let v: u32 = e.velocity.into() + 8;
+            if v > p.velocity_ceiling.into() {
+                p.velocity_ceiling
+            } else {
+                v.try_into().unwrap()
+            }
+        } else {
+            e.velocity
+        };
+        events.append(NoteEvent { velocity, ..e });
+    }
+    V11Score { events, section_ticks: score.section_ticks, params: p }
+}
+
+#[inline(never)]
+fn written_slots(
+    p: @BeastCompositionParams, theme: Span<i32>, rhythm_seed: felt252, trill: bool,
+) -> Array<Slot> {
+    let mut slots = theme_rhythm(p, theme, rhythm_seed);
+    if trill {
         // a trill (upper neighbour and back) replaces each passing note of an eighth or longer
         let mut out: Array<Slot> = array![];
         let n = slots.len();
@@ -1563,6 +1687,32 @@ fn build_v11_score_with_boxed(
         }
         slots = out;
     }
+    slots
+}
+
+fn section_rhythm_seed(seed: felt252, section: u32) -> felt252 {
+    core::poseidon::poseidon_hash_span(
+        array!['BEAST_SECTION_RHYTHM_V1', seed, section.into()].span(),
+    )
+}
+
+#[inline(never)]
+fn build_score_from_material(
+    p: BeastCompositionParams,
+    theme: Span<i32>,
+    tr: Trajectory,
+    rhythm_seed: felt252,
+    flip_side: bool,
+    scale: Option<Span<u8>>,
+    bounded: bool,
+    section_rhythm: bool,
+) -> V11Score {
+    let first_seed = if section_rhythm {
+        section_rhythm_seed(rhythm_seed, 0)
+    } else {
+        rhythm_seed
+    };
+    let slots = written_slots(@p, theme, first_seed, tr.trill);
     // even: the canon's end plus an episode of 1 or 2 bars, whichever makes the section even
     let mut theme_end: u32 = 0;
     for sl in slots.span() {
@@ -1580,16 +1730,27 @@ fn build_v11_score_with_boxed(
     let cs_seed = core::poseidon::poseidon_hash_span(
         array![p.name_variant_id.into(), p.species_id.into()].span(),
     );
-    let plan = degree_plan(@p, ov.flip_side == Option::Some(true));
+    let plan = degree_plan(@p, flip_side);
     let mut events: Array<NoteEvent> = array![];
     let mut cs_degrees: Array<i32> = array![];
     let sc8: u32 = p.section_count.into();
     let mut s: u32 = 0;
     while s < sc8 {
+        let varied = section_rhythm && s > 0;
+        let current = if varied {
+            written_slots(@p, theme, section_rhythm_seed(rhythm_seed, s), tr.trill)
+        } else {
+            array![]
+        };
+        let current_slots = if varied {
+            current.span()
+        } else {
+            slots.span()
+        };
         let sec = build_section(
             @p,
-            theme.span(),
-            slots.span(),
+            theme,
+            current_slots,
             s,
             s * section_ticks,
             cs_seed,
@@ -1597,13 +1758,14 @@ fn build_v11_score_with_boxed(
             section_ticks,
             plan.span(),
             tr,
-            ov.scale,
+            scale,
+            bounded,
         );
         events.append_span(sec.span());
         s += 1;
     }
     shape(ref events, @p, section_ticks, tr.prominence);
-    BoxTrait::new(V11Score { events, section_ticks, params: p })
+    V11Score { events, section_ticks, params: p }
 }
 
 /// The v1.1 score as a form for the MIDI writers (no score hash: the self-contained writer does not

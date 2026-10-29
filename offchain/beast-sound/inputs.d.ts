@@ -36,3 +36,4 @@ export function encodeInputs(inputs: ComposerInputs): bigint[];
 export function decodeInputs(values: Integer[]): ComposerInputs;
 export function encodeGenerationInputs(inputs: GenerationInputs): bigint[];
 export function decodeGenerationInputs(values: Integer[]): GenerationInputs;
+export function applyPerformance(inputs: ComposerInputs, code: number): ComposerInputs;

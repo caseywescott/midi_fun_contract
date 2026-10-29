@@ -22,7 +22,7 @@ edition = "2025_12"
 midi = { path = "core/midi" }
 # TinySynthSettings, TinySynthSound, ISoundProvider, default_settings and validate: the
 # onchain_midi_types package of Provable-Games/onchain-midi-player, which depends on starknet alone.
-onchain_midi_types = { git = "https://github.com/Provable-Games/onchain-midi-player", rev = "10c3348ddcc5a90835c4ad905bbf81587dc1449c" }
+onchain_midi_types = { git = "https://github.com/Provable-Games/onchain-midi-player", rev = "88e62f910e1069c2d6c6ca870aa0979c4f654448" }
 # OpenZeppelin Cairo: Ownable and Upgradeable for BeastMidiProvider.
 openzeppelin_access = "4.0.1"
 openzeppelin_upgrades = "4.0.1"

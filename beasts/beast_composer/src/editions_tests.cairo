@@ -1,18 +1,12 @@
 //! Parity of the Monthly Track Editions port (composition/editions.cairo) with
-//! offchain/beast-sound/src/editions.js: each `#[ignore]`d batch prints one ED line per case (the
-//! whole file in hex); scripts/editions_parity.mjs composes the same cases in JS and compares.
+//! offchain/beast-sound/src/editions_lite.js: each `#[ignore]`d batch prints one ED line per case
+//! (the whole file in hex); scripts/editions_parity.mjs composes the same cases in JS and compares.
 //!   sh scripts/editions_parity_cairo.sh /tmp/ed.txt && node scripts/editions_parity.mjs
 //!   /tmp/ed.txt
-use crate::composition::editions::{edition_engine, edition_smf_bytes, hash32};
+use crate::composition::editions::{edition_genome, edition_smf_bytes};
 
-// from editions.js: hash32('TRACK', 1, 1, 'seed:1'), hash32('EDITION', 13), and the engines of
-// editions 0-59 (ENGINE_LIST indices; 255 = the canon)
-const HASH_TRACK: u32 = 4107909763;
-const HASH_EDITION: u32 = 914946597;
-const ENGINES: [u8; 60] = [
-    255, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 5, 9, 12, 6, 7, 0, 11, 6, 9, 5, 2, 3, 7, 4, 0, 3,
-    9, 2, 10, 8, 5, 6, 12, 9, 3, 6, 8, 7, 10, 5, 11, 6, 1, 2, 4, 6, 11, 8, 7, 5, 12, 6, 7, 2, 11, 5,
-];
+// from editions_lite.js: editionGenome(e).style for editions 1-8
+const STYLES: [u32; 8] = [0, 1, 2, 3, 0, 1, 2, 3];
 
 const HEX: [u8; 16] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
@@ -53,20 +47,19 @@ fn parity_edition(e: u32) {
 }
 
 #[test]
-fn hash32_matches_the_source() {
-    // hash32('TRACK', 1, 1, 'seed:1') and hash32('EDITION', 13) in editions.js
-    assert_eq!(hash32(@"TRACK|1|1|seed:1"), HASH_TRACK);
-    assert_eq!(hash32(@"EDITION|13"), HASH_EDITION);
+fn the_calendar_cycles_the_four_styles() {
+    let mut e: u32 = 1;
+    for x in STYLES.span() {
+        let (st, _, _, _, _) = edition_genome(e);
+        assert_eq!(st, *x);
+        e += 1;
+    }
 }
 
 #[test]
-fn the_calendar_matches_the_source() {
-    let expected = ENGINES.span();
-    let mut e: u32 = 0;
-    for x in expected {
-        assert_eq!(edition_engine(e), *x);
-        e += 1;
-    }
+#[should_panic(expected: ('editions: 0 is the canon',))]
+fn edition_0_is_the_canon() {
+    edition_genome(0);
 }
 
 #[test]

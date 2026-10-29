@@ -1,9 +1,9 @@
 // Parity: the Monthly Track Editions port (beasts/beast_composer/src/composition/editions.cairo)
-// against offchain/beast-sound/src/editions.js, case by case from the ED lines the Cairo fixture
+// against offchain/beast-sound/src/editions_lite.js, case by case from the ED lines the Cairo fixture
 // prints (whole files in hex).
 //   sh scripts/editions_parity_cairo.sh /tmp/ed.txt && node scripts/editions_parity.mjs /tmp/ed.txt
 import { readFileSync } from 'node:fs';
-import { editionMidi } from '../offchain/beast-sound/src/editions.js';
+import { editionMidi } from '../offchain/beast-sound/src/editions_lite.js';
 import { speciesRecords } from '../offchain/beast-sound/onchain/editions_cairo.mjs';
 
 const SP = speciesRecords();

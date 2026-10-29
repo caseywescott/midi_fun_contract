@@ -1,4 +1,5 @@
-// Build public/onchain/editions.html: the Monthly Track Editions prototype (src/editions.js). Step
+// Build public/onchain/editions.html: the Monthly Track Editions (src/editions_lite.js, the engine
+// BeastMidiProvider.get_edition_midi plays byte for byte; src/editions.js is the larger prototype). Step
 // through editions (one per UTC month), Beasts and track seeds; play each through onchain-midi-player's
 // pinned engine with the whole TinyChip bank (100 presets); mark each edition Keep / Maybe / Reject.
 // Edition 0 is today's seeded canon (src/lab.js genesisMidi with a seed).
@@ -18,7 +19,7 @@ if (!engineFile) { console.error('usage: node onchain/editions-demo.mjs <webaudi
 const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
 const tiny = readFileSync(engineFile, 'utf8');
 const bundle = (await build({
-  stdin: { contents: "import { engine } from './src/index.js'; import { createEngineV11 } from './src/engine_v11.js'; import { genesisMidi, labBlockHash } from './src/lab.js'; import * as ed from './src/editions.js'; window.BS = { engine, v11: createEngineV11(engine), genesisMidi, labBlockHash, ed };", resolveDir: here + '..', loader: 'js' },
+  stdin: { contents: "import { engine } from './src/index.js'; import { createEngineV11 } from './src/engine_v11.js'; import { genesisMidi, labBlockHash } from './src/lab.js'; import * as ed from './src/editions_lite.js'; window.BS = { engine, v11: createEngineV11(engine), genesisMidi, labBlockHash, ed };", resolveDir: here + '..', loader: 'js' },
   bundle: true, minify: true, format: 'iife', platform: 'browser', write: false, logLevel: 'error',
 })).outputFiles[0].text;
 
@@ -90,7 +91,7 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin-top:10px
 <textarea id="vnote" placeholder="Notes on this edition (saved in this browser)"></textarea>
 <div class="ctl" style="margin-top:8px"><button id="export">Copy all verdicts</button></div><p class="note" id="vsum"></p></div>
 <div class="card"><div class="sec" style="margin-top:0">Calendar</div><div class="list" id="list"></div>
-<p class="note">0–12 are hand-picked (year one, then a Boss Battle for the first anniversary). From 13 on, each month is generated from its index: never an engine used in the previous three months, with its own tempo, harmony, accompaniment, drums and presets drawn from the whole bank.</p></div>
+<p class="note">From November 2026 the four onchain styles take turns (waltz, chorale, lullaby, dirge); each pass through them moves on the mode, tempo and form. These are the tracks BeastMidiProvider composes onchain, byte for byte.</p></div>
 </div></div>
 </main>
 <script>${inline(tiny)}</script>

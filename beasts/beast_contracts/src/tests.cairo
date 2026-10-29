@@ -3,6 +3,7 @@
 use beast_composer::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, encode_v3_token_id,
 };
+use beast_composer::composition::editions::edition_byte_array;
 use beast_composer::composition::genesis::genesis_midi;
 use core::dict::{Felt252Dict, Felt252DictTrait};
 use midi::interfaces::{
@@ -443,6 +444,51 @@ fn reports_collection_and_engine() {
     let w = setup();
     assert_eq!(w.provider.get_collection(), w.nft.contract_address);
     assert_eq!(w.provider.get_engine_version(), 1);
+}
+
+#[test]
+fn serves_the_monthly_editions() {
+    let w = setup();
+    assert_eq!(w.provider.get_edition_midi(21, false, 2, 7), edition_byte_array(21, false, 2, 7));
+}
+
+#[test]
+#[should_panic(expected: ('editions: 0 is the canon', 'ENTRYPOINT_FAILED'))]
+fn edition_0_is_not_served_here() {
+    let w = setup();
+    w.provider.get_edition_midi(1, false, 0, 1);
+}
+
+// Gas probes (`scarb test -p beast_contracts -- edition_gas --include-ignored`): one
+// get_edition_midi per style for the heaviest Beast (tier 1: the pad; shiny: the mega double).
+#[test]
+#[ignore]
+fn edition_gas_waltz() {
+    setup().provider.get_edition_midi(1, true, 1, 1);
+}
+
+#[test]
+#[ignore]
+fn edition_gas_chorale() {
+    setup().provider.get_edition_midi(1, true, 2, 1);
+}
+
+#[test]
+#[ignore]
+fn edition_gas_lullaby() {
+    setup().provider.get_edition_midi(1, true, 3, 1);
+}
+
+#[test]
+#[ignore]
+fn edition_gas_dirge() {
+    setup().provider.get_edition_midi(1, true, 4, 1);
+}
+
+#[test]
+#[ignore]
+fn edition_gas_setup_only() {
+    setup();
 }
 
 #[test]

@@ -104,6 +104,9 @@ pub trait IBeastMidiProvider<T> {
     fn get_collection(self: @T) -> ContractAddress;
     /// Composition engine (`BEAST_V3_ENGINE_VERSION`): a new engine means a new provider.
     fn get_engine_version(self: @T) -> u32;
+    /// Monthly Track Edition `edition`'s track for a species (1-75), shiny or not, and a track
+    /// seed, as a format-0 Standard MIDI File.
+    fn get_edition_midi(self: @T, species: u32, shiny: bool, edition: u32, seed: u64) -> ByteArray;
 }
 
 #[starknet::contract]
@@ -112,6 +115,7 @@ pub mod BeastMidiProvider {
         BEAST_V3_ENGINE_VERSION, BeastV3LiveState, GENESIS_SPECIES_MAX, PackableBeastV3,
         decode_v3_token_id,
     };
+    use beast_composer::composition::editions::edition_byte_array;
     use beast_composer::composition::genesis::{genesis_byte_array, genesis_swap, species_type};
     use beast_composer::composition::yeti::YETI;
     use core::num::traits::Zero;
@@ -223,6 +227,12 @@ pub mod BeastMidiProvider {
 
         fn get_engine_version(self: @ContractState) -> u32 {
             BEAST_V3_ENGINE_VERSION
+        }
+
+        fn get_edition_midi(
+            self: @ContractState, species: u32, shiny: bool, edition: u32, seed: u64,
+        ) -> ByteArray {
+            edition_byte_array(species, shiny, edition, seed)
         }
     }
 

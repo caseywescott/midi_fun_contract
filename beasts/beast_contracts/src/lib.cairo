@@ -8,7 +8,6 @@
 use beast_composer::composition::beast_trait_map::BeastCompositionParams;
 use beast_composer::composition::beast_v3_sound::BeastV3LiveState;
 
-pub mod editions;
 pub mod provider;
 pub mod synth_settings;
 
@@ -99,7 +98,5 @@ pub mod BeastSoundComposer {
 
 #[cfg(test)]
 mod composer_tests;
-#[cfg(test)]
-mod editions_tests;
 #[cfg(test)]
 mod tests;

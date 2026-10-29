@@ -95,48 +95,10 @@ fn identity_of(b: PackableBeastV3) -> crate::inputs::BeastMusicalIdentity {
     }
 }
 
-/// Edition 0 of the default config, varied by a seed, is the Beast's bought track (no default
-/// swap: Harpy plays its own; named, Yeti and community Beasts as well).
+/// Every species, named and unnamed: a purchase is the seed's bought track (no default swap)
+/// with only its shape changed, and valid (`generate_inputs` validates).
 #[test]
-fn default_edition_purchase_is_the_bought_track() {
-    let config = crate::inputs::EditionCompositionConfig { composition_seed: 0 };
-    let cases = array![
-        (beast(39, 0, 0, 0), 'hash a'), (beast(12, 41, 7, 0), 'hash b'),
-        (beast(68, 5, 3, 0), 'hash c'), (beast(76, 0, 0, 0), 'hash d'), (beast(1, 69, 18, 0), 0),
-    ];
-    for (b, seed) in cases {
-        let base = crate::composition::generation::get_generation_inputs(config, 0, identity_of(b));
-        let generated = crate::composition::generation::generate_inputs(base, seed);
-        let expected = if seed == 0 {
-            // zero is ordinary seed data here, not the Genesis sentinel
-            crate::composition::genesis::bought_song_inputs(base.base_song, 0)
-        } else {
-            genesis_song_inputs(b, b.prefix, b.suffix, seed, Option::None)
-        };
-        assert(generated == ComposerInputs::Song(expected), 'not the bought track');
-    }
-}
-
-#[test]
-fn other_editions_change_only_the_theme() {
-    let b = beast(12, 41, 7, 0);
-    let config = crate::inputs::EditionCompositionConfig { composition_seed: 0 };
-    let first = crate::composition::generation::get_generation_inputs(config, 0, identity_of(b));
-    let third = crate::composition::generation::get_generation_inputs(config, 3, identity_of(b));
-    assert(third.base_song.theme.motif_seed != first.base_song.theme.motif_seed, 'same theme');
-    let mut back = third.base_song;
-    back.theme.motif_seed = first.base_song.theme.motif_seed;
-    back.treatment.rhythm_seed = first.base_song.treatment.rhythm_seed;
-    assert(back == first.base_song, 'more than the theme changed');
-    // every Beast of the species shares the edition's theme
-    let other = crate::composition::generation::get_generation_inputs(
-        config, 3, identity_of(beast(12, 2, 9, 0)),
-    );
-    assert(other.base_song.theme.motif_seed == third.base_song.theme.motif_seed, 'species theme');
-}
-
-#[test]
-fn every_species_purchase_is_its_bought_track() {
+fn every_species_purchase_is_its_bought_track_in_a_shape() {
     let config = crate::inputs::EditionCompositionConfig { composition_seed: 0 };
     let mut id: u64 = 1;
     while id <= 76 {
@@ -149,15 +111,64 @@ fn every_species_purchase_is_its_bought_track() {
             let base = crate::composition::generation::get_generation_inputs(
                 config, 0, identity_of(b),
             );
-            assert(
-                crate::composition::generation::generate_inputs(
-                    base, seed,
-                ) == ComposerInputs::Song(
-                    genesis_song_inputs(b, b.prefix, b.suffix, seed, Option::None),
-                ),
-                'not the bought track',
-            );
+            let bought = genesis_song_inputs(b, b.prefix, b.suffix, seed, Option::None);
+            let mut x = match crate::composition::generation::generate_inputs(base, seed) {
+                ComposerInputs::Song(x) => x,
+                ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+            };
+            assert(x.theme == bought.theme, 'theme changed');
+            x.score.stretto_lag = bought.score.stretto_lag;
+            x.score.use_inversion = bought.score.use_inversion;
+            x.score.ornament_density = bought.score.ornament_density;
+            x.score.voice_count = bought.score.voice_count;
+            x.score.use_countersubject = bought.score.use_countersubject;
+            x.treatment.trill = bought.treatment.trill;
+            x.arrangement.channel_count = bought.arrangement.channel_count;
+            assert(x == bought, 'more than the shape changed');
         }
         id += 1;
     }
+}
+
+#[test]
+fn editions_keep_the_species_song() {
+    let b = identity_of(beast(12, 41, 7, 0));
+    let first = crate::composition::generation::get_generation_inputs(
+        crate::inputs::EditionCompositionConfig { composition_seed: 0 }, 0, b,
+    );
+    let later = crate::composition::generation::get_generation_inputs(
+        crate::inputs::EditionCompositionConfig { composition_seed: 'another' }, 7, b,
+    );
+    assert(first == later, 'an edition changed the song');
+}
+
+/// The first seed whose shape drops a voice and the countersubject.
+fn thinned_seed() -> felt252 {
+    let mut seed: felt252 = 1;
+    loop {
+        let shape: u256 = core::poseidon::poseidon_hash_span(
+            array!['BEAST_SAMPLE_SHAPE_V1', seed].span(),
+        )
+            .into();
+        if (shape % 512) / 128 % 2 == 1 && (shape % 512) / 256 % 2 == 1 {
+            break seed;
+        }
+        seed += 1;
+    }
+}
+
+#[test]
+fn thinned_purchase_composes_three_voices_without_the_countersubject() {
+    let b = beast(7, 0, 0, 0);
+    let base = crate::composition::generation::get_generation_inputs(
+        crate::inputs::EditionCompositionConfig { composition_seed: 0 }, 0, identity_of(b),
+    );
+    let x = match crate::composition::generation::generate_inputs(base, thinned_seed()) {
+        ComposerInputs::Song(x) => x,
+        ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+    };
+    assert(x.score.voice_count == 3 && !x.score.use_countersubject, 'not thinned');
+    assert(x.arrangement.channel_count <= 4, 'more channels than roles');
+    let midi = song_inputs_smf_bytes(x, false);
+    assert(*midi.at(0) == 'M' && midi.len() > 200, 'no file');
 }

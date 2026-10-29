@@ -35,6 +35,7 @@ use crate::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, map_v3_beast_to_composition_params,
 };
 use crate::composition::drift::{DriftClock, layered_drift, nudge_tempo};
+use crate::composition::evolution::{StaffControls, extra_role_unlocked, perform_staff_events};
 use crate::composition::full_midi::{
     Arrangement, SMF_DIVISION, SMF_FORMAT, VoiceRun, Voicing, beast_form_to_full_tracks_arranged,
     mega_lead_pick, voice_runs, voice_stats,
@@ -45,8 +46,8 @@ use crate::composition::yeti::{
     yeti_key, yeti_ornaments,
 };
 use crate::inputs::{
-    ArrangementInputs, ChannelPolicy, MusicIdentity, ScoreInputs, SongInputs, SpecialArrangement,
-    ThemeInputs, TreatmentInputs,
+    ArrangementInputs, ChannelPolicy, MAX_TEMPO_US, MusicIdentity, ScoreInputs, SongInputs,
+    SpecialArrangement, ThemeInputs, TreatmentInputs,
 };
 
 /// The chosen Genesis theme of species 1..=75 (index id - 1): a special-name candidate, 0 = its
@@ -942,9 +943,9 @@ pub fn beast_song_inputs(beast: PackableBeastV3, prefix: u8, suffix: u8) -> Song
     song_inputs(beast, prefix, suffix, 0, Option::None, false)
 }
 
-/// A bought track from its base and its seed (a block hash): the seed's treatment (development,
-/// episode direction, 2-4 sections, spacing, the key plan's side, the rhythm cells) and channels
-/// (3-6, in a seeded order). Everything else is the base's.
+/// A bought track's written treatment and channels from its base and seed: the seed's development,
+/// episode direction, 2-4 sections, spacing, key plan side and rhythm cells, and 3-6 channels in a
+/// seeded order (`genesis_song_inputs` with that seed). `purchase_song_inputs` adds the shape.
 pub fn bought_song_inputs(base: SongInputs, seed: felt252) -> SongInputs {
     let t = treatment(seed);
     let mut x = base;
@@ -961,6 +962,36 @@ pub fn bought_song_inputs(base: SongInputs, seed: felt252) -> SongInputs {
             };
     x.arrangement.channel_count = seeded_channels(seed).try_into().unwrap();
     x.arrangement.channel_policy = ChannelPolicy::Seeded(seed);
+    x
+}
+
+/// A purchase: the bought track of `bought_song_inputs` in a shape of its own, from the seed (the
+/// Beasts reference manager's 'BEAST_SAMPLE_SHAPE_V1'): a later canon entry, the inversion
+/// toggled, more ornaments, trills toggled, one voice fewer (of three or more) and the
+/// countersubject dropped, each by its own bit; the channels at most the roles left. The theme,
+/// key and instruments stay the base's.
+pub fn purchase_song_inputs(base: SongInputs, seed: felt252) -> SongInputs {
+    let mut x = bought_song_inputs(base, seed);
+    let shape: u256 = poseidon_hash_span(array!['BEAST_SAMPLE_SHAPE_V1', seed].span()).into();
+    let shape: u16 = (shape % 512).try_into().unwrap();
+    let lag: u8 = (shape % 4).try_into().unwrap();
+    x.score.stretto_lag = 1 + (x.score.stretto_lag - 1 + lag) % 4;
+    x.score.use_inversion = x.score.use_inversion != (shape / 4 % 2 == 1);
+    let density: u8 = (shape / 8 % 8).try_into().unwrap();
+    x.score.ornament_density = (x.score.ornament_density + density) % 8;
+    x.treatment.trill = x.treatment.trill != (shape / 64 % 2 == 1);
+    if x.score.voice_count > 2 {
+        x.score.voice_count -= (shape / 128 % 2).try_into().unwrap();
+    }
+    x.score.use_countersubject = x.score.use_countersubject && shape / 256 % 2 == 0;
+    let roles: u8 = x.score.voice_count + if x.score.use_countersubject {
+        1
+    } else {
+        0
+    } + 1;
+    if x.arrangement.channel_count > roles {
+        x.arrangement.channel_count = roles;
+    }
     x
 }
 
@@ -1197,6 +1228,17 @@ fn special_name_id(prefix: u8, suffix: u8) -> u16 {
 /// The track bodies a song's shared inputs compose, with the mega arrangement when `mega`. Plays
 /// what this engine supports: tied inner voices and the written phrase in every section.
 pub fn song_tracks(x: SongInputs, mega: bool) -> Array<Array<u8>> {
+    song_tracks_with(x, mega, Option::None)
+}
+
+/// The same on a staff (evolution, `evolution.cairo`): the written channels plus the extra roles
+/// the staff unlocked (next in the written channel order), its note performance (velocity and
+/// octave ornaments) and its tempo.
+pub fn staff_song_tracks(x: SongInputs, mega: bool, staff: StaffControls) -> Array<Array<u8>> {
+    song_tracks_with(x, mega, Option::Some(staff))
+}
+
+fn song_tracks_with(x: SongInputs, mega: bool, staff: Option<StaffControls>) -> Array<Array<u8>> {
     let (theme, s, t, a) = (x.theme, x.score, x.treatment, x.arrangement);
     assert(a.weak_ties, 'untied voices unsupported');
     assert(!t.section_rhythm, 'section rhythm unsupported');
@@ -1253,11 +1295,23 @@ pub fn song_tracks(x: SongInputs, mega: bool) -> Array<Array<u8>> {
     // are the same, since a channel is kept or dropped whole)
     let runs = voice_runs(score.events.span());
     let (sums, counts) = voice_stats(runs.span(), MAX_VOICES - 1);
-    let count: u32 = a.channel_count.into();
-    let picked = match a.channel_policy {
-        ChannelPolicy::Genesis => genesis_pick(sums.span(), counts.span(), count),
-        ChannelPolicy::Seeded(order) => seeded_pick(sums.span(), counts.span(), count, order),
-    };
+    let order = song_pick(
+        sums.span(), counts.span(), p.voice_count, p.use_countersubject, a.channel_policy,
+    );
+    let written: u32 = a.channel_count.into();
+    let mut picked: Array<u32> = array![];
+    let mut i: u32 = 0;
+    for role in order.span() {
+        let include = i < written
+            || match staff {
+            Option::Some(c) => extra_role_unlocked(c.unlocked_extra_mask, i - written),
+            Option::None => false,
+            };
+        if include {
+            picked.append(*role);
+        }
+        i += 1;
+    }
     let mut events = tie_repeats(
         score.events.span(),
         runs.span(),
@@ -1266,6 +1320,16 @@ pub fn song_tracks(x: SongInputs, mega: bool) -> Array<Array<u8>> {
         counts.span(),
         score.section_ticks,
     );
+    let mut tempo_us = s.tempo_us;
+    if let Option::Some(c) = staff {
+        events = perform_staff_events(events.span(), p.velocity_ceiling, c);
+        let nudged = nudge_tempo(tempo_us, c.tempo_delta);
+        tempo_us = if nudged > MAX_TEMPO_US {
+            MAX_TEMPO_US
+        } else {
+            nudged
+        };
+    }
     // the Yeti special: ornaments by the track's profile, then the avalanche
     let yeti = if let SpecialArrangement::Yeti(name) = a.special {
         let (prefix, suffix) = if name == 0 {
@@ -1301,7 +1365,7 @@ pub fn song_tracks(x: SongInputs, mega: bool) -> Array<Array<u8>> {
     };
     beast_form_to_full_tracks_arranged(
         @form,
-        s.tempo_us,
+        tempo_us,
         p.tier,
         Option::Some(
             Voicing {
@@ -1327,6 +1391,80 @@ pub fn song_tracks(x: SongInputs, mega: bool) -> Array<Array<u8>> {
             programs: Option::None,
         },
     )
+}
+
+/// Every role of a song in its written channel order: the theme (voice 0), the lowest canon voice
+/// (by mean pitch, the first on a tie), then, for the Genesis order, drums, the countersubject
+/// (voice `voices`, when written) and the other canon voices in id order; for a seeded order, the
+/// other canon voices, the countersubject and drums shuffled by the seed. With four voices and the
+/// countersubject this is `genesis_pick` / `seeded_pick`; a song keeps its first `channel_count`.
+fn song_pick(
+    sums: Span<u64>, counts: Span<u64>, voices: u32, countersubject: bool, policy: ChannelPolicy,
+) -> Array<u32> {
+    let mut low: u32 = 0;
+    let mut v: u32 = 1;
+    while v < voices {
+        if *counts.at(v) > 0 && mean_less(sums, counts, v, low) {
+            low = v;
+        }
+        v += 1;
+    }
+    let mut order: Array<u32> = array![0];
+    if low != 0 {
+        order.append(low);
+    }
+    let mut rest: Array<u32> = array![];
+    match policy {
+        ChannelPolicy::Genesis => {
+            rest.append(DRUMS);
+            if countersubject {
+                rest.append(voices);
+            }
+            let mut v: u32 = 1;
+            while v < voices {
+                if v != low {
+                    rest.append(v);
+                }
+                v += 1;
+            }
+        },
+        ChannelPolicy::Seeded(seed) => {
+            let mut values: Felt252Dict<u32> = Default::default();
+            let mut n: u32 = 0;
+            let mut v: u32 = 1;
+            while v < voices {
+                if v != low {
+                    values.insert(n.into(), v);
+                    n += 1;
+                }
+                v += 1;
+            }
+            if countersubject {
+                values.insert(n.into(), voices);
+                n += 1;
+            }
+            values.insert(n.into(), DRUMS);
+            n += 1;
+            let mut h: u256 = poseidon_hash_span(array!['BEAST_CHANNEL_ORDER', seed].span()).into();
+            let mut i = n - 1;
+            while i > 0 {
+                let j: u32 = (h % (i + 1).into()).try_into().unwrap();
+                let a = values.get(i.into());
+                let b = values.get(j.into());
+                values.insert(i.into(), b);
+                values.insert(j.into(), a);
+                h = h / 7;
+                i -= 1;
+            }
+            let mut k: u32 = 0;
+            while k < n {
+                rest.append(values.get(k.into()));
+                k += 1;
+            }
+        },
+    }
+    order.append_span(rest.span());
+    order
 }
 
 /// A song's file from its shared inputs (self-contained, for onchain-midi-player).

@@ -261,6 +261,7 @@ pub fn decode_generation_inputs(mut values: Span<felt252>) -> GenerationInputs {
     x
 }
 
+pub mod evolution;
 
 #[cfg(test)]
 mod tests;

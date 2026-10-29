@@ -3,16 +3,20 @@
 //! test (memory).
 use beast_composer::composition::beast_v3_sound::PackableBeastV3;
 use beast_composer::composition::genesis::{
-    genesis_byte_array, genesis_song_inputs, seeded_track_smf_bytes, song_tracks, species_tier,
+    genesis_byte_array, genesis_song_inputs, purchase_song_inputs, song_tracks, species_tier,
     species_type,
 };
 use beast_composer::composition::performance::apply_performance;
 use beast_composer::composition::sound_check::{sound_check_inputs, sound_check_smf_bytes};
+use beast_composer::inputs::evolution::{
+    EvolutionConfig, EvolutionInputs, MilestoneHash, milestone_blocks,
+};
 use beast_composer::inputs::{BeastMusicalIdentity, ComposerInputs, EditionCompositionConfig};
 use midi::pack::bytes_to_byte_array;
 use snforge_std::{DeclareResultTrait, declare};
 use crate::pure_composer::{
     IBeastPureComposerDispatcherTrait, IBeastPureComposerLibraryDispatcher, compose_sound,
+    compose_staff_sound,
 };
 use crate::pure_generator::{
     IBeastPureGeneratorDispatcherTrait, IBeastPureGeneratorLibraryDispatcher,
@@ -105,8 +109,9 @@ fn rejects_unassigned_sound_effects() {
 }
 
 /// The manager's purchase path: the generator's edition base and variation, then the composer.
+/// The purchase is the seed's bought track in its own shape, on the species' theme.
 #[test]
-fn generated_purchase_composes_the_bought_track() {
+fn generated_purchase_composes_the_shaped_bought_track() {
     let generator = IBeastPureGeneratorLibraryDispatcher {
         class_hash: declare("BeastPureGenerator").unwrap().contract_class().class_hash,
     };
@@ -116,10 +121,87 @@ fn generated_purchase_composes_the_bought_track() {
     };
     let base = generator
         .get_generation_inputs(EditionCompositionConfig { composition_seed: 0 }, 0, identity);
+    assert(
+        generator
+            .get_generation_inputs(
+                EditionCompositionConfig { composition_seed: 'other' }, 9, identity,
+            ) == base,
+        'editions keep the species song',
+    );
     let inputs = generator.generate_inputs(base, 'block hash');
+    let song = match inputs {
+        ComposerInputs::Song(song) => song,
+        ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+    };
+    assert(song == purchase_song_inputs(base.base_song, 'block hash'), 'not the purchase');
     let sound = composer().compose(inputs, 0);
     assert(
-        sound.midi == bytes_to_byte_array(seeded_track_smf_bytes(b, 41, 7, 'block hash').span()),
-        'not the bought track',
+        sound.midi == midi::smf::smf_byte_array(1, 480, song_tracks(song, false).span()),
+        'not the purchase file',
     );
+}
+
+fn evolution_config(unlock_bps: u16) -> EvolutionConfig {
+    EvolutionConfig {
+        first_milestone_age: 10,
+        initial_unlock_bps: unlock_bps,
+        unlock_step_bps: 0,
+        max_extra_channels: 5,
+        max_tempo_delta_bpm: 2,
+        max_velocity_delta: 6,
+        ornament_chance_bps: 800,
+    }
+}
+
+/// The manager's resolved context: every milestone from birth to the staff, with its hash.
+fn staff_context(config: EvolutionConfig, birth: u64, staff: u64) -> EvolutionInputs {
+    let mut milestones = array![];
+    for block in milestone_blocks(config, birth, staff) {
+        milestones.append(MilestoneHash { block_number: block, block_hash: block.into() + 'h' });
+    }
+    EvolutionInputs {
+        birth_block: birth,
+        staff_block: staff,
+        drift_group: 'group',
+        staff_hash: 'staff',
+        milestones: milestones.span(),
+    }
+}
+
+#[test]
+fn staff_unlocks_the_next_written_roles_and_performs() {
+    // a tier 5 Genesis Track keeps 3 of its 6 roles; every milestone unlocks, so all 6 play
+    let b = beast(25, 0, 0, 0);
+    let x = genesis(b);
+    let config = evolution_config(10000);
+    let staff = compose_staff_sound(x, 0, config, staff_context(config, 100, 200));
+    let song = match x {
+        ComposerInputs::Song(song) => song,
+        ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+    };
+    assert(song.arrangement.channel_count == 3, 'tier 5 keeps 3');
+    // the header's track count (byte 11): the tempo track, then one per voice and the drums
+    let written = genesis_byte_array(b);
+    assert(staff.midi != written, 'staff changed nothing');
+    assert(staff.midi.at(11).unwrap() > written.at(11).unwrap(), 'no channel unlocked');
+    assert(staff.settings == beast_synth_settings(species_type(25), false), 'not the settings');
+}
+
+#[test]
+fn sound_check_has_no_staff() {
+    let x = ComposerInputs::SoundCheck(sound_check_inputs(beast(30, 0, 0, 0)));
+    let config = evolution_config(5000);
+    assert(
+        compose_staff_sound(x, 2, config, staff_context(config, 100, 300)) == compose_sound(x, 2),
+        'a staff changed the check',
+    );
+}
+
+#[test]
+#[should_panic(expected: 'staff before birth')]
+fn rejects_a_staff_before_birth() {
+    let config = evolution_config(5000);
+    let mut context = staff_context(config, 100, 100);
+    context.birth_block = 101;
+    compose_staff_sound(genesis(beast(1, 0, 0, 0)), 0, config, context);
 }

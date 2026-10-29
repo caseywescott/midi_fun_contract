@@ -24,7 +24,7 @@ use crate::pure_composer::{
 use crate::pure_generator::{
     IBeastPureGeneratorDispatcherTrait, IBeastPureGeneratorLibraryDispatcher,
 };
-use crate::synth_settings::{beast_synth_settings, yeti_synth_settings};
+use crate::synth_settings::{beast_synth_settings, edition_synth_settings, yeti_synth_settings};
 
 fn composer() -> IBeastPureComposerLibraryDispatcher {
     let class_hash = declare("BeastPureComposer").unwrap().contract_class().class_hash;
@@ -212,7 +212,7 @@ fn rejects_a_staff_before_birth() {
 }
 
 /// From edition 1 a purchase is the edition's style engine on the species' theme, its seed the
-/// purchase's low 64 bits; the composer plays it with the species' family settings.
+/// purchase's low 64 bits; the composer plays it with the style's presets for the species' type.
 #[test]
 fn edition_purchase_composes_the_style_engine() {
     let generator = IBeastPureGeneratorLibraryDispatcher {
@@ -234,11 +234,12 @@ fn edition_purchase_composes_the_style_engine() {
     assert(inputs == ComposerInputs::Edition(expected), 'not the edition');
     let plain = composer().compose(inputs, 0);
     assert(plain.midi == edition_byte_array(40, false, 3, 0xfedcba9876543210), 'not the style');
-    assert(plain.settings == beast_synth_settings(1, false), 'not the family');
+    // edition 3 is the lullaby (style 2); species 40 is a Hunter (type 1)
+    assert(plain.settings == edition_synth_settings(2, 1, false), 'not the edition presets');
     // sound effect 1 (old shiny) brings the mega leads
     let mega = composer().compose(inputs, 1);
     assert(mega.midi == edition_byte_array(40, true, 3, 0xfedcba9876543210), 'not the mega style');
-    assert(mega.settings == beast_synth_settings(1, true), 'not the mega family');
+    assert(mega.settings == edition_synth_settings(2, 1, true), 'not the mega edition presets');
     // an edition has no staff: compose_staff plays it as written
     let config = evolution_config(5000);
     assert(
@@ -257,5 +258,36 @@ fn later_species_buy_songs_in_every_edition() {
     match beast_composer::composition::generation::generate_inputs(base, 5, 'h') {
         ComposerInputs::Song(_) => {},
         _ => core::panic_with_felt252('not a song'),
+    }
+}
+
+/// Every Monthly Track Edition settings value (4 styles x 3 types x mega) serializes as the
+/// generator's (synth_settings.mjs editionSynthSettings) and passes onchain-midi-player's checks,
+/// AM routes included (Ring Mod Bell 78, AY Buzzer Bass 88).
+#[test]
+fn edition_settings_serialize_as_generated_and_validate() {
+    let hashes = crate::synth_settings::EDITION_SERDE_HASHES.span();
+    let mut style: u32 = 0;
+    while style < 4 {
+        let mut t: u32 = 0;
+        while t < 3 {
+            for mega in array![false, true] {
+                let s = crate::synth_settings::edition_synth_settings(style, t, mega);
+                let mut out: Array<felt252> = array![];
+                s.serialize(ref out);
+                let i = (style * 3 + t) * 2 + if mega {
+                    1
+                } else {
+                    0
+                };
+                assert(
+                    core::poseidon::poseidon_hash_span(out.span()) == *hashes.at(i),
+                    'edition settings differ',
+                );
+                midi::settings::validate(@s);
+            }
+            t += 1;
+        }
+        style += 1;
     }
 }

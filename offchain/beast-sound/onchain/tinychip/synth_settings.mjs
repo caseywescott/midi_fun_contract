@@ -31,8 +31,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { poseidonHashMany } from '../../src/index.js';
 import { FAMILIES } from '../../src/full_midi.js';
+import { STYLES } from '../../src/editions_lite.js';
 import { fileURLToPath } from 'node:url';
-import { bankData, loadBank } from './essentials.mjs';
+import { bankData, ESSENTIALS, loadBank } from './essentials.mjs';
 
 const SCALE = 10000;
 const DEFAULTS = { g: 0, w: 'sine', t: 1, f: 0, v: 0.5, a: 0, h: 0.01, d: 0.01, s: 0, r: 0.05, p: 1, q: 1, k: 0 };
@@ -120,16 +121,18 @@ export function timbreOperators(ops, trim = 1, waves = []) {
   const out = [], parts = []; // parts[i]: 1-based indices in `out` of original operator i
   for (const raw of ops) {
     const o = { ...DEFAULTS, ...raw };
-    if (o.g > 10) throw new Error('AM modulators are not mapped');
     const custom = (w) => (waves.includes(w) ? { Custom: waves.indexOf(w) } : (() => { throw new Error(`wave ${w} not in waves`); })());
     const split = o.w in STEPS ? [[custom(o.w), 1, 1]]
       : INTERIM[o.w] || [[BUILTIN[o.w] || (() => { throw new Error('wave ' + o.w); })(), 1, 1]];
     if (o.g === 0) {
       parts.push(split.map(([w, mul, gain]) => (out.push(operator(o, 0, w, mul, gain * trim * (typeof w === 'string' ? BUILTIN_GAIN[w] ?? 1 : 1))), out.length)));
     } else {
+      // FM (g 1..=10) or AM (g 11..: the volume of operator g - 10) of an earlier operator, repeated
+      // for each part of a split target; route is the part's 1-based index (AM: plus 10)
       if (split.length > 1) throw new Error('split modulator');
       const [w] = split[0];
-      parts.push(parts[o.g - 1].map((target) => (out.push(operator(o, target, w)), out.length)));
+      const am = o.g > 10;
+      parts.push(parts[o.g - (am ? 11 : 1)].map((target) => (out.push(operator(o, target + (am ? 10 : 0), w)), out.length)));
     }
   }
   if (out.length > 8) throw new Error(`${out.length} operators`);
@@ -256,6 +259,83 @@ const TIMBRES_${up}: [u32; ${timbres.length}] = [${timbres.join(', ')}];
 `;
 }
 
+/**
+ * The Monthly Track Editions' settings (editions_lite.js, edition 1 and later): for each style and
+ * Beast type, the presets its lead, accompaniment, bass and pad play (palette rows 0, 2, 3, 4; row 1
+ * plays nothing), untrimmed as the editions page plays them, and the mega leads when mega; no
+ * drums. Every edition settings value carries the same waves (all the editions' presets use), so a
+ * preset's operators (its waves as \`Custom(i)\`) are the same in each and stored once.
+ */
+export const editionPrograms = (style, type, mega) => [...new Set([0, 2, 3, 4].map((row) => STYLES[style].palette[row][type])), ...(mega ? MEGA_LEAD_PROGRAMS : [])];
+export const EDITION_PROGRAMS = [...new Set(STYLES.flatMap((_, s) => [0, 1, 2].flatMap((t) => editionPrograms(s, t, true))))];
+export const editionData = () => bankData(undefined, [...new Set([...ESSENTIALS, ...EDITION_PROGRAMS])]);
+export const editionWaves = (data = editionData()) => sampledWaves(EDITION_PROGRAMS.map((id) => data.presets[id]));
+export function editionSynthSettings(style, type, mega, data = editionData()) {
+  const waves = editionWaves(data), tables = chipTables(waves);
+  const timbres = editionPrograms(style, type, mega).map((id) => ({ drum: false, slot: id, operators: timbreOperators(data.presets[id], 1, waves) }));
+  return { quality: 1, reverb: 30, master_vol: 40, voices: 64, waves: waves.map((w) => ({ Samples: tables[w] })), timbres };
+}
+
+/** The editions' Cairo: one wave list, one timbre per preset, and each style and type's presets. */
+function editionsCairo() {
+  const data = editionData(), waves = editionWaves(data);
+  const s = editionSynthSettings(0, 0, false, data);
+  const waveCodes = s.waves.map((w) => { const start = samplesAt(w.Samples); check(w.Samples.length < 0x100, 'wave'); return start * 0x100 + w.Samples.length; });
+  const wave = (w) => (typeof w === 'string' ? w : `Custom(${w.Custom})`);
+  const timbreCode = (id) => {
+    const ops = timbreOperators(data.presets[id], 1, waves).map((o) => `    Operator { route: ${o.route}, wave: Waveform::${wave(o.wave)}, ${OP_FIELDS.map((k) => `${k}: ${o[k]}`).join(', ')}, filter: Option::None },`);
+    const first = operatorsAt(ops);
+    check(ops.length < 0x100 && first < 0x10000, 'timbre');
+    return (first * 0x100 + ops.length) * 2 * 0x100 + id;
+  };
+  const codes = EDITION_PROGRAMS.map(timbreCode);
+  const at = (id) => EDITION_PROGRAMS.indexOf(id);
+  // a palette: its count * 2^20 + its timbres' indices into EDITION_TIMBRES, 5 bits each
+  const palettes = STYLES.flatMap((_, st) => [0, 1, 2].map((t) => {
+    const progs = editionPrograms(st, t, false);
+    check(progs.length <= 4 && EDITION_PROGRAMS.length <= 32, 'palette');
+    return progs.length * 2 ** 20 + progs.reduce((acc, id, i) => acc + at(id) * 32 ** i, 0);
+  }));
+  const hashes = STYLES.flatMap((_, st) => [0, 1, 2].flatMap((t) => [false, true].map((mega) => '0x' + poseidonHashMany(serializeSettings(editionSynthSettings(st, t, mega, data))).toString(16))));
+  return `
+/// The settings a Monthly Track Edition's file selects (editions_lite.js, edition 1 and later): style
+/// \`style\` (0 waltz, 1 chorale, 2 lullaby, 3 dirge) for a Beast of \`beast_type\`, its lead,
+/// accompaniment, bass and pad presets as the editions page plays them (untrimmed), and the mega
+/// leads when mega; no drums. Every edition value carries the editions' ${waves.length} waves: ${waves.join(', ')}.
+pub fn edition_synth_settings(style: u32, beast_type: u32, mega: bool) -> TinySynthSettings {
+    let palette = *EDITION_PALETTES.span().at(style * 3 + beast_type);
+    let timbres = EDITION_TIMBRES.span();
+    let mut picked: Array<u32> = array![];
+    let mut at = palette % 0x100000;
+    let mut n = palette / 0x100000;
+    while n > 0 {
+        picked.append(*timbres.at(at % 32));
+        at /= 32;
+        n -= 1;
+    }
+    if mega {
+        picked.append(*timbres.at(${at(MEGA_LEAD_PROGRAMS[0])}));
+        picked.append(*timbres.at(${at(MEGA_LEAD_PROGRAMS[1])}));
+    }
+    settings_from(1, 30, 40, 64, EDITION_WAVES.span(), picked.span())
+}
+#[cairofmt::skip]
+const EDITION_WAVES: [u32; ${waveCodes.length}] = [${waveCodes.join(', ')}];
+/// One timbre per editions preset, programs ${EDITION_PROGRAMS.join(', ')}.
+#[cairofmt::skip]
+const EDITION_TIMBRES: [u32; ${codes.length}] = [${codes.join(', ')}];
+/// Each style and type's presets (index style * 3 + type): count * 2^20 + indices into
+/// EDITION_TIMBRES, 5 bits each.
+#[cairofmt::skip]
+const EDITION_PALETTES: [u32; ${palettes.length}] = [${palettes.join(', ')}];
+/// The Poseidon hash of each \`edition_synth_settings(style, beast_type, mega)\`'s Serde, as the
+/// generator computes it, at (style * 3 + beast_type) * 2 + mega (tests check Cairo agrees).
+#[cfg(test)]
+#[cairofmt::skip]
+pub const EDITION_SERDE_HASHES: [felt252; ${hashes.length}] = [${hashes.join(', ')}];
+`;
+}
+
 /** The six settings the provider serves: each type's family, normal and mega. */
 export const SETTINGS_VARIANTS = FAMILIES.flatMap((f, t) => [false, true].map((mega) => ({ type: t, mega, name: f.name.toLowerCase() + (mega ? '_mega' : '') })));
 /** The Yeti (species 68, a Brute): the Brute family plus Pulse 12.5% Pluck (13), its avalanche's preset. */
@@ -312,7 +392,7 @@ pub fn yeti_synth_settings_serde_hash(mega: bool) -> felt252 {
     }
 }
 
-${fns.join('\n')}/// Every wave's samples, each once (\`WAVES_*\`: start * 0x100 + length).
+${fns.join('\n')}${editionsCairo()}/// Every wave's samples, each once (\`WAVES_*\`: start * 0x100 + length).
 #[cairofmt::skip]
 const SAMPLES: [i8; ${SAMPLES.length}] = [${SAMPLES.join(', ')}];
 /// Every distinct operator list, each once (\`TIMBRES_*\`: ((first * 0x100 + count) * 2 + drum) *

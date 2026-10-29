@@ -1,0 +1,125 @@
+//! BeastPureComposer as the Sound Manager calls it: a library call to the declared class, with a
+//! song's or Sound Check's shared inputs and a token's `sound_effects`. One or two compositions per
+//! test (memory).
+use beast_composer::composition::beast_v3_sound::PackableBeastV3;
+use beast_composer::composition::genesis::{
+    genesis_byte_array, genesis_song_inputs, seeded_track_smf_bytes, song_tracks, species_tier,
+    species_type,
+};
+use beast_composer::composition::performance::apply_performance;
+use beast_composer::composition::sound_check::{sound_check_inputs, sound_check_smf_bytes};
+use beast_composer::inputs::{BeastMusicalIdentity, ComposerInputs, EditionCompositionConfig};
+use midi::pack::bytes_to_byte_array;
+use snforge_std::{DeclareResultTrait, declare};
+use crate::pure_composer::{
+    IBeastPureComposerDispatcherTrait, IBeastPureComposerLibraryDispatcher, compose_sound,
+};
+use crate::pure_generator::{
+    IBeastPureGeneratorDispatcherTrait, IBeastPureGeneratorLibraryDispatcher,
+};
+use crate::synth_settings::{beast_synth_settings, yeti_synth_settings};
+
+fn composer() -> IBeastPureComposerLibraryDispatcher {
+    let class_hash = declare("BeastPureComposer").unwrap().contract_class().class_hash;
+    IBeastPureComposerLibraryDispatcher { class_hash }
+}
+
+fn beast(id: u64, prefix: u8, suffix: u8, shiny: u8) -> PackableBeastV3 {
+    PackableBeastV3 {
+        id,
+        prefix,
+        suffix,
+        level: 1,
+        health: 100,
+        shiny,
+        animated: 0,
+        tier: species_tier(id),
+        beast_type: species_type(id),
+    }
+}
+
+fn genesis(b: PackableBeastV3) -> ComposerInputs {
+    ComposerInputs::Song(genesis_song_inputs(b, 0, 0, 0, Option::None))
+}
+
+#[test]
+fn written_genesis_track_is_the_providers() {
+    let b = beast(5, 0, 0, 0);
+    let sound = composer().compose(genesis(b), 0);
+    assert(sound.midi == genesis_byte_array(b), 'not the Genesis Track');
+    assert(sound.settings == beast_synth_settings(species_type(5), false), 'not the settings');
+}
+
+#[test]
+fn yeti_genesis_track_and_settings() {
+    let b = beast(68, 0, 0, 0);
+    let sound = composer().compose(genesis(b), 0);
+    assert(sound.midi == genesis_byte_array(b), 'not the Yeti Genesis Track');
+    assert(sound.settings == yeti_synth_settings(false), 'not the Yeti settings');
+}
+
+#[test]
+fn sound_check_as_written() {
+    let b = beast(30, 12, 4, 0);
+    let sound = composer().compose(ComposerInputs::SoundCheck(sound_check_inputs(b)), 0);
+    assert(sound.midi == bytes_to_byte_array(sound_check_smf_bytes(b).span()), 'not the check');
+}
+
+#[test]
+fn mega_performance_is_the_mega_sound_of_the_performed_song() {
+    // code 1: mega, 25000 us faster, ceiling +12, tenuto
+    let b = beast(5, 0, 0, 0);
+    let x = genesis(b);
+    let sound = compose_sound(x, 1);
+    let performed = match apply_performance(x, 1) {
+        ComposerInputs::Song(song) => song,
+        ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+    };
+    let song = match x {
+        ComposerInputs::Song(song) => song,
+        ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+    };
+    assert(performed.score.tempo_us == song.score.tempo_us - 25000, 'tempo');
+    assert(performed.score.articulation_profile == 2, 'articulation');
+    assert(
+        sound.midi == midi::smf::smf_byte_array(1, 480, song_tracks(performed, true).span()),
+        'not the mega performance',
+    );
+    assert(sound.settings == beast_synth_settings(species_type(5), true), 'not mega settings');
+}
+
+#[test]
+fn mega_performance_of_the_sound_check() {
+    // code 3: the mega presets, and the accented, faster check is not the written one
+    let b = beast(30, 0, 0, 1);
+    let x = sound_check_inputs(b);
+    let check = compose_sound(ComposerInputs::SoundCheck(x), 3);
+    assert(check.settings == beast_synth_settings(species_type(30), true), 'not mega settings');
+    assert(check.midi != bytes_to_byte_array(sound_check_smf_bytes(b).span()), 'not performed');
+}
+
+#[test]
+#[should_panic(expected: 'invalid sound effects')]
+fn rejects_unassigned_sound_effects() {
+    compose_sound(ComposerInputs::SoundCheck(sound_check_inputs(beast(1, 0, 0, 0))), 4);
+}
+
+/// The manager's purchase path: the generator's edition base and variation, then the composer.
+#[test]
+fn generated_purchase_composes_the_bought_track() {
+    let generator = IBeastPureGeneratorLibraryDispatcher {
+        class_hash: declare("BeastPureGenerator").unwrap().contract_class().class_hash,
+    };
+    let b = beast(12, 41, 7, 0);
+    let identity = BeastMusicalIdentity {
+        species_id: 12, name_variant_id: 40 * 18 + 7, tier: b.tier, family: b.beast_type,
+    };
+    let base = generator
+        .get_generation_inputs(EditionCompositionConfig { composition_seed: 0 }, 0, identity);
+    let inputs = generator.generate_inputs(base, 'block hash');
+    let sound = composer().compose(inputs, 0);
+    assert(
+        sound.midi == bytes_to_byte_array(seeded_track_smf_bytes(b, 41, 7, 'block hash').span()),
+        'not the bought track',
+    );
+}

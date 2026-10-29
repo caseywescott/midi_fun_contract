@@ -15,6 +15,7 @@ use crate::composition::full_midi::{
 };
 use crate::composition::genesis::{genesis_mode, named_mode_scale, neutral_live};
 use crate::composition::melodic_canon::NoteEvent;
+use crate::inputs::{ComposerInputs, MusicIdentity, SoundCheckInputs, validate_inputs};
 
 const BLOCK: u32 = 4800;
 const KIT_VOICE: u32 = 9;
@@ -28,6 +29,12 @@ fn name_variant(prefix: u8, suffix: u8) -> u32 {
 }
 
 pub fn sound_check_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
+    sound_check_from_inputs(sound_check_inputs(beast), beast.shiny == 1)
+}
+
+/// The shared musical inputs (`beast_composer::inputs::SoundCheckInputs`) of a Beast's Sound
+/// Check: its species and special name, its key and family, as written (no performance).
+pub fn sound_check_inputs(beast: PackableBeastV3) -> SoundCheckInputs {
     let named = beast.prefix != 0;
     let g = PackableBeastV3 {
         prefix: 0, suffix: 0, level: 50, health: 200, shiny: 0, animated: 0, ..beast,
@@ -42,29 +49,51 @@ pub fn sound_check_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
         }
     };
     let kp = map_v3_beast_to_composition_params(key_beast, neutral_live());
-    let mode = if named {
-        kp.mode_id
-    } else {
-        genesis_mode(beast.id, kp.mode_id)
-    };
-    let scale = match named_mode_scale(mode) {
+    SoundCheckInputs {
+        identity: MusicIdentity {
+            source_species_id: beast.id,
+            name_variant_id: name_variant(beast.prefix, beast.suffix).try_into().unwrap(),
+        },
+        mode_id: if named {
+            kp.mode_id
+        } else {
+            genesis_mode(beast.id, kp.mode_id)
+        },
+        tonic_keynum: kp.tonic_keynum,
+        family: beast.beast_type,
+        tempo_us: 500000,
+        velocity_ceiling: 100,
+        articulation_profile: 0,
+    }
+}
+
+/// The Sound Check file from its shared inputs, with the mega leads when `mega`. As written
+/// (articulation 0, ceiling 100, 120 BPM) it is the Beast's Sound Check; a performance (see
+/// `performance::apply_performance`) shortens (staccato, portato) or accents the notes, caps
+/// their velocity and sets the tempo.
+pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
+    validate_inputs(ComposerInputs::SoundCheck(x));
+    let scale = match named_mode_scale(x.mode_id) {
         Option::Some(s) => s,
         Option::None => array![0, 2, 3, 5, 7, 8, 10].span(),
     };
-    let tonic: u32 = kp.tonic_keynum.into();
-    let nv = name_variant(beast.prefix, beast.suffix);
+    let tonic: u32 = x.tonic_keynum.into();
     let hash: u256 = poseidon_hash_span(
-        array!['BEAST_SOUND_CHECK', beast.id.into(), nv.into()].span(),
+        array![
+            'BEAST_SOUND_CHECK', x.identity.source_species_id.into(),
+            x.identity.name_variant_id.into(),
+        ]
+            .span(),
     )
         .into();
     let h: u32 = (hash % 0x100000000).try_into().unwrap();
 
-    let leads = family_leads(beast.beast_type).span();
-    let plucks = family_plucks(beast.beast_type).span();
+    let leads = family_leads(x.family).span();
+    let plucks = family_plucks(x.family).span();
     let mut presets: Array<u8> = array![
         *leads.at(0), *leads.at(1), *leads.at(2), *plucks.at(0), *plucks.at(1), *plucks.at(2),
     ];
-    if beast.shiny == 1 {
+    if mega {
         presets.append(*MEGA_LEADS.span().at(0));
         presets.append(*MEGA_LEADS.span().at(1));
     }
@@ -91,13 +120,13 @@ pub fn sound_check_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
         programs.append(*presets.at((v + rot) % n));
         let mut k: u32 = 0;
         for d in pattern {
-            events.append(note(t0 + k * 480, 420, pitch(tonic, scale, *d), 100, v));
+            events.append(note(t0 + k * 480, 420, pitch(tonic, scale, *d), 100, v, x));
             k += 1;
         }
-        events.append(note(t0 + 1920, 1380, pitch(tonic, scale, held), 96, v));
+        events.append(note(t0 + 1920, 1380, pitch(tonic, scale, held), 96, v, x));
         let mut k: u32 = 0;
         for d in blips {
-            events.append(note(t0 + 3360 + k * 240, 60, pitch(tonic, scale, *d), 90, v));
+            events.append(note(t0 + 3360 + k * 240, 60, pitch(tonic, scale, *d), 90, v, x));
             k += 1;
         }
         v += 1;
@@ -109,15 +138,16 @@ pub fn sound_check_smf_bytes(beast: PackableBeastV3) -> Array<u8> {
     let kit: Span<u8> = array![36, 38, 42, 46, 49, 50, 47, 45].span();
     let mut k: u32 = 0;
     for key in kit {
-        events.append(note(k0 + k * 480, 240, *key, 100, KIT_VOICE));
+        events.append(note(k0 + k * 480, 240, *key, 100, KIT_VOICE, x));
         k += 1;
     }
     let length = k0 + BLOCK;
     let form = BeastForm { events, score_hash: 0, section_count: 1, length_ticks: length };
     beast_form_to_full_smf_bytes_arranged(
         @form,
-        500000,
-        beast.tier,
+        x.tempo_us,
+        // the tier only picks drum fills, and the kit is written into the form
+        5,
         Option::None,
         false,
         0,
@@ -138,6 +168,35 @@ fn pitch(tonic: u32, scale: Span<u8>, d: i32) -> u8 {
     (tonic + 12 * (d / 7) + off).try_into().unwrap()
 }
 
-fn note(time: u32, duration: u32, pitch: u8, velocity: u8, voice_id: u32) -> NoteEvent {
+/// A note as performed: staccato (1) halves it and portato (5) keeps three quarters (at least 60
+/// ticks), an accent (3) adds 8 on each bar's downbeat, all under the velocity ceiling.
+fn note(
+    time: u32, duration: u32, pitch: u8, velocity: u8, voice_id: u32, x: SoundCheckInputs,
+) -> NoteEvent {
+    let a = x.articulation_profile;
+    let duration = if a == 1 || a == 5 {
+        let n = if a == 1 {
+            duration / 2
+        } else {
+            duration * 3 / 4
+        };
+        if n > 60 {
+            n
+        } else {
+            60
+        }
+    } else {
+        duration
+    };
+    let v: u32 = velocity.into() + if a == 3 && time % 1920 == 0 {
+        8
+    } else {
+        0
+    };
+    let velocity = if v > x.velocity_ceiling.into() {
+        x.velocity_ceiling
+    } else {
+        v.try_into().unwrap()
+    };
     NoteEvent { time, duration, pitch, velocity, voice_id }
 }

@@ -1495,6 +1495,33 @@ pub fn build_v11_score_with(
 fn build_v11_score_with_boxed(
     beast: PackableBeastV3, live: BeastV3LiveState, ov: V11Override,
 ) -> Box<V11Score> {
+    build_resolved(v11_resolve(beast, live, ov))
+}
+
+/// Everything a v1.1 score reads once the Beast, its live state and the overrides are resolved:
+/// the overridden parameters, the theme's own tier and register (the mapped ones, before
+/// overrides), the seeds and the trajectory. `build_v11_score_resolved(v11_resolve(b, l, ov))` is
+/// `build_v11_score_with(b, l, ov)`; the shared musical inputs (`beast_composer::inputs`) carry
+/// exactly these values.
+#[derive(Copy, Drop)]
+pub struct V11Resolved {
+    pub params: BeastCompositionParams,
+    pub theme_tier: u8,
+    pub theme_register_band: u8,
+    pub motif_seed: felt252,
+    pub rhythm_seed: felt252,
+    pub flip_side: bool,
+    pub development: u8,
+    /// Episodes rise (1), fall (-1) or alternate by section (0).
+    pub direction: i32,
+    pub spacing: u8,
+    pub prominence: u32,
+    pub trill: bool,
+    pub scale: Option<Span<u8>>,
+}
+
+#[inline(always)]
+pub fn v11_resolve(beast: PackableBeastV3, live: BeastV3LiveState, ov: V11Override) -> V11Resolved {
     // history: kills and defeats swapped; the structure is composed with a neutral rank (the real
     // rank sets only prominence)
     let swapped = BeastV3LiveState {
@@ -1514,8 +1541,6 @@ fn build_v11_score_with_boxed(
     };
     let p0 = map_v3_beast_to_composition_params(beast, structural);
     let seeds = derive_beast_sound_seeds(beast_sound_seed(beast.id, beast.prefix, beast.suffix));
-    let theme_v1 = build_beast_theme(p0, seeds.motif_seed);
-    let theme = cadence_theme(theme_v1.degrees.span());
     let mut tr = trajectory(beast, @p0, swapped, structural, live);
     if let Option::Some(t) = ov.trill {
         tr.trill = t;
@@ -1529,12 +1554,52 @@ fn build_v11_score_with_boxed(
     if let Option::Some(x) = ov.spacing {
         tr.spacing = x;
     }
-    let p = apply_override(p0, ov);
-    let rhythm_seed = match ov.rhythm_seed {
-        Option::Some(x) => x,
-        Option::None => seeds.motif_seed,
+    V11Resolved {
+        params: apply_override(p0, ov),
+        theme_tier: p0.tier,
+        theme_register_band: p0.register_band,
+        motif_seed: seeds.motif_seed,
+        rhythm_seed: match ov.rhythm_seed {
+            Option::Some(x) => x,
+            Option::None => seeds.motif_seed,
+        },
+        flip_side: ov.flip_side == Option::Some(true),
+        development: tr.development,
+        direction: tr.direction,
+        spacing: tr.spacing,
+        prominence: tr.prominence,
+        trill: tr.trill,
+        scale: ov.scale,
+    }
+}
+
+pub fn build_v11_score_resolved(r: V11Resolved) -> V11Score {
+    build_v11_score_resolved_boxed(r).unbox()
+}
+
+#[inline(never)]
+fn build_v11_score_resolved_boxed(r: V11Resolved) -> Box<V11Score> {
+    build_resolved(r)
+}
+
+// On purpose (CASM size): inlined into both boxed entry points, so the Beast path compiles as one
+// body, as before the split.
+#[inline(always)]
+fn build_resolved(r: V11Resolved) -> Box<V11Score> {
+    let p = r.params;
+    let theme_v1 = build_beast_theme(
+        BeastCompositionParams { tier: r.theme_tier, register_band: r.theme_register_band, ..p },
+        r.motif_seed,
+    );
+    let theme = cadence_theme(theme_v1.degrees.span());
+    let tr = Trajectory {
+        direction: r.direction,
+        development: r.development,
+        spacing: r.spacing,
+        prominence: r.prominence,
+        trill: r.trill,
     };
-    let mut slots = theme_rhythm(@p, theme.span(), rhythm_seed);
+    let mut slots = theme_rhythm(@p, theme.span(), r.rhythm_seed);
     if tr.trill {
         // a trill (upper neighbour and back) replaces each passing note of an eighth or longer
         let mut out: Array<Slot> = array![];
@@ -1580,7 +1645,7 @@ fn build_v11_score_with_boxed(
     let cs_seed = core::poseidon::poseidon_hash_span(
         array![p.name_variant_id.into(), p.species_id.into()].span(),
     );
-    let plan = degree_plan(@p, ov.flip_side == Option::Some(true));
+    let plan = degree_plan(@p, r.flip_side);
     let mut events: Array<NoteEvent> = array![];
     let mut cs_degrees: Array<i32> = array![];
     let sc8: u32 = p.section_count.into();
@@ -1597,7 +1662,7 @@ fn build_v11_score_with_boxed(
             section_ticks,
             plan.span(),
             tr,
-            ov.scale,
+            r.scale,
         );
         events.append_span(sec.span());
         s += 1;

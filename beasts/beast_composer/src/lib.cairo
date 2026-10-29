@@ -25,6 +25,8 @@ pub mod rng;
 mod rng_tests;
 #[cfg(test)]
 mod score_tests;
+#[cfg(test)]
+mod song_inputs_tests;
 
 #[cfg(test)]
 mod tests;

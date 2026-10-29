@@ -2,8 +2,7 @@
 // Editions engine (src/editions.js) for its Cairo port (editions.cairo): the 75 species records
 // (tonic and the opening of the Genesis theme), grammars, engines, rhythm cells, drum grooves, and
 // the integer forms of the engine's floating-point comparisons.
-//   node onchain/editions_cairo.mjs          # write the file
-//   node onchain/editions_cairo.mjs --check  # exit 1 if the file differs
+//   node onchain/editions_cairo.mjs && scarb fmt   # write the file (scarb fmt formats it as committed)
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { engine as ENGINE } from '../src/index.js';
@@ -70,7 +69,6 @@ function bounds(lo, hi, half, pos) {
 }
 
 function main() {
-  const check = process.argv.includes('--check');
   const SP = speciesRecords();
   const L = [];
   const w = (s = '') => L.push(s);
@@ -214,11 +212,8 @@ function main() {
   w('    }');
   w('}');
   const out = L.join('\n') + '\n';
-  if (check) {
-    let cur = ''; try { cur = readFileSync(OUT, 'utf8'); } catch {}
-    if (cur !== out) { console.error('editions_data.cairo is out of date'); process.exit(1); }
-    console.log('editions_data.cairo is up to date');
-  } else { writeFileSync(OUT, out); console.log('wrote', OUT); }
+  writeFileSync(OUT, out);
+  console.log('wrote', OUT);
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();

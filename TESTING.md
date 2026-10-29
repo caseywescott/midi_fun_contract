@@ -22,12 +22,14 @@ scarb fmt --check               # CI checks formatting too
 
 The composer's parity fixtures compare Cairo with the JS engine (`offchain/beast-sound`). A Cairo VM
 run keeps what it allocates until it ends, so they are `#[ignore]`d, need several GB per batch, and
-run locally in batches through `scripts/*_parity_cairo.sh` and `scripts/*_parity.mjs`. See
+run locally in batches through `scripts/*_parity_cairo.sh` and `scripts/*_parity.mjs` (the Monthly
+Track Editions: `sh scripts/editions_parity_cairo.sh /tmp/ed.txt && node scripts/editions_parity.mjs
+/tmp/ed.txt`, 108 cases). See
 `beasts/beast_composer/README.md`.
 
 ## Generated Cairo
 
-Three files are written by scripts in `offchain/beast-sound/onchain` (run `npm install` in
+Four files are written by scripts in `offchain/beast-sound/onchain` (run `npm install` in
 `offchain/beast-sound` first). After a change to their sources, regenerate them and commit the
 result; with unchanged sources, they reproduce the committed files byte for byte:
 
@@ -36,6 +38,7 @@ result; with unchanged sources, they reproduce the committed files byte for byte
 | `core/midi_contracts/src/page/page_data.cairo` | `node onchain/build.mjs` (needs `npx esbuild`) |
 | `core/midi_contracts/src/page/tests.cairo` | `node onchain/golden.mjs` |
 | `beasts/beast_contracts/src/synth_settings.cairo` | `node onchain/tinychip/synth_settings.mjs --cairo` |
+| `beasts/beast_composer/src/composition/editions_data.cairo` | `node onchain/editions_cairo.mjs`, then `scarb fmt` |
 
 ## Gas benchmark
 

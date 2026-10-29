@@ -3,6 +3,7 @@
 //! test (memory).
 use beast_composer::composition::beast_v3_sound::PackableBeastV3;
 use beast_composer::composition::editions::edition_byte_array;
+use beast_composer::composition::evolution::resolve_evolution;
 use beast_composer::composition::genesis::{
     genesis_byte_array, genesis_song_inputs, purchase_song_inputs, song_tracks, species_tier,
     species_type,
@@ -233,19 +234,36 @@ fn edition_purchase_composes_the_style_engine() {
     };
     assert(inputs == ComposerInputs::Edition(expected), 'not the edition');
     let plain = composer().compose(inputs, 0);
-    assert(plain.midi == edition_byte_array(40, false, 3, 0xfedcba9876543210), 'not the style');
+    assert(
+        plain.midi == edition_byte_array(40, false, 3, 0xfedcba9876543210, Option::None),
+        'not the style',
+    );
     // edition 3 is the lullaby (style 2); species 40 is a Hunter (type 1)
     assert(plain.settings == edition_synth_settings(2, 1, false), 'not the edition presets');
     // sound effect 1 (old shiny) brings the mega leads
     let mega = composer().compose(inputs, 1);
-    assert(mega.midi == edition_byte_array(40, true, 3, 0xfedcba9876543210), 'not the mega style');
-    assert(mega.settings == edition_synth_settings(2, 1, true), 'not the mega edition presets');
-    // an edition has no staff: compose_staff plays it as written
-    let config = evolution_config(5000);
     assert(
-        compose_staff_sound(inputs, 0, config, staff_context(config, 100, 300)) == plain,
-        'a staff changed the edition',
+        mega.midi == edition_byte_array(40, true, 3, 0xfedcba9876543210, Option::None),
+        'not the mega style',
     );
+    assert(mega.settings == edition_synth_settings(2, 1, true), 'not the mega edition presets');
+    // on a staff an edition drifts: species 40 is tier 3, so its one extra role is the pad
+    let config = evolution_config(5000);
+    let context = staff_context(config, 100, 300);
+    let staffed = compose_staff_sound(inputs, 0, config, context);
+    assert(staffed.midi != plain.midi, 'the staff changed nothing');
+    assert(
+        staffed
+            .midi == edition_byte_array(
+                40,
+                false,
+                3,
+                0xfedcba9876543210,
+                Option::Some(resolve_evolution(config, context, 1)),
+            ),
+        'not the staffed edition',
+    );
+    assert(staffed.settings == plain.settings, 'a staff changed the presets');
 }
 
 /// Species past the style engine's 75 keep the bought Song in every edition.
@@ -289,5 +307,73 @@ fn edition_settings_serialize_as_generated_and_validate() {
             t += 1;
         }
         style += 1;
+    }
+}
+
+const HEX: [u8; 16] = [
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
+];
+
+/// Staffed editions through compose_staff: one EDS line per case (the whole file in hex), which
+/// scripts/editions_staff_parity.mjs recomposes in JS (evolution.js resolveEvolution and
+/// editions_lite.js on that staff) and compares. Milestone hashes are block + 'h', the staff hash
+/// 'staff', the drift group 'group' (`staff_context`).
+#[test]
+#[ignore]
+fn editions_staff_parity_fixture() {
+    // (edition, species, sound effects, seed, unlock bps, velocity extent, ornament bps, birth,
+    // staff)
+    let cases: [(u32, u64, u8, u64, u16, u8, u16, u64, u64); 8] = [
+        (1, 3, 0, 0xffffffffffffffff, 10000, 6, 800, 100, 300),
+        (2, 20, 0, 7, 10000, 16, 3000, 100, 300),
+        (3, 40, 1, 0xfedcba9876543210, 0, 6, 800, 100, 300),
+        (4, 49, 0, 12345, 10000, 0, 10000, 1000, 1500),
+        (5, 52, 3, 0x8000000000000001, 4000, 10, 1500, 1000, 1500),
+        (6, 61, 0, 99, 10000, 3, 0, 100, 300),
+        (7, 75, 1, 0x123456789abcdef0, 10000, 8, 2500, 1000, 1500),
+        (8, 1, 0, 42, 10000, 12, 5000, 100, 300),
+    ];
+    for c in cases.span() {
+        let (e, sp, fx, seed, unlock, vel, orn, birth, staff) = *c;
+        let config = EvolutionConfig {
+            first_milestone_age: 10,
+            initial_unlock_bps: unlock,
+            unlock_step_bps: 0,
+            max_extra_channels: 5,
+            max_tempo_delta_bpm: 4,
+            max_velocity_delta: vel,
+            ornament_chance_bps: orn,
+        };
+        let inputs = ComposerInputs::Edition(
+            EditionInputs {
+                identity: MusicIdentity { source_species_id: sp, name_variant_id: 0 },
+                edition: e,
+                seed,
+            },
+        );
+        let midi = compose_staff_sound(inputs, fx, config, staff_context(config, birth, staff))
+            .midi;
+        let mut hex: ByteArray = "";
+        let mut i: u32 = 0;
+        while i < midi.len() {
+            let b = midi.at(i).unwrap();
+            hex.append_byte(*HEX.span().at((b / 16).into()));
+            hex.append_byte(*HEX.span().at((b % 16).into()));
+            i += 1;
+        }
+        println!(
+            "EDS e={} sp={} fx={} seed={} unlock={} vel={} orn={} birth={} staff={} len={} hex={}",
+            e,
+            sp,
+            fx,
+            seed,
+            unlock,
+            vel,
+            orn,
+            birth,
+            staff,
+            midi.len(),
+            hex,
+        );
     }
 }

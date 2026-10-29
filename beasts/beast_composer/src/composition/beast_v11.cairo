@@ -492,7 +492,7 @@ fn end_episode(ref grid: Grid) {
 /// Appends a note to the section and records it in the table of the voice being placed.
 // On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
 #[inline(never)]
-fn put(ref out: Array<NoteEvent>, ref grid: Grid, e: NoteEvent) {
+fn put(ref out: Array<NoteEvent>, ref grid: Grid, e: NoteEvent) -> Option<NoteEvent> {
     assert(e.time % CELL == 0 && e.duration % CELL == 0 && e.duration > 0, 'v11: off grid');
     let idx = out.len();
     out.append(e);
@@ -535,6 +535,9 @@ fn put(ref out: Array<NoteEvent>, ref grid: Grid, e: NoteEvent) {
         }
     }
     grid = Grid { others, cells, next: end_cell };
+    // the caller's previous note, returned rather than set to `Some(e)` in its loop: a loop that
+    // sets its own state to a built value is compiled twice (CASM size)
+    Option::Some(e)
 }
 
 /// The notes of the other voices that sound with a new note (its voice's own earlier notes end
@@ -899,8 +902,7 @@ fn place(
 ) {
     let pitch = choose_pitch(cands, time, duration, out.span(), @grid, prev);
     let e = NoteEvent { time, duration, pitch, velocity: 90, voice_id: voice };
-    put(ref out, ref grid, e);
-    prev = Option::Some(e);
+    prev = put(ref out, ref grid, e);
 }
 
 /// `pcs[i]`, or 12, which no pitch class equals, past the end.
@@ -1189,8 +1191,7 @@ fn build_section(
                 choose_pitch(cands.span(), time, sl.duration, out.span(), @grid, prev)
             };
             let e = NoteEvent { time, duration: sl.duration, pitch, velocity, voice_id: v };
-            put(ref out, ref grid, e);
-            prev = Option::Some(e);
+            prev = put(ref out, ref grid, e);
         }
         end_line(ref grid);
         maps.append(m);
@@ -1220,8 +1221,7 @@ fn build_section(
             let cands = near(r, ident, *d);
             let pitch = choose_pitch(cands.span(), time, TU, out.span(), @grid, prev);
             let e = NoteEvent { time, duration: TU, pitch, velocity, voice_id: p.voice_count };
-            put(ref out, ref grid, e);
-            prev = Option::Some(e);
+            prev = put(ref out, ref grid, e);
             if i < 4 {
                 cs_head.append(Slot { time: i * TU, duration: TU, src: 0, group: 0, degree: *d });
             }

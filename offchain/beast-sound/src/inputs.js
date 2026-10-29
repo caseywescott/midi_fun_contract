@@ -1,8 +1,10 @@
 // Canonical normalized musical-input wire format shared with beast_composer_inputs.
 // This module has no token decoder, chain access, player or entropy source.
-export const COMPOSER_INPUTS_VERSION = 4;
+export const COMPOSER_INPUTS_VERSION = 5;
 export const GENERATION_INPUTS_VERSION = 2;
 export const MAX_TEMPO_US = 1048575;
+/** The Monthly Track Editions style engine plays species 1..=75. */
+export const EDITION_SPECIES_MAX = 75n;
 export const FIELD_P = (1n << 251n) + 17n * (1n << 192n) + 1n;
 const U64_MAX = (1n << 64n) - 1n;
 const ownKeys = (x, names) => {
@@ -35,6 +37,7 @@ const fields = {
   song: [['theme', 'theme'], ['score', 'score'], ['treatment', 'treatment'], ['arrangement', 'arrangement']],
   check: [['identity', 'identity'], ['mode_id', 'u8'], ['tonic_keynum', 'u8'], ['family', 'u8'],
     ['tempo_us', 'u32'], ['velocity_ceiling', 'u8'], ['articulation_profile', 'u8']],
+  edition: [['identity', 'identity'], ['edition', 'u32'], ['seed', 'u64']],
 };
 const limits = { u8: 255n, u16: 65535n, u32: 4294967295n, u64: U64_MAX, felt: FIELD_P - 1n };
 function write(type, value, out) {
@@ -107,6 +110,11 @@ function validateSong(x) {
   requireThat(x.arrangement.channel_count >= 1 && x.arrangement.channel_count <= roles, 'invalid channel count');
   if (x.arrangement.special.kind === 'Yeti') requireThat(x.arrangement.special.name_variant_id <= 1242, 'invalid ornament name');
 }
+function validateEdition(x) {
+  identity(x.identity);
+  requireThat(BigInt(x.identity.source_species_id) <= EDITION_SPECIES_MAX, 'invalid edition species');
+  requireThat(x.edition >= 1, 'invalid edition');
+}
 function validateCheck(x) {
   identity(x.identity); mode(x.mode_id); expression(x);
   requireThat(x.tonic_keynum <= 103, 'invalid sound check tonic');
@@ -118,6 +126,8 @@ export function encodeInputs(x) {
     ownKeys(x, ['kind', 'song']); out.push(1n); write('song', x.song, out); validateSong(x.song);
   } else if (x?.kind === 'SoundCheck') {
     ownKeys(x, ['kind', 'check']); out.push(0n); write('check', x.check, out); validateCheck(x.check);
+  } else if (x?.kind === 'Edition') {
+    ownKeys(x, ['kind', 'edition']); out.push(2n); write('edition', x.edition, out); validateEdition(x.edition);
   } else throw new Error('unknown recipe kind');
   return out;
 }
@@ -126,7 +136,8 @@ export function decodeInputs(values) {
   requireThat(r.take() === BigInt(COMPOSER_INPUTS_VERSION), 'unknown inputs version');
   const kind = r.take();
   const x = kind === 0n ? { kind: 'SoundCheck', check: r.read('check') }
-    : kind === 1n ? { kind: 'Song', song: r.read('song') } : null;
+    : kind === 1n ? { kind: 'Song', song: r.read('song') }
+      : kind === 2n ? { kind: 'Edition', edition: r.read('edition') } : null;
   requireThat(x !== null, 'unknown recipe kind'); r.end(); encodeInputs(x); return x;
 }
 export function encodeGenerationInputs(x) {

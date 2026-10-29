@@ -2,7 +2,7 @@
 //! Storage-free: a manager owns tracks, sales, ownership, births, modes and block hashes; this
 //! class turns one written song or Sound Check, played with a token's `sound_effects` (and on a
 //! staff, the manager's resolved evolution context), into its MIDI and settings.
-use beast_composer::composition::editions::{edition_byte_array, edition_genome};
+use beast_composer::composition::editions::edition_byte_array;
 use beast_composer::composition::evolution::resolve_evolution;
 use beast_composer::composition::full_midi::{SMF_DIVISION, SMF_FORMAT};
 use beast_composer::composition::genesis::{song_tracks, staff_song_tracks};
@@ -12,7 +12,7 @@ use beast_composer::inputs::evolution::{EvolutionConfig, EvolutionInputs};
 use beast_composer::inputs::{ComposerInputs, SpecialArrangement};
 use midi::pack::bytes_to_byte_array;
 use midi::smf::smf_byte_array;
-use midi::types::{Operator, Timbre, TinySynthSettings, TinySynthSound, Waveform};
+use midi::types::{TinySynthSettings, TinySynthSound};
 
 #[starknet::interface]
 pub trait IBeastPureComposer<T> {
@@ -28,8 +28,6 @@ pub trait IBeastPureComposer<T> {
     ) -> TinySynthSound;
 }
 
-/// The Yeti's avalanche preset (`yeti::YETI_AVALANCHE_PROGRAM`).
-const AVALANCHE_SLOT: u8 = 13;
 
 pub fn compose_sound(inputs: ComposerInputs, sound_effects: u8) -> TinySynthSound {
     compose_with(inputs, sound_effects, Option::None)
@@ -43,7 +41,7 @@ pub fn compose_staff_sound(
 }
 
 /// `compose`, and on a staff (`Some`) `compose_staff` after its birth check: one body for both
-/// (CASM size). A Sound Check has no staff.
+/// (CASM size). A Sound Check has no staff; a song and an edition do.
 // On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
 #[inline(never)]
 fn compose_with(
@@ -75,27 +73,41 @@ fn compose_with(
         ComposerInputs::SoundCheck(check) => bytes_to_byte_array(
             sound_check_from_inputs(check, mega).span(),
         ),
-        ComposerInputs::Edition(edition) => edition_byte_array(
-            edition.identity.source_species_id.try_into().unwrap(),
-            mega,
-            edition.edition,
-            edition.seed,
-        ),
+        ComposerInputs::Edition(edition) => {
+            let species: u32 = edition.identity.source_species_id.try_into().unwrap();
+            // the one role a staff may unlock: the pad of tiers 3 to 5
+            let controls = match staff {
+                Option::Some((
+                    evolution, context,
+                )) => Option::Some(
+                    resolve_evolution(
+                        evolution, context, if (species - 1) % 25 / 5 >= 2 {
+                            1
+                        } else {
+                            0
+                        },
+                    ),
+                ),
+                Option::None => Option::None,
+            };
+            edition_byte_array(species, mega, edition.edition, edition.seed, controls)
+        },
     };
     TinySynthSound { midi, settings: settings_for(performed, mega) }
 }
 
 /// The sounds the file can select: the family's presets and the drum kit, plus the mega leads when
-/// mega. The Yeti (a Brute) has its own settings; a Yeti special on another family keeps that
-/// family's presets and adds the avalanche preset.
+/// mega. A Yeti special has the Yeti's settings (the Brute family and the avalanche preset: the
+/// Yeti is a Brute; an authored Yeti special on another family plays them too), and an edition its
+/// style's presets (`edition_synth_settings`).
 pub fn settings_for(inputs: ComposerInputs, mega: bool) -> TinySynthSettings {
     let (family, special) = match inputs {
         ComposerInputs::Song(x) => (x.arrangement.family, x.arrangement.special),
         ComposerInputs::SoundCheck(x) => (x.family, SpecialArrangement::None),
-        // the edition's style (`edition_genome`) for the species' type (1..=75: Magic, Hunter,
-        // Brute by 25s): its own presets
+        // the edition's style for the species' type (1..=75: Magic, Hunter, Brute by 25s): editions
+        // take the four styles in turn (`edition_genome`)
         ComposerInputs::Edition(x) => {
-            let (style, _, _, _, _) = edition_genome(x.edition);
+            let style = (x.edition - 1) % 4;
             let beast_type: u32 = ((x.identity.source_species_id - 1) / 25).try_into().unwrap();
             return crate::synth_settings::edition_synth_settings(style, beast_type, mega);
         },
@@ -104,41 +116,10 @@ pub fn settings_for(inputs: ComposerInputs, mega: bool) -> TinySynthSettings {
         SpecialArrangement::None => false,
         SpecialArrangement::Yeti(_) => true,
     };
-    if yeti && family == 2 {
+    if yeti {
         return crate::synth_settings::yeti_synth_settings(mega);
     }
-    let base = crate::synth_settings::beast_synth_settings(family, mega);
-    if !yeti {
-        return base;
-    }
-    for timbre in base.timbres {
-        if !timbre.drum && timbre.slot == AVALANCHE_SLOT {
-            return base;
-        }
-    }
-    // the avalanche preset from the Yeti's settings, its custom waves appended after the family's
-    let extra = crate::synth_settings::yeti_synth_settings(false);
-    let offset: u8 = base.waves.len().try_into().unwrap();
-    let mut waves = array![];
-    waves.append_span(base.waves);
-    waves.append_span(extra.waves);
-    let mut timbres = array![];
-    timbres.append_span(base.timbres);
-    for timbre in extra.timbres {
-        if !timbre.drum && timbre.slot == AVALANCHE_SLOT {
-            let mut operators = array![];
-            for op in timbre.operators {
-                let op = *op;
-                let wave = match op.wave {
-                    Waveform::Custom(i) => Waveform::Custom(i + offset),
-                    other => other,
-                };
-                operators.append(Operator { wave, ..op });
-            }
-            timbres.append(Timbre { operators: operators.span(), ..*timbre });
-        }
-    }
-    TinySynthSettings { waves: waves.span(), timbres: timbres.span(), ..base }
+    crate::synth_settings::beast_synth_settings(family, mega)
 }
 
 #[starknet::contract]

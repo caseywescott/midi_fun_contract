@@ -9,7 +9,10 @@
 // `species` = { id, tier, type, tonicPc, degrees } (the Genesis theme's scale degrees); `seedKey`
 // = a track seed (an integer, or 'seed:<n>' as the editions page passes it).
 
+import { nudgeTempo } from './evolution.js';
+
 export const TPQ = 480;
+const MAX_TEMPO_US = 1048575;
 const imul = Math.imul;
 
 export function rng(seed) {
@@ -105,20 +108,37 @@ function triad(c, lo) {
   return [r, r + 2, r + 4];
 }
 
-// ── tracks: each channel's notes, written in time order as blocks (all on, then all off) ──
+// ── tracks: each channel's notes as blocks (all on, then all off), kept until the file is written,
+// track by track as editions.cairo writes them, so a staff's note performance (`perf`) draws in the
+// same order ──
 class Track {
-  constructor() { this.b = []; this.time = 0; }
+  constructor() { this.b = []; this.time = 0; this.blocks = []; }
   delta(t) { if (t < this.time) throw new Error('time goes backwards'); let v = t - this.time; this.time = t; const s = [v & 127]; while ((v >>= 7)) s.unshift((v & 127) | 128); this.b.push(...s); }
   msg(t, ...bytes) { this.delta(t); this.b.push(...bytes); }
   block(ch, t, d, ps, v) {
     if (d <= 0) return;
-    v = Math.max(1, Math.min(127, v));
-    const qs = ps.filter((p) => p >= 0 && p < 128);
-    for (const p of qs) this.msg(t, 0x90 | ch, p, v);
-    for (const p of qs) this.msg(t + d, 0x80 | ch, p, 0);
+    this.blocks.push([ch, t, d, ps.filter((p) => p >= 0 && p < 128), Math.max(1, Math.min(127, v))]);
+  }
+  /** The blocks, on `pf` (editions.cairo `Perf`): each note's velocity moved within +-extent (1..127)
+   * and, by chance (basis points), a note of an eighth or longer's second half an octave away. */
+  write(pf) {
+    for (const [ch, t, d, qs, v] of this.blocks) {
+      const vel = [], split = [];
+      for (const _ of qs) {
+        const r = lcg(pf) % (2 * pf.extent + 1), x = v + r;
+        vel.push(x <= pf.extent ? 1 : x - pf.extent > 127 ? 127 : x - pf.extent);
+        split.push(d >= 120 && lcg(pf) % 10000 < pf.chance);
+      }
+      const half = Math.floor(d / 2);
+      qs.forEach((p, i) => this.msg(t, 0x90 | ch, p, vel[i]));
+      qs.forEach((p, i) => { if (split[i]) { this.msg(t + half, 0x80 | ch, p, 0); this.msg(t + half, 0x90 | ch, octave(p), vel[i]); } });
+      qs.forEach((p, i) => this.msg(t + d, 0x80 | ch, split[i] ? octave(p) : p, 0));
+    }
   }
   finish(t) { this.msg(Math.max(t, this.time), 0xff, 0x2f, 0); return this.b; }
 }
+const lcg = (pf) => (pf.state = (1664525 * pf.state + 1013904223) % 4294967296);
+const octave = (p) => (p > 96 ? p - 12 : p + 12);
 
 const VOL = [100, 78, 74, 100, 58, 62];
 const PAN = [64, 46, 82, 64, 64, 88];
@@ -159,7 +179,13 @@ function melody(c, chords, lo, hi, motif, full, R) {
   return out;
 }
 
-export function editionTrack(sp, shiny, e, seedKey) {
+/**
+ * Edition `e`'s track for a species, shiny or not, and a track seed. On a staff (`staff`: the
+ * controls of evolution.js `resolveEvolution`, with one extra role, the pad of tiers 3 to 5) the
+ * pad joins when unlocked, the notes are performed and the tempo nudged: editions.cairo
+ * `edition_tracks_on` byte for byte.
+ */
+export function editionTrack(sp, shiny, e, seedKey, staff = null) {
   const g = editionGenome(e);
   if (g.engine === 'canon') throw new Error('edition 0 is composed by the canon engine');
   const S = STYLES[g.style], scale = SCALES[g.mode];
@@ -179,7 +205,7 @@ export function editionTrack(sp, shiny, e, seedKey) {
   const T = { lead: new Track(), accomp: new Track(), bass: new Track(), pad: new Track(), mega: new Track() };
   const form = FORMS[g.form], mel = {};
   let t0 = 0;
-  const pad = sp.tier <= 2;
+  const pad = sp.tier <= 2 || (staff !== null && staff.unlocked_extra_mask % 2 === 1);
   for (let s = 0; s < 4; s++) {
     const isB = form[s] === 'B', prog = isB ? S.progs[pB] : S.progs[pA];
     const chords = Array.from({ length: 8 }, (_, b) => prog[Math.floor(b / S.chordBars) % 4]);
@@ -206,7 +232,12 @@ export function editionTrack(sp, shiny, e, seedKey) {
   }
   const ticks = t0;
   // the file: a tempo track, then one track per channel (program, volume, pan, reverb, notes)
-  const us = Math.round(60e6 / bpm);
+  let us = Math.round(60e6 / bpm);
+  const pf = { state: 0, extent: 0, chance: 0 };
+  if (staff) {
+    us = Math.min(MAX_TEMPO_US, nudgeTempo(us, staff.tempo_delta));
+    Object.assign(pf, { state: Number(BigInt(staff.note_seed) % 4294967296n), extent: staff.max_velocity_delta, chance: staff.ornament_chance_bps });
+  }
   const tempo = new Track();
   tempo.msg(0, 0xff, 0x51, 3, (us >> 16) & 255, (us >> 8) & 255, us & 255);
   tempo.msg(0, 0xff, 0x58, 4, S.num, S.den === 8 ? 3 : 2, 24, 8);
@@ -214,6 +245,7 @@ export function editionTrack(sp, shiny, e, seedKey) {
   const order = [['lead', 0], ['accomp', 2], ['bass', 3], ['pad', 4]];
   if (shiny) order.push(['mega', 5]);
   for (const [name, ch] of order) {
+    T[name].write(pf);
     const head = new Track();
     head.msg(0, 0xc0 | ch, pal[ch]); head.msg(0, 0xb0 | ch, 7, VOL[ch]); head.msg(0, 0xb0 | ch, 10, PAN[ch]); head.msg(0, 0xb0 | ch, 91, 40);
     bodies.push([...head.b, ...T[name].finish(ticks)]);
@@ -228,8 +260,8 @@ export function editionTrack(sp, shiny, e, seedKey) {
 }
 
 const u32be = (v) => [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255];
-export function editionMidi(sp, shiny, e, seedKey) {
-  const tr = editionTrack(sp, shiny, e, seedKey);
+export function editionMidi(sp, shiny, e, seedKey, staff = null) {
+  const tr = editionTrack(sp, shiny, e, seedKey, staff);
   const out = [0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 1, 0, tr.bodies.length, TPQ >> 8, TPQ & 255];
   for (const b of tr.bodies) out.push(0x4d, 0x54, 0x72, 0x6b, ...u32be(b.length), ...b);
   return { midi: Uint8Array.from(out), info: tr.info };

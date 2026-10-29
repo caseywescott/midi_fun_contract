@@ -277,3 +277,31 @@ fn editions_parity_fixture_35() {
 fn editions_parity_fixture_36() {
     parity_edition(36);
 }
+
+/// Full-width purchase seeds (the generator passes a purchase hash's low 64 bits), one per style,
+/// shiny and not: the same ED lines, checked by scripts/editions_parity.mjs.
+#[test]
+#[ignore]
+fn editions_parity_fixture_wide_seeds() {
+    let cases: [(u32, u32, bool, u64); 4] = [
+        (1, 3, false, 0xffffffffffffffff), (2, 40, true, 0xfedcba9876543210),
+        (3, 52, false, 0x8000000000000001), (4, 75, true, 0x123456789abcdef0),
+    ];
+    for c in cases.span() {
+        let (e, sp, shiny, seed) = *c;
+        let midi = edition_smf_bytes(sp, shiny, e, seed);
+        println!(
+            "ED e={} sp={} shiny={} seed={} len={} hex={}",
+            e,
+            sp,
+            if shiny {
+                1
+            } else {
+                0
+            },
+            seed,
+            midi.len(),
+            hex(midi.span()),
+        );
+    }
+}

@@ -4,8 +4,8 @@ import { encodeInputs, decodeInputs, encodeGenerationInputs, decodeGenerationInp
   FIELD_P } from '../src/inputs.js';
 
 // Literal field-order oracle also checked independently by Cairo inputs/src/tests.cairo.
-const songWire = [4,1,11,2,1,4,60,3,2,4,3,2,1,1,3,5,109,500000,13,1,1,2,0,1,2,0,0,1,37,4,1,17,1,9,1,0,1].map(BigInt);
-const checkWire = [4n,0n,18446744073709551615n,1242n,26n,103n,2n,1048575n,127n,3n];
+const songWire = [5,1,11,2,1,4,60,3,2,4,3,2,1,1,3,5,109,500000,13,1,1,2,0,1,2,0,0,1,37,4,1,17,1,9,1,0,1].map(BigInt);
+const checkWire = [5n,0n,18446744073709551615n,1242n,26n,103n,2n,1048575n,127n,3n];
 const song = {
   theme: { motif_seed: 11n, tier: 2, register_band: 1 },
   score: { mode_id: 4, tonic_keynum: 60, tier: 3, weakness: 2, voice_count: 4,
@@ -46,7 +46,7 @@ test('all false/true combinations, modes, articulations, enum payloads and zero 
   }
 });
 test('rejects wire ambiguity, unsafe numbers, unknown fields, versions, tags and trailing data', () => {
-  for (const wire of [[], [2n], [3n], [4n,2n], songWire.slice(0,-1), [...songWire,0n],
+  for (const wire of [[], [2n], [3n], [4n], [5n,3n], songWire.slice(0,-1), [...songWire,0n],
     songWire.with(12,2n), songWire.with(2,FIELD_P), songWire.with(25,2n), songWire.with(27,1n << 64n), songWire.with(30,2n)]) {
     assert.throws(() => decodeInputs(wire));
   }
@@ -76,4 +76,14 @@ test('rejects every semantic constraint covered by canonical Cairo validation', 
 });
 test('generation codec rejects the previous version1 explicitly', () => {
   assert.throws(() => decodeGenerationInputs([1n]), /unknown generation version/);
+});
+
+test('Edition is tag 2 and matches the literal Cairo wire vector', () => {
+  const x = { kind: 'Edition', edition: { identity: { source_species_id: 75n, name_variant_id: 0 }, edition: 3, seed: (1n << 64n) - 1n } };
+  const wire = [5n, 2n, 75n, 0n, 3n, (1n << 64n) - 1n];
+  assert.deepEqual(encodeInputs(x), wire);
+  assert.deepEqual(decodeInputs(wire), x);
+  assert.throws(() => decodeInputs([5n, 2n, 76n, 0n, 1n, 0n]), /invalid edition species/);
+  assert.throws(() => decodeInputs([5n, 2n, 1n, 0n, 0n, 0n]), /invalid edition/);
+  assert.throws(() => decodeInputs([5n, 2n, 1n, 0n, 1n, 1n << 64n]));
 });

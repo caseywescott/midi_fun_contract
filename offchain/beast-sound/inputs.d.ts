@@ -26,9 +26,13 @@ export interface SoundCheckInputs {
   identity: MusicIdentity; mode_id: number; tonic_keynum: number; family: number;
   tempo_us: number; velocity_ceiling: number; articulation_profile: number;
 }
-export type ComposerInputs = { kind: 'Song'; song: SongInputs } | { kind: 'SoundCheck'; check: SoundCheckInputs };
+/** A Monthly Track Edition's track (edition 1 and later; species 1..=75). */
+export interface EditionInputs { identity: MusicIdentity; edition: number; seed: Integer }
+export type ComposerInputs = { kind: 'Song'; song: SongInputs } | { kind: 'SoundCheck'; check: SoundCheckInputs }
+  | { kind: 'Edition'; edition: EditionInputs };
 export interface GenerationInputs { base_song: SongInputs }
-export const COMPOSER_INPUTS_VERSION: 4;
+export const COMPOSER_INPUTS_VERSION: 5;
+export const EDITION_SPECIES_MAX: bigint;
 export const GENERATION_INPUTS_VERSION: 2;
 export const MAX_TEMPO_US: 1048575;
 export const FIELD_P: bigint;

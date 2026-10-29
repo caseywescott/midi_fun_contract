@@ -12,6 +12,9 @@
 
 use core::num::traits::{WrappingAdd, WrappingMul};
 use midi::smf::{TrackWriter, TrackWriterTrait, smf_byte_array, smf_bytes};
+use crate::composition::drift::nudge_tempo;
+use crate::composition::evolution::StaffControls;
+use crate::inputs::MAX_TEMPO_US;
 use super::editions_data::{SCALES, SPECIES, Style, style};
 
 const SEVEN: NonZero<u32> = 7;
@@ -80,14 +83,74 @@ fn msg(ref tw: TrackWriter, t: u32, status: u8, a: u8, b: u8) {
     tw.message(t, status, a, b);
 }
 
-/// Notes sounding together: every note on at `t`, then every note off at `t + d`.
+/// A staff's note performance while the tracks are written (evolution.cairo's rules, note by note
+/// in writing order): each note's velocity moved by up to `extent` either way, within 1..=127, and
+/// by `chance` (basis points) a note of an eighth or longer plays its second half an octave away.
+/// With no staff, `extent` and `chance` are 0: every note as composed.
+#[derive(Copy, Drop)]
+struct Perf {
+    state: u64,
+    extent: u64,
+    chance: u64,
+}
+
 #[inline(never)]
-fn block(ref tw: TrackWriter, ch: u8, t: u32, d: u32, ps: Span<u8>, v: u8) {
-    for p in ps {
-        msg(ref tw, t, 0x90 + ch, *p, v);
+fn lcg(ref pf: Perf) -> u64 {
+    pf.state = (1664525 * pf.state + 1013904223) % 0x100000000;
+    pf.state
+}
+
+/// The octave neighbour of a pitch: up, or down above 96.
+fn octave(p: u8) -> u8 {
+    if p > 96 {
+        p - 12
+    } else {
+        p + 12
     }
+}
+
+/// Notes sounding together: every note on at `t`, then every note off at `t + d`; on a staff, each
+/// note's velocity and octave second half (see `Perf`).
+#[inline(never)]
+fn block(ref tw: TrackWriter, ref pf: Perf, ch: u8, t: u32, d: u32, ps: Span<u8>, v: u8) {
+    let mut vels: Array<u8> = array![];
+    let mut split: Array<bool> = array![];
+    for _ in ps {
+        let vel: u64 = v.into() + lcg(ref pf) % (2 * pf.extent + 1);
+        vels
+            .append(
+                if vel <= pf.extent {
+                    1
+                } else if vel - pf.extent > 127 {
+                    127
+                } else {
+                    (vel - pf.extent).try_into().unwrap()
+                },
+            );
+        split.append(d >= 120 && lcg(ref pf) % 10000 < pf.chance);
+    }
+    let (vels, split, half) = (vels.span(), split.span(), d / 2);
+    let mut i: u32 = 0;
     for p in ps {
-        msg(ref tw, t + d, 0x80 + ch, *p, 0);
+        msg(ref tw, t, 0x90 + ch, *p, *vels.at(i));
+        i += 1;
+    }
+    i = 0;
+    for p in ps {
+        if *split.at(i) {
+            msg(ref tw, t + half, 0x80 + ch, *p, 0);
+            msg(ref tw, t + half, 0x90 + ch, octave(*p), *vels.at(i));
+        }
+        i += 1;
+    }
+    i = 0;
+    for p in ps {
+        msg(ref tw, t + d, 0x80 + ch, if *split.at(i) {
+            octave(*p)
+        } else {
+            *p
+        }, 0);
+        i += 1;
     }
 }
 
@@ -314,6 +377,8 @@ struct Ctx {
     tier: u32,
     kind: u32,
     shiny: bool,
+    /// the pad plays: tiers 1 and 2, and on a staff that unlocked it
+    pad: bool,
     species: u32,
     /// the 32 bars' chords, and the lead's notes over the whole form
     chords: Span<u32>,
@@ -323,7 +388,7 @@ struct Ctx {
 
 /// The lead (channel 0), or its mega double an octave up (channel 5).
 #[inline(never)]
-fn lead_track(k: Box<Ctx>, mega: bool) -> Array<u8> {
+fn lead_track(k: Box<Ctx>, ref pf: Perf, mega: bool) -> Array<u8> {
     let c = k.unbox();
     let leads = MEGA_LEADS.span();
     let (ch, program, up): (u8, u8, u8) = if mega {
@@ -343,7 +408,7 @@ fn lead_track(k: Box<Ctx>, mega: bool) -> Array<u8> {
         } else {
             100
         };
-        block(ref tw, ch, n.t, n.len - 20, [pitch(base, scale, n.d) + up].span(), vel);
+        block(ref tw, ref pf, ch, n.t, n.len - 20, [pitch(base, scale, n.d) + up].span(), vel);
     }
     finish(tw, c.ticks)
 }
@@ -352,12 +417,12 @@ fn lead_track(k: Box<Ctx>, mega: bool) -> Array<u8> {
 /// pattern on the triad), the bass (channel 3: its pattern on the root, two octaves below the
 /// tonic) and the pad (channel 4: a held triad every two bars, tiers 1 and 2).
 #[inline(never)]
-fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
+fn chord_track(k: Box<Ctx>, ref pf: Perf, ch: u8) -> Array<u8> {
     let c = k.unbox();
     let s = c.s.unbox();
     let role: u32 = ch.into();
     let mut tw = channel_track(ch, *s.palette.at(role * 3 + c.kind));
-    if ch == 4 && c.tier > 2 {
+    if ch == 4 && !c.pad {
         return finish(tw, c.ticks);
     }
     let (pattern, low, vel0) = if ch == 3 {
@@ -373,7 +438,7 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
             if (t / bar) % 2 == 0 {
                 let r = triad_root(chord, O - 7);
                 let ps = [pitch(low, scale, r), pitch(low, scale, r + 2), pitch(low, scale, r + 4)];
-                block(ref tw, 4, t, 2 * bar - 40, ps.span(), 46);
+                block(ref tw, ref pf, 4, t, 2 * bar - 40, ps.span(), 46);
             }
         } else {
             let r = triad_root(chord, O - 3);
@@ -403,7 +468,7 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
                     [pitch(low, scale, r + 4)].span()
                 };
                 let vel: u8 = (vel0 + x / 0x4000000).try_into().unwrap();
-                block(ref tw, ch, t + x % 0x800, (x / 0x800) % 0x800, ps, vel);
+                block(ref tw, ref pf, ch, t + x % 0x800, (x / 0x800) % 0x800, ps, vel);
             }
         }
         t += bar;
@@ -413,8 +478,16 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
 
 /// The track bodies of edition `e`'s track for a species (1-75), shiny or not, and a track seed:
 /// the tempo track, then lead, accompaniment, bass, pad and the mega double when shiny.
-#[inline(never)]
 pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Array<u8>> {
+    edition_tracks_on(species, shiny, e, seed, Option::None)
+}
+
+/// The same on a staff (evolution, `evolution.cairo`): its one extra role is the pad of tiers 3 to
+/// 5 (unlock bit 0), then its note performance (`Perf`, in track order) and tempo.
+#[inline(never)]
+pub fn edition_tracks_on(
+    species: u32, shiny: bool, e: u32, seed: u64, staff: Option<StaffControls>,
+) -> Array<Array<u8>> {
     assert(species >= 1 && species <= 75, 'editions: species');
     let (_, sb, mode, bpm0, form) = edition_genome(e);
     let s = sb.unbox();
@@ -485,6 +558,12 @@ pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Arr
             base,
             bar,
             tier: (k % 25) / 5 + 1,
+            pad: (k % 25) / 5
+                + 1 <= 2
+                    || match staff {
+                    Option::Some(c) => c.unlocked_extra_mask % 2 == 1,
+                    Option::None => false,
+                    },
             kind: k / 25,
             shiny,
             species,
@@ -494,7 +573,22 @@ pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Arr
         },
     );
     let mut tempo = TrackWriterTrait::new();
-    tempo.tempo(0, (120000000 + bpm) / (2 * bpm));
+    let mut tempo_us = (120000000 + bpm) / (2 * bpm);
+    let mut pf = Perf { state: 0, extent: 0, chance: 0 };
+    if let Option::Some(c) = staff {
+        tempo_us = nudge_tempo(tempo_us, c.tempo_delta);
+        if tempo_us > MAX_TEMPO_US {
+            tempo_us = MAX_TEMPO_US;
+        }
+        let n: u256 = c.note_seed.into();
+        pf =
+            Perf {
+                state: (n % 0x100000000).try_into().unwrap(),
+                extent: c.max_velocity_delta.into(),
+                chance: c.ornament_chance_bps.into(),
+            };
+    }
+    tempo.tempo(0, tempo_us);
     let den_log: u8 = if s.den == 8 {
         3
     } else {
@@ -502,11 +596,11 @@ pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Arr
     };
     tempo.meta(0, 0x58, [s.num.try_into().unwrap(), den_log, 24, 8].span());
     let mut tracks: Array<Array<u8>> = array![
-        finish(tempo, ticks), lead_track(ctx, false), chord_track(ctx, 2), chord_track(ctx, 3),
-        chord_track(ctx, 4),
+        finish(tempo, ticks), lead_track(ctx, ref pf, false), chord_track(ctx, ref pf, 2),
+        chord_track(ctx, ref pf, 3), chord_track(ctx, ref pf, 4),
     ];
     if shiny {
-        tracks.append(lead_track(ctx, true));
+        tracks.append(lead_track(ctx, ref pf, true));
     }
     tracks
 }
@@ -516,7 +610,10 @@ pub fn edition_smf_bytes(species: u32, shiny: bool, e: u32, seed: u64) -> Array<
     smf_bytes(1, 480, edition_tracks(species, shiny, e, seed).span())
 }
 
-/// The same as a `ByteArray`, packed from the track bodies without copying them into one array.
-pub fn edition_byte_array(species: u32, shiny: bool, e: u32, seed: u64) -> ByteArray {
-    smf_byte_array(1, 480, edition_tracks(species, shiny, e, seed).span())
+/// The same as a `ByteArray`, packed from the track bodies without copying them into one array; on
+/// a staff when `staff` is `Some`.
+pub fn edition_byte_array(
+    species: u32, shiny: bool, e: u32, seed: u64, staff: Option<StaffControls>,
+) -> ByteArray {
+    smf_byte_array(1, 480, edition_tracks_on(species, shiny, e, seed, staff).span())
 }

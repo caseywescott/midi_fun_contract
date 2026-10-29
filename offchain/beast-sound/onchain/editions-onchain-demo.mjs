@@ -5,15 +5,12 @@
 // editionSynthSettings, each value's Serde hash checked here against the contract's
 // EDITION_SERDE_HASHES). The page installs those settings with onchain-midi-player's own
 // player/settings.js on its pinned engine, and can switch back to the family-only settings the
-// composer served before, to hear the difference. Drift: compose_staff plays the edition on a staff
-// (src/evolution.js resolveEvolution, byte for byte the Cairo, from simulated block hashes and the
-// manager's test evolution config): the pad of tiers 3-5 can unlock at milestones and stays, and
-// every staff block performs the notes and nudges the tempo.
+// composer served before, to hear the difference. Editions drift day by day (Casey Drift):
+// public/onchain/drift-lab.html, its Edition track tab.
 //   node onchain/editions-onchain-demo.mjs <webaudio-tinysynth-4bf9829.min.js> <onchain-midi-player checkout>
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
-import { keccak } from '@scure/starknet';
 import { beastName, poseidonHashMany } from '../src/index.js';
 import { speciesRecords } from './editions_cairo.mjs';
 import { spriteSheet } from './lab-sprites.mjs';
@@ -28,9 +25,8 @@ const tiny = readFileSync(engineFile, 'utf8');
 const bundle = (await build({
   stdin: {
     contents: `import * as ed from './src/editions_lite.js'; import { encodeInputs } from './src/inputs.js';
-      import { resolveEvolution, milestoneBlocks } from './src/evolution.js'; import { labBlockHash } from './src/lab.js';
       import { installSettings } from ${JSON.stringify(omp + '/player/settings.js')};
-      window.BS = { ed, encodeInputs, installSettings, resolveEvolution, milestoneBlocks, labBlockHash };`,
+      window.BS = { ed, encodeInputs, installSettings };`,
     resolveDir: here + '..', loader: 'js',
   },
   bundle: true, minify: true, format: 'iife', platform: 'browser', write: false, logLevel: 'error',
@@ -52,13 +48,7 @@ const bank = loadBank();
 const NAMES = Object.fromEntries(bank.PRESETS.map((p, i) => [p.program ?? i, p.name]));
 const SPECIES = speciesRecords().map((s) => ({ ...s, name: beastName({ id: s.id, prefix: 0, suffix: 0 }) }));
 const SPRITES = Object.fromEntries(SPECIES.flatMap((s) => [String(s.id), s.id + 's']).map((k) => { const { n, w, png } = spriteSheet(k); return [k, { n, w, png }]; }));
-// The Sound Manager's drift group of an unnamed Beast: poseidon(selector!("beasts_named_drift_v1"),
-// species, name 0) (stored_purchase.cairo named_group), and its test evolution config
-// (originals_tests.cairo sample_evolution_config).
-const GROUP_SELECTOR = keccak(new TextEncoder().encode('beasts_named_drift_v1'));
-const GROUPS = SPECIES.map((s) => '0x' + poseidonHashMany([GROUP_SELECTOR, BigInt(s.id), 0n]).toString(16));
-const EVOLUTION = { first_milestone_age: 5, initial_unlock_bps: 1000, unlock_step_bps: 500, max_extra_channels: 2, max_tempo_delta_bpm: 4, max_velocity_delta: 16, ornament_chance_bps: 1000 };
-const DATA = { species: SPECIES, types: ['Magic', 'Hunter', 'Brute'], settings: SETTINGS, family: FAMILY, names: NAMES, groups: GROUPS, evolution: EVOLUTION };
+const DATA = { species: SPECIES, types: ['Magic', 'Hunter', 'Brute'], settings: SETTINGS, family: FAMILY, names: NAMES };
 
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -99,7 +89,7 @@ dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 12px;mar
 a{color:var(--acc)}
 </style></head><body><main>
 <h1>Monthly Track Editions, onchain</h1>
-<p class="sub">From edition 1, a track bought for a Beast is played by that edition's style engine, and in Live mode it drifts as blocks go by. The style is waltz, chorale, lullaby or dirge, taking turns, and it plays the species' theme with the instruments chosen for that style. This page plays exactly what the Beast composer contract returns. The MIDI is byte for byte the contract's, and the instruments are the contract's own settings. Both are installed the way onchain-midi-player installs them.</p>
+<p class="sub">From edition 1, a track bought for a Beast is played by that edition's style engine, The style is waltz, chorale, lullaby or dirge, taking turns, and it plays the species' theme with the instruments chosen for that style. This page plays exactly what the Beast composer contract returns. The MIDI is byte for byte the contract's, and the instruments are the contract's own settings. Both are installed the way onchain-midi-player installs them.</p>
 <div class="grid"><div>
 <div class="card">
 <div class="stepper"><button class="nav" id="e-prev" title="Previous edition (↑)">▲</button><div class="mid"><div class="lbl">Edition</div><div class="val" id="e-val"></div></div><button class="nav" id="e-next" title="Next edition (↓)">▼</button></div>
@@ -109,14 +99,8 @@ a{color:var(--acc)}
 <div class="seg" role="group" aria-label="Instruments"><button id="i-new" class="on">Edition presets</button><button id="i-old">Before: family settings only</button></div>
 <div class="ctl" style="margin-top:12px"><button class="go" id="play">▶ Play</button><button id="stop">■ Stop</button></div>
 </div>
-<div class="card"><div class="sec">Drift</div>
-<div class="seg" role="group" aria-label="Sound mode"><button id="m-orig">Original: as written</button><button id="m-live" class="on">Live: on a staff</button></div>
-<label class="age">Staff block: <b id="age-val"></b><input type="range" id="age" min="0" max="1000" value="274" aria-label="Staff block"></label>
-<div class="miles" id="miles" aria-hidden="true"></div>
-<div class="ctl"><button id="lapse">▶ Time-lapse</button></div>
-<dl id="drift"></dl>
-<p class="note">The settings are the Sound Manager's test evolution config. Milestones fall 5, 10, 20 … 640 blocks after the purchase. At each one the pad of a tier 3 to 5 Beast can unlock with a 10% chance, rising 5% per milestone, and once unlocked it stays. Every staff block also re-performs the notes (velocity ±16, a 10% chance of an octave second half) and nudges the tempo by up to 4 BPM. Live mode plays the block 10 before the current one, and Original mode plays the track as written. Block hashes are simulated.</p>
-<p class="note">Keys: <span class="kbd">↑</span> <span class="kbd">↓</span> edition · <span class="kbd">←</span> <span class="kbd">→</span> Beast · <span class="kbd">[</span> <span class="kbd">]</span> purchase · <span class="kbd">i</span> instruments · <span class="kbd">,</span> <span class="kbd">.</span> staff block · <span class="kbd">space</span> play/stop. Changes play straight away while playing.</p>
+<div class="card"><p class="note" style="margin-top:0">Editions drift day by day with Casey Drift: new melodies by month, a new accompaniment voicing by week, one knob by day. Hear it on the <a href="drift-lab.html?track=edition">Drift Lab</a>, Edition track tab.</p>
+<p class="note">Keys: <span class="kbd">↑</span> <span class="kbd">↓</span> edition · <span class="kbd">←</span> <span class="kbd">→</span> Beast · <span class="kbd">[</span> <span class="kbd">]</span> purchase · <span class="kbd">i</span> instruments · <span class="kbd">space</span> play/stop. Changes play straight away while playing.</p>
 </div>
 <div class="card"><div class="ed-head"><div id="art" role="img" aria-label=""></div><div><div class="emonth" id="emonth"></div><p class="ename" id="ename"></p><p class="edesc" id="edesc"></p></div></div><dl id="info"></dl></div>
 <div class="card"><canvas id="roll" width="1600" height="440"></canvas><div class="legend" id="legend"></div></div>
@@ -134,36 +118,24 @@ a{color:var(--acc)}
 const DATA = ${JSON.stringify(DATA)};
 const SPRITES = ${JSON.stringify(SPRITES)};
 const $ = (id) => document.getElementById(id), ED = BS.ed, N_ED = 48, U64 = (1n << 64n) - 1n;
-// the default: a tier 5 Beast whose first purchase unlocks its pad at the third milestone (20 blocks)
-const st = { e: 1, s: 20, n: 1, fx: 0, presets: true, live: true, age: 5 };
-let lapse = 0;
+const st = { e: 1, s: 20, n: 1, fx: 0, presets: true };
 let synth = null, playing = false, rollData = null, cur = null;
 
-(function readUrl() { const q = new URLSearchParams(location.search); if (q.has('e')) st.e = Math.max(1, Math.min(N_ED, +q.get('e') || 1)); if (q.has('b')) st.s = Math.max(0, Math.min(74, (+q.get('b') || 1) - 1)); if (q.has('p')) st.n = Math.max(1, +q.get('p') || 1); if (q.has('fx')) st.fx = Math.max(0, Math.min(3, +q.get('fx') || 0)); st.presets = q.get('i') !== 'before'; if (q.has('mode')) st.live = q.get('mode') !== 'original'; if (q.has('age')) st.age = Math.max(0, Math.min(700, +q.get('age') || 0)); })();
-function writeUrl() { const q = new URLSearchParams({ e: st.e, b: st.s + 1, p: st.n, fx: st.fx, mode: st.live ? 'live' : 'original', age: st.age }); if (!st.presets) q.set('i', 'before'); history.replaceState(null, '', '?' + q); }
+(function readUrl() { const q = new URLSearchParams(location.search); if (q.has('e')) st.e = Math.max(1, Math.min(N_ED, +q.get('e') || 1)); if (q.has('b')) st.s = Math.max(0, Math.min(74, (+q.get('b') || 1) - 1)); if (q.has('p')) st.n = Math.max(1, +q.get('p') || 1); if (q.has('fx')) st.fx = Math.max(0, Math.min(3, +q.get('fx') || 0)); st.presets = q.get('i') !== 'before'; })();
+function writeUrl() { const q = new URLSearchParams({ e: st.e, b: st.s + 1, p: st.n, fx: st.fx}); if (!st.presets) q.set('i', 'before'); history.replaceState(null, '', '?' + q); }
 
 // A stand-in purchase: the manager seeds generate_inputs with a purchase hash; the generator keeps
 // its low 64 bits. Here purchase n's hash is a fixed mix of n (no chain needed).
 function purchaseSeed(n) { let x = BigInt(n) * 0x9e3779b97f4a7c15n & U64; x ^= x >> 30n; x = x * 0xbf58476d1ce4e5b9n & U64; x ^= x >> 27n; x = x * 0x94d049bb133111ebn & U64; return x ^ (x >> 31n); }
 const mega = () => st.fx === 1 || st.fx === 3;
 
-// A stand-in chain: purchase n is bought at block 1,000,000 + 1000 n; block hashes are the lab's.
-const birthOf = (n) => 1000000n + 1000n * BigInt(n);
-function staffAt(sp, birth, age) {
-  return BS.resolveEvolution(DATA.evolution, { birth, staff: birth + BigInt(age), driftGroup: DATA.groups[sp.id - 1], hashOf: BS.labBlockHash }, sp.tier > 2 ? 1 : 0);
-}
 function compose() {
-  const sp = DATA.species[st.s], seed = purchaseSeed(st.n), g = ED.editionGenome(st.e), birth = birthOf(st.n);
-  const staff = st.live ? staffAt(sp, birth, st.age) : null;
-  const written = ED.editionMidi(sp, mega(), st.e, seed);
-  const out = staff ? ED.editionMidi(sp, mega(), st.e, seed, staff) : written;
+  const sp = DATA.species[st.s], seed = purchaseSeed(st.n), g = ED.editionGenome(st.e);
+  const out = ED.editionMidi(sp, mega(), st.e, seed);
   const i = (g.style * 3 + sp.type) * 2 + (mega() ? 1 : 0);
   const settings = st.presets ? DATA.settings[i].s : DATA.family[sp.type * 2 + (mega() ? 1 : 0)];
   const wire = BS.encodeInputs({ kind: 'Edition', edition: { identity: { source_species_id: BigInt(sp.id), name_variant_id: 0 }, edition: st.e, seed } });
-  // the milestone (index) at which the pad unlocked, if it has
-  let unlockAt = -1;
-  if (staff && sp.tier > 2 && staff.unlocked_extra_mask % 2) unlockAt = staff.milestones.findIndex((m) => staffAt(sp, birth, Number(m.block - birth)).unlocked_extra_mask % 2 === 1);
-  return { ...out, written: written.midi, sp, seed, g, i, settings, wire, staff, birth, unlockAt };
+  return { ...out, sp, seed, g, i, settings, wire };
 }
 
 const ROLE = { 0: 'lead', 2: 'accomp', 3: 'bass', 4: 'pad', 5: 'mega double' };
@@ -183,7 +155,7 @@ function show() {
   $('flow').innerHTML = [
     '<b>Purchase</b> in edition ' + st.e + ', for species ' + sp.id + '. <code>generate_inputs(base, ' + st.e + ', purchase hash)</code> returns an Edition. The seed is the hash\\'s low 64 bits.',
     '<b>ComposerInputs</b> on the wire (codec 5, Edition = tag 2): <code>' + wire + '</code>',
-    (cur.staff ? '<b>compose_staff(inputs, ' + st.fx + ', config, context)</b> at staff block ' + (cur.birth + BigInt(st.age)) + ' (' + cur.staff.milestones.length + ' milestones reached) returns ' : '<b>compose(inputs, ' + st.fx + ')</b> returns ') + cur.midi.length + ' bytes of MIDI from the ' + ED.ENGINES[g.engine].label.toLowerCase() + ' engine and <code>edition_synth_settings(' + g.style + ', ' + sp.type + ', ' + mega() + ')</code>.',
+    '<b>compose(inputs, ' + st.fx + ')</b> returns ' + cur.midi.length + ' bytes of MIDI from the ' + ED.ENGINES[g.engine].label.toLowerCase() + ' engine and <code>edition_synth_settings(' + g.style + ', ' + sp.type + ', ' + mega() + ')</code>.',
     '<b>Settings hash</b> <code>' + DATA.settings[cur.i].hash.slice(0, 18) + '…</code> <span class="badge ok">matches the contract</span>',
   ].map((x) => '<div>' + x + '</div>').join('');
   const prog = notesOf(cur.midi).prog, slots = new Set(cur.settings.timbres.filter((t) => !t.drum).map((t) => t.slot));
@@ -192,25 +164,8 @@ function show() {
     ? 'These settings carry ' + cur.settings.timbres.length + ' TinyChip presets and ' + cur.settings.waves.length + ' sampled chip waves. Every program the file selects has its own preset.'
     : 'Before: the family settings (' + cur.settings.timbres.filter((t) => !t.drum).length + ' presets). The faded programs are not in them, so TinySynth plays its built-in General MIDI sounds instead.';
   $('i-new').classList.toggle('on', st.presets); $('i-old').classList.toggle('on', !st.presets);
-  drift();
   $('fx').value = String(st.fx);
   art(sp); list(); roll(cur.midi); writeUrl();
-}
-// the staff block on a log scale: each milestone (5 x 2^k blocks) gets about the same room
-const AGE_MAX = 700, toAge = (v) => Math.round(Math.exp(v / 1000 * Math.log(AGE_MAX + 1)) - 1), toPos = (a) => Math.log(a + 1) / Math.log(AGE_MAX + 1);
-function counts(midi) { const c = {}; for (const n of notesOf(midi).notes) c[n[3]] = (c[n[3]] || 0) + 1; return c; }
-function drift() {
-  $('m-orig').classList.toggle('on', !st.live); $('m-live').classList.toggle('on', st.live);
-  $('age').value = Math.round(toPos(st.age) * 1000); $('age').disabled = !st.live; $('lapse').disabled = !st.live;
-  $('age-val').textContent = st.live ? st.age + ' blocks after the purchase' : 'none (Original)';
-  const sp = cur.sp, M = $('miles');
-  M.innerHTML = Array.from({ length: 8 }, (_, k) => 5 * 2 ** k).map((a, k) => '<span style="left:' + (toPos(a) * 100) + '%" class="' + (st.live && a <= st.age ? 'hit' : '') + (k === cur.unlockAt ? ' unlock' : '') + '" title="milestone ' + (k + 1) + ': ' + a + ' blocks"></span>').join('') + (st.live ? '<i style="left:' + (toPos(st.age) * 100) + '%"></i>' : '');
-  if (!cur.staff) { $('drift').innerHTML = '<dt>Staff</dt><dd>none: the track as written</dd>'; return; }
-  const w = counts(cur.written), d = counts(cur.midi), padAdded = (d[4] || 0) - (w[4] || 0);
-  let orn = 0; for (const ch of Object.keys(d)) if (+ch !== 4 || w[4]) orn += d[ch] - (w[ch] || 0);
-  const pad = sp.tier <= 2 ? 'plays as written (tier ' + sp.tier + ')' : cur.staff.unlocked_extra_mask % 2 ? 'unlocked at milestone ' + (cur.unlockAt + 1) + ' (' + 5 * 2 ** cur.unlockAt + ' blocks): +' + padAdded + ' notes' : 'locked (tier ' + sp.tier + '; ' + cur.staff.milestones.length + ' of 8 milestones rolled)';
-  const rows = [['Milestones', cur.staff.milestones.length + ' of 8 reached'], ['Pad', pad], ['Tempo', (cur.staff.tempo_delta >= 0 ? '+' : '') + cur.staff.tempo_delta + ' BPM (' + cur.info.bpm + ' written)'], ['Octave ornaments', orn + ' notes this block'], ['Velocity drift', '±' + cur.staff.max_velocity_delta + ' per note'], ['Note seed', '0x' + cur.staff.note_seed.toString(16).slice(0, 16) + '…']];
-  $('drift').innerHTML = rows.map(([a, b]) => '<dt>' + a + '</dt><dd>' + esc(b) + '</dd>').join('');
 }
 function art(sp) {
   const s = SPRITES[sp.id + (mega() ? 's' : '')] || SPRITES[String(sp.id)], el = $('art');
@@ -274,16 +229,7 @@ function start() {
   synth.loadMIDI(m.buffer.slice(m.byteOffset, m.byteOffset + m.length));
   synth.setLoop(1); synth.setLoopEnd(synth.getPlayStatus().maxTick); synth.playMIDI(); playing = true;
 }
-function stop() { if (synth) synth.stopMIDI(); playing = false; clearInterval(lapse); lapse = 0; $('lapse').textContent = '▶ Time-lapse'; draw(-1); }
-// the time-lapse: the staff block moves on every few seconds, faster as the milestones spread out
-function toggleLapse() {
-  if (lapse) { clearInterval(lapse); lapse = 0; $('lapse').textContent = '▶ Time-lapse'; return; }
-  if (!st.live) return;
-  if (st.age >= 700) st.age = 0;
-  if (!playing) { show(); start(); }
-  $('lapse').textContent = '■ Stop time-lapse';
-  lapse = setInterval(() => { st.age = Math.min(700, st.age + Math.max(1, Math.round(st.age / 6))); show(); start(); if (st.age >= 700) { clearInterval(lapse); lapse = 0; $('lapse').textContent = '▶ Time-lapse'; } }, 5000);
-}
+function stop() { if (synth) synth.stopMIDI(); playing = false; draw(-1); }
 function change() { show(); if (playing) start(); }
 
 const step = (k, d) => { if (k === 'e') st.e = (st.e - 1 + d + N_ED) % N_ED + 1; if (k === 's') st.s = (st.s + d + 75) % 75; if (k === 'n') st.n = Math.max(1, st.n + d); change(); };
@@ -293,13 +239,10 @@ $('s-prev').onclick = () => step('n', -1); $('s-next').onclick = () => step('n',
 $('fx').onchange = () => { st.fx = +$('fx').value; change(); };
 $('i-new').onclick = () => { st.presets = true; change(); }; $('i-old').onclick = () => { st.presets = false; change(); };
 $('play').onclick = start; $('stop').onclick = stop;
-$('m-orig').onclick = () => { st.live = false; change(); }; $('m-live').onclick = () => { st.live = true; change(); };
-$('age').oninput = () => { st.age = toAge(+$('age').value); show(); }; $('age').onchange = () => { if (playing) start(); };
-$('lapse').onclick = toggleLapse;
 document.addEventListener('keydown', (ev) => {
   if (ev.target.tagName === 'SELECT' || ev.metaKey || ev.ctrlKey) return;
   const k = { ArrowUp: ['e', -1], ArrowDown: ['e', 1], ArrowLeft: ['s', -1], ArrowRight: ['s', 1], '[': ['n', -1], ']': ['n', 1] }[ev.key];
-  if (k) { ev.preventDefault(); step(...k); } else if ((ev.key === ',' || ev.key === '.') && st.live) { st.age = Math.max(0, Math.min(700, st.age + (ev.key === '.' ? 1 : -1))); change(); } else if (ev.key === ' ') { ev.preventDefault(); playing ? stop() : start(); } else if (ev.key === 'i') { st.presets = !st.presets; change(); }
+  if (k) { ev.preventDefault(); step(...k); } else if (ev.key === ' ') { ev.preventDefault(); playing ? stop() : start(); } else if (ev.key === 'i') { st.presets = !st.presets; change(); }
 });
 show();
 </script></body></html>`;

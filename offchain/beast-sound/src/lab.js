@@ -10,7 +10,6 @@
 //
 // Every function is a pure function of its inputs, like the composer, so each can move to Cairo.
 import { poseidonHashMany } from './index.js';
-import { nudgeTempo } from './evolution.js';
 import { FAMILIES, MEGA_ALL, MEGA_LEADS, beastFullMidi, beastInstruments, drumEvents } from './full_midi.js';
 
 const V11 = { keys: 'mode', even: true, traj: true };
@@ -748,7 +747,7 @@ export function addFlourishes(form, day, key, style = {}) {
   return { form: { ...form, events: ev.filter((x) => x.duration > 0) }, added, share };
 }
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0, trueV = false, blockHashes = false, yeti = true, staff = null } = {}, E, v11) {
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0, trueV = false, blockHashes = false, yeti = true } = {}, E, v11) {
   // seed 0 is the Genesis seed (0 is never a block hash): the Genesis rules, no seeded treatment, the
   // tier's fixed channel count, so the OG track of a species (name 0, seed 0) is known exactly
   if (seed === 0n || seed === 0) seed = null;
@@ -818,21 +817,12 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   let out = r, playing = null, fl = null;
   if (full) {
     const count = channels === 'rarity' ? channelCount(seed, b.tier) : Math.min(6, Math.max(3, +channels));
-    // on a staff (evolution, src/evolution.js): the written channels, then the extra roles it unlocked,
-    // next in the written channel order (genesis.cairo song_tracks_with)
-    const order = channelPick(out.form.events, 6, d.v === 2 && d.rotate !== null ? d.rotate : seed);
-    playing = staff ? order.filter((_, i) => i < count || (staff.unlocked_extra_mask >> (i - count)) % 2 === 1) : order.slice(0, count);
+    playing = channelPick(out.form.events, count, d.v === 2 && d.rotate !== null ? d.rotate : seed);
     out = { ...out, form: { ...out.form, events: out.form.events.filter((e) => playing.includes(e.voice_id)) } };
     if (!playing.includes('drums')) drums = false;
   }
   let tied = null;
   if (ties) { const t2 = tieRepeats(out.form, ties === 'all' ? 'all' : 'weak'); tied = t2.tied; out = { ...out, form: t2.form }; }
-  // the staff's note performance (in Cairo's order: voice by voice, each in time) and tempo
-  if (staff) {
-    const ev = [...out.form.events].sort((a, c) => a.voice_id - c.voice_id || a.time - c.time);
-    const performed = performStaff(ev, p.velocity_ceiling, staff).sort((a, c) => a.time - c.time || a.voice_id - c.voice_id);
-    out = { ...out, form: { ...out.form, events: performed }, params: { ...out.params, tempo_us: Math.min(1048575, nudgeTempo(out.params.tempo_us, staff.tempo_delta)) } };
-  }
   // the Yeti special: 16th-note ornaments placed by the track's own profile (its special name), the
   // avalanche down each section's closing chord, and the rock groove at 175 BPM, on the track's key
   let yetiMix = null;
@@ -852,31 +842,6 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     flourishes: fl ? { count: fl.added.length, share: fl.share, notes: fl.added.flatMap((x) => (x.notes ? x.notes.map(([time, pitch]) => ({ voice: x.voice, time, pitch })) : [{ voice: x.voice, time: x.time, pitch: x.pitch }])), voices: [...new Set(fl.added.map((x) => x.voice))].length, shapes: fl.added.reduce((m, x) => ((m[x.shape] = (m[x.shape] || 0) + 1), m), {}) } : null,
     channels: playing ? playing.map((c, i) => (i === 1 && c !== 4 && c !== 'drums' ? 'low voice' : CHANNEL_NAMES[c])) : null };
   return { midi: beastFullMidi(out, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums, mix, topLead, ...(yetiMix || {}) }), drift: d, result: out, info };
-}
-
-/**
- * A staff's note performance (evolution.cairo perform_staff_events): each note's velocity moved
- * within +-max_velocity_delta (1..ceiling) and, by ornament_chance_bps, a note of an eighth or longer
- * playing its second half an octave away. `noise_bps` (the Drift Lab's mutation chain, not the
- * contract) also moves a note's pitch by up to an octave; at 0 it draws nothing, so the contract's
- * output is unchanged.
- */
-export function performStaff(events, ceiling, c) {
-  let state = Number(BigInt(c.note_seed) % 4294967296n);
-  const ext = c.max_velocity_delta, noise = c.noise_bps || 0, out = [];
-  const lcg = () => (state = (1664525 * state + 1013904223) % 4294967296);
-  for (const e of events) {
-    const roll = lcg() % (2 * ext + 1), v0 = e.velocity + roll - ext, velocity = v0 < 1 ? 1 : v0 > ceiling ? ceiling : v0;
-    const ornament = lcg() % 10000 < c.ornament_chance_bps && e.duration >= 120;
-    let pitch = e.pitch;
-    if (noise > 0 && lcg() % 10000 < noise) pitch = Math.max(24, Math.min(108, pitch + (lcg() % 25) - 12));
-    if (ornament) {
-      const half = Math.floor(e.duration / 2);
-      out.push({ ...e, pitch, duration: half, velocity });
-      out.push({ ...e, time: e.time + half, duration: e.duration - half, pitch: pitch > 96 ? pitch - 12 : pitch + 12, velocity });
-    } else out.push({ ...e, pitch, velocity });
-  }
-  return out;
 }
 
 // ── the Genesis Track, as the lab plays it by default (and as the Cairo port must match) ─────────

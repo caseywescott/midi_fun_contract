@@ -162,8 +162,8 @@ function melody(c, chords, lo, hi, motif, full, R) {
 /**
  * Edition `e`'s track for a species, shiny or not, and a track seed; on a day of drift `drift`
  * ({ rhythm, rotate, dayKnob, delta }: lab.js drift2, the song layers): the month's new melodies
- * (drawn from its hash; same key, chords and tempo), the week's accompaniment voicing (its triad
- * rotated by one or two tones) and the day's knob (0 the A and B progressions swap, 1 the A and B
+ * (drawn from its hash; same key, chords and tempo), the week's accompaniment voicing (its triads
+ * in first or second inversion) and the day's knob (0 the A and B progressions swap, 1 the A and B
  * tunes swap, 2-5 the tempo nudged). editions.cairo edition_tracks_on byte for byte.
  */
 export function editionTrack(sp, shiny, e, seedKey, drift = null) {
@@ -194,7 +194,7 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null) {
   const sectionChords = (isB) => { const prog = isB ? S.progs[pB] : S.progs[pA]; return Array.from({ length: 8 }, (_, b) => prog[Math.floor(b / S.chordBars) % 4]); };
   const melA = melody(c, sectionChords(false), -1, 9, sp.degrees.slice(0, 6), true, MR);
   const melB = melody(c, sectionChords(true), 1, 11, [], false, MR);
-  // the week's drift rotates the accompaniment's triad by one or two tones
+  // the week's drift puts the accompaniment's triads in their first or second inversion
   const rot = drift && drift.rotate !== null ? 1 + Number(BigInt(drift.rotate) & 0xffffffffn) % 2 : 0;
   for (let s = 0; s < 4; s++) {
     const isB = form[s] === 'B';
@@ -206,9 +206,9 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null) {
     }
     for (let b = 0; b < 8; b++) {
       const t = t0 + b * bar, ch = chords[b];
-      const v = triad(ch, -3), vr = [0, 1, 2].map((k) => v[(k + rot) % 3]);
+      const v = triad(ch, -3), vr = [0, 1, 2].map((k) => v[0] + [0, 2, 4, 7, 9][rot + k]);
       for (const [off, d, voice, dv] of S.accomp) {
-        const ps = voice === 9 ? v.map(P) : voice === 10 ? [P(vr[0]), P(vr[0]) + 12] : voice === 3 ? [P(vr[0]) + 12] : [P(vr[voice])];
+        const ps = voice === 9 ? vr.map(P) : voice === 10 ? [P(vr[0]), P(vr[0]) + 12] : voice === 3 ? [P(vr[0]) + 12] : [P(vr[voice])];
         T.accomp.block(2, t + off, d, ps, 72 + dv);
       }
       for (const [off, d, tone, dv] of S.bass) {

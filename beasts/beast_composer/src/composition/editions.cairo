@@ -317,7 +317,8 @@ struct Ctx {
     kind: u32,
     shiny: bool,
     species: u32,
-    /// the accompaniment's triad rotated by 0, 1 or 2 tones (the week's drift)
+    /// the accompaniment's triads in root position (0) or first or second inversion (the week's
+    /// drift)
     rot: u32,
     /// the 32 bars' chords, and the lead's notes over the whole form
     chords: Span<u32>,
@@ -381,8 +382,9 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
             }
         } else {
             let r = triad_root(chord, O - 3);
-            // the triad's tones in the accompaniment's order, rotated by the week's drift
-            let (rot, deg) = (c.rot, [0_u32, 2, 4, 0, 2]);
+            // the triad in root position, or with the week's drift in its first or second inversion
+            // (the lower tones an octave up)
+            let (rot, deg) = (c.rot, [0_u32, 2, 4, 7, 9]);
             let p0 = pitch(low, scale, r + *deg.span().at(rot));
             let (p1, p2) = (
                 pitch(low, scale, r + *deg.span().at(rot + 1)),
@@ -400,8 +402,7 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
                         [pitch(low, scale, chord + O)].span()
                     }
                 } else if voice == 9 {
-                    [pitch(low, scale, r), pitch(low, scale, r + 2), pitch(low, scale, r + 4)]
-                        .span()
+                    [p0, p1, p2].span()
                 } else if voice == 10 {
                     [p0, p0 + 12].span()
                 } else if voice == 3 {
@@ -430,9 +431,10 @@ pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Arr
 
 /// The same on a day of drift (`drift.cairo` `layered_drift`, the song layers in the style
 /// engine's terms): the month's new melodies (their rhythm cells and contour drawn from the
-/// month's hash; same key, chords and tempo), the week's accompaniment voicing (its triad rotated
-/// by one or two tones) and the day's knob (0 the A and B progressions swap, 1 the A and B tunes
-/// swap, 2-5 the tempo nudged -4, -2, +2, +4 BPM). No drift (`None`) is the track as written.
+/// month's hash; same key, chords and tempo), the week's accompaniment voicing (its triads in
+/// their first or second inversion) and the day's knob (0 the A and B progressions swap, 1 the A
+/// and B tunes swap, 2-5 the tempo nudged -4, -2, +2, +4 BPM). No drift (`None`) is the track as
+/// written.
 #[inline(never)]
 pub fn edition_tracks_on(
     species: u32, shiny: bool, e: u32, seed: u64, drift: Option<Drift>,

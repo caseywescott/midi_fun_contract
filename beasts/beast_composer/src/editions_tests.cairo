@@ -305,3 +305,54 @@ fn editions_parity_fixture_wide_seeds() {
         );
     }
 }
+
+/// Drifted editions: one EDD line per case (the day's drift and the whole file in hex), which
+/// scripts/editions_drift_parity.mjs replays through editions_lite.js with the same drift. The days
+/// cover every knob, months with and without new melodies and weeks with and without a rotation.
+#[test]
+#[ignore]
+fn editions_drift_parity_fixture() {
+    let mut i: u32 = 0;
+    while i < 30 {
+        let e = i % 8 + 1;
+        let sp = (i * 11) % 75 + 1;
+        let day: u64 = 1 + (i * 23).into();
+        let clock = crate::composition::drift::DriftClock {
+            day,
+            day_hash: 'day' + day.into(),
+            week_hash: 'week' + ((day - 1) / 7).into(),
+            month_hash: 'month' + ((day - 1) / 30).into(),
+        };
+        let d = crate::composition::drift::layered_drift(sp.into(), 0, 0, clock);
+        let midi = crate::composition::editions::edition_tracks_on(
+            sp, i % 3 == 0, e, (i * 977).into(), Option::Some(d),
+        );
+        let bytes = midi::smf::smf_bytes(1, 480, midi.span());
+        let rhythm: felt252 = match d.rhythm {
+            Option::Some(h) => h,
+            Option::None => 0,
+        };
+        let rotate: felt252 = match d.rotate {
+            Option::Some(h) => h,
+            Option::None => 0,
+        };
+        println!(
+            "EDD e={} sp={} shiny={} seed={} rhythm={} rotate={} knob={} delta={} len={} hex={}",
+            e,
+            sp,
+            if i % 3 == 0 {
+                1
+            } else {
+                0
+            },
+            i * 977,
+            rhythm,
+            rotate,
+            d.day_knob,
+            d.delta_bpm,
+            bytes.len(),
+            hex(bytes.span()),
+        );
+        i += 1;
+    }
+}

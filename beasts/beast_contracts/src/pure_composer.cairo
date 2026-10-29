@@ -18,7 +18,9 @@ use midi::types::{TinySynthSettings, TinySynthSound};
 pub trait IBeastPureComposer<T> {
     fn compose(self: @T, inputs: ComposerInputs, sound_effects: u8) -> TinySynthSound;
     /// The track on a day of drift (`beast_composer::composition::drift`): a song's rhythm cells
-    /// (by month), channel order (by week) and one knob (by day). A Sound Check does not drift.
+    /// (by month), channel order (by week) and one knob (by day); an edition's melodies,
+    /// accompaniment voicing and knob (`editions::edition_tracks_on`). A Sound Check does not
+    /// drift.
     fn compose_drift(
         self: @T, inputs: ComposerInputs, sound_effects: u8, drift: DriftInputs,
     ) -> TinySynthSound;
@@ -58,9 +60,14 @@ fn compose_with(
         ComposerInputs::SoundCheck(check) => bytes_to_byte_array(
             sound_check_from_inputs(check, mega).span(),
         ),
-        ComposerInputs::Edition(edition) => edition_byte_array(
-            edition.identity.source_species_id, mega, edition.edition, edition.seed,
-        ),
+        ComposerInputs::Edition(edition) => {
+            let species = edition.identity.source_species_id;
+            let day = match drift {
+                Option::Some(d) => Option::Some(drift_of(species, d)),
+                Option::None => Option::None,
+            };
+            edition_byte_array(species, mega, edition.edition, edition.seed, day)
+        },
     };
     TinySynthSound { midi, settings: settings_for(performed, mega) }
 }

@@ -12,6 +12,8 @@
 
 use core::num::traits::{WrappingAdd, WrappingMul};
 use midi::smf::{TrackWriter, TrackWriterTrait, smf_byte_array, smf_bytes};
+use crate::composition::drift::{Drift, nudge_tempo};
+use crate::inputs::MAX_TEMPO_US;
 use super::editions_data::{SCALES, SPECIES, Style, style};
 
 const SEVEN: NonZero<u32> = 7;
@@ -315,6 +317,8 @@ struct Ctx {
     kind: u32,
     shiny: bool,
     species: u32,
+    /// the accompaniment's triad rotated by 0, 1 or 2 tones (the week's drift)
+    rot: u32,
     /// the 32 bars' chords, and the lead's notes over the whole form
     chords: Span<u32>,
     lead: Span<MelNote>,
@@ -377,7 +381,13 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
             }
         } else {
             let r = triad_root(chord, O - 3);
-            let p0 = pitch(low, scale, r);
+            // the triad's tones in the accompaniment's order, rotated by the week's drift
+            let (rot, deg) = (c.rot, [0_u32, 2, 4, 0, 2]);
+            let p0 = pitch(low, scale, r + *deg.span().at(rot));
+            let (p1, p2) = (
+                pitch(low, scale, r + *deg.span().at(rot + 1)),
+                pitch(low, scale, r + *deg.span().at(rot + 2)),
+            );
             for x in pattern {
                 let x = *x;
                 let voice = (x / 0x400000) % 16;
@@ -390,7 +400,8 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
                         [pitch(low, scale, chord + O)].span()
                     }
                 } else if voice == 9 {
-                    [p0, pitch(low, scale, r + 2), pitch(low, scale, r + 4)].span()
+                    [pitch(low, scale, r), pitch(low, scale, r + 2), pitch(low, scale, r + 4)]
+                        .span()
                 } else if voice == 10 {
                     [p0, p0 + 12].span()
                 } else if voice == 3 {
@@ -398,9 +409,9 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
                 } else if voice == 0 {
                     [p0].span()
                 } else if voice == 1 {
-                    [pitch(low, scale, r + 2)].span()
+                    [p1].span()
                 } else {
-                    [pitch(low, scale, r + 4)].span()
+                    [p2].span()
                 };
                 let vel: u8 = (vel0 + x / 0x4000000).try_into().unwrap();
                 block(ref tw, ch, t + x % 0x800, (x / 0x800) % 0x800, ps, vel);
@@ -413,8 +424,23 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
 
 /// The track bodies of edition `e`'s track for a species (1-75), shiny or not, and a track seed:
 /// the tempo track, then lead, accompaniment, bass, pad and the mega double when shiny.
-#[inline(never)]
 pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Array<u8>> {
+    edition_tracks_on(species, shiny, e, seed, Option::None)
+}
+
+/// The same on a day of drift (`drift.cairo` `layered_drift`, the song layers in the style
+/// engine's terms): the month's new melodies (their rhythm cells and contour drawn from the
+/// month's hash; same key, chords and tempo), the week's accompaniment voicing (its triad rotated
+/// by one or two tones) and the day's knob (0 the A and B progressions swap, 1 the A and B tunes
+/// swap, 2-5 the tempo nudged -4, -2, +2, +4 BPM). No drift (`None`) is the track as written.
+#[inline(never)]
+pub fn edition_tracks_on(
+    species: u32, shiny: bool, e: u32, seed: u64, drift: Option<Drift>,
+) -> Array<Array<u8>> {
+    let (rhythm, rotate, knob, delta) = match drift {
+        Option::Some(d) => (d.rhythm, d.rotate, d.day_knob, d.delta_bpm),
+        Option::None => (Option::None, Option::None, 6, 0),
+    };
     assert(species >= 1 && species <= 75, 'editions: species');
     let (_, sb, mode, bpm0, form) = edition_genome(e);
     let s = sb.unbox();
@@ -436,10 +462,15 @@ pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Arr
     };
     let tonic = (tonic0 + *[0_u32, 0, 0, 5, 7, 10, 2, 3].span().at(r.int(8))) % 12;
     let bpm = bpm0 + *[0_u32, 2, 4, 4, 6, 8].span().at(r.int(6)) - 4;
-    let pa = r.int(4);
+    let mut pa = r.int(4);
     let mut pb = r.int(4);
     if pb == pa {
         pb = (pa + 1) % 4;
+    }
+    if knob == 0 {
+        let a = pa;
+        pa = pb;
+        pb = a;
     }
     let bar = s.num * (1920 / s.den);
     let strong2 = if s.den == 8 {
@@ -458,8 +489,18 @@ pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Arr
     };
     let ma = BoxTrait::new(Mel { bar, strong2, lo: O - 1, motif: motif.span() });
     let mb = BoxTrait::new(Mel { bar, strong2, lo: O + 1, motif: [].span() });
-    let mel_a = melody(s.cells, s.end, ma, chords.slice(0, 8), true, ref r);
-    let mel_b = melody(s.cells, s.end, mb, chords.slice(b0, 8), false, ref r);
+    // the month's drift draws the melodies from its own hash, the rest of the track unchanged
+    let mut mr = match rhythm {
+        Option::Some(h) => Rng { a: low32(h) },
+        Option::None => r,
+    };
+    let mel_a = melody(s.cells, s.end, ma, chords.slice(0, 8), true, ref mr);
+    let mel_b = melody(s.cells, s.end, mb, chords.slice(b0, 8), false, ref mr);
+    let (mel_a, mel_b) = if knob == 1 {
+        (mel_b, mel_a)
+    } else {
+        (mel_a, mel_b)
+    };
     let mut lead: Array<MelNote> = array![];
     for sec in 0..4_u32 {
         let t0 = sec * 8 * bar;
@@ -485,6 +526,10 @@ pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Arr
             base,
             bar,
             tier: (k % 25) / 5 + 1,
+            rot: match rotate {
+                Option::Some(h) => 1 + low32(h) % 2,
+                Option::None => 0,
+            },
             kind: k / 25,
             shiny,
             species,
@@ -494,7 +539,21 @@ pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Arr
         },
     );
     let mut tempo = TrackWriterTrait::new();
-    tempo.tempo(0, (120000000 + bpm) / (2 * bpm));
+    let tempo_us = (120000000 + bpm) / (2 * bpm);
+    tempo
+        .tempo(
+            0,
+            if knob >= 2 && knob <= 5 {
+                let t = nudge_tempo(tempo_us, delta);
+                if t > MAX_TEMPO_US {
+                    MAX_TEMPO_US
+                } else {
+                    t
+                }
+            } else {
+                tempo_us
+            },
+        );
     let den_log: u8 = if s.den == 8 {
         3
     } else {
@@ -516,7 +575,16 @@ pub fn edition_smf_bytes(species: u32, shiny: bool, e: u32, seed: u64) -> Array<
     smf_bytes(1, 480, edition_tracks(species, shiny, e, seed).span())
 }
 
-/// The same as a `ByteArray`, packed from the track bodies without copying them into one array.
-pub fn edition_byte_array(species: u32, shiny: bool, e: u32, seed: u64) -> ByteArray {
-    smf_byte_array(1, 480, edition_tracks(species, shiny, e, seed).span())
+/// The same as a `ByteArray`, packed from the track bodies without copying them into one array, on
+/// a day of drift when `drift` is `Some`.
+pub fn edition_byte_array(
+    species: u32, shiny: bool, e: u32, seed: u64, drift: Option<Drift>,
+) -> ByteArray {
+    smf_byte_array(1, 480, edition_tracks_on(species, shiny, e, seed, drift).span())
+}
+
+/// The low 32 bits of a hash.
+fn low32(x: felt252) -> u32 {
+    let w: u256 = x.into();
+    (w % 0x100000000).try_into().unwrap()
 }

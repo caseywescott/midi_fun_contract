@@ -2,7 +2,7 @@
 //! song's or Sound Check's shared inputs and a token's `sound_effects`. One or two compositions per
 //! test (memory).
 use beast_composer::composition::beast_v3_sound::PackableBeastV3;
-use beast_composer::composition::drift::DriftClock;
+use beast_composer::composition::drift::{DriftClock, drift_of};
 use beast_composer::composition::editions::edition_byte_array;
 use beast_composer::composition::genesis::{
     genesis_byte_array, genesis_song_inputs, purchase_song_inputs, song_smf_bytes, song_tracks,
@@ -167,15 +167,31 @@ fn edition_purchase_composes_the_style_engine() {
     };
     assert(inputs == ComposerInputs::Edition(expected), 'not the edition');
     let plain = composer().compose(inputs, 0);
-    assert(plain.midi == edition_byte_array(40, false, 3, 0xfedcba9876543210), 'not the style');
+    assert(
+        plain.midi == edition_byte_array(40, false, 3, 0xfedcba9876543210, Option::None),
+        'not the style',
+    );
     // edition 3 is the lullaby (style 2); species 40 is a Hunter (type 1)
     assert(plain.settings == edition_synth_settings(2, 1, false), 'not the edition presets');
     // sound effect 1 (old shiny) brings the mega leads
     let mega = composer().compose(inputs, 1);
-    assert(mega.midi == edition_byte_array(40, true, 3, 0xfedcba9876543210), 'not the mega style');
+    assert(
+        mega.midi == edition_byte_array(40, true, 3, 0xfedcba9876543210, Option::None),
+        'not the mega style',
+    );
     assert(mega.settings == edition_synth_settings(2, 1, true), 'not the mega edition presets');
-    // editions play as written on any day, for now
-    assert(compose_drift_sound(inputs, 0, day(0, 45)) == plain, 'an edition drifted');
+    // on a day of drift: the edition's layers, keyed by the species and the drift's name
+    let d = day(2 * 18 + 9, 45);
+    let drifted = compose_drift_sound(inputs, 0, d);
+    assert(drifted.midi != plain.midi, 'the day changed nothing');
+    assert(
+        drifted
+            .midi == edition_byte_array(
+                40, false, 3, 0xfedcba9876543210, Option::Some(drift_of(40, d)),
+            ),
+        'not the edition on that day',
+    );
+    assert(drifted.settings == plain.settings, 'the day changed the presets');
 }
 
 /// Species past the style engine's 75 keep the bought Song in every edition.

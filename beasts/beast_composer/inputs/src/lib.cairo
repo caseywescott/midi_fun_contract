@@ -3,8 +3,10 @@
 //! types/Store derives without the engine's compiler/player dependency graph.
 
 pub const EDITION_COMPOSITION_CONFIG_VERSION: u16 = 1;
-pub const COMPOSER_INPUTS_VERSION: u16 = 4;
+pub const COMPOSER_INPUTS_VERSION: u16 = 5;
 pub const GENERATION_INPUTS_VERSION: u16 = 2;
+/// The Monthly Track Editions style engine plays species 1..=75.
+pub const EDITION_SPECIES_MAX: u64 = 75;
 pub const MAX_TEMPO_US: u32 = 1048575;
 
 /// Immutable deterministic edition-template configuration. Clock and sale policy
@@ -115,12 +117,23 @@ pub struct SoundCheckInputs {
     pub articulation_profile: u8,
 }
 
-/// Variant order is canonical: SoundCheck=0, Song=1.
+/// A Monthly Track Edition's track: the edition's style engine (edition 1 and later; edition 0 is
+/// the bought Song) playing a species' theme, varied by the purchase seed. The generator makes it
+/// from the purchase's edition (`generate_inputs(base, edition_id, variation)`).
+#[derive(Copy, Drop, Debug, Serde, PartialEq, starknet::Store)]
+pub struct EditionInputs {
+    pub identity: MusicIdentity,
+    pub edition: u32,
+    pub seed: u64,
+}
+
+/// Variant order is canonical: SoundCheck=0, Song=1, Edition=2.
 #[derive(Copy, Drop, Debug, Serde, PartialEq, starknet::Store)]
 #[allow(starknet::store_no_default_variant)]
 pub enum ComposerInputs {
     SoundCheck: SoundCheckInputs,
     Song: SongInputs,
+    Edition: EditionInputs,
 }
 
 /// Immutable, complete musical base snapshotted for an internally generated sample.
@@ -207,6 +220,14 @@ pub fn validate_song(x: SongInputs) {
 pub fn validate_inputs(x: ComposerInputs) {
     match x {
         ComposerInputs::Song(song) => validate_song(song),
+        ComposerInputs::Edition(edition) => {
+            validate_identity(edition.identity);
+            assert(
+                edition.identity.source_species_id <= EDITION_SPECIES_MAX,
+                'invalid edition species',
+            );
+            assert(edition.edition >= 1, 'invalid edition');
+        },
         ComposerInputs::SoundCheck(check) => {
             validate_identity(check.identity);
             validate_mode(check.mode_id);

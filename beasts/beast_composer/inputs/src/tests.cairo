@@ -1,8 +1,9 @@
 use super::{
     ArrangementInputs, BeastMusicalIdentity, ChannelPolicy, ComposerInputs,
-    EditionCompositionConfig, GenerationInputs, MusicIdentity, ScoreInputs, SongInputs,
-    SoundCheckInputs, SpecialArrangement, ThemeInputs, TreatmentInputs, decode_generation_inputs,
-    decode_inputs, encode_generation_inputs, encode_inputs, validate_inputs, validate_performance,
+    EditionCompositionConfig, EditionInputs, GenerationInputs, MusicIdentity, ScoreInputs,
+    SongInputs, SoundCheckInputs, SpecialArrangement, ThemeInputs, TreatmentInputs,
+    decode_generation_inputs, decode_inputs, encode_generation_inputs, encode_inputs,
+    validate_inputs, validate_performance,
 };
 
 fn song() -> SongInputs {
@@ -49,7 +50,7 @@ fn song() -> SongInputs {
 // Literal wire oracle from the public field-order contract, independent of Serde.
 fn song_wire() -> Array<felt252> {
     array![
-        4, 1, 11, 2, 1, 4, 60, 3, 2, 4, 3, 2, 1, 1, 3, 5, 109, 500000, 13, 1, 1, 2, 0, 1, 2, 0, 0,
+        5, 1, 11, 2, 1, 4, 60, 3, 2, 4, 3, 2, 1, 1, 3, 5, 109, 500000, 13, 1, 1, 2, 0, 1, 2, 0, 0,
         1, 37, 4, 1, 17, 1, 9, 1, 0, 1
     ]
 }
@@ -77,7 +78,7 @@ fn sound_check_matches_independent_wire() {
             articulation_profile: 3,
         },
     );
-    let expected = array![4, 0, 0xffffffffffffffff, 1242, 26, 103, 2, 1048575, 127, 3];
+    let expected = array![5, 0, 0xffffffffffffffff, 1242, 26, 103, 2, 1048575, 127, 3];
     assert(encode_inputs(x) == expected, 'check wire');
     assert(decode_inputs(expected.span()) == x, 'check decode');
 }
@@ -144,13 +145,13 @@ fn reject_unknown_version() {
 #[test]
 #[should_panic(expected: 'invalid inputs encoding')]
 fn reject_truncated_recipe() {
-    decode_inputs(array![4, 1, 11].span());
+    decode_inputs(array![5, 1, 11].span());
 }
 
 #[test]
 #[should_panic(expected: 'invalid inputs encoding')]
 fn reject_unknown_recipe_tag() {
-    decode_inputs(array![4, 2].span());
+    decode_inputs(array![5, 3].span());
 }
 
 #[test]
@@ -165,7 +166,7 @@ fn reject_trailing_data() {
 #[should_panic(expected: 'non canonical inputs')]
 fn reject_non_boolean_wire_value() {
     let values = array![
-        4, 1, 11, 2, 1, 4, 60, 3, 2, 4, 3, 2, 2, 1, 3, 5, 109, 500000, 13, 1, 1, 2, 0, 1, 2, 0, 0,
+        5, 1, 11, 2, 1, 4, 60, 3, 2, 4, 3, 2, 2, 1, 3, 5, 109, 500000, 13, 1, 1, 2, 0, 1, 2, 0, 0,
         1, 37, 4, 1, 17, 1, 9, 1, 0, 1
     ];
     decode_inputs(values.span());
@@ -272,4 +273,46 @@ fn reject_non_boolean_section_rhythm() {
         i += 1;
     }
     decode_inputs(values.span());
+}
+
+#[test]
+fn edition_wire_is_tag_two() {
+    let x = ComposerInputs::Edition(
+        EditionInputs {
+            identity: MusicIdentity { source_species_id: 75, name_variant_id: 0 },
+            edition: 3,
+            seed: 0xffffffffffffffff,
+        },
+    );
+    let expected = array![5, 2, 75, 0, 3, 0xffffffffffffffff];
+    assert(encode_inputs(x) == expected, 'edition wire');
+    assert(decode_inputs(expected.span()) == x, 'edition decode');
+}
+
+#[test]
+#[should_panic(expected: 'invalid edition species')]
+fn reject_edition_past_the_style_species() {
+    validate_inputs(
+        ComposerInputs::Edition(
+            EditionInputs {
+                identity: MusicIdentity { source_species_id: 76, name_variant_id: 0 },
+                edition: 1,
+                seed: 0,
+            },
+        ),
+    );
+}
+
+#[test]
+#[should_panic(expected: 'invalid edition')]
+fn reject_edition_zero() {
+    validate_inputs(
+        ComposerInputs::Edition(
+            EditionInputs {
+                identity: MusicIdentity { source_species_id: 1, name_variant_id: 0 },
+                edition: 0,
+                seed: 0,
+            },
+        ),
+    );
 }

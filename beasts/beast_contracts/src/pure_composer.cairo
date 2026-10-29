@@ -2,6 +2,7 @@
 //! Storage-free: a manager owns tracks, sales, ownership, births, modes and block hashes; this
 //! class turns one written song or Sound Check, played with a token's `sound_effects` (and on a
 //! staff, the manager's resolved evolution context), into its MIDI and settings.
+use beast_composer::composition::editions::edition_byte_array;
 use beast_composer::composition::evolution::resolve_evolution;
 use beast_composer::composition::full_midi::{SMF_DIVISION, SMF_FORMAT};
 use beast_composer::composition::genesis::{song_tracks, staff_song_tracks};
@@ -74,6 +75,12 @@ fn compose_with(
         ComposerInputs::SoundCheck(check) => bytes_to_byte_array(
             sound_check_from_inputs(check, mega).span(),
         ),
+        ComposerInputs::Edition(edition) => edition_byte_array(
+            edition.identity.source_species_id.try_into().unwrap(),
+            mega,
+            edition.edition,
+            edition.seed,
+        ),
     };
     TinySynthSound { midi, settings: settings_for(performed, mega) }
 }
@@ -85,6 +92,10 @@ pub fn settings_for(inputs: ComposerInputs, mega: bool) -> TinySynthSettings {
     let (family, special) = match inputs {
         ComposerInputs::Song(x) => (x.arrangement.family, x.arrangement.special),
         ComposerInputs::SoundCheck(x) => (x.family, SpecialArrangement::None),
+        // species 1..=75: Magic, Hunter, Brute by 25s
+        ComposerInputs::Edition(x) => (
+            ((x.identity.source_species_id - 1) / 25).try_into().unwrap(), SpecialArrangement::None,
+        ),
     };
     let yeti = match special {
         SpecialArrangement::None => false,

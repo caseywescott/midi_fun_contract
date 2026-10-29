@@ -2,6 +2,7 @@
 //! song's or Sound Check's shared inputs and a token's `sound_effects`. One or two compositions per
 //! test (memory).
 use beast_composer::composition::beast_v3_sound::PackableBeastV3;
+use beast_composer::composition::editions::edition_byte_array;
 use beast_composer::composition::genesis::{
     genesis_byte_array, genesis_song_inputs, purchase_song_inputs, song_tracks, species_tier,
     species_type,
@@ -11,7 +12,9 @@ use beast_composer::composition::sound_check::{sound_check_inputs, sound_check_s
 use beast_composer::inputs::evolution::{
     EvolutionConfig, EvolutionInputs, MilestoneHash, milestone_blocks,
 };
-use beast_composer::inputs::{BeastMusicalIdentity, ComposerInputs, EditionCompositionConfig};
+use beast_composer::inputs::{
+    BeastMusicalIdentity, ComposerInputs, EditionCompositionConfig, EditionInputs, MusicIdentity,
+};
 use midi::pack::bytes_to_byte_array;
 use snforge_std::{DeclareResultTrait, declare};
 use crate::pure_composer::{
@@ -77,11 +80,11 @@ fn mega_performance_is_the_mega_sound_of_the_performed_song() {
     let sound = compose_sound(x, 1);
     let performed = match apply_performance(x, 1) {
         ComposerInputs::Song(song) => song,
-        ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+        _ => core::panic_with_felt252('not a song'),
     };
     let song = match x {
         ComposerInputs::Song(song) => song,
-        ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+        _ => core::panic_with_felt252('not a song'),
     };
     assert(performed.score.tempo_us == song.score.tempo_us - 25000, 'tempo');
     assert(performed.score.articulation_profile == 2, 'articulation');
@@ -125,13 +128,15 @@ fn generated_purchase_composes_the_shaped_bought_track() {
         generator
             .get_generation_inputs(
                 EditionCompositionConfig { composition_seed: 'other' }, 9, identity,
-            ) == base,
+            )
+            .base_song == base
+            .base_song,
         'editions keep the species song',
     );
-    let inputs = generator.generate_inputs(base, 'block hash');
+    let inputs = generator.generate_inputs(base, 0, 'block hash');
     let song = match inputs {
         ComposerInputs::Song(song) => song,
-        ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+        _ => core::panic_with_felt252('not a song'),
     };
     assert(song == purchase_song_inputs(base.base_song, 'block hash'), 'not the purchase');
     let sound = composer().compose(inputs, 0);
@@ -177,7 +182,7 @@ fn staff_unlocks_the_next_written_roles_and_performs() {
     let staff = compose_staff_sound(x, 0, config, staff_context(config, 100, 200));
     let song = match x {
         ComposerInputs::Song(song) => song,
-        ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+        _ => core::panic_with_felt252('not a song'),
     };
     assert(song.arrangement.channel_count == 3, 'tier 5 keeps 3');
     // the header's track count (byte 11): the tempo track, then one per voice and the drums
@@ -204,4 +209,53 @@ fn rejects_a_staff_before_birth() {
     let mut context = staff_context(config, 100, 100);
     context.birth_block = 101;
     compose_staff_sound(genesis(beast(1, 0, 0, 0)), 0, config, context);
+}
+
+/// From edition 1 a purchase is the edition's style engine on the species' theme, its seed the
+/// purchase's low 64 bits; the composer plays it with the species' family settings.
+#[test]
+fn edition_purchase_composes_the_style_engine() {
+    let generator = IBeastPureGeneratorLibraryDispatcher {
+        class_hash: declare("BeastPureGenerator").unwrap().contract_class().class_hash,
+    };
+    let b = beast(40, 3, 9, 0);
+    let identity = BeastMusicalIdentity {
+        species_id: 40, name_variant_id: 2 * 18 + 9, tier: b.tier, family: b.beast_type,
+    };
+    let base = generator
+        .get_generation_inputs(EditionCompositionConfig { composition_seed: 0 }, 3, identity);
+    let seed: felt252 = 0x1234_0000000000000000 + 0xfedcba9876543210;
+    let inputs = generator.generate_inputs(base, 3, seed);
+    let expected = EditionInputs {
+        identity: MusicIdentity { source_species_id: 40, name_variant_id: 0 },
+        edition: 3,
+        seed: 0xfedcba9876543210,
+    };
+    assert(inputs == ComposerInputs::Edition(expected), 'not the edition');
+    let plain = composer().compose(inputs, 0);
+    assert(plain.midi == edition_byte_array(40, false, 3, 0xfedcba9876543210), 'not the style');
+    assert(plain.settings == beast_synth_settings(1, false), 'not the family');
+    // sound effect 1 (old shiny) brings the mega leads
+    let mega = composer().compose(inputs, 1);
+    assert(mega.midi == edition_byte_array(40, true, 3, 0xfedcba9876543210), 'not the mega style');
+    assert(mega.settings == beast_synth_settings(1, true), 'not the mega family');
+    // an edition has no staff: compose_staff plays it as written
+    let config = evolution_config(5000);
+    assert(
+        compose_staff_sound(inputs, 0, config, staff_context(config, 100, 300)) == plain,
+        'a staff changed the edition',
+    );
+}
+
+/// Species past the style engine's 75 keep the bought Song in every edition.
+#[test]
+fn later_species_buy_songs_in_every_edition() {
+    let identity = BeastMusicalIdentity { species_id: 80, name_variant_id: 0, tier: 2, family: 1 };
+    let base = beast_composer::composition::generation::get_generation_inputs(
+        EditionCompositionConfig { composition_seed: 0 }, 5, identity,
+    );
+    match beast_composer::composition::generation::generate_inputs(base, 5, 'h') {
+        ComposerInputs::Song(_) => {},
+        _ => core::panic_with_felt252('not a song'),
+    }
 }

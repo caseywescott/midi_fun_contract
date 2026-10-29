@@ -10,8 +10,10 @@ pub trait IBeastPureGenerator<T> {
     fn get_generation_inputs(
         self: @T, config: EditionCompositionConfig, edition_id: u64, identity: BeastMusicalIdentity,
     ) -> GenerationInputs;
+    /// A purchase in edition `edition_id` (the manager's purchase record): edition 0 a bought Song,
+    /// later editions the edition's style engine (species 1..=75).
     fn generate_inputs(
-        self: @T, base: GenerationInputs, variation_identity: felt252,
+        self: @T, base: GenerationInputs, edition_id: u64, variation_identity: felt252,
     ) -> ComposerInputs;
 }
 
@@ -37,9 +39,12 @@ pub mod BeastPureGenerator {
         }
 
         fn generate_inputs(
-            self: @ContractState, base: GenerationInputs, variation_identity: felt252,
+            self: @ContractState,
+            base: GenerationInputs,
+            edition_id: u64,
+            variation_identity: felt252,
         ) -> ComposerInputs {
-            generate_inputs(base, variation_identity)
+            generate_inputs(base, edition_id, variation_identity)
         }
     }
 }

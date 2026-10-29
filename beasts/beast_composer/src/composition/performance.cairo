@@ -39,6 +39,8 @@ pub fn apply_performance(x: ComposerInputs, sound_effects: u8) -> ComposerInputs
             check.articulation_profile = articulation_profile;
             ComposerInputs::SoundCheck(check)
         },
+        // the style engine plays its own tempo and dynamics; only the mega sound applies
+        ComposerInputs::Edition(_) => x,
     }
 }
 

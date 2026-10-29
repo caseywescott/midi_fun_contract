@@ -27,7 +27,7 @@ fn same_song(b: PackableBeastV3, seed: felt252, drift: Option<DriftClock>) {
     let wire = encode_inputs(ComposerInputs::Song(x));
     let y = match decode_inputs(wire.span()) {
         ComposerInputs::Song(y) => y,
-        ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+        _ => core::panic_with_felt252('not a song'),
     };
     assert(y == x, 'wire changed the song');
     assert(
@@ -112,9 +112,9 @@ fn every_species_purchase_is_its_bought_track_in_a_shape() {
                 config, 0, identity_of(b),
             );
             let bought = genesis_song_inputs(b, b.prefix, b.suffix, seed, Option::None);
-            let mut x = match crate::composition::generation::generate_inputs(base, seed) {
+            let mut x = match crate::composition::generation::generate_inputs(base, 0, seed) {
                 ComposerInputs::Song(x) => x,
-                ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+                _ => core::panic_with_felt252('not a song'),
             };
             assert(x.theme == bought.theme, 'theme changed');
             x.score.stretto_lag = bought.score.stretto_lag;
@@ -163,9 +163,9 @@ fn thinned_purchase_composes_three_voices_without_the_countersubject() {
     let base = crate::composition::generation::get_generation_inputs(
         crate::inputs::EditionCompositionConfig { composition_seed: 0 }, 0, identity_of(b),
     );
-    let x = match crate::composition::generation::generate_inputs(base, thinned_seed()) {
+    let x = match crate::composition::generation::generate_inputs(base, 0, thinned_seed()) {
         ComposerInputs::Song(x) => x,
-        ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+        _ => core::panic_with_felt252('not a song'),
     };
     assert(x.score.voice_count == 3 && !x.score.use_countersubject, 'not thinned');
     assert(x.arrangement.channel_count <= 4, 'more channels than roles');

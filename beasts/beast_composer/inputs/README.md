@@ -2,8 +2,7 @@
 
 `beast_composer_inputs` is the canonical data/codec package shared with the
 Beasts Sound Manager. This package contains no music generator, MIDI renderer,
-NFT decoder, sales/selection policy, network calls or deployed contract. Casey
-and his team own the runtime implementation.
+NFT decoder, sales/selection policy, network calls or deployed contract.
 
 The package uses compiler-provided Starknet `Store` derives and imports no
 MIDI/player implementation. Beasts uses Scarb 2.20; MIDI uses Scarb 2.21. The
@@ -20,7 +19,7 @@ reject. Zero seeds are ordinary values. The independent JS wire codec and types
 are exported as `beast-sound/inputs`; it contains no performance transformation.
 
 SoundCheck's tag/data shape remains for byte compatibility with the existing
-Beasts manager and the legacy SoundCheck concept already in Casey's library.
+Beasts manager and the legacy SoundCheck concept already in the library.
 This PR adds no SoundCheck audio implementation. Likewise, fields describing
 section rhythm, expression and arrangement are data contracts; interpreting them
 is separate runtime work. `EditionCompositionConfig` and `GenerationInputs` carry

@@ -504,7 +504,7 @@ struct Seg {
 /// The rest of the note: the figure's last note held on when it is the note itself, else the note
 /// again.
 fn hold(fig: Array<Seg>, p: i32, dur: u32, vel: u8) -> Array<Seg> {
-    let mut used: u32 = 0;
+    let mut used: u32 = opaque(0);
     for f in fig.span() {
         used += f.len;
     }
@@ -514,8 +514,7 @@ fn hold(fig: Array<Seg>, p: i32, dur: u32, vel: u8) -> Array<Seg> {
     let rest = dur - used;
     let n = fig.len();
     let last = *fig.at(n - 1);
-    let mut out: Array<Seg> = array![];
-    let mut i = 0;
+    let (mut out, mut i): (Array<Seg>, u32) = opaque((array![], 0));
     while i < n - 1 {
         out.append(*fig.at(i));
         i += 1;
@@ -906,8 +905,7 @@ pub fn yeti_avalanche(
     }
     let ch = YETI_AVALANCHE_VOICE;
     let top: i32 = tonic_keynum.into() + 24;
-    let mut scale: Array<u8> = array![];
-    let mut d: i32 = 0;
+    let (mut scale, mut d): (Array<u8>, i32) = opaque((array![], 0));
     while d < 7 {
         scale.append((pitch(key, d) % 12).try_into().unwrap());
         d += 1;
@@ -978,8 +976,7 @@ pub fn yeti_avalanche(
                 picked = run;
             } else {
                 let stride = (len + 7) / 8;
-                let mut all: Array<i32> = array![];
-                let mut k = 0;
+                let (mut all, mut k): (Array<i32>, u32) = opaque((array![], 0));
                 while k < len {
                     if k % stride == 0 || k == len - 1 {
                         all.append(*run.at(k));
@@ -1008,7 +1005,7 @@ pub fn yeti_avalanche(
             };
             let count = m - from;
             let t0 = end - count * S16;
-            let mut k = 0;
+            let mut k: u32 = opaque(0);
             while k < count {
                 let vel: u32 = 112 - k * 4;
                 out

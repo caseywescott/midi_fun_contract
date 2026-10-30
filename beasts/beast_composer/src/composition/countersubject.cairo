@@ -15,6 +15,7 @@ use crate::composition::canon_rules::abs_i32;
 use crate::composition::invertible_counterpoint::diatonic_ic_safe;
 use crate::composition::melodic_canon::{DEFAULT_VELOCITY, NoteEvent, REGISTER_BAND, realize_degree};
 use crate::lcg::LCG;
+use crate::opaque::opaque;
 use crate::rng::{RandomSource, bounded};
 
 // ─────────────────────────────────────────────────────────────
@@ -111,7 +112,7 @@ fn nearest_safe_cs_degree(
     if cs_degree_valid(requested, subject_deg, enforce_ic, lo, hi) {
         return requested;
     }
-    let mut radius: u32 = 1;
+    let mut radius: u32 = opaque(1);
     loop {
         if radius > 14 {
             break;

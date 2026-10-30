@@ -15,6 +15,7 @@ use core::num::traits::{WrappingAdd, WrappingMul};
 use midi::smf::{TrackWriter, TrackWriterTrait, smf_byte_array, smf_bytes};
 use crate::composition::drift::{Drift, nudge_tempo};
 use crate::inputs::MAX_TEMPO_US;
+use crate::opaque::opaque;
 use super::editions_data::{SCALES, SPECIES, Style, style};
 
 const SEVEN: NonZero<u32> = 7;
@@ -561,8 +562,8 @@ pub fn edition_tracks_on(
     if k % 25 < 10 && count < 4 {
         count += 1;
     }
-    let mut order: Array<u32> = array![DESCANT, BASS, PAD, PERC];
-    let mut i: u32 = 3;
+    // (opaque: one compiled copy of the loop, CASM size)
+    let (mut order, mut i): (Array<u32>, u32) = opaque((array![DESCANT, BASS, PAD, PERC], 3));
     while i > 0 {
         let j = r.int(i + 1);
         let o = order.span();
@@ -580,7 +581,7 @@ pub fn edition_tracks_on(
         i -= 1;
     }
     let order = order.span();
-    let mut parts: u32 = 0;
+    let mut parts: u32 = opaque(0);
     for x in order.slice(0, count) {
         parts += *x;
     }

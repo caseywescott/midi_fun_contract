@@ -48,6 +48,7 @@ use crate::inputs::{
     ArrangementInputs, ChannelPolicy, MAX_TEMPO_US, MusicIdentity, ScoreInputs, SongInputs,
     SpecialArrangement, ThemeInputs, TreatmentInputs,
 };
+use crate::opaque::opaque;
 
 /// The chosen Genesis theme of species 1..=75 (index id - 1): a special-name candidate, 0 = its
 /// own.
@@ -202,8 +203,7 @@ fn tie_repeats(
     counts: Span<u64>,
     section_ticks: u32,
 ) -> Array<NoteEvent> {
-    let mut voices: Array<u32> = array![];
-    let mut v: u32 = 0;
+    let (mut voices, mut v): (Array<u32>, u32) = opaque((array![], 0));
     while v < MAX_VOICES {
         if *counts.at(v) > 0 && contains(picked, v) {
             voices.append(v);
@@ -1426,8 +1426,8 @@ fn song_pick(
         },
         ChannelPolicy::Seeded(seed) => {
             let mut values: Felt252Dict<u32> = Default::default();
-            let mut n: u32 = 0;
-            let mut v: u32 = 1;
+            // (opaque: one compiled copy of each loop, CASM size)
+            let (mut n, mut v): (u32, u32) = opaque((0, 1));
             while v < voices {
                 if v != low {
                     values.insert(n.into(), v);
@@ -1452,7 +1452,7 @@ fn song_pick(
                 h = h / 7;
                 i -= 1;
             }
-            let mut k: u32 = 0;
+            let mut k: u32 = opaque(0);
             while k < n {
                 rest.append(values.get(k.into()));
                 k += 1;

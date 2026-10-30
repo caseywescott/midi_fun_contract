@@ -100,8 +100,7 @@ pub(crate) fn voice_stats(runs: Span<VoiceRun>, max_voice: u32) -> (Array<u64>, 
 
 /// `VOICE_PROGRAM` for every voice id 0..=max_voice.
 fn plain_programs(max_voice: u32) -> Array<u8> {
-    let mut programs: Array<u8> = array![];
-    let mut v: u32 = 0;
+    let (mut programs, mut v): (Array<u8>, u32) = opaque((array![], 0));
     while v <= max_voice {
         programs.append(VOICE_PROGRAM);
         v += 1;
@@ -555,8 +554,7 @@ fn voice_programs(sums: Span<u64>, counts: Span<u64>, voicing: Voicing) -> Array
         0
     }) % 3;
     let has_cs = voicing.use_countersubject && cs <= max_voice && *counts.at(cs) > 0;
-    let mut out: Array<u8> = array![];
-    let mut v: u32 = 0;
+    let (mut out, mut v): (Array<u8>, u32) = opaque((array![], 0));
     while v <= max_voice {
         out
             .append(
@@ -770,8 +768,7 @@ pub fn beast_form_to_full_tracks_arranged(
                 || lead_program == *plucks.at(2) {
                 let mut pick: Option<u8> = Option::None;
                 for l in leads {
-                    let mut used = false;
-                    let mut u: u32 = 0;
+                    let (mut used, mut u): (bool, u32) = opaque((false, 0));
                     while u <= max_voice {
                         if *counts.at(u) > 0 && *base_programs.at(u) == *l {
                             used = true;

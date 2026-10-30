@@ -841,8 +841,7 @@ fn realizer(shift: i32, tonic: u8, scale: Span<u8>) -> Realizer {
     // Only the first seven degrees count, as in `degree_to_keynum`: a shorter scale panics here
     // with the same 'Index out of bounds'.
     let scale = scale.slice(0, 7);
-    let mut table: Array<Option<u8>> = array![];
-    let mut oct = TABLE_OCT_LO;
+    let (mut table, mut oct): (Array<Option<u8>>, u32) = opaque((array![], TABLE_OCT_LO));
     while oct < TABLE_OCT_HI {
         let root: u32 = tonic.into() + 12 * oct;
         for semis in scale {
@@ -1600,9 +1599,8 @@ fn build_resolved(r: V11Resolved) -> Box<V11Score> {
     let mut slots = theme_rhythm(@p, theme.span(), r.rhythm_seed);
     if tr.trill {
         // a trill (upper neighbour and back) replaces each passing note of an eighth or longer
-        let mut out: Array<Slot> = array![];
         let n = slots.len();
-        let mut i: u32 = 0;
+        let (mut out, mut i): (Array<Slot>, u32) = opaque((array![], 0));
         while i < n {
             let sl = *slots.at(i);
             if sl.src == SRC_PASSING && sl.duration >= 240 {

@@ -166,25 +166,26 @@ pub struct V11Score {
 }
 
 // ── rhythm cells: (start, duration, source) ──
+/// The rhythm cells' notes (offset, duration, source), plain, long, dotted, run, lilt, syncop,
+/// halves, cadence, one after another: cell `n` is CELL_NOTES[CELL_AT[n]..CELL_AT[n + 1]] (a
+/// constant array: data, not code).
+const CELL_NOTES: [(u32, u32, u8); 29] = [
+    (0, 480, 0), (480, 480, 1), (960, 480, 2), (1440, 480, 3), (0, 960, 0), (960, 480, 2),
+    (1440, 480, 3), (0, 720, 0), (720, 240, 4), (960, 480, 2), (1440, 480, 3), (0, 240, 0),
+    (240, 240, 4), (480, 480, 1), (960, 480, 2), (1440, 480, 3), (0, 480, 0), (480, 240, 1),
+    (720, 240, 4), (960, 960, 2), (0, 480, 0), (480, 720, 1), (1200, 240, 4), (1440, 480, 3),
+    (0, 960, 0), (960, 960, 2), (0, 480, 0), (480, 480, 1), (960, 960, 5),
+];
+const CELL_AT: [u32; 9] = [0, 4, 7, 11, 16, 20, 24, 26, 29];
+
 fn cell(name: u8) -> Span<(u32, u32, u8)> {
-    if name == 0 { // plain
-        array![(0, 480, 0), (480, 480, 1), (960, 480, 2), (1440, 480, 3)].span()
-    } else if name == 1 { // long
-        array![(0, 960, 0), (960, 480, 2), (1440, 480, 3)].span()
-    } else if name == 2 { // dotted
-        array![(0, 720, 0), (720, 240, SRC_PASSING), (960, 480, 2), (1440, 480, 3)].span()
-    } else if name == 3 { // run
-        array![(0, 240, 0), (240, 240, SRC_PASSING), (480, 480, 1), (960, 480, 2), (1440, 480, 3)]
-            .span()
-    } else if name == 4 { // lilt
-        array![(0, 480, 0), (480, 240, 1), (720, 240, SRC_PASSING), (960, 960, 2)].span()
-    } else if name == 5 { // syncop
-        array![(0, 480, 0), (480, 720, 1), (1200, 240, SRC_PASSING), (1440, 480, 3)].span()
-    } else if name == 6 { // halves
-        array![(0, 960, 0), (960, 960, 2)].span()
-    } else { // cadence
-        array![(0, 480, 0), (480, 480, 1), (960, 960, SRC_TONIC)].span()
-    }
+    let n: u32 = if name > 7 {
+        7
+    } else {
+        name.into()
+    };
+    let (a, b) = (*CELL_AT.span().at(n), *CELL_AT.span().at(n + 1));
+    CELL_NOTES.span().slice(a, b - a)
 }
 
 fn has_passing(name: u8) -> bool {

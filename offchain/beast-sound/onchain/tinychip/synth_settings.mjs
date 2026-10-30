@@ -213,18 +213,34 @@ const wrapDoc = (text, prefix = '///', width = 100) => {
 // constants costs the contract a felt per value; the same values built in code (`array![...]` of
 // struct literals in every settings function) cost about 10x that in CASM.
 const SAMPLES = []; const SAMPLES_AT = new Map(); // samples key -> start
-const OPERATORS = []; const OPERATORS_AT = new Map(); // operator list key -> start
+const OPERATORS = []; const OPERATORS_AT = new Map(); // operator list key -> its first operator
 const samplesAt = (samples) => {
   const key = samples.join(',');
   if (!SAMPLES_AT.has(key)) { SAMPLES_AT.set(key, SAMPLES.length); SAMPLES.push(...samples); }
   return SAMPLES_AT.get(key);
 };
 const operatorsAt = (ops) => {
-  const key = ops.join('\n');
+  const key = JSON.stringify(ops);
   if (!OPERATORS_AT.has(key)) { OPERATORS_AT.set(key, OPERATORS.length); OPERATORS.push(...ops); }
   return OPERATORS_AT.get(key);
 };
 const check = (ok, what) => { if (!ok) throw new Error(`settings table: ${what} out of range`); };
+// an operator's packed values after route and wave (key_scale must be 0, no filter)
+const OP_PACKED = ['volume', 'ratio', 'offset_hz', 'attack', 'hold', 'decay', 'sustain', 'release', 'pitch_ratio', 'pitch_time'];
+const WAVE_CODES = { Sine: 0, Square: 1, Sawtooth: 2, Triangle: 3, WhiteNoise: 4, MetallicNoise: 5 };
+function operatorWords() {
+  const out = [];
+  for (const o of OPERATORS) {
+    check(o.key_scale === 0 && (o.filter === undefined || o.filter === null), 'operator key_scale/filter');
+    const wv = typeof o.wave === 'string' ? WAVE_CODES[o.wave] : 6 + o.wave.Custom;
+    check(wv !== undefined, 'wave ' + JSON.stringify(o.wave));
+    const v = [o.route, wv, ...OP_PACKED.map((k) => o[k])];
+    for (const x of v) check(Number.isInteger(x) && x >= 0 && x < 2 ** 31, 'operator value ' + x);
+    const pack = (xs) => '0x' + xs.reduce((acc, x, k) => acc | (BigInt(x) << BigInt(32 * k)), 0n).toString(16);
+    out.push(pack(v.slice(0, 7)), pack(v.slice(7)));
+  }
+  return out;
+}
 
 /** One generated settings function: its Serde hash constant, the function, then its two tables. */
 function settingsFn(s, waveNames, fnName, hashName, doc) {
@@ -238,7 +254,7 @@ function settingsFn(s, waveNames, fnName, hashName, doc) {
   });
   // a timbre: ((first * 0x100 + count) * 2 + drum) * 0x100 + slot, its operators from OPERATORS
   const timbres = s.timbres.map((t) => {
-    const ops = t.operators.map((o) => `    Operator { route: ${o.route}, wave: Waveform::${wave(o.wave)}, ${OP_FIELDS.map((k) => `${k}: ${o[k]}`).join(', ')}, filter: Option::None },`);
+    const ops = t.operators;
     const first = operatorsAt(ops); const count = ops.length;
     check(count < 0x100 && first < 0x10000 && t.slot < 0x100, 'timbre');
     return ((first * 0x100 + count) * 2 + (t.drum ? 1 : 0)) * 0x100 + t.slot;
@@ -286,7 +302,7 @@ function editionsCairo() {
   const waveCodes = s.waves.map((w) => { const start = samplesAt(w.Samples); check(w.Samples.length < 0x100, 'wave'); return start * 0x100 + w.Samples.length; });
   const wave = (w) => (typeof w === 'string' ? w : `Custom(${w.Custom})`);
   const timbreCode = (id, drum = false) => {
-    const ops = timbreOperators(drum ? data.drums[id] : data.presets[id], 1, waves).map((o) => `    Operator { route: ${o.route}, wave: Waveform::${wave(o.wave)}, ${OP_FIELDS.map((k) => `${k}: ${o[k]}`).join(', ')}, filter: Option::None },`);
+    const ops = timbreOperators(drum ? data.drums[id] : data.presets[id], 1, waves);
     const first = operatorsAt(ops);
     check(ops.length < 0x100 && first < 0x10000, 'timbre');
     return ((first * 0x100 + ops.length) * 2 + (drum ? 1 : 0)) * 0x100 + id;
@@ -407,21 +423,77 @@ ${fns.join('\n')}${editionsCairo()}/// Every wave's samples, each once (\`WAVES_
 #[cairofmt::skip]
 const SAMPLES: [i8; ${SAMPLES.length}] = [${SAMPLES.join(', ')}];
 /// Every distinct operator list, each once (\`TIMBRES_*\`: ((first * 0x100 + count) * 2 + drum) *
-/// 0x100 + slot); no filters.
+/// 0x100 + slot), each operator as 12 32-bit values in two felts (7 + 5, from the low end): route,
+/// wave (0 sine, 1 square, 2 sawtooth, 3 triangle, 4 white noise, 5 metallic noise, 6 + i custom
+/// i), ${OP_PACKED.join(', ')}; key_scale 0 and no filters.
 #[cairofmt::skip]
-const OPERATORS: [Operator; ${OPERATORS.length}] = [
-${OPERATORS.join('\n')}
-];
+const OPERATOR_WORDS: [felt252; ${OPERATORS.length * 2}] = [${operatorWords().join(', ')}];
 
-/// A settings value from its tables: each wave a slice of SAMPLES, each timbre a slice of
-/// OPERATORS.
+/// Reads 32-bit values packed 7 to a felt.
+#[derive(Drop)]
+struct Reader {
+    data: Span<felt252>,
+    pos: u32,
+    word: u256,
+    left: u32,
+}
+
+#[inline(never)]
+fn read(ref r: Reader) -> u32 {
+    if r.left == 0 {
+        r.word = (*r.data.at(r.pos)).into();
+        r.pos += 1;
+        r.left = 7;
+    }
+    let (q, v) = DivRem::div_rem(r.word, 0x100000000);
+    r.word = q;
+    r.left -= 1;
+    v.try_into().unwrap()
+}
+
+/// \`count\` operators from operator \`first\`.
+#[inline(never)]
+fn unpack_operators(first: u32, count: u32) -> Span<Operator> {
+    let mut out: Array<Operator> = array![];
+    for k in first..first + count {
+        let mut r = Reader { data: OPERATOR_WORDS.span(), pos: 2 * k, word: 0, left: 0 };
+        let route: u8 = read(ref r).try_into().unwrap();
+        let w = read(ref r);
+        let wave = if w == 0 {
+            Waveform::Sine
+        } else if w == 1 {
+            Waveform::Square
+        } else if w == 2 {
+            Waveform::Sawtooth
+        } else if w == 3 {
+            Waveform::Triangle
+        } else if w == 4 {
+            Waveform::WhiteNoise
+        } else if w == 5 {
+            Waveform::MetallicNoise
+        } else {
+            Waveform::Custom((w - 6).try_into().unwrap())
+        };
+        let (volume, ratio) = (read(ref r), read(ref r));
+        let offset_hz: i32 = read(ref r).try_into().unwrap();
+        let (attack, hold, decay, sustain, release) = (read(ref r), read(ref r), read(ref r), read(ref r), read(ref r));
+        let (pitch_ratio, pitch_time) = (read(ref r), read(ref r));
+        out.append(Operator {
+            route, wave, volume, ratio, offset_hz, attack, hold, decay, sustain, release, pitch_ratio,
+            pitch_time, key_scale: 0, filter: Option::None,
+        });
+    }
+    out.span()
+}
+
+/// A settings value from its tables: each wave a slice of SAMPLES, each timbre's operators
+/// from OPERATOR_WORDS.
 // Out of line on purpose: inlined, this body is copied into each of the eight settings functions.
 #[inline(never)]
 fn settings_from(
     quality: u8, reverb: u8, master_vol: u8, voices: u8, waves: Span<u32>, timbres: Span<u32>,
 ) -> TinySynthSettings {
     let samples = SAMPLES.span();
-    let operators = OPERATORS.span();
     let mut wave_defs: Array<WaveDef> = array![];
     for w in waves {
         wave_defs.append(WaveDef::Samples(samples.slice(*w / 0x100, *w % 0x100)));
@@ -434,7 +506,7 @@ fn settings_from(
                 Timbre {
                     drum: (*t / 0x100) % 2 == 1,
                     slot: (*t % 0x100).try_into().unwrap(),
-                    operators: operators.slice(ops / 0x100, ops % 0x100),
+                    operators: unpack_operators(ops / 0x100, ops % 0x100),
                 },
             );
     }

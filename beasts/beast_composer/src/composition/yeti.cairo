@@ -42,13 +42,16 @@ pub fn yeti_key(tonic_keynum: u8, mode_id: u8, scale: Option<Span<u8>>) -> YetiK
 }
 
 fn melodic_scale(mode_id: u8) -> Span<u8> {
-    if mode_id == 4 || mode_id == 26 {
-        array![0, 2, 3, 5, 7, 9, 10].span()
-    } else if mode_id == 5 || mode_id == 6 {
-        array![0, 1, 3, 5, 7, 8, 10].span()
-    } else {
-        array![0, 2, 3, 5, 7, 8, 10].span()
-    }
+    crate::composition::melodic_canon::packed_scale(
+        if mode_id == 4 || mode_id == 26 {
+            0xa975320
+        } else if mode_id == 5 || mode_id == 6 {
+            0xa875310
+        } else {
+            0xa875320
+        },
+        7,
+    )
 }
 
 const SEVEN: NonZero<u32> = 7;

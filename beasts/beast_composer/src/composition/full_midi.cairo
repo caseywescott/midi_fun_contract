@@ -159,24 +159,24 @@ fn fill_for(tier: u8) -> u8 {
 }
 
 // fill notes (offset, key, velocity) and length in beats
+/// Fills A-D, one after another: fill `f` is FILL_NOTES[FILL_AT[f]..FILL_AT[f + 1]] (a constant
+/// array: data, not code).
+const FILL_NOTES: [(u32, u8, u8); 22] = [
+    (0, 38, 88), (240, 38, 106), (0, 38, 72), (120, 38, 84), (240, 38, 96), (360, 38, 108),
+    (0, 36, 100), (0, 38, 80), (240, 38, 88), (480, 38, 92), (600, 38, 100), (720, 38, 108),
+    (840, 38, 116), (0, 50, 84), (120, 50, 88), (240, 48, 92), (360, 48, 96), (480, 47, 100),
+    (600, 45, 104), (720, 43, 108), (840, 41, 112), (840, 36, 110),
+];
+const FILL_AT: [u32; 5] = [0, 2, 6, 13, 22];
+
 fn fill_notes(f: u8) -> Span<(u32, u8, u8)> {
-    if f == 0 {
-        array![(0, 38, 88), (240, 38, 106)].span()
-    } else if f == 1 {
-        array![(0, 38, 72), (120, 38, 84), (240, 38, 96), (360, 38, 108)].span()
-    } else if f == 2 {
-        array![
-            (0, 36, 100), (0, 38, 80), (240, 38, 88), (480, 38, 92), (600, 38, 100), (720, 38, 108),
-            (840, 38, 116),
-        ]
-            .span()
+    let n: u32 = if f > 3 {
+        3
     } else {
-        array![
-            (0, 50, 84), (120, 50, 88), (240, 48, 92), (360, 48, 96), (480, 47, 100),
-            (600, 45, 104), (720, 43, 108), (840, 41, 112), (840, 36, 110),
-        ]
-            .span()
-    }
+        f.into()
+    };
+    let (a, b) = (*FILL_AT.span().at(n), *FILL_AT.span().at(n + 1));
+    FILL_NOTES.span().slice(a, b - a)
 }
 
 /// The drum track body (channel 10, running status) for a form of `length` ticks in sections of

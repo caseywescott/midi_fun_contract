@@ -90,15 +90,16 @@ pub fn genesis_mode(id: u64, mode_id: u8) -> u8 {
 /// A mode's scale as named, semitones from the tonic (Locrian, harmonic minor and Dorian #4
 /// included).
 pub fn named_mode_scale(mode_id: u8) -> Option<Span<u8>> {
-    match mode_id {
-        4 => Option::Some(array![0, 2, 3, 5, 7, 9, 10].span()),
-        5 => Option::Some(array![0, 1, 3, 5, 7, 8, 10].span()),
-        6 => Option::Some(array![0, 1, 3, 5, 6, 8, 10].span()),
-        7 => Option::Some(array![0, 2, 3, 5, 7, 8, 10].span()),
-        8 => Option::Some(array![0, 2, 3, 5, 7, 8, 11].span()),
-        26 => Option::Some(array![0, 2, 3, 6, 7, 9, 10].span()),
-        _ => Option::None,
-    }
+    let packed: u32 = match mode_id {
+        4 => 0xa975320,
+        5 => 0xa875310,
+        6 => 0xa865310,
+        7 => 0xa875320,
+        8 => 0xb875320,
+        26 => 0xa976320,
+        _ => { return Option::None; },
+    };
+    Option::Some(crate::composition::melodic_canon::packed_scale(packed, 7))
 }
 
 /// Tier and type of a species 1..=75: tiers in fives within each 25 (Magic, Hunter, Brute).

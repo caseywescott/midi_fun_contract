@@ -211,144 +211,94 @@ pub const EDITION_SERDE_HASHES: [felt252; 138] = [0x51b47cf7bdcdf271987887739ed1
 #[cairofmt::skip]
 const SAMPLES: [i8; 400] = [64, -64, -64, -64, -64, -64, -64, -64, 64, -64, -64, -64, 64, -64, 77, 67, 56, 46, 36, 26, 15, 5, -5, -15, -26, -36, -46, -56, -67, -77, -77, -67, -56, -46, -36, -26, -15, -5, 5, 15, 26, 36, 46, 56, 67, 77, -30, -25, -20, -15, -44, -38, -33, -28, 11, 16, 21, 26, -3, 3, 8, 13, 47, 42, 37, 32, -8, -13, -18, -23, 6, 1, -4, -9, -49, -54, -59, -64, -58, -50, -42, -35, -27, -19, -12, -4, 4, 12, 19, 27, 35, 42, 50, 58, -64, -43, -21, 0, 21, 43, 64, 4, 13, 21, 38, 47, 55, 55, 64, 64, 64, 55, 55, 47, 38, 21, 13, 4, -13, -21, -38, -47, -55, -55, -64, -64, -64, -55, -55, -47, -38, -21, -13, 4, 21, 30, 47, 47, 47, 38, 30, 21, 21, 13, 13, 13, 13, 13, 4, 4, -4, -13, -13, -13, -13, -13, -21, -21, -30, -38, -47, -47, -47, -30, -21, 1, 9, 17, 25, 31, 38, 42, 44, 44, 44, 44, 42, 40, 38, 36, 36, 36, 36, 36, 38, 40, 42, 44, 44, 44, 44, 42, 38, 31, 25, 17, 9, 1, -9, -17, -25, -31, -38, -42, -44, -44, -44, -44, -42, -40, -38, -36, -36, -34, -36, -36, -38, -40, -42, -44, -44, -44, -44, -42, -38, -31, -25, -17, -9, -64, -64, -64, 64, -64, -64, 64, 64, -64, 64, -64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, 64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -58, -46, -35, -24, -13, -2, 9, 20, 32, 43, 54, -54, -43, -32, -20, -9, 2, 13, 24, 35, 46, 58, -50, -39, -28, -17, -6, 6, 17, 28, 39, 50, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, 64, -64, -64, -64, -64, -64, -64, -64, -64, 64, -64, -64, -64, -64, -64, 64, -64, -64, 64, -64, -64, -64, -64, -64, -64, -64, -64, 64, -64, -64, 64, -64, -64, 64, -64, -64, 64, -64, -64, 64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, -64, 64, -64, -64, 64, -64, -64, -64, -64, -64, 64, -64, -64, 64, -64, -64, 64, -64, -64, -64, -64, -64, 64, -64, -64, -64, -64, -64, 64];
 /// Every distinct operator list, each once (`TIMBRES_*`: ((first * 0x100 + count) * 2 + drum) *
-/// 0x100 + slot); no filters.
+/// 0x100 + slot), each operator as 12 32-bit values in two felts (7 + 5, from the low end): route,
+/// wave (0 sine, 1 square, 2 sawtooth, 3 triangle, 4 white noise, 5 metallic noise, 6 + i custom
+/// i), volume, ratio, offset_hz, attack, hold, decay, sustain, release, pitch_ratio, pitch_time; key_scale 0 and no filters.
 #[cairofmt::skip]
-const OPERATORS: [Operator; 124] = [
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 4593, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 175, ratio: 0, offset_hz: 60000, attack: 2000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 4490, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 323, ratio: 0, offset_hz: 50000, attack: 3500, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 5347, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 2500, sustain: 5500, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 87, ratio: 0, offset_hz: 60000, attack: 1800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 6814, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1800, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 3968, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 2200, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 1785, ratio: 20000, offset_hz: 0, attack: 20, hold: 0, decay: 1200, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 5324, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1200, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 9500, ratio: 0, offset_hz: 1600000, attack: 20, hold: 0, decay: 600, sustain: 0, release: 300, pitch_ratio: 2800, pitch_time: 300, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::WhiteNoise, volume: 4330, ratio: 0, offset_hz: 2640000, attack: 20, hold: 0, decay: 500, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 2800, ratio: 0, offset_hz: 2000000, attack: 20, hold: 0, decay: 250, sustain: 0, release: 300, pitch_ratio: 5500, pitch_time: 300, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 7500, ratio: 0, offset_hz: 900000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::MetallicNoise, volume: 2054, ratio: 0, offset_hz: 61600000, attack: 10, hold: 0, decay: 140, sustain: 0, release: 200, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 7500, ratio: 0, offset_hz: 1050000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 7500, ratio: 0, offset_hz: 1250000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::MetallicNoise, volume: 2054, ratio: 0, offset_hz: 61600000, attack: 10, hold: 0, decay: 600, sustain: 0, release: 200, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 7500, ratio: 0, offset_hz: 1450000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 7500, ratio: 0, offset_hz: 1700000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::WhiteNoise, volume: 2598, ratio: 0, offset_hz: 8800000, attack: 20, hold: 0, decay: 2500, sustain: 0, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 7500, ratio: 0, offset_hz: 2000000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 204, ratio: 0, offset_hz: 80000, attack: 800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(4), volume: 6966, ratio: 10000, offset_hz: 0, attack: 150, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 87, ratio: 0, offset_hz: 60000, attack: 1800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 3944, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 8500, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 116, ratio: 0, offset_hz: 60000, attack: 1500, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 5082, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 8000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 145, ratio: 0, offset_hz: 60000, attack: 1800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 3574, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 234, ratio: 0, offset_hz: 90000, attack: 600, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 5246, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1400, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 6684, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 500, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 3574, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 145, ratio: 0, offset_hz: 60000, attack: 1800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 6504, ratio: 10000, offset_hz: 0, attack: 200, hold: 200, decay: 1000, sustain: 8000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 105, ratio: 0, offset_hz: 60000, attack: 2000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 9992, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1300, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 5610, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1000, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 4099, ratio: 10000, offset_hz: 0, attack: 20, hold: 100, decay: 3500, sustain: 1800, release: 800, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 9500, ratio: 0, offset_hz: 1600000, attack: 20, hold: 0, decay: 600, sustain: 0, release: 300, pitch_ratio: 2800, pitch_time: 300, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::WhiteNoise, volume: 4330, ratio: 0, offset_hz: 2640000, attack: 20, hold: 0, decay: 500, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 2800, ratio: 0, offset_hz: 2000000, attack: 20, hold: 0, decay: 250, sustain: 0, release: 300, pitch_ratio: 5500, pitch_time: 300, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 7500, ratio: 0, offset_hz: 900000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 7500, ratio: 0, offset_hz: 1050000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 7500, ratio: 0, offset_hz: 1250000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 7500, ratio: 0, offset_hz: 1450000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 7500, ratio: 0, offset_hz: 1700000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 7500, ratio: 0, offset_hz: 2000000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 204, ratio: 0, offset_hz: 80000, attack: 800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 6966, ratio: 10000, offset_hz: 0, attack: 150, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 87, ratio: 0, offset_hz: 60000, attack: 1800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 145, ratio: 0, offset_hz: 60000, attack: 1800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 6504, ratio: 10000, offset_hz: 0, attack: 200, hold: 200, decay: 1000, sustain: 8000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 105, ratio: 0, offset_hz: 60000, attack: 2000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 9992, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1300, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 5610, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1000, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 4099, ratio: 10000, offset_hz: 0, attack: 20, hold: 100, decay: 3500, sustain: 1800, release: 800, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 9500, ratio: 0, offset_hz: 1600000, attack: 20, hold: 0, decay: 600, sustain: 0, release: 300, pitch_ratio: 2800, pitch_time: 300, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::WhiteNoise, volume: 4330, ratio: 0, offset_hz: 2640000, attack: 20, hold: 0, decay: 500, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 2800, ratio: 0, offset_hz: 2000000, attack: 20, hold: 0, decay: 250, sustain: 0, release: 300, pitch_ratio: 5500, pitch_time: 300, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 7500, ratio: 0, offset_hz: 900000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 7500, ratio: 0, offset_hz: 1050000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 7500, ratio: 0, offset_hz: 1250000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 7500, ratio: 0, offset_hz: 1450000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 7500, ratio: 0, offset_hz: 1700000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 7500, ratio: 0, offset_hz: 2000000, attack: 20, hold: 0, decay: 800, sustain: 0, release: 300, pitch_ratio: 6000, pitch_time: 500, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 3139, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 204, ratio: 0, offset_hz: 80000, attack: 800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 5668, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 2200, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 2551, ratio: 20000, offset_hz: 0, attack: 20, hold: 0, decay: 1200, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 3107, ratio: 5000, offset_hz: 0, attack: 20, hold: 200, decay: 2000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 7404, ratio: 10000, offset_hz: 0, attack: 3000, hold: 500, decay: 5000, sustain: 10000, release: 2500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 87, ratio: 0, offset_hz: 40000, attack: 3000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(9), volume: 6966, ratio: 10000, offset_hz: 0, attack: 150, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 87, ratio: 0, offset_hz: 60000, attack: 1800, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(6), volume: 4648, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 145, ratio: 0, offset_hz: 50000, attack: 3000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 4099, ratio: 10000, offset_hz: 0, attack: 20, hold: 100, decay: 3500, sustain: 1800, release: 800, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(6), volume: 4508, ratio: 5000, offset_hz: 0, attack: 20, hold: 200, decay: 2000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(6), volume: 5117, ratio: 10000, offset_hz: 0, attack: 2000, hold: 500, decay: 5000, sustain: 10000, release: 2500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 70, ratio: 0, offset_hz: 40000, attack: 3000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(6), volume: 2274, ratio: 10040, offset_hz: 0, attack: 3500, hold: 500, decay: 5000, sustain: 10000, release: 4000, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(8), volume: 5814, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 204, ratio: 0, offset_hz: 50000, attack: 1200, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(12), volume: 10836, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 1500, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(3), volume: 4676, ratio: 10000, offset_hz: 0, attack: 20, hold: 100, decay: 2500, sustain: 8500, release: 300, pitch_ratio: 5000, pitch_time: 80, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(7), volume: 7616, ratio: 10000, offset_hz: 0, attack: 1500, hold: 500, decay: 5000, sustain: 10000, release: 2500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 70, ratio: 0, offset_hz: 40000, attack: 3000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Sine, volume: 2160, ratio: 10000, offset_hz: 0, attack: 50, hold: 200, decay: 1000, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Sine, volume: 8000, ratio: 20000, offset_hz: 0, attack: 0, hold: 0, decay: 1000, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Sine, volume: 925, ratio: 20000, offset_hz: 0, attack: 50, hold: 200, decay: 1000, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(7), volume: 7638, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 3469, ratio: 10000, offset_hz: 0, attack: 3000, hold: 200, decay: 1000, sustain: 10000, release: 3000, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 3469, ratio: 10081, offset_hz: 0, attack: 3000, hold: 200, decay: 1000, sustain: 10000, release: 3000, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Sine, volume: 2903, ratio: 10000, offset_hz: 0, attack: 400, hold: 100, decay: 3000, sustain: 8000, release: 1500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Sine, volume: 30000, ratio: 10000, offset_hz: 0, attack: 600, hold: 0, decay: 3000, sustain: 6000, release: 1000, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 3495, ratio: 10000, offset_hz: 0, attack: 2500, hold: 500, decay: 5000, sustain: 10000, release: 2500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 70, ratio: 0, offset_hz: 40000, attack: 3000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Sine, volume: 2286, ratio: 10000, offset_hz: 0, attack: 30, hold: 100, decay: 9000, sustain: 0, release: 1500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Sine, volume: 60000, ratio: 35000, offset_hz: 0, attack: 0, hold: 0, decay: 6000, sustain: 1000, release: 1000, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Sine, volume: 1599, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 4000, sustain: 1500, release: 2000, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 11, wave: Waveform::Square, volume: 1230, ratio: 25000, offset_hz: 0, attack: 0, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(6), volume: 8528, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 2000, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(11), volume: 3042, ratio: 10000, offset_hz: 0, attack: 1000, hold: 500, decay: 5000, sustain: 10000, release: 2500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 29, ratio: 0, offset_hz: 40000, attack: 3000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(13), volume: 5115, ratio: 5000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 6000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(7), volume: 11599, ratio: 5000, offset_hz: 0, attack: 20, hold: 200, decay: 1500, sustain: 3000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(10), volume: 3042, ratio: 5000, offset_hz: 0, attack: 20, hold: 200, decay: 2000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(4), volume: 5658, ratio: 10000, offset_hz: 0, attack: 1500, hold: 500, decay: 5000, sustain: 10000, release: 2500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 70, ratio: 0, offset_hz: 40000, attack: 3000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(5), volume: 4675, ratio: 10000, offset_hz: 0, attack: 30, hold: 200, decay: 1000, sustain: 10000, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 128, ratio: 0, offset_hz: 55000, attack: 2000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(0), volume: 17138, ratio: 10000, offset_hz: 0, attack: 20, hold: 0, decay: 500, sustain: 0, release: 300, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(2), volume: 2912, ratio: 5000, offset_hz: 0, attack: 30, hold: 200, decay: 1500, sustain: 10000, release: 400, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 11, wave: Waveform::Sawtooth, volume: 1618, ratio: 5000, offset_hz: 0, attack: 0, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 0, wave: Waveform::Custom(1), volume: 4049, ratio: 10000, offset_hz: 0, attack: 2500, hold: 500, decay: 5000, sustain: 10000, release: 2500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-    Operator { route: 1, wave: Waveform::Triangle, volume: 70, ratio: 0, offset_hz: 40000, attack: 3000, hold: 0, decay: 100, sustain: 10000, release: 500, pitch_ratio: 10000, pitch_time: 10000, key_scale: 0, filter: Option::None },
-];
+const OPERATOR_WORDS: [felt252; 248] = [0xc80000001e0000000000002710000011f10000000900000000, 0x2710000027100000012c00002710000003e8, 0x7d00000ea6000000000000000af0000000300000001, 0x271000002710000001f40000271000000064, 0xc80000001e00000000000027100000118a0000000600000000, 0x2710000027100000012c00002710000003e8, 0xdac0000c35000000000000001430000000300000001, 0x271000002710000001f40000271000000064, 0xc80000001e0000000000002710000014e30000000600000000, 0x2710000027100000012c0000157c000009c4, 0x7080000ea6000000000000000570000000300000001, 0x271000002710000001f40000271000000064, 0x14000000000000271000001a9e0000000900000000, 0x2710000027100000012c0000000000000708, 0x14000000000000271000000f800000000700000000, 0x2710000027100000012c0000000000000898, 0x140000000000004e20000006f90000000600000000, 0x2710000027100000012c00000000000004b0, 0x140000000000002710000014cc0000000600000000, 0x2710000027100000012c00000000000004b0, 0x1400186a00000000000000251c0000000900000000, 0x12c00000af00000012c0000000000000258, 0x140028488000000000000010ea0000000400000000, 0x2710000027100000012c00000000000001f4, 0x14001e84800000000000000af00000000800000000, 0x12c0000157c0000012c00000000000000fa, 0x14000dbba00000000000001d4c0000000900000000, 0x1f4000017700000012c0000000000000320, 0xa03abf10000000000000008060000000500000000, 0x271000002710000000c8000000000000008c, 0x14001005900000000000001d4c0000000900000000, 0x1f4000017700000012c0000000000000320, 0x14001312d00000000000001d4c0000000900000000, 0x1f4000017700000012c0000000000000320, 0xa03abf10000000000000008060000000500000000, 0x271000002710000000c80000000000000258, 0x14001620100000000000001d4c0000000900000000, 0x1f4000017700000012c0000000000000320, 0x140019f0a00000000000001d4c0000000900000000, 0x1f4000017700000012c0000000000000320, 0x14008647000000000000000a260000000400000000, 0x271000002710000001f400000000000009c4, 0x14001e84800000000000001d4c0000000900000000, 0x1f4000017700000012c0000000000000320, 0xc80000001e000000000000271000000c430000000800000000, 0x2710000027100000012c00002710000003e8, 0x3200001388000000000000000cc0000000300000001, 0x271000002710000001f40000271000000064, 0xc800000096000000000000271000001b360000000a00000000, 0x2710000027100000012c00002710000003e8, 0x7080000ea6000000000000000570000000300000001, 0x271000002710000001f40000271000000064, 0xc80000001e000000000000271000000f680000000700000000, 0x2710000027100000012c00002134000003e8, 0x5dc0000ea6000000000000000740000000300000001, 0x271000002710000001f40000271000000064, 0xc80000001e0000000000002710000013da0000000600000000, 0x2710000027100000012c00001f40000003e8, 0x7080000ea6000000000000000910000000300000001, 0x271000002710000001f40000271000000064, 0xc80000001e000000000000271000000df60000000700000000, 0x2710000027100000012c00002710000003e8, 0x25800015f9000000000000000ea0000000300000001, 0x271000002710000001f40000271000000064, 0x1400000000000027100000147e0000000700000000, 0x2710000027100000012c0000000000000578, 0x14000000000000271000001a1c0000000600000000, 0x2710000027100000012c00000000000001f4, 0xc80000001e000000000000271000000df60000000700000000, 0x2710000027100000012c00002710000003e8, 0xc80000001e000000000000271000000c430000000600000000, 0x2710000027100000012c00002710000003e8, 0x7080000ea6000000000000000910000000300000001, 0x271000002710000001f40000271000000064, 0xc8000000c80000000000002710000019680000000800000000, 0x2710000027100000012c00001f40000003e8, 0x7d00000ea6000000000000000690000000300000001, 0x271000002710000001f40000271000000064, 0xc80000001e000000000000271000000c430000000600000000, 0x2710000027100000012c00002710000003e8, 0x140000000000002710000027080000000800000000, 0x2710000027100000012c0000000000000514, 0x140000000000002710000015ea0000000600000000, 0x2710000027100000012c00000000000003e8, 0x64000000140000000000002710000010030000000600000000, 0x271000002710000003200000070800000dac, 0x1400186a00000000000000251c0000000700000000, 0x12c00000af00000012c0000000000000258, 0x140028488000000000000010ea0000000400000000, 0x2710000027100000012c00000000000001f4, 0x14001e84800000000000000af00000000600000000, 0x12c0000157c0000012c00000000000000fa, 0x14000dbba00000000000001d4c0000000700000000, 0x1f4000017700000012c0000000000000320, 0x14001005900000000000001d4c0000000700000000, 0x1f4000017700000012c0000000000000320, 0x14001312d00000000000001d4c0000000700000000, 0x1f4000017700000012c0000000000000320, 0x14001620100000000000001d4c0000000700000000, 0x1f4000017700000012c0000000000000320, 0x140019f0a00000000000001d4c0000000700000000, 0x1f4000017700000012c0000000000000320, 0x14001e84800000000000001d4c0000000700000000, 0x1f4000017700000012c0000000000000320, 0xc80000001e000000000000271000000c430000000600000000, 0x2710000027100000012c00002710000003e8, 0x3200001388000000000000000cc0000000300000001, 0x271000002710000001f40000271000000064, 0xc800000096000000000000271000001b360000000900000000, 0x2710000027100000012c00002710000003e8, 0x7080000ea6000000000000000570000000300000001, 0x271000002710000001f40000271000000064, 0xc80000001e000000000000271000000c430000000700000000, 0x2710000027100000012c00002710000003e8, 0x7080000ea6000000000000000910000000300000001, 0x271000002710000001f40000271000000064, 0xc8000000c80000000000002710000019680000000900000000, 0x2710000027100000012c00001f40000003e8, 0x7d00000ea6000000000000000690000000300000001, 0x271000002710000001f40000271000000064, 0xc80000001e000000000000271000000c430000000700000000, 0x2710000027100000012c00002710000003e8, 0x140000000000002710000027080000000900000000, 0x2710000027100000012c0000000000000514, 0x140000000000002710000015ea0000000700000000, 0x2710000027100000012c00000000000003e8, 0x64000000140000000000002710000010030000000700000000, 0x271000002710000003200000070800000dac, 0x1400186a00000000000000251c0000000800000000, 0x12c00000af00000012c0000000000000258, 0x140028488000000000000010ea0000000400000000, 0x2710000027100000012c00000000000001f4, 0x14001e84800000000000000af00000000700000000, 0x12c0000157c0000012c00000000000000fa, 0x14000dbba00000000000001d4c0000000800000000, 0x1f4000017700000012c0000000000000320, 0x14001005900000000000001d4c0000000800000000, 0x1f4000017700000012c0000000000000320, 0x14001312d00000000000001d4c0000000800000000, 0x1f4000017700000012c0000000000000320, 0x14001620100000000000001d4c0000000800000000, 0x1f4000017700000012c0000000000000320, 0x140019f0a00000000000001d4c0000000800000000, 0x1f4000017700000012c0000000000000320, 0x14001e84800000000000001d4c0000000800000000, 0x1f4000017700000012c0000000000000320, 0xc80000001e000000000000271000000c430000000700000000, 0x2710000027100000012c00002710000003e8, 0x3200001388000000000000000cc0000000300000001, 0x271000002710000001f40000271000000064, 0x140000000000002710000016240000000700000000, 0x2710000027100000012c0000000000000898, 0x140000000000004e20000009f70000000600000000, 0x2710000027100000012c00000000000004b0, 0xc800000014000000000000138800000c230000000900000000, 0x2710000027100000012c00002710000007d0, 0x1f400000bb8000000000000271000001cec0000000900000000, 0x271000002710000009c40000271000001388, 0xbb800009c4000000000000000570000000300000001, 0x271000002710000001f40000271000000064, 0xc800000096000000000000271000001b360000000f00000000, 0x2710000027100000012c00002710000003e8, 0x7080000ea6000000000000000570000000300000001, 0x271000002710000001f40000271000000064, 0xc80000001e0000000000002710000012280000000c00000000, 0x2710000027100000012c00002710000003e8, 0xbb80000c35000000000000000910000000300000001, 0x271000002710000001f40000271000000064, 0x64000000140000000000002710000010030000000800000000, 0x271000002710000003200000070800000dac, 0xc80000001400000000000013880000119c0000000c00000000, 0x2710000027100000012c00002710000007d0, 0x1f4000007d00000000000002710000013fd0000000c00000000, 0x271000002710000009c40000271000001388, 0xbb800009c4000000000000000460000000300000001, 0x271000002710000001f40000271000000064, 0x1f400000dac0000000000002738000008e20000000c00000000, 0x27100000271000000fa00000271000001388, 0xc80000001e0000000000002710000016b60000000e00000000, 0x2710000027100000012c00002710000003e8, 0x4b00000c35000000000000000cc0000000300000001, 0x271000002710000001f40000271000000064, 0x14000000000000271000002a540000001200000000, 0x2710000027100000012c00000000000005dc, 0x64000000140000000000002710000012440000000900000000, 0x50000013880000012c00002134000009c4, 0x1f4000005dc000000000000271000001dc00000000d00000000, 0x271000002710000009c40000271000001388, 0xbb800009c4000000000000000460000000300000001, 0x271000002710000001f40000271000000064, 0xc8000000320000000000002710000008700000000000000000, 0x271000002710000001f400002710000003e8, 0x4e2000001f400000000000000001, 0x271000002710000001f400002710000003e8, 0xc8000000320000000000004e200000039d0000000000000000, 0x271000002710000001f400002710000003e8, 0xc80000001e000000000000271000001dd60000000d00000000, 0x2710000027100000012c00002710000003e8, 0xc800000bb8000000000000271000000d8d0000000800000000, 0x27100000271000000bb800002710000003e8, 0xc800000bb8000000000000276100000d8d0000000800000000, 0x27100000271000000bb800002710000003e8, 0x6400000190000000000000271000000b570000000000000000, 0x271000002710000005dc00001f4000000bb8, 0x2580000000000002710000075300000000000000001, 0x271000002710000003e80000177000000bb8, 0x1f4000009c4000000000000271000000da70000000800000000, 0x271000002710000009c40000271000001388, 0xbb800009c4000000000000000460000000300000001, 0x271000002710000001f40000271000000064, 0x640000001e0000000000002710000008ee0000000000000000, 0x271000002710000005dc0000000000002328, 0x88b80000ea600000000000000001, 0x271000002710000003e8000003e800001770, 0xc80000001e00000000000027100000063f0000000000000000, 0x271000002710000007d0000005dc00000fa0, 0x61a8000004ce000000010000000b, 0x271000002710000001f40000271000000064, 0x140000000000002710000021500000000c00000000, 0x2710000027100000012c00000000000007d0, 0x1f4000003e8000000000000271000000be20000001100000000, 0x271000002710000009c40000271000001388, 0xbb800009c40000000000000001d0000000300000001, 0x271000002710000001f40000271000000064, 0xc80000001e0000000000001388000013fb0000001300000000, 0x2710000027100000012c00001770000003e8, 0xc800000014000000000000138800002d4f0000000d00000000, 0x2710000027100000012c00000bb8000005dc, 0xc800000014000000000000138800000be20000001000000000, 0x2710000027100000012c00002710000007d0, 0x1f4000005dc00000000000027100000161a0000000a00000000, 0x271000002710000009c40000271000001388, 0xbb800009c4000000000000000460000000300000001, 0x271000002710000001f40000271000000064, 0xc80000001e0000000000002710000012430000000b00000000, 0x2710000027100000012c00002710000003e8, 0x7d00000d6d800000000000000800000000300000001, 0x271000002710000001f40000271000000064, 0x140000000000002710000042f20000000600000000, 0x2710000027100000012c00000000000001f4, 0xc80000001e000000000000138800000b600000000800000000, 0x2710000027100000019000002710000005dc, 0x138800000652000000020000000b, 0x271000002710000001f40000271000000064, 0x1f4000009c4000000000000271000000fd10000000700000000, 0x271000002710000009c40000271000001388, 0xbb800009c4000000000000000460000000300000001, 0x271000002710000001f40000271000000064];
 
-/// A settings value from its tables: each wave a slice of SAMPLES, each timbre a slice of
-/// OPERATORS.
+/// Reads 32-bit values packed 7 to a felt.
+#[derive(Drop)]
+struct Reader {
+    data: Span<felt252>,
+    pos: u32,
+    word: u256,
+    left: u32,
+}
+
+#[inline(never)]
+fn read(ref r: Reader) -> u32 {
+    if r.left == 0 {
+        r.word = (*r.data.at(r.pos)).into();
+        r.pos += 1;
+        r.left = 7;
+    }
+    let (q, v) = DivRem::div_rem(r.word, 0x100000000);
+    r.word = q;
+    r.left -= 1;
+    v.try_into().unwrap()
+}
+
+/// `count` operators from operator `first`.
+#[inline(never)]
+fn unpack_operators(first: u32, count: u32) -> Span<Operator> {
+    let mut out: Array<Operator> = array![];
+    for k in first..first + count {
+        let mut r = Reader { data: OPERATOR_WORDS.span(), pos: 2 * k, word: 0, left: 0 };
+        let route: u8 = read(ref r).try_into().unwrap();
+        let w = read(ref r);
+        let wave = if w == 0 {
+            Waveform::Sine
+        } else if w == 1 {
+            Waveform::Square
+        } else if w == 2 {
+            Waveform::Sawtooth
+        } else if w == 3 {
+            Waveform::Triangle
+        } else if w == 4 {
+            Waveform::WhiteNoise
+        } else if w == 5 {
+            Waveform::MetallicNoise
+        } else {
+            Waveform::Custom((w - 6).try_into().unwrap())
+        };
+        let (volume, ratio) = (read(ref r), read(ref r));
+        let offset_hz: i32 = read(ref r).try_into().unwrap();
+        let (attack, hold, decay, sustain, release) = (
+            read(ref r), read(ref r), read(ref r), read(ref r), read(ref r),
+        );
+        let (pitch_ratio, pitch_time) = (read(ref r), read(ref r));
+        out
+            .append(
+                Operator {
+                    route,
+                    wave,
+                    volume,
+                    ratio,
+                    offset_hz,
+                    attack,
+                    hold,
+                    decay,
+                    sustain,
+                    release,
+                    pitch_ratio,
+                    pitch_time,
+                    key_scale: 0,
+                    filter: Option::None,
+                },
+            );
+    }
+    out.span()
+}
+
+/// A settings value from its tables: each wave a slice of SAMPLES, each timbre's operators
+/// from OPERATOR_WORDS.
 // Out of line on purpose: inlined, this body is copied into each of the eight settings functions.
 #[inline(never)]
 fn settings_from(
     quality: u8, reverb: u8, master_vol: u8, voices: u8, waves: Span<u32>, timbres: Span<u32>,
 ) -> TinySynthSettings {
     let samples = SAMPLES.span();
-    let operators = OPERATORS.span();
     let mut wave_defs: Array<WaveDef> = array![];
     for w in waves {
         wave_defs.append(WaveDef::Samples(samples.slice(*w / 0x100, *w % 0x100)));
@@ -361,7 +311,7 @@ fn settings_from(
                 Timbre {
                     drum: (*t / 0x100) % 2 == 1,
                     slot: (*t % 0x100).try_into().unwrap(),
-                    operators: operators.slice(ops / 0x100, ops % 0x100),
+                    operators: unpack_operators(ops / 0x100, ops % 0x100),
                 },
             );
     }

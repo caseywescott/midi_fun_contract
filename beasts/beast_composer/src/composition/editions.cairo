@@ -25,8 +25,9 @@ const O: u32 = 70;
 const MEGA_LEADS: [u8; 2] = [50, 65];
 const VOL: [u8; 10] = [100, 64, 74, 100, 58, 62, 70, 0, 0, 70];
 const PAN: [u8; 10] = [64, 46, 82, 64, 64, 88, 100, 0, 0, 64];
-/// The forms' sections, 2 bits each: AABA, ABAB, AABB, ABAC (tunes A 0, B 1, C 2).
-const FORMS: [u32; 4] = [16, 68, 80, 132];
+/// The forms' sections, 2 bits each: AABA, ABAB, AABB, ABAC, AA'BA, ABA'B, AA'BA', ABA'C (tunes A
+/// 0, B 1, C 2, A' 3: forms 4-7 carry an A', 3 and 7 a C).
+const FORMS: [u32; 8] = [16, 68, 80, 132, 28, 116, 220, 180];
 /// The parts beside the lead and accompaniment: descant, bass, pad, percussion (bits 0-3).
 const DESCANT: u32 = 1;
 const BASS: u32 = 2;
@@ -562,14 +563,14 @@ pub fn edition_tracks_on(
     };
     let tonic = (tonic0 + *[0_u32, 0, 0, 5, 7, 10, 2, 3].span().at(r.int(8))) % 12;
     let bpm = bpm0 + *[0_u32, 2, 4, 4, 6, 8].span().at(r.int(6)) - 4;
-    let mut pa = r.int(8);
-    let mut pb = r.int(8);
+    let mut pa = r.int(16);
+    let mut pb = r.int(16);
     if pb == pa {
-        pb = (pa + 1) % 8;
+        pb = (pa + 1) % 16;
     }
-    let mut pc = (pa + 1 + r.int(6)) % 8;
+    let mut pc = (pa + 1 + r.int(14)) % 16;
     if pc == pb {
-        pc = (pc + 1) % 8;
+        pc = (pc + 1) % 16;
     }
     if knob == 0 {
         let a = pa;
@@ -578,7 +579,7 @@ pub fn edition_tracks_on(
     }
     let modes = s.modes.len();
     let mode_i = r.int(modes);
-    let form_id = r.int(4);
+    let form_id = r.int(8);
     let acc_i = r.int(4);
     let bass = *s.basses.at(r.int(3));
     let perc_i = r.int(2);
@@ -597,7 +598,7 @@ pub fn edition_tracks_on(
                 },
                 (acc_i + 1 + m % 3) % 4,
                 (perc_i + 1) % 2,
-                (form_id + 1 + (m / 64) % 3) % 4,
+                (form_id + 1 + (m / 64) % 3) % 8,
                 if km < 2 {
                     (tonic + *[7_u32, 5].span().at(km)) % 12
                 } else {
@@ -717,11 +718,57 @@ pub fn edition_tracks_on(
     };
     let mel_a = melody(s.cells, s.end, ma, ca, true, ref mr);
     let mel_b = melody(s.cells, s.end, mb, cb, kind_of(form, 3) == 1, ref mr);
-    let mel_c = if form_id == 3 {
+    let mel_c = if form_id % 4 == 3 {
         melody(s.cells, s.end, mb, cc, true, ref mr)
     } else {
         [].span()
     };
+    // A': A's first four bars and a new answer (a fresh tune's last four), or A decorated (each
+    // note of a quarter or longer split, its second half a step toward the next note); the kind
+    // from the ornament seed (no draw of its own)
+    let mut mel_d: Array<MelNote> = array![];
+    if form_id >= 4 {
+        let half = 4 * bar;
+        if (orn_seed / 4) % 2 == 0 {
+            let fresh = melody(s.cells, s.end, ma, ca, true, ref mr);
+            for n in mel_a {
+                if n.t < half {
+                    mel_d.append(*n);
+                }
+            }
+            for n in fresh {
+                if n.t >= half {
+                    mel_d.append(*n);
+                }
+            }
+        } else {
+            let mut i: u32 = 0;
+            while i < mel_a.len() {
+                let n = *mel_a.at(i);
+                if n.len < 480 || i + 1 == mel_a.len() {
+                    mel_d.append(n);
+                } else {
+                    let nd = mel_a.at(i + 1).d;
+                    let h = n.len / 2;
+                    mel_d.append(MelNote { t: n.t, len: h, d: n.d });
+                    mel_d
+                        .append(
+                            MelNote {
+                                t: n.t + h,
+                                len: n.len - h,
+                                d: if nd < n.d {
+                                    n.d - 1
+                                } else {
+                                    n.d + 1
+                                },
+                            },
+                        );
+                }
+                i += 1;
+            }
+        }
+    }
+    let mel_d = mel_d.span();
     let (mel_a, mel_b) = if knob == 1 {
         (mel_b, mel_a)
     } else {
@@ -732,7 +779,9 @@ pub fn edition_tracks_on(
     for sec in 0..4_u32 {
         let t0 = sec * 8 * bar;
         let kind = kind_of(form, sec);
-        let (mel, cs) = if kind == 2 {
+        let (mel, cs) = if kind == 3 {
+            (mel_d, ca)
+        } else if kind == 2 {
             (mel_c, cc)
         } else if kind == 1 {
             (mel_b, cb)

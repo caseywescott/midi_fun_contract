@@ -51,8 +51,8 @@ export function encodePng(width, height, rgba) {
 }
 
 /** The species GIF `key` as a sprite sheet: { n: frames, w: frame size, png: base64, gifBytes }. */
-export function spriteSheet(key) {
-  const b64 = GIFS[key];
+export function spriteSheet(key, gifs = GIFS) {
+  const b64 = gifs[key];
   if (!b64) throw new Error('no species GIF for ' + key);
   const gif = globalThis.BeatSync.decodeGif(new Uint8Array(Buffer.from(b64, 'base64')));
   const { width: w, height: h, frames } = gif, n = frames.length, W = w * n;

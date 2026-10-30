@@ -7,26 +7,27 @@
 // player/settings.js on its pinned engine, and can switch back to the family-only settings the
 // composer served before, to hear the difference. Editions drift day by day (Casey Drift):
 // public/onchain/drift-lab.html, its Edition track tab.
-//   node onchain/editions-onchain-demo.mjs <webaudio-tinysynth-4bf9829.min.js> <onchain-midi-player checkout>
+//   node onchain/editions-onchain-demo.mjs <engine .min.js> <onchain-midi-player checkout>
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { beastName, poseidonHashMany } from '../src/index.js';
 import { speciesRecords } from './editions_cairo.mjs';
-import { spriteSheet } from './lab-sprites.mjs';
+import { loadLabCards } from './lab-card-assets.mjs';
+import { labBuildInputs } from './lab-build-inputs.mjs';
 import { loadBank } from './tinychip/essentials.mjs';
 import { beastPrograms, beastSynthSettings, editionSynthSettings, serializeSettings } from './tinychip/synth_settings.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-const [engineFile, omp] = process.argv.slice(2);
-if (!engineFile || !omp) { console.error('usage: node onchain/editions-onchain-demo.mjs <engine .min.js> <onchain-midi-player checkout>'); process.exit(2); }
+const { tiny, notesPath, settingsPath, notice } = labBuildInputs(...process.argv.slice(2));
 const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
-const tiny = readFileSync(engineFile, 'utf8');
 const bundle = (await build({
   stdin: {
     contents: `import * as ed from './src/editions_lite.js'; import { encodeInputs } from './src/inputs.js';
-      import { installSettings } from ${JSON.stringify(omp + '/player/settings.js')};
-      window.BS = { ed, encodeInputs, installSettings };`,
+      import { installSettings } from ${JSON.stringify(settingsPath)};
+      import * as notes from ${JSON.stringify(notesPath)};
+      import { createCardPreview, playbackSeconds } from './onchain/lab-card-preview.js';
+      window.BS = { ed, encodeInputs, installSettings, notes, createCardPreview, playbackSeconds };`,
     resolveDir: here + '..', loader: 'js',
   },
   bundle: true, minify: true, format: 'iife', platform: 'browser', write: false, logLevel: 'error',
@@ -47,12 +48,13 @@ const FAMILY = [0, 1, 2].flatMap((t) => [false, true].map((mega) => beastSynthSe
 const bank = loadBank();
 const NAMES = Object.fromEntries(bank.PRESETS.map((p, i) => [p.program ?? i, p.name]));
 const SPECIES = speciesRecords().map((s) => ({ ...s, name: beastName({ id: s.id, prefix: 0, suffix: 0 }) }));
-const SPRITES = Object.fromEntries(SPECIES.flatMap((s) => [String(s.id), s.id + 's']).map((k) => { const { n, w, png } = spriteSheet(k); return [k, { n, w, png }]; }));
+const CARDS = loadLabCards();
 const DATA = { species: SPECIES, types: ['Magic', 'Hunter', 'Brute'], settings: SETTINGS, family: FAMILY, names: NAMES };
 
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Editions Onchain</title>
+${notice}
 <link rel="icon" href="data:,">
 <meta name="description" content="Monthly Track Editions as BeastPureComposer plays them: the style engine's MIDI and each style's TinyChip presets, installed the way onchain-midi-player installs them.">
 <style>
@@ -61,18 +63,18 @@ const html = `<!doctype html>
 :root[data-theme="dark"]{--bg:#15141a;--fg:#ece8f4;--mut:#9a94a8;--card:#1f1d26;--line:#2e2b38;--acc:#a77bff;--ok:#3ccf7e;--warn:#f0c040}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}
 main{max-width:1080px;margin:0 auto;padding:24px 16px 48px}h1{font-size:22px;margin:0 0 4px}p.sub{color:var(--mut);margin:0 0 18px;max-width:780px}
-.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px}@media(max-width:880px){.grid{grid-template-columns:1fr}}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px}.grid>div{min-width:0}@media(max-width:880px){.grid{grid-template-columns:minmax(0,1fr)}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;min-width:0}
 .stepper{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;margin-bottom:12px}
 .stepper .mid{text-align:center;min-width:0}.lbl,.sec{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}.stepper .val{font-weight:650;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stepper .val small{font-weight:400;color:var(--mut);font-size:13px}
 .sec{margin:0 0 8px}
 button,select{font:inherit;cursor:pointer}button.nav{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:18px}
 .ctl{display:flex;gap:10px;flex-wrap:wrap}.ctl button,.ctl select{flex:1;min-width:130px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-weight:600}
-.ctl button.go{background:var(--fg);color:var(--bg)}
+.ctl button.go{background:var(--fg);color:var(--bg)}.ctl select{max-width:100%}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}.seg button{padding:9px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font-weight:600;font-size:13.5px}.seg button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}
-.ed-head{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center}
-#art{width:96px;height:96px;border-radius:10px;background:#000;image-rendering:pixelated;background-repeat:no-repeat}
-.ename{font-size:22px;font-weight:700;margin:0}.emonth{color:var(--acc);font-weight:600;font-size:14px}.edesc{color:var(--mut);font-size:14px;margin:2px 0 0}
+.ed-head{display:grid;grid-template-columns:200px minmax(0,1fr);gap:16px;align-items:center}@media(max-width:520px){.ed-head{grid-template-columns:140px minmax(0,1fr)}}
+#art{position:relative;display:block;width:100%;height:auto;object-fit:contain}.beast-preview{isolation:isolate}
+.ename{font-size:22px;font-weight:700;margin:0;overflow-wrap:anywhere}.emonth{color:var(--acc);font-weight:600;font-size:14px}.edesc{color:var(--mut);font-size:14px;margin:2px 0 0}
 dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 12px;margin:12px 0 0;font-size:13px}dt{color:var(--mut)}dd{margin:0;font-family:ui-monospace,monospace;font-size:12.5px;overflow-wrap:anywhere}
 #roll{width:100%;height:220px;display:block;border-radius:8px;background:color-mix(in srgb,var(--fg) 4%,var(--card))}
 .legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:12px}.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
@@ -102,7 +104,7 @@ a{color:var(--acc)}
 <div class="card"><p class="note" style="margin-top:0">Editions drift day by day with Casey Drift: new melodies by month, a part swapped in or out and the chords inverted by week, one knob by day. Hear it on the <a href="drift-lab.html?track=edition">Drift Lab</a>, Edition track tab.</p>
 <p class="note">Keys: <span class="kbd">↑</span> <span class="kbd">↓</span> edition · <span class="kbd">←</span> <span class="kbd">→</span> Beast · <span class="kbd">[</span> <span class="kbd">]</span> purchase · <span class="kbd">i</span> instruments · <span class="kbd">space</span> play/stop. Changes play straight away while playing.</p>
 </div>
-<div class="card"><div class="ed-head"><div id="art" role="img" aria-label=""></div><div><div class="emonth" id="emonth"></div><p class="ename" id="ename"></p><p class="edesc" id="edesc"></p></div></div><dl id="info"></dl></div>
+<div class="card"><div class="ed-head"><div class="beast-preview"><img id="art" alt="" width="250" height="350"></div><div><div class="emonth" id="emonth"></div><p class="ename" id="ename"></p><p class="edesc" id="edesc"></p><p class="note">Beasts V3 · live MIDI preview</p></div></div><dl id="info"></dl></div>
 <div class="card"><canvas id="roll" width="1600" height="440"></canvas><div class="legend" id="legend"></div></div>
 </div><div>
 <div class="card"><div class="sec">What the contracts do</div><div class="flow" id="flow"></div></div>
@@ -116,10 +118,11 @@ a{color:var(--acc)}
 <script>${inline(bundle)}</script>
 <script>
 const DATA = ${JSON.stringify(DATA)};
-const SPRITES = ${JSON.stringify(SPRITES)};
+const CARDS = ${JSON.stringify(CARDS)};
 const $ = (id) => document.getElementById(id), ED = BS.ed, N_ED = 48, U64 = (1n << 64n) - 1n;
 const st = { e: 1, s: 20, n: 1, fx: 0, presets: true };
 let synth = null, playing = false, rollData = null, cur = null;
+const cardPreview = BS.createCardPreview($('art'), CARDS, () => BS.playbackSeconds(synth), BS.notes);
 
 (function readUrl() { const q = new URLSearchParams(location.search); if (q.has('e')) st.e = Math.max(1, Math.min(N_ED, +q.get('e') || 1)); if (q.has('b')) st.s = Math.max(0, Math.min(74, (+q.get('b') || 1) - 1)); if (q.has('p')) st.n = Math.max(1, +q.get('p') || 1); if (q.has('fx')) st.fx = Math.max(0, Math.min(3, +q.get('fx') || 0)); st.presets = q.get('i') !== 'before'; })();
 function writeUrl() { const q = new URLSearchParams({ e: st.e, b: st.s + 1, p: st.n, fx: st.fx}); if (!st.presets) q.set('i', 'before'); history.replaceState(null, '', '?' + q); }
@@ -170,13 +173,7 @@ function show() {
   art(sp); list(); roll(cur.midi); writeUrl();
 }
 function art(sp) {
-  const s = SPRITES[sp.id + (mega() ? 's' : '')] || SPRITES[String(sp.id)], el = $('art');
-  el.style.backgroundImage = 'url(data:image/png;base64,' + s.png + ')';
-  el.style.backgroundSize = (s.n * 96) + 'px 96px';
-  el.setAttribute('aria-label', sp.name);
-  el.getAnimations().forEach((a) => a.cancel());
-  const bpm = (cur && cur.info.bpm) || 120, frames = Array.from({ length: s.n }, (_, f) => ({ backgroundPosition: (-f * 96) + 'px 0' }));
-  if (s.n > 1) el.animate(frames, { duration: s.n * 60000 / bpm / 2, iterations: Infinity, easing: 'steps(' + s.n + ', jump-none)' });
+  cardPreview.show({ id: sp.id, shiny: mega(), name: sp.name }, cur.midi);
 }
 function list() {
   const L = $('list');
@@ -233,8 +230,9 @@ function start() {
   const m = cur.midi;
   synth.loadMIDI(m.buffer.slice(m.byteOffset, m.byteOffset + m.length));
   synth.setLoop(1); synth.setLoopEnd(synth.getPlayStatus().maxTick); synth.playMIDI(); playing = true;
+  cardPreview.play(); art(cur.sp);
 }
-function stop() { if (synth) synth.stopMIDI(); playing = false; draw(-1); }
+function stop() { if (synth) synth.stopMIDI(); playing = false; cardPreview.stop(); draw(-1); }
 function change() { show(); if (playing) start(); }
 
 const step = (k, d) => { if (k === 'e') st.e = (st.e - 1 + d + N_ED) % N_ED + 1; if (k === 's') st.s = (st.s + d + 75) % 75; if (k === 'n') st.n = Math.max(1, st.n + d); change(); };

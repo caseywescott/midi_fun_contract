@@ -1,5 +1,72 @@
 # Sound in `token_uri`: TinySynth page + onchain MIDI
 
+## Interactive lab previews
+
+`drift-lab-demo.mjs`, `lab-demo.mjs`, and `editions-onchain-demo.mjs` share
+`lab-card-preview.js`: current Beasts V3 card output with the lab's active MIDI
+scrolling behind the Beast. The audio and notes receive the same MIDI bytes;
+changing tracks, drift day, echo, or written comparison updates both. Notes
+use the synth's audio clock, including output latency and loop boundaries.
+The main Lab's Tracks, Genesis, Drift, Yeti and Sound Check sections all use
+this same preview, including tier-colored Regular logos and rainbow Shiny
+logos. Genesis swap edits refresh the preview while playing or stopped.
+
+Builds use Casey's existing two inputs: an engine file and an
+`onchain-midi-player` checkout. Use upstream revision
+`e3ad210fbf2caf4cd7940b2dee91375d073b65ac` for the notes renderer and settings
+installer; the build checks both source hashes before bundling them. There is
+no separate vendored copy of those modules in this repository.
+
+From `offchain/beast-sound/`, with that upstream checkout available:
+
+```sh
+# Recover the original engine, byte for byte, from upstream history:
+git -C /path/to/onchain-midi-player show \
+  38d76ce6120d964502891c16445ce083bf1bfedd:tests/vendor/webaudio-tinysynth-4bf9829.min.js \
+  > /tmp/beast-lab-engine.min.js
+npm run build:labs -- /tmp/beast-lab-engine.min.js /path/to/onchain-midi-player
+npm run serve:labs
+# http://localhost:8788/onchain/drift-lab.html?track=song&b=21&e=1&p=1&day=1
+```
+
+The generated pages are self-contained: the cards, canonical sprites, notes
+renderer, settings installer and existing audio engine are bundled locally.
+They require no RPC or asset requests. The generated HTML carries the upstream
+Apache-2.0 attribution and license text, reusing the license already present in
+`vendor/webaudio-tinysynth/LICENSE`. The original engine's SHA-256 is
+`8ad79ab8214e45a601e7d929e676b34b78e3f2b4200fd751d6548cf2b7df7749`.
+
+`fixtures/lab-cards.json` captures official renderer **output**, from Beast
+Sound Check's `sepolia-2026-10-30-2` set at block 17389686. It records the source
+manifest hash, deployment release and per-token URI/SVG hashes. It contains
+75 Genesis card templates and 150 Regular/Shiny GIFs. Shared definitions stay
+deduplicated. The preview uses the Genesis layout and stats, the selected
+species/name and Regular/Shiny art, plus notes for the selected lab track;
+it is a musical preview, not a live token-URI display. Official card outputs
+retain the Beasts collection's display/caching/sharing permission and notices;
+the original pixels and animations remain CC0.
+
+To refresh from another saved rendition set (no RPC or minting):
+
+```sh
+node onchain/import-lab-cards.mjs /path/to/beast-sound-check/renditions/<deployment>
+npm run build:labs -- /tmp/beast-lab-engine.min.js /path/to/onchain-midi-player
+```
+
+The importer verifies every source token URI's length and SHA-256 before
+extracting its card or artwork. Update generated pages through their
+generators. Composition, MIDI codecs and onchain page contracts are unchanged.
+
+`npm test` includes the audible loop-clock regression. Optional browser checks
+(with Playwright installed) exercise all three pages, compare audio/visual MIDI
+bytes after control changes, check scrolling/stopping and reduced motion,
+reject external requests, and capture desktop/mobile screenshots:
+
+```sh
+node onchain/lab-browser-check.mjs
+# Set PLAYWRIGHT_MODULE to an existing Playwright index.mjs if installed elsewhere.
+```
+
 The NFT keeps its animated SVG as `image` and gains an `animation_url`: an HTML page holding a
 TinySynth player, the token's music as a Standard MIDI File composed onchain, and the same SVG. The
 browser plays the MIDI when the viewer taps. Nothing is fetched, and the player knows nothing about

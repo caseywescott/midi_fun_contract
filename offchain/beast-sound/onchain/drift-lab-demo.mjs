@@ -7,28 +7,29 @@
 // Each clock is seeded by the hash of its own first block (simulated here), and nothing accumulates.
 // Songs: lab.js genesisMidi with drift2 (scripts/drift_parity.mjs); editions: editions_lite.js with
 // drift2 (scripts/editions_drift_parity.mjs): both byte for byte the Cairo.
-//   node onchain/drift-lab-demo.mjs <webaudio-tinysynth-4bf9829.min.js> <onchain-midi-player checkout>
+//   node onchain/drift-lab-demo.mjs <engine .min.js> <onchain-midi-player checkout>
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { beastName, poseidonHashMany } from '../src/index.js';
 import { speciesRecords } from './editions_cairo.mjs';
-import { spriteSheet } from './lab-sprites.mjs';
+import { loadLabCards } from './lab-card-assets.mjs';
+import { labBuildInputs } from './lab-build-inputs.mjs';
 import { loadBank } from './tinychip/essentials.mjs';
 import { beastSynthSettings, editionSynthSettings, serializeSettings, variantPrograms, SETTINGS_VARIANTS, YETI_VARIANTS } from './tinychip/synth_settings.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-const [engineFile, omp] = process.argv.slice(2);
-if (!engineFile || !omp) { console.error('usage: node onchain/drift-lab-demo.mjs <engine .min.js> <onchain-midi-player checkout>'); process.exit(2); }
+const { tiny, notesPath, settingsPath, notice } = labBuildInputs(...process.argv.slice(2));
 const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
-const tiny = readFileSync(engineFile, 'utf8');
 const bundle = (await build({
   stdin: {
     contents: `import { engine } from './src/index.js'; import { createEngineV11 } from './src/engine_v11.js';
       import { genesisMidi, drift2, dayAnchor, epochAtBlock } from './src/lab.js';
       import * as ed from './src/editions_lite.js';
-      import { installSettings } from ${JSON.stringify(omp + '/player/settings.js')};
-      window.BS = { engine, v11: createEngineV11(engine), genesisMidi, drift2, dayAnchor, epochAtBlock, ed, installSettings };`,
+      import { installSettings } from ${JSON.stringify(settingsPath)};
+      import * as notes from ${JSON.stringify(notesPath)};
+      import { createCardPreview, playbackSeconds } from './onchain/lab-card-preview.js';
+      window.BS = { engine, v11: createEngineV11(engine), genesisMidi, drift2, dayAnchor, epochAtBlock, ed, installSettings, notes, createCardPreview, playbackSeconds };`,
     resolveDir: here + '..', loader: 'js',
   },
   bundle: true, minify: true, format: 'iife', platform: 'browser', write: false, logLevel: 'error',
@@ -48,12 +49,13 @@ const SETTINGS = { family: SETTINGS_VARIANTS.filter((v) => !v.mega).map((v) => b
 const bank = loadBank();
 const NAMES = Object.fromEntries(bank.PRESETS.map((p, i) => [p.program ?? i, p.name]));
 const SPECIES = speciesRecords().map((s) => ({ ...s, name: beastName({ id: s.id, prefix: 0, suffix: 0 }) }));
-const SPRITES = Object.fromEntries(SPECIES.map((s) => { const { n, w, png } = spriteSheet(String(s.id)); return [s.id, { n, w, png }]; }));
+const CARDS = loadLabCards();
 const DATA = { species: SPECIES, types: ['Magic', 'Hunter', 'Brute'], names: NAMES, settings: SETTINGS };
 
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Drift Lab</title>
+${notice}
 <link rel="icon" href="data:,">
 <meta name="description" content="Casey Drift, the layered drift the Beast composer plays, on Species Songs and Monthly Track Edition tracks, day by day.">
 <style>
@@ -79,7 +81,7 @@ button,input{font:inherit}button{cursor:pointer}button.nav{width:42px;height:42p
 .legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:12px;color:var(--mut)}.legend i{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
 dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 12px;margin:10px 0 0;font-size:13px}dt{color:var(--mut)}dd{margin:0;font-family:ui-monospace,monospace;font-size:12.5px;overflow-wrap:anywhere}
 .note{font-size:12.5px;color:var(--mut);margin:8px 0 0}.how{font-size:13.5px;margin:0;padding-left:18px}.how li{margin:3px 0}.kbd{font:11px ui-monospace,monospace;border:1px solid var(--line);border-radius:4px;padding:0 4px}
-#art{width:56px;height:56px;border-radius:8px;background:#000;image-rendering:pixelated;background-repeat:no-repeat;flex:none}.head{display:flex;gap:12px;align-items:center;margin-bottom:10px}.head b{display:block}.head span{color:var(--mut);font-size:13px}
+#art{position:relative;display:block;width:100%;height:auto;object-fit:contain}.beast-preview{isolation:isolate}.head{display:grid;grid-template-columns:minmax(120px,210px) minmax(0,1fr);gap:16px;align-items:center;margin-bottom:16px}.head b{display:block}.head span{color:var(--mut);font-size:13px}@media(max-width:520px){.head{grid-template-columns:140px minmax(0,1fr)}}
 .mode{display:none}.mode.on{display:block}
 a{color:var(--acc)}
 </style></head><body><main>
@@ -91,7 +93,7 @@ a{color:var(--acc)}
 </div>
 <div class="grid"><div>
 <div class="card">
-<div class="head"><div id="art" role="img" aria-label=""></div><div><b id="title"></b><span id="subtitle"></span></div></div>
+<div class="head"><div class="beast-preview"><img id="art" alt="" width="250" height="350"></div><div><b id="title"></b><span id="subtitle"></span><p class="note">Beasts V3 · live MIDI preview</p></div></div>
 <div class="stepper"><button class="nav" id="b-prev" aria-label="Previous Beast">◀</button><div class="mid"><div class="lbl">Beast</div><div class="val" id="b-val"></div></div><button class="nav" id="b-next" aria-label="Next Beast">▶</button></div>
 <div class="stepper" id="row-e"><button class="nav" id="e-prev" aria-label="Previous edition">▲</button><div class="mid"><div class="lbl">Edition</div><div class="val" id="e-val"></div></div><button class="nav" id="e-next" aria-label="Next edition">▼</button></div>
 <div class="stepper" id="row-p"><button class="nav" id="p-prev" aria-label="Previous purchase">−</button><div class="mid"><div class="lbl">Purchase</div><div class="val" id="p-val"></div></div><button class="nav" id="p-next" aria-label="Next purchase">+</button></div>
@@ -120,10 +122,11 @@ a{color:var(--acc)}
 <script>${inline(bundle)}</script>
 <script>
 const DATA = ${JSON.stringify(DATA)};
-const SPRITES = ${JSON.stringify(SPRITES)};
+const CARDS = ${JSON.stringify(CARDS)};
 const $ = (id) => document.getElementById(id), E = BS.engine, V = BS.v11, ED = BS.ed, U64 = (1n << 64n) - 1n, DAYS = 400;
 const st = { kind: 'song', s: 20, e: 1, n: 1, day: 1, written: false, echo: false };
 let synth = null, playing = false, lapse = 0, cur = null, series = null, seriesKey = '', seriesJob = 0;
+const cardPreview = BS.createCardPreview($('art'), CARDS, () => BS.playbackSeconds(synth), BS.notes);
 const anchor = BS.dayAnchor();
 
 (function readUrl() {
@@ -219,7 +222,6 @@ function show() {
   const g = ED.editionGenome(st.e);
   $('e-val').innerHTML = st.e + ' · ' + esc(g.name) + ' <small>' + ED.ENGINES[g.engine].label + '</small>';
   $('p-val').innerHTML = '#' + st.n;
-  const spr = SPRITES[s.id], el = $('art'); el.style.backgroundImage = 'url(data:image/png;base64,' + spr.png + ')'; el.style.backgroundSize = (spr.n * 56) + 'px 56px'; el.setAttribute('aria-label', s.name);
   const o = trackOn(st.day), dd = diff(o);
   cur = { o, settings: st.kind === 'edition' ? DATA.settings.edition[g.style * 3 + s.type] : s.id === 68 ? DATA.settings.yeti : DATA.settings.family[DATA.species[({ 39: 40, 40: 39 }[s.id] || s.id) - 1].type] };
   $('title').textContent = st.kind === 'song' ? s.name + "'s Species Song" : g.name;
@@ -229,6 +231,7 @@ function show() {
   const chText = cd.now.length + ' playing' + (cd.changed ? ' (' + [cd.added.length ? '+ ' + nm(cd.added) : '', cd.gone.length ? '− ' + nm(cd.gone) : ''].filter(Boolean).join('; ') + ' vs written)' : ', as written') + ': ' + nm(cd.now);
   $('readout').innerHTML = [['Today', o.drift.label || ''], ['Channels', chText], ['Tempo', (t >= 0 ? '+' : '') + t + ' BPM'], ['From written', dd.changed + ' of ' + dd.total + ' notes changed']].map(([a, b]) => '<dt>' + a + '</dt><dd>' + esc(b) + '</dd>').join('');
   roll(st.written ? writtenTrack().midi : o.midi);
+  cardPreview.show({ id: s.id, shiny: false, name: s.name }, selectedMidi());
   $('ab').textContent = st.written ? 'Compare: drifted' : 'Compare: written';
   $('echo').textContent = 'Chip echo: ' + (st.echo ? 'on' : 'off'); $('echo').classList.toggle('on', st.echo);
   history.replaceState(null, '', query());
@@ -276,11 +279,14 @@ function start() {
   if (!synth) synth = new WebAudioTinySynth({ quality: 1, useReverb: 1, voices: 64 });
   synth.getAudioContext().resume(); synth.stopMIDI();
   BS.installSettings(synth, cur.settings);
-  const m = st.written ? writtenTrack().midi : cur.o.midi;
+  const m = selectedMidi();
   synth.loadMIDI(m.buffer.slice(m.byteOffset, m.byteOffset + m.length));
   synth.setLoop(1); synth.setLoopEnd(synth.getPlayStatus().maxTick); synth.playMIDI(); playing = true;
+  cardPreview.play();
+  cardPreview.show({ id: sp().id, shiny: false, name: sp().name }, m);
 }
-function stop() { if (synth) synth.stopMIDI(); playing = false; clearInterval(lapse); lapse = 0; $('lapse').textContent = '▶ Time-lapse'; draw(-1); }
+function selectedMidi() { return st.written ? writtenTrack().midi : cur.o.midi; }
+function stop() { if (synth) synth.stopMIDI(); playing = false; cardPreview.stop(); clearInterval(lapse); lapse = 0; $('lapse').textContent = '▶ Time-lapse'; draw(-1); }
 function change() { show(); if (playing) start(); }
 function toggleLapse() {
   if (lapse) { clearInterval(lapse); lapse = 0; $('lapse').textContent = '▶ Time-lapse'; return; }
@@ -298,7 +304,7 @@ $('p-prev').onclick = () => step('n', -1); $('p-next').onclick = () => step('n',
 $('play').onclick = start; $('stop').onclick = stop; $('lapse').onclick = toggleLapse;
 $('ab').onclick = () => { st.written = !st.written; change(); };
 $('echo').onclick = () => { st.echo = !st.echo; change(); };
-$('day').oninput = () => { st.day = +$('day').value; show(); }; $('day').onchange = () => { if (playing) start(); };
+$('day').oninput = () => { st.day = +$('day').value; change(); };
 $('link').onclick = async () => { try { await navigator.clipboard.writeText(location.href); $('copied').textContent = 'Copied the link.'; } catch { $('copied').textContent = 'Clipboard unavailable: copy the address bar.'; } };
 document.addEventListener('keydown', (ev) => {
   if (ev.target.tagName === 'INPUT' || ev.metaKey || ev.ctrlKey) return;

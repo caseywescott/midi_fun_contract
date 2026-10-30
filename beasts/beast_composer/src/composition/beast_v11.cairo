@@ -403,6 +403,57 @@ fn offsets(spacing: u8) -> Span<i32> {
     }
 }
 
+/// The lowest pitch a voice is placed on: C1. A voice is placed on its offset (`offsets`; the lead
+/// and the countersubject on degree 0, an inverted second voice on 4), moved by each section's
+/// shift (`degree_plan`). Every Song from tonic 48 up, so every written, generated and bought one,
+/// places its lowest voice at C1 or above: the lowest placement, offset -11 in a section shifted by
+/// -3, is 14 degrees, two octaves, under the tonic.
+const PLACEMENT_FLOOR: u8 = 24;
+
+/// The tonic, raised by whole octaves (at most two) until the Song's lowest voice is placed at or
+/// above PLACEMENT_FLOOR: a Song whose voices would sit lower plays every voice the same octaves
+/// higher, so their order, spacing and contour stay. A voice's line, episodes and candidates reach
+/// at most 13 degrees under its placement, so every pitch the Song realizes is above 0.
+// On purpose (CASM size): one copy for both entry points `build_resolved` is inlined into.
+#[inline(never)]
+fn register_tonic(
+    tonic: u8, voices: u32, inverted: bool, spacing: u8, plan: Span<i32>, scale: Option<Span<u8>>,
+) -> u8 {
+    if tonic >= 48 {
+        return tonic;
+    }
+    // a Song's scale is named (`genesis::named_mode_scale`); only a Beast's own score (tonics from
+    // 48, `tonic_keynum_for_cell`) realizes the mode's
+    let scale = match scale {
+        Option::Some(sc) => sc,
+        Option::None => { return tonic; },
+    };
+    // the lowest offset: the fourth voice's, else the second voice's unless it is inverted (4)
+    let offs = offsets(spacing);
+    let low = if voices >= 4 {
+        *offs.at(3)
+    } else if voices >= 2 && !inverted {
+        *offs.at(1)
+    } else {
+        0
+    };
+    let mut shift: i32 = 0;
+    for x in plan {
+        if *x < shift {
+            shift = *x;
+        }
+    }
+    let placed = degree_to_keynum(low + shift, tonic, scale);
+    tonic
+        + if placed >= PLACEMENT_FLOOR {
+            0
+        } else if placed + 12 >= PLACEMENT_FLOOR {
+            12
+        } else {
+            24
+        }
+}
+
 /// The placed notes on a 120-tick grid. Every onset and length the voice checks see is a multiple
 /// of 120 ticks (asserted by `put`), and a voice's notes never overlap, so a voice has at most one
 /// note per cell.
@@ -1584,7 +1635,7 @@ fn build_v11_score_resolved_boxed(r: V11Resolved) -> Box<V11Score> {
 // body, as before the split.
 #[inline(always)]
 fn build_resolved(r: V11Resolved) -> Box<V11Score> {
-    let p = r.params;
+    let mut p = r.params;
     let theme_v1 = build_beast_theme(
         BeastCompositionParams { tier: r.theme_tier, register_band: r.theme_register_band, ..p },
         r.motif_seed,
@@ -1643,6 +1694,12 @@ fn build_resolved(r: V11Resolved) -> Box<V11Score> {
         array![p.name_variant_id.into(), p.species_id.into()].span(),
     );
     let plan = degree_plan(@p, r.flip_side);
+    // the register: a Song whose lowest voice would be placed under C1 is composed whole octaves up
+    p
+        .tonic_keynum =
+            register_tonic(
+                p.tonic_keynum, p.voice_count, p.use_inversion, r.spacing, plan.span(), r.scale,
+            );
     let mut events: Array<NoteEvent> = array![];
     let mut cs_degrees: Array<i32> = array![];
     let sc8: u32 = p.section_count.into();
@@ -1710,6 +1767,196 @@ pub fn v11_score_full_smf_bytes(beast: PackableBeastV3, live: BeastV3LiveState) 
 /// The same, packed 31 bytes per felt after the byte length.
 pub fn v11_score_full_midi(beast: PackableBeastV3, live: BeastV3LiveState) -> Array<felt252> {
     midi::pack::to_felt252_array(v11_score_full_smf_bytes(beast, live).span())
+}
+
+#[cfg(test)]
+mod register_tests {
+    use crate::composition::beast_trait_map::BeastCompositionParams;
+    use crate::composition::genesis::named_mode_scale;
+    use crate::composition::melodic_canon::degree_to_keynum;
+    use super::{PLACEMENT_FLOOR, degree_plan, offsets, register_tonic};
+
+    fn params(tier: u8, weakness: u8, sections: u8) -> BeastCompositionParams {
+        BeastCompositionParams {
+            species_id: 1,
+            name_variant_id: 0,
+            mode_id: 8,
+            tonic_keynum: 60,
+            register_band: 0,
+            tier,
+            weakness,
+            canon_config_id: 0,
+            profile_id: 0,
+            voice_count: 4,
+            section_count: sections,
+            stretto_bucket: 0,
+            stretto_lag: 2,
+            use_inversion: false,
+            use_countersubject: false,
+            use_compound_melody: false,
+            ornament_density: 0,
+            articulation_profile: 0,
+            velocity_ceiling: 100,
+            tempo_us: 500000,
+            score_version: 0,
+        }
+    }
+
+    /// The lowest placement, voice by voice as `build_section` places them, in the section with
+    /// the lowest shift: a degree.
+    fn lowest_placement(
+        voices: u32, inverted: bool, spacing: u8, plan: Span<i32>, sections: u8,
+    ) -> i32 {
+        let offs = offsets(spacing);
+        let mut low: i32 = 0;
+        let mut v: u32 = 1;
+        while v < voices {
+            let off = if v == 1 && inverted {
+                4
+            } else if v < 4 {
+                *offs.at(v)
+            } else {
+                *offs.at(3)
+            };
+            if off < low {
+                low = off;
+            }
+            v += 1;
+        }
+        let mut shift: i32 = *plan.at(0);
+        let mut s: u32 = 1;
+        while s < sections.into() {
+            let x = *plan.at(s % plan.len());
+            if x < shift {
+                shift = x;
+            }
+            s += 1;
+        }
+        low + shift
+    }
+
+    /// For one named scale (a test each: a test run keeps what it allocates), every tonic under 48,
+    /// voice count, spacing, inversion and key plan (tiers 1-4, 2-5 sections, both sides, and the
+    /// one-section plan): the tonic moves by the fewest whole octaves that place the lowest voice
+    /// at or above the floor.
+    fn raises_to_the_floor(mode: u8) {
+        let scale = named_mode_scale(mode).unwrap();
+        let mut tier: u8 = 1;
+        while tier <= 4 {
+            let mut sections: u8 = 1;
+            while sections <= 5 {
+                // one section has the one plan [0]
+                let sides = if sections > 1 {
+                    array![0_u8, 1]
+                } else if tier == 1 {
+                    array![0]
+                } else {
+                    array![]
+                };
+                for weakness in sides {
+                    let plan = degree_plan(@params(tier, weakness, sections), false);
+                    for spacing in array![0_u8, 1, 2] {
+                        let mut voices: u32 = 1;
+                        while voices <= 4 {
+                            // an inverted second voice needs a second voice
+                            let inversions = if voices >= 2 {
+                                array![false, true]
+                            } else {
+                                array![false]
+                            };
+                            for inverted in inversions {
+                                let low = lowest_placement(
+                                    voices, inverted, spacing, plan.span(), sections,
+                                );
+                                let mut tonic: u8 = 24;
+                                while tonic < 48 {
+                                    let mut want = tonic;
+                                    while degree_to_keynum(low, want, scale) < PLACEMENT_FLOOR {
+                                        want += 12;
+                                    }
+                                    let got = register_tonic(
+                                        tonic,
+                                        voices,
+                                        inverted,
+                                        spacing,
+                                        plan.span(),
+                                        Option::Some(scale),
+                                    );
+                                    assert!(got == want);
+                                    assert!(got - tonic <= 24);
+                                    tonic += 1;
+                                }
+                            }
+                            voices += 1;
+                        }
+                    }
+                }
+                sections += 1;
+            }
+            tier += 1;
+        }
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn raises_to_the_floor_harmonic_minor() {
+        raises_to_the_floor(8);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn raises_to_the_floor_phrygian() {
+        raises_to_the_floor(5);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn raises_to_the_floor_dorian_sharp_four() {
+        raises_to_the_floor(26);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn raises_to_the_floor_dorian() {
+        raises_to_the_floor(4);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn raises_to_the_floor_locrian() {
+        raises_to_the_floor(6);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn raises_to_the_floor_aeolian() {
+        raises_to_the_floor(7);
+    }
+
+    /// From tonic 48 up, nothing moves, and nothing needs to: the lowest placement there is, offset
+    /// -11 in a section shifted by -3, is 14 degrees, two octaves, under the tonic, for every
+    /// scale.
+    #[test]
+    fn keeps_every_tonic_from_48() {
+        for mode in array![4_u8, 5, 6, 7, 8, 26] {
+            let scale = named_mode_scale(mode).unwrap();
+            assert!(degree_to_keynum(-14, 48, scale) == PLACEMENT_FLOOR);
+            let mut tonic: u8 = 48;
+            while tonic <= 96 {
+                for spacing in array![0_u8, 1, 2] {
+                    let plan = array![0, -3].span();
+                    assert!(
+                        register_tonic(
+                            tonic, 4, false, spacing, plan, Option::Some(scale)
+                        ) == tonic,
+                    );
+                }
+                tonic += 1;
+            }
+        }
+        // a Beast's own score realizes the mode's scale, from tonic 48: never moved
+        assert!(register_tonic(30, 4, false, 0, array![0, -3].span(), Option::None) == 30);
+    }
 }
 
 #[cfg(test)]

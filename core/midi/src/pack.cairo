@@ -68,9 +68,16 @@ pub fn bytes_to_byte_array(mut bytes: Span<u8>) -> ByteArray {
 
 /// `bytes_to_byte_array` of the chunks end to end, without copying them into one array first. A
 /// word that straddles two chunks is carried over: `pending` holds its first `pending_len` bytes.
+/// 0, hidden from the compiler: a loop entered with a constant is compiled twice (once specialized
+/// to it); entered with this, once (CASM size).
+#[inline(never)]
+fn zero() -> usize {
+    0
+}
+
 pub fn chunks_to_byte_array(chunks: Span<Span<u8>>) -> ByteArray {
     // The serialized `ByteArray` opens with its word count, so the whole length is needed first.
-    let mut total: usize = 0;
+    let mut total: usize = zero();
     for chunk in chunks {
         total += chunk.len();
     }

@@ -26,9 +26,11 @@ const { chromium } = (await import(process.env.PLAYWRIGHT_CORE ? pathToFileURL(p
 
 const D = { g: 0, w: 'sine', t: 1, f: 0, v: 0.5, a: 0, h: 0.01, d: 0.01, s: 0, r: 0.05, p: 1, q: 1, k: 0 };
 const W = { Sine: 'sine', Square: 'square', Sawtooth: 'sawtooth', Triangle: 'triangle', WhiteNoise: 'n0', MetallicNoise: 'n1' };
-const data = bankData();
-// every essential, not only the ones the settings carry now, so any can be chosen
-const settings = beastSynthSettings(data, ESSENTIALS, BEAST_DRUMS);
+// every essential, not only the ones the settings carry now, so any can be chosen; PROGRAMS=a,b,..
+// checks those bank presets instead (the Monthly Track Editions' presets)
+const PROGRAMS = process.env.PROGRAMS ? process.env.PROGRAMS.split(',').map(Number) : ESSENTIALS;
+const data = bankData(undefined, [...new Set([...ESSENTIALS, ...PROGRAMS])]);
+const settings = beastSynthSettings(data, PROGRAMS, BEAST_DRUMS);
 // Custom(i) plays wave i as onchain-midi-player's player registers it (player/settings.js waveName)
 const tinysynth = (ops) => ops.map((o) => ({ g: o.route, w: typeof o.wave === 'string' ? W[o.wave] : 'nS' + o.wave.Custom, v: o.volume / 1e4, t: o.ratio / 1e4, f: o.offset_hz / 1e4, a: o.attack / 1e4, h: o.hold / 1e4, d: o.decay / 1e4, s: o.sustain / 1e4, r: o.release / 1e4, p: o.pitch_ratio / 1e4, q: o.pitch_time / 1e4, k: o.key_scale / 1e4 }));
 const items = settings.timbres.map((t) => ({
@@ -36,8 +38,13 @@ const items = settings.timbres.map((t) => ({
   orig: (t.drum ? data.drums[t.slot] : data.presets[t.slot]).map((o) => ({ ...D, ...o })),
   interim: tinysynth(t.operators),
 }));
+// TinyChip's own waves: the onchain runtime's, or with PROGRAMS the full bank's (every chip wave, the
+// same definitions the onchain runtime keeps for its own)
 const runtime = readFileSync(here + 'tinychip.js', 'utf8');
-const waves = runtime.slice(runtime.indexOf('  function lfsr'), runtime.indexOf("  // tinysynth's operator defaults"));
+const bank = readFileSync(here + 'tinysynth-chip.js', 'utf8');
+const waves = process.env.PROGRAMS
+  ? bank.slice(bank.indexOf('  const tri4'), bank.indexOf('  // ── preset builders'))
+  : runtime.slice(runtime.indexOf('  function lfsr'), runtime.indexOf("  // tinysynth's operator defaults"));
 
 const dir = mkdtempSync(join(tmpdir(), 'tinychip-interim-'));
 writeFileSync(join(dir, 'ts.js'), readFileSync(engine));

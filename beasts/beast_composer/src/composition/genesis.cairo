@@ -24,23 +24,31 @@ use core::dict::{Felt252Dict, Felt252DictTrait};
 use core::poseidon::poseidon_hash_span;
 use midi::smf::{smf_byte_array, smf_bytes};
 use crate::composition::beast_score::BeastForm;
-use crate::composition::beast_trait_map::prefix2_ornament_policy;
+use crate::composition::beast_trait_map::{
+    BEAST_PREFIX2_COUNT, BeastCompositionParams, decode_name_variant, prefix2_ornament_policy,
+};
 use crate::composition::beast_v11::{
-    DEV_INVERSION, DEV_SEQUENCE, DEV_STRETTO, V11Override, build_v11_score_with,
+    DEV_INVERSION, DEV_SEQUENCE, DEV_STRETTO, V11Override, V11Resolved, build_v11_score_resolved,
+    build_v11_score_with, v11_resolve,
 };
 use crate::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, map_v3_beast_to_composition_params,
 };
-use crate::composition::drift::{DriftClock, layered_drift, nudge_tempo};
+use crate::composition::drift::{Drift, DriftClock, layered_drift, nudge_tempo};
 use crate::composition::full_midi::{
     Arrangement, SMF_DIVISION, SMF_FORMAT, VoiceRun, Voicing, beast_form_to_full_tracks_arranged,
-    mega_lead_pick, voice_runs, voice_stats,
+    grace_of, mega_lead_pick, voice_runs, voice_stats,
 };
 use crate::composition::melodic_canon::NoteEvent;
 use crate::composition::yeti::{
     YETI, YETI_AVALANCHE_PROGRAM, YETI_AVALANCHE_VOICE, YETI_ROCK_TEMPO_US, yeti_avalanche,
     yeti_key, yeti_ornaments,
 };
+use crate::inputs::{
+    ArrangementInputs, ChannelPolicy, MAX_TEMPO_US, MusicIdentity, ScoreInputs, SongInputs,
+    SpecialArrangement, ThemeInputs, TreatmentInputs,
+};
+use crate::opaque::opaque;
 
 /// The chosen Genesis theme of species 1..=75 (index id - 1): a special-name candidate, 0 = its
 /// own.
@@ -82,15 +90,16 @@ pub fn genesis_mode(id: u64, mode_id: u8) -> u8 {
 /// A mode's scale as named, semitones from the tonic (Locrian, harmonic minor and Dorian #4
 /// included).
 pub fn named_mode_scale(mode_id: u8) -> Option<Span<u8>> {
-    match mode_id {
-        4 => Option::Some(array![0, 2, 3, 5, 7, 9, 10].span()),
-        5 => Option::Some(array![0, 1, 3, 5, 7, 8, 10].span()),
-        6 => Option::Some(array![0, 1, 3, 5, 6, 8, 10].span()),
-        7 => Option::Some(array![0, 2, 3, 5, 7, 8, 10].span()),
-        8 => Option::Some(array![0, 2, 3, 5, 7, 8, 11].span()),
-        26 => Option::Some(array![0, 2, 3, 6, 7, 9, 10].span()),
-        _ => Option::None,
-    }
+    let packed: u32 = match mode_id {
+        4 => 0xa975320,
+        5 => 0xa875310,
+        6 => 0xa865310,
+        7 => 0xa875320,
+        8 => 0xb875320,
+        26 => 0xa976320,
+        _ => { return Option::None; },
+    };
+    Option::Some(crate::composition::melodic_canon::packed_scale(packed, 7))
 }
 
 /// Tier and type of a species 1..=75: tiers in fives within each 25 (Magic, Hunter, Brute).
@@ -195,8 +204,7 @@ fn tie_repeats(
     counts: Span<u64>,
     section_ticks: u32,
 ) -> Array<NoteEvent> {
-    let mut voices: Array<u32> = array![];
-    let mut v: u32 = 0;
+    let (mut voices, mut v): (Array<u32>, u32) = opaque((array![], 0));
     while v < MAX_VOICES {
         if *counts.at(v) > 0 && contains(picked, v) {
             voices.append(v);
@@ -566,12 +574,27 @@ pub fn seeded_track_smf_bytes(
 
 /// Any of a Beast's songs on a day of drift: the Genesis Track (prefix 0, seed 0), a name track
 /// (seed 0) or a bought track (a seed), with the layered drift of `clock` (`drift.cairo`; none =
-/// as written). The drift belongs to the Beast (its species and special name).
+/// as written). The drift belongs to the Beast (its species and special name). A drifted song goes
+/// through its shared inputs (`genesis_song_inputs`, `song_tracks`), the path `compose_drift`
+/// plays, with the drift's ornaments and phrasing, and its grace notes from day 2.
 pub fn song_smf_bytes(
     beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
 ) -> Array<u8> {
     assert(prefix <= 69 && suffix <= 18 && (prefix == 0) == (suffix == 0), 'invalid special name');
-    compose(beast, prefix, suffix, seed, drift)
+    match drift {
+        Option::Some(c) => smf_bytes(
+            SMF_FORMAT,
+            SMF_DIVISION,
+            song_tracks(
+                genesis_song_inputs(beast, prefix, suffix, seed, drift),
+                beast.shiny == 1,
+                false,
+                c.day,
+            )
+                .span(),
+        ),
+        Option::None => compose(beast, prefix, suffix, seed, drift),
+    }
 }
 
 /// A track's treatment from its seed (lab.js `trackTreatment`).
@@ -913,8 +936,691 @@ fn compose_tracks(
                 Option::None
             },
             programs: Option::None,
+            echo: false,
+            // this path plays written songs: no grace notes or fills (a drifted song goes through
+            // its inputs)
+            grace: 0,
+            grace_all: false,
+            fill: 0,
+            tonic: 0,
+            scale: [].span(),
         },
     )
+}
+
+/// The shared musical inputs (`beast_composer::inputs::SongInputs`) of the Genesis Track (prefix 0,
+/// seed 0), a name track (seed 0) or a bought track (a seed), on a day of drift or as written:
+/// everything `song_tracks` composes the same file from. The species (after the default swaps),
+/// the chosen theme, the spread or named key and the treatment are resolved here; the mega sound
+/// is not part of the song (the Beast's `shiny`, a per-token layer).
+pub fn genesis_song_inputs(
+    beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
+) -> SongInputs {
+    song_inputs(beast, prefix, suffix, seed, drift, prefix == 0 && seed == 0)
+}
+
+/// The base of a Beast's bought tracks: its own song as written (its name track, or its species'
+/// Genesis Track without the default swap). `bought_song_inputs(beast_song_inputs(b, p, s), seed)`
+/// is `genesis_song_inputs(b, p, s, seed, None)`.
+pub fn beast_song_inputs(beast: PackableBeastV3, prefix: u8, suffix: u8) -> SongInputs {
+    song_inputs(beast, prefix, suffix, 0, Option::None, false)
+}
+
+/// A bought track's written treatment and channels from its base and seed: the seed's development,
+/// episode direction, 2-4 sections, spacing, key plan side and rhythm cells, and 3-6 channels in a
+/// seeded order (`genesis_song_inputs` with that seed). `purchase_song_inputs` adds the shape.
+pub fn bought_song_inputs(base: SongInputs, seed: felt252) -> SongInputs {
+    let t = treatment(seed);
+    let mut x = base;
+    x.score.section_count = t.sections;
+    x
+        .treatment =
+            TreatmentInputs {
+                rhythm_seed: t.rhythm_seed,
+                flip_side: t.flip_side,
+                development: t.development,
+                direction: direction_code(t.direction),
+                spacing: t.spacing,
+                ..base.treatment,
+            };
+    x.arrangement.channel_count = seeded_channels(seed).try_into().unwrap();
+    x.arrangement.channel_policy = ChannelPolicy::Seeded(seed);
+    x
+}
+
+/// A purchase: the bought track of `bought_song_inputs` in a shape of its own, from the seed (the
+/// Beasts reference manager's 'BEAST_SAMPLE_SHAPE_V1'): a later canon entry, the inversion
+/// toggled, more ornaments, trills toggled, one voice fewer (of three or more) and the
+/// countersubject dropped, each by its own bit; the channels at most the roles left. The theme,
+/// key and instruments stay the base's.
+pub fn purchase_song_inputs(base: SongInputs, seed: felt252) -> SongInputs {
+    let mut x = bought_song_inputs(base, seed);
+    let shape: u256 = poseidon_hash_span(array!['BEAST_SAMPLE_SHAPE_V1', seed].span()).into();
+    let shape: u16 = (shape % 512).try_into().unwrap();
+    let lag: u8 = (shape % 4).try_into().unwrap();
+    x.score.stretto_lag = 1 + (x.score.stretto_lag - 1 + lag) % 4;
+    x.score.use_inversion = x.score.use_inversion != (shape / 4 % 2 == 1);
+    let density: u8 = (shape / 8 % 8).try_into().unwrap();
+    x.score.ornament_density = (x.score.ornament_density + density) % 8;
+    x.treatment.trill = x.treatment.trill != (shape / 64 % 2 == 1);
+    if x.score.voice_count > 2 {
+        x.score.voice_count -= (shape / 128 % 2).try_into().unwrap();
+    }
+    x.score.use_countersubject = x.score.use_countersubject && shape / 256 % 2 == 0;
+    let roles: u8 = x.score.voice_count + if x.score.use_countersubject {
+        1
+    } else {
+        0
+    } + 1;
+    if x.arrangement.channel_count > roles {
+        x.arrangement.channel_count = roles;
+    }
+    x
+}
+
+/// A song's inputs on a day of drift (`drift.cairo` `layered_drift`): the month's rhythm cells,
+/// the week's channel order (same count) and ornament density (`drift_ornaments`: its ceiling
+/// rises with the day), and the day's knob (the key plan the other way, the episodes' direction
+/// swapped, or the tempo nudged with staccato when faster, tenuto when slower). The same overrides
+/// `compose` applies with a `DriftClock`, so a written song drifts as `song_smf_bytes` plays it.
+pub fn drifted_song_inputs(x: SongInputs, d: Drift) -> SongInputs {
+    let mut y = x;
+    if let Option::Some(r) = d.rhythm {
+        y.treatment.rhythm_seed = r;
+        y.score.tonic_keynum = drift_key(y.score.tonic_keynum, r);
+        // from the second day, a month may turn the inversion
+        if d.day >= 2 && crate::composition::drift::low32(r) / 4096 % 2 == 1 {
+            y.score.use_inversion = !y.score.use_inversion;
+        }
+    }
+    if let Option::Some(r) = d.rotate {
+        y.arrangement.channel_policy = ChannelPolicy::Seeded(r);
+        y.score.ornament_density = drift_ornaments(r, d.day);
+        // from the second day, a week sets the entries' spacing and may turn the trill
+        if d.day >= 2 {
+            let h = crate::composition::drift::low32(r);
+            y.score.stretto_lag = (1 + h / 65536 % 4).try_into().unwrap();
+            if h / 262144 % 2 == 1 {
+                y.treatment.trill = !y.treatment.trill;
+            }
+        }
+    }
+    if d.day_knob == 0 {
+        y.treatment.flip_side = !y.treatment.flip_side;
+    } else if d.day_knob == 1 {
+        // alternating episodes rise; rising fall; falling rise
+        y.treatment.direction = if y.treatment.direction == 1 {
+            2
+        } else {
+            1
+        };
+    } else {
+        let t = nudge_tempo(y.score.tempo_us, d.delta_bpm);
+        y.score.tempo_us = if t > MAX_TEMPO_US {
+            MAX_TEMPO_US
+        } else {
+            t
+        };
+        // and the phrasing: staccato when faster, tenuto when slower
+        y.score.articulation_profile = if d.delta_bpm > 0 {
+            1
+        } else {
+            2
+        };
+    }
+    y
+}
+
+/// A song's ornaments on `day` of drift (none as written, or on the first day): grace notes on some
+/// of the lead's and the theme's notes of a quarter or longer (every canon voice from day 360), the
+/// share the ornament density * 5% (+15% from day 540), the kind (`full_midi::grace_of`) from the
+/// channel order's seed (the week's on a drift week, else a bought track's) or else the species and
+/// density; and the inner voices' fills, the share drawn from that seed under a ceiling rising
+/// with the day: none to day 180, then up to 15%, 30% and from day 540 50%.
+fn song_ornaments(density: u8, policy: ChannelPolicy, species: u64, day: u64) -> (u32, u32) {
+    if day < 2 {
+        return (0, 0);
+    }
+    let h: u64 = match policy {
+        ChannelPolicy::Seeded(r) => crate::composition::drift::low32(r),
+        ChannelPolicy::Genesis => 0,
+    };
+    let kind: u32 = match policy {
+        ChannelPolicy::Seeded(_) => (h / 2048 % 4).try_into().unwrap(),
+        ChannelPolicy::Genesis => ((species % 4).try_into().unwrap() + density.into()) % 4,
+    };
+    let bonus: u8 = if day >= 540 {
+        3
+    } else {
+        0
+    };
+    let ceiling: u64 = if day < 180 {
+        0
+    } else if day < 360 {
+        1
+    } else if day < 540 {
+        2
+    } else {
+        3
+    };
+    let fill = *[0_u32, 15, 30, 50].span().at(((h / 524288) % (ceiling + 1)).try_into().unwrap());
+    (grace_of(density + bonus, kind), fill)
+}
+
+/// A new-rhythm month's key for a song: two months in three the tonic moves to the dominant (+7)
+/// or the subdominant (+5), an octave down above 96 (the month's hash). Both drift paths.
+fn drift_key(tonic: u8, rhythm: felt252) -> u8 {
+    let km = (crate::composition::drift::low32(rhythm) / 256) % 3;
+    if km == 2 {
+        return tonic;
+    }
+    let k = tonic + if km == 0 {
+        7
+    } else {
+        5
+    };
+    if k > 96 {
+        k - 12
+    } else {
+        k
+    }
+}
+
+/// A drift week's ornament density for a song, from the week's hash under a ceiling that rises
+/// with the day (3 of 7 to day 180, 5 to day 360, then 7). Both drift paths.
+// On purpose (CASM size): one copy.
+#[inline(never)]
+fn drift_ornaments(rotate: felt252, day: u64) -> u8 {
+    let h = crate::composition::drift::low32(rotate);
+    let ceiling: u64 = if day < 180 {
+        3
+    } else if day < 360 {
+        5
+    } else {
+        7
+    };
+    ((h / 128) % (ceiling + 1)).try_into().unwrap()
+}
+
+/// Episodes alternating (0), rising (1) or falling (-1) as the shared inputs' 0, 1, 2.
+fn direction_code(direction: i32) -> u8 {
+    if direction == 0 {
+        0
+    } else if direction > 0 {
+        1
+    } else {
+        2
+    }
+}
+
+fn song_inputs(
+    beast: PackableBeastV3,
+    prefix: u8,
+    suffix: u8,
+    seed: felt252,
+    drift: Option<DriftClock>,
+    swap: bool,
+) -> SongInputs {
+    let unnamed = prefix == 0;
+    let unseeded = seed == 0;
+    let tm = if unseeded {
+        Option::None
+    } else {
+        Option::Some(treatment(seed))
+    };
+    let src = if swap {
+        genesis_swap(beast.id)
+    } else {
+        beast.id
+    };
+    let (tier, beast_type) = if src >= 1 && src <= 75 {
+        (species_tier(src), species_type(src))
+    } else {
+        (beast.tier, beast.beast_type)
+    };
+    let g = PackableBeastV3 {
+        id: src,
+        prefix: 0,
+        suffix: 0,
+        level: 50,
+        health: 200,
+        shiny: 0,
+        animated: 0,
+        tier,
+        beast_type,
+    };
+    let live = neutral_live();
+    let motif = genesis_theme(src);
+    let cb = if motif > 0 {
+        PackableBeastV3 {
+            prefix: ((motif - 1) / 18 + 1).try_into().unwrap(),
+            suffix: ((motif - 1) % 18 + 1).try_into().unwrap(),
+            ..g,
+        }
+    } else {
+        g
+    };
+    let pg = map_v3_beast_to_composition_params(g, live);
+    let spread = PackableBeastV3 {
+        prefix: ((src - 1) % 69 + 1).try_into().unwrap(),
+        suffix: ((src - 1) % 18 + 1).try_into().unwrap(),
+        ..g,
+    };
+    let ks = map_v3_beast_to_composition_params(spread, live);
+    let mode = genesis_mode(src, ks.mode_id);
+    let sections = match tm {
+        Option::Some(t) => t.sections,
+        Option::None => tier_sections(tier),
+    };
+    let (mut rhythm_seed, mut flip_side, development, mut direction, spacing) = match tm {
+        Option::Some(t) => (
+            Option::Some(t.rhythm_seed),
+            Option::Some(t.flip_side),
+            Option::Some(t.development),
+            Option::Some(t.direction),
+            Option::Some(t.spacing),
+        ),
+        Option::None => (Option::None, Option::None, Option::None, Option::None, Option::None),
+    };
+    // the day's drift: the month's rhythm, the day's knob (key plan side or episode direction; the
+    // tempo is nudged below), the week's channel order
+    let dr = match drift {
+        Option::Some(c) => Option::Some(layered_drift(src, prefix, suffix, c)),
+        Option::None => Option::None,
+    };
+    if let Option::Some(d) = dr {
+        if let Option::Some(r) = d.rhythm {
+            rhythm_seed = Option::Some(r);
+        }
+        if d.day_knob == 0 {
+            flip_side = Option::Some(flip_side != Option::Some(true));
+        } else if d.day_knob == 1 {
+            let now: i32 = match direction {
+                Option::Some(x) => x,
+                Option::None => 0 // no history: the episodes alternate
+            };
+            direction = Option::Some(if now == 0 {
+                1
+            } else {
+                -now
+            });
+        }
+    }
+    let ov = if unnamed {
+        V11Override {
+            voice_count: Option::Some(4),
+            section_count: Option::Some(sections),
+            mode_id: Option::Some(mode),
+            tonic_keynum: Option::Some(ks.tonic_keynum),
+            register_band: Option::Some(ks.register_band),
+            ornament_density: Option::Some(pg.ornament_density),
+            name_variant_id: Option::Some(0),
+            use_countersubject: Option::Some(true),
+            scale: named_mode_scale(mode),
+            trill: Option::Some(false),
+            rhythm_seed,
+            flip_side,
+            development,
+            direction,
+            spacing,
+        }
+    } else {
+        let kn = map_v3_beast_to_composition_params(PackableBeastV3 { prefix, suffix, ..g }, live);
+        V11Override {
+            voice_count: Option::Some(4),
+            section_count: Option::Some(sections),
+            mode_id: Option::Some(kn.mode_id),
+            tonic_keynum: Option::Some(kn.tonic_keynum),
+            register_band: Option::Some(kn.register_band),
+            ornament_density: Option::Some(kn.ornament_density),
+            name_variant_id: Option::Some(0),
+            use_countersubject: Option::Some(true),
+            scale: named_mode_scale(kn.mode_id),
+            trill: Option::Some(prefix2_ornament_policy(suffix - 1).allow_trill),
+            rhythm_seed,
+            flip_side,
+            development,
+            direction,
+            spacing,
+        }
+    };
+    let r = v11_resolve(cb, live, ov);
+    let p = r.params;
+    let yeti = src == YETI;
+    let mut tempo_us = if yeti {
+        YETI_ROCK_TEMPO_US
+    } else {
+        p.tempo_us
+    };
+    if let Option::Some(d) = dr {
+        if d.day_knob >= 2 {
+            tempo_us = nudge_tempo(tempo_us, d.delta_bpm);
+        }
+    }
+    let rotate = match dr {
+        Option::Some(d) => d.rotate,
+        Option::None => Option::None,
+    };
+    let channel_policy = if let Option::Some(x) = rotate {
+        ChannelPolicy::Seeded(x)
+    } else if unseeded {
+        ChannelPolicy::Genesis
+    } else {
+        ChannelPolicy::Seeded(seed)
+    };
+    let x = SongInputs {
+        theme: ThemeInputs {
+            motif_seed: r.motif_seed, tier: r.theme_tier, register_band: r.theme_register_band,
+        },
+        score: ScoreInputs {
+            mode_id: p.mode_id,
+            tonic_keynum: p.tonic_keynum,
+            tier: p.tier,
+            weakness: p.weakness,
+            voice_count: p.voice_count.try_into().unwrap(),
+            section_count: p.section_count,
+            stretto_lag: p.stretto_lag.try_into().unwrap(),
+            use_inversion: p.use_inversion,
+            use_countersubject: p.use_countersubject,
+            ornament_density: p.ornament_density,
+            articulation_profile: p.articulation_profile,
+            velocity_ceiling: p.velocity_ceiling,
+            tempo_us,
+        },
+        treatment: TreatmentInputs {
+            rhythm_seed: r.rhythm_seed,
+            flip_side: r.flip_side,
+            development: r.development,
+            direction: direction_code(r.direction),
+            spacing: r.spacing,
+            trill: r.trill,
+            prominence: r.prominence.try_into().unwrap(),
+            section_rhythm: false,
+        },
+        arrangement: ArrangementInputs {
+            family: beast_type,
+            identity: MusicIdentity {
+                // species ids are u32 (the token's 32 bits); the engine keeps them as u64
+                source_species_id: p.species_id.try_into().unwrap(),
+                name_variant_id: p.name_variant_id.try_into().unwrap(),
+            },
+            channel_count: if unseeded {
+                genesis_channels(tier)
+            } else {
+                seeded_channels(seed)
+            }
+                .try_into()
+                .unwrap(),
+            channel_policy,
+            special: if yeti {
+                SpecialArrangement::Yeti(special_name_id(prefix, suffix))
+            } else {
+                SpecialArrangement::None
+            },
+            top_lead: true,
+            balanced: true,
+            weak_ties: true,
+        },
+    };
+    // the drift's ornaments and phrasing, as `drifted_song_inputs`
+    let mut x = x;
+    if let Option::Some(d) = dr {
+        if let Option::Some(r) = d.rhythm {
+            x.score.tonic_keynum = drift_key(x.score.tonic_keynum, r);
+            if d.day >= 2 && crate::composition::drift::low32(r) / 4096 % 2 == 1 {
+                x.score.use_inversion = !x.score.use_inversion;
+            }
+        }
+        if let Option::Some(r) = d.rotate {
+            x.score.ornament_density = drift_ornaments(r, d.day);
+            if d.day >= 2 {
+                let h = crate::composition::drift::low32(r);
+                x.score.stretto_lag = (1 + h / 65536 % 4).try_into().unwrap();
+                if h / 262144 % 2 == 1 {
+                    x.treatment.trill = !x.treatment.trill;
+                }
+            }
+        }
+        if d.day_knob >= 2 {
+            x.score.articulation_profile = if d.delta_bpm > 0 {
+                1
+            } else {
+                2
+            };
+        }
+    }
+    x
+}
+
+/// A special name (prefix 1..=69, suffix 1..=18) as its name variant id (0 = no name), the
+/// inverse of `decode_name_variant`.
+fn special_name_id(prefix: u8, suffix: u8) -> u16 {
+    if prefix == 0 {
+        return 0;
+    }
+    (prefix.into() - 1) * BEAST_PREFIX2_COUNT.into() + suffix.into()
+}
+
+/// The track bodies a song's shared inputs compose, with the mega arrangement when `mega`, the
+/// chip echo when `echo`, and on `day` of drift (0: as written) from the second the ornaments that
+/// grow with time (`song_ornaments`). Plays what this engine supports: tied inner voices and the
+/// written phrase in every section.
+pub fn song_tracks(x: SongInputs, mega: bool, echo: bool, day: u64) -> Array<Array<u8>> {
+    let (theme, s, t, a) = (x.theme, x.score, x.treatment, x.arrangement);
+    let (grace, fill) = song_ornaments(
+        s.ornament_density, a.channel_policy, a.identity.source_species_id.into(), day,
+    );
+    assert(a.weak_ties, 'untied voices unsupported');
+    assert(!t.section_rhythm, 'section rhythm unsupported');
+    let species_id: u64 = a.identity.source_species_id.into();
+    let name_variant_id: u32 = a.identity.name_variant_id.into();
+    let scale = named_mode_scale(s.mode_id);
+    let score = build_v11_score_resolved(
+        V11Resolved {
+            params: BeastCompositionParams {
+                species_id,
+                name_variant_id,
+                mode_id: s.mode_id,
+                tonic_keynum: s.tonic_keynum,
+                // the theme's register is `theme.register_band`; the score reads no other
+                register_band: theme.register_band,
+                tier: s.tier,
+                weakness: s.weakness,
+                canon_config_id: 0,
+                profile_id: 0,
+                voice_count: s.voice_count.into(),
+                section_count: s.section_count,
+                stretto_bucket: 0,
+                stretto_lag: s.stretto_lag.into(),
+                use_inversion: s.use_inversion,
+                use_countersubject: s.use_countersubject,
+                use_compound_melody: false,
+                ornament_density: s.ornament_density,
+                articulation_profile: s.articulation_profile,
+                velocity_ceiling: s.velocity_ceiling,
+                tempo_us: s.tempo_us,
+                score_version: 0,
+            },
+            theme_tier: theme.tier,
+            theme_register_band: theme.register_band,
+            motif_seed: theme.motif_seed,
+            rhythm_seed: t.rhythm_seed,
+            flip_side: t.flip_side,
+            development: t.development,
+            direction: if t.direction == 0 {
+                0
+            } else if t.direction == 1 {
+                1
+            } else {
+                -1
+            },
+            spacing: t.spacing,
+            prominence: t.prominence.into(),
+            trill: t.trill,
+            scale,
+        },
+    );
+    let p = score.params;
+    // the channels, then ties in the inner voices (statistics of the full score: the kept voices'
+    // are the same, since a channel is kept or dropped whole)
+    let runs = voice_runs(score.events.span());
+    let (sums, counts) = voice_stats(runs.span(), MAX_VOICES - 1);
+    let order = song_pick(
+        sums.span(), counts.span(), p.voice_count, p.use_countersubject, a.channel_policy,
+    );
+    let picked = order.span().slice(0, a.channel_count.into());
+    let mut events = tie_repeats(
+        score.events.span(), runs.span(), picked, sums.span(), counts.span(), score.section_ticks,
+    );
+    // the Yeti special: ornaments by the track's profile, then the avalanche
+    let yeti = if let SpecialArrangement::Yeti(name) = a.special {
+        let (prefix, suffix) = if name == 0 {
+            (0, 0)
+        } else {
+            let parts = decode_name_variant(name.into());
+            (parts.prefix1_id + 1, parts.prefix2_id + 1)
+        };
+        let key = yeti_key(p.tonic_keynum, p.mode_id, scale);
+        events =
+            yeti_ornaments(
+                events.span(),
+                score.section_ticks,
+                key,
+                p.ornament_density,
+                species_id,
+                prefix,
+                suffix,
+            );
+        events =
+            yeti_avalanche(
+                events.span(), score.section_ticks, p.section_count.into(), p.tonic_keynum, key,
+            );
+        true
+    } else {
+        false
+    };
+    let form = BeastForm {
+        events,
+        score_hash: 0,
+        section_count: p.section_count,
+        length_ticks: p.section_count.into() * score.section_ticks,
+    };
+    beast_form_to_full_tracks_arranged(
+        @form,
+        s.tempo_us,
+        p.tier,
+        Option::Some(
+            Voicing {
+                beast_type: a.family,
+                species_id,
+                name_variant_id,
+                voice_count: p.voice_count,
+                use_countersubject: p.use_countersubject,
+            },
+        ),
+        mega,
+        mega_lead_pick(species_id, name_variant_id),
+        Arrangement {
+            top_lead: a.top_lead,
+            balanced: a.balanced,
+            drums: contains(picked, DRUMS),
+            rock: yeti,
+            extra: if yeti {
+                Option::Some((YETI_AVALANCHE_VOICE, YETI_AVALANCHE_PROGRAM))
+            } else {
+                Option::None
+            },
+            programs: Option::None,
+            echo,
+            grace,
+            grace_all: day >= 360,
+            fill,
+            tonic: s.tonic_keynum,
+            scale: match scale {
+                Option::Some(sc) => sc,
+                Option::None => crate::composition::melodic_canon::mode_scale(s.mode_id),
+            },
+        },
+    )
+}
+
+/// Every role of a song in its written channel order: the theme (voice 0), the lowest canon voice
+/// (by mean pitch, the first on a tie), then, for the Genesis order, drums, the countersubject
+/// (voice `voices`, when written) and the other canon voices in id order; for a seeded order, the
+/// other canon voices, the countersubject and drums shuffled by the seed. With four voices and the
+/// countersubject this is `genesis_pick` / `seeded_pick`; a song keeps its first `channel_count`.
+fn song_pick(
+    sums: Span<u64>, counts: Span<u64>, voices: u32, countersubject: bool, policy: ChannelPolicy,
+) -> Array<u32> {
+    let mut low: u32 = 0;
+    let mut v: u32 = 1;
+    while v < voices {
+        if *counts.at(v) > 0 && mean_less(sums, counts, v, low) {
+            low = v;
+        }
+        v += 1;
+    }
+    let mut order: Array<u32> = array![0];
+    if low != 0 {
+        order.append(low);
+    }
+    let mut rest: Array<u32> = array![];
+    match policy {
+        ChannelPolicy::Genesis => {
+            rest.append(DRUMS);
+            if countersubject {
+                rest.append(voices);
+            }
+            let mut v: u32 = 1;
+            while v < voices {
+                if v != low {
+                    rest.append(v);
+                }
+                v += 1;
+            }
+        },
+        ChannelPolicy::Seeded(seed) => {
+            let mut values: Felt252Dict<u32> = Default::default();
+            // (opaque: one compiled copy of each loop, CASM size)
+            let (mut n, mut v): (u32, u32) = opaque((0, 1));
+            while v < voices {
+                if v != low {
+                    values.insert(n.into(), v);
+                    n += 1;
+                }
+                v += 1;
+            }
+            if countersubject {
+                values.insert(n.into(), voices);
+                n += 1;
+            }
+            values.insert(n.into(), DRUMS);
+            n += 1;
+            let mut h: u256 = poseidon_hash_span(array!['BEAST_CHANNEL_ORDER', seed].span()).into();
+            let mut i = n - 1;
+            while i > 0 {
+                let j: u32 = (h % (i + 1).into()).try_into().unwrap();
+                let a = values.get(i.into());
+                let b = values.get(j.into());
+                values.insert(i.into(), b);
+                values.insert(j.into(), a);
+                h = h / 7;
+                i -= 1;
+            }
+            let mut k: u32 = opaque(0);
+            while k < n {
+                rest.append(values.get(k.into()));
+                k += 1;
+            }
+        },
+    }
+    order.append_span(rest.span());
+    order
+}
+
+/// A song's file from its shared inputs (self-contained, for onchain-midi-player).
+pub fn song_inputs_smf_bytes(x: SongInputs, mega: bool) -> Array<u8> {
+    smf_bytes(SMF_FORMAT, SMF_DIVISION, song_tracks(x, mega, false, 0).span())
 }
 
 /// The same, packed 31 bytes per felt after the byte length.

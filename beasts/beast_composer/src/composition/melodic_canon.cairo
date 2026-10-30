@@ -35,30 +35,36 @@ pub struct NoteEvent {
 // Modal realization
 // ──────────────────────────────────────────────────────────
 
+/// A scale packed as semitones, 4 bits each from the low end: its first `n` degrees (CASM size: one
+/// constant per scale, not an array built note by note).
+#[inline(never)]
+pub fn packed_scale(packed: u32, n: u32) -> Span<u8> {
+    let mut out: Array<u8> = array![];
+    let mut v = packed;
+    for _ in 0..n {
+        out.append((v % 16).try_into().unwrap());
+        v /= 16;
+    }
+    out.span()
+}
+
 /// Semitone offsets from the final for the 7 diatonic degrees of a mode.
 pub fn mode_scale(mode_id: u8) -> Span<u8> {
     if mode_id == MODE_MELODIC_MINOR {
         // Jazz melodic minor ascending: 1 2 b3 4 5 6 7
-        return array![0_u8, 2, 3, 5, 7, 9, 11].span();
+        return packed_scale(0xb975320, 7);
     }
     if mode_id == MODE_WHOLE_TONE {
         // Whole tone: 1 2 3 #4 #5 b7 — six degrees per octave
-        return array![0_u8, 2, 4, 6, 8, 10].span();
+        return packed_scale(0xa86420, 6);
     }
-    let m = mode_id % 6;
-    if m == 0 {
-        array![0_u8, 2, 4, 5, 7, 9, 11].span() // Ionian / major
-    } else if m == 1 {
-        array![0_u8, 2, 3, 5, 7, 9, 10].span() // Dorian
-    } else if m == 2 {
-        array![0_u8, 1, 3, 5, 7, 8, 10].span() // Phrygian
-    } else if m == 3 {
-        array![0_u8, 2, 4, 6, 7, 9, 11].span() // Lydian
-    } else if m == 4 {
-        array![0_u8, 2, 4, 5, 7, 9, 10].span() // Mixolydian
-    } else {
-        array![0_u8, 2, 3, 5, 7, 8, 10].span() // Aeolian / natural minor
-    }
+    // Ionian, Dorian, Phrygian, Lydian, Mixolydian, Aeolian
+    packed_scale(
+        *[0xb975420, 0xa975320, 0xa875310, 0xb976420, 0xa975420, 0xa875320]
+            .span()
+            .at((mode_id % 6).into()),
+        7,
+    )
 }
 /// Melodic minor ascending (outside the legacy `% 6` diatonic set).
 pub const MODE_MELODIC_MINOR: u8 = 6;

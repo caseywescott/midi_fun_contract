@@ -9,6 +9,8 @@ pub mod composition;
 #[cfg(test)]
 mod contrapuntal_tests;
 #[cfg(test)]
+mod editions_tests;
+#[cfg(test)]
 mod genesis_tests;
 pub mod lcg;
 #[cfg(test)]
@@ -18,6 +20,7 @@ mod melodic_canon_tests;
 pub mod modes;
 #[cfg(test)]
 mod name_track_tests;
+pub mod opaque;
 #[cfg(test)]
 mod params_pack_tests;
 pub mod rng;
@@ -25,6 +28,8 @@ pub mod rng;
 mod rng_tests;
 #[cfg(test)]
 mod score_tests;
+#[cfg(test)]
+mod song_inputs_tests;
 
 #[cfg(test)]
 mod tests;

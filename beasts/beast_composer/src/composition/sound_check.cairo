@@ -1,16 +1,17 @@
-//! The Sound Check: a Beast's scale through each of its presets, byte-identical to the lab's
-//! `soundCheckMidi` (offchain/beast-sound/src/lab.js). Each preset gets a block: four quarters on
-//! the Beast's scale (a pattern picked by the Beast), a held note, then a sixteenth-note arpeggio
-//! up the tonic triad over two octaves. Each block starts a scale degree higher than the one
-//! before, on the previous block's last arpeggio note (a hand-off); the drum kit closes it the
-//! same way. The presets are the Beast's family (three leads,
-//! three plucks) and the two mega leads when shiny, from a start picked by the Beast. The key is
-//! the Beast's own: its special name's, or its species' spread key without one, in the mode's real
-//! scale. One per Beast from its species, special name and shiny flag.
+//! The Sound Check: a Beast's scale on its one preset, byte-identical to the lab's
+//! `soundCheckMidi` (offchain/beast-sound/src/lab.js). Three blocks: four quarters on the Beast's
+//! scale (a pattern picked by the Beast), a held note, then a sixteenth-note arpeggio up the tonic
+//! triad over two octaves. Each block starts a scale degree higher than the one before, on the
+//! previous block's last arpeggio note (a hand-off); the drum kit closes it the same way. The
+//! preset is the species' own (one of its family's three leads and three plucks, from the species
+//! table; lab.js SOUND_CHECK_PRESET), moved on for a special name, or a mega lead when shiny. The
+//! key is the Beast's own: its special name's, or its species' spread key without one, in the
+//! mode's real scale. One per Beast from its species, special name and shiny flag.
 
 use core::poseidon::poseidon_hash_span;
 use crate::composition::beast_score::BeastForm;
 use crate::composition::beast_v3_sound::{PackableBeastV3, map_v3_beast_to_composition_params};
+use crate::composition::editions_data::SPECIES;
 use crate::composition::full_midi::{
     Arrangement, MEGA_LEADS, beast_form_to_full_smf_bytes_arranged, family_leads, family_plucks,
 };
@@ -23,6 +24,8 @@ use crate::opaque::opaque;
 const STEP: u32 = 3960;
 /// The kit's block.
 const BLOCK: u32 = 4800;
+/// The blocks, each on the Beast's one preset.
+const BLOCKS: u32 = 3;
 const KIT_VOICE: u32 = 9;
 
 fn name_variant(prefix: u8, suffix: u8) -> u32 {
@@ -93,17 +96,27 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
         .into();
     let h: u32 = (hash % 0x100000000).try_into().unwrap();
 
-    let leads = family_leads(x.family).span();
-    let plucks = family_plucks(x.family).span();
-    let mut presets: Array<u8> = array![
-        *leads.at(0), *leads.at(1), *leads.at(2), *plucks.at(0), *plucks.at(1), *plucks.at(2),
-    ];
-    if mega {
-        presets.append(*MEGA_LEADS.span().at(0));
-        presets.append(*MEGA_LEADS.span().at(1));
-    }
-    let n = presets.len();
-    let rot = h % n;
+    // the Beast's one preset: its species' (an index into the family's leads and plucks; past 75,
+    // the id mod 6), moved on by 1-5 for a special name, or a mega lead when mega
+    let species = x.identity.source_species_id;
+    let own = if species <= 75 {
+        *SPECIES.span().at(species - 1) / 0x10000000
+    } else {
+        species % 6
+    };
+    let idx = if x.identity.name_variant_id != 0 {
+        (own + 1 + h % 5) % 6
+    } else {
+        own
+    };
+    let preset = if mega {
+        *MEGA_LEADS.span().at(idx % 2)
+    } else if idx < 3 {
+        *family_leads(x.family).span().at(idx)
+    } else {
+        *family_plucks(x.family).span().at(idx - 3)
+    };
+    let n = BLOCKS;
     let pattern: Span<i32> = match (h / 0x100) % 4 {
         0 => array![0, 1, 2, 3].span(),
         1 => array![0, 2, 4, 7].span(),
@@ -131,7 +144,7 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
     );
     while v < n {
         let t0 = v * STEP;
-        programs.append(*presets.at((v + rot) % n));
+        programs.append(preset);
         // the climb: each block `v` scale degrees higher
         let mut k = first;
         for d in pattern {

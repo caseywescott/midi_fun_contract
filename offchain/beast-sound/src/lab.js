@@ -861,17 +861,23 @@ export function genesisMidi(speciesId, shiny, E, v11, opts = {}) {
   return sampleTrackMidi(b, { species_count: 1 }, { ...GENESIS_DEFAULTS, ...opts }, E, v11);
 }
 
-// ── the Sound Check: a Beast's scale through each of its presets ──────────────────────────────────
-// Each preset gets a block: four quarters on the Beast's scale (a pattern picked by the Beast), a held
-// note, then a sixteenth-note arpeggio up the tonic triad over two octaves. Each block starts a scale
-// degree higher than the one before, on the previous block's last arpeggio note (a hand-off); the drum
-// kit closes it the same way. The
+// ── the Sound Check: a Beast's scale on its one preset ───────────────────────────────────────────────
+// Three blocks on the Beast's preset: four quarters on the Beast's scale (a pattern picked by the
+// Beast), a held note, then a sixteenth-note arpeggio up the tonic triad over two octaves. Each block
+// starts a scale degree higher than the one before, on the previous block's last arpeggio note (a
+// hand-off); the drum kit closes it the same way. The preset: the species' entry in SOUND_CHECK_PRESET
+// (its family's leads 0-2, plucks 3-5; species past 75: id % 6), moved on by 1-5 for a special name
+// (by the check's hash), or a mega lead when mega. The
 // presets are the Beast's family (three leads, three plucks) plus the two mega leads when shiny, from
 // a start picked by the Beast. The key is the Beast's own: its special name's key, or for a Beast
 // without one its species' spread key (as on its Species Song), in the mode's real scale. Its inputs
 // are the species, the special name and the shiny flag, all in the packed composer inputs.
 export const SOUND_CHECK_PATTERNS = [[0, 1, 2, 3], [0, 2, 4, 7], [7, 4, 2, 0], [0, 2, 1, 3]];
 export const SOUND_CHECK_KIT = [36, 38, 42, 46, 49, 50, 47, 45];
+/** Each species' Sound Check preset (1-75): an index into its family's [...leads, ...plucks]. Edit to
+ *  re-curate; editions_cairo.mjs packs it into editions_data.cairo SPECIES (bits 28-30). */
+export const SOUND_CHECK_PRESET = [0, 3, 1, 4, 2, 5, 0, 3, 1, 4, 2, 5, 0, 3, 1, 4, 2, 5, 0, 3, 1, 4, 2, 5, 0, 0, 3, 1, 4, 2, 5, 0, 3, 1, 4, 2, 5, 0, 3, 1, 4, 2, 5, 0, 3, 1, 4, 2, 5, 0, 0, 3, 1, 4, 2, 5, 0, 3, 1, 4, 2, 5, 0, 3, 1, 4, 2, 5, 0, 3, 1, 4, 2, 5, 0];
+export const SOUND_CHECK_BLOCKS = 3;
 const SC_BLOCK = 4800, SC_STEP = 3960, SC_KIT_VOICE = 9;
 export const SOUND_CHECK_ARP = [7, 9, 11, 14, 16, 18];
 export function soundCheckMidi(b, E) {
@@ -884,8 +890,11 @@ export function soundCheckMidi(b, E) {
   const pitch = (d) => { let p = tonic + 12 * Math.floor(d / 7) + scale[((d % 7) + 7) % 7]; while (p > 127) p -= 12; return p; };
   const h = low32(H('BEAST_SOUND_CHECK', b.id, nameVariant(b.prefix, b.suffix)));
   const fam = FAMILIES[b.beast_type] ?? FAMILIES[0];
-  const presets = [...fam.leads, ...fam.plucks, ...(b.shiny ? MEGA_LEADS : [])];
-  const rot = h % presets.length, pattern = SOUND_CHECK_PATTERNS[(h >>> 8) % 4], held = (h >>> 12) % 2 ? 4 : 7;
+  const own = b.id <= 75 ? SOUND_CHECK_PRESET[b.id - 1] : b.id % 6;
+  const idx = nameVariant(b.prefix, b.suffix) ? (own + 1 + h % 5) % 6 : own;
+  const one = b.shiny ? MEGA_LEADS[idx % 2] : [...fam.leads, ...fam.plucks][idx];
+  const presets = Array(SOUND_CHECK_BLOCKS).fill(one);
+  const rot = 0, pattern = SOUND_CHECK_PATTERNS[(h >>> 8) % 4], held = (h >>> 12) % 2 ? 4 : 7;
   const events = [], programs = {};
   presets.forEach((_, v) => {
     const t0 = v * SC_STEP; // the climb: each block a scale degree higher

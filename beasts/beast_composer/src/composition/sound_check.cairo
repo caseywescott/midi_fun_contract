@@ -79,7 +79,8 @@ pub fn sound_check_inputs(beast: PackableBeastV3) -> SoundCheckInputs {
 /// `performance::apply_performance`) shortens (staccato, portato) or accents the notes, caps
 /// their velocity and sets the tempo.
 pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
-    validate_inputs(ComposerInputs::SoundCheck(x));
+    // (opaque: the general validate_inputs, not a copy specialized to a Sound Check; CASM size)
+    validate_inputs(opaque(ComposerInputs::SoundCheck(x)));
     let scale = match named_mode_scale(x.mode_id) {
         Option::Some(s) => s,
         Option::None => array![0, 2, 3, 5, 7, 8, 10].span(),

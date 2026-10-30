@@ -179,7 +179,8 @@ export function drift2(b, day, anchor = null) {
   const rotate = w % 4 !== 0 ? H('BEAST_DRIFT2_ROT', k, week, ...hw) : null;
   const delta = [0, 0, -4, -2, 2, 4][dk];
   const label = [rhythm !== null ? 'month ' + (month + 1) + ': new rhythm' : 'month ' + (month + 1) + ': rhythm as written',
-    rotate !== null ? 'week ' + (week + 1) + ': channels rotate' : 'week ' + (week + 1) + ': channels as picked', 'day: ' + DRIFT2_DAY[dk]].join(' \u00b7 ');
+    rotate !== null ? 'week ' + (week + 1) + ': channels rotate, ornaments ' + Math.floor(Number(BigInt(rotate) & 0xffffffffn) / 128) % ((day < 180 ? 3 : day < 360 ? 5 : 7) + 1) + ' of 7' : 'week ' + (week + 1) + ': channels as picked',
+    'day: ' + DRIFT2_DAY[dk] + (dk >= 2 ? (dk >= 4 ? ', staccato' : ', tenuto') : '')].join(' \u00b7 ');
   return { v: 2, rhythm, rotate, dayKnob: dk, delta, label, day };
 }
 
@@ -809,6 +810,14 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     else { // the tempo nudged by delta BPM: 60e6 / (60e6 / T + delta), rounded half up, in integers (as Cairo)
       const T = override.tempo_us || base.params.tempo_us, D = 60e6 + d.delta * T;
       override.tempo_us = Math.floor((2 * 60e6 * T + D) / (2 * D));
+      // and the phrasing: staccato when faster, tenuto when slower
+      override.params = { ...(override.params || {}), articulation_profile: d.delta > 0 ? 1 : 2 };
+    }
+    // a drift week draws the ornament density under a ceiling rising with the day: 0-3 to day 180,
+    // 0-5 to day 360, then 0-7 (genesis.cairo drift_ornaments)
+    if (d.rotate !== null) {
+      const h = Number(BigInt(d.rotate) & 0xffffffffn), ceiling = d.day < 180 ? 3 : d.day < 360 ? 5 : 7;
+      override.params = { ...(override.params || {}), ornament_density: Math.floor(h / 128) % (ceiling + 1) };
     }
   }
   const r = again ? v11.render(cb, neutral, { ...V11, override }) : base;

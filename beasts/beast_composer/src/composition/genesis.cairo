@@ -573,12 +573,19 @@ pub fn seeded_track_smf_bytes(
 
 /// Any of a Beast's songs on a day of drift: the Genesis Track (prefix 0, seed 0), a name track
 /// (seed 0) or a bought track (a seed), with the layered drift of `clock` (`drift.cairo`; none =
-/// as written). The drift belongs to the Beast (its species and special name).
+/// as written). The drift belongs to the Beast (its species and special name). A drifted song goes
+/// through its shared inputs (`genesis_song_inputs`, `song_tracks`), the path `compose_drift`
+/// plays, with the drift's ornaments and phrasing.
 pub fn song_smf_bytes(
     beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
 ) -> Array<u8> {
     assert(prefix <= 69 && suffix <= 18 && (prefix == 0) == (suffix == 0), 'invalid special name');
-    compose(beast, prefix, suffix, seed, drift)
+    match drift {
+        Option::Some(_) => song_inputs_smf_bytes(
+            genesis_song_inputs(beast, prefix, suffix, seed, drift), beast.shiny == 1,
+        ),
+        Option::None => compose(beast, prefix, suffix, seed, drift),
+    }
 }
 
 /// A track's treatment from its seed (lab.js `trackTreatment`).
@@ -996,9 +1003,10 @@ pub fn purchase_song_inputs(base: SongInputs, seed: felt252) -> SongInputs {
 }
 
 /// A song's inputs on a day of drift (`drift.cairo` `layered_drift`): the month's rhythm cells,
-/// the week's channel order (same count) and the day's knob (the key plan the other way, the
-/// episodes' direction swapped, or the tempo nudged). The same overrides `compose` applies with a
-/// `DriftClock`, so a written song drifts as `song_smf_bytes` plays it.
+/// the week's channel order (same count) and ornament density (`drift_ornaments`: its ceiling
+/// rises with the day), and the day's knob (the key plan the other way, the episodes' direction
+/// swapped, or the tempo nudged with staccato when faster, tenuto when slower). The same overrides
+/// `compose` applies with a `DriftClock`, so a written song drifts as `song_smf_bytes` plays it.
 pub fn drifted_song_inputs(x: SongInputs, d: Drift) -> SongInputs {
     let mut y = x;
     if let Option::Some(r) = d.rhythm {
@@ -1006,6 +1014,7 @@ pub fn drifted_song_inputs(x: SongInputs, d: Drift) -> SongInputs {
     }
     if let Option::Some(r) = d.rotate {
         y.arrangement.channel_policy = ChannelPolicy::Seeded(r);
+        y.score.ornament_density = drift_ornaments(r, d.day);
     }
     if d.day_knob == 0 {
         y.treatment.flip_side = !y.treatment.flip_side;
@@ -1023,8 +1032,30 @@ pub fn drifted_song_inputs(x: SongInputs, d: Drift) -> SongInputs {
         } else {
             t
         };
+        // and the phrasing: staccato when faster, tenuto when slower
+        y.score.articulation_profile = if d.delta_bpm > 0 {
+            1
+        } else {
+            2
+        };
     }
     y
+}
+
+/// A drift week's ornament density for a song, from the week's hash under a ceiling that rises
+/// with the day (3 of 7 to day 180, 5 to day 360, then 7). Both drift paths.
+// On purpose (CASM size): one copy.
+#[inline(never)]
+fn drift_ornaments(rotate: felt252, day: u64) -> u8 {
+    let h = crate::composition::drift::low32(rotate);
+    let ceiling: u64 = if day < 180 {
+        3
+    } else if day < 360 {
+        5
+    } else {
+        7
+    };
+    ((h / 128) % (ceiling + 1)).try_into().unwrap()
 }
 
 /// Episodes alternating (0), rising (1) or falling (-1) as the shared inputs' 0, 1, 2.
@@ -1193,7 +1224,7 @@ fn song_inputs(
     } else {
         ChannelPolicy::Seeded(seed)
     };
-    SongInputs {
+    let x = SongInputs {
         theme: ThemeInputs {
             motif_seed: r.motif_seed, tier: r.theme_tier, register_band: r.theme_register_band,
         },
@@ -1246,7 +1277,22 @@ fn song_inputs(
             balanced: true,
             weak_ties: true,
         },
+    };
+    // the drift's ornaments and phrasing, as `drifted_song_inputs`
+    let mut x = x;
+    if let Option::Some(d) = dr {
+        if let Option::Some(r) = d.rotate {
+            x.score.ornament_density = drift_ornaments(r, d.day);
+        }
+        if d.day_knob >= 2 {
+            x.score.articulation_profile = if d.delta_bpm > 0 {
+                1
+            } else {
+                2
+            };
+        }
     }
+    x
 }
 
 /// A special name (prefix 1..=69, suffix 1..=18) as its name variant id (0 = no name), the

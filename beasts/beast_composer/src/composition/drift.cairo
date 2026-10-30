@@ -70,7 +70,7 @@ pub struct Drift {
     pub day: u64,
 }
 
-fn low32(x: felt252) -> u64 {
+pub fn low32(x: felt252) -> u64 {
     let w: u256 = x.into();
     (w % 0x100000000).try_into().unwrap()
 }

@@ -30,16 +30,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "game_components_encoding"
-version = "2.7.0"
-source = "git+https://github.com/Provable-Games/game-components?tag=v3.1.0#66ce934e750f8162de4f6a377357b2b8f8e5c4c0"
-
-[[package]]
 name = "midi"
 version = "0.1.0"
 dependencies = [
- "onchain_midi_player",
  "snforge_std",
+ "tinysynth_interface",
 ]
 
 [[package]]
@@ -48,14 +43,6 @@ version = "0.1.0"
 dependencies = [
  "midi",
  "snforge_std",
-]
-
-[[package]]
-name = "onchain_midi_player"
-version = "0.1.0"
-source = "git+https://github.com/Provable-Games/onchain-midi-player?rev=38d76ce6120d964502891c16445ce083bf1bfedd#38d76ce6120d964502891c16445ce083bf1bfedd"
-dependencies = [
- "game_components_encoding",
 ]
 
 [[package]]
@@ -103,3 +90,8 @@ checksum = "sha256:01fe1a1853f8899a455cdc99a408a56f76cc6c069abdf56dcf98709665c27
 dependencies = [
  "snforge_scarb_plugin",
 ]
+
+[[package]]
+name = "tinysynth_interface"
+version = "0.1.1"
+source = "git+https://github.com/Provable-Games/onchain-midi-player?tag=tinysynth_interface-v0.1.1#5483ef6a973d544ebe28218f40332088b7306c9a"

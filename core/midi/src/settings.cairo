@@ -2,4 +2,4 @@
 //! engine defaults: no custom waves or timbres) and `validate(@settings)`, which applies the checks
 //! `midi_segment` makes and reverts on the first failure.
 
-pub use onchain_midi_player::settings::{default_settings, validate};
+pub use tinysynth_interface::{default_settings, validate};

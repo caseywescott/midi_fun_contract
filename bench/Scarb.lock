@@ -92,5 +92,5 @@ dependencies = [
 
 [[package]]
 name = "tinysynth_interface"
-version = "0.1.0"
-source = "git+https://github.com/Provable-Games/onchain-midi-player?tag=tinysynth_interface-v0.1.0#ee283c4c3d9649930c2c0e907824ef8ec7d21fd8"
+version = "0.1.1"
+source = "git+https://github.com/Provable-Games/onchain-midi-player?tag=tinysynth_interface-v0.1.1#5483ef6a973d544ebe28218f40332088b7306c9a"

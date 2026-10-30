@@ -5,26 +5,25 @@
 // and Yeti specials (src/lab.js).
 // Every card is shown animated and tempo-synced (onchain/lab-sprites.mjs: the species GIF as a PNG sprite
 // sheet stepped on the beat, the card's loops on whole beats, restarted at each pass as heard).
-//   node onchain/lab-demo.mjs <onchain-midi-player>/tests/vendor/webaudio-tinysynth-<ref>.min.js
+//   node onchain/lab-demo.mjs [engine .min.js] (defaults to the existing bundled engine)
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { beastSynthSettings } from './tinychip/synth_settings.mjs';
 import { ESSENTIALS, loadBank } from './tinychip/essentials.mjs';
 import { beastName } from '../src/index.js';
-import { spriteSheet } from './lab-sprites.mjs';
+import { loadLabCards } from './lab-card-assets.mjs';
 import { engine as ENGINE } from '../src/index.js';
 import { createEngineV11 } from '../src/engine_v11.js';
 import * as LAB from '../src/lab.js';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-const engineFile = process.argv[2];
-if (!engineFile) { console.error('usage: node onchain/lab-demo.mjs <webaudio-tinysynth engine .min.js>'); process.exit(2); }
+const engineFile = process.argv[2] || here + 'vendor/onchain-midi-notes/lab-engine.min.js';
 const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
 const tiny = readFileSync(engineFile, 'utf8');
 const NOTICE = '/*! webaudio-tinysynth (c) g200kg, Apache License 2.0; Provable Games fork as pinned by onchain-midi-player, https://github.com/Provable-Games/webaudio-tinysynth */';
 const composer = (await build({
-  stdin: { contents: "import { engine, beastName } from './src/index.js'; import { createEngineV11 } from './src/engine_v11.js'; import * as lab from './src/lab.js'; window.BS = { engine, v11: createEngineV11(engine), beastName, lab };", resolveDir: here + '..', loader: 'js' },
+  stdin: { contents: "import { engine, beastName } from './src/index.js'; import { createEngineV11 } from './src/engine_v11.js'; import * as lab from './src/lab.js'; import { createCardPreview, playbackSeconds } from './onchain/lab-card-preview.js'; window.BS = { engine, v11: createEngineV11(engine), beastName, lab, createCardPreview, playbackSeconds };", resolveDir: here + '..', loader: 'js' },
   bundle: true, minify: true, format: 'iife', platform: 'browser', write: false, logLevel: 'error',
 })).outputFiles[0].text;
 const W = { Sine: 'sine', Square: 'square', Sawtooth: 'sawtooth', Triangle: 'triangle', WhiteNoise: 'n0', MetallicNoise: 'n1' };
@@ -33,14 +32,11 @@ const PRESET_NAMES = Object.fromEntries(loadBank().PRESETS.filter((x) => ESSENTI
 const waves = settings.waves.map((w) => w.Samples.map((v) => v / 128));
 const timbres = settings.timbres.map((t) => [t.drum ? 1 : 0, t.slot, t.operators.map((o) => ({ g: o.route, w: typeof o.wave === 'string' ? W[o.wave] : 'nS' + o.wave.Custom, v: o.volume / 1e4, t: o.ratio / 1e4, f: o.offset_hz / 1e4, a: o.attack / 1e4, h: o.hold / 1e4, d: o.decay / 1e4, s: o.sustain / 1e4, r: o.release / 1e4, p: o.pitch_ratio / 1e4, q: o.pitch_time / 1e4, k: o.key_scale / 1e4 }))]);
 
-const fx = JSON.parse(readFileSync(here + 'fixtures/warlock_v3.json', 'utf8'));
-// The 75 species as genesis Beasts (tier and type follow from the id); the card is the Warlock's genesis
-// card with the name, tier, type and power filled in, and the species' sprite in place of its art.
+// The 75 species as Genesis Beasts; the shared preview uses their current renderer output.
 const BEASTS = Array.from({ length: 75 }, (_, k) => {
   const id = k + 1, beast = { id, prefix: 0, suffix: 0, level: 1, health: 100, shiny: 0, animated: 0, tier: Math.floor((k % 25) / 5) + 1, beast_type: Math.floor(k / 25) };
   return { name: beastName(beast), beast, live: { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1 } };
 });
-const CARD = Buffer.from(fx.svg_b64, 'base64').toString();
 const PREFIXES = Array.from({ length: 69 }, (_, k) => beastName({ id: 1, prefix: k + 1, suffix: 1 }).split(' ').slice(0, -2).join(' '));
 const SUFFIXES = Array.from({ length: 18 }, (_, k) => beastName({ id: 1, prefix: 1, suffix: k + 1 }).split(' ').slice(-2, -1)[0]);
 // The Genesis tab's list: every species' Genesis Track with the lab's defaults (name 0, seed 0), the
@@ -48,7 +44,7 @@ const SUFFIXES = Array.from({ length: 18 }, (_, k) => beastName({ id: 1, prefix:
 const GENESIS_DEFAULTS = { name: 0, seed: 0n, theme: 'species', genesisKey: 'spread', channels: 'rarity', mix: 'balanced', ties: 'weak', topLead: true, motif: 'default', trueV: false };
 const V11E = createEngineV11(ENGINE);
 const GENESIS = BEASTS.map((x) => { const o = LAB.labMidi('sample', x.beast, x.live, GENESIS_DEFAULTS, ENGINE, V11E), r = LAB.labMidi('sample', x.beast, x.live, { ...GENESIS_DEFAULTS, genesisKey: 'rule' }, ENGINE, V11E); return { key: o.info.key, ruleKey: r.info.key, ch: o.info.channels.length, secs: Math.round(o.result.form.section_ticks * o.result.form.sections.length / 480 * 60 / o.info.tempo) }; });
-const SPRITES = Object.fromEntries(BEASTS.flatMap((x) => [String(x.beast.id), x.beast.id + 's']).map((k) => { const { n, w, png } = spriteSheet(k); return [k, { n, w, png }]; }));
+const CARDS = loadLabCards();
 
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -67,10 +63,10 @@ label{display:block;font-size:13px;color:var(--mut);margin-bottom:4px}select{wid
 .ctl{display:flex;gap:10px;margin-top:12px}.ctl button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--fg);color:var(--bg);font:600 15px system-ui;cursor:pointer}.ctl button.stop{background:var(--bg);color:var(--fg)}
 .chk{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}@media(max-width:520px){.chk{grid-template-columns:1fr}}.chk label{display:flex;gap:8px;align-items:flex-start;color:var(--fg);font-size:14px;margin:0}.chk small{display:block;color:var(--mut);font-size:12px}
 #roll{width:100%;height:220px;display:block;border-radius:8px;background:color-mix(in srgb,var(--fg) 4%,var(--card))}.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:13px}.legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}#info{font:12px/1.6 ui-monospace,monospace;color:var(--mut);white-space:pre-wrap;margin:0}
-button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:600 13px system-ui;cursor:pointer}.offer{margin:12px 0 8px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px;font-size:14px;line-height:1.45}.offer b{font-size:15px}.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}@media(max-width:420px){.tabs{grid-template-columns:repeat(2,1fr)}}.swapbox{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px}.swaprow{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;margin-top:8px;font-size:14px}.now{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--acc) 12%,var(--bg));font-size:15px}.glist{display:grid;gap:4px;margin-top:10px;max-height:520px;overflow:auto}.grow{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--bg)}.grow.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.grow b{font-size:14px}.grow small{color:var(--mut);font-size:12px}.grow span.n{color:var(--mut);font:12px ui-monospace,monospace}input[type=text],input[type=number]{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:13px ui-monospace,monospace}.tabs button{padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 14px system-ui;cursor:pointer}.tabs button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.panel{display:none}.panel.on{display:block}input[type=range]{width:100%}.note{font-size:13px;color:var(--mut);margin:8px 0 0}.beastcard{display:grid;grid-template-columns:125px 1fr;gap:16px;align-items:center}#art{width:125px;height:175px;border-radius:8px;object-fit:contain;background:#000}@media(max-width:420px){.beastcard{grid-template-columns:96px 1fr}#art{width:96px;height:134px}}\n</style></head><body><main>
+button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:600 13px system-ui;cursor:pointer}.offer{margin:12px 0 8px;padding:10px 12px;border:1px solid var(--line,#ddd);border-radius:10px;font-size:14px;line-height:1.45}.offer b{font-size:15px}.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}@media(max-width:420px){.tabs{grid-template-columns:repeat(2,1fr)}}.swapbox{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px}.swaprow{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;margin-top:8px;font-size:14px}.now{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--acc) 12%,var(--bg));font-size:15px}.glist{display:grid;gap:4px;margin-top:10px;max-height:520px;overflow:auto}.grow{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--bg)}.grow.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.grow b{font-size:14px}.grow small{color:var(--mut);font-size:12px}.grow span.n{color:var(--mut);font:12px ui-monospace,monospace}input[type=text],input[type=number]{width:100%;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:13px ui-monospace,monospace}.tabs button{padding:10px 6px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--fg);font:600 14px system-ui;cursor:pointer}.tabs button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.panel{display:none}.panel.on{display:block}input[type=range]{width:100%}.note{font-size:13px;color:var(--mut);margin:8px 0 0}.beastcard{display:grid;grid-template-columns:220px minmax(0,1fr);gap:16px;align-items:center}.beast-preview{isolation:isolate}#art{position:relative;display:block;width:100%;height:auto;object-fit:contain}@media(max-width:520px){.beastcard{grid-template-columns:140px minmax(0,1fr)}}\n</style></head><body><main>
 <h1>Beast Sound Lab</h1>
 <p class="sub">Composer v1.1 prototypes, played as onchain-midi-player plays a token_uri (the self-contained MIDI, the class's engine, the TinyChip timbres). Pick a Beast, sample its tracks by name and seed, then play; changes apply while playing.</p>
-<div class="card beastcard"><img id="art" alt="" width="125" height="175"><div><label for="beast">Beast</label><select id="beast"></select>
+<div class="card beastcard"><div class="beast-preview"><img id="art" alt="" width="250" height="350"></div><div><label for="beast">Beast</label><select id="beast"></select>
 <label style="margin-top:8px;display:flex;gap:8px;align-items:center;color:var(--fg)"><input type="checkbox" id="shiny"> Shiny (mega sound on top)</label>
 <div class="ctl"><button id="play">&#9654; Play</button><button id="stop" class="stop">&#9632; Stop</button></div>
 <label for="speed" style="margin-top:12px">Art speed (one sprite frame per)</label><select id="speed"><option value="auto" selected>Auto: eighth note, quarter above 150 BPM</option><option value="0.5">Eighth note</option><option value="1">Quarter note</option><option value="2">Half note</option></select>
@@ -136,7 +132,6 @@ button:disabled{opacity:.45;cursor:default}button.mini{padding:6px 10px;border-r
 <script>
 const TIMBRES = ${JSON.stringify(timbres)}, WAVES = ${JSON.stringify(waves)}, NAMES = ${JSON.stringify(PRESET_NAMES)};
 const BEASTS = ${JSON.stringify(BEASTS)};
-const SPRITES = ${JSON.stringify(SPRITES)};
 const L = BS.lab, $ = (id) => document.getElementById(id);
 const TYPES = ['Magic', 'Hunter', 'Brute'];
 let mode = 'tracks', synth = null, playing = false;
@@ -147,11 +142,10 @@ const trackOf = (id) => SWAPS[id] || id;
 const PICKS = { ...L.GENESIS_THEMES }; // species id -> theme candidate, starting from the chosen Genesis themes (0 or absent = its own)
 // a day count as an age since launch: day 365 is a year in
 const age = (d) => { const y = Math.floor(d / 365), m = Math.floor((d % 365) / 30.42); return d + ' (' + (y ? y + ' yr ' : '') + m + ' mo)'; };
-const CARD = ${JSON.stringify(CARD)}, PREFIXES = ${JSON.stringify(PREFIXES)}, SUFFIXES = ${JSON.stringify(SUFFIXES)};
+const CARDS = ${JSON.stringify(CARDS)}, PREFIXES = ${JSON.stringify(PREFIXES)}, SUFFIXES = ${JSON.stringify(SUFFIXES)};
 let bpmSet = null; // null = the track's own tempo
 const randHash = () => { const a = new Uint8Array(31); crypto.getRandomValues(a); return '0x' + [...a].map((x) => x.toString(16).padStart(2, '0')).join(''); };
 const curBeast = () => ({ ...BEASTS[+$('beast').value].beast, shiny: $('shiny').checked ? 1 : 0 });
-const spKey = () => curBeast().id + (curBeast().shiny ? 's' : '');
 const nameText = (n) => { if (!n) return ''; const f = L.nameFromVariant(n); return PREFIXES[f.prefix - 1] + ' ' + SUFFIXES[f.suffix - 1]; };
 const trackName = () => { const n = +$('name').value; return (n ? nameText(n) + ' ' : '') + BEASTS[+$('beast').value].name; };
 const seedOf = () => { const v = $('seed').value.trim(); if (!v) return null; try { const x = BigInt(/^0x/i.test(v) || /[a-f]/i.test(v) ? (v.startsWith('0x') ? v : '0x' + v) : v); return x === 0n ? null : x; } catch { return null; } }; // 0 = the Genesis seed
@@ -204,82 +198,20 @@ function loadHash() {
 }
 function showName() { const n = +$('name').value; $('namev').textContent = n ? '#' + n + ' ' + nameText(n) : 'Genesis Track'; }
 BEASTS.forEach((x, i) => $('beast').add(new Option(x.beast.id + '. ' + x.name + '  (tier ' + x.beast.tier + ' ' + TYPES[x.beast.beast_type] + ')', i)));
-// ── Tempo-synced art (loothero's "BPM animation sync", as in Provable-Games/beast-sound-check) ──
-// Every Beast is shown animated: the card's art element is replaced by its species GIF as a PNG
-// sprite sheet in a nested <svg> viewport, stepped by a discrete SMIL <animate> whose frame is a
-// note value (by default an eighth, a quarter above 150 BPM). The card's own SMIL loops run on
-// whole beats (keep-alive 4, shiny rim rotation 16, logo pulse 8). Like the onchain player, the art
-// restarts (a fresh blob URL, so a new animation timeline) when tick 0 of each pass is heard.
-let tempo = { bpm: 120, tpq: 480, tempos: 0, pass: 0 }, artRun = 0, artShown = 0;
-const svgText = {};
+// Current Beasts V3 cards and notes, sharing the MIDI used by the audio engine.
+let tempo = { bpm: 120, tpq: 480, tempos: 0, pass: 0 }, activeMidi = null;
+const cardPreview = BS.createCardPreview($('art'), CARDS, () => BS.playbackSeconds(synth));
 function tempoOf(u8) { // the MIDI's tempo meta (FF 51 03, microseconds per quarter) and ticks per quarter
   let uspq = 500000, n = 0;
   for (let i = 14; i + 5 < u8.length; i++) if (u8[i] === 0xff && u8[i + 1] === 0x51 && u8[i + 2] === 3) { if (!n++) uspq = (u8[i + 3] << 16) | (u8[i + 4] << 8) | u8[i + 5]; i += 5; }
   return { bpm: 60e6 / uspq, tpq: (u8[12] << 8) | u8[13], tempos: n, pass: 0 };
 }
-function cardSvg() { // the genesis card with this Beast's name, tier, type and power (level 1)
-  const b = curBeast(), name = trackName(), size = name.length > 22 ? 16 : name.length > 16 ? 20 : name.length > 11 ? 26 : 34;
-  return CARD.replace(/>Warlock<\\/text>/, '>' + name + '</text>').replace("font-size:34px", 'font-size:' + size + 'px')
-    .replace(/(>TIER<\\/text><text[^>]*>)1</, '$1' + b.tier + '<').replace(/>Magic</, '>' + TYPES[b.beast_type] + '<')
-    .replace(/(>POWER<\\/text><text[^>]*>)5</, '$1' + (6 - b.tier) + '<');
-}
-const CARD_BEATS = { '2.2s': 4, '6s': 16, '3s': 8 }; // the card's loops, as in beast-sound-check's "Card synced"
-const secs = (v) => String(+v.toFixed(6)) + 's';
-function beatsPerFrame(bpm) { const v = $('speed').value; return v === 'auto' ? (bpm > 150 ? 1 : 0.5) : +v; }
-function artTiming(i) {
-  const sp = SPRITES[spKey()], beat = 60 / tempo.bpm, bpf = beatsPerFrame(tempo.bpm);
-  return { key: spKey(), frames: sp.n, bpm: +tempo.bpm.toFixed(2), beatsPerFrame: bpf, frameMs: +(beat * bpf * 1000).toFixed(1), dur: secs(sp.n * beat * bpf), beat };
-}
-// The synced SVG. phase (seconds into the pass) starts every loop that far in (a negative begin),
-// for a change made while playing.
-function syncSvg(svg, i, phase) {
-  const sp = SPRITES[spKey()], t = artTiming(i), begin = phase > 0 ? " begin='-" + secs(phase) + "'" : '';
-  svg = svg.replace(/<(animate|animateTransform)\\b([^>]*?) dur='([^']+)'/g, (m, tag, pre, d) => {
-    const beats = CARD_BEATS[d] || Math.max(1, Math.round(parseFloat(d) / t.beat));
-    return '<' + tag + pre + " dur='" + secs(beats * t.beat) + "'" + begin;
-  });
-  const sprite = (x, y, w, h) => "<svg x='" + x + "' y='" + y + "' width='" + w + "' height='" + h + "' viewBox='0 0 " + sp.w + ' ' + sp.w + "'><image x='0' y='0' width='" + sp.n * sp.w + "' height='" + sp.w
-    + "' style='image-rendering:pixelated; image-rendering:-moz-crisp-edges; -ms-interpolation-mode:nearest-neighbor;' href='data:image/png;base64," + sp.png + "'><animate attributeName='x' values='"
-    + Array.from({ length: sp.n }, (_, k) => k ? -k * sp.w : 0).join(';') + "' dur='" + t.dur + "' calcMode='discrete' repeatCount='indefinite'" + begin + "/></image></svg>";
-  const attr = (s, a) => (new RegExp('\\\\b' + a + "='([^']*)'").exec(s) || [])[1];
-  const fo = /<foreignObject\\b[^>]*>[\\s\\S]*?<\\/foreignObject>/.exec(svg) || /<image\\b[^>]*href='data:image\\/(?:gif|png)[^']*'[^>]*?(?:\\/>|>\\s*<\\/image>)/.exec(svg);
-  if (!fo) throw new Error('no art element in the card SVG');
-  const el = fo[0], head = el.slice(0, el.indexOf('>'));
-  return svg.slice(0, fo.index) + sprite(attr(head, 'x') || 0, attr(head, 'y') || 0, attr(head, 'width') || 128, attr(head, 'height') || 128) + svg.slice(fo.index + el.length);
-}
-let artKey = '';
-// Shows the art for the current Beast, tempo and speed as a fresh blob URL, swapped in once decoded.
-// live: playing, so start the loops at the pass position heard now.
-async function renderArt(live, force) {
-  const i = +$('beast').value, x = BEASTS[i], t = artTiming(i), key = i + '|' + t.dur + '|' + trackName() + '|' + spKey();
-  if (!force && !live && key === artKey) return;
-  artKey = key;
-  const n = ++artRun;
-  let svg = null, phase = 0;
-  try { svg = cardSvg(); } catch (e) { console.warn(e); }
-  if (n !== artRun) return;
-  if (live && synth) { // seconds since tick 0 of the pass being heard
-    const ctx = synth.getAudioContext(), st = synth.getPlayStatus().startTime;
-    phase = ctx.currentTime - (ctx.outputLatency || 0) - st;
-    if (tempo.pass > 0) phase = ((phase % tempo.pass) + tempo.pass) % tempo.pass;
-  }
-  let url = '';
-  try { if (svg) url = URL.createObjectURL(new Blob([syncSvg(svg, i, phase)], { type: 'image/svg+xml' })); }
-  catch (e) { console.warn(e); }
-  const img = new Image();
-  img.id = 'art'; img.alt = trackName(); img.width = 125; img.height = 175;
-  img.onload = img.onerror = () => {
-    if (n < artShown) { if (url.startsWith('blob:')) URL.revokeObjectURL(url); return; }
-    artShown = n;
-    const old = $('art');
-    old.replaceWith(img);
-    if (old.src.startsWith('blob:')) URL.revokeObjectURL(old.src);
-  };
-  img.src = url;
-  const note = { 0.5: 'eighth note', 1: 'quarter note', 2: 'half note' }[t.beatsPerFrame];
-  window.LAB_ART = { ...t, synced: url.startsWith('blob:') };
-  $('artinfo').textContent = 'Art: species ' + (curBeast().shiny ? curBeast().id + ' shiny' : curBeast().id) + ', ' + t.frames + ' frames, one per ' + note + ' (' + t.frameMs + ' ms) at ' + t.bpm + ' BPM'
-    + (tempo.tempos > 1 ? ' (first of ' + tempo.tempos + ' tempos)' : '') + '; loop ' + t.dur + '; card loops 4, 16 and 8 beats.' + (url.startsWith('blob:') ? '' : ' (card art not found; showing it unsynced)');
+function renderArt(force = false) {
+  if (!activeMidi) return;
+  if (force && playing) cardPreview.play();
+  const b = curBeast(), step = $('speed').value;
+  cardPreview.show({ id: b.id, shiny: b.shiny, name: trackName(), frameBeats: step === 'auto' ? undefined : +step }, activeMidi);
+  $('artinfo').textContent = 'Beasts V3 card · the selected MIDI scrolls behind the Beast · art follows the music at ' + tempo.bpm.toFixed(1) + ' BPM';
 }
 // Restart the art at tick 0 of each pass as heard (getPlayStatus().startTime plus outputLatency),
 // polling startTime every 50 ms as onchain-midi-player's player does; a pass start already past is skipped.
@@ -299,7 +231,7 @@ function followPasses(s) {
     followTimer = setTimeout(() => {
       followTimer = 0;
       if (current !== followRun) return;
-      if (first || ctx.currentTime - latest - lag < 0.05) renderArt(false, true);
+      if (first || ctx.currentTime - latest - lag < 0.05) renderArt(true);
       sync();
     }, Math.max(0, delay * 1000));
   };
@@ -419,6 +351,7 @@ function make() {
   if (!out) out = L.labMidi(mode, b, x.live, args, BS.engine, BS.v11);
   saveHash();
   const midi = out.midi;
+  activeMidi = midi;
   tempo = tempoOf(midi);
   setRoll(midi, out.info && out.info.flourishes ? out.info.flourishes.notes : null);
   const pg = programsOf(midi);
@@ -440,6 +373,7 @@ function start() {
   s.loadMIDI(midi.buffer.slice(midi.byteOffset, midi.byteOffset + midi.length));
   s.setLoop(1); s.setLoopEnd(s.getPlayStatus().maxTick); s.playMIDI(); playing = true;
   tempo.pass = s.getPlayStatus().maxTick / tempo.tpq * 60 / tempo.bpm;
+  cardPreview.play(); renderArt();
   followPasses(s);
   // Play all: one full loop of this Beast, then the next
   clearTimeout(advanceTimer);
@@ -487,7 +421,7 @@ function fillGenesis() {
   $('glist').innerHTML = BEASTS.map((x, i) => '<div class="grow" data-i="' + i + '"><span class="n">#' + x.beast.id + '</span><div><b>' + x.name + '</b><br><small><span class="pick"></span>' + (trackOf(x.beast.id) !== x.beast.id ? '\u21c4 ' + BEASTS[trackOf(x.beast.id) - 1].name + '\u2019s music \u00b7 ' : '') + 'tier ' + BEASTS[trackOf(x.beast.id) - 1].beast.tier + ' ' + TYPES[BEASTS[trackOf(x.beast.id) - 1].beast.beast_type] + ' \u00b7 ' + ($('gspread').checked ? GENESIS[trackOf(x.beast.id) - 1].key : GENESIS[trackOf(x.beast.id) - 1].ruleKey) + ' \u00b7 ' + GENESIS[trackOf(x.beast.id) - 1].ch + ' channels \u00b7 ' + GENESIS[trackOf(x.beast.id) - 1].secs + ' s</small></div><span>&#9654;</span></div>').join('');
   document.querySelectorAll('.grow').forEach((r) => (r.onclick = () => { playAll = false; genesisGo(+r.dataset.i); }));
 }
-function refresh() { if (playing) start(); else { make(); renderArt(false); } }
+function refresh() { if (playing) start(); else { make(); renderArt(); } }
 function tab(m) {
   if (m !== 'genesis') { playAll = false; clearTimeout(advanceTimer); }
   mode = m; for (const t of ['tracks', 'genesis', 'drift', 'yeti', 'sc']) { $('t-' + t).classList.toggle('on', t === m); $('p-' + t).classList.toggle('on', t === m); }
@@ -549,8 +483,8 @@ $('bh').onchange = refresh;
 $('drift-on').onchange = $('fl-on').onchange = () => { $('tday').disabled = !$('drift-on').checked && !$('fl-on').checked; refresh(); };
 $('tday').oninput = () => { $('tdayv').textContent = age(+$('tday').value); refresh(); };
 $('play').onclick = start;
-$('stop').onclick = () => { playAll = false; clearTimeout(advanceTimer); if (synth) synth.stopMIDI(); playing = false; stopFollowing(); drawRoll(null); };
-$('speed').onchange = () => renderArt(playing);
+$('stop').onclick = () => { playAll = false; clearTimeout(advanceTimer); if (synth) synth.stopMIDI(); playing = false; cardPreview.stop(); stopFollowing(); drawRoll(null); };
+$('speed').onchange = () => renderArt();
 $('beast').onchange = refresh;
 $('scname').onchange = refresh;
 $('day').oninput = () => { $('dayv').textContent = age(+$('day').value); refresh(); };

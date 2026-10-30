@@ -29,6 +29,8 @@
     "inputs.d.ts"
   ],
   "scripts": {
+    "build:labs": "node onchain/build-labs.mjs",
+    "serve:labs": "python3 -m http.server 8788 --bind 127.0.0.1 --directory public",
     "test": "node --test 'test/*.test.mjs'",
     "serve": "node server/build.mjs && node server/node.mjs"
   },

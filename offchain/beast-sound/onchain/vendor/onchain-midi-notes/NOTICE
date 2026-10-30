@@ -1,0 +1,12 @@
+Notes and settings: Copyright 2026 Provable Games, Apache-2.0.
+Unmodified player/notes.js and player/settings.js from:
+https://github.com/Provable-Games/onchain-midi-player
+Revision: e3ad210fbf2caf4cd7940b2dee91375d073b65ac
+
+lab-engine.min.js is the existing Drift Lab / Editions Onchain engine,
+preserved byte for byte from midi_fun_contract e9b0f66's generated pages.
+SHA-256: 8ad79ab8214e45a601e7d929e676b34b78e3f2b4200fd751d6548cf2b7df7749
+It retains its embedded Apache-2.0 notices (g200kg / Provable Games).
+
+The lab bundle uses only the notes renderer and installSettings; it does
+not embed the upstream player's transport or replace the lab's engine.

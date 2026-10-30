@@ -297,7 +297,8 @@ export function createEngineV11(engine) {
     if (left <= 0) return;
     const dominant = (from) => {
       const c = [];
-      for (let m = from - 9; m <= from + 9; m++) if (pcs.includes(((m % 12) + 12) % 12)) c.push([Math.abs(m - from) / 2, m]);
+      // from 0 at the lowest, as beast_v11.cairo's `dominant` (no pitch is negative)
+      for (let m = Math.max(0, from - 9); m <= from + 9; m++) if (pcs.includes(((m % 12) + 12) % 12)) c.push([Math.abs(m - from) / 2, m]);
       return c.length ? c : [[0, from]];
     };
     if (left >= BAR) {
@@ -358,7 +359,7 @@ export function createEngineV11(engine) {
     const r = engine.render(beast, structural), f = r.form;
     // family: its tempo, and voices entering twice as far apart for the blooming plant forms
     const p0 = FAM ? { ...r.params, tempo_us: Math.round(r.params.tempo_us / (FAM.tempo || 1)), stretto_lag: FAM.bloom ? r.params.stretto_lag * 2 : r.params.stretto_lag } : r.params;
-    const p = override.sections || override.tempo_us || override.voice_count || override.params ? { ...p0, ...(override.params || {}), ...(override.sections ? { section_count: override.sections } : {}), ...(override.tempo_us ? { tempo_us: override.tempo_us } : {}), ...(override.voice_count ? { voice_count: override.voice_count } : {}) } : p0;
+    let p = override.sections || override.tempo_us || override.voice_count || override.params ? { ...p0, ...(override.params || {}), ...(override.sections ? { section_count: override.sections } : {}), ...(override.tempo_us ? { tempo_us: override.tempo_us } : {}), ...(override.voice_count ? { voice_count: override.voice_count } : {}) } : p0;
     if (traj) r.live = { ...swapped };
     const theme = { ...f.theme, degrees: cadenceTheme(f.theme.degrees) };
     const tr = traj ? Object.assign(trajectory(r, live), override.tr || {}) : null;
@@ -387,6 +388,9 @@ export function createEngineV11(engine) {
     let events = [];
     const seed = Number(BigInt(f.seeds.motif_seed) % 4294967291n);
     const plan = keyPlan(p, !!override.flipSide);
+    // the register: a Song whose lowest voice would be placed under C1 is composed whole octaves up,
+    // every voice together (a named scale, as beast_v11.cairo's `register_tonic`)
+    if (keys === 'mode' && tr && override.scale && !FAM) p = registerTonic(p, plan, OFFSETS[tr.spacing]);
     for (let s = 0; s < p.section_count; s++) events.push(...buildSection(p, theme, slots, s, s * ticks, csSeed, ticks, seed, plan, keys === 'mode', tr));
     events = shape(events, p, ticks, even, tr ? tr.prominence : 0).sort((a, b) => a.time - b.time || a.voice_id - b.voice_id);
     const sections = Array.from({ length: p.section_count }, (_, i) => ({ ...(f.sections[i] || f.sections[f.sections.length - 1]), start: i * ticks }));
@@ -458,6 +462,20 @@ export function createEngineV11(engine) {
     };
   }
   const OFFSETS = { wide: [0, -4, 7, -11], normal: [0, -4, 3, -8], close: [0, -2, 2, -5] };
+
+  // beast_v11.cairo `register_tonic`: the tonic raised by whole octaves (at most two) until the
+  // lowest voice is placed at or above C1 (24), on its offset (the lead and the countersubject on 0,
+  // an inverted second voice on 4) in the section with the lowest shift. From tonic 48 up (every
+  // written, generated and bought Song) nothing moves: the lowest placement is two octaves down.
+  const PLACEMENT_FLOOR = 24;
+  function registerTonic(p, plan, offs) {
+    if (p.tonic_keynum >= 48) return p;
+    const low = p.voice_count >= 4 ? offs[3] : p.voice_count >= 2 && !p.use_inversion ? offs[1] : 0;
+    const shift = Math.min(0, ...plan.map((x) => x.degrees));
+    const placed = R(low + shift, p.tonic_keynum, I.canonicalToMelodic(p.mode_id));
+    const up = placed >= PLACEMENT_FLOOR ? 0 : placed + 12 >= PLACEMENT_FLOOR ? 12 : 24;
+    return up ? { ...p, tonic_keynum: p.tonic_keynum + up } : p;
+  }
 
   // v1's section shifts, for comparison
   const v1KeyPlan = (p) => Array.from({ length: p.section_count }, (_, s) => ({ shift: I.sectionTonicShift(p, s) }));

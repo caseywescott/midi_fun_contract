@@ -36,6 +36,6 @@ jobs:
         with:
           starknet-foundry-version: "0.64.1"
       - run: scarb test -p ${{ matrix.package }}
-      # Scarb.lock pins every git dependency to a commit (game_components_encoding is asked for by
-      # tag): a build that changes it means a dependency moved.
+      # Scarb.lock pins every git dependency to a commit: a build that changes it means a dependency
+      # moved.
       - run: git diff --exit-code Scarb.lock

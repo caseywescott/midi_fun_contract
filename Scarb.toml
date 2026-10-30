@@ -21,8 +21,9 @@ edition = "2025_12"
 # Packages depend on `midi` through this entry (`midi.workspace = true`), so a workspace elsewhere
 # (beasts/ moved to its own repository) points it at a git dependency on this repository instead.
 midi = { path = "core/midi" }
-# TinySynthSettings, TinySynthSound, ISoundProvider and settings::validate (Provable-Games/onchain-midi-player).
-onchain_midi_player = { git = "https://github.com/Provable-Games/onchain-midi-player", rev = "38d76ce6120d964502891c16445ce083bf1bfedd" }
+# TinySynthSettings, TinySynthSound, ISoundProvider, default_settings and validate: the
+# tinysynth_interface package of Provable-Games/onchain-midi-player, which depends on starknet alone.
+tinysynth_interface = { git = "https://github.com/Provable-Games/onchain-midi-player", tag = "tinysynth_interface-v0.1.1" }
 # OpenZeppelin Cairo: Ownable and Upgradeable for BeastMidiProvider.
 openzeppelin_access = "4.0.1"
 openzeppelin_upgrades = "4.0.1"

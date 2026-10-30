@@ -620,6 +620,9 @@ pub struct Arrangement {
     pub rock: bool,
     pub extra: Option<(u32, u8)>,
     pub programs: Option<Span<u8>>,
+    /// the chip echo (sound_effects 2 and 3): the lead again a dotted eighth later, half as loud,
+    /// on the family's first pluck, panned opposite
+    pub echo: bool,
 }
 
 /// The upper plucks' volume factor in basis points for a voice averaging MIDI 52 + i (i = 0..12;
@@ -660,6 +663,7 @@ pub fn beast_form_to_full_smf_bytes(
             rock: false,
             extra: Option::None,
             programs: Option::None,
+            echo: false,
         },
     )
 }
@@ -802,47 +806,83 @@ pub fn beast_form_to_full_tracks_arranged(
         pans.append(*base_pans.at(v));
         v += 1;
     }
-    // mega: the lead an octave up on its own channel
+    // mega: the lead an octave up on its own channel; the chip echo (sound effects 2 and 3): the
+    // lead 360 ticks later (a dotted eighth) at half velocity, inside the form, on the family's
+    // first pluck; both panned opposite the lead
     let dbl = max_voice + 1;
-    let mut doubled: Array<NoteEvent> = array![];
-    if mega {
-        programs.append(*MEGA_LEADS.span().at(1 - lead_pick));
-        let lp: u32 = (*base_pans.at(lead)).into();
-        pans.append(if 128 - lp > 127 {
-            127
-        } else {
-            (128 - lp).try_into().unwrap()
-        });
-        for r in runs.span() {
-            if r.voice != lead {
-                continue;
-            }
-            for e in events.slice(r.start, r.len) {
-                if e.pitch + 12 <= 127 {
-                    let vel: u32 = e.velocity.into() * 3 / 4;
-                    doubled
-                        .append(
-                            NoteEvent {
-                                time: e.time,
-                                duration: e.duration,
-                                pitch: e.pitch + 12,
-                                velocity: if vel < 1 {
-                                    1
-                                } else {
-                                    vel.try_into().unwrap()
-                                },
-                                voice_id: dbl,
-                            },
-                        );
-                }
-            }
-        }
-    }
-    let last_voice = if mega {
+    let mut last_voice = if mega {
         dbl
     } else {
         max_voice
     };
+    let ech = last_voice + 1;
+    let lp: u32 = (*base_pans.at(lead)).into();
+    let opposite: u8 = if 128 - lp > 127 {
+        127
+    } else {
+        (128 - lp).try_into().unwrap()
+    };
+    if mega {
+        programs.append(*MEGA_LEADS.span().at(1 - lead_pick));
+        pans.append(opposite);
+    }
+    if arr.echo {
+        let fam = match voicing {
+            Option::Some(vc) => vc.beast_type,
+            Option::None => 0,
+        };
+        programs.append(*family_plucks(fam).span().at(0));
+        pans.append(opposite);
+        last_voice = ech;
+    }
+    let mut doubled: Array<NoteEvent> = array![];
+    let mut echoed: Array<NoteEvent> = array![];
+    for r in runs.span() {
+        if r.voice != lead {
+            continue;
+        }
+        for e in events.slice(r.start, r.len) {
+            if mega && e.pitch + 12 <= 127 {
+                let vel: u32 = e.velocity.into() * 3 / 4;
+                doubled
+                    .append(
+                        NoteEvent {
+                            time: e.time,
+                            duration: e.duration,
+                            pitch: e.pitch + 12,
+                            velocity: if vel < 1 {
+                                1
+                            } else {
+                                vel.try_into().unwrap()
+                            },
+                            voice_id: dbl,
+                        },
+                    );
+            }
+            let t = e.time + 360;
+            if arr.echo && t < length {
+                let vel: u32 = e.velocity.into() / 2;
+                echoed
+                    .append(
+                        NoteEvent {
+                            time: t,
+                            duration: if e.duration + t > length {
+                                length - t
+                            } else {
+                                e.duration
+                            },
+                            pitch: e.pitch,
+                            velocity: if vel < 1 {
+                                1
+                            } else {
+                                vel.try_into().unwrap()
+                            },
+                            voice_id: ech,
+                        },
+                    );
+            }
+        }
+    }
     // balanced: leads (theme, countersubject, mega double, any family or mega lead) at 64, plucks
     // at 127; panning halved (64 + (pan - 64) / 2, rounded half up); the upper plucks softer above
     // the bass
@@ -866,6 +906,7 @@ pub fn beast_form_to_full_tracks_arranged(
             let is_lead = v == 0
                 || v == cs
                 || (mega && v == dbl)
+                || (arr.echo && v == ech)
                 || prog == *fl.at(0)
                 || prog == *fl.at(1)
                 || prog == *fl.at(2)
@@ -909,7 +950,10 @@ pub fn beast_form_to_full_tracks_arranged(
             track.control(0, ch, 7, *vols.at(v));
         }
         let mut any = false;
-        if v == dbl {
+        if arr.echo && v == ech {
+            any = echoed.len() > 0;
+            write_notes(ref track, ch, echoed.span());
+        } else if mega && v == dbl {
             any = doubled.len() > 0;
             write_notes(ref track, ch, doubled.span());
         } else {
@@ -1065,6 +1109,7 @@ mod tests {
                 rock: false,
                 extra: Option::Some((3, 33)),
                 programs: Option::None,
+                echo: false,
             },
         );
         assert_eq!(mega(grouped()), mega(interleaved()));

@@ -88,7 +88,7 @@ fn mega_performance_is_the_mega_sound_of_the_performed_song() {
     assert(performed.score.tempo_us == song.score.tempo_us - 25000, 'tempo');
     assert(performed.score.articulation_profile == 2, 'articulation');
     assert(
-        sound.midi == midi::smf::smf_byte_array(1, 480, song_tracks(performed, true).span()),
+        sound.midi == midi::smf::smf_byte_array(1, 480, song_tracks(performed, true, false).span()),
         'not the mega performance',
     );
     assert(sound.settings == beast_synth_settings(species_type(5), true), 'not mega settings');
@@ -140,7 +140,7 @@ fn generated_purchase_composes_the_shaped_bought_track() {
     assert(song == purchase_song_inputs(base.base_song, 'block hash'), 'not the purchase');
     let sound = composer().compose(inputs, 0);
     assert(
-        sound.midi == midi::smf::smf_byte_array(1, 480, song_tracks(song, false).span()),
+        sound.midi == midi::smf::smf_byte_array(1, 480, song_tracks(song, false, false).span()),
         'not the purchase file',
     );
 }
@@ -168,7 +168,7 @@ fn edition_purchase_composes_the_style_engine() {
     assert(inputs == ComposerInputs::Edition(expected), 'not the edition');
     let plain = composer().compose(inputs, 0);
     assert(
-        plain.midi == edition_byte_array(40, false, 3, 0xfedcba9876543210, Option::None),
+        plain.midi == edition_byte_array(40, false, 3, 0xfedcba9876543210, Option::None, false),
         'not the style',
     );
     // edition 3 is the lullaby (style 2); species 40 is a Hunter (type 1)
@@ -176,7 +176,7 @@ fn edition_purchase_composes_the_style_engine() {
     // sound effect 1 (old shiny) brings the mega leads
     let mega = composer().compose(inputs, 1);
     assert(
-        mega.midi == edition_byte_array(40, true, 3, 0xfedcba9876543210, Option::None),
+        mega.midi == edition_byte_array(40, true, 3, 0xfedcba9876543210, Option::None, false),
         'not the mega style',
     );
     assert(mega.settings == edition_synth_settings(2, 1, true), 'not the mega edition presets');
@@ -187,7 +187,7 @@ fn edition_purchase_composes_the_style_engine() {
     assert(
         drifted
             .midi == edition_byte_array(
-                40, false, 3, 0xfedcba9876543210, Option::Some(drift_of(40, d)),
+                40, false, 3, 0xfedcba9876543210, Option::Some(drift_of(40, d)), false,
             ),
         'not the edition on that day',
     );
@@ -331,4 +331,114 @@ fn sound_check_does_not_drift() {
 fn rejects_day_zero() {
     let zero = DriftInputs { name_variant_id: 0, day: 0, day_hash: 1, week_hash: 1, month_hash: 1 };
     compose_drift_sound(genesis(beast(1, 0, 0, 0)), 0, zero);
+}
+
+/// A future Beast (species past 75, family and tier from its token) through the manager's path:
+/// the base song, a bought track in edition 0 and a later edition, and its Sound Check, each with
+/// a sound effect.
+fn future_beast(species: u32, family: u8, tier: u8) -> beast_composer::inputs::GenerationInputs {
+    beast_composer::composition::generation::get_generation_inputs(
+        EditionCompositionConfig { composition_seed: 0 },
+        0,
+        BeastMusicalIdentity { species_id: species, name_variant_id: 0, tier, family },
+    )
+}
+
+fn sounds(x: ComposerInputs, fx: u8) {
+    let sound = composer().compose(x, fx);
+    assert(sound.midi.len() > 100, 'no music');
+}
+
+#[test]
+fn future_species_76_song() {
+    sounds(ComposerInputs::Song(future_beast(76, 0, 1).base_song), 1);
+}
+
+#[test]
+fn future_species_max_song() {
+    sounds(ComposerInputs::Song(future_beast(0xffffffff, 2, 5).base_song), 2);
+}
+
+#[test]
+fn future_species_bought_tracks() {
+    let base = future_beast(150, 1, 3);
+    let g = IBeastPureGeneratorLibraryDispatcher {
+        class_hash: declare("BeastPureGenerator").unwrap().contract_class().class_hash,
+    };
+    sounds(g.generate_inputs(base, 0, 'purchase'), 3);
+    sounds(g.generate_inputs(base, 9, 'purchase'), 0);
+}
+
+#[test]
+fn future_species_sound_check() {
+    let b = PackableBeastV3 {
+        id: 1000,
+        prefix: 0,
+        suffix: 0,
+        level: 1,
+        health: 100,
+        shiny: 0,
+        animated: 0,
+        tier: 4,
+        beast_type: 2,
+    };
+    sounds(ComposerInputs::SoundCheck(sound_check_inputs(b)), 1);
+}
+
+fn performed_song(x: ComposerInputs, fx: u8) -> beast_composer::inputs::SongInputs {
+    match apply_performance(x, fx) {
+        ComposerInputs::Song(song) => song,
+        _ => core::panic_with_felt252('not a song'),
+    }
+}
+
+#[test]
+fn echo_performance_of_a_song() {
+    // code 2: the chip echo on the performed song, the family's settings
+    let x = genesis(beast(21, 0, 0, 0));
+    let sound = compose_sound(x, 2);
+    assert(
+        sound
+            .midi == midi::smf::smf_byte_array(
+                1, 480, song_tracks(performed_song(x, 2), false, true).span(),
+            ),
+        'not the echo performance',
+    );
+    assert(sound.settings == beast_synth_settings(species_type(21), false), 'not the settings');
+}
+
+#[test]
+fn mega_echo_performance_of_a_song() {
+    // code 3: mega and the chip echo
+    let x = genesis(beast(45, 0, 0, 0));
+    let sound = compose_sound(x, 3);
+    assert(
+        sound
+            .midi == midi::smf::smf_byte_array(
+                1, 480, song_tracks(performed_song(x, 3), true, true).span(),
+            ),
+        'not the mega echo performance',
+    );
+    assert(sound.settings == beast_synth_settings(species_type(45), true), 'not mega settings');
+}
+
+#[test]
+fn echo_on_editions() {
+    let e = ComposerInputs::Edition(
+        EditionInputs {
+            identity: MusicIdentity { source_species_id: 40, name_variant_id: 0 },
+            edition: 3,
+            seed: 0xfedcba9876543210,
+        },
+    );
+    assert(
+        compose_sound(e, 2)
+            .midi == edition_byte_array(40, false, 3, 0xfedcba9876543210, Option::None, true),
+        'not the echoed edition',
+    );
+    assert(
+        compose_sound(e, 3)
+            .midi == edition_byte_array(40, true, 3, 0xfedcba9876543210, Option::None, true),
+        'not the mega echoed edition',
+    );
 }

@@ -22,8 +22,8 @@ const TWO32: u64 = 0x100000000;
 /// The degree offset: degree d of the source is d + O here.
 const O: u32 = 70;
 const MEGA_LEADS: [u8; 2] = [50, 65];
-const VOL: [u8; 10] = [100, 64, 74, 100, 58, 62, 0, 0, 0, 70];
-const PAN: [u8; 10] = [64, 46, 82, 64, 64, 88, 0, 0, 0, 64];
+const VOL: [u8; 10] = [100, 64, 74, 100, 58, 62, 70, 0, 0, 70];
+const PAN: [u8; 10] = [64, 46, 82, 64, 64, 88, 100, 0, 0, 64];
 /// The forms' sections, 2 bits each: AABA, ABAB, AABB, ABAC (tunes A 0, B 1, C 2).
 const FORMS: [u32; 4] = [16, 68, 80, 132];
 /// The parts beside the lead and accompaniment: descant, bass, pad, percussion (bits 0-3).
@@ -331,8 +331,9 @@ struct Ctx {
     ticks: u32,
 }
 
-/// The lead (channel 0), its mega double an octave up (channel 5, `role` 1) or the descant a third
-/// above its long notes (channel 1, `role` 2, the lead's preset).
+/// The lead (channel 0), its mega double an octave up (channel 5, `role` 1), the descant a third
+/// above its long notes (channel 1, `role` 2, the lead's preset) or the chip echo (channel 6,
+/// `role` 3: the lead 360 ticks later at half velocity on the accompaniment's preset).
 #[inline(never)]
 fn lead_track(k: Box<Ctx>, role: u32) -> Array<u8> {
     let c = k.unbox();
@@ -344,6 +345,8 @@ fn lead_track(k: Box<Ctx>, role: u32) -> Array<u8> {
     };
     let (ch, program, up): (u8, u8, u8) = if role == 1 {
         (5, *leads.at((c.species + 1) % 2), 12)
+    } else if role == 3 {
+        (6, *c.s.unbox().palette.at(6 + c.kind), 0)
     } else if role == 2 {
         (1, lead_program, 0)
     } else {
@@ -371,6 +374,18 @@ fn lead_track(k: Box<Ctx>, role: u32) -> Array<u8> {
         } else {
             100
         };
+        if role == 3 {
+            let t = n.t + 360;
+            if t < c.ticks {
+                let d = if len + t > c.ticks {
+                    c.ticks - t
+                } else {
+                    len
+                };
+                block(ref tw, 6, t, d, [pitch(base, scale, n.d)].span(), vel / 2);
+            }
+            continue;
+        }
         // an upper-neighbour grace note before some long notes
         if c.orn > 0 && n.len >= 480 && ((n.t / 240) * 7 + n.d * 13 + c.orn_seed) % 100 < c.orn {
             block(ref tw, ch, n.t, 80, [pitch(base, scale, n.d + 1) + up].span(), vel - 10);
@@ -466,7 +481,7 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
 /// The track bodies of edition `e`'s track for a species (1-75), shiny or not, and a track seed:
 /// the tempo track, then the lead, the playing parts and the mega double when shiny.
 pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Array<u8>> {
-    edition_tracks_on(species, shiny, e, seed, Option::None)
+    edition_tracks_on(species, shiny, e, seed, Option::None, false)
 }
 
 /// The same on a day of drift (`drift.cairo` `layered_drift`, the song layers in the style
@@ -482,7 +497,7 @@ pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Arr
 /// accompaniment (descant, bass, pad, percussion: one to four, one more on tiers 1 and 2).
 #[inline(never)]
 pub fn edition_tracks_on(
-    species: u32, shiny: bool, e: u32, seed: u64, drift: Option<Drift>,
+    species: u32, shiny: bool, e: u32, seed: u64, drift: Option<Drift>, echo: bool,
 ) -> Array<Array<u8>> {
     let (rhythm, rotate, knob, delta) = match drift {
         Option::Some(d) => (d.rhythm, d.rotate, d.day_knob, d.delta_bpm),
@@ -714,6 +729,9 @@ pub fn edition_tracks_on(
     if shiny {
         tracks.append(lead_track(ctx, 1));
     }
+    if echo {
+        tracks.append(lead_track(ctx, 3));
+    }
     tracks
 }
 
@@ -723,11 +741,11 @@ pub fn edition_smf_bytes(species: u32, shiny: bool, e: u32, seed: u64) -> Array<
 }
 
 /// The same as a `ByteArray`, packed from the track bodies without copying them into one array, on
-/// a day of drift when `drift` is `Some`.
+/// a day of drift when `drift` is `Some`, with the chip echo when `echo`.
 pub fn edition_byte_array(
-    species: u32, shiny: bool, e: u32, seed: u64, drift: Option<Drift>,
+    species: u32, shiny: bool, e: u32, seed: u64, drift: Option<Drift>, echo: bool,
 ) -> ByteArray {
-    smf_byte_array(1, 480, edition_tracks_on(species, shiny, e, seed, drift).span())
+    smf_byte_array(1, 480, edition_tracks_on(species, shiny, e, seed, drift, echo).span())
 }
 
 /// The low 32 bits of a hash.

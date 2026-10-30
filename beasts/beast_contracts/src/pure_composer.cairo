@@ -53,9 +53,11 @@ fn compose_with(
     };
     let performed = apply_performance(drifted, sound_effects);
     let mega = is_mega(sound_effects);
+    // sound effects 2 and 3: the chip echo on songs and editions
+    let echo = sound_effects >= 2;
     let midi = match performed {
         ComposerInputs::Song(song) => smf_byte_array(
-            SMF_FORMAT, SMF_DIVISION, song_tracks(song, mega).span(),
+            SMF_FORMAT, SMF_DIVISION, song_tracks(song, mega, echo).span(),
         ),
         ComposerInputs::SoundCheck(check) => bytes_to_byte_array(
             sound_check_from_inputs(check, mega).span(),
@@ -66,7 +68,7 @@ fn compose_with(
                 Option::Some(d) => Option::Some(drift_of(species, d)),
                 Option::None => Option::None,
             };
-            edition_byte_array(species, mega, edition.edition, edition.seed, day)
+            edition_byte_array(species, mega, edition.edition, edition.seed, day, echo)
         },
     };
     TinySynthSound { midi, settings: settings_for(performed, mega) }

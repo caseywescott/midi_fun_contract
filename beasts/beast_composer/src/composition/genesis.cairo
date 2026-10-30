@@ -920,6 +920,7 @@ fn compose_tracks(
                 Option::None
             },
             programs: Option::None,
+            echo: false,
         },
     )
 }
@@ -1257,9 +1258,10 @@ fn special_name_id(prefix: u8, suffix: u8) -> u16 {
     (prefix.into() - 1) * BEAST_PREFIX2_COUNT.into() + suffix.into()
 }
 
-/// The track bodies a song's shared inputs compose, with the mega arrangement when `mega`. Plays
-/// what this engine supports: tied inner voices and the written phrase in every section.
-pub fn song_tracks(x: SongInputs, mega: bool) -> Array<Array<u8>> {
+/// The track bodies a song's shared inputs compose, with the mega arrangement when `mega` and the
+/// chip echo when `echo`. Plays what this engine supports: tied inner voices and the written phrase
+/// in every section.
+pub fn song_tracks(x: SongInputs, mega: bool, echo: bool) -> Array<Array<u8>> {
     let (theme, s, t, a) = (x.theme, x.score, x.treatment, x.arrangement);
     assert(a.weak_ties, 'untied voices unsupported');
     assert(!t.section_rhythm, 'section rhythm unsupported');
@@ -1382,6 +1384,7 @@ pub fn song_tracks(x: SongInputs, mega: bool) -> Array<Array<u8>> {
                 Option::None
             },
             programs: Option::None,
+            echo,
         },
     )
 }
@@ -1462,7 +1465,7 @@ fn song_pick(
 
 /// A song's file from its shared inputs (self-contained, for onchain-midi-player).
 pub fn song_inputs_smf_bytes(x: SongInputs, mega: bool) -> Array<u8> {
-    smf_bytes(SMF_FORMAT, SMF_DIVISION, song_tracks(x, mega).span())
+    smf_bytes(SMF_FORMAT, SMF_DIVISION, song_tracks(x, mega, false).span())
 }
 
 /// The same, packed 31 bytes per felt after the byte length.

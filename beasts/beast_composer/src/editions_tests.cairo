@@ -325,7 +325,7 @@ fn editions_drift_parity_fixture() {
         };
         let d = crate::composition::drift::layered_drift(sp.into(), 0, 0, clock);
         let midi = crate::composition::editions::edition_tracks_on(
-            sp, i % 3 == 0, e, (i * 977).into(), Option::Some(d),
+            sp, i % 3 == 0, e, (i * 977).into(), Option::Some(d), i % 2 == 1,
         );
         let bytes = midi::smf::smf_bytes(1, 480, midi.span());
         let rhythm: felt252 = match d.rhythm {
@@ -337,7 +337,7 @@ fn editions_drift_parity_fixture() {
             Option::None => 0,
         };
         println!(
-            "EDD e={} sp={} shiny={} seed={} rhythm={} rotate={} knob={} delta={} len={} hex={}",
+            "EDD e={} sp={} shiny={} echo={} seed={} rhythm={} rotate={} knob={} delta={} len={} hex={}",
             e,
             sp,
             if i % 3 == 0 {
@@ -345,6 +345,7 @@ fn editions_drift_parity_fixture() {
             } else {
                 0
             },
+            i % 2,
             i * 977,
             rhythm,
             rotate,

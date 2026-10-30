@@ -1,15 +1,17 @@
 //! A token's `sound_effects` (0-3; the Sound Manager plays 4-31 as 0) as a performance of a written
-//! song or Sound Check: the mega sound, a faster tempo, louder notes and an articulation. The
-//! stored inputs never change; 0 plays them as written. The values are the Beasts reference
-//! manager's (loothero/midi_fun_contract eebed3a, `recipe.cairo`), so a manager tested against it
-//! hears the same performances.
+//! song or Sound Check: two layers, the mega sound (bit 0: the mega leads and the lead doubled an
+//! octave up) and the chip echo (bit 1: the lead again a dotted eighth later, half as loud, on a
+//! pluck; songs and editions, not the Sound Check), plus a faster tempo, louder notes and an
+//! articulation. The stored inputs never change; 0 plays them as written. The tempo, velocity and
+//! articulation values are the Beasts reference manager's (loothero/midi_fun_contract eebed3a,
+//! `recipe.cairo`).
 //!
-//! | code | mega | tempo           | velocity ceiling | articulation |
-//! |------|------|-----------------|------------------|--------------|
-//! | 0    | no   | as written      | as written       | as written   |
-//! | 1    | yes  | 25000 us faster | +12              | tenuto (2)   |
-//! | 2    | no   | 30000 us faster | +8               | portato (5)  |
-//! | 3    | yes  | 45000 us faster | +15              | accent (3)   |
+//! | code | mega | echo | tempo           | velocity ceiling | articulation |
+//! |------|------|------|-----------------|------------------|--------------|
+//! | 0    | no   | no   | as written      | as written       | as written   |
+//! | 1    | yes  | no   | 25000 us faster | +12              | tenuto (2)   |
+//! | 2    | no   | yes  | 30000 us faster | +8               | portato (5)  |
+//! | 3    | yes  | yes  | 45000 us faster | +15              | accent (3)   |
 
 use crate::inputs::{ComposerInputs, ScoreInputs, validate_inputs, validate_performance};
 

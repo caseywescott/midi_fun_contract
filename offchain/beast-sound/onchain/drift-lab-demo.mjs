@@ -95,7 +95,7 @@ a{color:var(--acc)}
 <div class="stepper"><button class="nav" id="b-prev" aria-label="Previous Beast">◀</button><div class="mid"><div class="lbl">Beast</div><div class="val" id="b-val"></div></div><button class="nav" id="b-next" aria-label="Next Beast">▶</button></div>
 <div class="stepper" id="row-e"><button class="nav" id="e-prev" aria-label="Previous edition">▲</button><div class="mid"><div class="lbl">Edition</div><div class="val" id="e-val"></div></div><button class="nav" id="e-next" aria-label="Next edition">▼</button></div>
 <div class="stepper" id="row-p"><button class="nav" id="p-prev" aria-label="Previous purchase">−</button><div class="mid"><div class="lbl">Purchase</div><div class="val" id="p-val"></div></div><button class="nav" id="p-next" aria-label="Next purchase">+</button></div>
-<div class="ctl"><button class="go" id="play">▶ Play</button><button id="stop">■ Stop</button><button id="ab">Compare: written</button></div>
+<div class="ctl"><button class="go" id="play">▶ Play</button><button id="stop">■ Stop</button><button id="ab">Compare: written</button><button id="echo" title="The chip echo sound effects 2 and 3 add (their tempo and loudness lift is not shown here)">Chip echo: off</button></div>
 </div>
 <div class="card"><div class="sec"><span>Timeline: one point a day</span><span class="badge">exactly compose_drift</span></div>
 <canvas id="chart" width="1600" height="460" aria-label="Drift timeline"></canvas>
@@ -122,25 +122,26 @@ a{color:var(--acc)}
 const DATA = ${JSON.stringify(DATA)};
 const SPRITES = ${JSON.stringify(SPRITES)};
 const $ = (id) => document.getElementById(id), E = BS.engine, V = BS.v11, ED = BS.ed, U64 = (1n << 64n) - 1n, DAYS = 400;
-const st = { kind: 'song', s: 20, e: 1, n: 1, day: 1, written: false };
+const st = { kind: 'song', s: 20, e: 1, n: 1, day: 1, written: false, echo: false };
 let synth = null, playing = false, lapse = 0, cur = null, series = null, seriesKey = '', seriesJob = 0;
 const anchor = BS.dayAnchor();
 
 (function readUrl() {
   const q = new URLSearchParams(location.search), num = (k, lo, hi, d) => (q.has(k) ? Math.max(lo, Math.min(hi, Math.round(+q.get(k)) || 0)) : d);
   if (q.get('track') === 'edition') st.kind = 'edition';
+  if (q.get('echo') === '1') st.echo = true;
   st.s = num('b', 1, 75, st.s + 1) - 1; st.e = num('e', 1, 48, st.e); st.n = num('p', 1, 1e6, st.n); st.day = num('day', 1, DAYS, st.day);
 })();
-const query = () => '?' + new URLSearchParams({ track: st.kind, b: st.s + 1, e: st.e, p: st.n, day: st.day });
+const query = () => '?' + new URLSearchParams({ track: st.kind, b: st.s + 1, e: st.e, p: st.n, day: st.day, ...(st.echo ? { echo: 1 } : {}) });
 
 const sp = () => DATA.species[st.s];
 function purchaseSeed(n) { let x = BigInt(n) * 0x9e3779b97f4a7c15n & U64; x ^= x >> 30n; x = x * 0xbf58476d1ce4e5b9n & U64; x ^= x >> 27n; x = x * 0x94d049bb133111ebn & U64; return x ^ (x >> 31n); }
 // a track on a day: Species Songs drift by their (source) species; edition tracks by the Beast's
 // species and special name (an unnamed Beast here)
 function trackOn(day) {
-  if (st.kind === 'song') return BS.genesisMidi(sp().id, false, E, V, day ? { epoch: day, driftMode: 'v2', blockHashes: true } : {});
+  if (st.kind === 'song') return BS.genesisMidi(sp().id, false, E, V, day ? { epoch: day, driftMode: 'v2', blockHashes: true, echo: st.echo } : { echo: st.echo });
   const d = day ? BS.drift2({ id: sp().id, prefix: 0, suffix: 0 }, day, anchor) : null;
-  const o = ED.editionMidi(sp(), false, st.e, purchaseSeed(st.n), d);
+  const o = ED.editionMidi(sp(), false, st.e, purchaseSeed(st.n), d, st.echo);
   if (!d) return { ...o, drift: { label: 'as written' } };
   // the same layers as a song's, named for what they do to an edition track
   const w = Math.floor((day - 1) / 7) + 1, m = Math.floor((day - 1) / 30) + 1;
@@ -150,7 +151,7 @@ function trackOn(day) {
   return { ...o, drift: { ...d, label } };
 }
 let writtenKey = '', written = null;
-function writtenTrack() { const k = [st.kind, st.s, st.e, st.n].join(); if (k !== writtenKey) { writtenKey = k; written = trackOn(0); } return written; }
+function writtenTrack() { const k = [st.kind, st.s, st.e, st.n, st.echo].join(); if (k !== writtenKey) { writtenKey = k; written = trackOn(0); } return written; }
 function diff(o) {
   const key = (n) => n[0] + '|' + n[2] + '|' + n[3], w = notesOf(writtenTrack().midi), d = notesOf(o.midi);
   const ws = new Set(w.notes.map(key)), ds = new Set(d.notes.map(key));
@@ -162,7 +163,7 @@ const tempoOf = (o) => (st.kind === 'song' ? (o.drift.delta || 0) : o.drift.dayK
 const rhythmOf = (o) => (st.kind === 'song' ? o.drift.rhythm !== null && o.drift.rhythm !== undefined : !!(o.drift && o.drift.rhythm !== null && o.drift.rhythm !== undefined));
 
 function buildSeries() {
-  const key = [st.kind, st.s, st.e, st.n].join();
+  const key = [st.kind, st.s, st.e, st.n, st.echo].join();
   if (key === seriesKey) return; seriesKey = key;
   const job = ++seriesJob, step = st.kind === 'song' ? 4 : 2, days = [];
   for (let d = 1; d <= DAYS; d += step) days.push(d);
@@ -199,7 +200,7 @@ $('chart').addEventListener('pointerdown', (ev) => { const r = $('chart').getBou
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const COLORS = ['#7a3cff', '#e0742a', '#1f9d8c', '#c0392b', '#7f8c8d', '#2a7ae0', '#b8860b', '#888'];
-const EDITION_ROLES = { 0: 'lead', 1: 'descant', 2: 'accomp', 3: 'bass', 4: 'pad', 5: 'mega double' };
+const EDITION_ROLES = { 6: 'chip echo', 0: 'lead', 1: 'descant', 2: 'accomp', 3: 'bass', 4: 'pad', 5: 'mega double' };
 // a channel's name: drums, an edition part, or the song channel's preset
 const chName = (ch, prog) => (ch === 9 ? 'drums' : st.kind === 'edition' ? EDITION_ROLES[ch] || 'ch' + (ch + 1) : DATA.names[prog] || 'ch' + (ch + 1));
 const chansOf = (m) => { const d = notesOf(m); return [...new Set(d.notes.map((n) => n[3]))].sort((a, b) => a - b).map((ch) => [ch, d.prog[ch]]); };
@@ -228,6 +229,7 @@ function show() {
   $('readout').innerHTML = [['Today', o.drift.label || ''], ['Channels', chText], ['Tempo', (t >= 0 ? '+' : '') + t + ' BPM'], ['From written', dd.changed + ' of ' + dd.total + ' notes changed']].map(([a, b]) => '<dt>' + a + '</dt><dd>' + esc(b) + '</dd>').join('');
   roll(st.written ? writtenTrack().midi : o.midi);
   $('ab').textContent = st.written ? 'Compare: drifted' : 'Compare: written';
+  $('echo').textContent = 'Chip echo: ' + (st.echo ? 'on' : 'off'); $('echo').classList.toggle('on', st.echo);
   history.replaceState(null, '', query());
   buildSeries(); chart();
 }
@@ -294,6 +296,7 @@ $('e-prev').onclick = () => step('e', -1); $('e-next').onclick = () => step('e',
 $('p-prev').onclick = () => step('n', -1); $('p-next').onclick = () => step('n', 1);
 $('play').onclick = start; $('stop').onclick = stop; $('lapse').onclick = toggleLapse;
 $('ab').onclick = () => { st.written = !st.written; change(); };
+$('echo').onclick = () => { st.echo = !st.echo; change(); };
 $('day').oninput = () => { st.day = +$('day').value; show(); }; $('day').onchange = () => { if (playing) start(); };
 $('link').onclick = async () => { try { await navigator.clipboard.writeText(location.href); $('copied').textContent = 'Copied the link.'; } catch { $('copied').textContent = 'Clipboard unavailable: copy the address bar.'; } };
 document.addEventListener('keydown', (ev) => {

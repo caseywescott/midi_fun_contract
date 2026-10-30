@@ -747,7 +747,7 @@ export function addFlourishes(form, day, key, style = {}) {
   return { form: { ...form, events: ev.filter((x) => x.duration > 0) }, added, share };
 }
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0, trueV = false, blockHashes = false, yeti = true } = {}, E, v11) {
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0, trueV = false, blockHashes = false, yeti = true, echo = false } = {}, E, v11) {
   // seed 0 is the Genesis seed (0 is never a block hash): the Genesis rules, no seeded treatment, the
   // tier's fixed channel count, so the OG track of a species (name 0, seed 0) is known exactly
   if (seed === 0n || seed === 0) seed = null;
@@ -841,7 +841,9 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     tied,
     flourishes: fl ? { count: fl.added.length, share: fl.share, notes: fl.added.flatMap((x) => (x.notes ? x.notes.map(([time, pitch]) => ({ voice: x.voice, time, pitch })) : [{ voice: x.voice, time: x.time, pitch: x.pitch }])), voices: [...new Set(fl.added.map((x) => x.voice))].length, shapes: fl.added.reduce((m, x) => ((m[x.shape] = (m[x.shape] || 0) + 1), m), {}) } : null,
     channels: playing ? playing.map((c, i) => (i === 1 && c !== 4 && c !== 'drums' ? 'low voice' : CHANNEL_NAMES[c])) : null };
-  return { midi: beastFullMidi(out, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums, mix, topLead, ...(yetiMix || {}) }), drift: d, result: out, info };
+  // echo: the chip echo of sound_effects 2 and 3 (full_midi.js)
+  const fx = { ...(b.shiny ? MEGA_ALL : {}), ...(echo ? { echo: true } : {}) };
+  return { midi: beastFullMidi(out, E.formLength, fx, { instruments: 'beast', drums, mix, topLead, ...(yetiMix || {}) }), drift: d, result: out, info };
 }
 
 // ── the Genesis Track, as the lab plays it by default (and as the Cairo port must match) ─────────

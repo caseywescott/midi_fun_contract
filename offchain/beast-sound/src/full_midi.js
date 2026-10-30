@@ -143,6 +143,9 @@ export const megaLeadPick = (p) => (Number(p.species_id) + Number(p.name_variant
  *           octave copy plays the other
  *   double  the lead doubled an octave up on its own channel (panned opposite), three quarters as loud
  *   groove  the mega drum groove (drumEvents)
+ *   echo    the chip echo (sound_effects 2 and 3, not part of mega): the lead again 360 ticks (a
+ *           dotted eighth) later at half velocity, inside the form, on the family's first pluck,
+ *           panned opposite the lead
  */
 export const MEGA_ALL = { lead: true, double: true, groove: true };
 
@@ -197,13 +200,23 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
       if (v === lead && pitch + 12 <= 127) notes.push([t, d, pitch + 12, Math.max(1, Math.floor(vel * 3 / 4)), ch]);
     }
   }
+  let echoCh = -1;
+  if (mega.echo) {
+    const ch = Math.max(...Object.keys(st).map(Number), doubleCh) + 1;
+    echoCh = ch;
+    const fam = instruments === 'beast' ? FAMILIES[result.beast.beast_type] ?? FAMILIES[0] : FAMILIES[0];
+    setup[ch] = { program: fam.plucks[0], pan: 128 - setup[lead].pan > 127 ? 127 : 128 - setup[lead].pan };
+    for (const [t, d, pitch, vel, v] of notes.slice()) {
+      if (v === lead && t + 360 < length) notes.push([t + 360, Math.min(d, length - t - 360), pitch, Math.max(1, Math.floor(vel / 2)), ch]);
+    }
+  }
   // mix 'balanced' (a lab prototype, off by default so get_midi is unchanged): the leads (theme,
   // countersubject, mega double) at channel volume 64 and the plucks at 127, about 12 dB closer, and
   // the panning halved, so a sparse channel set keeps every voice audible
   if (mix === 'balanced') {
     const cs = p.use_countersubject ? p.voice_count : -1;
     const fam = FAMILIES[result.beast.beast_type] ?? FAMILIES[0];
-    for (const [v, st] of Object.entries(setup)) { const lead = +v === 0 || +v === cs || +v === doubleCh || fam.leads.includes(st.program) || MEGA_LEADS.includes(st.program); st.vol = lead ? 64 : 127; st.pan = Math.round(64 + (st.pan - 64) / 2); }
+    for (const [v, st] of Object.entries(setup)) { const lead = +v === 0 || +v === cs || +v === doubleCh || +v === echoCh || fam.leads.includes(st.program) || MEGA_LEADS.includes(st.program); st.vol = lead ? 64 : 127; st.pan = Math.round(64 + (st.pan - 64) / 2); }
     // Pulse 25% Pluck (12), 4-bit Saw Pluck (16) and Muted Pluck (19) read too loud above the bass: full level while the
     // voice's average pitch is at or below MIDI 52 (E3), easing down to -7 dB by MIDI 64 (E4) and above
     // (channel volume is squared, so dB = 40 log10(vol / 127))

@@ -175,3 +175,33 @@ fn thinned_purchase_composes_three_voices_without_the_countersubject() {
     let midi = song_inputs_smf_bytes(x, false);
     assert(*midi.at(0) == 'M' && midi.len() > 200, 'no file');
 }
+
+/// The chip echo (sound effects 2 and 3) on Genesis Tracks, plain and mega, the Yeti's too: one
+/// ECHO line per case (the file in hex) for scripts/echo_parity.mjs.
+#[test]
+#[ignore]
+fn echo_parity_fixture() {
+    for c in [(5_u64, 0_u8), (21, 1), (45, 0), (68, 1), (71, 0), (68, 0)].span() {
+        let (id, shiny) = *c;
+        let b = beast(id, 0, 0, shiny);
+        let tracks = crate::composition::genesis::song_tracks(
+            genesis_song_inputs(b, 0, 0, 0, Option::None), shiny == 1, true,
+        );
+        let bytes = midi::smf::smf_bytes(1, 480, tracks.span());
+        let mut hex: ByteArray = "";
+        for x in bytes.span() {
+            let (hi, lo) = DivRem::div_rem(*x, 16);
+            hex.append_byte(if hi < 10 {
+                48 + hi
+            } else {
+                87 + hi
+            });
+            hex.append_byte(if lo < 10 {
+                48 + lo
+            } else {
+                87 + lo
+            });
+        }
+        println!("ECHO id={} shiny={} len={} hex={}", id, shiny, bytes.len(), hex);
+    }
+}

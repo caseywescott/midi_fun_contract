@@ -157,8 +157,8 @@ class Track {
   finish(t) { this.msg(Math.max(t, this.time), 0xff, 0x2f, 0); return this.b; }
 }
 
-const VOL = [100, 64, 74, 100, 58, 62, 0, 0, 0, 70];
-const PAN = [64, 46, 82, 64, 64, 88, 0, 0, 0, 64];
+const VOL = [100, 64, 74, 100, 58, 62, 70, 0, 0, 70];
+const PAN = [64, 46, 82, 64, 64, 88, 100, 0, 0, 64];
 
 /** The track's melody over one section's chords (scale degrees), from `R`. */
 function melody(c, chords, lo, hi, motif, full, R) {
@@ -206,9 +206,10 @@ function melody(c, chords, lo, hi, motif, full, R) {
  * the month's new melodies (drawn from its hash; same key, chords and tempo), the week's part swap
  * (one part in or out) and accompaniment voicing (its triads in first or second inversion), and
  * the day's knob (0 the A and B progressions swap, 1 the A and B tunes swap, 2-5 the tempo nudged).
- * editions.cairo edition_tracks_on byte for byte.
+ * `echo` (sound_effects 2 and 3): the chip echo, the lead again 360 ticks later at half velocity
+ * on the accompaniment's preset (channel 7). editions.cairo edition_tracks_on byte for byte.
  */
-export function editionTrack(sp, shiny, e, seedKey, drift = null) {
+export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) {
   const knob = drift ? drift.dayKnob : 6;
   const g = editionGenome(e);
   if (g.engine === 'canon') throw new Error('edition 0 is composed by the canon engine');
@@ -250,7 +251,8 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null) {
   const pal = S.palette.map((r) => r[sp.type]);
   if (shiny) { pal[0] = MEGA_LEADS[sp.id % 2]; pal.push(MEGA_LEADS[(sp.id + 1) % 2]); }
   pal[1] = pal[0]; // the descant plays the lead's preset
-  const T = { lead: new Track(), descant: new Track(), accomp: new Track(), bass: new Track(), pad: new Track(), percussion: new Track(), mega: new Track() };
+  pal[6] = pal[2]; // the echo the accompaniment's
+  const T = { lead: new Track(), descant: new Track(), accomp: new Track(), bass: new Track(), pad: new Track(), percussion: new Track(), mega: new Track(), echo: new Track() };
   let t0 = 0;
   // the theme as the A tune opens with it: as written, inverted, reversed or a third up
   let motif = sp.degrees.slice(0, 6);
@@ -279,6 +281,9 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null) {
         if (grace) { tr.block(ch, t, 80, [P(n.d + 1) + up], v - 10); tr.block(ch, t + 80, len - 80, [P(n.d) + up], v); }
         else tr.block(ch, t, len, [P(n.d) + up], v);
       }
+      // the echo: the lead (no grace notes) 360 ticks later, half as loud, inside the form
+      const te = t + 360;
+      if (te < 32 * bar) T.echo.block(6, te, Math.min(len, 32 * bar - te), [P(n.d)], (n.t % bar ? 90 : 100) >> 1);
       // the descant: a third above the lead's long notes
       if (n.len >= 480) T.descant.block(1, t, len, [P(n.d + 2)], 64);
     }
@@ -311,6 +316,7 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null) {
   const bodies = [tempo.finish(ticks)];
   const order2 = [['lead', 0], ['descant', 1], ['accomp', 2], ['bass', 3], ['pad', 4], ['percussion', 9]].filter(([name]) => name === 'lead' || name === 'accomp' || on(name));
   if (shiny) order2.push(['mega', 5]);
+  if (echo) order2.push(['echo', 6]);
   for (const [name, ch] of order2) {
     const head = new Track();
     head.msg(0, 0xc0 | ch, ch === 9 ? 0 : pal[ch]); head.msg(0, 0xb0 | ch, 7, VOL[ch]); head.msg(0, 0xb0 | ch, 10, PAN[ch]); head.msg(0, 0xb0 | ch, 91, 40);
@@ -332,8 +338,8 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null) {
 }
 
 const u32be = (v) => [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255];
-export function editionMidi(sp, shiny, e, seedKey, drift = null) {
-  const tr = editionTrack(sp, shiny, e, seedKey, drift);
+export function editionMidi(sp, shiny, e, seedKey, drift = null, echo = false) {
+  const tr = editionTrack(sp, shiny, e, seedKey, drift, echo);
   const out = [0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 1, 0, tr.bodies.length, TPQ >> 8, TPQ & 255];
   for (const b of tr.bodies) out.push(0x4d, 0x54, 0x72, 0x6b, ...u32be(b.length), ...b);
   return { midi: Uint8Array.from(out), info: tr.info };

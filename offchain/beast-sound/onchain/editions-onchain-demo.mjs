@@ -95,7 +95,7 @@ a{color:var(--acc)}
 <div class="stepper"><button class="nav" id="e-prev" title="Previous edition (↑)">▲</button><div class="mid"><div class="lbl">Edition</div><div class="val" id="e-val"></div></div><button class="nav" id="e-next" title="Next edition (↓)">▼</button></div>
 <div class="stepper"><button class="nav" id="b-prev" title="Previous Beast (←)">◀</button><div class="mid"><div class="lbl">Beast</div><div class="val" id="b-val"></div></div><button class="nav" id="b-next" title="Next Beast (→)">▶</button></div>
 <div class="stepper"><button class="nav" id="s-prev" title="Previous purchase ([)">−</button><div class="mid"><div class="lbl">Purchase seed</div><div class="val" id="s-val"></div></div><button class="nav" id="s-next" title="Next purchase (])">+</button></div>
-<div class="ctl"><select id="fx" aria-label="Sound effect"><option value="0">Sound effect 0: as written</option><option value="1">Sound effect 1: mega leads</option><option value="2">Sound effect 2: no change for editions</option><option value="3">Sound effect 3: mega leads</option></select></div>
+<div class="ctl"><select id="fx" aria-label="Sound effect"><option value="0">Sound effect 0: as written</option><option value="1">Sound effect 1: mega leads</option><option value="2">Sound effect 2: chip echo</option><option value="3">Sound effect 3: mega leads + chip echo</option></select></div>
 <div class="seg" role="group" aria-label="Instruments"><button id="i-new" class="on">Edition presets</button><button id="i-old">Before: family settings only</button></div>
 <div class="ctl" style="margin-top:12px"><button class="go" id="play">▶ Play</button><button id="stop">■ Stop</button></div>
 </div>
@@ -131,15 +131,15 @@ const mega = () => st.fx === 1 || st.fx === 3;
 
 function compose() {
   const sp = DATA.species[st.s], seed = purchaseSeed(st.n), g = ED.editionGenome(st.e);
-  const out = ED.editionMidi(sp, mega(), st.e, seed);
+  const out = ED.editionMidi(sp, mega(), st.e, seed, null, st.fx >= 2);
   const i = (g.style * 3 + sp.type) * 2 + (mega() ? 1 : 0);
   const settings = st.presets ? DATA.settings[i].s : DATA.family[sp.type * 2 + (mega() ? 1 : 0)];
   const wire = BS.encodeInputs({ kind: 'Edition', edition: { identity: { source_species_id: BigInt(sp.id), name_variant_id: 0 }, edition: st.e, seed } });
   return { ...out, sp, seed, g, i, settings, wire };
 }
 
-const ROLE = { 0: 'lead', 1: 'descant', 2: 'accomp', 3: 'bass', 4: 'pad', 5: 'mega double', 9: 'percussion' };
-const COLORS = ['#7a3cff', '#e0742a', '#1f9d8c', '#c0392b', '#7f8c8d', '#2a7ae0'];
+const ROLE = { 6: 'chip echo', 0: 'lead', 1: 'descant', 2: 'accomp', 3: 'bass', 4: 'pad', 5: 'mega double', 9: 'percussion' };
+const COLORS = ['#7a3cff', '#e0742a', '#1f9d8c', '#c0392b', '#7f8c8d', '#2a7ae0', '#b8860b'];
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 function show() {
   cur = compose();
@@ -206,7 +206,7 @@ function notesOf(u8) {
 function roll(midi) {
   rollData = notesOf(midi);
   const chans = [...new Set(rollData.notes.map((n) => n[3]))].sort((a, b) => a - b);
-  $('legend').innerHTML = chans.map((ch) => '<span><i style="background:' + (ch === 9 ? 'var(--mut)' : COLORS[ch % 6]) + '"></i>' + (ch === 9 ? 'percussion · chip drums' : (ROLE[ch] || 'ch' + (ch + 1)) + ' · ' + esc(DATA.names[rollData.prog[ch]] || '')) + '</span>').join('');
+  $('legend').innerHTML = chans.map((ch) => '<span><i style="background:' + (ch === 9 ? 'var(--mut)' : COLORS[ch % 7]) + '"></i>' + (ch === 9 ? 'percussion · chip drums' : (ROLE[ch] || 'ch' + (ch + 1)) + ' · ' + esc(DATA.names[rollData.prog[ch]] || '')) + '</span>').join('');
   draw(-1);
 }
 function draw(play) {
@@ -217,7 +217,7 @@ function draw(play) {
   x.globalAlpha = 0.12; x.fillStyle = fg; for (let t = 0; t < d.end; t += bar) x.fillRect(t * sx, 0, 1, H); x.globalAlpha = 1;
   for (const [a, b, p, ch] of d.notes) {
     if (ch === 9) { x.fillStyle = fg; x.globalAlpha = 0.6; x.fillRect(a * sx, H - 20 + (p % 8) * 2, Math.max(2, (b - a) * sx * 0.5), 3); x.globalAlpha = 1; continue; }
-    x.fillStyle = COLORS[ch % 6]; x.fillRect(a * sx, top + (hi - p) / (hi - lo) * ph, Math.max(2, (b - a) * sx - 1), Math.max(3, ph / (hi - lo) - 1));
+    x.fillStyle = COLORS[ch % 7]; x.fillRect(a * sx, top + (hi - p) / (hi - lo) * ph, Math.max(2, (b - a) * sx - 1), Math.max(3, ph / (hi - lo) - 1));
   }
   if (play >= 0) { x.fillStyle = fg; x.fillRect((play % d.end) * sx, 0, 3, H); }
 }

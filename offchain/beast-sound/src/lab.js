@@ -412,7 +412,11 @@ export function yetiAvalanche(events, r, E, ch, darkId = null) {
     const pref = [0, 4, 3, 5, 2, 1, 6];
     const cover = (d, set) => set.filter((q) => triad(d).includes(q)).length;
     const minor = (d) => perfect(d) && ((triad(d)[1] - triad(d)[0] + 12) % 12) === 3;
-    const best = pref.filter((d) => darkId === null || d === 0 || minor(d)).slice().sort((a, c) => cover(c, pcs) - cover(a, pcs) || cover(c, heard) - cover(a, heard) || perfect(c) - perfect(a) || pref.indexOf(a) - pref.indexOf(c))[0];
+    // the composer's rule (yeti.cairo): V at the end of the track, else I or IV, whichever holds more of
+    // what sounds at the close (ties to I); the lab's dark variant scores every triad
+    const inT = (d) => closing.map((e) => e.pitch % 12).filter((q) => triad(d).includes(q)).length;
+    const best = darkId === null ? (s === sections - 1 ? 4 : inT(3) > inT(0) ? 3 : 0)
+      : pref.filter((d) => d === 0 || minor(d)).slice().sort((a, c) => cover(c, pcs) - cover(a, pcs) || cover(c, heard) - cover(a, heard) || perfect(c) - perfect(a) || pref.indexOf(a) - pref.indexOf(c))[0];
     const root = scale[best], chord = triad(best); // the run uses the triad only, never a passing note
     let hi = top - (((top - root) % 12) + 12) % 12; // the highest pitch class of the root at or below top
     const run = [];

@@ -600,42 +600,14 @@ pub fn yeti_ornaments(
 // ── the avalanche
 // ────────────────────────────────────────────────────────────────────────────────
 
-fn has(xs: Span<u8>, x: u8) -> bool {
-    for y in xs {
-        if *y == x {
-            return true;
-        }
-    }
-    false
-}
-
 fn triad(scale: Span<u8>, d: u32) -> (u8, u8, u8) {
     (*scale.at(d % 7), *scale.at((d + 2) % 7), *scale.at((d + 4) % 7))
 }
 
-fn cover(scale: Span<u8>, d: u32, set: Span<u8>) -> u32 {
-    let (a, b, c) = triad(scale, d);
-    let mut k = 0;
-    for q in set {
-        if *q == a || *q == b || *q == c {
-            k += 1;
-        }
-    }
-    k
-}
-
-fn perfect(scale: Span<u8>, d: u32) -> u32 {
-    let (a, _, c) = triad(scale, d);
-    if (c + 12 - a) % 12 == 7 {
-        1
-    } else {
-        0
-    }
-}
-
-/// Appends the avalanche: in the last half bar of each section, eight or fewer sixteenths (110
-/// ticks, velocity 112 falling by 4) down two octaves through the key's triad that holds the most
-/// of what sounds at the close, from the root just below the tonic's register two octaves up.
+/// Appends the avalanche: in the last 7 sixteenths of each section (110 ticks, velocity 112 falling
+/// by 4), the triad's 7 tones down two octaves from its root just below the tonic's register two
+/// octaves up. The triad: V at the end of the track, else I or IV, whichever holds more of what
+/// sounds at the close (the last beat; ties to I).
 pub fn yeti_avalanche(
     events: Span<NoteEvent>, section_ticks: u32, sections: u32, tonic_keynum: u8, key: YetiKey,
 ) -> Array<NoteEvent> {
@@ -651,109 +623,57 @@ pub fn yeti_avalanche(
         d += 1;
     }
     let scale = scale.span();
-    let pref: Span<u32> = array![0, 4, 3, 5, 2, 1, 6].span();
-    let mut s: u32 = 0;
+    let (i0, i1, i2) = triad(scale, 0);
+    let (f0, f1, f2) = triad(scale, 3);
+    let mut s: u32 = opaque(0);
     while s < sections {
         let end = s * section_ticks + section_ticks;
         let start = end - 960;
-        // the pitch classes sounding in the half bar, and at the close (the last beat)
-        let mut heard: Array<u8> = array![];
-        let mut closing: Array<u8> = array![];
-        let mut any = false;
+        // anything sounding in the half bar; at the close, the tones of I and of IV
+        let (mut any, mut on_i, mut on_iv): (bool, u32, u32) = opaque((false, 0, 0));
         for e in events {
             let e = *e;
             if e.voice_id < ch && e.time < end && e.time + e.duration > start {
                 any = true;
-                let pc = e.pitch % 12;
-                if !has(heard.span(), pc) {
-                    heard.append(pc);
-                }
-                if e.time + e.duration > end - 480 && !has(closing.span(), pc) {
-                    closing.append(pc);
+                if e.time + e.duration > end - 480 {
+                    let pc = e.pitch % 12;
+                    if pc == i0 || pc == i1 || pc == i2 {
+                        on_i += 1;
+                    }
+                    if pc == f0 || pc == f1 || pc == f2 {
+                        on_iv += 1;
+                    }
                 }
             }
         }
         if any {
-            let pcs = if closing.len() > 0 {
-                closing.span()
-            } else {
-                heard.span()
-            };
-            // the best: most of the close, then most of the half bar, then a perfect fifth, then
-            // the preference order
-            let mut best = *pref.at(0);
-            let mut k = 1;
-            while k < 7 {
-                let c = *pref.at(k);
-                let better = if cover(scale, c, pcs) != cover(scale, best, pcs) {
-                    cover(scale, c, pcs) > cover(scale, best, pcs)
-                } else if cover(scale, c, heard.span()) != cover(scale, best, heard.span()) {
-                    cover(scale, c, heard.span()) > cover(scale, best, heard.span())
-                } else {
-                    perfect(scale, c) > perfect(scale, best)
-                };
-                if better {
-                    best = c;
-                }
-                k += 1;
-            }
-            let (a, b, c) = triad(scale, best);
-            let root: i32 = a.into();
-            let hi = top - (((top - root) % 12) + 12) % 12;
-            let mut run: Array<i32> = array![];
-            let mut q = hi;
-            while q >= hi - 24 {
-                let pc: u8 = (((q % 12) + 12) % 12).try_into().unwrap();
-                if pc == a || pc == b || pc == c {
-                    run.append(q);
-                }
-                q -= 1;
-            }
-            // at most eight: every ceil(n / 8)th note and the last, the last eight of those
-            let len = run.len();
-            let mut picked: Array<i32> = array![];
-            if len <= 8 {
-                picked = run;
-            } else {
-                let stride = (len + 7) / 8;
-                let (mut all, mut k): (Array<i32>, u32) = opaque((array![], 0));
-                while k < len {
-                    if k % stride == 0 || k == len - 1 {
-                        all.append(*run.at(k));
-                    }
-                    k += 1;
-                }
-                let from = if all.len() > 8 {
-                    all.len() - 8
-                } else {
-                    0
-                };
-                let mut k = from;
-                while k < all.len() {
-                    picked.append(*all.at(k));
-                    k += 1;
-                }
-            }
-            if *picked.at(picked.len() - 1) != hi - 24 {
-                picked.append(hi - 24);
-            }
-            let m = picked.len();
-            let from = if m > 8 {
-                m - 8
+            let best = if s == sections - 1 {
+                4
+            } else if on_iv > on_i {
+                3
             } else {
                 0
             };
-            let count = m - from;
-            let t0 = end - count * S16;
+            let (a, b, c) = triad(scale, best);
+            let root: i32 = a.into();
+            let hi = top - (((top - root) % 12) + 12) % 12;
+            // the root, fifth and third below it, twice, then the root two octaves down
+            let third: i32 = ((b + 12 - a) % 12).into();
+            let fifth: i32 = ((c + 12 - a) % 12).into();
+            let run = [
+                hi, hi - 12 + fifth, hi - 12 + third, hi - 12, hi - 24 + fifth, hi - 24 + third,
+                hi - 24,
+            ];
+            let t0 = end - 7 * S16;
             let mut k: u32 = opaque(0);
-            while k < count {
+            for q in run.span() {
                 let vel: u32 = 112 - k * 4;
                 out
                     .append(
                         NoteEvent {
                             time: t0 + k * S16,
                             duration: 110,
-                            pitch: (*picked.at(from + k)).try_into().unwrap(),
+                            pitch: (*q).try_into().unwrap(),
                             velocity: vel.try_into().unwrap(),
                             voice_id: ch,
                         },

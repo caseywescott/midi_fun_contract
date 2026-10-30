@@ -110,7 +110,7 @@ a{color:var(--acc)}
 <ul class="how"><li><b>Month</b> (30 days): two months in three re-pick the rhythm cells.</li><li><b>Week</b>: three weeks in four rotate which channels play, keeping the count, the theme and the low voice.</li><li><b>Day</b>: turns one knob. The key plan turns the other way, the episode directions swap, or the tempo moves −4, −2, +2 or +4 BPM.</li></ul>
 <p class="note">A Species Song's drift belongs to its species: all Beasts of a species hear the same day. A Beast's other tracks drift by its own special name.</p></div>
 <div class="card mode" id="m-edition"><div class="sec"><span>On an edition track</span></div>
-<ul class="how"><li><b>Month</b>: two months in three bring new melodies. Their rhythms and contour are drawn from the month's hash; the key, chords and tempo stay.</li><li><b>Week</b>: three weeks in four swap one part in or out (descant, bass, pad or percussion; one drops out when all four play) and put the accompaniment's chords in their first or second inversion.</li><li><b>Day</b>: turns one knob. The A and B progressions swap, the A and B tunes swap, or the tempo moves −4, −2, +2 or +4 BPM.</li></ul></div>
+<ul class="how"><li><b>Month</b>: two months in three bring new melodies, drawn from the month's hash, and a new accompaniment and percussion figure; one of those months in three also moves to the style's other mode. The key, chords and tempo stay.</li>three weeks in four swap one part in or out (descant, bass, pad or percussion; one drops out when all four play), put the accompaniment's chords in their first or second inversion, and turn the ornament to the next kind (upper grace, lower grace, slide, mordent).</li><li><b>Day</b>: turns one knob. The A and B progressions swap, the A and B tunes swap, or the tempo moves −4, −2, +2 or +4 BPM.</li></ul></div>
 <div class="card"><div class="sec"><span>Share</span></div><div class="ctl"><button id="link">Copy link</button></div><p class="note" id="copied"></p>
 <p class="note">The page assumes 43,200 blocks a day, as the lab does: a placeholder until the chain's block time is set. Block hashes are simulated. Keys: <span class="kbd">space</span> play/stop, <span class="kbd">,</span> <span class="kbd">.</span> day, <span class="kbd">1</span> <span class="kbd">2</span> track.</p></div>
 </div></div>
@@ -146,8 +146,9 @@ function trackOn(day) {
   // the same layers as a song's, named for what they do to an edition track
   const w = Math.floor((day - 1) / 7) + 1, m = Math.floor((day - 1) / 30) + 1;
   const knob = d.dayKnob === 0 ? 'A and B progressions swap' : d.dayKnob === 1 ? 'A and B tunes swap' : 'tempo ' + (d.delta > 0 ? '+' : '') + d.delta + ' BPM';
-  const label = ['month ' + m + (d.rhythm !== null ? ': new melodies' : ': melodies as written'),
-    'week ' + w + (d.rotate !== null ? ': a part swaps, chords inverted' : ': parts and chords as written'), 'day: ' + knob].join(' \u00b7 ');
+  const flip = d.rhythm !== null && Math.floor(Number(BigInt(d.rhythm) & 0xffffffffn) / 8) % 3 === 0;
+  const label = ['month ' + m + (d.rhythm !== null ? ': new melodies and figures' + (flip ? ', the other mode' : '') : ': melodies as written'),
+    'week ' + w + (d.rotate !== null ? ': a part swaps, chords inverted, ornament turns' : ': parts and chords as written'), 'day: ' + knob].join(' \u00b7 ');
   return { ...o, drift: { ...d, label } };
 }
 let writtenKey = '', written = null;

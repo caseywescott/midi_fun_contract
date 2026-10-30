@@ -325,6 +325,10 @@ struct Ctx {
     /// grace notes: the share of long notes (percent) and the seed placing them; detached phrasing
     orn: u32,
     orn_seed: u32,
+    /// the ornament's kind (upper or lower grace, slide, mordent) and the bass's rhythm (as
+    /// written, doubled, detached)
+    orn_kind: u32,
+    bass_mode: u32,
     detached: bool,
     /// the 32 bars' chords, and the lead's notes over the whole form
     chords: Span<u32>,
@@ -389,7 +393,7 @@ fn lead_track(k: Box<Ctx>, role: u32) -> Array<u8> {
         }
         // an ornament on some long notes, its kind from the ornament seed: an upper or lower grace
         // note, a slide from a third below, or a mordent (the note, a step above, the note)
-        let kind = c.orn_seed % 4;
+        let kind = c.orn_kind;
         if c.orn > 0 && n.len >= 480 && ((n.t / 240) * 7 + n.d * 13 + c.orn_seed) % 100 < c.orn {
             let main = pitch(base, scale, n.d) + up;
             // the mordent's note first; then the grace (+1, -1, -2; the mordent's step above) and
@@ -488,7 +492,24 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
                     [p2].span()
                 };
                 let vel: u8 = (vel0 + x / 0x4000000).try_into().unwrap();
-                block(ref tw, ch, t + x % 0x800, (x / 0x800) % 0x800, ps, vel);
+                let (at, d) = (t + x % 0x800, (x / 0x800) % 0x800);
+                // the bass doubled (two halves) or detached (half length)
+                let bm = if ch == 3 {
+                    c.bass_mode
+                } else {
+                    0
+                };
+                let len = if bm == 0 {
+                    d
+                } else if bm == 1 {
+                    d / 2 - 10
+                } else {
+                    d / 2
+                };
+                block(ref tw, ch, at, len, ps, vel);
+                if bm == 1 {
+                    block(ref tw, ch, at + d / 2, len, ps, vel);
+                }
             }
         }
         t += bar;
@@ -555,12 +576,33 @@ pub fn edition_tracks_on(
         pa = pb;
         pb = a;
     }
-    let scale = (*SCALES.span().at(*s.modes.at(r.int(s.modes.len())))).span();
+    let modes = s.modes.len();
+    let mode_i = r.int(modes);
     let form_id = r.int(4);
     let form = *FORMS.span().at(form_id);
-    let accomp = *s.accomps.at(r.int(4));
+    let acc_i = r.int(4);
     let bass = *s.basses.at(r.int(3));
-    let perc = *s.percs.at(r.int(2));
+    let perc_i = r.int(2);
+    // a new-melody month (the month's hash) also brings another accompaniment figure, the other
+    // percussion figure and, one month in three, the style's next mode
+    let (mode_i, acc_i, perc_i) = match rhythm {
+        Option::Some(h) => {
+            let m = low32(h);
+            (
+                if (m / 8) % 3 == 0 {
+                    (mode_i + 1) % modes
+                } else {
+                    mode_i
+                },
+                (acc_i + 1 + m % 3) % 4,
+                (perc_i + 1) % 2,
+            )
+        },
+        Option::None => (mode_i, acc_i, perc_i),
+    };
+    let scale = (*SCALES.span().at(*s.modes.at(mode_i))).span();
+    let accomp = *s.accomps.at(acc_i);
+    let perc = *s.percs.at(perc_i);
     let treatment = r.int(4);
     let orn = *[0_u32, 0, 15, 30].span().at(r.int(4));
     let orn_seed = r.int(100);
@@ -603,9 +645,12 @@ pub fn edition_tracks_on(
         parts += *x;
     }
     // the week's drift swaps one part in (or out, when all four play) and inverts the accompaniment
+    let mut orn_kind = orn_seed % 4;
     let rot = match rotate {
         Option::Some(h) => {
             let h = low32(h);
+            // and turns the ornament
+            orn_kind = (orn_kind + 1 + (h / 32) % 3) % 4;
             if count == 4 {
                 parts -= *order.at(h % 4);
             } else {
@@ -702,6 +747,8 @@ pub fn edition_tracks_on(
             perc,
             orn,
             orn_seed,
+            orn_kind,
+            bass_mode: roll % 3,
             detached,
             chords: chords.span(),
             lead: lead.span(),

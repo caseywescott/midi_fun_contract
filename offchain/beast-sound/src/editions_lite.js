@@ -222,14 +222,19 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) 
   let pA = R.int(8), pB = R.int(8); if (pB === pA) pB = (pA + 1) % 8;
   let pC = (pA + 1 + R.int(6)) % 8; if (pC === pB) pC = (pC + 1) % 8;
   if (knob === 0) [pA, pB] = [pB, pA];
-  const mode = S.modes[R.int(S.modes.length)], scale = SCALES[mode];
+  const modeI = R.int(S.modes.length);
   const formId = R.int(4), form = FORMS[formId];
-  const accomp = S.accomps[R.int(4)], bassFig = S.basses[R.int(3)], perc = S.percs[R.int(2)];
+  const accI = R.int(4), bassFig = S.basses[R.int(3)], percI = R.int(2);
+  // a new-melody month (the month's hash) also brings another accompaniment figure, the other
+  // percussion figure and, one month in three, the style's next mode
+  const month = drift && drift.rhythm !== null ? Number(BigInt(drift.rhythm) & 0xffffffffn) : null;
+  const mode = S.modes[month !== null && Math.floor(month / 8) % 3 === 0 ? (modeI + 1) % S.modes.length : modeI], scale = SCALES[mode];
+  const accomp = S.accomps[month !== null ? (accI + 1 + month % 3) % 4 : accI], perc = S.percs[month !== null ? (percI + 1) % 2 : percI];
   const theme = R.int(4);
   const orn = [0, 0, 15, 30][R.int(4)], ornSeed = R.int(100), detached = R.int(2) === 1;
-  const ornKind = ornSeed % 4; // upper grace, lower grace, slide, mordent (no draw of its own)
+  let ornKind = ornSeed % 4; // upper grace, lower grace, slide, mordent (no draw of its own)
   // the parts beside the lead and accompaniment: a seeded order, the first `count` play
-  const roll = R.int(100);
+  const roll = R.int(100), bassMode = roll % 3; // the bass as written, doubled or detached
   let count = (roll < 20 ? 1 : roll < 60 ? 2 : roll < 88 ? 3 : 4) + (sp.tier <= 2 ? 1 : 0);
   if (count > 4) count = 4;
   const order = [0, 1, 2, 3];
@@ -242,6 +247,7 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) 
     if (count === 4) playing.splice(h % 4, 1);
     else playing[h % count] = order[count + Math.floor(h / 4) % (4 - count)];
     rot = 1 + Math.floor(h / 16) % 2;
+    ornKind = (ornKind + 1 + Math.floor(h / 32) % 3) % 4; // and turns the ornament
   }
   const on = (part) => playing.includes(PARTS.indexOf(part));
   const bar = S.num * (1920 / S.den);
@@ -299,7 +305,8 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) 
       }
       for (const [off, d, tone, dv] of bassFig) {
         const ps = tone === 4 ? [PB(0), PB(4)] : [PB(ch + [0, -3, 4, 7][tone])];
-        T.bass.block(3, t + off, d, ps, 96 + dv);
+        if (bassMode === 1) { T.bass.block(3, t + off, (d >> 1) - 10, ps, 96 + dv); T.bass.block(3, t + off + (d >> 1), (d >> 1) - 10, ps, 96 + dv); }
+        else T.bass.block(3, t + off, bassMode === 2 ? d >> 1 : d, ps, 96 + dv);
       }
       if (b % 2 === 0) T.pad.block(4, t, 2 * bar - 40, triad(ch, -7).map(P), 46);
       for (const [off, note, dv] of perc) T.percussion.block(9, t + off, 120, [note], 100 + dv);
@@ -331,7 +338,7 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) 
     key: NOTE[tonic] + ' ' + SCALE_NAMES[mode], meter: S.num + '/' + S.den, bpm, form: form.split('').join(' '),
     grammar: 'diatonic triads', progA: S.progs[pA].map((d) => ROMAN[d]).join(' '), progB: S.progs[pB].map((d) => ROMAN[d]).join(' '),
     progC: formId === 3 ? S.progs[pC].map((d) => ROMAN[d]).join(' ') : null,
-    accomp: S.key + ' ' + fig(S.accomps, accomp), bass: on('bass') ? S.key + ' ' + fig(S.basses, bassFig) : 'none',
+    accomp: S.key + ' ' + fig(S.accomps, accomp), bass: on('bass') ? S.key + ' ' + fig(S.basses, bassFig) + ['', ' doubled', ' detached'][bassMode] : 'none',
     drums: on('percussion') ? S.key + ' ' + fig(S.percs, perc) : 'none', theme: THEMES[theme],
     ornaments: orn ? orn + '% ' + ['upper graces', 'lower graces', 'slides', 'mordents'][ornKind] : 'none', phrasing: detached ? 'detached' : 'legato',
     parts: ['lead', 'accompaniment', ...PARTS.filter((x) => on(x))], channels: order2.map(([, ch]) => ch),

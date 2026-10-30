@@ -2,6 +2,8 @@
 import { mount, cutout, midiNotes } from './vendor/onchain-midi-notes/notes.js';
 
 const NS = 'http://www.w3.org/2000/svg';
+// Beasts V3 beast_svg.cairo::get_tier_color; the tier comes from the captured card itself.
+const TIER_COLORS = ['#ffffff', '#ff8800', '#8c00bf', '#0000ff', '#00ff00', '#ffffff'];
 const clocks = new WeakMap();
 
 // startTime is tick zero of the currently scheduled pass. Reading the audio clock, rather than
@@ -39,7 +41,8 @@ export function createCardPreview(img, assets, clock) {
     title.textContent = name;
     title.style.fontSize = Math.min(34, 210 / (name.length * 0.55)) + 'px';
     [...root.children].find((e) => e.localName === 'rect').setAttribute('fill', shiny ? 'url(#shinyRim)' : 'url(#gold)');
-    root.querySelector('#logoPulse path').setAttribute('fill', shiny ? 'url(#logo_pastel_rainbow)' : '#ff8800');
+    const tier = Number([...root.querySelectorAll('text')].find((e) => e.textContent === 'TIER').nextElementSibling.textContent);
+    root.querySelector('#logoPulse path').setAttribute('fill', shiny ? 'url(#logo_pastel_rainbow)' : (TIER_COLORS[tier] || TIER_COLORS[0]));
     // Keep the current renderer's frame and clipping, replacing only its GIF with the same
     // canonical GIF decoded to a sprite sheet so the existing tempo-sync controls still work.
     const fo = root.querySelector('foreignObject');

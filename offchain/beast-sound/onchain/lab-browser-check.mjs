@@ -27,6 +27,24 @@ try {
     const route = name === 'lab' ? '#b=21' : '?track=song&b=21&e=1&p=1&day=1';
     await page.goto(base + '/onchain/' + name + '.html' + route);
     await ready();
+    if (name === 'drift-lab') {
+      const logos = await page.evaluate(async () => {
+        const results = [], img = document.querySelector('#art');
+        for (const sp of DATA.species) for (const shiny of [false, true]) {
+          cardPreview.show({ id: sp.id, shiny, name: sp.name }, selectedMidi());
+          await img.decode();
+          const svg = new DOMParser().parseFromString(await (await fetch(img.src)).text(), 'image/svg+xml');
+          results.push({ id: sp.id, tier: sp.tier, shiny, fill: svg.querySelector('#logoPulse path').getAttribute('fill') });
+        }
+        return results;
+      });
+      // Canonical regular tier palette and shiny gradient from the official renderer.
+      const expected = { 1: '#ff8800', 2: '#8c00bf', 3: '#0000ff', 4: '#00ff00', 5: '#ffffff' };
+      assert.equal(logos.length, 150);
+      for (const logo of logos) assert.equal(logo.fill, logo.shiny ? 'url(#logo_pastel_rainbow)' : expected[logo.tier], `species ${logo.id}, shiny ${logo.shiny}: incorrect logo`);
+      console.log('All 75 species: regular logo matches tier, shiny logo retains rainbow');
+      await page.reload(); await ready();
+    }
     await page.evaluate(() => {
       const Constructor = window.WebAudioTinySynth;
       window.WebAudioTinySynth = function (...args) {

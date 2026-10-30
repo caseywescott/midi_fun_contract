@@ -143,10 +143,7 @@ fn generated_purchase_composes_the_shaped_bought_track() {
     assert(song == purchase_song_inputs(base.base_song, 'block hash'), 'not the purchase');
     let sound = composer().compose(inputs, 0);
     assert(
-        sound
-            .midi == midi::smf::smf_byte_array(
-                1, 480, song_tracks(song, false, false, 0).span(),
-            ),
+        sound.midi == midi::smf::smf_byte_array(1, 480, song_tracks(song, false, false, 0).span()),
         'not the purchase file',
     );
 }

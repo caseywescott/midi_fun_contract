@@ -31,7 +31,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { poseidonHashMany } from '../../src/index.js';
 import { FAMILIES } from '../../src/full_midi.js';
-import { EDITION_DRUMS, STYLES } from '../../src/editions_lite.js';
+import { EDITION_DRUMS, RARE_LEADS, STYLES } from '../../src/editions_lite.js';
 import { fileURLToPath } from 'node:url';
 import { bankData, ESSENTIALS, loadBank } from './essentials.mjs';
 
@@ -282,7 +282,8 @@ const TIMBRES_${up}: [u32; ${timbres.length}] = [${timbres.join(', ')}];
  * and the chip drums the percussion figures play. Every edition settings value carries the same waves (all the editions' presets use), so a
  * preset's operators (its waves as \`Custom(i)\`) are the same in each and stored once.
  */
-export const editionPrograms = (style, type, mega) => [...new Set([0, 2, 3, 4].map((row) => STYLES[style].palette[row][type])), ...(mega ? MEGA_LEAD_PROGRAMS : [])];
+// a rare lead (RARE_LEADS) brings its alternative, the palette's second row
+export const editionPrograms = (style, type, mega) => [...new Set([0, ...(RARE_LEADS.includes(STYLES[style].palette[0][type]) ? [1] : []), 2, 3, 4].map((row) => STYLES[style].palette[row][type])), ...(mega ? MEGA_LEAD_PROGRAMS : [])];
 export const EDITION_PROGRAMS = [...new Set(STYLES.flatMap((_, s) => [0, 1, 2].flatMap((t) => editionPrograms(s, t, true))))];
 export const editionData = () => bankData(undefined, [...new Set([...ESSENTIALS, ...EDITION_PROGRAMS])]);
 export const editionWaves = (data = editionData()) => sampledWaves([...EDITION_PROGRAMS.map((id) => data.presets[id]), ...EDITION_DRUMS.map((key) => data.drums[key])]);
@@ -310,11 +311,11 @@ function editionsCairo() {
   const codes = EDITION_PROGRAMS.map((id) => timbreCode(id));
   const drumCodes = EDITION_DRUMS.map((key) => timbreCode(key, true));
   const at = (id) => EDITION_PROGRAMS.indexOf(id);
-  // a palette: its count * 2^20 + its timbres' indices into EDITION_TIMBRES, 5 bits each
+  // a palette: its count * 2^25 + its timbres' indices into EDITION_TIMBRES, 5 bits each
   const palettes = STYLES.flatMap((_, st) => [0, 1, 2].map((t) => {
     const progs = editionPrograms(st, t, false);
-    check(progs.length <= 4 && EDITION_PROGRAMS.length <= 32, 'palette');
-    return progs.length * 2 ** 20 + progs.reduce((acc, id, i) => acc + at(id) * 32 ** i, 0);
+    check(progs.length <= 5 && EDITION_PROGRAMS.length <= 32, 'palette');
+    return progs.length * 2 ** 25 + progs.reduce((acc, id, i) => acc + at(id) * 32 ** i, 0);
   }));
   const hashes = STYLES.flatMap((_, st) => [0, 1, 2].flatMap((t) => [false, true].map((mega) => '0x' + poseidonHashMany(serializeSettings(editionSynthSettings(st, t, mega, data))).toString(16))));
   return `
@@ -327,8 +328,8 @@ pub fn edition_synth_settings(style: u32, beast_type: u32, mega: bool) -> TinySy
     let palette = *EDITION_PALETTES.span().at(style * 3 + beast_type);
     let timbres = EDITION_TIMBRES.span();
     let mut picked: Array<u32> = array![];
-    let mut at = palette % 0x100000;
-    let mut n = palette / 0x100000;
+    let mut at = palette % 0x2000000;
+    let mut n = palette / 0x2000000;
     while n > 0 {
         picked.append(*timbres.at(at % 32));
         at /= 32;
@@ -351,7 +352,7 @@ const EDITION_TIMBRES: [u32; ${codes.length}] = [${codes.join(', ')}];
 /// The chip drums ${EDITION_DRUMS.join(', ')}.
 #[cairofmt::skip]
 const EDITION_DRUM_TIMBRES: [u32; ${drumCodes.length}] = [${drumCodes.join(', ')}];
-/// Each style and type's presets (index style * 3 + type): count * 2^20 + indices into
+/// Each style and type's presets (index style * 3 + type): count * 2^25 + indices into
 /// EDITION_TIMBRES, 5 bits each.
 #[cairofmt::skip]
 const EDITION_PALETTES: [u32; ${palettes.length}] = [${palettes.join(', ')}];

@@ -23,6 +23,9 @@ const TWO32: u64 = 0x100000000;
 /// The degree offset: degree d of the source is d + O here.
 const O: u32 = 70;
 const MEGA_LEADS: [u8; 2] = [50, 65];
+/// The styles the mix singles out (editions_data.cairo order).
+const STYLE_DIRGE: u32 = 3;
+const STYLE_OVERWORLD: u32 = 18;
 const VOL: [u8; 10] = [100, 64, 74, 100, 58, 62, 70, 0, 0, 70];
 const PAN: [u8; 10] = [64, 46, 82, 64, 64, 88, 100, 0, 0, 64];
 /// The forms' sections, 2 bits each: AABA, ABAB, AABB, ABAC, AA'BA, ABA'B, AA'BA', ABA'C (tunes A
@@ -103,13 +106,34 @@ fn block(ref tw: TrackWriter, ch: u8, t: u32, d: u32, ps: Span<u8>, v: u8) {
     }
 }
 
-/// A channel's track, opened with its program, volume, pan and reverb.
+/// A channel's volume (CC 7) as a mix level (editions_lite.js volOf): TinySynth's gain is volume
+/// squared, so 70% loudness is x0.837 and 115% x1.072 (per mille): the Dirge's bass and the
+/// Overworld's accompaniment at 70%; the Noise Channel Lead (72) at 70% on the lead and descant,
+/// the PCE Wavetable Pluck (99) at 70% as the accompaniment, the Triangle Pad (33) at 115% as the
+/// pad.
+fn vol_of(st: u32, ch: u8, program: u8) -> u8 {
+    let k: u32 = if (st == STYLE_DIRGE && ch == 3) || (st == STYLE_OVERWORLD && ch == 2) {
+        837
+    } else if (ch == 0 || ch == 1) && program == 72 {
+        837
+    } else if ch == 2 && program == 99 {
+        837
+    } else if ch == 4 && program == 33 {
+        1072
+    } else {
+        1000
+    };
+    let v: u32 = (*VOL.span().at(ch.into())).into();
+    ((v * k + 500) / 1000).try_into().unwrap()
+}
+
+/// A channel's track, opened with its program, volume (`vol_of` style `st`), pan and reverb.
 #[inline(never)]
-fn channel_track(ch: u8, program: u8) -> TrackWriter {
+fn channel_track(ch: u8, program: u8, st: u32) -> TrackWriter {
     let role: u32 = ch.into();
     let mut tw = TrackWriterTrait::new();
     tw.program(0, ch, program);
-    msg(ref tw, 0, 0xB0 + ch, 7, *VOL.span().at(role));
+    msg(ref tw, 0, 0xB0 + ch, 7, vol_of(st, ch, program));
     msg(ref tw, 0, 0xB0 + ch, 10, *PAN.span().at(role));
     msg(ref tw, 0, 0xB0 + ch, 91, 40);
     tw
@@ -329,6 +353,10 @@ struct Ctx {
     /// the ornament's kind (upper or lower grace, slide, mordent) and the bass's rhythm (as
     /// written, doubled, detached)
     orn_kind: u32,
+    /// the style (index), an FM Brass lead's alternative, the pluck accompaniment an octave down
+    st: u32,
+    lead_alt: bool,
+    acc_down: bool,
     bass_mode: u32,
     detached: bool,
     /// the 32 bars' chords, and the lead's notes over the whole form
@@ -346,6 +374,9 @@ fn lead_track(k: Box<Ctx>, role: u32) -> Array<u8> {
     let leads = MEGA_LEADS.span();
     let lead_program = if c.shiny {
         *leads.at(c.species % 2)
+    } else if c.lead_alt {
+        // an FM Brass lead's alternative, the palette's second row
+        *c.s.unbox().palette.at(3 + c.kind)
     } else {
         *c.s.unbox().palette.at(c.kind)
     };
@@ -359,7 +390,7 @@ fn lead_track(k: Box<Ctx>, role: u32) -> Array<u8> {
         (0, lead_program, 0)
     };
     let (base, scale, bar) = (c.base, c.scale, c.bar);
-    let mut tw = channel_track(ch, program);
+    let mut tw = channel_track(ch, program, c.st);
     for n in c.lead {
         let n = *n;
         let len = n.len - if c.detached && n.len <= 240 {
@@ -433,11 +464,14 @@ fn chord_track(k: Box<Ctx>, ch: u8) -> Array<u8> {
     } else {
         *s.palette.at(role * 3 + c.kind)
     };
-    let mut tw = channel_track(ch, program);
+    let mut tw = channel_track(ch, program, c.st);
     let (pattern, low, vel0) = if ch == 3 {
         (c.bass, c.base - 24, 64)
     } else if ch == 9 {
         (c.perc, 0, 36)
+    } else if ch == 2 && c.acc_down {
+        // the PCE Wavetable Pluck accompaniment an octave lower
+        (c.accomp, c.base - 12, 40)
     } else {
         (c.accomp, c.base, 40)
     };
@@ -544,7 +578,7 @@ pub fn edition_tracks_on(
         Option::None => (Option::None, Option::None, 6, 0, 0),
     };
     assert(species >= 1 && species <= 75, 'editions: species');
-    let (_, sb, bpm0) = edition_genome(e);
+    let (st, sb, bpm0) = edition_genome(e);
     let s = sb.unbox();
     // the Beast: tier, type, tonic and the opening of its Genesis theme (degree + 8, 4 bits each)
     let k = species - 1;
@@ -817,6 +851,11 @@ pub fn edition_tracks_on(
             orn,
             orn_seed,
             orn_kind,
+            st,
+            // an FM Brass lead on 1 purchase in 4; the PCE Wavetable Pluck accompaniment an octave
+            // lower on 1 in 3 (no draws of their own)
+            lead_alt: !shiny && *s.palette.at(k / 25) == 47 && (orn_seed + roll) % 4 != 0,
+            acc_down: *s.palette.at(6 + k / 25) == 99 && (orn_seed / 8) % 3 == 0,
             bass_mode,
             detached,
             chords: chords.span(),

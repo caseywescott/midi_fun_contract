@@ -83,7 +83,7 @@ export const STYLES = [
     ],
     basses: [[[0, 690, 0, -10], [720, 690, 1, -18]], [[0, 1400, 0, -12]], [[0, 690, 0, -10], [720, 690, 2, -18]]],
     percs: [[[0, 42, -30], [720, 42, -30]], [[0, 42, -30], [480, 42, -36], [720, 42, -30], [1200, 42, -36]]],
-    palette: [[45, 78, 17], [33, 0, 70], [17, 44, 99], [20, 27, 20], [33, 75, 32]],
+    palette: [[0, 64, 17], [33, 0, 70], [17, 44, 99], [20, 27, 20], [33, 75, 32]],
     progs: [[0, 3, 0, 4], [0, 5, 3, 4], [0, 4, 5, 3], [3, 4, 0, 0], [0, 1, 4, 0], [0, 3, 5, 4], [5, 3, 4, 0], [0, 2, 3, 4], [0, 3, 4, 0], [0, 5, 1, 4], [0, 2, 5, 4], [5, 3, 0, 4], [0, 4, 3, 0], [0, 1, 3, 4], [1, 4, 0, 0], [0, 5, 4, 0]],
   },
   {
@@ -150,7 +150,7 @@ export const STYLES = [
     ],
     basses: [[[0, 400, 0, 0]], [[0, 400, 0, 0], [480, 400, 1, -6]], [[0, 200, 0, 0], [480, 200, 3, -8]]],
     percs: [[[0, 36, -6], [480, 38, -10], [720, 38, -22]], [[0, 36, -6], [240, 38, -24], [480, 38, -10]]],
-    palette: [[47, 47, 62], [47, 47, 62], [18, 44, 99], [20, 24, 88], [29, 31, 28]],
+    palette: [[47, 47, 62], [64, 62, 62], [18, 44, 99], [20, 24, 88], [29, 31, 28]],
     progs: [[0, 4, 0, 4], [0, 3, 4, 0], [0, 0, 4, 0], [0, 3, 0, 4], [0, 5, 1, 4], [3, 0, 4, 0], [0, 4, 5, 4], [0, 1, 4, 0], [0, 5, 3, 4], [0, 4, 5, 3], [3, 4, 0, 0], [0, 2, 5, 4], [5, 3, 0, 4], [0, 4, 3, 0], [0, 3, 5, 4], [0, 1, 3, 4]],
   },
   {
@@ -289,7 +289,7 @@ export const STYLES = [
     ],
     basses: [[[0, 400, 0, 0]], [[0, 200, 0, 0], [480, 200, 1, -6]], [[0, 200, 0, 0], [480, 200, 3, -6]]],
     percs: [[[0, 36, -6], [480, 38, -10]], [[0, 36, -6], [480, 38, -10], [720, 38, -20], [840, 38, -24]]],
-    palette: [[47, 64, 62], [47, 64, 62], [18, 17, 99], [20, 24, 88], [29, 32, 28]],
+    palette: [[47, 64, 62], [64, 64, 62], [18, 17, 99], [20, 24, 88], [29, 32, 28]],
     progs: [[0, 4, 0, 4], [0, 3, 4, 0], [0, 0, 4, 0], [0, 4, 4, 0], [3, 0, 4, 0], [0, 5, 1, 4], [0, 3, 0, 4], [0, 1, 4, 0], [0, 5, 3, 4], [0, 4, 5, 3], [3, 4, 0, 0], [0, 2, 5, 4], [5, 3, 0, 4], [0, 4, 3, 0], [0, 3, 5, 4], [0, 1, 3, 4]],
   },
   {
@@ -364,7 +364,7 @@ export const STYLES = [
     ],
     basses: [[[0, 440, 0, 0], [480, 440, 2, -6], [960, 440, 3, -4], [1440, 440, 2, -6]], [[0, 340, 0, 0], [360, 100, 0, -10], [480, 340, 2, -4], [840, 100, 2, -10], [960, 340, 3, -2], [1320, 100, 3, -10], [1440, 340, 2, -4], [1800, 100, 2, -10]], [[0, 900, 0, -4], [960, 900, 1, -6]]],
     percs: [[[0, 36, -8], [360, 42, -26], [480, 38, -10], [840, 42, -26], [960, 36, -8], [1320, 42, -26], [1440, 38, -10], [1800, 42, -26]], [[0, 36, -8], [480, 38, -10], [960, 36, -8], [1440, 38, -10]]],
-    palette: [[0, 70, 47], [0, 70, 47], [18, 95, 99], [27, 24, 20], [32, 33, 29]],
+    palette: [[0, 70, 47], [0, 70, 0], [18, 95, 99], [27, 24, 20], [32, 33, 29]],
     progs: [[0, 3, 0, 4], [0, 0, 3, 4], [0, 3, 4, 0], [0, 5, 1, 4], [3, 3, 0, 0], [0, 4, 3, 0], [0, 1, 4, 0], [0, 5, 3, 4], [0, 4, 5, 3], [3, 4, 0, 0], [0, 2, 5, 4], [5, 3, 0, 4], [0, 3, 5, 4], [0, 1, 3, 4], [1, 4, 0, 0], [0, 5, 4, 0]],
   },
   {
@@ -455,6 +455,20 @@ class Track {
 }
 
 const VOL = [100, 64, 74, 100, 58, 62, 70, 0, 0, 70];
+/** The leads kept on 1 purchase in 4 (FM Brass; the Dungeon Crawl keeps its FM Bell); otherwise the
+ *  palette's second row. */
+export const RARE_LEADS = [47];
+/**
+ * A channel's volume (CC 7) as a mix level: TinySynth's gain is volume squared, so 70% loudness is
+ * x0.837 and 115% x1.072 (per mille): the Dirge's bass and the Overworld's accompaniment at 70%; the
+ * Noise Channel Lead (72) at 70% on the lead and descant, the PCE Wavetable Pluck (99) at 70% as the
+ * accompaniment, the Triangle Pad (33) at 115% as the pad. editions.cairo vol_of.
+ */
+export function volOf(styleKey, ch, prog) {
+  const k = styleKey === 'dirge' && ch === 3 ? 837 : styleKey === 'overworld' && ch === 2 ? 837
+    : (ch === 0 || ch === 1) && prog === 72 ? 837 : ch === 2 && prog === 99 ? 837 : ch === 4 && prog === 33 ? 1072 : 1000;
+  return Math.floor((VOL[ch] * k + 500) / 1000);
+}
 const PAN = [64, 46, 82, 64, 64, 88, 100, 0, 0, 64];
 
 /** The track's melody over one section's chords (scale degrees), from `R`. */
@@ -569,7 +583,11 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) 
   const P = (d) => pitch(base, scale, d), PB = (d) => pitch(bassBase, scale, d);
   const pal = S.palette.map((r) => r[sp.type]);
   if (shiny) { pal[0] = MEGA_LEADS[sp.id % 2]; pal.push(MEGA_LEADS[(sp.id + 1) % 2]); }
+  // an FM Brass lead on 1 purchase in 4, else the palette's second row (no draw of its own)
+  if (!shiny && RARE_LEADS.includes(pal[0]) && (ornSeed + roll) % 4 !== 0) pal[0] = pal[1];
   pal[1] = pal[0]; // the descant plays the lead's preset
+  // the PCE Wavetable Pluck accompaniment an octave lower on 1 purchase in 3
+  const accDown = pal[2] === 99 && Math.floor(ornSeed / 8) % 3 === 0;
   pal[6] = pal[2]; // the echo the accompaniment's
   const T = { lead: new Track(), descant: new Track(), accomp: new Track(), bass: new Track(), pad: new Track(), percussion: new Track(), mega: new Track(), echo: new Track() };
   let t0 = 0;
@@ -631,7 +649,7 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) 
       const v = triad(ch, -3), vr = [0, 1, 2].map((k) => v[0] + [0, 2, 4, 7, 9][rot + k]);
       for (const [off, d, voice, dv] of accomp) {
         const ps = voice === 9 ? vr.map(P) : voice === 10 ? [P(vr[0]), P(vr[0]) + 12] : voice === 3 ? [P(vr[0]) + 12] : [P(vr[voice])];
-        T.accomp.block(2, t + off, d, ps, 72 + dv);
+        T.accomp.block(2, t + off, d, accDown ? ps.map((x) => x - 12) : ps, 72 + dv);
       }
       for (const [off, d, tone, dv] of bassFig) {
         const ps = tone === 4 ? [PB(0), PB(4)] : [PB(ch + [0, -3, 4, 7][tone])];
@@ -659,7 +677,7 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) 
   if (echo) order2.push(['echo', 6]);
   for (const [name, ch] of order2) {
     const head = new Track();
-    head.msg(0, 0xc0 | ch, ch === 9 ? 0 : pal[ch]); head.msg(0, 0xb0 | ch, 7, VOL[ch]); head.msg(0, 0xb0 | ch, 10, PAN[ch]); head.msg(0, 0xb0 | ch, 91, 40);
+    head.msg(0, 0xc0 | ch, ch === 9 ? 0 : pal[ch]); head.msg(0, 0xb0 | ch, 7, volOf(S.key, ch, ch === 9 ? 0 : pal[ch])); head.msg(0, 0xb0 | ch, 10, PAN[ch]); head.msg(0, 0xb0 | ch, 91, 40);
     bodies.push([...head.b, ...T[name].finish(ticks)]);
   }
   const fig = (xs, x) => String.fromCharCode(65 + xs.indexOf(x));

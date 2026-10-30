@@ -936,15 +936,9 @@ fn compose_tracks(
             },
             programs: Option::None,
             echo: false,
-            // grace notes only on a day of drift after the first (never on a written track)
-            grace: match dr {
-                Option::Some(d) => if d.day >= 2 {
-                    grace_of(p.ornament_density, p.species_id)
-                } else {
-                    0
-                },
-                Option::None => 0,
-            },
+            // this path plays written songs: no grace notes (a drifted song goes through its
+            // inputs)
+            grace: 0,
         },
     )
 }
@@ -1449,8 +1443,19 @@ pub fn song_tracks(x: SongInputs, mega: bool, echo: bool, graces: bool) -> Array
             },
             programs: Option::None,
             echo,
+            // the grace notes' kind: from the week's hash on a drift week (the channel order's
+            // seed), else from the species and density
             grace: if graces {
-                grace_of(s.ornament_density, species_id)
+                grace_of(
+                    s.ornament_density,
+                    match a.channel_policy {
+                        ChannelPolicy::Seeded(r) => (crate::composition::drift::low32(r) / 2048 % 4)
+                            .try_into()
+                            .unwrap(),
+                        ChannelPolicy::Genesis => ((species_id % 4).try_into().unwrap()
+                            + s.ornament_density.into()) % 4,
+                    },
+                )
             } else {
                 0
             },

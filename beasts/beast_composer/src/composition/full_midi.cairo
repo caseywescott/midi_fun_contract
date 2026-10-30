@@ -625,12 +625,12 @@ pub struct Arrangement {
     pub grace: u32,
 }
 
-/// A song's grace notes from its ornament density (0-7: 0-35% of the lead's notes of a quarter or
-/// longer) and species: the kind (a tone above, a semitone below, a slide from a minor third
-/// below, a mordent) from both, so it moves when the drift moves the density.
-pub fn grace_of(density: u8, species: u64) -> u32 {
+/// A song's grace notes from its ornament density (0-7: 0-35% of the lead's and the theme's notes
+/// of a quarter or longer) and their kind (0 a tone above, 1 a semitone below, 2 a slide from a
+/// minor third below, 3 a mordent).
+pub fn grace_of(density: u8, kind: u32) -> u32 {
     let d: u32 = density.into();
-    d * 20 + ((species % 4).try_into().unwrap() + d) % 4
+    d * 20 + kind
 }
 
 /// The upper plucks' volume factor in basis points for a voice averaging MIDI 52 + i (i = 0..12;
@@ -998,8 +998,8 @@ pub fn beast_form_to_full_tracks_arranged(
             for r in runs.span() {
                 if r.voice == v {
                     any = true;
-                    // the lead's grace notes
-                    let (grace, salt): (u32, u32) = if v == lead {
+                    // the lead's and the theme's grace notes
+                    let (grace, salt): (u32, u32) = if v == lead || v == 0 {
                         (
                             arr.grace,
                             match voicing {

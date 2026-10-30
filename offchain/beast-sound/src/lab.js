@@ -834,7 +834,11 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   const fx = { ...(b.shiny ? MEGA_ALL : {}), ...(echo ? { echo: true } : {}) };
   // the lead's grace notes from the song's ornament density (full_midi.js graceOf): on a day of drift
   // after the first only, never on a written track
-  const grace = !off && epoch >= 2 ? graceOf(p.ornament_density, p.species_id) : 0;
+  // the kind: from the week's hash on a drift week (the channel order's seed), else the bought track's
+  // seed, else from the species and density (genesis.cairo song_tracks)
+  const kseed = d.v === 2 && d.rotate !== null ? d.rotate : seed;
+  const gkind = kseed !== null && kseed !== undefined ? Math.floor(Number(BigInt(kseed) & 0xffffffffn) / 2048) % 4 : ((Number(p.species_id) % 4) + p.ornament_density) % 4;
+  const grace = !off && epoch >= 2 ? graceOf(p.ornament_density, gkind) : 0;
   return { midi: beastFullMidi(out, E.formLength, fx, { instruments: 'beast', drums, mix, topLead, grace, ...(yetiMix || {}) }), drift: d, result: out, info };
 }
 

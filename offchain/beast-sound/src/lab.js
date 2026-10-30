@@ -862,15 +862,18 @@ export function genesisMidi(speciesId, shiny, E, v11, opts = {}) {
 }
 
 // ── the Sound Check: a Beast's scale through each of its presets ──────────────────────────────────
-// Each preset gets a block of ten quarter notes: four quarters on the Beast's scale (a pattern picked
-// by the Beast), a held note, then four staccato blips an octave up; the drum kit closes it. The
+// Each preset gets a block: four quarters on the Beast's scale (a pattern picked by the Beast), a held
+// note, then a sixteenth-note arpeggio up the tonic triad over two octaves. Each block starts a scale
+// degree higher than the one before, on the previous block's last arpeggio note (a hand-off); the drum
+// kit closes it the same way. The
 // presets are the Beast's family (three leads, three plucks) plus the two mega leads when shiny, from
 // a start picked by the Beast. The key is the Beast's own: its special name's key, or for a Beast
 // without one its species' spread key (as on its Species Song), in the mode's real scale. Its inputs
 // are the species, the special name and the shiny flag, all in the packed composer inputs.
 export const SOUND_CHECK_PATTERNS = [[0, 1, 2, 3], [0, 2, 4, 7], [7, 4, 2, 0], [0, 2, 1, 3]];
 export const SOUND_CHECK_KIT = [36, 38, 42, 46, 49, 50, 47, 45];
-const SC_BLOCK = 4800, SC_KIT_VOICE = 9;
+const SC_BLOCK = 4800, SC_STEP = 3960, SC_KIT_VOICE = 9;
+export const SOUND_CHECK_ARP = [7, 9, 11, 14, 16, 18];
 export function soundCheckMidi(b, E) {
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1 };
   const g = genesisBeast(b), named = b.prefix !== 0;
@@ -878,20 +881,20 @@ export function soundCheckMidi(b, E) {
   const mode = !named && GENESIS_MODES[b.id] !== undefined ? GENESIS_MODES[b.id] : kp.mode_id;
   const scale = MODE_SCALES[mode] ?? [0, 2, 3, 5, 7, 8, 10];
   const tonic = kp.tonic_keynum;
-  const pitch = (d) => tonic + 12 * Math.floor(d / 7) + scale[((d % 7) + 7) % 7];
+  const pitch = (d) => { let p = tonic + 12 * Math.floor(d / 7) + scale[((d % 7) + 7) % 7]; while (p > 127) p -= 12; return p; };
   const h = low32(H('BEAST_SOUND_CHECK', b.id, nameVariant(b.prefix, b.suffix)));
   const fam = FAMILIES[b.beast_type] ?? FAMILIES[0];
   const presets = [...fam.leads, ...fam.plucks, ...(b.shiny ? MEGA_LEADS : [])];
   const rot = h % presets.length, pattern = SOUND_CHECK_PATTERNS[(h >>> 8) % 4], held = (h >>> 12) % 2 ? 4 : 7;
   const events = [], programs = {};
   presets.forEach((_, v) => {
-    const t0 = v * SC_BLOCK;
+    const t0 = v * SC_STEP; // the climb: each block a scale degree higher
     programs[v] = presets[(v + rot) % presets.length];
-    pattern.forEach((d, k) => events.push({ time: t0 + k * 480, duration: 420, pitch: pitch(d), velocity: 100, voice_id: v }));
-    events.push({ time: t0 + 1920, duration: 1380, pitch: pitch(held), velocity: 96, voice_id: v });
-    [7, 9, 11, 14].forEach((d, k) => events.push({ time: t0 + 3360 + k * 240, duration: 60, pitch: pitch(d), velocity: 90, voice_id: v }));
+    pattern.forEach((d, k) => events.push({ time: t0 + k * 480, duration: 420, pitch: pitch(d + v), velocity: 100, voice_id: v }));
+    events.push({ time: t0 + 1920, duration: 1380, pitch: pitch(held + v), velocity: 96, voice_id: v });
+    SOUND_CHECK_ARP.forEach((d, k) => events.push({ time: t0 + 3360 + k * 120, duration: 60, pitch: pitch(d + v), velocity: 90, voice_id: v }));
   });
-  const k0 = presets.length * SC_BLOCK;
+  const k0 = presets.length * SC_STEP;
   SOUND_CHECK_KIT.forEach((key, k) => events.push({ time: k0 + k * 480, duration: 240, pitch: key, velocity: 100, voice_id: SC_KIT_VOICE }));
   programs[SC_KIT_VOICE] = 0;
   const length = k0 + SC_BLOCK;

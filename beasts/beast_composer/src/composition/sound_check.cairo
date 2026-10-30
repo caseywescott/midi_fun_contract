@@ -1,8 +1,9 @@
 //! The Sound Check: a Beast's scale through each of its presets, byte-identical to the lab's
-//! `soundCheckMidi` (offchain/beast-sound/src/lab.js). Each preset gets a block of ten quarter
-//! notes:
-//! four quarters on the Beast's scale (a pattern picked by the Beast), a held note, four staccato
-//! blips an octave up; the drum kit closes it. The presets are the Beast's family (three leads,
+//! `soundCheckMidi` (offchain/beast-sound/src/lab.js). Each preset gets a block: four quarters on
+//! the Beast's scale (a pattern picked by the Beast), a held note, then a sixteenth-note arpeggio
+//! up the tonic triad over two octaves. Each block starts a scale degree higher than the one
+//! before, on the previous block's last arpeggio note (a hand-off); the drum kit closes it the
+//! same way. The presets are the Beast's family (three leads,
 //! three plucks) and the two mega leads when shiny, from a start picked by the Beast. The key is
 //! the Beast's own: its special name's, or its species' spread key without one, in the mode's real
 //! scale. One per Beast from its species, special name and shiny flag.
@@ -18,6 +19,9 @@ use crate::composition::melodic_canon::NoteEvent;
 use crate::inputs::{ComposerInputs, MusicIdentity, SoundCheckInputs, validate_inputs};
 use crate::opaque::opaque;
 
+/// Ticks from one preset's block to the next: the next enters on this one's last arpeggio note.
+const STEP: u32 = 3960;
+/// The kit's block.
 const BLOCK: u32 = 4800;
 const KIT_VOICE: u32 = 9;
 
@@ -117,7 +121,7 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
     ): (Span<i32>, Span<u8>, Array<NoteEvent>, Array<u8>, u32, u32) =
         opaque(
         (
-            array![7, 9, 11, 14].span(),
+            array![7, 9, 11, 14, 16, 18].span(),
             array![36, 38, 42, 46, 49, 50, 47, 45].span(),
             array![],
             array![],
@@ -126,17 +130,18 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
         ),
     );
     while v < n {
-        let t0 = v * BLOCK;
+        let t0 = v * STEP;
         programs.append(*presets.at((v + rot) % n));
+        // the climb: each block `v` scale degrees higher
         let mut k = first;
         for d in pattern {
-            events.append(note(t0 + k * 480, 420, pitch(tonic, scale, *d), 100, v, x));
+            events.append(note(t0 + k * 480, 420, pitch(tonic, scale, *d, v), 100, v, x));
             k += 1;
         }
-        events.append(note(t0 + 1920, 1380, pitch(tonic, scale, held), 96, v, x));
+        events.append(note(t0 + 1920, 1380, pitch(tonic, scale, held, v), 96, v, x));
         let mut k = first;
         for d in blips {
-            events.append(note(t0 + 3360 + k * 240, 60, pitch(tonic, scale, *d), 90, v, x));
+            events.append(note(t0 + 3360 + k * 120, 60, pitch(tonic, scale, *d, v), 90, v, x));
             k += 1;
         }
         v += 1;
@@ -144,7 +149,7 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
     while programs.len() <= KIT_VOICE {
         programs.append(0);
     }
-    let k0 = n * BLOCK;
+    let k0 = n * STEP;
     let mut k = first;
     for key in kit {
         events.append(note(k0 + k * 480, 240, *key, 100, KIT_VOICE, x));
@@ -172,10 +177,18 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
     )
 }
 
-fn pitch(tonic: u32, scale: Span<u8>, d: i32) -> u8 {
+/// Degree `d + up` of the scale over `tonic`, an octave lower while above MIDI 127.
+fn pitch(tonic: u32, scale: Span<u8>, d: i32, up: u32) -> u8 {
     let d: u32 = d.try_into().unwrap();
+    let d = d + up;
     let off: u32 = (*scale.at(d % 7)).into();
-    (tonic + 12 * (d / 7) + off).try_into().unwrap()
+    let p = tonic + 12 * (d / 7) + off;
+    // the fewest octaves down to 127 or below
+    if p > 127 {
+        (p - 12 * ((p - 116) / 12)).try_into().unwrap()
+    } else {
+        p.try_into().unwrap()
+    }
 }
 
 /// A note as performed: staccato (1) halves it and portato (5) keeps three quarters (at least 60

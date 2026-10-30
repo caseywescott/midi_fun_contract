@@ -589,7 +589,7 @@ pub fn song_smf_bytes(
                 genesis_song_inputs(beast, prefix, suffix, seed, drift),
                 beast.shiny == 1,
                 false,
-                c.day >= 2,
+                c.day,
             )
                 .span(),
         ),
@@ -937,9 +937,13 @@ fn compose_tracks(
             },
             programs: Option::None,
             echo: false,
-            // this path plays written songs: no grace notes (a drifted song goes through its
-            // inputs)
+            // this path plays written songs: no grace notes or fills (a drifted song goes through
+            // its inputs)
             grace: 0,
+            grace_all: false,
+            fill: 0,
+            tonic: 0,
+            scale: [].span(),
         },
     )
 }
@@ -1024,10 +1028,22 @@ pub fn drifted_song_inputs(x: SongInputs, d: Drift) -> SongInputs {
     if let Option::Some(r) = d.rhythm {
         y.treatment.rhythm_seed = r;
         y.score.tonic_keynum = drift_key(y.score.tonic_keynum, r);
+        // from the second day, a month may turn the inversion
+        if d.day >= 2 && crate::composition::drift::low32(r) / 4096 % 2 == 1 {
+            y.score.use_inversion = !y.score.use_inversion;
+        }
     }
     if let Option::Some(r) = d.rotate {
         y.arrangement.channel_policy = ChannelPolicy::Seeded(r);
         y.score.ornament_density = drift_ornaments(r, d.day);
+        // from the second day, a week sets the entries' spacing and may turn the trill
+        if d.day >= 2 {
+            let h = crate::composition::drift::low32(r);
+            y.score.stretto_lag = (1 + h / 65536 % 4).try_into().unwrap();
+            if h / 262144 % 2 == 1 {
+                y.treatment.trill = !y.treatment.trill;
+            }
+        }
     }
     if d.day_knob == 0 {
         y.treatment.flip_side = !y.treatment.flip_side;
@@ -1053,6 +1069,42 @@ pub fn drifted_song_inputs(x: SongInputs, d: Drift) -> SongInputs {
         };
     }
     y
+}
+
+/// A song's ornaments on `day` of drift (none as written, or on the first day): grace notes on some
+/// of the lead's and the theme's notes of a quarter or longer (every canon voice from day 360), the
+/// share the ornament density * 5% (+15% from day 540), the kind (`full_midi::grace_of`) from the
+/// channel order's seed (the week's on a drift week, else a bought track's) or else the species and
+/// density; and the inner voices' fills, the share drawn from that seed under a ceiling rising
+/// with the day: none to day 180, then up to 15%, 30% and from day 540 50%.
+fn song_ornaments(density: u8, policy: ChannelPolicy, species: u64, day: u64) -> (u32, u32) {
+    if day < 2 {
+        return (0, 0);
+    }
+    let h: u64 = match policy {
+        ChannelPolicy::Seeded(r) => crate::composition::drift::low32(r),
+        ChannelPolicy::Genesis => 0,
+    };
+    let kind: u32 = match policy {
+        ChannelPolicy::Seeded(_) => (h / 2048 % 4).try_into().unwrap(),
+        ChannelPolicy::Genesis => ((species % 4).try_into().unwrap() + density.into()) % 4,
+    };
+    let bonus: u8 = if day >= 540 {
+        3
+    } else {
+        0
+    };
+    let ceiling: u64 = if day < 180 {
+        0
+    } else if day < 360 {
+        1
+    } else if day < 540 {
+        2
+    } else {
+        3
+    };
+    let fill = *[0_u32, 15, 30, 50].span().at(((h / 524288) % (ceiling + 1)).try_into().unwrap());
+    (grace_of(density + bonus, kind), fill)
 }
 
 /// A new-rhythm month's key for a song: two months in three the tonic moves to the dominant (+7)
@@ -1315,9 +1367,19 @@ fn song_inputs(
     if let Option::Some(d) = dr {
         if let Option::Some(r) = d.rhythm {
             x.score.tonic_keynum = drift_key(x.score.tonic_keynum, r);
+            if d.day >= 2 && crate::composition::drift::low32(r) / 4096 % 2 == 1 {
+                x.score.use_inversion = !x.score.use_inversion;
+            }
         }
         if let Option::Some(r) = d.rotate {
             x.score.ornament_density = drift_ornaments(r, d.day);
+            if d.day >= 2 {
+                let h = crate::composition::drift::low32(r);
+                x.score.stretto_lag = (1 + h / 65536 % 4).try_into().unwrap();
+                if h / 262144 % 2 == 1 {
+                    x.treatment.trill = !x.treatment.trill;
+                }
+            }
         }
         if d.day_knob >= 2 {
             x.score.articulation_profile = if d.delta_bpm > 0 {
@@ -1340,11 +1402,14 @@ fn special_name_id(prefix: u8, suffix: u8) -> u16 {
 }
 
 /// The track bodies a song's shared inputs compose, with the mega arrangement when `mega`, the
-/// chip echo when `echo` and the lead's grace notes when `graces` (a day of drift after the
-/// first). Plays what this engine supports: tied inner voices and the written phrase
-/// in every section.
-pub fn song_tracks(x: SongInputs, mega: bool, echo: bool, graces: bool) -> Array<Array<u8>> {
+/// chip echo when `echo`, and on `day` of drift (0: as written) from the second the ornaments that
+/// grow with time (`song_ornaments`). Plays what this engine supports: tied inner voices and the
+/// written phrase in every section.
+pub fn song_tracks(x: SongInputs, mega: bool, echo: bool, day: u64) -> Array<Array<u8>> {
     let (theme, s, t, a) = (x.theme, x.score, x.treatment, x.arrangement);
+    let (grace, fill) = song_ornaments(
+        s.ornament_density, a.channel_policy, a.identity.source_species_id.into(), day,
+    );
     assert(a.weak_ties, 'untied voices unsupported');
     assert(!t.section_rhythm, 'section rhythm unsupported');
     let species_id: u64 = a.identity.source_species_id.into();
@@ -1467,21 +1532,13 @@ pub fn song_tracks(x: SongInputs, mega: bool, echo: bool, graces: bool) -> Array
             },
             programs: Option::None,
             echo,
-            // the grace notes' kind: from the week's hash on a drift week (the channel order's
-            // seed), else from the species and density
-            grace: if graces {
-                grace_of(
-                    s.ornament_density,
-                    match a.channel_policy {
-                        ChannelPolicy::Seeded(r) => (crate::composition::drift::low32(r) / 2048 % 4)
-                            .try_into()
-                            .unwrap(),
-                        ChannelPolicy::Genesis => ((species_id % 4).try_into().unwrap()
-                            + s.ornament_density.into()) % 4,
-                    },
-                )
-            } else {
-                0
+            grace,
+            grace_all: day >= 360,
+            fill,
+            tonic: s.tonic_keynum,
+            scale: match scale {
+                Option::Some(sc) => sc,
+                Option::None => crate::composition::melodic_canon::mode_scale(s.mode_id),
             },
         },
     )
@@ -1563,7 +1620,7 @@ fn song_pick(
 
 /// A song's file from its shared inputs (self-contained, for onchain-midi-player).
 pub fn song_inputs_smf_bytes(x: SongInputs, mega: bool) -> Array<u8> {
-    smf_bytes(SMF_FORMAT, SMF_DIVISION, song_tracks(x, mega, false, false).span())
+    smf_bytes(SMF_FORMAT, SMF_DIVISION, song_tracks(x, mega, false, 0).span())
 }
 
 /// The same, packed 31 bytes per felt after the byte length.

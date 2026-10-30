@@ -169,7 +169,15 @@ export const PLUCK_ABOVE_BASS_BP = [10000, 9670, 9350, 9042, 8743, 8454, 8175, 7
  *  from a minor third below, 3 a mordent. */
 export const graceOf = (density, kind) => density * 20 + kind;
 
-export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null, mix = null, topLead = false, notLead = [], grace = 0 } = {}) {
+/** The pitch a step of the key (tonic, scale) above or below p (full_midi.cairo key_step). */
+const keyStep = (p, up, tonic, scale) => {
+  const rel = (p + 120 - tonic) % 12;
+  if (up) { for (const x of scale) if (x > rel) return p + x - rel; return p + scale[0] + 12 - rel; }
+  for (let k = scale.length - 1; k >= 0; k--) if (scale[k] < rel) return p - (rel - scale[k]);
+  return p - (rel + 12 - scale[scale.length - 1]);
+};
+
+export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null, mix = null, topLead = false, notLead = [], grace = 0, graceAll = false, fill = 0, tonic = 0, scale = [] } = {}) {
   const f = result.form, p = result.params, length = formLength(f);
   const setup = voiceSetup(f.events);
   if (instruments === 'beast') for (const [v, program] of Object.entries(beastInstruments(result))) if (setup[v]) setup[v].program = program;
@@ -235,11 +243,23 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
   // the lead's and the theme's grace notes (full_midi.cairo write_notes): on some notes of a quarter or longer, placed
   // by time, pitch and the species; the grace (80 ticks, 10 softer) then the note, or for a mordent the
   // note (60), the tone above (60), the note
-  if (grace >= 4) {
+  // fills on the inner canon voices (full_midi.cairo write_notes): some notes of a quarter or longer
+  // split in half, the second half a step of the key toward the voice's next note
+  if (grace >= 4 || fill > 0) {
     const share = Math.floor(grace / 4), kind = grace % 4, salt = Number(p.species_id) % 100, out = [];
-    for (const n of notes) {
-      const [t, d, pitch, v, ch] = n;
-      if ((ch !== lead && ch !== 0) || d < 480 || pitch < 3 || pitch > 125 || v <= 10 || (Math.floor(t / 240) * 7 + pitch * 13 + salt) % 100 >= share) { out.push(n); continue; }
+    // each note's next in its own voice, in time order (Cairo writes a voice's notes as one run)
+    const next = new Map(), byVoice = {};
+    notes.forEach((n, i) => (byVoice[n[4]] ||= []).push(i));
+    for (const idx of Object.values(byVoice)) { idx.sort((a, c) => notes[a][0] - notes[c][0] || a - c); idx.forEach((i, k) => { if (k + 1 < idx.length) next.set(i, notes[idx[k + 1]]); }); }
+    for (let i = 0; i < notes.length; i++) {
+      const n = notes[i], [t, d, pitch, v, ch] = n, outer = ch === lead || ch === 0, nx = next.get(i);
+      const canon = ch <= 4 && ch !== doubleCh && ch !== echoCh; // the mega double and the echo take neither
+      if (!outer && canon && fill > 0 && d >= 480 && nx && nx[2] !== pitch && (Math.floor(t / 240) * 11 + pitch * 7 + salt) % 100 < fill) {
+        const h = d >> 1;
+        out.push([t, h, pitch, v, ch], [t + h, d - h, keyStep(pitch, nx[2] > pitch, tonic, scale), v, ch]);
+        continue;
+      }
+      if (!(outer || (graceAll && canon)) || share === 0 || d < 480 || pitch < 3 || pitch > 125 || v <= 10 || (Math.floor(t / 240) * 7 + pitch * 13 + salt) % 100 >= share) { out.push(n); continue; }
       let start = t;
       if (kind === 3) { out.push([t, 60, pitch, v, ch]); start = t + 60; }
       const [g, gd] = kind === 3 ? [pitch + 2, 60] : [pitch + 2 - [0, 3, 5][kind], 80];

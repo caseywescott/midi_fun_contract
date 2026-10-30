@@ -55,14 +55,14 @@ fn compose_with(
     let mega = is_mega(sound_effects);
     // sound effects 2 and 3: the chip echo on songs and editions
     let echo = sound_effects >= 2;
-    // a song's grace notes: on a day of drift after the first only
-    let graces = match drift {
-        Option::Some(d) => d.day >= 2,
-        Option::None => false,
+    // a song's ornaments that grow with time: by the day of drift (0 as written)
+    let day = match drift {
+        Option::Some(d) => d.day,
+        Option::None => 0,
     };
     let midi = match performed {
         ComposerInputs::Song(song) => smf_byte_array(
-            SMF_FORMAT, SMF_DIVISION, song_tracks(song, mega, echo, graces).span(),
+            SMF_FORMAT, SMF_DIVISION, song_tracks(song, mega, echo, day).span(),
         ),
         ComposerInputs::SoundCheck(check) => bytes_to_byte_array(
             sound_check_from_inputs(check, mega).span(),

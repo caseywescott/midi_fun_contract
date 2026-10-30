@@ -623,6 +623,41 @@ pub struct Arrangement {
     pub echo: bool,
     /// the lead's grace notes (`grace_of`): share of its long notes (percent) * 4 + kind; 0 none
     pub grace: u32,
+    /// the grace notes on every canon voice, not only the lead and the theme
+    pub grace_all: bool,
+    /// the inner voices' fills: the share (percent) of their long notes split into the note and a
+    /// step of the key toward the next; 0 none
+    pub fill: u32,
+    /// the key the fills step in: the tonic and the scale (empty without fills)
+    pub tonic: u8,
+    pub scale: Span<u8>,
+}
+
+/// The pitch a step of the key (`tonic`, `scale`) above or below `p`.
+fn key_step(p: u8, up: bool, tonic: u8, scale: Span<u8>) -> u8 {
+    let rel: u32 = (p.into() + 120 - tonic.into()) % 12;
+    let n = scale.len();
+    if up {
+        for x in scale {
+            let x: u32 = (*x).into();
+            if x > rel {
+                return p + (x - rel).try_into().unwrap();
+            }
+        }
+        let first: u32 = (*scale.at(0)).into();
+        p + (first + 12 - rel).try_into().unwrap()
+    } else {
+        let mut k = n;
+        while k > 0 {
+            k -= 1;
+            let x: u32 = (*scale.at(k)).into();
+            if x < rel {
+                return p - (rel - x).try_into().unwrap();
+            }
+        }
+        let last: u32 = (*scale.at(n - 1)).into();
+        p - (rel + 12 - last).try_into().unwrap()
+    }
 }
 
 /// A song's grace notes from its ornament density (0-7: 0-35% of the lead's and the theme's notes
@@ -646,36 +681,65 @@ fn note_on_off(ref track: TrackWriter, ch: u8, t: u32, d: u32, p: u8, v: u8) {
     track.message(t + d, 0x80 + ch, p, 64);
 }
 
-/// Each note of `notes` as a note on and a note off (velocity 64) on channel `ch`, with grace notes
-/// (`grace`, `grace_of`; 0 none) on some notes of a quarter or longer, placed by time, pitch and
-/// `salt`: the grace (80 ticks, 10 softer) then the note, or for a mordent the note (60), the tone
-/// above (60), the note.
-fn write_notes(ref track: TrackWriter, ch: u8, notes: Span<NoteEvent>, grace: u32, salt: u32) {
+/// Each note of `notes` as a note on and a note off (velocity 64) on channel `ch`; with `fill`,
+/// some notes of a quarter or longer split in half, the second half a step of the key (`tonic`,
+/// `scale`)
+/// toward the next note; with grace notes (`grace`, `grace_of`; 0 none) on some others of a quarter
+/// or longer, placed by time, pitch and `salt`: the grace (80 ticks, 10 softer) then the note, or
+/// for a mordent the note (60), the tone above (60), the note.
+// Out of line, its loop entered with opaque state: one compiled copy (CASM size).
+#[inline(never)]
+fn write_notes(
+    ref track: TrackWriter,
+    ch: u8,
+    notes: Span<NoteEvent>,
+    grace: u32,
+    salt: u32,
+    fill: u32,
+    tonic: u8,
+    scale: Span<u8>,
+) {
     let (share, kind) = (grace / 4, grace % 4);
-    for e in notes {
+    let n = notes.len();
+    let mut i: u32 = opaque(0);
+    while i < n {
+        let e = *notes.at(i);
         let (t, p, v, d) = (e.time, e.pitch, e.velocity, e.duration);
-        let mut start = t;
         let pp: u32 = p.into();
-        if share > 0
-            && d >= 480
-            && p >= 3
-            && p <= 125
-            && v > 10
-            && ((t / 240) * 7 + pp * 13 + salt) % 100 < share {
-            let m = kind == 3;
-            if m {
-                note_on_off(ref track, ch, t, 60, p, v);
-                start = t + 60;
+        let mut start = t;
+        let mut done = false;
+        if fill > 0 && d >= 480 && i + 1 < n {
+            let np = (*notes.at(i + 1)).pitch;
+            if np != p && ((t / 240) * 11 + pp * 7 + salt) % 100 < fill {
+                let h = d / 2;
+                note_on_off(ref track, ch, t, h, p, v);
+                note_on_off(ref track, ch, t + h, d - h, key_step(p, np > p, tonic, scale), v);
+                done = true;
             }
-            let (g, gd) = if m {
-                (p + 2, 60)
-            } else {
-                (p + 2 - *[0_u8, 3, 5].span().at(kind), 80)
-            };
-            note_on_off(ref track, ch, start, gd, g, v - 10);
-            start += gd;
         }
-        note_on_off(ref track, ch, start, t + d - start, p, v);
+        if !done {
+            if share > 0
+                && d >= 480
+                && p >= 3
+                && p <= 125
+                && v > 10
+                && ((t / 240) * 7 + pp * 13 + salt) % 100 < share {
+                let m = kind == 3;
+                if m {
+                    note_on_off(ref track, ch, t, 60, p, v);
+                    start = t + 60;
+                }
+                let (g, gd) = if m {
+                    (p + 2, 60)
+                } else {
+                    (p + 2 - *[0_u8, 3, 5].span().at(kind), 80)
+                };
+                note_on_off(ref track, ch, start, gd, g, v - 10);
+                start += gd;
+            }
+            note_on_off(ref track, ch, start, t + d - start, p, v);
+        }
+        i += 1;
     }
 }
 
@@ -703,6 +767,10 @@ pub fn beast_form_to_full_smf_bytes(
             programs: Option::None,
             echo: false,
             grace: 0,
+            grace_all: false,
+            fill: 0,
+            tonic: 0,
+            scale: [].span(),
         },
     )
 }
@@ -990,28 +1058,41 @@ pub fn beast_form_to_full_tracks_arranged(
         let mut any = false;
         if arr.echo && v == ech {
             any = echoed.len() > 0;
-            write_notes(ref track, ch, echoed.span(), 0, 0);
+            write_notes(ref track, ch, echoed.span(), 0, 0, 0, 0, [].span());
         } else if mega && v == dbl {
             any = doubled.len() > 0;
-            write_notes(ref track, ch, doubled.span(), 0, 0);
+            write_notes(ref track, ch, doubled.span(), 0, 0, 0, 0, [].span());
         } else {
+            // the voice's notes from all its runs, in order (one list, so a fill steps toward
+            // the voice's next note across runs)
+            let mut mine: Array<NoteEvent> = array![];
             for r in runs.span() {
                 if r.voice == v {
                     any = true;
-                    // the lead's and the theme's grace notes
-                    let (grace, salt): (u32, u32) = if v == lead || v == 0 {
-                        (
-                            arr.grace,
-                            match voicing {
-                                Option::Some(vc) => (vc.species_id % 100).try_into().unwrap(),
-                                Option::None => 0,
-                            },
-                        )
-                    } else {
-                        (0, 0)
-                    };
-                    write_notes(ref track, ch, events.slice(r.start, r.len), grace, salt);
+                    for e in events.slice(r.start, r.len) {
+                        mine.append(*e);
+                    }
                 }
+            }
+            if any {
+                // grace notes on the lead and the theme (every canon voice with grace_all); fills
+                // on the inner canon voices
+                let salt: u32 = match voicing {
+                    Option::Some(vc) => (vc.species_id % 100).try_into().unwrap(),
+                    Option::None => 0,
+                };
+                let outer = v == lead || v == 0;
+                let grace = if outer || (arr.grace_all && v <= 4) {
+                    arr.grace
+                } else {
+                    0
+                };
+                let fill = if !outer && v <= 4 {
+                    arr.fill
+                } else {
+                    0
+                };
+                write_notes(ref track, ch, mine.span(), grace, salt, fill, arr.tonic, arr.scale);
             }
         }
         if any {
@@ -1161,6 +1242,10 @@ mod tests {
                 programs: Option::None,
                 echo: false,
                 grace: 0,
+                grace_all: false,
+                fill: 0,
+                tonic: 0,
+                scale: [].span(),
             },
         );
         assert_eq!(mega(grouped()), mega(interleaved()));

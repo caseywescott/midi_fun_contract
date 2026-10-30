@@ -90,7 +90,7 @@ fn mega_performance_is_the_mega_sound_of_the_performed_song() {
     assert(
         sound
             .midi == midi::smf::smf_byte_array(
-                1, 480, song_tracks(performed, true, false, false).span(),
+                1, 480, song_tracks(performed, true, false, 0).span(),
             ),
         'not the mega performance',
     );
@@ -145,7 +145,7 @@ fn generated_purchase_composes_the_shaped_bought_track() {
     assert(
         sound
             .midi == midi::smf::smf_byte_array(
-                1, 480, song_tracks(song, false, false, false).span(),
+                1, 480, song_tracks(song, false, false, 0).span(),
             ),
         'not the purchase file',
     );
@@ -406,7 +406,7 @@ fn echo_performance_of_a_song() {
     assert(
         sound
             .midi == midi::smf::smf_byte_array(
-                1, 480, song_tracks(performed_song(x, 2), false, true, false).span(),
+                1, 480, song_tracks(performed_song(x, 2), false, true, 0).span(),
             ),
         'not the echo performance',
     );
@@ -421,7 +421,7 @@ fn mega_echo_performance_of_a_song() {
     assert(
         sound
             .midi == midi::smf::smf_byte_array(
-                1, 480, song_tracks(performed_song(x, 3), true, true, false).span(),
+                1, 480, song_tracks(performed_song(x, 3), true, true, 0).span(),
             ),
         'not the mega echo performance',
     );
@@ -466,7 +466,7 @@ fn no_grace_notes_on_drift_day_1() {
     assert(
         compose_drift_sound(x, 0, d)
             .midi == midi::smf::smf_byte_array(
-                1, 480, song_tracks(drifted, false, false, false).span(),
+                1, 480, song_tracks(drifted, false, false, 1).span(),
             ),
         'grace notes on day 1',
     );
@@ -482,7 +482,7 @@ fn grace_notes_from_drift_day_2() {
     assert(
         compose_drift_sound(x, 0, d)
             .midi == midi::smf::smf_byte_array(
-                1, 480, song_tracks(drifted, false, false, true).span(),
+                1, 480, song_tracks(drifted, false, false, 2).span(),
             ),
         'no grace notes on day 2',
     );

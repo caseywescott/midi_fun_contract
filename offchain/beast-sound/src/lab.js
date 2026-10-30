@@ -170,6 +170,13 @@ export const dayAnchor = (blockHash = labBlockHash) => (day) => blockHash(epochF
 // directions swapped, or the tempo nudged -4, -2, +2 or +4 BPM. Nothing accumulates: a day's version is
 // a pure function of the track and the day number.
 export const DRIFT2_DAY = ['key plan turns the other way', 'episode directions swap', 'tempo -4 BPM', 'tempo -2 BPM', 'tempo +2 BPM', 'tempo +4 BPM'];
+// a Species Song's week from day 2 (genesis.cairo): the entries' spacing, the trill turned, the inner
+// voices' fills (their share under the day's ceiling) and from day 360 graces on every voice
+function songWeekExtras(rotate, day) {
+  if (day < 2) return '';
+  const h = Number(BigInt(rotate) & 0xffffffffn), fill = [0, 15, 30, 50][Math.floor(h / 524288) % ((day < 180 ? 0 : day < 360 ? 1 : day < 540 ? 2 : 3) + 1)];
+  return ', entries ' + (1 + Math.floor(h / 65536) % 4) + ' beats apart' + (Math.floor(h / 262144) % 2 === 1 ? ', trill turned' : '') + (fill ? ', fills ' + fill + '%' : '') + (day >= 360 ? ', graces on every voice' : '');
+}
 export function drift2(b, day, anchor = null) {
   const k = entityHash(b), month = Math.floor((day - 1) / 30), week = Math.floor((day - 1) / 7);
   // with block hashes, each clock also mixes in the hash of its own first block (day d's epoch is d - 1)
@@ -178,8 +185,9 @@ export function drift2(b, day, anchor = null) {
   const rhythm = month > 0 && m % 3 !== 0 ? H('BEAST_DRIFT2_RHYTHM', k, month, ...hm) : null;
   const rotate = w % 4 !== 0 ? H('BEAST_DRIFT2_ROT', k, week, ...hw) : null;
   const delta = [0, 0, -4, -2, 2, 4][dk];
-  const label = [rhythm !== null ? 'month ' + (month + 1) + ': new rhythm' : 'month ' + (month + 1) + ': rhythm as written',
-    rotate !== null ? 'week ' + (week + 1) + ': channels rotate, ornaments ' + Math.floor(Number(BigInt(rotate) & 0xffffffffn) / 128) % ((day < 180 ? 3 : day < 360 ? 5 : 7) + 1) + ' of 7' : 'week ' + (week + 1) + ': channels as picked',
+  const inv = rhythm !== null && day >= 2 && Math.floor(Number(BigInt(rhythm) & 0xffffffffn) / 4096) % 2 === 1;
+  const label = [rhythm !== null ? 'month ' + (month + 1) + ': new rhythm' + (inv ? ', inversion turned' : '') : 'month ' + (month + 1) + ': rhythm as written',
+    rotate !== null ? 'week ' + (week + 1) + ': channels rotate, ornaments ' + Math.floor(Number(BigInt(rotate) & 0xffffffffn) / 128) % ((day < 180 ? 3 : day < 360 ? 5 : 7) + 1) + ' of 7' + songWeekExtras(rotate, day) : 'week ' + (week + 1) + ': channels as picked',
     'day: ' + DRIFT2_DAY[dk] + (dk >= 2 ? (dk >= 4 ? ', staccato' : ', tenuto') : '')].join(' \u00b7 ');
   return { v: 2, rhythm, rotate, dayKnob: dk, delta, label, day };
 }
@@ -789,6 +797,17 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   if (d.knob === 2) override.tr = { ...override.tr, trill: !tr.trill };
   if (d.v === 2) {
     again = true;
+    // from the second day: a month may turn the inversion, a week sets the entries' spacing and may
+    // turn the trill (genesis.cairo drifted_song_inputs)
+    if (d.day >= 2 && d.rhythm !== null && Math.floor(Number(BigInt(d.rhythm) & 0xffffffffn) / 4096) % 2 === 1) {
+      const inv = (override.params && override.params.use_inversion) ?? base.params.use_inversion;
+      override.params = { ...(override.params || {}), use_inversion: !inv };
+    }
+    if (d.day >= 2 && d.rotate !== null) {
+      const h = Number(BigInt(d.rotate) & 0xffffffffn);
+      override.params = { ...(override.params || {}), stretto_lag: 1 + Math.floor(h / 65536) % 4 };
+      if (Math.floor(h / 262144) % 2 === 1) override.tr = { ...override.tr, trill: !override.tr.trill };
+    }
     // a new-rhythm month: two months in three the key moves to the dominant or subdominant (an octave
     // down above 96; genesis.cairo drift_key)
     if (d.rhythm !== null) {
@@ -851,8 +870,14 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   // seed, else from the species and density (genesis.cairo song_tracks)
   const kseed = d.v === 2 && d.rotate !== null ? d.rotate : seed;
   const gkind = kseed !== null && kseed !== undefined ? Math.floor(Number(BigInt(kseed) & 0xffffffffn) / 2048) % 4 : ((Number(p.species_id) % 4) + p.ornament_density) % 4;
-  const grace = !off && epoch >= 2 ? graceOf(p.ornament_density, gkind) : 0;
-  return { midi: beastFullMidi(out, E.formLength, fx, { instruments: 'beast', drums, mix, topLead, grace, ...(yetiMix || {}) }), drift: d, result: out, info };
+  // the ornaments that grow with time (genesis.cairo song_ornaments): none as written or on day 1;
+  // graces (every canon voice from day 360, +15% from day 540) and the inner voices' fills, drawn
+  // from the seed under a ceiling rising with the day
+  const day = off ? 0 : epoch, kh = kseed !== null && kseed !== undefined ? Number(BigInt(kseed) & 0xffffffffn) : 0;
+  const grace = day >= 2 ? graceOf(p.ornament_density + (day >= 540 ? 3 : 0), gkind) : 0;
+  const fill = day >= 2 ? [0, 15, 30, 50][Math.floor(kh / 524288) % ((day < 180 ? 0 : day < 360 ? 1 : day < 540 ? 2 : 3) + 1)] : 0;
+  const songScale = MODE_SCALES[p.mode_id] ?? (p.mode_id === 6 ? [0, 2, 3, 5, 7, 9, 11] : p.mode_id === 7 ? [0, 2, 4, 6, 8, 10] : [[0, 2, 4, 5, 7, 9, 11], [0, 2, 3, 5, 7, 9, 10], [0, 1, 3, 5, 7, 8, 10], [0, 2, 4, 6, 7, 9, 11], [0, 2, 4, 5, 7, 9, 10], [0, 2, 3, 5, 7, 8, 10]][p.mode_id % 6]);
+  return { midi: beastFullMidi(out, E.formLength, fx, { instruments: 'beast', drums, mix, topLead, grace, graceAll: day >= 360, fill, tonic: p.tonic_keynum, scale: songScale, ...(yetiMix || {}) }), drift: d, result: out, info };
 }
 
 // ── the Genesis Track, as the lab plays it by default (and as the Cairo port must match) ─────────

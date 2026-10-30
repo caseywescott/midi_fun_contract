@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 import { engine as ENGINE } from '../src/index.js';
 import { createEngineV11 } from '../src/engine_v11.js';
 import * as LAB from '../src/lab.js';
-import { SOUND_CHECK_PRESET } from '../src/lab.js';
 import { SCALES, STYLES } from '../src/editions_lite.js';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
@@ -47,10 +46,9 @@ function main() {
   w('//! edit: change the source and rerun the generator.');
   w('');
   for (const s of SP) { if (s.degrees.length < 6) throw new Error('short theme ' + s.id); for (const d of s.degrees.slice(0, 6)) if (d < -7 || d > 7) throw new Error('degree ' + d + ' (editions.cairo places the motif with one octave step)'); }
-  const packed = SP.map((s, k) => { let v = BigInt(s.tonicPc) | (BigInt(SOUND_CHECK_PRESET[k]) << 28n); s.degrees.slice(0, 6).forEach((d, i) => { v |= BigInt(d + 8) << BigInt(4 + 4 * i); }); return '0x' + v.toString(16); });
+  const packed = SP.map((s) => { let v = BigInt(s.tonicPc); s.degrees.slice(0, 6).forEach((d, i) => { v |= BigInt(d + 8) << BigInt(4 + 4 * i); }); return '0x' + v.toString(16); });
   w('/// Species 1..75: tonic pitch class (bits 0-3), then the first 6 Genesis theme degrees + 8');
-  w('/// (4 bits each, from bit 4), then the Sound Check preset (bits 28-30: an index into the');
-  w("/// family's leads and plucks, lab.js SOUND_CHECK_PRESET).");
+  w('/// (4 bits each, from bit 4).');
   w(`pub const SPECIES: [u32; 75] = [${packed.join(', ')}];`);
   w('');
   w('/// Scales: major, minor, harmonic minor, Lydian, Phrygian.');

@@ -3,15 +3,14 @@
 //! scale (a pattern picked by the Beast), a held note, then a sixteenth-note arpeggio up the tonic
 //! triad over two octaves. Each block starts a scale degree higher than the one before, on the
 //! previous block's last arpeggio note (a hand-off); the drum kit closes it the same way. The
-//! preset is the species' own (one of its family's three leads and three plucks, from the species
-//! table; lab.js SOUND_CHECK_PRESET), moved on for a special name, or a mega lead when shiny. The
-//! key is the Beast's own: its special name's, or its species' spread key without one, in the
-//! mode's real scale. One per Beast from its species, special name and shiny flag.
+//! preset is the species' own ((species - 1) % 6 of its family's three leads and three plucks),
+//! moved on for a special name, or a mega lead when shiny. The key is the Beast's own: its special
+//! name's, or its species' spread key without one, in the mode's real scale. One per Beast from its
+//! species, special name and shiny flag.
 
 use core::poseidon::poseidon_hash_span;
 use crate::composition::beast_score::BeastForm;
 use crate::composition::beast_v3_sound::{PackableBeastV3, map_v3_beast_to_composition_params};
-use crate::composition::editions_data::SPECIES;
 use crate::composition::full_midi::{
     Arrangement, MEGA_LEADS, beast_form_to_full_smf_bytes_arranged, family_leads, family_plucks,
 };
@@ -96,14 +95,9 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
         .into();
     let h: u32 = (hash % 0x100000000).try_into().unwrap();
 
-    // the Beast's one preset: its species' (an index into the family's leads and plucks; past 75,
-    // the id mod 6), moved on by 1-5 for a special name, or a mega lead when mega
-    let species = x.identity.source_species_id;
-    let own = if species <= 75 {
-        *SPECIES.span().at(species - 1) / 0x10000000
-    } else {
-        species % 6
-    };
+    // the Beast's one preset: (species - 1) % 6 of the family's leads and plucks, moved on by 1-5
+    // for a special name, or a mega lead when mega
+    let own = (x.identity.source_species_id - 1) % 6;
     let idx = if x.identity.name_variant_id != 0 {
         (own + 1 + h % 5) % 6
     } else {

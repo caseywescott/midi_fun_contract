@@ -10,7 +10,7 @@
 //
 // Every function is a pure function of its inputs, like the composer, so each can move to Cairo.
 import { poseidonHashMany } from './index.js';
-import { FAMILIES, MEGA_ALL, MEGA_LEADS, beastFullMidi, beastInstruments, drumEvents } from './full_midi.js';
+import { FAMILIES, MEGA_ALL, MEGA_LEADS, beastFullMidi, beastInstruments, drumEvents, graceOf } from './full_midi.js';
 
 const V11 = { keys: 'mode', even: true, traj: true };
 const P = 2n ** 251n + 17n * 2n ** 192n + 1n;
@@ -258,15 +258,16 @@ function yetiDevelop(notes, sc) {
 
 /** A hash of the species and the name (nameHash alone is the same for every species' name 0). */
 const beastHash = (b, salt) => nameHash({ prefix: b.prefix + b.id * 70, suffix: b.suffix + b.id * 19 }, salt);
-export const ORNAMENT_PLACEMENTS = { even: 'evenly spaced', bursts: 'in bursts', long: 'on the long notes', strong: 'on the strong beats', barends: 'at bar ends', swell: 'thickening through the section' };
-export const ORNAMENT_FIGURES = { mordent: 'mordent', upper: 'upper mordent', turn: 'turn', run: 'run', slide: 'slide', trill: 'trill' };
-/** A Beast's ornament profile: a placement style, its spacing, and three favourite figures (weights 3, 2, 1). */
+export const ORNAMENT_PLACEMENTS = { even: 'evenly spaced' };
+export const ORNAMENT_FIGURES = { mordent: 'mordent', upper: 'upper mordent', turn: 'turn', slide: 'slide', trill: 'trill' };
+/** The figures as scale-degree offsets from the note (0 = the note itself), sixteenths each. */
+const YETI_FIGURES = [[0, -1, 0], [0, 1, 0], [1, 0, -1, 0], [-2, -1, 0], [0, 1, 0, 1]];
+/** A Beast's ornament profile: every `gap`-th long note from `phase`, and three neighbouring figures
+ *  from `first` (weights 3, 2, 1). yeti.cairo `profile`. */
 export function yetiOrnamentProfile(b) {
-  const h = beastHash(b, 5), g = beastHash(b, 6);
-  const placement = Object.keys(ORNAMENT_PLACEMENTS)[h % 6];
-  const pool = Object.keys(ORNAMENT_FIGURES), figures = [];
-  for (let k = 0; figures.length < 3; k++) { const f = pool[(g >>> (k * 3)) % pool.length]; if (!figures.includes(f)) figures.push(f); else pool.push(pool.splice(pool.indexOf(f), 1)[0]); }
-  return { placement, gap: 2 + ((h >>> 4) % 4), burst: 2 + ((h >>> 8) % 2), figures };
+  const h = beastHash(b, 5), g = beastHash(b, 6), gap = 2 + ((h >>> 4) % 4), first = g % 5;
+  const names = Object.keys(ORNAMENT_FIGURES);
+  return { placement: 'even', gap, phase: (h >>> 8) % gap, first, figures: [0, 1, 2].map((k) => names[(first + k) % 5]) };
 }
 
 /** Ornaments: sixteenth-note figures inside the first section's melody notes. Each figure splits one
@@ -322,52 +323,31 @@ export function yetiOrnaments(events, r, b, E, fast = false, varied = false) {
   return events.flatMap((e) => repl.get(e) ?? [e]);
 }
 
-/** Ornaments placed and chosen by the Beast's own profile (yetiOrnamentProfile). Same contract as
- *  yetiOrnaments: every figure starts on the note's beat and adds up to its length, in the key's scale. */
+/** Ornaments placed and chosen by the Beast's own profile (yetiOrnamentProfile): every `gap`-th
+ *  note of a quarter or longer (not the last) from `phase`, one less apart when busy; the figure a
+ *  3:2:1 pick of the profile's three, a trill on a note shorter than a half becoming an upper
+ *  mordent. Every figure starts on the note's beat and adds up to its length, in the key's scale. */
 function yetiOrnamentsVaried(events, r, b, E, fast) {
   const sec = r.form.section_ticks, sc = yetiScale(r, E), S = fast ? 60 : 120;
   const notes = events.filter((e) => e.voice_id === 0 && e.time < sec).sort((a, c) => a.time - c.time);
   if (notes.length < 2) return events;
   const P = yetiOrnamentProfile(b), busy = (r.params.ornament_density ?? 3) >= 4, h = beastHash(b, 7);
   const roll = (i, salt) => ((h ^ Math.imul(i + 1, 2654435761) ^ Math.imul(salt, 40503)) >>> 0) % 1000; // 0..999 (integers, so Cairo can match it)
-  const ok = notes.map((e, i) => e.duration >= 480 && i < notes.length - 1);
-  const pick = new Set(), elig = notes.map((_, i) => i).filter((i) => ok[i]);
-  const gap = Math.max(1, P.gap - (busy ? 1 : 0));
-  if (P.placement === 'even') elig.forEach((i, k) => { if (k % gap === 0) pick.add(i); });
-  else if (P.placement === 'bursts') { const cycle = P.burst + gap + 2; elig.forEach((i, k) => { if (k % cycle < P.burst) pick.add(i); }); }
-  else if (P.placement === 'long') elig.slice().sort((a, c) => notes[c].duration - notes[a].duration || a - c).slice(0, Math.floor((elig.length * (busy ? 50 : 35) + 99) / 100)).forEach((i) => pick.add(i));
-  else if (P.placement === 'strong') { const on = elig.filter((i) => notes[i].time % 960 === 0); on.forEach((i, k) => { if (k % (gap > 3 ? 2 : 1) === 0) pick.add(i); }); }
-  else if (P.placement === 'barends') { const on = elig.filter((i) => notes[i].time % BAR >= 960 || (notes[i].time + notes[i].duration) % BAR === 0); on.forEach((i, k) => { if (k % 2 === 0 || busy) pick.add(i); }); }
-  else elig.forEach((i) => { if (roll(i, 1) * sec < 80 * sec + (busy ? 750 : 600) * notes[i].time) pick.add(i); }); // swell: 8% rising by 75% (60%) of the section
+  const elig = notes.map((_, i) => i).filter((i) => notes[i].duration >= 480 && i < notes.length - 1);
+  const gap = busy && P.gap > 1 ? P.gap - 1 : P.gap, phase = P.phase % gap, pick = new Set();
+  elig.forEach((i, k) => { if (k % gap === phase) pick.add(i); });
   if (!pick.size && elig.length) pick.add(elig[0]);
-  const weighted = P.figures.flatMap((f, k) => Array(3 - k).fill(f)); // 3:2:1
+  const weighted = [0, 0, 0, 1, 1, 2].map((k) => (P.first + k) % 5); // 3:2:1
   const repl = new Map();
   notes.forEach((e, i) => {
     if (!pick.has(i)) return;
-    const next = notes[i + 1], d = sc.degree(e.pitch), up = sc.pitch(d + 1), down = sc.pitch(d - 1);
-    const vel = Math.max(1, e.velocity - 12), seg = (pitch, len, v = vel) => ({ pitch, len, v });
-    const hold = (fig2) => {
-      const used = fig2.reduce((x, f) => x + f.len, 0), rest = e.duration - used, lastF = fig2[fig2.length - 1];
-      if (rest <= 0) return fig2;
-      return lastF.pitch === e.pitch ? [...fig2.slice(0, -1), seg(e.pitch, lastF.len + rest, lastF.v)] : [...fig2, seg(e.pitch, rest)];
-    };
-    const alt = (n, o) => Array.from({ length: n }, (_, j) => seg(j % 2 ? o : e.pitch, S, j ? vel : e.velocity));
-    const canRun = next && next.time === e.time + e.duration && Math.abs(sc.degree(next.pitch) - d) >= 2;
-    // the figure: a weighted pick from the palette; a run needs a leap into the next note, else the next favourite
-    let f = weighted[Math.floor((roll(i, 2) * weighted.length) / 1000)];
-    if (f === 'run' && !canRun) f = P.figures.find((x) => x !== 'run') ?? 'mordent';
-    if (f === 'trill' && e.duration < 960 && !fast) f = 'upper';
-    let fig;
-    if (f === 'run') {
-      const nd = sc.degree(next.pitch), dir = Math.sign(nd - d), g2 = Math.abs(nd - d);
-      const steps = Math.min(fast ? 4 : 3, g2 - 1, Math.floor(e.duration / S) - 1);
-      fig = [seg(e.pitch, e.duration - steps * S, e.velocity)];
-      for (let s2 = 1; s2 <= steps; s2++) fig.push(seg(sc.pitch(d + dir * (g2 - steps - 1 + s2)), S));
-    } else if (f === 'trill') fig = hold(alt(e.duration >= 960 ? (fast ? 8 : 4) : 5, up));
-    else if (f === 'upper') fig = hold(fast ? alt(3, up) : [seg(e.pitch, S, e.velocity), seg(up, S), seg(e.pitch, S)]);
-    else if (f === 'turn') fig = hold([seg(up, S, e.velocity), seg(e.pitch, S), seg(down, S), seg(e.pitch, S)]); // upper note first, then around
-    else if (f === 'slide') fig = hold([seg(sc.pitch(d - 2), S, vel), seg(down, S), seg(e.pitch, S, e.velocity)]); // two steps up into the note
-    else fig = hold([seg(e.pitch, S, e.velocity), seg(down, S), seg(e.pitch, S)]); // mordent
+    let f = weighted[Math.floor((roll(i, 2) * 6) / 1000)];
+    if (f === 4 && e.duration < 960) f = 1;
+    const d = sc.degree(e.pitch), vel = Math.max(1, e.velocity - 12);
+    const fig = YETI_FIGURES[f].map((o, j) => ({ pitch: o === 0 ? e.pitch : sc.pitch(d + o), len: S, v: j ? vel : e.velocity }));
+    // the rest of the note: the figure's last note held on when it is the note itself, else the note again
+    const used = fig.length * S, rest = e.duration - used, lastF = fig[fig.length - 1];
+    if (rest > 0) { if (lastF.pitch === e.pitch) lastF.len += rest; else fig.push({ pitch: e.pitch, len: rest, v: vel }); }
     let t = e.time;
     repl.set(e, fig.map((x) => { const n = { ...e, time: t, duration: x.len, pitch: Math.max(24, Math.min(108, x.pitch)), velocity: x.v }; t += x.len; return n; }));
   });
@@ -852,7 +832,9 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     channels: playing ? playing.map((c, i) => (i === 1 && c !== 4 && c !== 'drums' ? 'low voice' : CHANNEL_NAMES[c])) : null };
   // echo: the chip echo of sound_effects 2 and 3 (full_midi.js)
   const fx = { ...(b.shiny ? MEGA_ALL : {}), ...(echo ? { echo: true } : {}) };
-  return { midi: beastFullMidi(out, E.formLength, fx, { instruments: 'beast', drums, mix, topLead, ...(yetiMix || {}) }), drift: d, result: out, info };
+  // the lead's grace notes from the song's ornament density (full_midi.js graceOf)
+  const grace = graceOf(p.ornament_density, p.species_id);
+  return { midi: beastFullMidi(out, E.formLength, fx, { instruments: 'beast', drums, mix, topLead, grace, ...(yetiMix || {}) }), drift: d, result: out, info };
 }
 
 // ── the Genesis Track, as the lab plays it by default (and as the Cairo port must match) ─────────

@@ -621,6 +621,16 @@ pub struct Arrangement {
     /// the chip echo (sound_effects 2 and 3): the lead again a dotted eighth later, half as loud,
     /// on the family's first pluck, panned opposite
     pub echo: bool,
+    /// the lead's grace notes (`grace_of`): share of its long notes (percent) * 4 + kind; 0 none
+    pub grace: u32,
+}
+
+/// A song's grace notes from its ornament density (0-7: 0-35% of the lead's notes of a quarter or
+/// longer) and species: the kind (a tone above, a semitone below, a slide from a minor third
+/// below, a mordent) from both, so it moves when the drift moves the density.
+pub fn grace_of(density: u8, species: u64) -> u32 {
+    let d: u32 = density.into();
+    d * 20 + ((species % 4).try_into().unwrap() + d) % 4
 }
 
 /// The upper plucks' volume factor in basis points for a voice averaging MIDI 52 + i (i = 0..12;
@@ -629,13 +639,43 @@ const PLUCK_ABOVE_BASS_BP: [u32; 13] = [
     10000, 9670, 9350, 9042, 8743, 8454, 8175, 7905, 7644, 7392, 7148, 6912, 6683,
 ];
 
-/// Each note of `notes` as a note on and a note off (velocity 64) on channel `ch`. Written as
-/// messages with note_on's and note_off's status bytes: `ch` is below 16, so they need no
-/// `channel % 16` per note.
-fn write_notes(ref track: TrackWriter, ch: u8, notes: Span<NoteEvent>) {
+/// One note: on, then off (velocity 64) on channel `ch` (out of line: CASM size).
+#[inline(never)]
+fn note_on_off(ref track: TrackWriter, ch: u8, t: u32, d: u32, p: u8, v: u8) {
+    track.message(t, 0x90 + ch, p, v);
+    track.message(t + d, 0x80 + ch, p, 64);
+}
+
+/// Each note of `notes` as a note on and a note off (velocity 64) on channel `ch`, with grace notes
+/// (`grace`, `grace_of`; 0 none) on some notes of a quarter or longer, placed by time, pitch and
+/// `salt`: the grace (80 ticks, 10 softer) then the note, or for a mordent the note (60), the tone
+/// above (60), the note.
+fn write_notes(ref track: TrackWriter, ch: u8, notes: Span<NoteEvent>, grace: u32, salt: u32) {
+    let (share, kind) = (grace / 4, grace % 4);
     for e in notes {
-        track.message(e.time, 0x90 + ch, e.pitch, e.velocity);
-        track.message(e.time + e.duration, 0x80 + ch, e.pitch, 64);
+        let (t, p, v, d) = (e.time, e.pitch, e.velocity, e.duration);
+        let mut start = t;
+        let pp: u32 = p.into();
+        if share > 0
+            && d >= 480
+            && p >= 3
+            && p <= 125
+            && v > 10
+            && ((t / 240) * 7 + pp * 13 + salt) % 100 < share {
+            let m = kind == 3;
+            if m {
+                note_on_off(ref track, ch, t, 60, p, v);
+                start = t + 60;
+            }
+            let (g, gd) = if m {
+                (p + 2, 60)
+            } else {
+                (p + 2 - *[0_u8, 3, 5].span().at(kind), 80)
+            };
+            note_on_off(ref track, ch, start, gd, g, v - 10);
+            start += gd;
+        }
+        note_on_off(ref track, ch, start, t + d - start, p, v);
     }
 }
 
@@ -662,6 +702,7 @@ pub fn beast_form_to_full_smf_bytes(
             extra: Option::None,
             programs: Option::None,
             echo: false,
+            grace: 0,
         },
     )
 }
@@ -949,15 +990,27 @@ pub fn beast_form_to_full_tracks_arranged(
         let mut any = false;
         if arr.echo && v == ech {
             any = echoed.len() > 0;
-            write_notes(ref track, ch, echoed.span());
+            write_notes(ref track, ch, echoed.span(), 0, 0);
         } else if mega && v == dbl {
             any = doubled.len() > 0;
-            write_notes(ref track, ch, doubled.span());
+            write_notes(ref track, ch, doubled.span(), 0, 0);
         } else {
             for r in runs.span() {
                 if r.voice == v {
                     any = true;
-                    write_notes(ref track, ch, events.slice(r.start, r.len));
+                    // the lead's grace notes
+                    let (grace, salt): (u32, u32) = if v == lead {
+                        (
+                            arr.grace,
+                            match voicing {
+                                Option::Some(vc) => (vc.species_id % 100).try_into().unwrap(),
+                                Option::None => 0,
+                            },
+                        )
+                    } else {
+                        (0, 0)
+                    };
+                    write_notes(ref track, ch, events.slice(r.start, r.len), grace, salt);
                 }
             }
         }
@@ -1107,6 +1160,7 @@ mod tests {
                 extra: Option::Some((3, 33)),
                 programs: Option::None,
                 echo: false,
+                grace: 0,
             },
         );
         assert_eq!(mega(grouped()), mega(interleaved()));

@@ -181,6 +181,7 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
             extra: Option::None,
             programs: Option::Some(programs.span()),
             echo: false,
+            grace: 0,
         },
     )
 }

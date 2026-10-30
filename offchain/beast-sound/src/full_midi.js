@@ -164,7 +164,12 @@ export const beastSoundMidi = (result, formLength) => beastFullMidi(result, form
 /** The upper plucks' volume factor in basis points for a voice averaging MIDI 52 + i (i = 0..12; above, 12). */
 export const PLUCK_ABOVE_BASS_BP = [10000, 9670, 9350, 9042, 8743, 8454, 8175, 7905, 7644, 7392, 7148, 6912, 6683];
 
-export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null, mix = null, topLead = false, notLead = [] } = {}) {
+/** A song's grace notes (genesis.cairo grace_of): its ornament density 0-7 gives 0-35% of the lead's
+ *  notes of a quarter or longer; the kind (a tone above, a semitone below, a slide from a minor third
+ *  below, a mordent) from the species and density. */
+export const graceOf = (density, species) => density * 20 + ((Number(species) % 4) + density) % 4;
+
+export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null, mix = null, topLead = false, notLead = [], grace = 0 } = {}) {
   const f = result.form, p = result.params, length = formLength(f);
   const setup = voiceSetup(f.events);
   if (instruments === 'beast') for (const [v, program] of Object.entries(beastInstruments(result))) if (setup[v]) setup[v].program = program;
@@ -226,6 +231,22 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
       const m = Math.floor(st[v].sum / st[v].n), bp = PLUCK_ABOVE_BASS_BP[Math.min(12, Math.max(0, m - 52))];
       x.vol = Math.floor((x.vol * bp + 5000) / 10000);
     }
+  }
+  // the lead's grace notes (full_midi.cairo write_notes): on some notes of a quarter or longer, placed
+  // by time, pitch and the species; the grace (80 ticks, 10 softer) then the note, or for a mordent the
+  // note (60), the tone above (60), the note
+  if (grace >= 4) {
+    const share = Math.floor(grace / 4), kind = grace % 4, salt = Number(p.species_id) % 100, out = [];
+    for (const n of notes) {
+      const [t, d, pitch, v, ch] = n;
+      if (ch !== lead || d < 480 || pitch < 3 || pitch > 125 || v <= 10 || (Math.floor(t / 240) * 7 + pitch * 13 + salt) % 100 >= share) { out.push(n); continue; }
+      let start = t;
+      if (kind === 3) { out.push([t, 60, pitch, v, ch]); start = t + 60; }
+      const [g, gd] = kind === 3 ? [pitch + 2, 60] : [pitch + 2 - [0, 3, 5][kind], 80];
+      out.push([start, gd, g, v - 10, ch]);
+      out.push([start + gd, t + d - start - gd, pitch, v, ch]);
+    }
+    notes.length = 0; notes.push(...out);
   }
   const hits = drums === false ? [] : (drums || drumEvents)(length, sec, p.tier, !!mega.groove);
   return fullMidi(notes, p.tempo_us, length, setup, hits);

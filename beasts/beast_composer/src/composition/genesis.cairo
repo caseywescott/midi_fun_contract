@@ -37,7 +37,7 @@ use crate::composition::beast_v3_sound::{
 use crate::composition::drift::{Drift, DriftClock, layered_drift, nudge_tempo};
 use crate::composition::full_midi::{
     Arrangement, SMF_DIVISION, SMF_FORMAT, VoiceRun, Voicing, beast_form_to_full_tracks_arranged,
-    mega_lead_pick, voice_runs, voice_stats,
+    grace_of, mega_lead_pick, voice_runs, voice_stats,
 };
 use crate::composition::melodic_canon::NoteEvent;
 use crate::composition::yeti::{
@@ -928,6 +928,7 @@ fn compose_tracks(
             },
             programs: Option::None,
             echo: false,
+            grace: grace_of(p.ornament_density, p.species_id),
         },
     )
 }
@@ -1431,6 +1432,7 @@ pub fn song_tracks(x: SongInputs, mega: bool, echo: bool) -> Array<Array<u8>> {
             },
             programs: Option::None,
             echo,
+            grace: grace_of(s.ornament_density, species_id),
         },
     )
 }

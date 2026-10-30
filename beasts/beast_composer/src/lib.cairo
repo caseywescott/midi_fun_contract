@@ -16,6 +16,8 @@ pub mod lcg;
 #[cfg(test)]
 mod lcg_tests;
 #[cfg(test)]
+mod low_tonic_tests;
+#[cfg(test)]
 mod melodic_canon_tests;
 pub mod modes;
 #[cfg(test)]

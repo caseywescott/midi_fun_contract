@@ -388,6 +388,22 @@ fn future_species_sound_check() {
     sounds(ComposerInputs::SoundCheck(sound_check_inputs(b)), 1);
 }
 
+/// A Song a species owner can publish: valid, with four voices spread wide on the lowest tonic.
+/// Through the class, as the Sound Manager plays it, it composes (it panicked with
+/// 'u32_sub Overflow'): the bass the composer realizes below MIDI 0 is raised by octaves.
+#[test]
+fn low_tonic_wide_song_plays() {
+    let mut x = genesis_song_inputs(beast(4, 0, 0, 0), 0, 0, 0, Option::None);
+    x.score.tonic_keynum = 24;
+    x.treatment.spacing = 0;
+    let sound = composer().compose(ComposerInputs::Song(x), 0);
+    assert(
+        sound.midi == midi::smf::smf_byte_array(1, 480, song_tracks(x, false, false, 0).span()),
+        'not the low song',
+    );
+    assert(sound.settings == beast_synth_settings(species_type(4), false), 'not the settings');
+}
+
 fn performed_song(x: ComposerInputs, fx: u8) -> beast_composer::inputs::SongInputs {
     match apply_performance(x, fx) {
         ComposerInputs::Song(song) => song,

@@ -30,9 +30,14 @@ fn same_song(b: PackableBeastV3, seed: felt252, drift: Option<DriftClock>) {
         _ => core::panic_with_felt252('not a song'),
     };
     assert(y == x, 'wire changed the song');
+    // a day of drift after the first adds the lead's grace notes
+    let graces = match drift {
+        Option::Some(c) => c.day >= 2,
+        Option::None => false,
+    };
     assert(
-        song_inputs_smf_bytes(
-            y, b.shiny == 1,
+        midi::smf::smf_bytes(
+            1, 480, crate::composition::genesis::song_tracks(y, b.shiny == 1, false, graces).span(),
         ) == song_smf_bytes(b, b.prefix, b.suffix, seed, drift),
         'inputs compose another file',
     );
@@ -185,7 +190,7 @@ fn echo_parity_fixture() {
         let (id, shiny) = *c;
         let b = beast(id, 0, 0, shiny);
         let tracks = crate::composition::genesis::song_tracks(
-            genesis_song_inputs(b, 0, 0, 0, Option::None), shiny == 1, true,
+            genesis_song_inputs(b, 0, 0, 0, Option::None), shiny == 1, true, false,
         );
         let bytes = midi::smf::smf_bytes(1, 480, tracks.span());
         let mut hex: ByteArray = "";

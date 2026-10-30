@@ -88,7 +88,10 @@ fn mega_performance_is_the_mega_sound_of_the_performed_song() {
     assert(performed.score.tempo_us == song.score.tempo_us - 25000, 'tempo');
     assert(performed.score.articulation_profile == 2, 'articulation');
     assert(
-        sound.midi == midi::smf::smf_byte_array(1, 480, song_tracks(performed, true, false).span()),
+        sound
+            .midi == midi::smf::smf_byte_array(
+                1, 480, song_tracks(performed, true, false, false).span(),
+            ),
         'not the mega performance',
     );
     assert(sound.settings == beast_synth_settings(species_type(5), true), 'not mega settings');
@@ -140,7 +143,10 @@ fn generated_purchase_composes_the_shaped_bought_track() {
     assert(song == purchase_song_inputs(base.base_song, 'block hash'), 'not the purchase');
     let sound = composer().compose(inputs, 0);
     assert(
-        sound.midi == midi::smf::smf_byte_array(1, 480, song_tracks(song, false, false).span()),
+        sound
+            .midi == midi::smf::smf_byte_array(
+                1, 480, song_tracks(song, false, false, false).span(),
+            ),
         'not the purchase file',
     );
 }
@@ -400,7 +406,7 @@ fn echo_performance_of_a_song() {
     assert(
         sound
             .midi == midi::smf::smf_byte_array(
-                1, 480, song_tracks(performed_song(x, 2), false, true).span(),
+                1, 480, song_tracks(performed_song(x, 2), false, true, false).span(),
             ),
         'not the echo performance',
     );
@@ -415,7 +421,7 @@ fn mega_echo_performance_of_a_song() {
     assert(
         sound
             .midi == midi::smf::smf_byte_array(
-                1, 480, song_tracks(performed_song(x, 3), true, true).span(),
+                1, 480, song_tracks(performed_song(x, 3), true, true, false).span(),
             ),
         'not the mega echo performance',
     );
@@ -440,5 +446,44 @@ fn echo_on_editions() {
         compose_sound(e, 3)
             .midi == edition_byte_array(40, true, 3, 0xfedcba9876543210, Option::None, true),
         'not the mega echoed edition',
+    );
+}
+
+fn written_song(x: ComposerInputs) -> beast_composer::inputs::SongInputs {
+    match x {
+        ComposerInputs::Song(song) => song,
+        _ => core::panic_with_felt252('not a song'),
+    }
+}
+
+#[test]
+fn no_grace_notes_on_drift_day_1() {
+    let x = genesis(beast(20, 0, 0, 0));
+    let d = day(0, 1);
+    let drifted = beast_composer::composition::genesis::drifted_song_inputs(
+        written_song(x), drift_of(20, d),
+    );
+    assert(
+        compose_drift_sound(x, 0, d)
+            .midi == midi::smf::smf_byte_array(
+                1, 480, song_tracks(drifted, false, false, false).span(),
+            ),
+        'grace notes on day 1',
+    );
+}
+
+#[test]
+fn grace_notes_from_drift_day_2() {
+    let x = genesis(beast(20, 0, 0, 0));
+    let d = day(0, 2);
+    let drifted = beast_composer::composition::genesis::drifted_song_inputs(
+        written_song(x), drift_of(20, d),
+    );
+    assert(
+        compose_drift_sound(x, 0, d)
+            .midi == midi::smf::smf_byte_array(
+                1, 480, song_tracks(drifted, false, false, true).span(),
+            ),
+        'no grace notes on day 2',
     );
 }

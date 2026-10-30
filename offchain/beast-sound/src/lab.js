@@ -832,8 +832,9 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     channels: playing ? playing.map((c, i) => (i === 1 && c !== 4 && c !== 'drums' ? 'low voice' : CHANNEL_NAMES[c])) : null };
   // echo: the chip echo of sound_effects 2 and 3 (full_midi.js)
   const fx = { ...(b.shiny ? MEGA_ALL : {}), ...(echo ? { echo: true } : {}) };
-  // the lead's grace notes from the song's ornament density (full_midi.js graceOf)
-  const grace = graceOf(p.ornament_density, p.species_id);
+  // the lead's grace notes from the song's ornament density (full_midi.js graceOf): on a day of drift
+  // after the first only, never on a written track
+  const grace = !off && epoch >= 2 ? graceOf(p.ornament_density, p.species_id) : 0;
   return { midi: beastFullMidi(out, E.formLength, fx, { instruments: 'beast', drums, mix, topLead, grace, ...(yetiMix || {}) }), drift: d, result: out, info };
 }
 

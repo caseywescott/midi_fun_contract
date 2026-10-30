@@ -575,14 +575,22 @@ pub fn seeded_track_smf_bytes(
 /// (seed 0) or a bought track (a seed), with the layered drift of `clock` (`drift.cairo`; none =
 /// as written). The drift belongs to the Beast (its species and special name). A drifted song goes
 /// through its shared inputs (`genesis_song_inputs`, `song_tracks`), the path `compose_drift`
-/// plays, with the drift's ornaments and phrasing.
+/// plays, with the drift's ornaments and phrasing, and its grace notes from day 2.
 pub fn song_smf_bytes(
     beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
 ) -> Array<u8> {
     assert(prefix <= 69 && suffix <= 18 && (prefix == 0) == (suffix == 0), 'invalid special name');
     match drift {
-        Option::Some(_) => song_inputs_smf_bytes(
-            genesis_song_inputs(beast, prefix, suffix, seed, drift), beast.shiny == 1,
+        Option::Some(c) => smf_bytes(
+            SMF_FORMAT,
+            SMF_DIVISION,
+            song_tracks(
+                genesis_song_inputs(beast, prefix, suffix, seed, drift),
+                beast.shiny == 1,
+                false,
+                c.day >= 2,
+            )
+                .span(),
         ),
         Option::None => compose(beast, prefix, suffix, seed, drift),
     }
@@ -928,7 +936,15 @@ fn compose_tracks(
             },
             programs: Option::None,
             echo: false,
-            grace: grace_of(p.ornament_density, p.species_id),
+            // grace notes only on a day of drift after the first (never on a written track)
+            grace: match dr {
+                Option::Some(d) => if d.day >= 2 {
+                    grace_of(p.ornament_density, p.species_id)
+                } else {
+                    0
+                },
+                Option::None => 0,
+            },
         },
     )
 }
@@ -1305,10 +1321,11 @@ fn special_name_id(prefix: u8, suffix: u8) -> u16 {
     (prefix.into() - 1) * BEAST_PREFIX2_COUNT.into() + suffix.into()
 }
 
-/// The track bodies a song's shared inputs compose, with the mega arrangement when `mega` and the
-/// chip echo when `echo`. Plays what this engine supports: tied inner voices and the written phrase
+/// The track bodies a song's shared inputs compose, with the mega arrangement when `mega`, the
+/// chip echo when `echo` and the lead's grace notes when `graces` (a day of drift after the
+/// first). Plays what this engine supports: tied inner voices and the written phrase
 /// in every section.
-pub fn song_tracks(x: SongInputs, mega: bool, echo: bool) -> Array<Array<u8>> {
+pub fn song_tracks(x: SongInputs, mega: bool, echo: bool, graces: bool) -> Array<Array<u8>> {
     let (theme, s, t, a) = (x.theme, x.score, x.treatment, x.arrangement);
     assert(a.weak_ties, 'untied voices unsupported');
     assert(!t.section_rhythm, 'section rhythm unsupported');
@@ -1432,7 +1449,11 @@ pub fn song_tracks(x: SongInputs, mega: bool, echo: bool) -> Array<Array<u8>> {
             },
             programs: Option::None,
             echo,
-            grace: grace_of(s.ornament_density, species_id),
+            grace: if graces {
+                grace_of(s.ornament_density, species_id)
+            } else {
+                0
+            },
         },
     )
 }
@@ -1513,7 +1534,7 @@ fn song_pick(
 
 /// A song's file from its shared inputs (self-contained, for onchain-midi-player).
 pub fn song_inputs_smf_bytes(x: SongInputs, mega: bool) -> Array<u8> {
-    smf_bytes(SMF_FORMAT, SMF_DIVISION, song_tracks(x, mega, false).span())
+    smf_bytes(SMF_FORMAT, SMF_DIVISION, song_tracks(x, mega, false, false).span())
 }
 
 /// The same, packed 31 bytes per felt after the byte length.

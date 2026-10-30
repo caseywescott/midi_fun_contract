@@ -1,5 +1,5 @@
 //! Monthly Track Editions: the Cairo port of offchain/beast-sound/src/editions_lite.js
-//! (`editionMidi`), byte for byte. Four styles (waltz, chorale, lullaby, dirge) in one
+//! (`editionMidi`), byte for byte. Five styles (waltz, chorale, lullaby, dirge, boss battle) in one
 //! data-driven engine small enough to sit beside the Genesis Track in BeastMidiProvider: diatonic
 //! triads on scale degrees, pattern tables for the accompaniment and bass (editions_data.cairo,
 //! generated from the source), and one track per channel written in time order, so nothing is
@@ -276,15 +276,15 @@ fn melody(
     out.span()
 }
 
-/// Edition `e`'s style (index and tables) and tempo (e >= 1): the four styles in turn, each pass
+/// Edition `e`'s style (index and tables) and tempo (e >= 1): the five styles in turn, each pass
 /// through them a tempo stepping by 7 BPM.
 #[inline(never)]
 pub fn edition_genome(e: u32) -> (u32, Box<Style>, u32) {
     assert(e >= 1, 'editions: 0 is the canon');
-    let st = (e - 1) % 4;
+    let st = (e - 1) % 5;
     let sb = style(st);
     let s = sb.unbox();
-    let pass = (e - 1) / 4;
+    let pass = (e - 1) / 5;
     let bpm = s.bpm_lo + (pass * 7 + st * 3) % (s.bpm_hi - s.bpm_lo + 1);
     (st, sb, bpm)
 }

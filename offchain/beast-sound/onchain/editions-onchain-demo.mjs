@@ -35,10 +35,10 @@ const bundle = (await build({
 // The contract's constants, read from the generated Cairo: the page shows each settings value's hash
 // next to the one the contract carries, and refuses to build if any differs.
 const cairo = readFileSync(here + '../../../beasts/beast_contracts/src/synth_settings.cairo', 'utf8');
-const CAIRO_HASHES = cairo.match(/EDITION_SERDE_HASHES: \[felt252; 24\] = \[([^\]]+)\]/)[1].split(',').map((s) => s.trim());
+const CAIRO_HASHES = cairo.match(/EDITION_SERDE_HASHES: \[felt252; \d+\] = \[([^\]]+)\]/)[1].split(',').map((s) => s.trim());
 const hash = (s) => '0x' + poseidonHashMany(serializeSettings(s)).toString(16);
 const SETTINGS = [];
-for (let style = 0; style < 4; style++) for (let t = 0; t < 3; t++) for (const mega of [false, true]) {
+for (let style = 0; style < CAIRO_HASHES.length / 6; style++) for (let t = 0; t < 3; t++) for (const mega of [false, true]) {
   const s = editionSynthSettings(style, t, mega), i = (style * 3 + t) * 2 + (mega ? 1 : 0);
   if (hash(s) !== CAIRO_HASHES[i]) throw new Error(`edition settings ${style}/${t}/${mega}: generator and contract differ`);
   SETTINGS[i] = { s, hash: CAIRO_HASHES[i] };
@@ -108,7 +108,7 @@ a{color:var(--acc)}
 <div class="card"><div class="sec">What the contracts do</div><div class="flow" id="flow"></div></div>
 <div class="card"><div class="sec">Instruments in the returned settings</div><div class="presets" id="presets"></div><p class="note" id="setnote"></p></div>
 <div class="card"><div class="sec">Calendar</div><div class="list" id="list"></div>
-<p class="note">Edition 0's purchases are bought songs from the Beast's own composer, not shown here. From edition 1 the four styles take turns, and each pass through them changes the tempo. Within an edition every purchase rolls its own key, mode, form, progressions, accompaniment, bass and percussion figures, theme opening, phrasing and parts (step through purchases with [ and ]). An edition is a period on the Sound Manager's edition clock; the months here are the editions page's calendar.</p></div>
+<p class="note">Edition 0's purchases are bought songs from the Beast's own composer, not shown here. From edition 1 the five styles take turns, and each pass through them changes the tempo. Within an edition every purchase rolls its own key, mode, form, progressions, accompaniment, bass and percussion figures, theme opening, phrasing and parts (step through purchases with [ and ]). An edition is a period on the Sound Manager's edition clock; the months here are the editions page's calendar.</p></div>
 </div></div>
 <p class="note"><a href="../">All pages</a> · <a href="editions.html">Editions prototype</a></p>
 </main>
@@ -252,4 +252,4 @@ document.addEventListener('keydown', (ev) => {
 show();
 </script></body></html>`;
 writeFileSync(new URL('../public/onchain/editions-onchain.html', import.meta.url), html);
-console.log('editions-onchain.html', html.length, 'bytes; settings hashes match the contract (24/24)');
+console.log('editions-onchain.html', html.length, 'bytes; settings hashes match the contract (' + CAIRO_HASHES.length + '/' + CAIRO_HASHES.length + ')');

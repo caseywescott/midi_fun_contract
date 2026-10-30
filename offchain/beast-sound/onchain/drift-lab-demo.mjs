@@ -37,9 +37,9 @@ const bundle = (await build({
 // the settings the composer serves: a Species Song's family (the Yeti's own), an edition's style
 // presets (each checked against the contract's hashes)
 const cairo = readFileSync(here + '../../../beasts/beast_contracts/src/synth_settings.cairo', 'utf8');
-const CAIRO_HASHES = cairo.match(/EDITION_SERDE_HASHES: \[felt252; 24\] = \[([^\]]+)\]/)[1].split(',').map((s) => s.trim());
+const CAIRO_HASHES = cairo.match(/EDITION_SERDE_HASHES: \[felt252; \d+\] = \[([^\]]+)\]/)[1].split(',').map((s) => s.trim());
 const EDITION = [];
-for (let style = 0; style < 4; style++) for (let t = 0; t < 3; t++) {
+for (let style = 0; style < CAIRO_HASHES.length / 6; style++) for (let t = 0; t < 3; t++) {
   const s = editionSynthSettings(style, t, false);
   if ('0x' + poseidonHashMany(serializeSettings(s)).toString(16) !== CAIRO_HASHES[(style * 3 + t) * 2]) throw new Error('edition settings differ from the contract');
   EDITION[style * 3 + t] = s;

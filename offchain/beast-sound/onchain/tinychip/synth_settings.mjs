@@ -303,7 +303,7 @@ function editionsCairo() {
   const hashes = STYLES.flatMap((_, st) => [0, 1, 2].flatMap((t) => [false, true].map((mega) => '0x' + poseidonHashMany(serializeSettings(editionSynthSettings(st, t, mega, data))).toString(16))));
   return `
 /// The settings a Monthly Track Edition's file selects (editions_lite.js, edition 1 and later): style
-/// \`style\` (0 waltz, 1 chorale, 2 lullaby, 3 dirge) for a Beast of \`beast_type\`, its lead,
+/// \`style\` (0 waltz, 1 chorale, 2 lullaby, 3 dirge, 4 boss battle) for a Beast of \`beast_type\`, its lead,
 /// accompaniment, bass and pad presets as the editions page plays them (untrimmed), the mega leads
 /// when mega, and the drums ${EDITION_DRUMS.join(', ')} (the percussion figures). Every edition value carries the editions' ${waves.length} waves: ${waves.join(', ')}.
 pub fn edition_synth_settings(style: u32, beast_type: u32, mega: bool) -> TinySynthSettings {

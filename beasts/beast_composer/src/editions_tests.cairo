@@ -6,7 +6,7 @@
 use crate::composition::editions::{edition_genome, edition_smf_bytes};
 
 // from editions_lite.js: editionGenome(e).style for editions 1-8
-const STYLES: [u32; 8] = [0, 1, 2, 3, 0, 1, 2, 3];
+const STYLES: [u32; 10] = [0, 1, 2, 3, 4, 0, 1, 2, 3, 4];
 
 const HEX: [u8; 16] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',

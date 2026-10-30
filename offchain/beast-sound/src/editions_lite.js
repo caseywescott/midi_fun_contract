@@ -1,5 +1,5 @@
-// Monthly Track Editions, onchain size. The four styles that fit beside the Genesis Track in
-// BeastMidiProvider (waltz, chorale, lullaby, dirge), as ONE data-driven engine that its Cairo port
+// Monthly Track Editions, onchain size. The five styles (the first four fit beside the Genesis Track in
+// BeastMidiProvider: waltz, chorale, lullaby, dirge; then boss battle), as ONE data-driven engine that its Cairo port
 // (beasts/beast_composer/src/composition/editions.cairo) reproduces byte for byte. Integer-only:
 // scale-degree harmony (diatonic triads), pattern tables for the accompaniment and bass, one track
 // per channel written in time order (no sort), mulberry32 seeded by integer mixing.
@@ -101,6 +101,28 @@ export const STYLES = [
     palette: [[64, 72, 62], [8, 9, 6], [44, 71, 19], [86, 85, 88], [29, 30, 28]],
     progs: [[0, 1, 0, 0], [0, 3, 0, 1], [0, 5, 3, 0], [0, 3, 6, 0], [0, 6, 5, 0], [0, 1, 3, 0], [5, 6, 0, 0], [0, 4, 1, 0]],
   },
+  {
+    key: 'boss', label: 'Boss Battle', noun: 'Battle', desc: 'driving 4/4, power stabs over an eighth-note bass, the fight theme',
+    num: 4, den: 4, bpm: [150, 176], modes: [1, 2, 4], chordBars: 1,
+    cells: [[2, 2, 2, 2], [1, 1, 2, 2, 2], [2, 1, 1, 4], [3, 1, 2, 2], [1, 1, 1, 1, 2, 2], [4, 2, 2], [2, 2, 4]], end: [[8], [4, 4], [6, 2]],
+    accomps: [
+      [[240, 180, 10, -4], [720, 180, 10, -8], [1200, 180, 10, -4], [1680, 180, 10, -8]],
+      [[0, 400, 9, -6], [960, 400, 9, -6]],
+      [[0, 200, 10, -2], [480, 200, 10, -10], [720, 200, 10, -6], [1440, 200, 10, -10]],
+      [[0, 220, 0, -6], [240, 220, 1, -12], [480, 220, 2, -12], [720, 220, 1, -12], [960, 220, 0, -6], [1200, 220, 1, -12], [1440, 220, 2, -12], [1680, 220, 1, -12]],
+    ],
+    basses: [
+      [[0, 200, 0, 0], [240, 200, 0, -12], [480, 200, 0, -4], [720, 200, 0, -12], [960, 200, 0, 0], [1200, 200, 0, -12], [1440, 200, 0, -4], [1680, 200, 0, -12]],
+      [[0, 200, 0, 0], [240, 200, 3, -10], [480, 200, 0, -4], [720, 200, 3, -10], [960, 200, 0, 0], [1200, 200, 3, -10], [1440, 200, 0, -4], [1680, 200, 3, -10]],
+      [[0, 440, 0, 0], [480, 440, 2, -8], [960, 440, 0, -2], [1440, 440, 2, -8]],
+    ],
+    percs: [
+      [[0, 36, -6], [240, 42, -30], [480, 38, -10], [720, 42, -30], [960, 36, -6], [1200, 42, -30], [1440, 38, -10], [1680, 42, -30]],
+      [[0, 36, -6], [720, 36, -14], [960, 38, -10], [1680, 42, -28]],
+    ],
+    palette: [[64, 72, 62], [64, 72, 62], [99, 19, 18], [85, 88, 88], [31, 28, 30]],
+    progs: [[0, 5, 6, 0], [0, 3, 4, 0], [0, 6, 5, 4], [0, 5, 3, 4], [5, 6, 0, 0], [0, 1, 0, 4], [0, 3, 6, 4], [0, 6, 3, 4]],
+  },
 ];
 /** The drum notes the percussion figures play (their TinyChip drums are in every edition's settings). */
 export const EDITION_DRUMS = [...new Set(STYLES.flatMap((S) => S.percs.flat().map((x) => x[1])))].sort((a, b) => a - b);
@@ -119,12 +141,12 @@ export const editionMonth = (e) => { const m = 9 + e; return MONTHS[m % 12] + ' 
 const NAMES = ['Waltz of the Fallen', 'Crypt Hymnal', 'Moonlit Lullaby', 'Requiem in Phrygian'];
 const ADJ = ['Ember', 'Hollow', 'Gilded', 'Shattered', 'Sunken', 'Howling', 'Crimson', 'Frost', 'Ashen', 'Verdant', 'Obsidian', 'Wandering', 'Midnight', 'Thorned', 'Silver', 'Abyssal', 'Storm', 'Lantern'];
 
-/** Edition e's style: the four styles in turn from November 2026; each pass through them moves on the mode, tempo and form. */
+/** Edition e's style: the five styles in turn from November 2026; each pass through them moves on the tempo. */
 export function editionGenome(e) {
   if (e === 0) return { engine: 'canon', name: 'The Genesis Canon', month: editionMonth(0), edition: 0, curated: true };
-  const style = (e - 1) % 4, S = STYLES[style];
-  // each pass of the four styles takes the next mode, a tempo stepping by 7 BPM and the other form
-  const pass = Math.floor((e - 1) / 4);
+  const style = (e - 1) % STYLES.length, S = STYLES[style];
+  // each pass of the styles takes the next mode, a tempo stepping by 7 BPM and the other form
+  const pass = Math.floor((e - 1) / STYLES.length);
   const mode = S.modes[pass % S.modes.length], bpm = S.bpm[0] + ((pass * 7 + style * 3) % (S.bpm[1] - S.bpm[0] + 1)), form = pass % 2;
   const name = e <= 4 ? NAMES[e - 1] : 'The ' + ADJ[(e * 7) % ADJ.length] + ' ' + S.noun;
   return { engine: style, style, mode, bpm, form, name, month: editionMonth(e), edition: e, curated: e <= 4 };

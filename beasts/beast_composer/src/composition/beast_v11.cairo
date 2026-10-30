@@ -824,8 +824,7 @@ struct Realizer {
     /// modes `realize_degree(7, ..)` is exactly `degree_to_keynum` with it.
     scale: Span<u8>,
     /// `degree_to_keynum(d + shift, ..)` for the degrees it covers (TABLE_OCT_LO), computed once
-    /// per section; none where that would panic (computed directly instead, so it still panics
-    /// there).
+    /// per section; none where that would panic (computed directly instead: `keynum_folded`).
     table: Span<Option<u8>>,
 }
 
@@ -863,8 +862,27 @@ fn realize(r: Realizer, d: i32) -> u8 {
     // The index is in felts: below the table it wraps to a huge one that `try_into` rejects.
     match tabled(r.table, d.into() + r.zero) {
         Option::Some(pitch) => pitch,
-        Option::None => degree_to_keynum(d + r.shift, r.tonic, r.scale),
+        Option::None => keynum_folded(d + r.shift, r.tonic, r.scale),
     }
+}
+
+/// `degree_to_keynum`, except that a pitch below 0 is raised by whole octaves to the lowest pitch
+/// of its class (0..=11) instead of underflowing, so a low tonic's bass voice (four voices spread 8
+/// or 11 degrees under the tonic) keeps its pitch class, and with it the mode and key. Every pitch
+/// `degree_to_keynum` returns is unchanged, and its other panics (a degree below the bias, a pitch
+/// above 255) stay.
+// On purpose (CASM size): one copy for every inlined `realize`.
+#[inline(never)]
+fn keynum_folded(degree: i32, tonic: u8, scale: Span<u8>) -> u8 {
+    let biased: u32 = (degree + 70).try_into().unwrap();
+    let (oct, idx) = DivRem::div_rem(biased, 7);
+    let total: u32 = tonic.into() + 12 * oct + (*scale.at(idx)).into();
+    let pitch = if total < 120 {
+        total % 12
+    } else {
+        total - 120
+    };
+    pitch.try_into().unwrap()
 }
 
 /// The table's pitch at `i`, if `i` is in the table and `degree_to_keynum` does not panic there.
@@ -1846,10 +1864,68 @@ mod realizer_tests {
     }
 
     #[test]
-    #[should_panic(expected: ('u32_sub Overflow',))]
-    fn a_pitch_below_zero_panics() {
-        // 24 less two octaves and a bit: tabled as none, then `degree_to_keynum`'s subtraction
-        realize(realizer(0, 24, mode_scale(5)), -21);
+    fn a_pitch_below_zero_is_raised_by_octaves() {
+        let r = realizer(0, 24, mode_scale(5));
+        // the lowest pitch `degree_to_keynum` returns: the tonic two octaves down, 0
+        assert!(realize(r, -14) == 0);
+        // a step under it (pitch -2) and the tonic three octaves down (-12): in the table as none,
+        // raised an octave
+        assert!(realize(r, -15) == 10);
+        assert!(realize(r, -21) == 0);
+        // below the table (pitches -14 and -28): raised two and three octaves
+        assert!(realize(r, -22) == 10);
+        assert!(realize(r, -30) == 8);
+    }
+
+    /// `keynum`, or for a pitch below 0 the first of its octaves up that is not.
+    fn raised(degree: i32, tonic: u8, scale: Span<u8>) -> u8 {
+        let mut octaves: i32 = 0;
+        loop {
+            if let Option::Some(pitch) = keynum(degree + 7 * octaves, tonic, scale) {
+                break pitch;
+            }
+            octaves += 1;
+        }
+    }
+
+    /// Over the scales `lo..hi` (two tests: a test run keeps what it allocates), the low tonics,
+    /// every shift and the degrees from five octaves under the tonic up to it: `realize` is
+    /// `degree_to_keynum` where that returns, and otherwise the pitch raised by whole octaves to
+    /// 0..=11, its class kept.
+    fn raises_a_pitch_below_zero_by_octaves(lo: usize, hi: usize) {
+        for scale in scales().span().slice(lo, hi - lo) {
+            let scale = *scale;
+            let mut tonic: u8 = 24;
+            while tonic <= 40 {
+                let mut shift: i32 = -3;
+                while shift <= 3 {
+                    let r = realizer(shift, tonic, scale);
+                    let mut d: i32 = -35;
+                    while d <= 0 {
+                        let pitch = realize(r, d);
+                        assert!(pitch == raised(d + shift, tonic, scale));
+                        if keynum(d + shift, tonic, scale).is_none() {
+                            assert!(pitch < 12);
+                        }
+                        d += 1;
+                    }
+                    shift += 1;
+                }
+                tonic += 1;
+            }
+        }
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn realize_raises_a_pitch_below_zero_by_octaves_0() {
+        raises_a_pitch_below_zero_by_octaves(0, 5);
+    }
+
+    #[test]
+    #[available_gas(100000000000)]
+    fn realize_raises_a_pitch_below_zero_by_octaves_1() {
+        raises_a_pitch_below_zero_by_octaves(5, 9);
     }
 
     #[test]

@@ -203,7 +203,9 @@ export function createEngineV11(engine) {
     const tonic = diatonic ? home : sectionTonic(p, plan, s);
     const shift = diatonic ? plan[s % plan.length].degrees : 0, nextShift = diatonic ? plan[next % plan.length].degrees : 0;
     const out = [], ends = [];
-    const realize = (d) => R(d + shift, tonic, mode);
+    // a pitch below 0 (a low tonic's widest bass voice) is raised by whole octaves to the lowest of
+    // its class, 0-11, as beast_v11.cairo's `realize` (`keynum_folded`) does; every other pitch is unchanged
+    const realize = (d) => { const pitch = R(d + shift, tonic, mode); return pitch < 0 ? ((pitch % 12) + 12) % 12 : pitch; };
     // family drone: the tonic an octave below, a bar at a time, placed first so every voice hears it
     if (FAM && FAM.drone) {
       const dv = p.voice_count + (p.use_countersubject ? 1 : 0);
@@ -297,7 +299,8 @@ export function createEngineV11(engine) {
     if (left <= 0) return;
     const dominant = (from) => {
       const c = [];
-      for (let m = from - 9; m <= from + 9; m++) if (pcs.includes(((m % 12) + 12) % 12)) c.push([Math.abs(m - from) / 2, m]);
+      // from 0 at the lowest, as beast_v11.cairo's `dominant` (no pitch is negative)
+      for (let m = Math.max(0, from - 9); m <= from + 9; m++) if (pcs.includes(((m % 12) + 12) % 12)) c.push([Math.abs(m - from) / 2, m]);
       return c.length ? c : [[0, from]];
     };
     if (left >= BAR) {

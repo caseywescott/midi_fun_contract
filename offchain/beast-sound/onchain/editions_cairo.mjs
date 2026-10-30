@@ -77,6 +77,9 @@ function main() {
   w('    pub progs: Span<u32>,');
   w('}');
   w('');
+  w('/// How many styles the calendar takes in turn.');
+  w(`pub const STYLE_COUNT: u32 = ${STYLES.length};`);
+  w('');
   w('/// The styles: ' + STYLES.map((s) => s.key).join(', ') + '.');
   w('// On purpose (CASM size): one copy of the tables, not one per call site.');
   w('#[inline(never)]');

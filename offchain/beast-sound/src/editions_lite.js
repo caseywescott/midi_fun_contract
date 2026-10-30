@@ -1,5 +1,6 @@
-// Monthly Track Editions, onchain size. The five styles (the first four fit beside the Genesis Track in
-// BeastMidiProvider: waltz, chorale, lullaby, dirge; then boss battle), as ONE data-driven engine that its Cairo port
+// Monthly Track Editions, onchain size. Nine styles (the first four fit beside the Genesis Track in
+// BeastMidiProvider: waltz, chorale, lullaby, dirge; then boss battle, sea shanty, march, dungeon
+// crawl, tango), as ONE data-driven engine that its Cairo port
 // (beasts/beast_composer/src/composition/editions.cairo) reproduces byte for byte. Integer-only:
 // scale-degree harmony (diatonic triads), pattern tables for the accompaniment and bass, one track
 // per channel written in time order (no sort), mulberry32 seeded by integer mixing.
@@ -123,6 +124,70 @@ export const STYLES = [
     palette: [[64, 72, 62], [64, 72, 62], [99, 19, 18], [85, 88, 88], [31, 28, 30]],
     progs: [[0, 5, 6, 0], [0, 3, 4, 0], [0, 6, 5, 4], [0, 5, 3, 4], [5, 6, 0, 0], [0, 1, 0, 4], [0, 3, 6, 4], [0, 6, 3, 4]],
   },
+  {
+    key: 'shanty', label: 'Sea Shanty', noun: 'Shanty', desc: '6/8, a stomping bass, squeezebox chords, a rolling tune',
+    num: 6, den: 8, bpm: [132, 156], modes: [0, 1, 2], chordBars: 1,
+    cells: [[3, 3], [2, 1, 3], [1, 1, 1, 3], [3, 1, 1, 1], [2, 1, 2, 1], [1, 2, 3]], end: [[6], [3, 3]],
+    accomps: [
+      [[240, 200, 9, -8], [480, 200, 9, -14], [960, 200, 9, -8], [1200, 200, 9, -14]],
+      [[0, 680, 9, -10], [720, 680, 9, -12]],
+      [[240, 200, 10, -6], [960, 200, 10, -6]],
+      [[0, 220, 0, -6], [240, 220, 2, -12], [480, 220, 1, -12], [720, 220, 3, -6], [960, 220, 2, -12], [1200, 220, 1, -12]],
+    ],
+    basses: [[[0, 600, 0, 0], [720, 600, 1, -8]], [[0, 600, 0, 0], [720, 600, 2, -8]], [[0, 1400, 0, -6]]],
+    percs: [[[0, 36, -8], [480, 42, -24], [720, 36, -8], [1200, 42, -24]], [[0, 41, -10], [720, 43, -12]]],
+    palette: [[70, 64, 62], [70, 64, 62], [95, 43, 95], [24, 27, 71], [32, 29, 30]],
+    progs: [[0, 3, 4, 0], [0, 4, 0, 4], [0, 5, 3, 4], [0, 3, 0, 4], [5, 3, 4, 0], [0, 1, 4, 0], [0, 4, 5, 0], [3, 4, 0, 0]],
+  },
+  {
+    key: 'march', label: 'March', noun: 'March', desc: '2/4, an oom-pah bass, the snare, a brassy tune',
+    num: 2, den: 4, bpm: [104, 124], modes: [0, 3], chordBars: 2,
+    cells: [[2, 2], [1, 1, 2], [3, 1], [2, 1, 1], [1, 1, 1, 1], [4]], end: [[4], [2, 2]],
+    accomps: [
+      [[480, 200, 9, -8]],
+      [[240, 180, 9, -10], [720, 180, 9, -10]],
+      [[0, 400, 9, -10], [480, 400, 9, -14]],
+      [[480, 100, 9, -8], [720, 100, 9, -12]],
+    ],
+    basses: [[[0, 400, 0, 0]], [[0, 400, 0, 0], [480, 400, 1, -6]], [[0, 200, 0, 0], [480, 200, 3, -8]]],
+    percs: [[[0, 36, -6], [480, 38, -10], [720, 38, -22]], [[0, 36, -6], [240, 38, -24], [480, 38, -10]]],
+    palette: [[47, 47, 62], [47, 47, 62], [18, 44, 99], [20, 24, 88], [29, 31, 28]],
+    progs: [[0, 4, 0, 4], [0, 3, 4, 0], [0, 0, 4, 0], [0, 3, 0, 4], [0, 5, 1, 4], [3, 0, 4, 0], [0, 4, 5, 4], [0, 1, 4, 0]],
+  },
+  {
+    key: 'dungeon', label: 'Dungeon Crawl', noun: 'Crawl', desc: 'a slow minor ostinato, sparse bells, long lead lines',
+    num: 4, den: 4, bpm: [76, 96], modes: [1, 4, 2], chordBars: 2,
+    cells: [[8], [4, 4], [6, 2], [2, 6], [3, 3, 2], [4, 2, 2]], end: [[8], [6, 2]],
+    accomps: [
+      [[0, 200, 0, -10], [240, 200, 1, -16], [480, 200, 2, -16], [720, 200, 1, -16], [960, 200, 0, -10], [1200, 200, 1, -16], [1440, 200, 2, -16], [1680, 200, 1, -16]],
+      [[0, 900, 10, -12], [960, 900, 10, -16]],
+      [[0, 400, 0, -10], [960, 400, 3, -14]],
+      [[0, 1880, 9, -18]],
+    ],
+    basses: [[[0, 1880, 0, -14]], [[0, 900, 0, -12], [960, 900, 1, -16]], [[0, 1880, 4, -18]]],
+    percs: [[[0, 41, -16], [1440, 43, -24]], [[0, 36, -18], [960, 41, -22]]],
+    palette: [[45, 78, 72], [45, 78, 72], [44, 19, 71], [86, 85, 88], [75, 31, 30]],
+    progs: [[0, 5, 0, 5], [0, 1, 0, 0], [0, 6, 5, 0], [0, 3, 0, 4], [0, 5, 6, 0], [0, 1, 3, 0], [0, 3, 5, 4], [0, 0, 5, 6]],
+  },
+  {
+    key: 'tango', label: 'Tango', noun: 'Tango', desc: 'a habanera bass, staccato chord stabs, a sultry lead',
+    num: 4, den: 4, bpm: [110, 128], modes: [1, 2], chordBars: 1,
+    cells: [[3, 1, 2, 2], [2, 2, 2, 2], [3, 1, 4], [1, 1, 2, 4], [4, 2, 2], [2, 1, 1, 2, 2]], end: [[8], [4, 4]],
+    accomps: [
+      [[0, 150, 9, -6], [480, 150, 9, -12], [960, 150, 9, -6], [1440, 150, 9, -12]],
+      [[240, 150, 9, -10], [720, 150, 9, -10], [1200, 150, 9, -10], [1680, 150, 9, -10]],
+      [[0, 150, 9, -4], [720, 150, 9, -8], [1440, 150, 9, -8]],
+      [[0, 300, 10, -8], [960, 300, 9, -10]],
+    ],
+    basses: [
+      [[0, 340, 0, 0], [360, 100, 2, -10], [480, 220, 3, -6], [720, 220, 2, -8], [960, 340, 0, 0], [1320, 100, 2, -10], [1440, 220, 3, -6], [1680, 220, 2, -8]],
+      [[0, 700, 0, 0], [720, 220, 1, -8], [960, 700, 0, 0], [1680, 220, 1, -8]],
+      [[0, 440, 0, 0], [480, 440, 3, -8], [960, 440, 0, -2], [1440, 440, 2, -8]],
+    ],
+    percs: [[[0, 36, -10], [720, 41, -16], [960, 38, -14], [1440, 42, -26]], [[0, 36, -10], [360, 42, -28], [480, 38, -16], [1440, 38, -20]]],
+    palette: [[0, 70, 64], [0, 70, 64], [18, 17, 99], [27, 24, 20], [28, 32, 29]],
+    progs: [[0, 3, 4, 0], [0, 5, 4, 0], [0, 3, 0, 4], [0, 6, 5, 4], [3, 4, 0, 0], [0, 1, 4, 0], [5, 3, 4, 0], [0, 4, 0, 3]],
+  },
 ];
 /** The drum notes the percussion figures play (their TinyChip drums are in every edition's settings). */
 export const EDITION_DRUMS = [...new Set(STYLES.flatMap((S) => S.percs.flat().map((x) => x[1])))].sort((a, b) => a - b);
@@ -141,7 +206,7 @@ export const editionMonth = (e) => { const m = 9 + e; return MONTHS[m % 12] + ' 
 const NAMES = ['Waltz of the Fallen', 'Crypt Hymnal', 'Moonlit Lullaby', 'Requiem in Phrygian'];
 const ADJ = ['Ember', 'Hollow', 'Gilded', 'Shattered', 'Sunken', 'Howling', 'Crimson', 'Frost', 'Ashen', 'Verdant', 'Obsidian', 'Wandering', 'Midnight', 'Thorned', 'Silver', 'Abyssal', 'Storm', 'Lantern'];
 
-/** Edition e's style: the five styles in turn from November 2026; each pass through them moves on the tempo. */
+/** Edition e's style: the styles in turn from November 2026; each pass through them moves on the tempo. */
 export function editionGenome(e) {
   if (e === 0) return { engine: 'canon', name: 'The Genesis Canon', month: editionMonth(0), edition: 0, curated: true };
   const style = (e - 1) % STYLES.length, S = STYLES[style];

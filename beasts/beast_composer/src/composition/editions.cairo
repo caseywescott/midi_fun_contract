@@ -1,11 +1,11 @@
 //! Monthly Track Editions: the Cairo port of offchain/beast-sound/src/editions_lite.js
-//! (`editionMidi`), byte for byte. Five styles (waltz, chorale, lullaby, dirge, boss battle) in one
-//! data-driven engine small enough to sit beside the Genesis Track in BeastMidiProvider: diatonic
-//! triads on scale degrees, pattern tables for the accompaniment and bass (editions_data.cairo,
-//! generated from the source), and one track per channel written in time order, so nothing is
-//! sorted. The edition sets the style and tempo; each purchase rolls its key, mode, form, chords,
-//! figures and parts (descant, bass, pad, chip percussion). Edition 0 is the seeded canon, not
-//! this engine.
+//! (`editionMidi`), byte for byte. Nine styles (waltz, chorale, lullaby, dirge, boss battle, sea
+//! shanty, march, dungeon crawl, tango) in one data-driven engine small enough to sit beside the
+//! Genesis Track in BeastMidiProvider: diatonic triads on scale degrees, pattern tables for the
+//! accompaniment and bass (editions_data.cairo, generated from the source), and one track per
+//! channel written in time order, so nothing is sorted. The edition sets the style and tempo; each
+//! purchase rolls its key, mode, form, chords, figures and parts (descant, bass, pad, chip
+//! percussion). Edition 0 is the seeded canon, not this engine.
 //!
 //! Scale degrees are unsigned here, offset by `O` (70): the source's degree d is d + 70, so 70 is
 //! the tonic, 77 the tonic an octave up and 67 the dominant below (CASM size: no signed overflow
@@ -16,7 +16,7 @@ use midi::smf::{TrackWriter, TrackWriterTrait, smf_byte_array, smf_bytes};
 use crate::composition::drift::{Drift, nudge_tempo};
 use crate::inputs::MAX_TEMPO_US;
 use crate::opaque::opaque;
-use super::editions_data::{SCALES, SPECIES, Style, style};
+use super::editions_data::{SCALES, SPECIES, STYLE_COUNT, Style, style};
 
 const SEVEN: NonZero<u32> = 7;
 const TWO32: u64 = 0x100000000;
@@ -276,15 +276,15 @@ fn melody(
     out.span()
 }
 
-/// Edition `e`'s style (index and tables) and tempo (e >= 1): the five styles in turn, each pass
+/// Edition `e`'s style (index and tables) and tempo (e >= 1): the styles in turn, each pass
 /// through them a tempo stepping by 7 BPM.
 #[inline(never)]
 pub fn edition_genome(e: u32) -> (u32, Box<Style>, u32) {
     assert(e >= 1, 'editions: 0 is the canon');
-    let st = (e - 1) % 5;
+    let st = (e - 1) % STYLE_COUNT;
     let sb = style(st);
     let s = sb.unbox();
-    let pass = (e - 1) / 5;
+    let pass = (e - 1) / STYLE_COUNT;
     let bpm = s.bpm_lo + (pass * 7 + st * 3) % (s.bpm_hi - s.bpm_lo + 1);
     (st, sb, bpm)
 }

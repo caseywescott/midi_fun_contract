@@ -88,9 +88,9 @@ pub fn settings_for(inputs: ComposerInputs, mega: bool) -> TinySynthSettings {
         ComposerInputs::Song(x) => (x.arrangement.family, x.arrangement.special),
         ComposerInputs::SoundCheck(x) => (x.family, SpecialArrangement::None),
         // the edition's style for the species' type (1..=75: Magic, Hunter, Brute by 25s): editions
-        // take the five styles in turn (`edition_genome`)
+        // take the styles in turn (`edition_genome`)
         ComposerInputs::Edition(x) => {
-            let style = (x.edition - 1) % 5;
+            let style = (x.edition - 1) % beast_composer::composition::editions_data::STYLE_COUNT;
             let beast_type = (x.identity.source_species_id - 1) / 25;
             return crate::synth_settings::edition_synth_settings(style, beast_type, mega);
         },

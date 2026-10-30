@@ -15,7 +15,7 @@
 //!   `token_uri` with its music as `animation_url`.
 
 use starknet::ContractAddress;
-pub use tinysynth_interface::interface::{
+pub use tinysynth_interface::{
     ISoundProvider, ISoundProviderDispatcher, ISoundProviderDispatcherTrait,
     ISoundProviderLibraryDispatcher, ISoundProviderSafeDispatcher,
     ISoundProviderSafeDispatcherTrait,

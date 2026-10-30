@@ -387,10 +387,27 @@ fn lead_track(k: Box<Ctx>, role: u32) -> Array<u8> {
             }
             continue;
         }
-        // an upper-neighbour grace note before some long notes
+        // an ornament on some long notes, its kind from the ornament seed: an upper or lower grace
+        // note, a slide from a third below, or a mordent (the note, a step above, the note)
+        let kind = c.orn_seed % 4;
         if c.orn > 0 && n.len >= 480 && ((n.t / 240) * 7 + n.d * 13 + c.orn_seed) % 100 < c.orn {
-            block(ref tw, ch, n.t, 80, [pitch(base, scale, n.d + 1) + up].span(), vel - 10);
-            block(ref tw, ch, n.t + 80, len - 80, [pitch(base, scale, n.d) + up].span(), vel);
+            let main = pitch(base, scale, n.d) + up;
+            // the mordent's note first; then the grace (+1, -1, -2; the mordent's step above) and
+            // the note
+            let m = kind == 3;
+            let (t0, g) = if m {
+                block(ref tw, ch, n.t, 60, [main].span(), vel);
+                (n.t + 60, n.d + 1)
+            } else {
+                (n.t, n.d + 1 - (kind * 3 + 1) / 2)
+            };
+            let gd = if m {
+                60
+            } else {
+                80
+            };
+            block(ref tw, ch, t0, gd, [pitch(base, scale, g) + up].span(), vel - 10);
+            block(ref tw, ch, t0 + gd, n.t + len - t0 - gd, [main].span(), vel);
         } else {
             block(ref tw, ch, n.t, len, [pitch(base, scale, n.d) + up].span(), vel);
         }

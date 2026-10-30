@@ -227,6 +227,7 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) 
   const accomp = S.accomps[R.int(4)], bassFig = S.basses[R.int(3)], perc = S.percs[R.int(2)];
   const theme = R.int(4);
   const orn = [0, 0, 15, 30][R.int(4)], ornSeed = R.int(100), detached = R.int(2) === 1;
+  const ornKind = ornSeed % 4; // upper grace, lower grace, slide, mordent (no draw of its own)
   // the parts beside the lead and accompaniment: a seeded order, the first `count` play
   const roll = R.int(100);
   let count = (roll < 20 ? 1 : roll < 60 ? 2 : roll < 88 ? 3 : 4) + (sp.tier <= 2 ? 1 : 0);
@@ -273,12 +274,14 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) 
     const m = kind === 2 ? melC : (kind === 1) !== (knob === 1) ? melB : melA;
     for (const n of m) {
       const t = t0 + n.t, len = n.len - gap(n.len);
-      // an upper-neighbour grace note before some long notes
+      // an ornament on some long notes, its kind from the ornament seed: an upper or lower grace
+      // note, a slide from a third below, or a mordent (the note, a step above, the note)
       const grace = orn > 0 && n.len >= 480 && (Math.floor(t / 240) * 7 + (n.d + 70) * 13 + ornSeed) % 100 < orn;
       const voices = [[T.lead, 0, 0, n.t % bar ? 90 : 100]];
       if (shiny) voices.push([T.mega, 5, 12, 70]);
       for (const [tr, ch, up, v] of voices) {
-        if (grace) { tr.block(ch, t, 80, [P(n.d + 1) + up], v - 10); tr.block(ch, t + 80, len - 80, [P(n.d) + up], v); }
+        if (grace && ornKind === 3) { tr.block(ch, t, 60, [P(n.d) + up], v); tr.block(ch, t + 60, 60, [P(n.d + 1) + up], v - 10); tr.block(ch, t + 120, len - 120, [P(n.d) + up], v); }
+        else if (grace) { tr.block(ch, t, 80, [P(n.d + [1, -1, -2][ornKind]) + up], v - 10); tr.block(ch, t + 80, len - 80, [P(n.d) + up], v); }
         else tr.block(ch, t, len, [P(n.d) + up], v);
       }
       // the echo: the lead (no grace notes) 360 ticks later, half as loud, inside the form
@@ -330,7 +333,7 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) 
     progC: formId === 3 ? S.progs[pC].map((d) => ROMAN[d]).join(' ') : null,
     accomp: S.key + ' ' + fig(S.accomps, accomp), bass: on('bass') ? S.key + ' ' + fig(S.basses, bassFig) : 'none',
     drums: on('percussion') ? S.key + ' ' + fig(S.percs, perc) : 'none', theme: THEMES[theme],
-    ornaments: orn ? orn + '% grace notes' : 'none', phrasing: detached ? 'detached' : 'legato',
+    ornaments: orn ? orn + '% ' + ['upper graces', 'lower graces', 'slides', 'mordents'][ornKind] : 'none', phrasing: detached ? 'detached' : 'legato',
     parts: ['lead', 'accompaniment', ...PARTS.filter((x) => on(x))], channels: order2.map(([, ch]) => ch),
     seconds: Math.round(ticks / TPQ * 60 / bpm),
   };

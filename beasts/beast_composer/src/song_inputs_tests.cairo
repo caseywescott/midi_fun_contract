@@ -27,12 +27,17 @@ fn same_song(b: PackableBeastV3, seed: felt252, drift: Option<DriftClock>) {
     let wire = encode_inputs(ComposerInputs::Song(x));
     let y = match decode_inputs(wire.span()) {
         ComposerInputs::Song(y) => y,
-        ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+        _ => core::panic_with_felt252('not a song'),
     };
     assert(y == x, 'wire changed the song');
+    // a day of drift after the first adds the lead's grace notes
+    let day = match drift {
+        Option::Some(c) => c.day,
+        Option::None => 0,
+    };
     assert(
-        song_inputs_smf_bytes(
-            y, b.shiny == 1,
+        midi::smf::smf_bytes(
+            1, 480, crate::composition::genesis::song_tracks(y, b.shiny == 1, false, day).span(),
         ) == song_smf_bytes(b, b.prefix, b.suffix, seed, drift),
         'inputs compose another file',
     );
@@ -91,7 +96,10 @@ fn identity_of(b: PackableBeastV3) -> crate::inputs::BeastMusicalIdentity {
         (b.prefix.into() - 1) * 18 + b.suffix.into()
     };
     crate::inputs::BeastMusicalIdentity {
-        species_id: b.id, name_variant_id: nv, tier: b.tier, family: b.beast_type,
+        species_id: b.id.try_into().unwrap(),
+        name_variant_id: nv,
+        tier: b.tier,
+        family: b.beast_type,
     }
 }
 
@@ -112,9 +120,9 @@ fn every_species_purchase_is_its_bought_track_in_a_shape() {
                 config, 0, identity_of(b),
             );
             let bought = genesis_song_inputs(b, b.prefix, b.suffix, seed, Option::None);
-            let mut x = match crate::composition::generation::generate_inputs(base, seed) {
+            let mut x = match crate::composition::generation::generate_inputs(base, 0, seed) {
                 ComposerInputs::Song(x) => x,
-                ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+                _ => core::panic_with_felt252('not a song'),
             };
             assert(x.theme == bought.theme, 'theme changed');
             x.score.stretto_lag = bought.score.stretto_lag;
@@ -163,12 +171,42 @@ fn thinned_purchase_composes_three_voices_without_the_countersubject() {
     let base = crate::composition::generation::get_generation_inputs(
         crate::inputs::EditionCompositionConfig { composition_seed: 0 }, 0, identity_of(b),
     );
-    let x = match crate::composition::generation::generate_inputs(base, thinned_seed()) {
+    let x = match crate::composition::generation::generate_inputs(base, 0, thinned_seed()) {
         ComposerInputs::Song(x) => x,
-        ComposerInputs::SoundCheck(_) => core::panic_with_felt252('not a song'),
+        _ => core::panic_with_felt252('not a song'),
     };
     assert(x.score.voice_count == 3 && !x.score.use_countersubject, 'not thinned');
     assert(x.arrangement.channel_count <= 4, 'more channels than roles');
     let midi = song_inputs_smf_bytes(x, false);
     assert(*midi.at(0) == 'M' && midi.len() > 200, 'no file');
+}
+
+/// The chip echo (sound effects 2 and 3) on Genesis Tracks, plain and mega, the Yeti's too: one
+/// ECHO line per case (the file in hex) for scripts/echo_parity.mjs.
+#[test]
+#[ignore]
+fn echo_parity_fixture() {
+    for c in [(5_u64, 0_u8), (21, 1), (45, 0), (68, 1), (71, 0), (68, 0)].span() {
+        let (id, shiny) = *c;
+        let b = beast(id, 0, 0, shiny);
+        let tracks = crate::composition::genesis::song_tracks(
+            genesis_song_inputs(b, 0, 0, 0, Option::None), shiny == 1, true, 0,
+        );
+        let bytes = midi::smf::smf_bytes(1, 480, tracks.span());
+        let mut hex: ByteArray = "";
+        for x in bytes.span() {
+            let (hi, lo) = DivRem::div_rem(*x, 16);
+            hex.append_byte(if hi < 10 {
+                48 + hi
+            } else {
+                87 + hi
+            });
+            hex.append_byte(if lo < 10 {
+                48 + lo
+            } else {
+                87 + lo
+            });
+        }
+        println!("ECHO id={} shiny={} len={} hex={}", id, shiny, bytes.len(), hex);
+    }
 }

@@ -10,7 +10,7 @@
 //
 // Every function is a pure function of its inputs, like the composer, so each can move to Cairo.
 import { poseidonHashMany } from './index.js';
-import { FAMILIES, MEGA_ALL, MEGA_LEADS, beastFullMidi, beastInstruments, drumEvents } from './full_midi.js';
+import { FAMILIES, MEGA_ALL, MEGA_LEADS, beastFullMidi, beastInstruments, drumEvents, graceOf } from './full_midi.js';
 
 const V11 = { keys: 'mode', even: true, traj: true };
 const P = 2n ** 251n + 17n * 2n ** 192n + 1n;
@@ -170,6 +170,13 @@ export const dayAnchor = (blockHash = labBlockHash) => (day) => blockHash(epochF
 // directions swapped, or the tempo nudged -4, -2, +2 or +4 BPM. Nothing accumulates: a day's version is
 // a pure function of the track and the day number.
 export const DRIFT2_DAY = ['key plan turns the other way', 'episode directions swap', 'tempo -4 BPM', 'tempo -2 BPM', 'tempo +2 BPM', 'tempo +4 BPM'];
+// a Species Song's week from day 2 (genesis.cairo): the entries' spacing, the trill turned, the inner
+// voices' fills (their share under the day's ceiling) and from day 360 graces on every voice
+function songWeekExtras(rotate, day) {
+  if (day < 2) return '';
+  const h = Number(BigInt(rotate) & 0xffffffffn), fill = [0, 15, 30, 50][Math.floor(h / 524288) % ((day < 180 ? 0 : day < 360 ? 1 : day < 540 ? 2 : 3) + 1)];
+  return ', entries ' + (1 + Math.floor(h / 65536) % 4) + ' beats apart' + (Math.floor(h / 262144) % 2 === 1 ? ', trill turned' : '') + (fill ? ', fills ' + fill + '%' : '') + (day >= 360 ? ', graces on every voice' : '');
+}
 export function drift2(b, day, anchor = null) {
   const k = entityHash(b), month = Math.floor((day - 1) / 30), week = Math.floor((day - 1) / 7);
   // with block hashes, each clock also mixes in the hash of its own first block (day d's epoch is d - 1)
@@ -178,9 +185,11 @@ export function drift2(b, day, anchor = null) {
   const rhythm = month > 0 && m % 3 !== 0 ? H('BEAST_DRIFT2_RHYTHM', k, month, ...hm) : null;
   const rotate = w % 4 !== 0 ? H('BEAST_DRIFT2_ROT', k, week, ...hw) : null;
   const delta = [0, 0, -4, -2, 2, 4][dk];
-  const label = [rhythm !== null ? 'month ' + (month + 1) + ': new rhythm' : 'month ' + (month + 1) + ': rhythm as written',
-    rotate !== null ? 'week ' + (week + 1) + ': channels rotate' : 'week ' + (week + 1) + ': channels as picked', 'day: ' + DRIFT2_DAY[dk]].join(' \u00b7 ');
-  return { v: 2, rhythm, rotate, dayKnob: dk, delta, label };
+  const inv = rhythm !== null && day >= 2 && Math.floor(Number(BigInt(rhythm) & 0xffffffffn) / 4096) % 2 === 1;
+  const label = [rhythm !== null ? 'month ' + (month + 1) + ': new rhythm' + (inv ? ', inversion turned' : '') : 'month ' + (month + 1) + ': rhythm as written',
+    rotate !== null ? 'week ' + (week + 1) + ': channels rotate, ornaments ' + Math.floor(Number(BigInt(rotate) & 0xffffffffn) / 128) % ((day < 180 ? 3 : day < 360 ? 5 : 7) + 1) + ' of 7' + songWeekExtras(rotate, day) : 'week ' + (week + 1) + ': channels as picked',
+    'day: ' + DRIFT2_DAY[dk] + (dk >= 2 ? (dk >= 4 ? ', staccato' : ', tenuto') : '')].join(' \u00b7 ');
+  return { v: 2, rhythm, rotate, dayKnob: dk, delta, label, day };
 }
 
 export function driftMidi(b, live, epoch, E, v11, anchor = null) {
@@ -257,15 +266,16 @@ function yetiDevelop(notes, sc) {
 
 /** A hash of the species and the name (nameHash alone is the same for every species' name 0). */
 const beastHash = (b, salt) => nameHash({ prefix: b.prefix + b.id * 70, suffix: b.suffix + b.id * 19 }, salt);
-export const ORNAMENT_PLACEMENTS = { even: 'evenly spaced', bursts: 'in bursts', long: 'on the long notes', strong: 'on the strong beats', barends: 'at bar ends', swell: 'thickening through the section' };
-export const ORNAMENT_FIGURES = { mordent: 'mordent', upper: 'upper mordent', turn: 'turn', run: 'run', slide: 'slide', trill: 'trill' };
-/** A Beast's ornament profile: a placement style, its spacing, and three favourite figures (weights 3, 2, 1). */
+export const ORNAMENT_PLACEMENTS = { even: 'evenly spaced' };
+export const ORNAMENT_FIGURES = { mordent: 'mordent', upper: 'upper mordent', turn: 'turn', slide: 'slide', trill: 'trill' };
+/** The figures as scale-degree offsets from the note (0 = the note itself), sixteenths each. */
+const YETI_FIGURES = [[0, -1, 0], [0, 1, 0], [1, 0, -1, 0], [-2, -1, 0], [0, 1, 0, 1]];
+/** A Beast's ornament profile: every `gap`-th long note from `phase`, and three neighbouring figures
+ *  from `first` (weights 3, 2, 1). yeti.cairo `profile`. */
 export function yetiOrnamentProfile(b) {
-  const h = beastHash(b, 5), g = beastHash(b, 6);
-  const placement = Object.keys(ORNAMENT_PLACEMENTS)[h % 6];
-  const pool = Object.keys(ORNAMENT_FIGURES), figures = [];
-  for (let k = 0; figures.length < 3; k++) { const f = pool[(g >>> (k * 3)) % pool.length]; if (!figures.includes(f)) figures.push(f); else pool.push(pool.splice(pool.indexOf(f), 1)[0]); }
-  return { placement, gap: 2 + ((h >>> 4) % 4), burst: 2 + ((h >>> 8) % 2), figures };
+  const h = beastHash(b, 5), g = beastHash(b, 6), gap = 2 + ((h >>> 4) % 4), first = g % 5;
+  const names = Object.keys(ORNAMENT_FIGURES);
+  return { placement: 'even', gap, phase: (h >>> 8) % gap, first, figures: [0, 1, 2].map((k) => names[(first + k) % 5]) };
 }
 
 /** Ornaments: sixteenth-note figures inside the first section's melody notes. Each figure splits one
@@ -321,52 +331,31 @@ export function yetiOrnaments(events, r, b, E, fast = false, varied = false) {
   return events.flatMap((e) => repl.get(e) ?? [e]);
 }
 
-/** Ornaments placed and chosen by the Beast's own profile (yetiOrnamentProfile). Same contract as
- *  yetiOrnaments: every figure starts on the note's beat and adds up to its length, in the key's scale. */
+/** Ornaments placed and chosen by the Beast's own profile (yetiOrnamentProfile): every `gap`-th
+ *  note of a quarter or longer (not the last) from `phase`, one less apart when busy; the figure a
+ *  3:2:1 pick of the profile's three, a trill on a note shorter than a half becoming an upper
+ *  mordent. Every figure starts on the note's beat and adds up to its length, in the key's scale. */
 function yetiOrnamentsVaried(events, r, b, E, fast) {
   const sec = r.form.section_ticks, sc = yetiScale(r, E), S = fast ? 60 : 120;
   const notes = events.filter((e) => e.voice_id === 0 && e.time < sec).sort((a, c) => a.time - c.time);
   if (notes.length < 2) return events;
   const P = yetiOrnamentProfile(b), busy = (r.params.ornament_density ?? 3) >= 4, h = beastHash(b, 7);
   const roll = (i, salt) => ((h ^ Math.imul(i + 1, 2654435761) ^ Math.imul(salt, 40503)) >>> 0) % 1000; // 0..999 (integers, so Cairo can match it)
-  const ok = notes.map((e, i) => e.duration >= 480 && i < notes.length - 1);
-  const pick = new Set(), elig = notes.map((_, i) => i).filter((i) => ok[i]);
-  const gap = Math.max(1, P.gap - (busy ? 1 : 0));
-  if (P.placement === 'even') elig.forEach((i, k) => { if (k % gap === 0) pick.add(i); });
-  else if (P.placement === 'bursts') { const cycle = P.burst + gap + 2; elig.forEach((i, k) => { if (k % cycle < P.burst) pick.add(i); }); }
-  else if (P.placement === 'long') elig.slice().sort((a, c) => notes[c].duration - notes[a].duration || a - c).slice(0, Math.floor((elig.length * (busy ? 50 : 35) + 99) / 100)).forEach((i) => pick.add(i));
-  else if (P.placement === 'strong') { const on = elig.filter((i) => notes[i].time % 960 === 0); on.forEach((i, k) => { if (k % (gap > 3 ? 2 : 1) === 0) pick.add(i); }); }
-  else if (P.placement === 'barends') { const on = elig.filter((i) => notes[i].time % BAR >= 960 || (notes[i].time + notes[i].duration) % BAR === 0); on.forEach((i, k) => { if (k % 2 === 0 || busy) pick.add(i); }); }
-  else elig.forEach((i) => { if (roll(i, 1) * sec < 80 * sec + (busy ? 750 : 600) * notes[i].time) pick.add(i); }); // swell: 8% rising by 75% (60%) of the section
+  const elig = notes.map((_, i) => i).filter((i) => notes[i].duration >= 480 && i < notes.length - 1);
+  const gap = busy && P.gap > 1 ? P.gap - 1 : P.gap, phase = P.phase % gap, pick = new Set();
+  elig.forEach((i, k) => { if (k % gap === phase) pick.add(i); });
   if (!pick.size && elig.length) pick.add(elig[0]);
-  const weighted = P.figures.flatMap((f, k) => Array(3 - k).fill(f)); // 3:2:1
+  const weighted = [0, 0, 0, 1, 1, 2].map((k) => (P.first + k) % 5); // 3:2:1
   const repl = new Map();
   notes.forEach((e, i) => {
     if (!pick.has(i)) return;
-    const next = notes[i + 1], d = sc.degree(e.pitch), up = sc.pitch(d + 1), down = sc.pitch(d - 1);
-    const vel = Math.max(1, e.velocity - 12), seg = (pitch, len, v = vel) => ({ pitch, len, v });
-    const hold = (fig2) => {
-      const used = fig2.reduce((x, f) => x + f.len, 0), rest = e.duration - used, lastF = fig2[fig2.length - 1];
-      if (rest <= 0) return fig2;
-      return lastF.pitch === e.pitch ? [...fig2.slice(0, -1), seg(e.pitch, lastF.len + rest, lastF.v)] : [...fig2, seg(e.pitch, rest)];
-    };
-    const alt = (n, o) => Array.from({ length: n }, (_, j) => seg(j % 2 ? o : e.pitch, S, j ? vel : e.velocity));
-    const canRun = next && next.time === e.time + e.duration && Math.abs(sc.degree(next.pitch) - d) >= 2;
-    // the figure: a weighted pick from the palette; a run needs a leap into the next note, else the next favourite
-    let f = weighted[Math.floor((roll(i, 2) * weighted.length) / 1000)];
-    if (f === 'run' && !canRun) f = P.figures.find((x) => x !== 'run') ?? 'mordent';
-    if (f === 'trill' && e.duration < 960 && !fast) f = 'upper';
-    let fig;
-    if (f === 'run') {
-      const nd = sc.degree(next.pitch), dir = Math.sign(nd - d), g2 = Math.abs(nd - d);
-      const steps = Math.min(fast ? 4 : 3, g2 - 1, Math.floor(e.duration / S) - 1);
-      fig = [seg(e.pitch, e.duration - steps * S, e.velocity)];
-      for (let s2 = 1; s2 <= steps; s2++) fig.push(seg(sc.pitch(d + dir * (g2 - steps - 1 + s2)), S));
-    } else if (f === 'trill') fig = hold(alt(e.duration >= 960 ? (fast ? 8 : 4) : 5, up));
-    else if (f === 'upper') fig = hold(fast ? alt(3, up) : [seg(e.pitch, S, e.velocity), seg(up, S), seg(e.pitch, S)]);
-    else if (f === 'turn') fig = hold([seg(up, S, e.velocity), seg(e.pitch, S), seg(down, S), seg(e.pitch, S)]); // upper note first, then around
-    else if (f === 'slide') fig = hold([seg(sc.pitch(d - 2), S, vel), seg(down, S), seg(e.pitch, S, e.velocity)]); // two steps up into the note
-    else fig = hold([seg(e.pitch, S, e.velocity), seg(down, S), seg(e.pitch, S)]); // mordent
+    let f = weighted[Math.floor((roll(i, 2) * 6) / 1000)];
+    if (f === 4 && e.duration < 960) f = 1;
+    const d = sc.degree(e.pitch), vel = Math.max(1, e.velocity - 12);
+    const fig = YETI_FIGURES[f].map((o, j) => ({ pitch: o === 0 ? e.pitch : sc.pitch(d + o), len: S, v: j ? vel : e.velocity }));
+    // the rest of the note: the figure's last note held on when it is the note itself, else the note again
+    const used = fig.length * S, rest = e.duration - used, lastF = fig[fig.length - 1];
+    if (rest > 0) { if (lastF.pitch === e.pitch) lastF.len += rest; else fig.push({ pitch: e.pitch, len: rest, v: vel }); }
     let t = e.time;
     repl.set(e, fig.map((x) => { const n = { ...e, time: t, duration: x.len, pitch: Math.max(24, Math.min(108, x.pitch)), velocity: x.v }; t += x.len; return n; }));
   });
@@ -431,7 +420,11 @@ export function yetiAvalanche(events, r, E, ch, darkId = null) {
     const pref = [0, 4, 3, 5, 2, 1, 6];
     const cover = (d, set) => set.filter((q) => triad(d).includes(q)).length;
     const minor = (d) => perfect(d) && ((triad(d)[1] - triad(d)[0] + 12) % 12) === 3;
-    const best = pref.filter((d) => darkId === null || d === 0 || minor(d)).slice().sort((a, c) => cover(c, pcs) - cover(a, pcs) || cover(c, heard) - cover(a, heard) || perfect(c) - perfect(a) || pref.indexOf(a) - pref.indexOf(c))[0];
+    // the composer's rule (yeti.cairo): V at the end of the track, else I or IV, whichever holds more of
+    // what sounds at the close (ties to I); the lab's dark variant scores every triad
+    const inT = (d) => closing.map((e) => e.pitch % 12).filter((q) => triad(d).includes(q)).length;
+    const best = darkId === null ? (s === sections - 1 ? 4 : inT(3) > inT(0) ? 3 : 0)
+      : pref.filter((d) => d === 0 || minor(d)).slice().sort((a, c) => cover(c, pcs) - cover(a, pcs) || cover(c, heard) - cover(a, heard) || perfect(c) - perfect(a) || pref.indexOf(a) - pref.indexOf(c))[0];
     const root = scale[best], chord = triad(best); // the run uses the triad only, never a passing note
     let hi = top - (((top - root) % 12) + 12) % 12; // the highest pitch class of the root at or below top
     const run = [];
@@ -747,7 +740,7 @@ export function addFlourishes(form, day, key, style = {}) {
   return { form: { ...form, events: ev.filter((x) => x.duration > 0) }, added, share };
 }
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0, trueV = false, blockHashes = false, yeti = true } = {}, E, v11) {
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0, trueV = false, blockHashes = false, yeti = true, echo = false } = {}, E, v11) {
   // seed 0 is the Genesis seed (0 is never a block hash): the Genesis rules, no seeded treatment, the
   // tier's fixed channel count, so the OG track of a species (name 0, seed 0) is known exactly
   if (seed === 0n || seed === 0) seed = null;
@@ -804,11 +797,39 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   if (d.knob === 2) override.tr = { ...override.tr, trill: !tr.trill };
   if (d.v === 2) {
     again = true;
+    // from the second day: a month may turn the inversion, a week sets the entries' spacing and may
+    // turn the trill (genesis.cairo drifted_song_inputs)
+    if (d.day >= 2 && d.rhythm !== null && Math.floor(Number(BigInt(d.rhythm) & 0xffffffffn) / 4096) % 2 === 1) {
+      const inv = (override.params && override.params.use_inversion) ?? base.params.use_inversion;
+      override.params = { ...(override.params || {}), use_inversion: !inv };
+    }
+    if (d.day >= 2 && d.rotate !== null) {
+      const h = Number(BigInt(d.rotate) & 0xffffffffn);
+      override.params = { ...(override.params || {}), stretto_lag: 1 + Math.floor(h / 65536) % 4 };
+      if (Math.floor(h / 262144) % 2 === 1) override.tr = { ...override.tr, trill: !override.tr.trill };
+    }
+    // a new-rhythm month: two months in three the key moves to the dominant or subdominant (an octave
+    // down above 96; genesis.cairo drift_key)
+    if (d.rhythm !== null) {
+      const km = Math.floor(Number(BigInt(d.rhythm) & 0xffffffffn) / 256) % 3;
+      if (km < 2) {
+        const T0 = (override.params && override.params.tonic_keynum) ?? base.params.tonic_keynum, k = T0 + [7, 5][km];
+        override.params = { ...(override.params || {}), tonic_keynum: k > 96 ? k - 12 : k };
+      }
+    }
     if (d.dayKnob === 0) override.flipSide = !override.flipSide;
     else if (d.dayKnob === 1) override.tr = { ...override.tr, direction: tr.direction === 0 ? 1 : -tr.direction };
     else { // the tempo nudged by delta BPM: 60e6 / (60e6 / T + delta), rounded half up, in integers (as Cairo)
       const T = override.tempo_us || base.params.tempo_us, D = 60e6 + d.delta * T;
       override.tempo_us = Math.floor((2 * 60e6 * T + D) / (2 * D));
+      // and the phrasing: staccato when faster, tenuto when slower
+      override.params = { ...(override.params || {}), articulation_profile: d.delta > 0 ? 1 : 2 };
+    }
+    // a drift week draws the ornament density under a ceiling rising with the day: 0-3 to day 180,
+    // 0-5 to day 360, then 0-7 (genesis.cairo drift_ornaments)
+    if (d.rotate !== null) {
+      const h = Number(BigInt(d.rotate) & 0xffffffffn), ceiling = d.day < 180 ? 3 : d.day < 360 ? 5 : 7;
+      override.params = { ...(override.params || {}), ornament_density: Math.floor(h / 128) % (ceiling + 1) };
     }
   }
   const r = again ? v11.render(cb, neutral, { ...V11, override }) : base;
@@ -841,7 +862,22 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     tied,
     flourishes: fl ? { count: fl.added.length, share: fl.share, notes: fl.added.flatMap((x) => (x.notes ? x.notes.map(([time, pitch]) => ({ voice: x.voice, time, pitch })) : [{ voice: x.voice, time: x.time, pitch: x.pitch }])), voices: [...new Set(fl.added.map((x) => x.voice))].length, shapes: fl.added.reduce((m, x) => ((m[x.shape] = (m[x.shape] || 0) + 1), m), {}) } : null,
     channels: playing ? playing.map((c, i) => (i === 1 && c !== 4 && c !== 'drums' ? 'low voice' : CHANNEL_NAMES[c])) : null };
-  return { midi: beastFullMidi(out, E.formLength, b.shiny ? MEGA_ALL : {}, { instruments: 'beast', drums, mix, topLead, ...(yetiMix || {}) }), drift: d, result: out, info };
+  // echo: the chip echo of sound_effects 2 and 3 (full_midi.js)
+  const fx = { ...(b.shiny ? MEGA_ALL : {}), ...(echo ? { echo: true } : {}) };
+  // the lead's grace notes from the song's ornament density (full_midi.js graceOf): on a day of drift
+  // after the first only, never on a written track
+  // the kind: from the week's hash on a drift week (the channel order's seed), else the bought track's
+  // seed, else from the species and density (genesis.cairo song_tracks)
+  const kseed = d.v === 2 && d.rotate !== null ? d.rotate : seed;
+  const gkind = kseed !== null && kseed !== undefined ? Math.floor(Number(BigInt(kseed) & 0xffffffffn) / 2048) % 4 : ((Number(p.species_id) % 4) + p.ornament_density) % 4;
+  // the ornaments that grow with time (genesis.cairo song_ornaments): none as written or on day 1;
+  // graces (every canon voice from day 360, +15% from day 540) and the inner voices' fills, drawn
+  // from the seed under a ceiling rising with the day
+  const day = off ? 0 : epoch, kh = kseed !== null && kseed !== undefined ? Number(BigInt(kseed) & 0xffffffffn) : 0;
+  const grace = day >= 2 ? graceOf(p.ornament_density + (day >= 540 ? 3 : 0), gkind) : 0;
+  const fill = day >= 2 ? [0, 15, 30, 50][Math.floor(kh / 524288) % ((day < 180 ? 0 : day < 360 ? 1 : day < 540 ? 2 : 3) + 1)] : 0;
+  const songScale = MODE_SCALES[p.mode_id] ?? (p.mode_id === 6 ? [0, 2, 3, 5, 7, 9, 11] : p.mode_id === 7 ? [0, 2, 4, 6, 8, 10] : [[0, 2, 4, 5, 7, 9, 11], [0, 2, 3, 5, 7, 9, 10], [0, 1, 3, 5, 7, 8, 10], [0, 2, 4, 6, 7, 9, 11], [0, 2, 4, 5, 7, 9, 10], [0, 2, 3, 5, 7, 8, 10]][p.mode_id % 6]);
+  return { midi: beastFullMidi(out, E.formLength, fx, { instruments: 'beast', drums, mix, topLead, grace, graceAll: day >= 360, fill, tonic: p.tonic_keynum, scale: songScale, ...(yetiMix || {}) }), drift: d, result: out, info };
 }
 
 // ── the Genesis Track, as the lab plays it by default (and as the Cairo port must match) ─────────
@@ -859,16 +895,22 @@ export function genesisMidi(speciesId, shiny, E, v11, opts = {}) {
   return sampleTrackMidi(b, { species_count: 1 }, { ...GENESIS_DEFAULTS, ...opts }, E, v11);
 }
 
-// ── the Sound Check: a Beast's scale through each of its presets ──────────────────────────────────
-// Each preset gets a block of ten quarter notes: four quarters on the Beast's scale (a pattern picked
-// by the Beast), a held note, then four staccato blips an octave up; the drum kit closes it. The
+// ── the Sound Check: a Beast's scale on its one preset ───────────────────────────────────────────────
+// Three blocks on the Beast's preset: four quarters on the Beast's scale (a pattern picked by the
+// Beast), a held note, then a sixteenth-note arpeggio up the tonic triad over two octaves. Each block
+// starts a scale degree higher than the one before, on the previous block's last arpeggio note (a
+// hand-off); the drum kit closes it the same way. The preset: (species - 1) % 6 of its family's
+// [...leads, ...plucks], moved on by 1-5 for a special name (by the check's hash), or a mega lead when
+// mega. The
 // presets are the Beast's family (three leads, three plucks) plus the two mega leads when shiny, from
 // a start picked by the Beast. The key is the Beast's own: its special name's key, or for a Beast
 // without one its species' spread key (as on its Species Song), in the mode's real scale. Its inputs
 // are the species, the special name and the shiny flag, all in the packed composer inputs.
 export const SOUND_CHECK_PATTERNS = [[0, 1, 2, 3], [0, 2, 4, 7], [7, 4, 2, 0], [0, 2, 1, 3]];
 export const SOUND_CHECK_KIT = [36, 38, 42, 46, 49, 50, 47, 45];
-const SC_BLOCK = 4800, SC_KIT_VOICE = 9;
+export const SOUND_CHECK_BLOCKS = 3;
+const SC_BLOCK = 4800, SC_STEP = 3960, SC_KIT_VOICE = 9;
+export const SOUND_CHECK_ARP = [7, 9, 11, 14, 16, 18];
 export function soundCheckMidi(b, E) {
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1 };
   const g = genesisBeast(b), named = b.prefix !== 0;
@@ -876,20 +918,23 @@ export function soundCheckMidi(b, E) {
   const mode = !named && GENESIS_MODES[b.id] !== undefined ? GENESIS_MODES[b.id] : kp.mode_id;
   const scale = MODE_SCALES[mode] ?? [0, 2, 3, 5, 7, 8, 10];
   const tonic = kp.tonic_keynum;
-  const pitch = (d) => tonic + 12 * Math.floor(d / 7) + scale[((d % 7) + 7) % 7];
+  const pitch = (d) => { let p = tonic + 12 * Math.floor(d / 7) + scale[((d % 7) + 7) % 7]; while (p > 127) p -= 12; return p; };
   const h = low32(H('BEAST_SOUND_CHECK', b.id, nameVariant(b.prefix, b.suffix)));
   const fam = FAMILIES[b.beast_type] ?? FAMILIES[0];
-  const presets = [...fam.leads, ...fam.plucks, ...(b.shiny ? MEGA_LEADS : [])];
-  const rot = h % presets.length, pattern = SOUND_CHECK_PATTERNS[(h >>> 8) % 4], held = (h >>> 12) % 2 ? 4 : 7;
+  const own = (b.id - 1) % 6;
+  const idx = nameVariant(b.prefix, b.suffix) ? (own + 1 + h % 5) % 6 : own;
+  const one = b.shiny ? MEGA_LEADS[idx % 2] : [...fam.leads, ...fam.plucks][idx];
+  const presets = Array(SOUND_CHECK_BLOCKS).fill(one);
+  const rot = 0, pattern = SOUND_CHECK_PATTERNS[(h >>> 8) % 4], held = (h >>> 12) % 2 ? 4 : 7;
   const events = [], programs = {};
   presets.forEach((_, v) => {
-    const t0 = v * SC_BLOCK;
+    const t0 = v * SC_STEP; // the climb: each block a scale degree higher
     programs[v] = presets[(v + rot) % presets.length];
-    pattern.forEach((d, k) => events.push({ time: t0 + k * 480, duration: 420, pitch: pitch(d), velocity: 100, voice_id: v }));
-    events.push({ time: t0 + 1920, duration: 1380, pitch: pitch(held), velocity: 96, voice_id: v });
-    [7, 9, 11, 14].forEach((d, k) => events.push({ time: t0 + 3360 + k * 240, duration: 60, pitch: pitch(d), velocity: 90, voice_id: v }));
+    pattern.forEach((d, k) => events.push({ time: t0 + k * 480, duration: 420, pitch: pitch(d + v), velocity: 100, voice_id: v }));
+    events.push({ time: t0 + 1920, duration: 1380, pitch: pitch(held + v), velocity: 96, voice_id: v });
+    SOUND_CHECK_ARP.forEach((d, k) => events.push({ time: t0 + 3360 + k * 120, duration: 60, pitch: pitch(d + v), velocity: 90, voice_id: v }));
   });
-  const k0 = presets.length * SC_BLOCK;
+  const k0 = presets.length * SC_STEP;
   SOUND_CHECK_KIT.forEach((key, k) => events.push({ time: k0 + k * 480, duration: 240, pitch: key, velocity: 100, voice_id: SC_KIT_VOICE }));
   programs[SC_KIT_VOICE] = 0;
   const length = k0 + SC_BLOCK;

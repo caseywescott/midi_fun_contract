@@ -126,7 +126,8 @@ export function beastInstruments(result) {
   const followers = Object.keys(st).map(Number).filter((v) => v !== 0 && v !== cs)
     .sort((a, b) => (st[a].sum * st[b].n - st[b].sum * st[a].n) || a - b); // lowest first
   const others = name % 2 ? [fam.plucks[2], fam.plucks[1]] : [fam.plucks[1], fam.plucks[2]];
-  followers.forEach((v, i) => { out[v] = i === 0 ? fam.plucks[0] : others[i - 1]; });
+  // the third follower on take the second's other pluck too (full_midi.cairo voice_programs: rank 2 and up)
+  followers.forEach((v, i) => { out[v] = i === 0 ? fam.plucks[0] : others[Math.min(i - 1, 1)]; });
   return out;
 }
 
@@ -142,6 +143,9 @@ export const megaLeadPick = (p) => (Number(p.species_id) + Number(p.name_variant
  *           octave copy plays the other
  *   double  the lead doubled an octave up on its own channel (panned opposite), three quarters as loud
  *   groove  the mega drum groove (drumEvents)
+ *   echo    the chip echo (sound_effects 2 and 3, not part of mega): the lead again 360 ticks (a
+ *           dotted eighth) later at half velocity, inside the form, on the family's first pluck,
+ *           panned opposite the lead
  */
 export const MEGA_ALL = { lead: true, double: true, groove: true };
 
@@ -160,7 +164,20 @@ export const beastSoundMidi = (result, formLength) => beastFullMidi(result, form
 /** The upper plucks' volume factor in basis points for a voice averaging MIDI 52 + i (i = 0..12; above, 12). */
 export const PLUCK_ABOVE_BASS_BP = [10000, 9670, 9350, 9042, 8743, 8454, 8175, 7905, 7644, 7392, 7148, 6912, 6683];
 
-export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null, mix = null, topLead = false, notLead = [] } = {}) {
+/** A song's grace notes (full_midi.cairo grace_of): its ornament density 0-7 gives 0-35% of the lead's
+ *  and the theme's notes of a quarter or longer; kind 0 a tone above, 1 a semitone below, 2 a slide
+ *  from a minor third below, 3 a mordent. */
+export const graceOf = (density, kind) => density * 20 + kind;
+
+/** The pitch a step of the key (tonic, scale) above or below p (full_midi.cairo key_step). */
+const keyStep = (p, up, tonic, scale) => {
+  const rel = (p + 120 - tonic) % 12;
+  if (up) { for (const x of scale) if (x > rel) return p + x - rel; return p + scale[0] + 12 - rel; }
+  for (let k = scale.length - 1; k >= 0; k--) if (scale[k] < rel) return p - (rel - scale[k]);
+  return p - (rel + 12 - scale[scale.length - 1]);
+};
+
+export function beastFullMidi(result, formLength, mega = {}, { instruments = 'placeholder', programs = null, drums = null, mix = null, topLead = false, notLead = [], grace = 0, graceAll = false, fill = 0, tonic = 0, scale = [] } = {}) {
   const f = result.form, p = result.params, length = formLength(f);
   const setup = voiceSetup(f.events);
   if (instruments === 'beast') for (const [v, program] of Object.entries(beastInstruments(result))) if (setup[v]) setup[v].program = program;
@@ -196,13 +213,23 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
       if (v === lead && pitch + 12 <= 127) notes.push([t, d, pitch + 12, Math.max(1, Math.floor(vel * 3 / 4)), ch]);
     }
   }
+  let echoCh = -1;
+  if (mega.echo) {
+    const ch = Math.max(...Object.keys(st).map(Number), doubleCh) + 1;
+    echoCh = ch;
+    const fam = instruments === 'beast' ? FAMILIES[result.beast.beast_type] ?? FAMILIES[0] : FAMILIES[0];
+    setup[ch] = { program: fam.plucks[0], pan: 128 - setup[lead].pan > 127 ? 127 : 128 - setup[lead].pan };
+    for (const [t, d, pitch, vel, v] of notes.slice()) {
+      if (v === lead && t + 360 < length) notes.push([t + 360, Math.min(d, length - t - 360), pitch, Math.max(1, Math.floor(vel / 2)), ch]);
+    }
+  }
   // mix 'balanced' (a lab prototype, off by default so get_midi is unchanged): the leads (theme,
   // countersubject, mega double) at channel volume 64 and the plucks at 127, about 12 dB closer, and
   // the panning halved, so a sparse channel set keeps every voice audible
   if (mix === 'balanced') {
     const cs = p.use_countersubject ? p.voice_count : -1;
     const fam = FAMILIES[result.beast.beast_type] ?? FAMILIES[0];
-    for (const [v, st] of Object.entries(setup)) { const lead = +v === 0 || +v === cs || +v === doubleCh || fam.leads.includes(st.program) || MEGA_LEADS.includes(st.program); st.vol = lead ? 64 : 127; st.pan = Math.round(64 + (st.pan - 64) / 2); }
+    for (const [v, st] of Object.entries(setup)) { const lead = +v === 0 || +v === cs || +v === doubleCh || +v === echoCh || fam.leads.includes(st.program) || MEGA_LEADS.includes(st.program); st.vol = lead ? 64 : 127; st.pan = Math.round(64 + (st.pan - 64) / 2); }
     // Pulse 25% Pluck (12), 4-bit Saw Pluck (16) and Muted Pluck (19) read too loud above the bass: full level while the
     // voice's average pitch is at or below MIDI 52 (E3), easing down to -7 dB by MIDI 64 (E4) and above
     // (channel volume is squared, so dB = 40 log10(vol / 127))
@@ -212,6 +239,34 @@ export function beastFullMidi(result, formLength, mega = {}, { instruments = 'pl
       const m = Math.floor(st[v].sum / st[v].n), bp = PLUCK_ABOVE_BASS_BP[Math.min(12, Math.max(0, m - 52))];
       x.vol = Math.floor((x.vol * bp + 5000) / 10000);
     }
+  }
+  // the lead's and the theme's grace notes (full_midi.cairo write_notes): on some notes of a quarter or longer, placed
+  // by time, pitch and the species; the grace (80 ticks, 10 softer) then the note, or for a mordent the
+  // note (60), the tone above (60), the note
+  // fills on the inner canon voices (full_midi.cairo write_notes): some notes of a quarter or longer
+  // split in half, the second half a step of the key toward the voice's next note
+  if (grace >= 4 || fill > 0) {
+    const share = Math.floor(grace / 4), kind = grace % 4, salt = Number(p.species_id) % 100, out = [];
+    // each note's next in its own voice, in time order (Cairo writes a voice's notes as one run)
+    const next = new Map(), byVoice = {};
+    notes.forEach((n, i) => (byVoice[n[4]] ||= []).push(i));
+    for (const idx of Object.values(byVoice)) { idx.sort((a, c) => notes[a][0] - notes[c][0] || a - c); idx.forEach((i, k) => { if (k + 1 < idx.length) next.set(i, notes[idx[k + 1]]); }); }
+    for (let i = 0; i < notes.length; i++) {
+      const n = notes[i], [t, d, pitch, v, ch] = n, outer = ch === lead || ch === 0, nx = next.get(i);
+      const canon = ch <= 4 && ch !== doubleCh && ch !== echoCh; // the mega double and the echo take neither
+      if (!outer && canon && fill > 0 && d >= 480 && nx && nx[2] !== pitch && (Math.floor(t / 240) * 11 + pitch * 7 + salt) % 100 < fill) {
+        const h = d >> 1;
+        out.push([t, h, pitch, v, ch], [t + h, d - h, keyStep(pitch, nx[2] > pitch, tonic, scale), v, ch]);
+        continue;
+      }
+      if (!(outer || (graceAll && canon)) || share === 0 || d < 480 || pitch < 3 || pitch > 125 || v <= 10 || (Math.floor(t / 240) * 7 + pitch * 13 + salt) % 100 >= share) { out.push(n); continue; }
+      let start = t;
+      if (kind === 3) { out.push([t, 60, pitch, v, ch]); start = t + 60; }
+      const [g, gd] = kind === 3 ? [pitch + 2, 60] : [pitch + 2 - [0, 3, 5][kind], 80];
+      out.push([start, gd, g, v - 10, ch]);
+      out.push([start + gd, t + d - start - gd, pitch, v, ch]);
+    }
+    notes.length = 0; notes.push(...out);
   }
   const hits = drums === false ? [] : (drums || drumEvents)(length, sec, p.tier, !!mega.groove);
   return fullMidi(notes, p.tempo_us, length, setup, hits);

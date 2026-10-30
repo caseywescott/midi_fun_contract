@@ -34,11 +34,10 @@ use crate::composition::beast_v11::{
 use crate::composition::beast_v3_sound::{
     BeastV3LiveState, PackableBeastV3, map_v3_beast_to_composition_params,
 };
-use crate::composition::drift::{DriftClock, layered_drift, nudge_tempo};
-use crate::composition::evolution::{StaffControls, extra_role_unlocked, perform_staff_events};
+use crate::composition::drift::{Drift, DriftClock, layered_drift, nudge_tempo};
 use crate::composition::full_midi::{
     Arrangement, SMF_DIVISION, SMF_FORMAT, VoiceRun, Voicing, beast_form_to_full_tracks_arranged,
-    mega_lead_pick, voice_runs, voice_stats,
+    grace_of, mega_lead_pick, voice_runs, voice_stats,
 };
 use crate::composition::melodic_canon::NoteEvent;
 use crate::composition::yeti::{
@@ -49,6 +48,7 @@ use crate::inputs::{
     ArrangementInputs, ChannelPolicy, MAX_TEMPO_US, MusicIdentity, ScoreInputs, SongInputs,
     SpecialArrangement, ThemeInputs, TreatmentInputs,
 };
+use crate::opaque::opaque;
 
 /// The chosen Genesis theme of species 1..=75 (index id - 1): a special-name candidate, 0 = its
 /// own.
@@ -90,15 +90,16 @@ pub fn genesis_mode(id: u64, mode_id: u8) -> u8 {
 /// A mode's scale as named, semitones from the tonic (Locrian, harmonic minor and Dorian #4
 /// included).
 pub fn named_mode_scale(mode_id: u8) -> Option<Span<u8>> {
-    match mode_id {
-        4 => Option::Some(array![0, 2, 3, 5, 7, 9, 10].span()),
-        5 => Option::Some(array![0, 1, 3, 5, 7, 8, 10].span()),
-        6 => Option::Some(array![0, 1, 3, 5, 6, 8, 10].span()),
-        7 => Option::Some(array![0, 2, 3, 5, 7, 8, 10].span()),
-        8 => Option::Some(array![0, 2, 3, 5, 7, 8, 11].span()),
-        26 => Option::Some(array![0, 2, 3, 6, 7, 9, 10].span()),
-        _ => Option::None,
-    }
+    let packed: u32 = match mode_id {
+        4 => 0xa975320,
+        5 => 0xa875310,
+        6 => 0xa865310,
+        7 => 0xa875320,
+        8 => 0xb875320,
+        26 => 0xa976320,
+        _ => { return Option::None; },
+    };
+    Option::Some(crate::composition::melodic_canon::packed_scale(packed, 7))
 }
 
 /// Tier and type of a species 1..=75: tiers in fives within each 25 (Magic, Hunter, Brute).
@@ -203,8 +204,7 @@ fn tie_repeats(
     counts: Span<u64>,
     section_ticks: u32,
 ) -> Array<NoteEvent> {
-    let mut voices: Array<u32> = array![];
-    let mut v: u32 = 0;
+    let (mut voices, mut v): (Array<u32>, u32) = opaque((array![], 0));
     while v < MAX_VOICES {
         if *counts.at(v) > 0 && contains(picked, v) {
             voices.append(v);
@@ -574,12 +574,27 @@ pub fn seeded_track_smf_bytes(
 
 /// Any of a Beast's songs on a day of drift: the Genesis Track (prefix 0, seed 0), a name track
 /// (seed 0) or a bought track (a seed), with the layered drift of `clock` (`drift.cairo`; none =
-/// as written). The drift belongs to the Beast (its species and special name).
+/// as written). The drift belongs to the Beast (its species and special name). A drifted song goes
+/// through its shared inputs (`genesis_song_inputs`, `song_tracks`), the path `compose_drift`
+/// plays, with the drift's ornaments and phrasing, and its grace notes from day 2.
 pub fn song_smf_bytes(
     beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
 ) -> Array<u8> {
     assert(prefix <= 69 && suffix <= 18 && (prefix == 0) == (suffix == 0), 'invalid special name');
-    compose(beast, prefix, suffix, seed, drift)
+    match drift {
+        Option::Some(c) => smf_bytes(
+            SMF_FORMAT,
+            SMF_DIVISION,
+            song_tracks(
+                genesis_song_inputs(beast, prefix, suffix, seed, drift),
+                beast.shiny == 1,
+                false,
+                c.day,
+            )
+                .span(),
+        ),
+        Option::None => compose(beast, prefix, suffix, seed, drift),
+    }
 }
 
 /// A track's treatment from its seed (lab.js `trackTreatment`).
@@ -921,6 +936,14 @@ fn compose_tracks(
                 Option::None
             },
             programs: Option::None,
+            echo: false,
+            // this path plays written songs: no grace notes or fills (a drifted song goes through
+            // its inputs)
+            grace: 0,
+            grace_all: false,
+            fill: 0,
+            tonic: 0,
+            scale: [].span(),
         },
     )
 }
@@ -993,6 +1016,130 @@ pub fn purchase_song_inputs(base: SongInputs, seed: felt252) -> SongInputs {
         x.arrangement.channel_count = roles;
     }
     x
+}
+
+/// A song's inputs on a day of drift (`drift.cairo` `layered_drift`): the month's rhythm cells,
+/// the week's channel order (same count) and ornament density (`drift_ornaments`: its ceiling
+/// rises with the day), and the day's knob (the key plan the other way, the episodes' direction
+/// swapped, or the tempo nudged with staccato when faster, tenuto when slower). The same overrides
+/// `compose` applies with a `DriftClock`, so a written song drifts as `song_smf_bytes` plays it.
+pub fn drifted_song_inputs(x: SongInputs, d: Drift) -> SongInputs {
+    let mut y = x;
+    if let Option::Some(r) = d.rhythm {
+        y.treatment.rhythm_seed = r;
+        y.score.tonic_keynum = drift_key(y.score.tonic_keynum, r);
+        // from the second day, a month may turn the inversion
+        if d.day >= 2 && crate::composition::drift::low32(r) / 4096 % 2 == 1 {
+            y.score.use_inversion = !y.score.use_inversion;
+        }
+    }
+    if let Option::Some(r) = d.rotate {
+        y.arrangement.channel_policy = ChannelPolicy::Seeded(r);
+        y.score.ornament_density = drift_ornaments(r, d.day);
+        // from the second day, a week sets the entries' spacing and may turn the trill
+        if d.day >= 2 {
+            let h = crate::composition::drift::low32(r);
+            y.score.stretto_lag = (1 + h / 65536 % 4).try_into().unwrap();
+            if h / 262144 % 2 == 1 {
+                y.treatment.trill = !y.treatment.trill;
+            }
+        }
+    }
+    if d.day_knob == 0 {
+        y.treatment.flip_side = !y.treatment.flip_side;
+    } else if d.day_knob == 1 {
+        // alternating episodes rise; rising fall; falling rise
+        y.treatment.direction = if y.treatment.direction == 1 {
+            2
+        } else {
+            1
+        };
+    } else {
+        let t = nudge_tempo(y.score.tempo_us, d.delta_bpm);
+        y.score.tempo_us = if t > MAX_TEMPO_US {
+            MAX_TEMPO_US
+        } else {
+            t
+        };
+        // and the phrasing: staccato when faster, tenuto when slower
+        y.score.articulation_profile = if d.delta_bpm > 0 {
+            1
+        } else {
+            2
+        };
+    }
+    y
+}
+
+/// A song's ornaments on `day` of drift (none as written, or on the first day): grace notes on some
+/// of the lead's and the theme's notes of a quarter or longer (every canon voice from day 360), the
+/// share the ornament density * 5% (+15% from day 540), the kind (`full_midi::grace_of`) from the
+/// channel order's seed (the week's on a drift week, else a bought track's) or else the species and
+/// density; and the inner voices' fills, the share drawn from that seed under a ceiling rising
+/// with the day: none to day 180, then up to 15%, 30% and from day 540 50%.
+fn song_ornaments(density: u8, policy: ChannelPolicy, species: u64, day: u64) -> (u32, u32) {
+    if day < 2 {
+        return (0, 0);
+    }
+    let h: u64 = match policy {
+        ChannelPolicy::Seeded(r) => crate::composition::drift::low32(r),
+        ChannelPolicy::Genesis => 0,
+    };
+    let kind: u32 = match policy {
+        ChannelPolicy::Seeded(_) => (h / 2048 % 4).try_into().unwrap(),
+        ChannelPolicy::Genesis => ((species % 4).try_into().unwrap() + density.into()) % 4,
+    };
+    let bonus: u8 = if day >= 540 {
+        3
+    } else {
+        0
+    };
+    let ceiling: u64 = if day < 180 {
+        0
+    } else if day < 360 {
+        1
+    } else if day < 540 {
+        2
+    } else {
+        3
+    };
+    let fill = *[0_u32, 15, 30, 50].span().at(((h / 524288) % (ceiling + 1)).try_into().unwrap());
+    (grace_of(density + bonus, kind), fill)
+}
+
+/// A new-rhythm month's key for a song: two months in three the tonic moves to the dominant (+7)
+/// or the subdominant (+5), an octave down above 96 (the month's hash). Both drift paths.
+fn drift_key(tonic: u8, rhythm: felt252) -> u8 {
+    let km = (crate::composition::drift::low32(rhythm) / 256) % 3;
+    if km == 2 {
+        return tonic;
+    }
+    let k = tonic + if km == 0 {
+        7
+    } else {
+        5
+    };
+    if k > 96 {
+        k - 12
+    } else {
+        k
+    }
+}
+
+/// A drift week's ornament density for a song, from the week's hash under a ceiling that rises
+/// with the day (3 of 7 to day 180, 5 to day 360, then 7). Both drift paths.
+// On purpose (CASM size): one copy.
+#[inline(never)]
+fn drift_ornaments(rotate: felt252, day: u64) -> u8 {
+    let h = crate::composition::drift::low32(rotate);
+    let ceiling: u64 = if day < 180 {
+        3
+    } else if day < 360 {
+        5
+    } else {
+        7
+    };
+    ((h / 128) % (ceiling + 1)).try_into().unwrap()
 }
 
 /// Episodes alternating (0), rising (1) or falling (-1) as the shared inputs' 0, 1, 2.
@@ -1161,7 +1308,7 @@ fn song_inputs(
     } else {
         ChannelPolicy::Seeded(seed)
     };
-    SongInputs {
+    let x = SongInputs {
         theme: ThemeInputs {
             motif_seed: r.motif_seed, tier: r.theme_tier, register_band: r.theme_register_band,
         },
@@ -1193,7 +1340,8 @@ fn song_inputs(
         arrangement: ArrangementInputs {
             family: beast_type,
             identity: MusicIdentity {
-                source_species_id: p.species_id,
+                // species ids are u32 (the token's 32 bits); the engine keeps them as u64
+                source_species_id: p.species_id.try_into().unwrap(),
                 name_variant_id: p.name_variant_id.try_into().unwrap(),
             },
             channel_count: if unseeded {
@@ -1213,7 +1361,35 @@ fn song_inputs(
             balanced: true,
             weak_ties: true,
         },
+    };
+    // the drift's ornaments and phrasing, as `drifted_song_inputs`
+    let mut x = x;
+    if let Option::Some(d) = dr {
+        if let Option::Some(r) = d.rhythm {
+            x.score.tonic_keynum = drift_key(x.score.tonic_keynum, r);
+            if d.day >= 2 && crate::composition::drift::low32(r) / 4096 % 2 == 1 {
+                x.score.use_inversion = !x.score.use_inversion;
+            }
+        }
+        if let Option::Some(r) = d.rotate {
+            x.score.ornament_density = drift_ornaments(r, d.day);
+            if d.day >= 2 {
+                let h = crate::composition::drift::low32(r);
+                x.score.stretto_lag = (1 + h / 65536 % 4).try_into().unwrap();
+                if h / 262144 % 2 == 1 {
+                    x.treatment.trill = !x.treatment.trill;
+                }
+            }
+        }
+        if d.day_knob >= 2 {
+            x.score.articulation_profile = if d.delta_bpm > 0 {
+                1
+            } else {
+                2
+            };
+        }
     }
+    x
 }
 
 /// A special name (prefix 1..=69, suffix 1..=18) as its name variant id (0 = no name), the
@@ -1225,24 +1401,18 @@ fn special_name_id(prefix: u8, suffix: u8) -> u16 {
     (prefix.into() - 1) * BEAST_PREFIX2_COUNT.into() + suffix.into()
 }
 
-/// The track bodies a song's shared inputs compose, with the mega arrangement when `mega`. Plays
-/// what this engine supports: tied inner voices and the written phrase in every section.
-pub fn song_tracks(x: SongInputs, mega: bool) -> Array<Array<u8>> {
-    song_tracks_with(x, mega, Option::None)
-}
-
-/// The same on a staff (evolution, `evolution.cairo`): the written channels plus the extra roles
-/// the staff unlocked (next in the written channel order), its note performance (velocity and
-/// octave ornaments) and its tempo.
-pub fn staff_song_tracks(x: SongInputs, mega: bool, staff: StaffControls) -> Array<Array<u8>> {
-    song_tracks_with(x, mega, Option::Some(staff))
-}
-
-fn song_tracks_with(x: SongInputs, mega: bool, staff: Option<StaffControls>) -> Array<Array<u8>> {
+/// The track bodies a song's shared inputs compose, with the mega arrangement when `mega`, the
+/// chip echo when `echo`, and on `day` of drift (0: as written) from the second the ornaments that
+/// grow with time (`song_ornaments`). Plays what this engine supports: tied inner voices and the
+/// written phrase in every section.
+pub fn song_tracks(x: SongInputs, mega: bool, echo: bool, day: u64) -> Array<Array<u8>> {
     let (theme, s, t, a) = (x.theme, x.score, x.treatment, x.arrangement);
+    let (grace, fill) = song_ornaments(
+        s.ornament_density, a.channel_policy, a.identity.source_species_id.into(), day,
+    );
     assert(a.weak_ties, 'untied voices unsupported');
     assert(!t.section_rhythm, 'section rhythm unsupported');
-    let species_id = a.identity.source_species_id;
+    let species_id: u64 = a.identity.source_species_id.into();
     let name_variant_id: u32 = a.identity.name_variant_id.into();
     let scale = named_mode_scale(s.mode_id);
     let score = build_v11_score_resolved(
@@ -1298,38 +1468,10 @@ fn song_tracks_with(x: SongInputs, mega: bool, staff: Option<StaffControls>) -> 
     let order = song_pick(
         sums.span(), counts.span(), p.voice_count, p.use_countersubject, a.channel_policy,
     );
-    let written: u32 = a.channel_count.into();
-    let mut picked: Array<u32> = array![];
-    let mut i: u32 = 0;
-    for role in order.span() {
-        let include = i < written
-            || match staff {
-            Option::Some(c) => extra_role_unlocked(c.unlocked_extra_mask, i - written),
-            Option::None => false,
-            };
-        if include {
-            picked.append(*role);
-        }
-        i += 1;
-    }
+    let picked = order.span().slice(0, a.channel_count.into());
     let mut events = tie_repeats(
-        score.events.span(),
-        runs.span(),
-        picked.span(),
-        sums.span(),
-        counts.span(),
-        score.section_ticks,
+        score.events.span(), runs.span(), picked, sums.span(), counts.span(), score.section_ticks,
     );
-    let mut tempo_us = s.tempo_us;
-    if let Option::Some(c) = staff {
-        events = perform_staff_events(events.span(), p.velocity_ceiling, c);
-        let nudged = nudge_tempo(tempo_us, c.tempo_delta);
-        tempo_us = if nudged > MAX_TEMPO_US {
-            MAX_TEMPO_US
-        } else {
-            nudged
-        };
-    }
     // the Yeti special: ornaments by the track's profile, then the avalanche
     let yeti = if let SpecialArrangement::Yeti(name) = a.special {
         let (prefix, suffix) = if name == 0 {
@@ -1365,7 +1507,7 @@ fn song_tracks_with(x: SongInputs, mega: bool, staff: Option<StaffControls>) -> 
     };
     beast_form_to_full_tracks_arranged(
         @form,
-        tempo_us,
+        s.tempo_us,
         p.tier,
         Option::Some(
             Voicing {
@@ -1381,7 +1523,7 @@ fn song_tracks_with(x: SongInputs, mega: bool, staff: Option<StaffControls>) -> 
         Arrangement {
             top_lead: a.top_lead,
             balanced: a.balanced,
-            drums: contains(picked.span(), DRUMS),
+            drums: contains(picked, DRUMS),
             rock: yeti,
             extra: if yeti {
                 Option::Some((YETI_AVALANCHE_VOICE, YETI_AVALANCHE_PROGRAM))
@@ -1389,6 +1531,15 @@ fn song_tracks_with(x: SongInputs, mega: bool, staff: Option<StaffControls>) -> 
                 Option::None
             },
             programs: Option::None,
+            echo,
+            grace,
+            grace_all: day >= 360,
+            fill,
+            tonic: s.tonic_keynum,
+            scale: match scale {
+                Option::Some(sc) => sc,
+                Option::None => crate::composition::melodic_canon::mode_scale(s.mode_id),
+            },
         },
     )
 }
@@ -1430,8 +1581,8 @@ fn song_pick(
         },
         ChannelPolicy::Seeded(seed) => {
             let mut values: Felt252Dict<u32> = Default::default();
-            let mut n: u32 = 0;
-            let mut v: u32 = 1;
+            // (opaque: one compiled copy of each loop, CASM size)
+            let (mut n, mut v): (u32, u32) = opaque((0, 1));
             while v < voices {
                 if v != low {
                     values.insert(n.into(), v);
@@ -1456,7 +1607,7 @@ fn song_pick(
                 h = h / 7;
                 i -= 1;
             }
-            let mut k: u32 = 0;
+            let mut k: u32 = opaque(0);
             while k < n {
                 rest.append(values.get(k.into()));
                 k += 1;
@@ -1469,7 +1620,7 @@ fn song_pick(
 
 /// A song's file from its shared inputs (self-contained, for onchain-midi-player).
 pub fn song_inputs_smf_bytes(x: SongInputs, mega: bool) -> Array<u8> {
-    smf_bytes(SMF_FORMAT, SMF_DIVISION, song_tracks(x, mega).span())
+    smf_bytes(SMF_FORMAT, SMF_DIVISION, song_tracks(x, mega, false, 0).span())
 }
 
 /// The same, packed 31 bytes per felt after the byte length.

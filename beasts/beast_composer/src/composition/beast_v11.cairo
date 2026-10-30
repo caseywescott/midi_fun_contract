@@ -166,25 +166,26 @@ pub struct V11Score {
 }
 
 // ── rhythm cells: (start, duration, source) ──
+/// The rhythm cells' notes (offset, duration, source), plain, long, dotted, run, lilt, syncop,
+/// halves, cadence, one after another: cell `n` is CELL_NOTES[CELL_AT[n]..CELL_AT[n + 1]] (a
+/// constant array: data, not code).
+const CELL_NOTES: [(u32, u32, u8); 29] = [
+    (0, 480, 0), (480, 480, 1), (960, 480, 2), (1440, 480, 3), (0, 960, 0), (960, 480, 2),
+    (1440, 480, 3), (0, 720, 0), (720, 240, 4), (960, 480, 2), (1440, 480, 3), (0, 240, 0),
+    (240, 240, 4), (480, 480, 1), (960, 480, 2), (1440, 480, 3), (0, 480, 0), (480, 240, 1),
+    (720, 240, 4), (960, 960, 2), (0, 480, 0), (480, 720, 1), (1200, 240, 4), (1440, 480, 3),
+    (0, 960, 0), (960, 960, 2), (0, 480, 0), (480, 480, 1), (960, 960, 5),
+];
+const CELL_AT: [u32; 9] = [0, 4, 7, 11, 16, 20, 24, 26, 29];
+
 fn cell(name: u8) -> Span<(u32, u32, u8)> {
-    if name == 0 { // plain
-        array![(0, 480, 0), (480, 480, 1), (960, 480, 2), (1440, 480, 3)].span()
-    } else if name == 1 { // long
-        array![(0, 960, 0), (960, 480, 2), (1440, 480, 3)].span()
-    } else if name == 2 { // dotted
-        array![(0, 720, 0), (720, 240, SRC_PASSING), (960, 480, 2), (1440, 480, 3)].span()
-    } else if name == 3 { // run
-        array![(0, 240, 0), (240, 240, SRC_PASSING), (480, 480, 1), (960, 480, 2), (1440, 480, 3)]
-            .span()
-    } else if name == 4 { // lilt
-        array![(0, 480, 0), (480, 240, 1), (720, 240, SRC_PASSING), (960, 960, 2)].span()
-    } else if name == 5 { // syncop
-        array![(0, 480, 0), (480, 720, 1), (1200, 240, SRC_PASSING), (1440, 480, 3)].span()
-    } else if name == 6 { // halves
-        array![(0, 960, 0), (960, 960, 2)].span()
-    } else { // cadence
-        array![(0, 480, 0), (480, 480, 1), (960, 960, SRC_TONIC)].span()
-    }
+    let n: u32 = if name > 7 {
+        7
+    } else {
+        name.into()
+    };
+    let (a, b) = (*CELL_AT.span().at(n), *CELL_AT.span().at(n + 1));
+    CELL_NOTES.span().slice(a, b - a)
 }
 
 fn has_passing(name: u8) -> bool {
@@ -492,7 +493,7 @@ fn end_episode(ref grid: Grid) {
 /// Appends a note to the section and records it in the table of the voice being placed.
 // On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
 #[inline(never)]
-fn put(ref out: Array<NoteEvent>, ref grid: Grid, e: NoteEvent) {
+fn put(ref out: Array<NoteEvent>, ref grid: Grid, e: NoteEvent) -> Option<NoteEvent> {
     assert(e.time % CELL == 0 && e.duration % CELL == 0 && e.duration > 0, 'v11: off grid');
     let idx = out.len();
     out.append(e);
@@ -535,6 +536,9 @@ fn put(ref out: Array<NoteEvent>, ref grid: Grid, e: NoteEvent) {
         }
     }
     grid = Grid { others, cells, next: end_cell };
+    // the caller's previous note, returned rather than set to `Some(e)` in its loop: a loop that
+    // sets its own state to a built value is compiled twice (CASM size)
+    Option::Some(e)
 }
 
 /// The notes of the other voices that sound with a new note (its voice's own earlier notes end
@@ -838,8 +842,7 @@ fn realizer(shift: i32, tonic: u8, scale: Span<u8>) -> Realizer {
     // Only the first seven degrees count, as in `degree_to_keynum`: a shorter scale panics here
     // with the same 'Index out of bounds'.
     let scale = scale.slice(0, 7);
-    let mut table: Array<Option<u8>> = array![];
-    let mut oct = TABLE_OCT_LO;
+    let (mut table, mut oct): (Array<Option<u8>>, u32) = opaque((array![], TABLE_OCT_LO));
     while oct < TABLE_OCT_HI {
         let root: u32 = tonic.into() + 12 * oct;
         for semis in scale {
@@ -899,8 +902,7 @@ fn place(
 ) {
     let pitch = choose_pitch(cands, time, duration, out.span(), @grid, prev);
     let e = NoteEvent { time, duration, pitch, velocity: 90, voice_id: voice };
-    put(ref out, ref grid, e);
-    prev = Option::Some(e);
+    prev = put(ref out, ref grid, e);
 }
 
 /// `pcs[i]`, or 12, which no pitch class equals, past the end.
@@ -1189,8 +1191,7 @@ fn build_section(
                 choose_pitch(cands.span(), time, sl.duration, out.span(), @grid, prev)
             };
             let e = NoteEvent { time, duration: sl.duration, pitch, velocity, voice_id: v };
-            put(ref out, ref grid, e);
-            prev = Option::Some(e);
+            prev = put(ref out, ref grid, e);
         }
         end_line(ref grid);
         maps.append(m);
@@ -1220,8 +1221,7 @@ fn build_section(
             let cands = near(r, ident, *d);
             let pitch = choose_pitch(cands.span(), time, TU, out.span(), @grid, prev);
             let e = NoteEvent { time, duration: TU, pitch, velocity, voice_id: p.voice_count };
-            put(ref out, ref grid, e);
-            prev = Option::Some(e);
+            prev = put(ref out, ref grid, e);
             if i < 4 {
                 cs_head.append(Slot { time: i * TU, duration: TU, src: 0, group: 0, degree: *d });
             }
@@ -1600,9 +1600,8 @@ fn build_resolved(r: V11Resolved) -> Box<V11Score> {
     let mut slots = theme_rhythm(@p, theme.span(), r.rhythm_seed);
     if tr.trill {
         // a trill (upper neighbour and back) replaces each passing note of an eighth or longer
-        let mut out: Array<Slot> = array![];
         let n = slots.len();
-        let mut i: u32 = 0;
+        let (mut out, mut i): (Array<Slot>, u32) = opaque((array![], 0));
         while i < n {
             let sl = *slots.at(i);
             if sl.src == SRC_PASSING && sl.duration >= 240 {
@@ -2332,7 +2331,7 @@ mod grid_tests {
             let e = *e;
             queries(new_out.span(), ref old_grid, @grid, voices, origin, e, prev, ref state);
             old_put(ref old_out, ref old_grid, e);
-            put(ref new_out, ref grid, e);
+            let _ = put(ref new_out, ref grid, e);
             prev = Option::Some(e);
         }
     }
@@ -2465,7 +2464,7 @@ mod grid_tests {
         check(new_out.span(), ref old_grid, @grid, 3, 1, 0, 0, false, 0, 0);
         let e = NoteEvent { time: 0, duration: 4 * CELL, pitch: 62, velocity: 90, voice_id: 0 };
         old_put(ref old_out, ref old_grid, e);
-        put(ref new_out, ref grid, e);
+        let _ = put(ref new_out, ref grid, e);
         // the voice being placed has no table yet: it does not meet its own note
         let found = overlaps(new_out.span(), @grid, 0, 1, false, 0, 0);
         assert(found.len() == 0, 'overlaps: own note');
@@ -2507,7 +2506,7 @@ mod grid_tests {
     fn put_rejects_a_time_off_the_grid() {
         let mut out: Array<NoteEvent> = array![];
         let mut grid = new_grid(1, 0);
-        put(
+        let _ = put(
             ref out,
             ref grid,
             NoteEvent { time: 60, duration: 120, pitch: 60, velocity: 90, voice_id: 0 },
@@ -2519,7 +2518,7 @@ mod grid_tests {
     fn put_rejects_a_duration_off_the_grid() {
         let mut out: Array<NoteEvent> = array![];
         let mut grid = new_grid(1, 0);
-        put(
+        let _ = put(
             ref out,
             ref grid,
             NoteEvent { time: 120, duration: 100, pitch: 60, velocity: 90, voice_id: 0 },
@@ -2531,7 +2530,7 @@ mod grid_tests {
     fn put_rejects_a_zero_duration() {
         let mut out: Array<NoteEvent> = array![];
         let mut grid = new_grid(1, 0);
-        put(
+        let _ = put(
             ref out,
             ref grid,
             NoteEvent { time: 120, duration: 0, pitch: 60, velocity: 90, voice_id: 0 },

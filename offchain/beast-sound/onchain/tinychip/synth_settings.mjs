@@ -31,8 +31,9 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { poseidonHashMany } from '../../src/index.js';
 import { FAMILIES } from '../../src/full_midi.js';
+import { EDITION_DRUMS, RARE_LEADS, STYLES } from '../../src/editions_lite.js';
 import { fileURLToPath } from 'node:url';
-import { bankData, loadBank } from './essentials.mjs';
+import { bankData, ESSENTIALS, loadBank } from './essentials.mjs';
 
 const SCALE = 10000;
 const DEFAULTS = { g: 0, w: 'sine', t: 1, f: 0, v: 0.5, a: 0, h: 0.01, d: 0.01, s: 0, r: 0.05, p: 1, q: 1, k: 0 };
@@ -120,16 +121,18 @@ export function timbreOperators(ops, trim = 1, waves = []) {
   const out = [], parts = []; // parts[i]: 1-based indices in `out` of original operator i
   for (const raw of ops) {
     const o = { ...DEFAULTS, ...raw };
-    if (o.g > 10) throw new Error('AM modulators are not mapped');
     const custom = (w) => (waves.includes(w) ? { Custom: waves.indexOf(w) } : (() => { throw new Error(`wave ${w} not in waves`); })());
     const split = o.w in STEPS ? [[custom(o.w), 1, 1]]
       : INTERIM[o.w] || [[BUILTIN[o.w] || (() => { throw new Error('wave ' + o.w); })(), 1, 1]];
     if (o.g === 0) {
       parts.push(split.map(([w, mul, gain]) => (out.push(operator(o, 0, w, mul, gain * trim * (typeof w === 'string' ? BUILTIN_GAIN[w] ?? 1 : 1))), out.length)));
     } else {
+      // FM (g 1..=10) or AM (g 11..: the volume of operator g - 10) of an earlier operator, repeated
+      // for each part of a split target; route is the part's 1-based index (AM: plus 10)
       if (split.length > 1) throw new Error('split modulator');
       const [w] = split[0];
-      parts.push(parts[o.g - 1].map((target) => (out.push(operator(o, target, w)), out.length)));
+      const am = o.g > 10;
+      parts.push(parts[o.g - (am ? 11 : 1)].map((target) => (out.push(operator(o, target + (am ? 10 : 0), w)), out.length)));
     }
   }
   if (out.length > 8) throw new Error(`${out.length} operators`);
@@ -210,18 +213,34 @@ const wrapDoc = (text, prefix = '///', width = 100) => {
 // constants costs the contract a felt per value; the same values built in code (`array![...]` of
 // struct literals in every settings function) cost about 10x that in CASM.
 const SAMPLES = []; const SAMPLES_AT = new Map(); // samples key -> start
-const OPERATORS = []; const OPERATORS_AT = new Map(); // operator list key -> start
+const OPERATORS = []; const OPERATORS_AT = new Map(); // operator list key -> its first operator
 const samplesAt = (samples) => {
   const key = samples.join(',');
   if (!SAMPLES_AT.has(key)) { SAMPLES_AT.set(key, SAMPLES.length); SAMPLES.push(...samples); }
   return SAMPLES_AT.get(key);
 };
 const operatorsAt = (ops) => {
-  const key = ops.join('\n');
+  const key = JSON.stringify(ops);
   if (!OPERATORS_AT.has(key)) { OPERATORS_AT.set(key, OPERATORS.length); OPERATORS.push(...ops); }
   return OPERATORS_AT.get(key);
 };
 const check = (ok, what) => { if (!ok) throw new Error(`settings table: ${what} out of range`); };
+// an operator's packed values after route and wave (key_scale must be 0, no filter)
+const OP_PACKED = ['volume', 'ratio', 'offset_hz', 'attack', 'hold', 'decay', 'sustain', 'release', 'pitch_ratio', 'pitch_time'];
+const WAVE_CODES = { Sine: 0, Square: 1, Sawtooth: 2, Triangle: 3, WhiteNoise: 4, MetallicNoise: 5 };
+function operatorWords() {
+  const out = [];
+  for (const o of OPERATORS) {
+    check(o.key_scale === 0 && (o.filter === undefined || o.filter === null), 'operator key_scale/filter');
+    const wv = typeof o.wave === 'string' ? WAVE_CODES[o.wave] : 6 + o.wave.Custom;
+    check(wv !== undefined, 'wave ' + JSON.stringify(o.wave));
+    const v = [o.route, wv, ...OP_PACKED.map((k) => o[k])];
+    for (const x of v) check(Number.isInteger(x) && x >= 0 && x < 2 ** 31, 'operator value ' + x);
+    const pack = (xs) => '0x' + xs.reduce((acc, x, k) => acc | (BigInt(x) << BigInt(32 * k)), 0n).toString(16);
+    out.push(pack(v.slice(0, 7)), pack(v.slice(7)));
+  }
+  return out;
+}
 
 /** One generated settings function: its Serde hash constant, the function, then its two tables. */
 function settingsFn(s, waveNames, fnName, hashName, doc) {
@@ -235,7 +254,7 @@ function settingsFn(s, waveNames, fnName, hashName, doc) {
   });
   // a timbre: ((first * 0x100 + count) * 2 + drum) * 0x100 + slot, its operators from OPERATORS
   const timbres = s.timbres.map((t) => {
-    const ops = t.operators.map((o) => `    Operator { route: ${o.route}, wave: Waveform::${wave(o.wave)}, ${OP_FIELDS.map((k) => `${k}: ${o[k]}`).join(', ')}, filter: Option::None },`);
+    const ops = t.operators;
     const first = operatorsAt(ops); const count = ops.length;
     check(count < 0x100 && first < 0x10000 && t.slot < 0x100, 'timbre');
     return ((first * 0x100 + count) * 2 + (t.drum ? 1 : 0)) * 0x100 + t.slot;
@@ -253,6 +272,95 @@ pub fn ${fnName}() -> TinySynthSettings {
 const WAVES_${up}: [u32; ${waves.length}] = [${waves.join(', ')}];
 #[cairofmt::skip]
 const TIMBRES_${up}: [u32; ${timbres.length}] = [${timbres.join(', ')}];
+`;
+}
+
+/**
+ * The Monthly Track Editions' settings (editions_lite.js, edition 1 and later): for each style and
+ * Beast type, the presets its lead, accompaniment, bass and pad play (palette rows 0, 2, 3, 4; row 1
+ * plays the lead's preset), untrimmed as the editions page plays them, the mega leads when mega,
+ * and the chip drums the percussion figures play. Every edition settings value carries the same waves (all the editions' presets use), so a
+ * preset's operators (its waves as \`Custom(i)\`) are the same in each and stored once.
+ */
+// a rare lead (RARE_LEADS) brings its alternative, the palette's second row
+export const editionPrograms = (style, type, mega) => [...new Set([0, ...(RARE_LEADS.includes(STYLES[style].palette[0][type]) ? [1] : []), 2, 3, 4].map((row) => STYLES[style].palette[row][type])), ...(mega ? MEGA_LEAD_PROGRAMS : [])];
+export const EDITION_PROGRAMS = [...new Set(STYLES.flatMap((_, s) => [0, 1, 2].flatMap((t) => editionPrograms(s, t, true))))];
+export const editionData = () => bankData(undefined, [...new Set([...ESSENTIALS, ...EDITION_PROGRAMS])]);
+export const editionWaves = (data = editionData()) => sampledWaves([...EDITION_PROGRAMS.map((id) => data.presets[id]), ...EDITION_DRUMS.map((key) => data.drums[key])]);
+export function editionSynthSettings(style, type, mega, data = editionData()) {
+  const waves = editionWaves(data), tables = chipTables(waves);
+  const timbres = [
+    ...editionPrograms(style, type, mega).map((id) => ({ drum: false, slot: id, operators: timbreOperators(data.presets[id], 1, waves) })),
+    ...EDITION_DRUMS.map((key) => ({ drum: true, slot: key, operators: timbreOperators(data.drums[key], 1, waves) })),
+  ];
+  return { quality: 1, reverb: 30, master_vol: 40, voices: 64, waves: waves.map((w) => ({ Samples: tables[w] })), timbres };
+}
+
+/** The editions' Cairo: one wave list, one timbre per preset, and each style and type's presets. */
+function editionsCairo() {
+  const data = editionData(), waves = editionWaves(data);
+  const s = editionSynthSettings(0, 0, false, data);
+  const waveCodes = s.waves.map((w) => { const start = samplesAt(w.Samples); check(w.Samples.length < 0x100, 'wave'); return start * 0x100 + w.Samples.length; });
+  const wave = (w) => (typeof w === 'string' ? w : `Custom(${w.Custom})`);
+  const timbreCode = (id, drum = false) => {
+    const ops = timbreOperators(drum ? data.drums[id] : data.presets[id], 1, waves);
+    const first = operatorsAt(ops);
+    check(ops.length < 0x100 && first < 0x10000, 'timbre');
+    return ((first * 0x100 + ops.length) * 2 + (drum ? 1 : 0)) * 0x100 + id;
+  };
+  const codes = EDITION_PROGRAMS.map((id) => timbreCode(id));
+  const drumCodes = EDITION_DRUMS.map((key) => timbreCode(key, true));
+  const at = (id) => EDITION_PROGRAMS.indexOf(id);
+  // a palette: its count * 2^25 + its timbres' indices into EDITION_TIMBRES, 5 bits each
+  const palettes = STYLES.flatMap((_, st) => [0, 1, 2].map((t) => {
+    const progs = editionPrograms(st, t, false);
+    check(progs.length <= 5 && EDITION_PROGRAMS.length <= 32, 'palette');
+    return progs.length * 2 ** 25 + progs.reduce((acc, id, i) => acc + at(id) * 32 ** i, 0);
+  }));
+  const hashes = STYLES.flatMap((_, st) => [0, 1, 2].flatMap((t) => [false, true].map((mega) => '0x' + poseidonHashMany(serializeSettings(editionSynthSettings(st, t, mega, data))).toString(16))));
+  return `
+/// The settings a Monthly Track Edition's file selects (editions_lite.js, edition 1 and later): style
+/// \`style\` (0 waltz, 1 chorale, 2 lullaby, 3 dirge, 4 boss battle, 5 sea shanty, 6 march, 7 dungeon
+/// crawl, 8 tango) for a Beast of \`beast_type\`, its lead,
+/// accompaniment, bass and pad presets as the editions page plays them (untrimmed), the mega leads
+/// when mega, and the drums ${EDITION_DRUMS.join(', ')} (the percussion figures). Every edition value carries the editions' ${waves.length} waves: ${waves.join(', ')}.
+pub fn edition_synth_settings(style: u32, beast_type: u32, mega: bool) -> TinySynthSettings {
+    let palette = *EDITION_PALETTES.span().at(style * 3 + beast_type);
+    let timbres = EDITION_TIMBRES.span();
+    let mut picked: Array<u32> = array![];
+    let mut at = palette % 0x2000000;
+    let mut n = palette / 0x2000000;
+    while n > 0 {
+        picked.append(*timbres.at(at % 32));
+        at /= 32;
+        n -= 1;
+    }
+    if mega {
+        picked.append(*timbres.at(${at(MEGA_LEAD_PROGRAMS[0])}));
+        picked.append(*timbres.at(${at(MEGA_LEAD_PROGRAMS[1])}));
+    }
+    for d in EDITION_DRUM_TIMBRES.span() {
+        picked.append(*d);
+    }
+    settings_from(1, 30, 40, 64, EDITION_WAVES.span(), picked.span())
+}
+#[cairofmt::skip]
+const EDITION_WAVES: [u32; ${waveCodes.length}] = [${waveCodes.join(', ')}];
+/// One timbre per editions preset, programs ${EDITION_PROGRAMS.join(', ')}.
+#[cairofmt::skip]
+const EDITION_TIMBRES: [u32; ${codes.length}] = [${codes.join(', ')}];
+/// The chip drums ${EDITION_DRUMS.join(', ')}.
+#[cairofmt::skip]
+const EDITION_DRUM_TIMBRES: [u32; ${drumCodes.length}] = [${drumCodes.join(', ')}];
+/// Each style and type's presets (index style * 3 + type): count * 2^25 + indices into
+/// EDITION_TIMBRES, 5 bits each.
+#[cairofmt::skip]
+const EDITION_PALETTES: [u32; ${palettes.length}] = [${palettes.join(', ')}];
+/// The Poseidon hash of each \`edition_synth_settings(style, beast_type, mega)\`'s Serde, as the
+/// generator computes it, at (style * 3 + beast_type) * 2 + mega (tests check Cairo agrees).
+#[cfg(test)]
+#[cairofmt::skip]
+pub const EDITION_SERDE_HASHES: [felt252; ${hashes.length}] = [${hashes.join(', ')}];
 `;
 }
 
@@ -312,25 +420,81 @@ pub fn yeti_synth_settings_serde_hash(mega: bool) -> felt252 {
     }
 }
 
-${fns.join('\n')}/// Every wave's samples, each once (\`WAVES_*\`: start * 0x100 + length).
+${fns.join('\n')}${editionsCairo()}/// Every wave's samples, each once (\`WAVES_*\`: start * 0x100 + length).
 #[cairofmt::skip]
 const SAMPLES: [i8; ${SAMPLES.length}] = [${SAMPLES.join(', ')}];
 /// Every distinct operator list, each once (\`TIMBRES_*\`: ((first * 0x100 + count) * 2 + drum) *
-/// 0x100 + slot); no filters.
+/// 0x100 + slot), each operator as 12 32-bit values in two felts (7 + 5, from the low end): route,
+/// wave (0 sine, 1 square, 2 sawtooth, 3 triangle, 4 white noise, 5 metallic noise, 6 + i custom
+/// i), ${OP_PACKED.join(', ')}; key_scale 0 and no filters.
 #[cairofmt::skip]
-const OPERATORS: [Operator; ${OPERATORS.length}] = [
-${OPERATORS.join('\n')}
-];
+const OPERATOR_WORDS: [felt252; ${OPERATORS.length * 2}] = [${operatorWords().join(', ')}];
 
-/// A settings value from its tables: each wave a slice of SAMPLES, each timbre a slice of
-/// OPERATORS.
+/// Reads 32-bit values packed 7 to a felt.
+#[derive(Drop)]
+struct Reader {
+    data: Span<felt252>,
+    pos: u32,
+    word: u256,
+    left: u32,
+}
+
+#[inline(never)]
+fn read(ref r: Reader) -> u32 {
+    if r.left == 0 {
+        r.word = (*r.data.at(r.pos)).into();
+        r.pos += 1;
+        r.left = 7;
+    }
+    let (q, v) = DivRem::div_rem(r.word, 0x100000000);
+    r.word = q;
+    r.left -= 1;
+    v.try_into().unwrap()
+}
+
+/// \`count\` operators from operator \`first\`.
+#[inline(never)]
+fn unpack_operators(first: u32, count: u32) -> Span<Operator> {
+    let mut out: Array<Operator> = array![];
+    for k in first..first + count {
+        let mut r = Reader { data: OPERATOR_WORDS.span(), pos: 2 * k, word: 0, left: 0 };
+        let route: u8 = read(ref r).try_into().unwrap();
+        let w = read(ref r);
+        let wave = if w == 0 {
+            Waveform::Sine
+        } else if w == 1 {
+            Waveform::Square
+        } else if w == 2 {
+            Waveform::Sawtooth
+        } else if w == 3 {
+            Waveform::Triangle
+        } else if w == 4 {
+            Waveform::WhiteNoise
+        } else if w == 5 {
+            Waveform::MetallicNoise
+        } else {
+            Waveform::Custom((w - 6).try_into().unwrap())
+        };
+        let (volume, ratio) = (read(ref r), read(ref r));
+        let offset_hz: i32 = read(ref r).try_into().unwrap();
+        let (attack, hold, decay, sustain, release) = (read(ref r), read(ref r), read(ref r), read(ref r), read(ref r));
+        let (pitch_ratio, pitch_time) = (read(ref r), read(ref r));
+        out.append(Operator {
+            route, wave, volume, ratio, offset_hz, attack, hold, decay, sustain, release, pitch_ratio,
+            pitch_time, key_scale: 0, filter: Option::None,
+        });
+    }
+    out.span()
+}
+
+/// A settings value from its tables: each wave a slice of SAMPLES, each timbre's operators
+/// from OPERATOR_WORDS.
 // Out of line on purpose: inlined, this body is copied into each of the eight settings functions.
 #[inline(never)]
 fn settings_from(
     quality: u8, reverb: u8, master_vol: u8, voices: u8, waves: Span<u32>, timbres: Span<u32>,
 ) -> TinySynthSettings {
     let samples = SAMPLES.span();
-    let operators = OPERATORS.span();
     let mut wave_defs: Array<WaveDef> = array![];
     for w in waves {
         wave_defs.append(WaveDef::Samples(samples.slice(*w / 0x100, *w % 0x100)));
@@ -343,7 +507,7 @@ fn settings_from(
                 Timbre {
                     drum: (*t / 0x100) % 2 == 1,
                     slot: (*t % 0x100).try_into().unwrap(),
-                    operators: operators.slice(ops / 0x100, ops % 0x100),
+                    operators: unpack_operators(ops / 0x100, ops % 0x100),
                 },
             );
     }

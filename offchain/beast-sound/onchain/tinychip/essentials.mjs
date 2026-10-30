@@ -17,9 +17,10 @@ export function loadBank() {
   return ctx.TinyChipBank;
 }
 
-export function bankData(bank = loadBank()) {
+/** The presets `ids` (default: the 20 essentials) and the drums, loudness matched and mix trimmed. */
+export function bankData(bank = loadBank(), ids = ESSENTIALS) {
   const presets = {};
-  for (const id of ESSENTIALS) {
+  for (const id of ids) {
     const pr = bank.PRESETS[id], k = (bank.LOUDNESS[id] ?? 1) * ((bank.MIX_TRIM || {})[id] ?? 1); // loudness match x mix trim
     presets[id] = pr.p.map((o) => {
       const op = { ...o };

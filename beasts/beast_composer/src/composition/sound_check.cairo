@@ -1,11 +1,12 @@
-//! The Sound Check: a Beast's scale through each of its presets, byte-identical to the lab's
-//! `soundCheckMidi` (offchain/beast-sound/src/lab.js). Each preset gets a block of ten quarter
-//! notes:
-//! four quarters on the Beast's scale (a pattern picked by the Beast), a held note, four staccato
-//! blips an octave up; the drum kit closes it. The presets are the Beast's family (three leads,
-//! three plucks) and the two mega leads when shiny, from a start picked by the Beast. The key is
-//! the Beast's own: its special name's, or its species' spread key without one, in the mode's real
-//! scale. One per Beast from its species, special name and shiny flag.
+//! The Sound Check: a Beast's scale on its one preset, byte-identical to the lab's
+//! `soundCheckMidi` (offchain/beast-sound/src/lab.js). Three blocks: four quarters on the Beast's
+//! scale (a pattern picked by the Beast), a held note, then a sixteenth-note arpeggio up the tonic
+//! triad over two octaves. Each block starts a scale degree higher than the one before, on the
+//! previous block's last arpeggio note (a hand-off); the drum kit closes it the same way. The
+//! preset is the species' own ((species - 1) % 6 of its family's three leads and three plucks),
+//! moved on for a special name, or a mega lead when shiny. The key is the Beast's own: its special
+//! name's, or its species' spread key without one, in the mode's real scale. One per Beast from its
+//! species, special name and shiny flag.
 
 use core::poseidon::poseidon_hash_span;
 use crate::composition::beast_score::BeastForm;
@@ -18,7 +19,12 @@ use crate::composition::melodic_canon::NoteEvent;
 use crate::inputs::{ComposerInputs, MusicIdentity, SoundCheckInputs, validate_inputs};
 use crate::opaque::opaque;
 
+/// Ticks from one preset's block to the next: the next enters on this one's last arpeggio note.
+const STEP: u32 = 3960;
+/// The kit's block.
 const BLOCK: u32 = 4800;
+/// The blocks, each on the Beast's one preset.
+const BLOCKS: u32 = 3;
 const KIT_VOICE: u32 = 9;
 
 fn name_variant(prefix: u8, suffix: u8) -> u32 {
@@ -52,7 +58,7 @@ pub fn sound_check_inputs(beast: PackableBeastV3) -> SoundCheckInputs {
     let kp = map_v3_beast_to_composition_params(key_beast, neutral_live());
     SoundCheckInputs {
         identity: MusicIdentity {
-            source_species_id: beast.id,
+            source_species_id: beast.id.try_into().unwrap(),
             name_variant_id: name_variant(beast.prefix, beast.suffix).try_into().unwrap(),
         },
         mode_id: if named {
@@ -73,7 +79,8 @@ pub fn sound_check_inputs(beast: PackableBeastV3) -> SoundCheckInputs {
 /// `performance::apply_performance`) shortens (staccato, portato) or accents the notes, caps
 /// their velocity and sets the tempo.
 pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
-    validate_inputs(ComposerInputs::SoundCheck(x));
+    // (opaque: the general validate_inputs, not a copy specialized to a Sound Check; CASM size)
+    validate_inputs(opaque(ComposerInputs::SoundCheck(x)));
     let scale = match named_mode_scale(x.mode_id) {
         Option::Some(s) => s,
         Option::None => array![0, 2, 3, 5, 7, 8, 10].span(),
@@ -89,17 +96,22 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
         .into();
     let h: u32 = (hash % 0x100000000).try_into().unwrap();
 
-    let leads = family_leads(x.family).span();
-    let plucks = family_plucks(x.family).span();
-    let mut presets: Array<u8> = array![
-        *leads.at(0), *leads.at(1), *leads.at(2), *plucks.at(0), *plucks.at(1), *plucks.at(2),
-    ];
-    if mega {
-        presets.append(*MEGA_LEADS.span().at(0));
-        presets.append(*MEGA_LEADS.span().at(1));
-    }
-    let n = presets.len();
-    let rot = h % n;
+    // the Beast's one preset: (species - 1) % 6 of the family's leads and plucks, moved on by 1-5
+    // for a special name, or a mega lead when mega
+    let own = (x.identity.source_species_id - 1) % 6;
+    let idx = if x.identity.name_variant_id != 0 {
+        (own + 1 + h % 5) % 6
+    } else {
+        own
+    };
+    let preset = if mega {
+        *MEGA_LEADS.span().at(idx % 2)
+    } else if idx < 3 {
+        *family_leads(x.family).span().at(idx)
+    } else {
+        *family_plucks(x.family).span().at(idx - 3)
+    };
+    let n = BLOCKS;
     let pattern: Span<i32> = match (h / 0x100) % 4 {
         0 => array![0, 1, 2, 3].span(),
         1 => array![0, 2, 4, 7].span(),
@@ -117,7 +129,7 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
     ): (Span<i32>, Span<u8>, Array<NoteEvent>, Array<u8>, u32, u32) =
         opaque(
         (
-            array![7, 9, 11, 14].span(),
+            array![7, 9, 11, 14, 16, 18].span(),
             array![36, 38, 42, 46, 49, 50, 47, 45].span(),
             array![],
             array![],
@@ -126,17 +138,18 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
         ),
     );
     while v < n {
-        let t0 = v * BLOCK;
-        programs.append(*presets.at((v + rot) % n));
+        let t0 = v * STEP;
+        programs.append(preset);
+        // the climb: each block `v` scale degrees higher
         let mut k = first;
         for d in pattern {
-            events.append(note(t0 + k * 480, 420, pitch(tonic, scale, *d), 100, v, x));
+            events.append(note(t0 + k * 480, 420, pitch(tonic, scale, *d, v), 100, v, x));
             k += 1;
         }
-        events.append(note(t0 + 1920, 1380, pitch(tonic, scale, held), 96, v, x));
+        events.append(note(t0 + 1920, 1380, pitch(tonic, scale, held, v), 96, v, x));
         let mut k = first;
         for d in blips {
-            events.append(note(t0 + 3360 + k * 240, 60, pitch(tonic, scale, *d), 90, v, x));
+            events.append(note(t0 + 3360 + k * 120, 60, pitch(tonic, scale, *d, v), 90, v, x));
             k += 1;
         }
         v += 1;
@@ -144,7 +157,7 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
     while programs.len() <= KIT_VOICE {
         programs.append(0);
     }
-    let k0 = n * BLOCK;
+    let k0 = n * STEP;
     let mut k = first;
     for key in kit {
         events.append(note(k0 + k * 480, 240, *key, 100, KIT_VOICE, x));
@@ -167,18 +180,34 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
             rock: false,
             extra: Option::None,
             programs: Option::Some(programs.span()),
+            echo: false,
+            grace: 0,
+            grace_all: false,
+            fill: 0,
+            tonic: 0,
+            scale: [].span(),
         },
     )
 }
 
-fn pitch(tonic: u32, scale: Span<u8>, d: i32) -> u8 {
+/// Degree `d + up` of the scale over `tonic`, an octave lower while above MIDI 127.
+fn pitch(tonic: u32, scale: Span<u8>, d: i32, up: u32) -> u8 {
     let d: u32 = d.try_into().unwrap();
+    let d = d + up;
     let off: u32 = (*scale.at(d % 7)).into();
-    (tonic + 12 * (d / 7) + off).try_into().unwrap()
+    let p = tonic + 12 * (d / 7) + off;
+    // the fewest octaves down to 127 or below
+    if p > 127 {
+        (p - 12 * ((p - 116) / 12)).try_into().unwrap()
+    } else {
+        p.try_into().unwrap()
+    }
 }
 
 /// A note as performed: staccato (1) halves it and portato (5) keeps three quarters (at least 60
 /// ticks), an accent (3) adds 8 on each bar's downbeat, all under the velocity ceiling.
+// On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
+#[inline(never)]
 fn note(
     time: u32, duration: u32, pitch: u8, velocity: u8, voice_id: u32, x: SoundCheckInputs,
 ) -> NoteEvent {

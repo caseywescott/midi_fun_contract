@@ -24,6 +24,7 @@ jobs:
           - midi
           - midi_contracts
           - beast_composer
+          - beast_composer_inputs
           - beast_contracts
     steps:
       - uses: actions/checkout@v4

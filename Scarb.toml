@@ -9,6 +9,7 @@ members = [
     "core/midi",
     "core/midi_contracts",
     "beasts/beast_composer",
+    "beasts/beast_composer/inputs",
     "beasts/beast_contracts",
 ]
 

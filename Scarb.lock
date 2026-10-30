@@ -5,7 +5,15 @@ version = 1
 name = "beast_composer"
 version = "0.1.0"
 dependencies = [
+ "beast_composer_inputs",
  "midi",
+ "snforge_std",
+]
+
+[[package]]
+name = "beast_composer_inputs"
+version = "0.1.0"
+dependencies = [
  "snforge_std",
 ]
 

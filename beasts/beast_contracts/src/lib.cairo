@@ -9,6 +9,8 @@ use beast_composer::composition::beast_trait_map::BeastCompositionParams;
 use beast_composer::composition::beast_v3_sound::BeastV3LiveState;
 
 pub mod provider;
+pub mod pure_composer;
+pub mod pure_generator;
 pub mod synth_settings;
 
 #[starknet::interface]

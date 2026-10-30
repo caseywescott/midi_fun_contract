@@ -7,6 +7,9 @@
 scrolling behind the Beast. The audio and notes receive the same MIDI bytes;
 changing tracks, drift day, echo, or written comparison updates both. Notes
 use the synth's audio clock, including output latency and loop boundaries.
+The main Lab's Tracks, Genesis, Drift, Yeti and Sound Check sections all use
+this same preview, including tier-colored Regular logos and rainbow Shiny
+logos. Genesis swap edits refresh the preview while playing or stopped.
 
 From `offchain/beast-sound/`:
 

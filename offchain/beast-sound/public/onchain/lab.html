@@ -386,7 +386,7 @@ function showSwaps() {
   const dd = $('gsdef'); if (dd) dd.onclick = () => { for (const k of Object.keys(SWAPS)) delete SWAPS[k]; Object.assign(SWAPS, L.GENESIS_SWAPS); afterSwap(); };
 }
 function unswap(a) { const b = SWAPS[a]; delete SWAPS[a]; if (b && SWAPS[b] === a) delete SWAPS[b]; }
-function afterSwap() { fillGenesis(); showPick(); showSwaps(); if (playing) refresh(); else make(); }
+function afterSwap() { fillGenesis(); showPick(); showSwaps(); refresh(); }
 function setPick(n) {
   const id = trackOf(BEASTS[+$('beast').value].beast.id); n = Math.min(1242, Math.max(0, n));
   PICKS[id] = n;

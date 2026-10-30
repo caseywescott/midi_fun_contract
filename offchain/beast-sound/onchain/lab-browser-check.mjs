@@ -18,6 +18,13 @@ const page = await context.newPage();
 page.on('pageerror', (e) => errors.push(e.message));
 const ready = () => page.waitForFunction(() => document.querySelector('#art')?.complete && document.querySelector('#art')?.naturalWidth === 250 && document.querySelectorAll('.beast-midi-notes').length === 1);
 const sameMidi = async () => assert.equal(await page.evaluate(() => JSON.stringify(window.__notesMidi) === JSON.stringify(window.__loadedMidi) && window.__loadedMidi?.length > 14), true, 'audio and notes must use identical MIDI');
+const logo = () => page.evaluate(async () => {
+  const svg = new DOMParser().parseFromString(await (await fetch(document.querySelector('#art').src)).text(), 'image/svg+xml');
+  return {
+    tier: Number([...svg.querySelectorAll('text')].find((e) => e.textContent === 'TIER').nextElementSibling.textContent),
+    fill: svg.querySelector('#logoPulse path').getAttribute('fill'),
+  };
+});
 const canvasHash = () => page.evaluate(() => {
   const c = document.querySelector('.beast-midi-notes');
   return c.getContext('2d').getImageData(0, 0, c.width, c.height).data.reduce((a, v) => (a * 31 + v) >>> 0, 0);
@@ -69,9 +76,28 @@ try {
       await page.selectOption('#fx', '3'); await sameMidi();
       for (const selector of ['#e-next', '#s-next', '#b-next', '#i-old']) { await page.click(selector); await sameMidi(); }
     } else {
-      await page.check('#shiny'); await sameMidi();
-      await page.selectOption('#beast', '74'); await sameMidi();
-      for (const selector of ['#t-genesis', '#t-yeti']) { await page.click(selector); await sameMidi(); }
+      for (const tab of ['tracks', 'genesis', 'drift', 'yeti', 'sc']) {
+        await page.click('#t-' + tab); await sameMidi();
+        const colors = ['#ff8800', '#8c00bf', '#0000ff', '#00ff00', '#ffffff'];
+        for (let tier = 1; tier <= 5; tier++) {
+          await page.selectOption('#beast', String((tier - 1) * 5));
+          for (const shiny of [false, true]) {
+            await page.setChecked('#shiny', shiny); await sameMidi();
+            assert.deepEqual(await logo(), { tier, fill: shiny ? 'url(#logo_pastel_rainbow)' : colors[tier - 1] }, tab + ': incorrect card tier or logo');
+          }
+        }
+        console.log('Lab ' + tab + ': all five tier colors, shiny rainbow and matching MIDI passed');
+      }
+      // Undoing swaps while stopped must redraw the selected track's opening notes too.
+      await page.click('#t-genesis');
+      await page.selectOption('#swapA', '21'); await page.selectOption('#swapB', '1');
+      await page.click('#swapgo'); await sameMidi();
+      await page.click('#stop');
+      const swapped = await page.evaluate(() => JSON.stringify(window.__notesMidi));
+      await page.click('#gsclear');
+      assert.equal(await page.evaluate(() => JSON.stringify(window.__notesMidi) === JSON.stringify(Array.from(activeMidi))), true, 'Genesis undo-all must refresh idle notes');
+      assert.notEqual(await page.evaluate(() => JSON.stringify(window.__notesMidi)), swapped, 'undo-all must show the restored track');
+      await page.click('#t-yeti'); await page.click('#play'); await sameMidi();
       await page.selectOption('#speed', '1'); await sameMidi();
     }
     await ready();

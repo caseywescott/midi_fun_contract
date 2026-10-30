@@ -11,18 +11,30 @@ The main Lab's Tracks, Genesis, Drift, Yeti and Sound Check sections all use
 this same preview, including tier-colored Regular logos and rainbow Shiny
 logos. Genesis swap edits refresh the preview while playing or stopped.
 
-From `offchain/beast-sound/`:
+Builds use Casey's existing two inputs: an engine file and an
+`onchain-midi-player` checkout. Use upstream revision
+`e3ad210fbf2caf4cd7940b2dee91375d073b65ac` for the notes renderer and settings
+installer; the build checks both source hashes before bundling them. There is
+no separate vendored copy of those modules in this repository.
+
+From `offchain/beast-sound/`, with that upstream checkout available:
 
 ```sh
-npm run build:labs
+# Recover the original engine, byte for byte, from upstream history:
+git -C /path/to/onchain-midi-player show \
+  38d76ce6120d964502891c16445ce083bf1bfedd:tests/vendor/webaudio-tinysynth-4bf9829.min.js \
+  > /tmp/beast-lab-engine.min.js
+npm run build:labs -- /tmp/beast-lab-engine.min.js /path/to/onchain-midi-player
 npm run serve:labs
 # http://localhost:8788/onchain/drift-lab.html?track=song&b=21&e=1&p=1&day=1
 ```
 
 The generated pages are self-contained: the cards, canonical sprites, notes
 renderer, settings installer and existing audio engine are bundled locally.
-They require no RPC or asset requests. The vendored Apache-2.0 notes/settings
-source and its revision are in `vendor/onchain-midi-notes/NOTICE`.
+They require no RPC or asset requests. The generated HTML carries the upstream
+Apache-2.0 attribution and license text, reusing the license already present in
+`vendor/webaudio-tinysynth/LICENSE`. The original engine's SHA-256 is
+`8ad79ab8214e45a601e7d929e676b34b78e3f2b4200fd751d6548cf2b7df7749`.
 
 `fixtures/lab-cards.json` captures official renderer **output**, from Beast
 Sound Check's `sepolia-2026-10-30-2` set at block 17389686. It records the source
@@ -38,7 +50,7 @@ To refresh from another saved rendition set (no RPC or minting):
 
 ```sh
 node onchain/import-lab-cards.mjs /path/to/beast-sound-check/renditions/<deployment>
-npm run build:labs
+npm run build:labs -- /tmp/beast-lab-engine.min.js /path/to/onchain-midi-player
 ```
 
 The importer verifies every source token URI's length and SHA-256 before

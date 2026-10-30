@@ -7,26 +7,27 @@
 // player/settings.js on its pinned engine, and can switch back to the family-only settings the
 // composer served before, to hear the difference. Editions drift day by day (Casey Drift):
 // public/onchain/drift-lab.html, its Edition track tab.
-//   node onchain/editions-onchain-demo.mjs [engine .min.js] (defaults to the existing bundled engine)
+//   node onchain/editions-onchain-demo.mjs <engine .min.js> <onchain-midi-player checkout>
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { beastName, poseidonHashMany } from '../src/index.js';
 import { speciesRecords } from './editions_cairo.mjs';
 import { loadLabCards } from './lab-card-assets.mjs';
+import { labBuildInputs } from './lab-build-inputs.mjs';
 import { loadBank } from './tinychip/essentials.mjs';
 import { beastPrograms, beastSynthSettings, editionSynthSettings, serializeSettings } from './tinychip/synth_settings.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-const engineFile = process.argv[2] || here + 'vendor/onchain-midi-notes/lab-engine.min.js';
+const { tiny, notesPath, settingsPath, notice } = labBuildInputs(...process.argv.slice(2));
 const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
-const tiny = readFileSync(engineFile, 'utf8');
 const bundle = (await build({
   stdin: {
     contents: `import * as ed from './src/editions_lite.js'; import { encodeInputs } from './src/inputs.js';
-      import { installSettings } from './onchain/vendor/onchain-midi-notes/settings.js';
+      import { installSettings } from ${JSON.stringify(settingsPath)};
+      import * as notes from ${JSON.stringify(notesPath)};
       import { createCardPreview, playbackSeconds } from './onchain/lab-card-preview.js';
-      window.BS = { ed, encodeInputs, installSettings, createCardPreview, playbackSeconds };`,
+      window.BS = { ed, encodeInputs, installSettings, notes, createCardPreview, playbackSeconds };`,
     resolveDir: here + '..', loader: 'js',
   },
   bundle: true, minify: true, format: 'iife', platform: 'browser', write: false, logLevel: 'error',
@@ -53,6 +54,7 @@ const DATA = { species: SPECIES, types: ['Magic', 'Hunter', 'Brute'], settings: 
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Editions Onchain</title>
+${notice}
 <link rel="icon" href="data:,">
 <meta name="description" content="Monthly Track Editions as BeastPureComposer plays them: the style engine's MIDI and each style's TinyChip presets, installed the way onchain-midi-player installs them.">
 <style>
@@ -120,7 +122,7 @@ const CARDS = ${JSON.stringify(CARDS)};
 const $ = (id) => document.getElementById(id), ED = BS.ed, N_ED = 48, U64 = (1n << 64n) - 1n;
 const st = { e: 1, s: 20, n: 1, fx: 0, presets: true };
 let synth = null, playing = false, rollData = null, cur = null;
-const cardPreview = BS.createCardPreview($('art'), CARDS, () => BS.playbackSeconds(synth));
+const cardPreview = BS.createCardPreview($('art'), CARDS, () => BS.playbackSeconds(synth), BS.notes);
 
 (function readUrl() { const q = new URLSearchParams(location.search); if (q.has('e')) st.e = Math.max(1, Math.min(N_ED, +q.get('e') || 1)); if (q.has('b')) st.s = Math.max(0, Math.min(74, (+q.get('b') || 1) - 1)); if (q.has('p')) st.n = Math.max(1, +q.get('p') || 1); if (q.has('fx')) st.fx = Math.max(0, Math.min(3, +q.get('fx') || 0)); st.presets = q.get('i') !== 'before'; })();
 function writeUrl() { const q = new URLSearchParams({ e: st.e, b: st.s + 1, p: st.n, fx: st.fx}); if (!st.presets) q.set('i', 'before'); history.replaceState(null, '', '?' + q); }

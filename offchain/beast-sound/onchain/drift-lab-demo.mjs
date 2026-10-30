@@ -7,28 +7,29 @@
 // Each clock is seeded by the hash of its own first block (simulated here), and nothing accumulates.
 // Songs: lab.js genesisMidi with drift2 (scripts/drift_parity.mjs); editions: editions_lite.js with
 // drift2 (scripts/editions_drift_parity.mjs): both byte for byte the Cairo.
-//   node onchain/drift-lab-demo.mjs [engine .min.js] (defaults to the existing bundled engine)
+//   node onchain/drift-lab-demo.mjs <engine .min.js> <onchain-midi-player checkout>
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { beastName, poseidonHashMany } from '../src/index.js';
 import { speciesRecords } from './editions_cairo.mjs';
 import { loadLabCards } from './lab-card-assets.mjs';
+import { labBuildInputs } from './lab-build-inputs.mjs';
 import { loadBank } from './tinychip/essentials.mjs';
 import { beastSynthSettings, editionSynthSettings, serializeSettings, variantPrograms, SETTINGS_VARIANTS, YETI_VARIANTS } from './tinychip/synth_settings.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-const engineFile = process.argv[2] || here + 'vendor/onchain-midi-notes/lab-engine.min.js';
+const { tiny, notesPath, settingsPath, notice } = labBuildInputs(...process.argv.slice(2));
 const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
-const tiny = readFileSync(engineFile, 'utf8');
 const bundle = (await build({
   stdin: {
     contents: `import { engine } from './src/index.js'; import { createEngineV11 } from './src/engine_v11.js';
       import { genesisMidi, drift2, dayAnchor, epochAtBlock } from './src/lab.js';
       import * as ed from './src/editions_lite.js';
-      import { installSettings } from './onchain/vendor/onchain-midi-notes/settings.js';
+      import { installSettings } from ${JSON.stringify(settingsPath)};
+      import * as notes from ${JSON.stringify(notesPath)};
       import { createCardPreview, playbackSeconds } from './onchain/lab-card-preview.js';
-      window.BS = { engine, v11: createEngineV11(engine), genesisMidi, drift2, dayAnchor, epochAtBlock, ed, installSettings, createCardPreview, playbackSeconds };`,
+      window.BS = { engine, v11: createEngineV11(engine), genesisMidi, drift2, dayAnchor, epochAtBlock, ed, installSettings, notes, createCardPreview, playbackSeconds };`,
     resolveDir: here + '..', loader: 'js',
   },
   bundle: true, minify: true, format: 'iife', platform: 'browser', write: false, logLevel: 'error',
@@ -54,6 +55,7 @@ const DATA = { species: SPECIES, types: ['Magic', 'Hunter', 'Brute'], names: NAM
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Drift Lab</title>
+${notice}
 <link rel="icon" href="data:,">
 <meta name="description" content="Casey Drift, the layered drift the Beast composer plays, on Species Songs and Monthly Track Edition tracks, day by day.">
 <style>
@@ -124,7 +126,7 @@ const CARDS = ${JSON.stringify(CARDS)};
 const $ = (id) => document.getElementById(id), E = BS.engine, V = BS.v11, ED = BS.ed, U64 = (1n << 64n) - 1n, DAYS = 400;
 const st = { kind: 'song', s: 20, e: 1, n: 1, day: 1, written: false, echo: false };
 let synth = null, playing = false, lapse = 0, cur = null, series = null, seriesKey = '', seriesJob = 0;
-const cardPreview = BS.createCardPreview($('art'), CARDS, () => BS.playbackSeconds(synth));
+const cardPreview = BS.createCardPreview($('art'), CARDS, () => BS.playbackSeconds(synth), BS.notes);
 const anchor = BS.dayAnchor();
 
 (function readUrl() {

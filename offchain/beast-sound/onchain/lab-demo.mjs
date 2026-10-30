@@ -5,25 +5,25 @@
 // and Yeti specials (src/lab.js).
 // Every card is shown animated and tempo-synced (onchain/lab-sprites.mjs: the species GIF as a PNG sprite
 // sheet stepped on the beat, the card's loops on whole beats, restarted at each pass as heard).
-//   node onchain/lab-demo.mjs [engine .min.js] (defaults to the existing bundled engine)
-import { readFileSync, writeFileSync } from 'node:fs';
+//   node onchain/lab-demo.mjs <engine .min.js> <onchain-midi-player checkout>
+import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { beastSynthSettings } from './tinychip/synth_settings.mjs';
 import { ESSENTIALS, loadBank } from './tinychip/essentials.mjs';
 import { beastName } from '../src/index.js';
 import { loadLabCards } from './lab-card-assets.mjs';
+import { labBuildInputs } from './lab-build-inputs.mjs';
 import { engine as ENGINE } from '../src/index.js';
 import { createEngineV11 } from '../src/engine_v11.js';
 import * as LAB from '../src/lab.js';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-const engineFile = process.argv[2] || here + 'vendor/onchain-midi-notes/lab-engine.min.js';
+const { tiny, notesPath, notice } = labBuildInputs(...process.argv.slice(2));
 const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
-const tiny = readFileSync(engineFile, 'utf8');
 const NOTICE = '/*! webaudio-tinysynth (c) g200kg, Apache License 2.0; Provable Games fork as pinned by onchain-midi-player, https://github.com/Provable-Games/webaudio-tinysynth */';
 const composer = (await build({
-  stdin: { contents: "import { engine, beastName } from './src/index.js'; import { createEngineV11 } from './src/engine_v11.js'; import * as lab from './src/lab.js'; import { createCardPreview, playbackSeconds } from './onchain/lab-card-preview.js'; window.BS = { engine, v11: createEngineV11(engine), beastName, lab, createCardPreview, playbackSeconds };", resolveDir: here + '..', loader: 'js' },
+  stdin: { contents: `import { engine, beastName } from './src/index.js'; import { createEngineV11 } from './src/engine_v11.js'; import * as lab from './src/lab.js'; import * as notes from ${JSON.stringify(notesPath)}; import { createCardPreview, playbackSeconds } from './onchain/lab-card-preview.js'; window.BS = { engine, v11: createEngineV11(engine), beastName, lab, notes, createCardPreview, playbackSeconds };`, resolveDir: here + '..', loader: 'js' },
   bundle: true, minify: true, format: 'iife', platform: 'browser', write: false, logLevel: 'error',
 })).outputFiles[0].text;
 const W = { Sine: 'sine', Square: 'square', Sawtooth: 'sawtooth', Triangle: 'triangle', WhiteNoise: 'n0', MetallicNoise: 'n1' };
@@ -49,6 +49,7 @@ const CARDS = loadLabCards();
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Beast Sound Lab</title>
+${notice}
 <style>
 :root{--bg:#f6f4ef;--fg:#1d1b18;--mut:#6b655c;--card:#fff;--line:#e2ddd3;--acc:#7a3cff;--acc2:#e0b000}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15141a;--fg:#ece8f4;--mut:#9a94a8;--card:#1f1d26;--line:#2e2b38;--acc:#a77bff;--acc2:#ffd23f}}
@@ -200,7 +201,7 @@ function showName() { const n = +$('name').value; $('namev').textContent = n ? '
 BEASTS.forEach((x, i) => $('beast').add(new Option(x.beast.id + '. ' + x.name + '  (tier ' + x.beast.tier + ' ' + TYPES[x.beast.beast_type] + ')', i)));
 // Current Beasts V3 cards and notes, sharing the MIDI used by the audio engine.
 let tempo = { bpm: 120, tpq: 480, tempos: 0, pass: 0 }, activeMidi = null;
-const cardPreview = BS.createCardPreview($('art'), CARDS, () => BS.playbackSeconds(synth));
+const cardPreview = BS.createCardPreview($('art'), CARDS, () => BS.playbackSeconds(synth), BS.notes);
 function tempoOf(u8) { // the MIDI's tempo meta (FF 51 03, microseconds per quarter) and ticks per quarter
   let uspq = 500000, n = 0;
   for (let i = 14; i + 5 < u8.length; i++) if (u8[i] === 0xff && u8[i + 1] === 0x51 && u8[i + 2] === 3) { if (!n++) uspq = (u8[i + 3] << 16) | (u8[i + 4] << 8) | u8[i + 5]; i += 5; }

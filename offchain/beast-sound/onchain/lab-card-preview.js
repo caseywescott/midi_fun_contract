@@ -1,6 +1,4 @@
 // A local preview of official Beasts V3 card output, driven by the lab's own MIDI and synth.
-import { mount, cutout, midiNotes } from './vendor/onchain-midi-notes/notes.js';
-
 const NS = 'http://www.w3.org/2000/svg';
 // Beasts V3 beast_svg.cairo::get_tier_color; the tier comes from the captured card itself.
 const TIER_COLORS = ['#ffffff', '#ff8800', '#8c00bf', '#0000ff', '#00ff00', '#ffffff'];
@@ -23,7 +21,8 @@ export function playbackSeconds(synth) {
   return Math.max(0, audible - state.origin);
 }
 
-export function createCardPreview(img, assets, clock) {
+export function createCardPreview(img, assets, clock, { mount, cutout, midiNotes }) {
+  const midiTempo = (midi) => midiNotes(midi).beat * 1e6;
   let notes = null, key = '', url = '', playing = false;
   const redraw = () => notes?.draw();
   const resize = new ResizeObserver(redraw);
@@ -94,5 +93,3 @@ export function createCardPreview(img, assets, clock) {
     redraw,
   };
 }
-
-function midiTempo(midi) { return midiNotes(midi).beat * 1e6; }

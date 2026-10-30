@@ -785,6 +785,15 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   if (d.knob === 2) override.tr = { ...override.tr, trill: !tr.trill };
   if (d.v === 2) {
     again = true;
+    // a new-rhythm month: two months in three the key moves to the dominant or subdominant (an octave
+    // down above 96; genesis.cairo drift_key)
+    if (d.rhythm !== null) {
+      const km = Math.floor(Number(BigInt(d.rhythm) & 0xffffffffn) / 256) % 3;
+      if (km < 2) {
+        const T0 = (override.params && override.params.tonic_keynum) ?? base.params.tonic_keynum, k = T0 + [7, 5][km];
+        override.params = { ...(override.params || {}), tonic_keynum: k > 96 ? k - 12 : k };
+      }
+    }
     if (d.dayKnob === 0) override.flipSide = !override.flipSide;
     else if (d.dayKnob === 1) override.tr = { ...override.tr, direction: tr.direction === 0 ? 1 : -tr.direction };
     else { // the tempo nudged by delta BPM: 60e6 / (60e6 / T + delta), rounded half up, in integers (as Cairo)

@@ -1022,6 +1022,7 @@ pub fn drifted_song_inputs(x: SongInputs, d: Drift) -> SongInputs {
     let mut y = x;
     if let Option::Some(r) = d.rhythm {
         y.treatment.rhythm_seed = r;
+        y.score.tonic_keynum = drift_key(y.score.tonic_keynum, r);
     }
     if let Option::Some(r) = d.rotate {
         y.arrangement.channel_policy = ChannelPolicy::Seeded(r);
@@ -1051,6 +1052,25 @@ pub fn drifted_song_inputs(x: SongInputs, d: Drift) -> SongInputs {
         };
     }
     y
+}
+
+/// A new-rhythm month's key for a song: two months in three the tonic moves to the dominant (+7)
+/// or the subdominant (+5), an octave down above 96 (the month's hash). Both drift paths.
+fn drift_key(tonic: u8, rhythm: felt252) -> u8 {
+    let km = (crate::composition::drift::low32(rhythm) / 256) % 3;
+    if km == 2 {
+        return tonic;
+    }
+    let k = tonic + if km == 0 {
+        7
+    } else {
+        5
+    };
+    if k > 96 {
+        k - 12
+    } else {
+        k
+    }
 }
 
 /// A drift week's ornament density for a song, from the week's hash under a ceiling that rises
@@ -1292,6 +1312,9 @@ fn song_inputs(
     // the drift's ornaments and phrasing, as `drifted_song_inputs`
     let mut x = x;
     if let Option::Some(d) = dr {
+        if let Option::Some(r) = d.rhythm {
+            x.score.tonic_keynum = drift_key(x.score.tonic_keynum, r);
+        }
         if let Option::Some(r) = d.rotate {
             x.score.ornament_density = drift_ornaments(r, d.day);
         }

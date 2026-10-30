@@ -180,7 +180,7 @@ export function drift2(b, day, anchor = null) {
   const delta = [0, 0, -4, -2, 2, 4][dk];
   const label = [rhythm !== null ? 'month ' + (month + 1) + ': new rhythm' : 'month ' + (month + 1) + ': rhythm as written',
     rotate !== null ? 'week ' + (week + 1) + ': channels rotate' : 'week ' + (week + 1) + ': channels as picked', 'day: ' + DRIFT2_DAY[dk]].join(' \u00b7 ');
-  return { v: 2, rhythm, rotate, dayKnob: dk, delta, label };
+  return { v: 2, rhythm, rotate, dayKnob: dk, delta, label, day };
 }
 
 export function driftMidi(b, live, epoch, E, v11, anchor = null) {

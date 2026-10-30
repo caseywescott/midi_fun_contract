@@ -13,7 +13,7 @@ let failures = 0, echoes = 0;
 const knobs = new Set(), layers = { rhythm: 0, rotate: 0 };
 for (const line of lines) {
   const c = Object.fromEntries(line.trim().split(/\s+/).slice(1).map((kv) => kv.split('=')));
-  const drift = { rhythm: c.rhythm === '0' ? null : BigInt(c.rhythm), rotate: c.rotate === '0' ? null : BigInt(c.rotate), dayKnob: +c.knob, delta: +c.delta };
+  const drift = { rhythm: c.rhythm === '0' ? null : BigInt(c.rhythm), rotate: c.rotate === '0' ? null : BigInt(c.rotate), dayKnob: +c.knob, delta: +c.delta, day: +c.day };
   if (c.echo === '1') echoes++;
   knobs.add(drift.dayKnob); if (drift.rhythm !== null) layers.rhythm++; if (drift.rotate !== null) layers.rotate++;
   const js = Buffer.from(editionMidi(SP[+c.sp - 1], c.shiny === '1', +c.e, BigInt(c.seed), drift, c.echo === '1').midi).toString('hex');

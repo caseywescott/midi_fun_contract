@@ -66,6 +66,8 @@ pub struct Drift {
     /// 0 key plan the other way, 1 episodes swapped, 2-5 tempo -4, -2, +2, +4 BPM.
     pub day_knob: u8,
     pub delta_bpm: i64,
+    /// The day (from 1): the editions' ornament ceiling rises with it.
+    pub day: u64,
 }
 
 fn low32(x: felt252) -> u64 {
@@ -134,7 +136,7 @@ fn layered_drift_keyed(k: felt252, clock: DriftClock) -> Drift {
         4 => 2,
         _ => 4,
     };
-    Drift { rhythm, rotate, day_knob: dk.try_into().unwrap(), delta_bpm }
+    Drift { rhythm, rotate, day_knob: dk.try_into().unwrap(), delta_bpm, day: clock.day }
 }
 
 /// A tempo (microseconds per quarter) nudged by `delta` BPM: 60e6 / (60e6 / T + delta), rounded

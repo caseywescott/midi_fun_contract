@@ -337,7 +337,7 @@ fn editions_drift_parity_fixture() {
             Option::None => 0,
         };
         println!(
-            "EDD e={} sp={} shiny={} echo={} seed={} rhythm={} rotate={} knob={} delta={} len={} hex={}",
+            "EDD e={} sp={} shiny={} echo={} seed={} day={} rhythm={} rotate={} knob={} delta={} len={} hex={}",
             e,
             sp,
             if i % 3 == 0 {
@@ -347,6 +347,7 @@ fn editions_drift_parity_fixture() {
             },
             i % 2,
             i * 977,
+            day,
             rhythm,
             rotate,
             d.day_knob,

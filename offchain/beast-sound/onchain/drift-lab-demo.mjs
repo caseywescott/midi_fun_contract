@@ -110,7 +110,7 @@ a{color:var(--acc)}
 <ul class="how"><li><b>Month</b> (30 days): two months in three re-pick the rhythm cells.</li><li><b>Week</b>: three weeks in four rotate which channels play, keeping the count, the theme and the low voice.</li><li><b>Day</b>: turns one knob. The key plan turns the other way, the episode directions swap, or the tempo moves −4, −2, +2 or +4 BPM.</li></ul>
 <p class="note">A Species Song's drift belongs to its species: all Beasts of a species hear the same day. A Beast's other tracks drift by its own special name.</p></div>
 <div class="card mode" id="m-edition"><div class="sec"><span>On an edition track</span></div>
-<ul class="how"><li><b>Month</b>: two months in three bring new melodies, drawn from the month's hash, and a new accompaniment and percussion figure; one of those months in three also moves to the style's other mode. The key, chords and tempo stay.</li>three weeks in four swap one part in or out (descant, bass, pad or percussion; one drops out when all four play), put the accompaniment's chords in their first or second inversion, and turn the ornament to the next kind (upper grace, lower grace, slide, mordent).</li><li><b>Day</b>: turns one knob. The A and B progressions swap, the A and B tunes swap, or the tempo moves −4, −2, +2 or +4 BPM.</li></ul></div>
+<ul class="how"><li><b>Month</b>: two months in three bring new melodies (drawn from the month's hash), a new accompaniment and percussion figure and another form; two of those months in three move the key to the dominant or subdominant, and one in three to the style's other mode. The chords and tempo stay.</li>three weeks in four swap one part in or out (descant, bass, pad or percussion; one drops out when all four play), put the accompaniment's chords in their first or second inversion, and turn the ornament to the next kind (upper grace, lower grace, slide, mordent), draw its density (up to 30% of long notes for the first 180 days, 45% to day 360, then 60%) and move the bass to its next rhythm.</li><li><b>Day</b>: turns one knob. The A and B progressions swap, the A and B tunes swap, or the tempo moves −4, −2, +2 or +4 BPM and the phrasing flips (legato and detached).</li></ul></div>
 <div class="card"><div class="sec"><span>Share</span></div><div class="ctl"><button id="link">Copy link</button></div><p class="note" id="copied"></p>
 <p class="note">The page assumes 43,200 blocks a day, as the lab does: a placeholder until the chain's block time is set. Block hashes are simulated. Keys: <span class="kbd">space</span> play/stop, <span class="kbd">,</span> <span class="kbd">.</span> day, <span class="kbd">1</span> <span class="kbd">2</span> track.</p></div>
 </div></div>
@@ -145,10 +145,10 @@ function trackOn(day) {
   if (!d) return { ...o, drift: { label: 'as written' } };
   // the same layers as a song's, named for what they do to an edition track
   const w = Math.floor((day - 1) / 7) + 1, m = Math.floor((day - 1) / 30) + 1;
-  const knob = d.dayKnob === 0 ? 'A and B progressions swap' : d.dayKnob === 1 ? 'A and B tunes swap' : 'tempo ' + (d.delta > 0 ? '+' : '') + d.delta + ' BPM';
-  const flip = d.rhythm !== null && Math.floor(Number(BigInt(d.rhythm) & 0xffffffffn) / 8) % 3 === 0;
-  const label = ['month ' + m + (d.rhythm !== null ? ': new melodies and figures' + (flip ? ', the other mode' : '') : ': melodies as written'),
-    'week ' + w + (d.rotate !== null ? ': a part swaps, chords inverted, ornament turns' : ': parts and chords as written'), 'day: ' + knob].join(' \u00b7 ');
+  const knob = d.dayKnob === 0 ? 'A and B progressions swap' : d.dayKnob === 1 ? 'A and B tunes swap' : 'tempo ' + (d.delta > 0 ? '+' : '') + d.delta + ' BPM, phrasing flips';
+  const mh = d.rhythm !== null ? Number(BigInt(d.rhythm) & 0xffffffffn) : 0, flip = d.rhythm !== null && Math.floor(mh / 8) % 3 === 0, km = Math.floor(mh / 256) % 3;
+  const label = ['month ' + m + (d.rhythm !== null ? ': new melodies, figures and form' + (km < 2 ? ', key to the ' + ['dominant', 'subdominant'][km] : '') + (flip ? ', the other mode' : '') : ': melodies as written'),
+    'week ' + w + (d.rotate !== null ? ': a part swaps, chords inverted, ornament and bass turn' : ': parts and chords as written'), 'day: ' + knob].join(' \u00b7 ');
   return { ...o, drift: { ...d, label } };
 }
 let writtenKey = '', written = null;

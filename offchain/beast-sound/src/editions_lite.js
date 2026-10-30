@@ -217,24 +217,36 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) 
   const seed = BigInt(String(seedKey).replace(/^seed:/, ''));
   const fold = Number((seed & 0xffffffffn) ^ ((seed >> 32n) & 0xffffffffn));
   const R = rng((fold ^ imul(e, 0x9e3779b1) ^ imul(sp.id, 0x85ebca77)) >>> 0);
-  const tonic = (sp.tonicPc + R.pick([0, 0, 0, 5, 7, 10, 2, 3])) % 12;
+  let tonic = (sp.tonicPc + R.pick([0, 0, 0, 5, 7, 10, 2, 3])) % 12;
   const bpm = g.bpm + R.pick([-4, -2, 0, 0, 2, 4]);
   let pA = R.int(8), pB = R.int(8); if (pB === pA) pB = (pA + 1) % 8;
   let pC = (pA + 1 + R.int(6)) % 8; if (pC === pB) pC = (pC + 1) % 8;
   if (knob === 0) [pA, pB] = [pB, pA];
   const modeI = R.int(S.modes.length);
-  const formId = R.int(4), form = FORMS[formId];
+  let formId = R.int(4);
   const accI = R.int(4), bassFig = S.basses[R.int(3)], percI = R.int(2);
   // a new-melody month (the month's hash) also brings another accompaniment figure, the other
   // percussion figure and, one month in three, the style's next mode
   const month = drift && drift.rhythm !== null ? Number(BigInt(drift.rhythm) & 0xffffffffn) : null;
   const mode = S.modes[month !== null && Math.floor(month / 8) % 3 === 0 ? (modeI + 1) % S.modes.length : modeI], scale = SCALES[mode];
   const accomp = S.accomps[month !== null ? (accI + 1 + month % 3) % 4 : accI], perc = S.percs[month !== null ? (percI + 1) % 2 : percI];
+  // and another form, and two months in three the key moves to the dominant or subdominant
+  if (month !== null) {
+    formId = (formId + 1 + Math.floor(month / 64) % 3) % 4;
+    const km = Math.floor(month / 256) % 3;
+    if (km < 2) tonic = (tonic + [7, 5][km]) % 12;
+  }
+  const form = FORMS[formId];
   const theme = R.int(4);
-  const orn = [0, 0, 15, 30][R.int(4)], ornSeed = R.int(100), detached = R.int(2) === 1;
+  let orn = [0, 0, 15, 30][R.int(4)];
+  const ornSeed = R.int(100);
+  // the day's tempo knob flips the phrasing
+  let detached = R.int(2) === 1;
+  if (knob >= 2 && knob <= 5) detached = !detached;
   let ornKind = ornSeed % 4; // upper grace, lower grace, slide, mordent (no draw of its own)
   // the parts beside the lead and accompaniment: a seeded order, the first `count` play
-  const roll = R.int(100), bassMode = roll % 3; // the bass as written, doubled or detached
+  const roll = R.int(100);
+  let bassMode = roll % 3; // the bass as written, doubled or detached
   let count = (roll < 20 ? 1 : roll < 60 ? 2 : roll < 88 ? 3 : 4) + (sp.tier <= 2 ? 1 : 0);
   if (count > 4) count = 4;
   const order = [0, 1, 2, 3];
@@ -248,6 +260,9 @@ export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) 
     else playing[h % count] = order[count + Math.floor(h / 4) % (4 - count)];
     rot = 1 + Math.floor(h / 16) % 2;
     ornKind = (ornKind + 1 + Math.floor(h / 32) % 3) % 4; // and turns the ornament
+    // and draws its density, up to 30% for the first 180 days, 45% to day 360, then 60%
+    orn = [0, 15, 30, 45, 60][Math.floor(h / 128) % (Math.min(4, 2 + Math.floor(drift.day / 180)) + 1)];
+    bassMode = (bassMode + 1 + Math.floor(h / 512) % 2) % 3; // and the bass's next rhythm
   }
   const on = (part) => playing.includes(PARTS.indexOf(part));
   const bar = S.num * (1920 / S.den);

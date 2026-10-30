@@ -538,9 +538,9 @@ pub fn edition_tracks(species: u32, shiny: bool, e: u32, seed: u64) -> Array<Arr
 pub fn edition_tracks_on(
     species: u32, shiny: bool, e: u32, seed: u64, drift: Option<Drift>, echo: bool,
 ) -> Array<Array<u8>> {
-    let (rhythm, rotate, knob, delta) = match drift {
-        Option::Some(d) => (d.rhythm, d.rotate, d.day_knob, d.delta_bpm),
-        Option::None => (Option::None, Option::None, 6, 0),
+    let (rhythm, rotate, knob, delta, day) = match drift {
+        Option::Some(d) => (d.rhythm, d.rotate, d.day_knob, d.delta_bpm, d.day),
+        Option::None => (Option::None, Option::None, 6, 0, 0),
     };
     assert(species >= 1 && species <= 75, 'editions: species');
     let (_, sb, bpm0) = edition_genome(e);
@@ -579,15 +579,16 @@ pub fn edition_tracks_on(
     let modes = s.modes.len();
     let mode_i = r.int(modes);
     let form_id = r.int(4);
-    let form = *FORMS.span().at(form_id);
     let acc_i = r.int(4);
     let bass = *s.basses.at(r.int(3));
     let perc_i = r.int(2);
     // a new-melody month (the month's hash) also brings another accompaniment figure, the other
     // percussion figure and, one month in three, the style's next mode
-    let (mode_i, acc_i, perc_i) = match rhythm {
+    // and another form, and two months in three the key moves to the dominant or subdominant
+    let (mode_i, acc_i, perc_i, form_id, tonic) = match rhythm {
         Option::Some(h) => {
             let m = low32(h);
+            let km = (m / 256) % 3;
             (
                 if (m / 8) % 3 == 0 {
                     (mode_i + 1) % modes
@@ -596,17 +597,25 @@ pub fn edition_tracks_on(
                 },
                 (acc_i + 1 + m % 3) % 4,
                 (perc_i + 1) % 2,
+                (form_id + 1 + (m / 64) % 3) % 4,
+                if km < 2 {
+                    (tonic + *[7_u32, 5].span().at(km)) % 12
+                } else {
+                    tonic
+                },
             )
         },
-        Option::None => (mode_i, acc_i, perc_i),
+        Option::None => (mode_i, acc_i, perc_i, form_id, tonic),
     };
+    let form = *FORMS.span().at(form_id);
     let scale = (*SCALES.span().at(*s.modes.at(mode_i))).span();
     let accomp = *s.accomps.at(acc_i);
     let perc = *s.percs.at(perc_i);
     let treatment = r.int(4);
-    let orn = *[0_u32, 0, 15, 30].span().at(r.int(4));
+    let mut orn = *[0_u32, 0, 15, 30].span().at(r.int(4));
     let orn_seed = r.int(100);
-    let detached = r.int(2) == 1;
+    // the day's tempo knob flips the phrasing
+    let detached = (r.int(2) == 1) != (knob >= 2 && knob <= 5);
     // the parts beside the lead and accompaniment: a seeded order, the first `count` play
     let roll = r.int(100);
     let mut count = if roll < 20 {
@@ -646,11 +655,22 @@ pub fn edition_tracks_on(
     }
     // the week's drift swaps one part in (or out, when all four play) and inverts the accompaniment
     let mut orn_kind = orn_seed % 4;
+    let mut bass_mode = roll % 3;
     let rot = match rotate {
         Option::Some(h) => {
             let h = low32(h);
-            // and turns the ornament
+            // and turns the ornament, draws its density (up to 30% for the first 180 days, 45%
+            // to day 360, then 60%) and moves the bass to its next rhythm
             orn_kind = (orn_kind + 1 + (h / 32) % 3) % 4;
+            let ceiling: u32 = if day < 180 {
+                2
+            } else if day < 360 {
+                3
+            } else {
+                4
+            };
+            orn = *[0_u32, 15, 30, 45, 60].span().at((h / 128) % (ceiling + 1));
+            bass_mode = (bass_mode + 1 + (h / 512) % 2) % 3;
             if count == 4 {
                 parts -= *order.at(h % 4);
             } else {
@@ -748,7 +768,7 @@ pub fn edition_tracks_on(
             orn,
             orn_seed,
             orn_kind,
-            bass_mode: roll % 3,
+            bass_mode,
             detached,
             chords: chords.span(),
             lead: lead.span(),

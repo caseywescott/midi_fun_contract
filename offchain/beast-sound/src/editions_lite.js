@@ -460,13 +460,14 @@ const VOL = [100, 64, 74, 100, 58, 62, 70, 0, 0, 70];
 export const RARE_LEADS = [47];
 /**
  * A channel's volume (CC 7) as a mix level: TinySynth's gain is volume squared, so 70% loudness is
- * x0.837 and 115% x1.072 (per mille): the Dirge's bass and the Overworld's accompaniment at 70%; the
- * Noise Channel Lead (72) at 70% on the lead and descant, the PCE Wavetable Pluck (99) at 70% as the
- * accompaniment, the Triangle Pad (33) at 115% as the pad. editions.cairo vol_of.
+ * x0.837 and 115% x1.072 (per mille): the Dirge's bass and the Overworld's accompaniment at 70%; on
+ * the lead and descant the Noise Channel Lead (72) at 52.5% and the VRC6 Saw Lead (62) at 90%; the PCE
+ * Wavetable Pluck (99) at 70% as the accompaniment, the Triangle Pad (33) at 115% as the pad.
+ * editions.cairo vol_of.
  */
 export function volOf(styleKey, ch, prog) {
   const k = styleKey === 'dirge' && ch === 3 ? 837 : styleKey === 'overworld' && ch === 2 ? 837
-    : (ch === 0 || ch === 1) && prog === 72 ? 837 : ch === 2 && prog === 99 ? 837 : ch === 4 && prog === 33 ? 1072 : 1000;
+    : (ch === 0 || ch === 1) && prog === 72 ? 725 : (ch === 0 || ch === 1) && prog === 62 ? 949 : ch === 2 && prog === 99 ? 837 : ch === 4 && prog === 33 ? 1072 : 1000;
   return Math.floor((VOL[ch] * k + 500) / 1000);
 }
 const PAN = [64, 46, 82, 64, 64, 88, 100, 0, 0, 64];

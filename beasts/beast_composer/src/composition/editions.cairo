@@ -108,14 +108,16 @@ fn block(ref tw: TrackWriter, ch: u8, t: u32, d: u32, ps: Span<u8>, v: u8) {
 
 /// A channel's volume (CC 7) as a mix level (editions_lite.js volOf): TinySynth's gain is volume
 /// squared, so 70% loudness is x0.837 and 115% x1.072 (per mille): the Dirge's bass and the
-/// Overworld's accompaniment at 70%; the Noise Channel Lead (72) at 70% on the lead and descant,
-/// the PCE Wavetable Pluck (99) at 70% as the accompaniment, the Triangle Pad (33) at 115% as the
-/// pad.
+/// Overworld's accompaniment at 70%; on the lead and descant the Noise Channel Lead (72) at 52.5%
+/// and the VRC6 Saw Lead (62) at 90%; the PCE Wavetable Pluck (99) at 70% as the accompaniment,
+/// the Triangle Pad (33) at 115% as the pad.
 fn vol_of(st: u32, ch: u8, program: u8) -> u8 {
     let k: u32 = if (st == STYLE_DIRGE && ch == 3) || (st == STYLE_OVERWORLD && ch == 2) {
         837
     } else if (ch == 0 || ch == 1) && program == 72 {
-        837
+        725
+    } else if (ch == 0 || ch == 1) && program == 62 {
+        949
     } else if ch == 2 && program == 99 {
         837
     } else if ch == 4 && program == 33 {

@@ -143,7 +143,7 @@ export const megaLeadPick = (p) => (Number(p.species_id) + Number(p.name_variant
  *           octave copy plays the other
  *   double  the lead doubled an octave up on its own channel (panned opposite), three quarters as loud
  *   groove  the mega drum groove (drumEvents)
- *   echo    the chip echo (sound_effects 2 and 3, not part of mega): the lead again 360 ticks (a
+ *   echo    the chip echo (sound presets 2 and 3, not part of mega): the lead again 360 ticks (a
  *           dotted eighth) later at half velocity, inside the form, on the family's first pluck,
  *           panned opposite the lead
  */

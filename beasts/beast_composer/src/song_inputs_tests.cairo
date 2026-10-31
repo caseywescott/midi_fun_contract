@@ -181,7 +181,7 @@ fn thinned_purchase_composes_three_voices_without_the_countersubject() {
     assert(*midi.at(0) == 'M' && midi.len() > 200, 'no file');
 }
 
-/// The chip echo (sound effects 2 and 3) on Genesis Tracks, plain and mega, the Yeti's too: one
+/// The chip echo (sound presets 2 and 3) on Genesis Tracks, plain and mega, the Yeti's too: one
 /// ECHO line per case (the file in hex) for scripts/echo_parity.mjs.
 #[test]
 #[ignore]

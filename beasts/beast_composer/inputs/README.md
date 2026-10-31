@@ -35,7 +35,7 @@ identity. Storage packing in a manager is independent of this wire representatio
 `get_generation_inputs(config, edition_id, identity)` and
 `generate_inputs(base, variation_identity)`. The matching
 `pure_composer::IBeastPureComposer` declares
-`compose(inputs, sound_effects) -> TinySynthSound`. These declarations establish
+`compose(inputs, sound_preset) -> TinySynthSound`. These declarations establish
 argument/result wire agreement and include no deployed implementation.
 
 Current consumers are Beasts `packages/sound_manager/src/engine.cairo`,

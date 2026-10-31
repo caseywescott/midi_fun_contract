@@ -2,17 +2,19 @@ name: Tests
 
 on: [push, pull_request]
 
-# One Scarb workspace (the root Scarb.toml; scarb 2.21.0 and starknet-foundry 0.64.1, as in
-# /.tool-versions). Each package runs its own tests, on snforge. The parity fixtures are #[ignore]d
+# One Scarb workspace (the root Scarb.toml; tools pinned in /.tool-versions).
+# Each package runs its own tests, on snforge. The parity fixtures are #[ignore]d
 # here: they need several GB per batch; run them locally (beasts/beast_composer/README.md).
 jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: software-mansion/setup-scarb@v1
+      - uses: actions/checkout@v7.0.1
+      - uses: software-mansion/setup-scarb@v1.6.2
         with:
-          scarb-version: "2.21.0"
+          tool-versions: .tool-versions
+      - name: Check root and benchmark toolchain pins agree
+        run: diff -u .tool-versions bench/.tool-versions
       - run: scarb fmt --check
 
   test:
@@ -27,14 +29,14 @@ jobs:
           - beast_composer_inputs
           - beast_contracts
     steps:
-      - uses: actions/checkout@v4
-      - uses: software-mansion/setup-scarb@v1
+      - uses: actions/checkout@v7.0.1
+      - uses: software-mansion/setup-scarb@v1.6.2
         with:
-          scarb-version: "2.21.0"
+          tool-versions: .tool-versions
       # `scarb test` runs snforge (the root Scarb.toml's [workspace.scripts]).
-      - uses: foundry-rs/setup-snfoundry@v6
+      - uses: foundry-rs/setup-snfoundry@v6.0.0
         with:
-          starknet-foundry-version: "0.64.1"
+          tool-versions: .tool-versions
       - run: scarb test -p ${{ matrix.package }}
       # Scarb.lock pins every git dependency to a commit: a build that changes it means a dependency
       # moved.

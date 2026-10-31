@@ -97,7 +97,7 @@ a{color:var(--acc)}
 <div class="stepper"><button class="nav" id="e-prev" title="Previous edition (↑)">▲</button><div class="mid"><div class="lbl">Edition</div><div class="val" id="e-val"></div></div><button class="nav" id="e-next" title="Next edition (↓)">▼</button></div>
 <div class="stepper"><button class="nav" id="b-prev" title="Previous Beast (←)">◀</button><div class="mid"><div class="lbl">Beast</div><div class="val" id="b-val"></div></div><button class="nav" id="b-next" title="Next Beast (→)">▶</button></div>
 <div class="stepper"><button class="nav" id="s-prev" title="Previous purchase ([)">−</button><div class="mid"><div class="lbl">Purchase seed</div><div class="val" id="s-val"></div></div><button class="nav" id="s-next" title="Next purchase (])">+</button></div>
-<div class="ctl"><select id="fx" aria-label="Sound effect"><option value="0">Sound effect 0: as written</option><option value="1">Sound effect 1: mega leads</option><option value="2">Sound effect 2: chip echo</option><option value="3">Sound effect 3: mega leads + chip echo</option></select></div>
+<div class="ctl"><select id="fx" aria-label="Sound preset"><option value="0">Sound preset 0: as written</option><option value="1">Sound preset 1: mega leads</option><option value="2">Sound preset 2: chip echo</option><option value="3">Sound preset 3: mega leads + chip echo</option></select></div>
 <div class="seg" role="group" aria-label="Instruments"><button id="i-new" class="on">Edition presets</button><button id="i-old">Before: family settings only</button></div>
 <div class="ctl" style="margin-top:12px"><button class="go" id="play">▶ Play</button><button id="stop">■ Stop</button></div>
 </div>

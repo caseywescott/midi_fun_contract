@@ -862,7 +862,7 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     tied,
     flourishes: fl ? { count: fl.added.length, share: fl.share, notes: fl.added.flatMap((x) => (x.notes ? x.notes.map(([time, pitch]) => ({ voice: x.voice, time, pitch })) : [{ voice: x.voice, time: x.time, pitch: x.pitch }])), voices: [...new Set(fl.added.map((x) => x.voice))].length, shapes: fl.added.reduce((m, x) => ((m[x.shape] = (m[x.shape] || 0) + 1), m), {}) } : null,
     channels: playing ? playing.map((c, i) => (i === 1 && c !== 4 && c !== 'drums' ? 'low voice' : CHANNEL_NAMES[c])) : null };
-  // echo: the chip echo of sound_effects 2 and 3 (full_midi.js)
+  // echo: the chip echo of sound presets 2 and 3 (full_midi.js)
   const fx = { ...(b.shiny ? MEGA_ALL : {}), ...(echo ? { echo: true } : {}) };
   // the lead's grace notes from the song's ornament density (full_midi.js graceOf): on a day of drift
   // after the first only, never on a written track

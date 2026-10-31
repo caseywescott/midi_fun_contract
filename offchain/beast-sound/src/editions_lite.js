@@ -518,7 +518,7 @@ function melody(c, chords, lo, hi, motif, full, R) {
  * the month's new melodies (drawn from its hash; same key, chords and tempo), the week's part swap
  * (one part in or out) and accompaniment voicing (its triads in first or second inversion), and
  * the day's knob (0 the A and B progressions swap, 1 the A and B tunes swap, 2-5 the tempo nudged).
- * `echo` (sound_effects 2 and 3): the chip echo, the lead again 360 ticks later at half velocity
+ * `echo` (sound presets 2 and 3): the chip echo, the lead again 360 ticks later at half velocity
  * on the accompaniment's preset (channel 7). editions.cairo edition_tracks_on byte for byte.
  */
 export function editionTrack(sp, shiny, e, seedKey, drift = null, echo = false) {

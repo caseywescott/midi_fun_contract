@@ -173,8 +173,8 @@ pub fn validate_articulation(profile: u8) {
     );
 }
 
-pub fn validate_performance(sound_effects: u8) {
-    assert(sound_effects <= 3, 'invalid sound effects');
+pub fn validate_performance(sound_preset: u8) {
+    assert(sound_preset <= 3, 'invalid sound effects');
 }
 
 fn validate_performance_base(tempo_us: u32, velocity: u8, articulation: u8) {

@@ -1,4 +1,4 @@
-//! A token's `sound_effects` (0-3; the Sound Manager plays 4-31 as 0) as a performance of a written
+//! A token's `sound_preset` (0-3; the Sound Manager plays 4-31 as 0) as a performance of a written
 //! song or Sound Check: two layers, the mega sound (bit 0: the mega leads and the lead doubled an
 //! octave up) and the chip echo (bit 1: the lead again a dotted eighth later, half as loud, on a
 //! pluck; songs and editions, not the Sound Check), plus a faster tempo, louder notes and an
@@ -15,26 +15,26 @@
 
 use crate::inputs::{ComposerInputs, ScoreInputs, validate_inputs, validate_performance};
 
-pub fn is_mega(sound_effects: u8) -> bool {
-    validate_performance(sound_effects);
-    sound_effects == 1 || sound_effects == 3
+pub fn is_mega(sound_preset: u8) -> bool {
+    validate_performance(sound_preset);
+    sound_preset == 1 || sound_preset == 3
 }
 
-pub fn apply_performance(x: ComposerInputs, sound_effects: u8) -> ComposerInputs {
+pub fn apply_performance(x: ComposerInputs, sound_preset: u8) -> ComposerInputs {
     validate_inputs(x);
-    validate_performance(sound_effects);
+    validate_performance(sound_preset);
     match x {
         ComposerInputs::Song(mut song) => {
             let p = song.score;
             let (tempo_us, velocity_ceiling, articulation_profile) = performed(
-                p.tempo_us, p.velocity_ceiling, p.articulation_profile, sound_effects,
+                p.tempo_us, p.velocity_ceiling, p.articulation_profile, sound_preset,
             );
             song.score = ScoreInputs { tempo_us, velocity_ceiling, articulation_profile, ..p };
             ComposerInputs::Song(song)
         },
         ComposerInputs::SoundCheck(mut check) => {
             let (tempo_us, velocity_ceiling, articulation_profile) = performed(
-                check.tempo_us, check.velocity_ceiling, check.articulation_profile, sound_effects,
+                check.tempo_us, check.velocity_ceiling, check.articulation_profile, sound_preset,
             );
             check.tempo_us = tempo_us;
             check.velocity_ceiling = velocity_ceiling;
@@ -50,8 +50,8 @@ pub fn apply_performance(x: ComposerInputs, sound_effects: u8) -> ComposerInputs
 /// least 1 and the ceiling at most 127 (`validate_inputs`), so no change and no lift leave them as
 /// written. One copy for songs and Sound Checks (CASM size).
 #[inline(never)]
-fn performed(tempo_us: u32, ceiling: u8, articulation: u8, sound_effects: u8) -> (u32, u8, u8) {
-    let (faster, lift, articulation): (u32, u8, u8) = match sound_effects {
+fn performed(tempo_us: u32, ceiling: u8, articulation: u8, sound_preset: u8) -> (u32, u8, u8) {
+    let (faster, lift, articulation): (u32, u8, u8) = match sound_preset {
         0 => (0, 0, articulation),
         1 => (25000, 12, 2),
         2 => (30000, 8, 5),

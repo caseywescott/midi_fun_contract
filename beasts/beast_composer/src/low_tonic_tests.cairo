@@ -31,7 +31,7 @@ fn low_song(species: u64, tonic: u8, spacing: u8) -> SongInputs {
     x
 }
 
-/// The Song's file as the composer plays it (written, no sound effects), from valid inputs.
+/// The Song's file as the composer plays it (written: sound preset 0), from valid inputs.
 fn low_midi(x: SongInputs) -> Array<u8> {
     validate_inputs(ComposerInputs::Song(x));
     midi::smf::smf_bytes(1, 480, song_tracks(x, false, false, 0).span())

@@ -1,6 +1,6 @@
 //! Shared canonical composition call ABI, and `BeastPureComposer`: the Beast composer behind it.
 //! Storage-free: a manager owns tracks, sales, ownership, births, modes and block hashes; this
-//! class turns one written song or Sound Check, played with a token's `sound_effects` (and with
+//! class turns one written song or Sound Check, played with a token's `sound_preset` (and with
 //! drift, the manager's day: `DriftInputs`), into its MIDI and settings.
 use beast_composer::composition::drift::drift_of;
 use beast_composer::composition::editions::edition_byte_array;
@@ -16,32 +16,32 @@ use midi::types::{TinySynthSettings, TinySynthSound};
 
 #[starknet::interface]
 pub trait IBeastPureComposer<T> {
-    fn compose(self: @T, inputs: ComposerInputs, sound_effects: u8) -> TinySynthSound;
+    fn compose(self: @T, inputs: ComposerInputs, sound_preset: u8) -> TinySynthSound;
     /// The track on a day of drift (`beast_composer::composition::drift`): a song's rhythm cells
     /// (by month), channel order (by week) and one knob (by day); an edition's melodies,
     /// accompaniment voicing and knob (`editions::edition_tracks_on`). A Sound Check does not
     /// drift.
     fn compose_drift(
-        self: @T, inputs: ComposerInputs, sound_effects: u8, drift: DriftInputs,
+        self: @T, inputs: ComposerInputs, sound_preset: u8, drift: DriftInputs,
     ) -> TinySynthSound;
 }
 
-pub fn compose_sound(inputs: ComposerInputs, sound_effects: u8) -> TinySynthSound {
-    compose_with(inputs, sound_effects, Option::None)
+pub fn compose_sound(inputs: ComposerInputs, sound_preset: u8) -> TinySynthSound {
+    compose_with(inputs, sound_preset, Option::None)
 }
 
 pub fn compose_drift_sound(
-    inputs: ComposerInputs, sound_effects: u8, drift: DriftInputs,
+    inputs: ComposerInputs, sound_preset: u8, drift: DriftInputs,
 ) -> TinySynthSound {
-    compose_with(inputs, sound_effects, Option::Some(drift))
+    compose_with(inputs, sound_preset, Option::Some(drift))
 }
 
 /// `compose`, and with a day (`Some`) `compose_drift`: one body for both (CASM size). The drift
-/// changes the written song; the token's sound effects then perform it.
+/// changes the written song; the token's sound preset then performs it.
 // On purpose (CASM size): stops the compiler emitting a copy per call with constant arguments.
 #[inline(never)]
 fn compose_with(
-    inputs: ComposerInputs, sound_effects: u8, drift: Option<DriftInputs>,
+    inputs: ComposerInputs, sound_preset: u8, drift: Option<DriftInputs>,
 ) -> TinySynthSound {
     let drifted = match (inputs, drift) {
         (
@@ -51,10 +51,10 @@ fn compose_with(
         ),
         _ => inputs,
     };
-    let performed = apply_performance(drifted, sound_effects);
-    let mega = is_mega(sound_effects);
-    // sound effects 2 and 3: the chip echo on songs and editions
-    let echo = sound_effects >= 2;
+    let performed = apply_performance(drifted, sound_preset);
+    let mega = is_mega(sound_preset);
+    // sound presets 2 and 3: the chip echo on songs and editions
+    let echo = sound_preset >= 2;
     // a song's ornaments that grow with time: by the day of drift (0 as written)
     let day = match drift {
         Option::Some(d) => d.day,
@@ -117,15 +117,15 @@ pub mod BeastPureComposer {
     #[abi(embed_v0)]
     impl PureComposerImpl of super::IBeastPureComposer<ContractState> {
         fn compose(
-            self: @ContractState, inputs: ComposerInputs, sound_effects: u8,
+            self: @ContractState, inputs: ComposerInputs, sound_preset: u8,
         ) -> TinySynthSound {
-            super::compose_sound(inputs, sound_effects)
+            super::compose_sound(inputs, sound_preset)
         }
 
         fn compose_drift(
-            self: @ContractState, inputs: ComposerInputs, sound_effects: u8, drift: DriftInputs,
+            self: @ContractState, inputs: ComposerInputs, sound_preset: u8, drift: DriftInputs,
         ) -> TinySynthSound {
-            super::compose_drift_sound(inputs, sound_effects, drift)
+            super::compose_drift_sound(inputs, sound_preset, drift)
         }
     }
 }

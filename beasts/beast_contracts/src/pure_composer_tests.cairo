@@ -1,5 +1,5 @@
 //! BeastPureComposer as the Sound Manager calls it: a library call to the declared class, with a
-//! song's or Sound Check's shared inputs and a token's `sound_effects`. One or two compositions per
+//! song's or Sound Check's shared inputs and a token's `sound_preset`. One or two compositions per
 //! test (memory).
 use beast_composer::composition::beast_v3_sound::PackableBeastV3;
 use beast_composer::composition::drift::{DriftClock, drift_of};
@@ -109,7 +109,7 @@ fn mega_performance_of_the_sound_check() {
 
 #[test]
 #[should_panic(expected: 'invalid sound effects')]
-fn rejects_unassigned_sound_effects() {
+fn rejects_unassigned_sound_preset() {
     compose_sound(ComposerInputs::SoundCheck(sound_check_inputs(beast(1, 0, 0, 0))), 4);
 }
 
@@ -176,7 +176,7 @@ fn edition_purchase_composes_the_style_engine() {
     );
     // edition 3 is the lullaby (style 2); species 40 is a Hunter (type 1)
     assert(plain.settings == edition_synth_settings(2, 1, false), 'not the edition presets');
-    // sound effect 1 (old shiny) brings the mega leads
+    // sound preset 1 (old shiny) brings the mega leads
     let mega = composer().compose(inputs, 1);
     assert(
         mega.midi == edition_byte_array(40, true, 3, 0xfedcba9876543210, Option::None, false),
@@ -338,7 +338,7 @@ fn rejects_day_zero() {
 
 /// A future Beast (species past 75, family and tier from its token) through the manager's path:
 /// the base song, a bought track in edition 0 and a later edition, and its Sound Check, each with
-/// a sound effect.
+/// a sound preset.
 fn future_beast(species: u32, family: u8, tier: u8) -> beast_composer::inputs::GenerationInputs {
     beast_composer::composition::generation::get_generation_inputs(
         EditionCompositionConfig { composition_seed: 0 },

@@ -618,7 +618,7 @@ pub struct Arrangement {
     pub rock: bool,
     pub extra: Option<(u32, u8)>,
     pub programs: Option<Span<u8>>,
-    /// the chip echo (sound_effects 2 and 3): the lead again a dotted eighth later, half as loud,
+    /// the chip echo (sound presets 2 and 3): the lead again a dotted eighth later, half as loud,
     /// on the family's first pluck, panned opposite
     pub echo: bool,
     /// the lead's grace notes (`grace_of`): share of its long notes (percent) * 4 + kind; 0 none
@@ -912,7 +912,7 @@ pub fn beast_form_to_full_tracks_arranged(
         pans.append(*base_pans.at(v));
         v += 1;
     }
-    // mega: the lead an octave up on its own channel; the chip echo (sound effects 2 and 3): the
+    // mega: the lead an octave up on its own channel; the chip echo (sound presets 2 and 3): the
     // lead 360 ticks later (a dotted eighth) at half velocity, inside the form, on the family's
     // first pluck; both panned opposite the lead
     let dbl = max_voice + 1;

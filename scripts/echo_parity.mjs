@@ -1,4 +1,4 @@
-// Parity: the chip echo (sound_effects 2 and 3) on Genesis Tracks, plain and mega. The Cairo
+// Parity: the chip echo (sound presets 2 and 3) on Genesis Tracks, plain and mega. The Cairo
 // fixture (beasts/beast_composer song_inputs_tests echo_parity_fixture) prints each file; this
 // plays the same tracks through offchain/beast-sound/src/lab.js genesisMidi with `echo` and compares.
 //   cd beasts/beast_composer && scarb test -- echo_parity_fixture --include-ignored | grep '^ECHO' > /tmp/echo.txt

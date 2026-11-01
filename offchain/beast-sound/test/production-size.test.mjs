@@ -4,6 +4,7 @@ import {mkdtempSync,writeFileSync,rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {checkProductionSize} from '../../../scripts/check_production_size.mjs';
 const classes=['BeastMidiProvider','BeastSoundComposer','BeastPureGenerator','BeastPureComposer'];
 function fixture(run){const dir=mkdtempSync(join(tmpdir(),'production-casm-'));try{
@@ -19,7 +20,7 @@ test('production size gate includes pure classes and accepts the81920-felt limit
 test('oversize production composer fails clearly including CLI exit status',()=>fixture((dir,write)=>{
   write('BeastPureComposer',{bytecode:Array(81921).fill('0x1')});
   assert.throws(()=>checkProductionSize(dir),/BeastPureComposer.*81921.*exceeds 81920/);
-  const r=spawnSync(process.execPath,[helper.pathname,dir],{encoding:'utf8'});
+  const r=spawnSync(process.execPath,[fileURLToPath(helper),dir],{encoding:'utf8'});
   assert.equal(r.status,1);assert.match(r.stderr,/BeastPureComposer.*81921.*81920/);
 }));
 test('test class artifacts cannot hide a missing production artifact',()=>fixture(dir=>{

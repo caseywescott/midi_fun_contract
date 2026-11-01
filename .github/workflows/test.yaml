@@ -35,7 +35,17 @@ jobs:
       - uses: foundry-rs/setup-snfoundry@v6
         with:
           starknet-foundry-version: "0.64.1"
+      - name: Validate catalogue generation and size checker
+        if: matrix.package == 'beast_contracts'
+        run: |
+          node --test offchain/beast-sound/test/catalogue-generation.test.mjs offchain/beast-sound/test/production-size.test.mjs
+          node scripts/check_catalogue.mjs --check
       - run: scarb test -p ${{ matrix.package }}
+      - name: Check production contract sizes
+        if: matrix.package == 'beast_contracts'
+        run: |
+          scarb --profile dev build -p beast_contracts
+          node scripts/check_production_size.mjs target/dev
       # Scarb.lock pins every git dependency to a commit: a build that changes it means a dependency
       # moved.
       - run: git diff --exit-code Scarb.lock

@@ -38,6 +38,27 @@ result; with unchanged sources, they reproduce the committed files byte for byte
 | `core/midi_contracts/src/page/tests.cairo` | `node onchain/golden.mjs` |
 | `beasts/beast_contracts/src/synth_settings.cairo` | `node onchain/tinychip/synth_settings.mjs --cairo` |
 
+## Catalogue validation and production class sizes
+
+`scripts/check_catalogue.mjs` validates the 75 source rows before packing: numeric/enumerated
+metadata, canonical species order and family programs, degree/rhythm bounds, and the bit widths
+used by the Cairo reader. In particular, `finalNotes` must be 4–16 so the final cadence cannot
+underflow. Valid source reproduces the committed Cairo table byte for byte. Regenerate with
+`node scripts/check_catalogue.mjs`, or verify with `--check`.
+
+```sh
+node --test offchain/beast-sound/test/catalogue-generation.test.mjs offchain/beast-sound/test/production-size.test.mjs
+node scripts/check_catalogue.mjs --check
+scarb --profile dev build -p beast_contracts
+node scripts/check_production_size.mjs target/dev
+```
+
+The existing `beast_contracts` CI job runs these checks. The size gate reads all four named
+production `.compiled_contract_class.json` artifacts, including `BeastPureComposer` and
+`BeastPureGenerator`; snforge test artifacts do not satisfy it. Missing/malformed production
+artifacts or bytecode above 81,920 felts fail the gate. Exactly 81,920 is accepted; this adds no
+extra headroom policy and does not change runtime code or compiler settings.
+
 ## Gas benchmark
 
 `bench/` (its own Scarb workspace, snforge 0.64.1) runs every production entry point it measures

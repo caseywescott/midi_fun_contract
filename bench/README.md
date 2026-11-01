@@ -252,3 +252,53 @@ baseline snapshot, since `compare` refuses different case sets.
 | `scripts/gas_bench.py` | run, compare, test, freeze |
 | `snapshots/baseline-25be776.json` | the current baseline: the classes after the gas work, built with scarb 2.21.0 (25be776) |
 | `snapshots/baseline-2ce04a9.json` | the classes before it (`2ce04a9`'s sources, where the bench was frozen), built with scarb 2.21.0 |
+
+## Reproduce the PR34 TrackWriter tradeoff
+
+From a clean checkout, with the pinned Scarb 2.21.0 and Foundry 0.64.1 installed:
+
+```bash
+python3 bench/scripts/writer_tradeoff.py --capture-baseline \
+  --baseline /tmp/pr34-writer-baseline.json --out /tmp/pr34-writer-capture
+python3 bench/scripts/writer_tradeoff.py \
+  --baseline /tmp/pr34-writer-baseline.json --out /tmp/pr34-writer-comparison --check-fault
+```
+
+The first command is an explicit authority-capture step. It always extracts Git commit
+`61379cb6425cb99b9b715e5f68efc2658173ffdf`, never the checkout's candidate sources, and refuses
+to overwrite the baseline file. That commit must exist in the local Git history (a shallow
+checkout may need its history fetched first). The fixture binds the full serialized inputs and
+outputs to that archive, the workload matrix, script and Cairo template hashes. A changed
+harness requires a new explicit capture into a new file; comparison never regenerates authority.
+Keep both paths outside the checkout; all generated Cairo arrays, builds and reports stay in
+temporary directories. No npm installation or JS parity engine is needed for this command.
+
+The second command compares two fresh archives of the same baseline: unchanged, and with only
+`#[inline(never)]` removed from `TrackWriter.message`, `control`, `meta` and `finish_at`. It checks
+the complete Serde output against the captured baseline for **both** variants, then measures
+each variant twice and requires exact per-case gas agreement. Pure Composer inputs are
+deserialized from the captured inputs; legacy provider and scale inputs are also checked in
+full. The matrix contains 36 Pure cases (checks 1/64 and songs 1/21/32/44/68 with FX 0–3,
+named song 44 with FX 0–3, and four check boundary inputs), eight legacy provider cases
+(species 1/21/32/68, normal/shiny), and three scales (tokens 1/42/100000). Named rows set both
+prefix and suffix to 1 and pass those values to `genesis_song_inputs`. Boundary checks use
+articulation profile 1, velocity ceilings 1/127 and tempos 1/1048575 respectively.
+
+It reuses `gas_bench.py`'s pinned tool resolution, production builds, strict trace parser,
+call-tree validation and artifact identity checks for the four existing production classes plus
+`BeastPureComposer`. Every normal pass must report exactly 47 passed, zero failed/ignored and
+286 filtered tests. Measurement is the selected production entrypoint's inclusive L2 Sierra
+gas under `--no-optimization --trace-components contract-name gas`; test deployment and Serde
+assertion costs are excluded. The default and maximum concurrency is two threads (`--threads 1`
+is also available). Raw logs and captures plus per-case gas and per-class CASM deltas are under
+`/tmp/pr34-writer-comparison`; `summary.json` is the compact result. These commands measure the
+writer annotation decision alone, independently of any subsequent catalogue changes.
+
+`--check-fault` additionally changes the real tempo meta-event byte from `0x51` to `0x52` in a
+temporary variant, compiles it, and requires `row_000` to fail specifically on the full-output
+assertion. The source is restored afterward. An ordinary comparison omits this extra build.
+
+This focused matrix leaves `expected/frozen.json` untouched. The historical full benchmark has
+five Yeti rows whose frozen authority already disagrees with `61379cb`; this command does not
+repair or silently refresh those unrelated expected values, and does not claim that full suite
+passes.

@@ -12,12 +12,20 @@ The canonical implemented Check table is `offchain/beast-sound/src/sound_check_c
 
 ## Validation and size
 
-The music, generator and test sources are byte-identical to qualified fork commit `4a16c58bf1738bcd3636f1e475a310b24ecbddc5`. This PR omits unused planning/audit exports and retains the original MIDI/settings, historical recipe and independent oracle fixtures.
+The review fixes make every new Satori route use the same authored base before applying purchase treatment and drift once. Legacy Genesis/Name/seeded calls and the JS preview now agree with the stored-input route; legacy provider settings include the authored bank. `bought_song_inputs` retains both authored markers. Edition generators deliberately retain the shipped procedural species genomes.
 
-- 89 JavaScript tests; 362 composer, 69 contracts, 28 inputs and 34 core MIDI tests passed.
-- All 300 shared Sound Checks match full MIDI bytes and settings through a declared production-equivalent class.
-- The Sound Lab's full matrix compared 1,635 actual Cairo outputs with the shipped adapter, including Species Songs, named songs, purchases, all 23 editions/styles, effects and boundary seeds. All 75 embedded Species Songs and 600 current Species/Check selections also match across the lab pages.
-- With Scarb 2.21.0 and Foundry 0.64.1, the production-equivalent dev `BeastPureComposer` is **81,918 / 81,920 CASM felts**. Its compiled artifact SHA-256 is `14f9c465701bce6f42ce425f0812888303ff3f834bbfe5c447311b005fd02de9`. The two-felt margin requires rechecking the compiled size after source or toolchain changes.
+For general Sound Checks, a recipe's supplied family selects a compatible installed normal preset when it differs from the catalogue species family; its curated phrase remains. Canonical pairings and Mega voices are unchanged. Catalogue generation validates every packed field, including cadence length and bit widths. CI builds all four production contract classes and rejects missing, malformed or oversized artifacts. Superseded draft pairing exports were removed; the original generator used by the independent oracle remains.
+
+With Scarb 2.21.0 and Foundry 0.64.1:
+
+- **143 JavaScript tests** passed, including generator and size-gate mutation tests. Catalogue/384-case fixture freshness, original #411 reproduction, formatting and unchanged lockfile checks pass.
+- Non-ignored Cairo suites pass: **369 composer, 77 contracts, 28 inputs, 34 MIDI and 38 MIDI contracts**. All **154 ignored Composer fixtures** were then run separately, followed by all **13 JS/Cairo comparators**, including 150/150 drift tracks, 150/150 Genesis tracks, 150/150 named tracks, 150/150 seeded tracks, 225/225 checks and the edition matrices. The 11 optional contract benchmark/capture fixtures are separate from this completed Composer parity gate.
+- A separate bench workspace executed the actual compiled production `BeastPureComposer` with `--no-optimization`: **1,635 matrix cases plus 36 mixed-family cases** passed. Every matrix MIDI byte/settings hash matches JS, and all **600 canonical lab samples plus 16 explicit authored references** are unchanged from approved source `4a16c58`. The matrix has 1,635 distinct case IDs and 1,599 distinct parameter payloads.
+- Production sizes are **69,882** (`BeastMidiProvider`), **22,747** (`BeastSoundComposer`), **17,383** (`BeastPureGenerator`) and **81,920 / 81,920** (`BeastPureComposer`) CASM felts. There is **zero spare headroom**. The Pure Composer compiled artifact SHA-256 is `55e03473d99bd4642ffb2554dca47f11c346054f17129d3c769b0fe7d011e42c`.
+
+The production-class capture executes commit `91557269a17cc5e7bd6411f8589790284d8a618e`; the complete ignored-parity gate executes `cebb41a4f206e5cda06149c13a51ee0ce44e9bbb`. The intervening change fixes only JS edition generation/reference coverage. Final test/comment/documentation changes preserve the captured production artifact, checked by a fresh build and hash comparison. These captures are not represented as executions of a later revision.
+
+The four shared `TrackWriter` `#[inline(never)]` annotations are retained after a paired 47-case benchmark. On original PR head `61379cb`, removing them grows Pure Composer from 81,918 to 83,933 felts. Removal saves 2.48–4.79% gas for checks, 0.79–1.81% for ordinary pure Songs, 4.48–6.08% for authored Satori, 0.84–1.67% for legacy Beast calls and 7.85–7.86% for Scale calls (119,250 Sierra gas). Percentages use the outlined version as denominator; these measure the annotation decision on `61379cb`, not final-head gas. Both variants preserve complete serialized output, with two identical measurements each and production artifact checks. See [the benchmark commands](../../bench/README.md#reproduce-the-pr34-trackwriter-tradeoff). This measured call overhead is the tradeoff for fitting the class without adding another writer API.
 
 Useful checks from the repository root:
 
@@ -29,13 +37,17 @@ node scripts/check_catalogue_parity.mjs --check
 node docs/sound-check-scale-plan/satori-411/reproduce-411.mjs
 scarb fmt --check
 scarb test -p midi
+scarb test -p midi_contracts
 scarb test -p beast_composer_inputs
 scarb test -p beast_composer
 scarb test -p beast_contracts
+python3 scripts/verify_music_parity.py --out /tmp/beast-music-parity
+scarb --profile dev build -p beast_contracts
+node scripts/check_production_size.mjs target/dev
 git diff --exit-code Scarb.lock
 ```
 
-Follow `TESTING.md` for the existing ignored parity fixtures. Source, fixtures and the new music remain under this repository's MIT license.
+See `TESTING.md` for the complete ignored-parity gate. Source, fixtures and the new music remain under this repository's MIT license.
 
 ## Production integration
 

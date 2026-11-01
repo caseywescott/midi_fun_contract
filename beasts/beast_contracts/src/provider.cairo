@@ -189,7 +189,7 @@ pub mod BeastMidiProvider {
 
     #[abi(embed_v0)]
     impl SynthSettingsProviderImpl of ISynthSettingsProvider<ContractState> {
-        /// The Beast sound settings (`crate::synth_settings`), the same for every Beast for now.
+        /// The settings for this species and shiny state (`crate::synth_settings`).
         /// Validates the token ID's format only: no calls, so it costs no more than building the
         /// value.
         fn get_settings(self: @ContractState, token_id: u256) -> TinySynthSettings {
@@ -240,8 +240,8 @@ pub mod BeastMidiProvider {
 
     /// The Beast sound settings.
     /// The sounds the Beast's MIDI can select: its type's family of presets and the drum kit, plus
-    /// the mega leads for a mega (shiny) Beast. Both come from the token ID, so no composition is
-    /// needed.
+    /// the mega leads for a mega (shiny) Beast. Authored Satori and Yeti use their dedicated
+    /// banks. The token ID supplies these choices, so no composition is needed.
     /// A swapped species plays its partner's Genesis Track, so it takes the partner's type.
     fn settings(beast: PackableBeastV3) -> TinySynthSettings {
         let src = genesis_swap(beast.id);

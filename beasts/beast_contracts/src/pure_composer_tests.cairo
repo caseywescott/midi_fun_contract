@@ -528,12 +528,13 @@ fn authored_satori_full_effect_settings_match_js_bank() {
 }
 
 fn check_mixed_family(family: u8) {
+    let library = composer();
     for sid in [1_u64, 26, 51].span() {
         let b = beast(*sid, 0, 0, 0);
         let mut x = sound_check_inputs(b);
         x.family = family;
         for fx in [0_u8, 1, 2, 3].span() {
-            let sound = compose_sound(ComposerInputs::SoundCheck(x), *fx);
+            let sound = library.compose(ComposerInputs::SoundCheck(x), *fx);
             let m = @sound.midi;
             let length: u32 = m.at(18).unwrap().into() * 0x1000000
                 + m.at(19).unwrap().into() * 0x10000

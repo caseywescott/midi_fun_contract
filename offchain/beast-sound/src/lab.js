@@ -743,11 +743,11 @@ export function addFlourishes(form, day, key, style = {}) {
   return { form: { ...form, events: ev.filter((x) => x.duration > 0) }, added, share };
 }
 
-export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0, trueV = false, blockHashes = false, yeti = true, echo = false } = {}, E, v11) {
+export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'species', genesisKey = 'rule', epoch = null, channels = 'tier', bpm = null, driftMode = 'v1', mix = null, flourishDay = null, ties = false, topLead = false, motif = 0, trueV = false, blockHashes = false, yeti = true, echo = false, authored = true } = {}, E, v11) {
   // seed 0 is the Genesis seed (0 is never a block hash): the Genesis rules, no seeded treatment, the
   // tier's fixed channel count, so the OG track of a species (name 0, seed 0) is known exactly
   if (seed === 0n || seed === 0) seed = null;
-  if (isAuthoredSatori(b.id,name) && theme === 'species' && genesisKey === 'spread' && channels === 'rarity' && motif === 'default') {
+  if (authored && isAuthoredSatori(b.id,name) && theme === 'species' && genesisKey === 'spread' && channels === 'rarity' && motif === 'default') {
     let recipe=satori411SongInputs(name);
     if(seed!==null && seed!==undefined)recipe=satori411PurchasedInputs(recipe,seed);
     const ent={...b,...nameFromVariant(name)}, anchor=blockHashes?dayAnchor():null;

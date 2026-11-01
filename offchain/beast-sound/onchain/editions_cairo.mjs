@@ -17,7 +17,8 @@ export function speciesRecords() {
   const V11E = createEngineV11(ENGINE);
   return Array.from({ length: 75 }, (_, k) => {
     const id = k + 1, tier = Math.floor((k % 25) / 5) + 1, type = Math.floor(k / 25);
-    const o = LAB.genesisMidi(id, false, ENGINE, V11E);
+    // Editions retain their original procedural genome when a Species Song is replaced.
+    const o = LAB.genesisMidi(id, false, ENGINE, V11E, {authored:false});
     return { id, tier, type, tonicPc: o.result.params.tonic_keynum % 12, degrees: o.result.form.theme.degrees };
   });
 }

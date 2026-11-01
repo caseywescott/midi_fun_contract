@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {speciesRecords} from '../onchain/editions_cairo.mjs';
 import {engine as E} from '../src/index.js';
 import {createEngineV11} from '../src/engine_v11.js';
 import {GENESIS_DEFAULTS,genesisMidi,sampleTrackMidi,drift2,dayAnchor} from '../src/lab.js';
@@ -42,4 +43,14 @@ test('explicit legacy v1 preview drift is respected without applying the v2 key 
  const r=sampleTrackMidi(beast,{species_count:1},{...GENESIS_DEFAULTS,name:1,epoch:173,driftMode:'v1'},E,V);
  assert.equal(r.drift.v,undefined);assert.equal(r.recipe.score.tonic_keynum,48);
  assert.equal(r.recipe.theme.register_band,0);
+});
+
+test('all edition genomes retain the shipped Cairo table despite the Satori Song replacement',()=>{
+ const source=fs.readFileSync(new URL('../../../beasts/beast_composer/src/composition/editions_data.cairo',import.meta.url),'utf8');
+ const packed=source.match(/pub const SPECIES:[^=]+?=\s*\[([\s\S]*?)\];/)[1].match(/0x[0-9a-f]+/gi).map(BigInt);
+ const rows=speciesRecords();assert.equal(rows.length,75);assert.equal(packed.length,75);
+ for(let i=0;i<75;i++){
+  assert.equal(rows[i].tonicPc,Number(packed[i]&15n));
+  assert.deepEqual(rows[i].degrees.slice(0,6),Array.from({length:6},(_,k)=>Number((packed[i]>>BigInt(4+4*k))&15n)-8));
+ }
 });

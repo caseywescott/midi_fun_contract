@@ -760,8 +760,8 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
     if(bpm)recipe.score.tempo_us=Math.round(60000000/bpm);
     let form;
     const midi=satori411Midi(recipe,{mega:!!b.shiny,echo,captureForm:value=>{form=value;}});
-    return {midi,drift:d,
-      result:{beast:b,params:recipe.score,form},info:{key:keyName(recipe.score),voices:3,sections:1,tempo:Math.round(60000000/recipe.score.tempo_us),channels:['lead','bass','harp','drums'],authored:true},recipe};
+    return {midi,drift:d||{knob:null,label:'off'},
+      result:{beast:b,params:{...recipe.score,species_id:44,name_variant_id:name},form},info:{key:keyName(recipe.score),voices:3,sections:1,tempo:Math.round(60000000/recipe.score.tempo_us),channels:['lead','bass','harp','drums'],authored:true},recipe};
   }
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
   const g = genesisBeast(b), nm = nameFromVariant(name);

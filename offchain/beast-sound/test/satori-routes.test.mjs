@@ -11,6 +11,7 @@ test('canonical Genesis and named wrappers select the exact authored written sco
  const named=sampleTrackMidi(beast,{species_count:1},{...GENESIS_DEFAULTS,name:1},E,V);
  assert.deepEqual(named.midi,satori411Midi(satori411SongInputs(1)));
  assert.equal(named.result.form.section_ticks,69120);assert(named.result.form.events.length>0);
+ assert.equal(named.result.params.species_id,44);assert.equal(named.drift.label,'off');
 });
 test('Agony Bane drift shifts the written key once and preserves its authored register',()=>{
  for(const [day,tonic] of [[31,55],[32,55],[99,53],[173,55],[400,53]]){

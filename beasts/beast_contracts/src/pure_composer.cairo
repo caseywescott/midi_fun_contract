@@ -6,7 +6,7 @@ use beast_composer::composition::drift::drift_of;
 use beast_composer::composition::editions::edition_byte_array;
 use beast_composer::composition::full_midi::{SMF_DIVISION, SMF_FORMAT};
 use beast_composer::composition::genesis::{drifted_song_inputs, song_tracks};
-use beast_composer::composition::performance::{apply_performance, is_mega};
+use beast_composer::composition::performance::apply_performance;
 use beast_composer::composition::sound_check::sound_check_tracks;
 use beast_composer::inputs::drift::DriftInputs;
 use beast_composer::inputs::{ComposerInputs, SpecialArrangement};
@@ -51,9 +51,11 @@ fn compose_with(
         _ => inputs,
     };
     let performed = apply_performance(drifted, sound_effects);
-    let mega = is_mega(sound_effects);
+    // apply_performance validates sound_effects before returning on every input variant.
+    let (echo_bit, mega_bit) = DivRem::div_rem(sound_effects, 2);
+    let mega = mega_bit != 0;
     // sound effects 2 and 3: the chip echo on songs and editions
-    let echo = sound_effects >= 2;
+    let echo = echo_bit != 0;
     // a song's ornaments that grow with time: by the day of drift (0 as written)
     let day = match drift {
         Option::Some(d) => d.day,

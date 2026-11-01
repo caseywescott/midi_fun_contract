@@ -3,7 +3,7 @@
 use midi::smf::{TrackWriter, TrackWriterTrait, smf_bytes};
 use crate::composition::beast_v11::articulated_duration;
 use crate::composition::beast_v3_sound::{PackableBeastV3, map_v3_beast_to_composition_params};
-use crate::composition::check_catalogue_data::catalogue_check;
+use crate::composition::check_catalogue_data::{catalogue_check, catalogue_family_program};
 use crate::composition::cyclops_sound_check::{
     CYCLOPS_CHECK_TEMPO_US, CYCLOPS_SPECIES, cyclops_sound_check_tracks,
 };
@@ -95,14 +95,13 @@ pub fn sound_check_tracks(x: SoundCheckInputs, mega: bool) -> Array<Array<u8>> {
     } else {
         // Identity and family are independently authorable. Retain the species gesture while
         // selecting a voice installed in the explicitly supplied family's settings bank.
-        let voice = if x.identity.source_species_id <= 75 && (x.identity.source_species_id - 1)
-            / 25 != x.family.into() {
-            let (family_meta, _, _) = catalogue_check(0xffffffff, x.family);
-            family_meta
+        // Future species already use that family's first catalogue row, so either branch has
+        // the same default voice for them.
+        if (x.identity.source_species_id - 1) / 25 == x.family.into() {
+            (meta % 128).try_into().unwrap()
         } else {
-            meta
-        };
-        (voice % 128).try_into().unwrap()
+            catalogue_family_program(x.family)
+        }
     };
     let tonic: u32 = if (meta / 256) % 2 == 1 {
         48
@@ -129,7 +128,8 @@ pub fn sound_check_tracks(x: SoundCheckInputs, mega: bool) -> Array<Array<u8>> {
     // Four two-bar sections: head, two held tones, answering phrase, articulation with a final
     // rest.
     let mut section: u32 = opaque(0);
-    while section < 4 {
+    // This private counter starts at 0 and advances once per section to 4.
+    while section != 4 {
         if section == 1 {
             let mut h = held;
             let mut k: u32 = 0;
@@ -240,4 +240,21 @@ fn write_note(
     };
     track.note_on(time, 0, pitch, velocity);
     track.note_off(time + gate, 0, pitch, 0);
+}
+
+#[cfg(test)]
+mod program_tests {
+    use crate::composition::check_catalogue_data::{catalogue_check, catalogue_family_program};
+
+    #[test]
+    fn family_default_voice_matches_complete_catalogue_row() {
+        for family in 0_u8..3 {
+            let family_index: u32 = family.into();
+            let (first, _, _) = catalogue_check(1 + 25 * family_index, family);
+            let (future, _, _) = catalogue_check(0xffffffff, family);
+            let program: u64 = catalogue_family_program(family).into();
+            assert(program == first % 128, 'family first voice changed');
+            assert(program == future % 128, 'future default voice changed');
+        }
+    }
 }

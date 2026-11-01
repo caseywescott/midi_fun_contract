@@ -87,3 +87,13 @@ pub fn catalogue_check(species: u32, family: u8) -> (u64, u64, u64) {
     };
     *CHECKS.span().at(index)
 }
+
+/// First installed Check voice for a validated family, from the same catalogue.
+#[inline(never)]
+pub(crate) fn catalogue_family_program(family: u8) -> u8 {
+    match family {
+        0 => 9,
+        1 => 2,
+        _ => 4,
+    }
+}

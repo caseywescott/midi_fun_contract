@@ -1,0 +1,8 @@
+{
+  "name": "loot-sound",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Loot Dungeon Beast Sound: the edition engine (Realm and Sweets harmony) and its lab.",
+  "scripts": { "test": "node --test test/" }
+}

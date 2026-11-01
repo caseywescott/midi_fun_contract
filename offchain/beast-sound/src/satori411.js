@@ -67,7 +67,7 @@ export function satori411DriftedInputs(base, drift) {
 }
 const vlq = (n) => { const b = [n & 127]; while ((n >>= 7)) b.unshift((n & 127) | 128); return b; };
 const chunk = (tag, b) => [...tag].map((c) => c.charCodeAt(0)).concat([b.length >>> 24 & 255, b.length >>> 16 & 255, b.length >>> 8 & 255, b.length & 255], b);
-export function satori411Midi(song = satori411SongInputs(), {mega=false,echo=false} = {}) {
+export function satori411Midi(song = satori411SongInputs(), {mega=false,echo=false,captureForm=null} = {}) {
   if (!isSatori411Song(song)) throw new Error('not a Satori 411 recipe');
   encodeInputs({ kind: 'Song', song }); // Enforce the existing Song domain (tonic24..96).
   const END = 69120, parts = Array.from({ length: 4 }, () => []), offset = song.score.tonic_keynum - 57;
@@ -98,10 +98,12 @@ export function satori411Midi(song = satori411SongInputs(), {mega=false,echo=fal
     hits.sort((a,b)=>a[0]-b[0]);
     const p={...song.score,species_id:44,name_variant_id:song.arrangement.identity.name_variant_id};
     V11.shape(notes,p,END,true,song.treatment.prominence);
+    captureForm?.({events:notes,section_ticks:END,sections:[0]});
     return beastFullMidi({beast:{beast_type:1},params:p,form:{events:notes,section_ticks:END,sections:[0]}},()=>END,
       {lead:mega,double:mega,groove:mega,echo},
       {instruments:'beast',programs:{0:0,1:15,2:17},drums:mega?null:()=>hits});
   }
+  captureForm?.({events:notes,section_ticks:END,sections:[0]});
   const encodeTrack = (events) => { let at = 0; const b = []; for (const e of events.sort((a, b) => a.time - b.time || a.priority - b.priority)) { b.push(...vlq(e.time - at), ...e.bytes); at = e.time; } return [...b, ...vlq(END - at), 255, 47, 0]; };
   const us = song.score.tempo_us;
   const tempo = [0, 255, 81, 3, us >>> 16 & 255, us >>> 8 & 255, us & 255, ...vlq(END), 255, 47, 0];

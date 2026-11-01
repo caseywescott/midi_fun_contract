@@ -26,6 +26,14 @@ run keeps what it allocates until it ends, so they are `#[ignore]`d, need severa
 run locally in batches through `scripts/*_parity_cairo.sh` and `scripts/*_parity.mjs`. See
 `beasts/beast_composer/README.md`.
 
+Run the complete ignored Composer inventory and every JS/Cairo comparison before publishing changes to Beast composition or the MIDI writer:
+
+```bash
+python3 scripts/verify_music_parity.py --out /tmp/beast-music-parity
+```
+
+The output directory must be new. Each ignored fixture runs once in a separate process with two test threads, so memory is released between batches. The runner checks successful execution and invokes all 13 existing comparators, including the complete 150-case drift matrix; a passing non-ignored suite does not replace this gate. It records the source revision, executed inventory and capture hash, and never terminates unrelated test processes.
+
 ## Generated Cairo
 
 Three files are written by scripts in `offchain/beast-sound/onchain` (run `npm install` in

@@ -564,3 +564,9 @@ fn mixed_family_hunter_settings() {
 fn mixed_family_brute_settings() {
     check_mixed_family(2);
 }
+
+#[test]
+#[should_panic(expected: ('invalid sound effects',))]
+fn rejects_full_u8_effect_boundary() {
+    compose_sound(genesis(beast(1, 0, 0, 0)), 255);
+}

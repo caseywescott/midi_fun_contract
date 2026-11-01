@@ -10,6 +10,7 @@ test('canonical Genesis and named wrappers select the exact authored written sco
  assert.deepEqual(Buffer.from(genesisMidi(44,false,E,V).midi),fs.readFileSync(new URL('../../../docs/sound-check-scale-plan/satori-411/track-411.mid',import.meta.url)));
  const named=sampleTrackMidi(beast,{species_count:1},{...GENESIS_DEFAULTS,name:1},E,V);
  assert.deepEqual(named.midi,satori411Midi(satori411SongInputs(1)));
+ assert.equal(named.result.form.section_ticks,69120);assert(named.result.form.events.length>0);
 });
 test('Agony Bane drift shifts the written key once and preserves its authored register',()=>{
  for(const [day,tonic] of [[31,55],[32,55],[99,53],[173,55],[400,53]]){
@@ -34,4 +35,10 @@ test('canonical Species and named purchase wrappers drift one immutable base at 
   const actual=sampleTrackMidi(beast,{species_count:1},{...GENESIS_DEFAULTS,name,seed,epoch:day,driftMode:'v2',blockHashes:true},E,V);
   assert.deepEqual(actual.recipe,expected);assert.deepEqual(actual.midi,satori411Midi(expected));
  }
+});
+
+test('explicit legacy v1 preview drift is respected without applying the v2 key shift',()=>{
+ const r=sampleTrackMidi(beast,{species_count:1},{...GENESIS_DEFAULTS,name:1,epoch:173,driftMode:'v1'},E,V);
+ assert.equal(r.drift.v,undefined);assert.equal(r.recipe.score.tonic_keynum,48);
+ assert.equal(r.recipe.theme.register_band,0);
 });

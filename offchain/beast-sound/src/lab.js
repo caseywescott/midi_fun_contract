@@ -750,11 +750,18 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   if (isAuthoredSatori(b.id,name) && theme === 'species' && genesisKey === 'spread' && channels === 'rarity' && motif === 'default') {
     let recipe=satori411SongInputs(name);
     if(seed!==null && seed!==undefined)recipe=satori411PurchasedInputs(recipe,seed);
-    const d=epoch===null||epoch===undefined?null:drift2({...b,...nameFromVariant(name)},epoch,blockHashes?dayAnchor():null);
-    if(d)recipe=satori411DriftedInputs(recipe,d);
+    const ent={...b,...nameFromVariant(name)}, anchor=blockHashes?dayAnchor():null;
+    const d=epoch===null||epoch===undefined?null:driftMode==='v2'?drift2(ent,epoch,anchor):drift(ent,epoch,anchor);
+    if(d?.v===2)recipe=satori411DriftedInputs(recipe,d);
+    else if(d?.knob===0)recipe.treatment.flip_side=!recipe.treatment.flip_side;
+    else if(d?.knob===1)recipe.treatment.direction=recipe.treatment.direction===1?2:1;
+    else if(d?.knob===2)recipe.treatment.trill=!recipe.treatment.trill;
+    else if(d?.knob===3)recipe.score.tier=recipe.score.tier>=5?4:recipe.score.tier+1;
     if(bpm)recipe.score.tempo_us=Math.round(60000000/bpm);
-    return {midi:satori411Midi(recipe,{mega:!!b.shiny,echo}),drift:d,
-      result:{beast:b,params:recipe.score},info:{key:keyName(recipe.score),voices:3,sections:1,tempo:Math.round(60000000/recipe.score.tempo_us),channels:['lead','bass','harp','drums'],authored:true},recipe};
+    let form;
+    const midi=satori411Midi(recipe,{mega:!!b.shiny,echo,captureForm:value=>{form=value;}});
+    return {midi,drift:d,
+      result:{beast:b,params:recipe.score,form},info:{key:keyName(recipe.score),voices:3,sections:1,tempo:Math.round(60000000/recipe.score.tempo_us),channels:['lead','bass','harp','drums'],authored:true},recipe};
   }
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
   const g = genesisBeast(b), nm = nameFromVariant(name);

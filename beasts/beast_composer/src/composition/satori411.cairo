@@ -434,15 +434,7 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_satori411_effects_match_independent_js_reference() {
-        let expected = array![
-            0x3a4739617e5f179a399de21702ade6db98d14ef1fcd7be8dad21c843ec9fb34,
-            0x351e6ec341c7695175fd344912be0a9c84bfd6647f9d7dc7d52a8c6a60fdf20,
-            0x3daf09a452f33f54c593905de1af3a6d6f258bb3a0a5c950b598282cb20cb7b,
-            0x6cd701a2b816f766161e54e1a6320102606555d9f8394d4255bb41899202dec,
-        ];
-        let base = beast_song_inputs(beast(), 1, 1);
+    fn effects_reference(base: crate::inputs::SongInputs, expected: Span<felt252>, label: felt252) {
         let mut fx: u8 = 0;
         while fx < 4 {
             let performed = crate::composition::performance::apply_performance(
@@ -457,11 +449,21 @@ mod tests {
             for b in midi.span() {
                 values.append((*b).into());
             }
-            assert(
-                poseidon_hash_span(values.span()) == *expected.at(fx.into()), 'effects reference',
-            );
+            assert(poseidon_hash_span(values.span()) == *expected.at(fx.into()), label);
             fx += 1;
         }
+    }
+
+    #[test]
+    fn test_satori411_effects_match_independent_js_reference() {
+        let expected = array![
+            0x3a4739617e5f179a399de21702ade6db98d14ef1fcd7be8dad21c843ec9fb34,
+            0x351e6ec341c7695175fd344912be0a9c84bfd6647f9d7dc7d52a8c6a60fdf20,
+            0x3daf09a452f33f54c593905de1af3a6d6f258bb3a0a5c950b598282cb20cb7b,
+            0x6cd701a2b816f766161e54e1a6320102606555d9f8394d4255bb41899202dec,
+        ];
+        let base = beast_song_inputs(beast(), 1, 1);
+        effects_reference(base, expected.span(), 'named effects reference');
     }
 
     #[test]
@@ -473,25 +475,7 @@ mod tests {
             0x37a5e41eb09cf79931fea26874225a7372fa4e01f7662e8ee7a05dbcacdb634,
         ];
         let base = beast_song_inputs(beast(), 0, 0);
-        let mut fx: u8 = 0;
-        while fx < 4 {
-            let performed = crate::composition::performance::apply_performance(
-                ComposerInputs::Song(base), fx,
-            );
-            let x = match performed {
-                ComposerInputs::Song(x) => x,
-                _ => panic!("song expected"),
-            };
-            let midi = smf_bytes(1, 480, tracks(x, fx == 1 || fx == 3, fx >= 2).span());
-            let mut values = array![];
-            for b in midi.span() {
-                values.append((*b).into());
-            }
-            assert(
-                poseidon_hash_span(values.span()) == *expected.at(fx.into()), 'effects reference',
-            );
-            fx += 1;
-        }
+        effects_reference(base, expected.span(), 'shared effects reference');
     }
 
     #[test]

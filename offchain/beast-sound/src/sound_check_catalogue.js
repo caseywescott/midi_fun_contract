@@ -4,7 +4,7 @@ export function catalogueCheck(species,family=0){return CHECK_CATALOGUE[species<
 const vlq=n=>{const b=[n&127];while((n=Math.floor(n/128)))b.unshift((n&127)|128);return b;};
 const u32=n=>[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255];
 const chunk=(tag,b)=>[...Array.from(tag,c=>c.charCodeAt(0)),...u32(b.length),...b];
-export function renderCatalogueCheck(row,{tonic,scale,tempo_us=row.tempo_us,articulation_profile=0,velocity_ceiling=100,mega=false}={}){
+export function renderCatalogueCheck(row,{tonic,scale,tempo_us=row.tempo_us,articulation_profile=0,velocity_ceiling=100,mega=false,family=Math.floor((row.species-1)/25)}={}){
   const events=[],controls=[];let time=0;
   const pitch=d=>{const p=tonic+12*Math.floor(d/7)+scale[((d%7)+7)%7];return p;};
   const note=(d,slot,duration,velocity)=>{
@@ -21,7 +21,7 @@ export function renderCatalogueCheck(row,{tonic,scale,tempo_us=row.tempo_us,arti
   controls.push([time,64]);
   const last=[...row.head.slice(0,row.finalNotes-4),...row.head.slice(-4)];
   last.forEach(d=>note(d,240,40,100));
-  const program=mega?row.mega:row.program;
+  const program=mega?row.mega:family===Math.floor((row.species-1)/25)?row.program:CHECK_CATALOGUE[family*25].program;
   let track=[],at=0;
   const msg=(t,...bytes)=>{track.push(...vlq(t-at),...bytes);at=t;};
   msg(0,0xc0,program);msg(0,0xb0,7,100);

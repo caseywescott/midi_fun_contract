@@ -4,7 +4,9 @@ use midi::smf::{TrackWriter, TrackWriterTrait, smf_bytes};
 use crate::composition::beast_v11::articulated_duration;
 use crate::composition::beast_v3_sound::{PackableBeastV3, map_v3_beast_to_composition_params};
 use crate::composition::check_catalogue_data::catalogue_check;
-use crate::composition::cyclops_sound_check::cyclops_sound_check_tracks;
+use crate::composition::cyclops_sound_check::{
+    CYCLOPS_CHECK_TEMPO_US, CYCLOPS_SPECIES, cyclops_sound_check_tracks,
+};
 use crate::composition::genesis::{genesis_mode, genesis_swap, named_mode_scale, neutral_live};
 use crate::inputs::{MusicIdentity, SoundCheckInputs, validate_sound_check};
 use crate::opaque::opaque;
@@ -34,7 +36,19 @@ pub fn sound_check_inputs(beast: PackableBeastV3) -> SoundCheckInputs {
             ..g,
         }
     };
-    let kp = map_v3_beast_to_composition_params(key_beast, neutral_live());
+    let authored = crate::composition::satori411::is_authored_beast(
+        beast.id, beast.prefix, beast.suffix,
+    );
+    let (mode_id, tonic_keynum) = if authored {
+        (7, 57)
+    } else {
+        let kp = map_v3_beast_to_composition_params(key_beast, neutral_live());
+        (if named {
+            kp.mode_id
+        } else {
+            genesis_mode(source, kp.mode_id)
+        }, kp.tonic_keynum)
+    };
     let (meta, _, _) = catalogue_check(beast.id.try_into().unwrap(), beast.beast_type);
     SoundCheckInputs {
         identity: MusicIdentity {
@@ -45,21 +59,11 @@ pub fn sound_check_inputs(beast: PackableBeastV3) -> SoundCheckInputs {
                 0
             },
         },
-        mode_id: if beast.id == 44 && (!named || (beast.prefix == 1 && beast.suffix == 1)) {
-            7
-        } else if named {
-            kp.mode_id
-        } else {
-            genesis_mode(source, kp.mode_id)
-        },
-        tonic_keynum: if beast.id == 44 && (!named || (beast.prefix == 1 && beast.suffix == 1)) {
-            57
-        } else {
-            kp.tonic_keynum
-        },
+        mode_id,
+        tonic_keynum,
         family: beast.beast_type,
-        tempo_us: if beast.id == 64 {
-            342857
+        tempo_us: if beast.id == CYCLOPS_SPECIES.into() {
+            CYCLOPS_CHECK_TEMPO_US
         } else {
             (meta / 0x8000000000).try_into().unwrap()
         },
@@ -77,7 +81,7 @@ pub fn sound_check_from_inputs(x: SoundCheckInputs, mega: bool) -> Array<u8> {
 /// Track bodies shared by the byte-file and packed pure-composer entrypoints.
 pub fn sound_check_tracks(x: SoundCheckInputs, mega: bool) -> Array<Array<u8>> {
     validate_sound_check(x);
-    if x.identity.source_species_id == 64 {
+    if x.identity.source_species_id == CYCLOPS_SPECIES.into() {
         return cyclops_sound_check_tracks(x);
     }
     let scale = named_mode_scale(x.mode_id).unwrap();
@@ -89,7 +93,16 @@ pub fn sound_check_tracks(x: SoundCheckInputs, mega: bool) -> Array<Array<u8>> {
             50
         }
     } else {
-        (meta % 128).try_into().unwrap()
+        // Identity and family are independently authorable. Retain the species gesture while
+        // selecting a voice installed in the explicitly supplied family's settings bank.
+        let voice = if x.identity.source_species_id <= 75 && (x.identity.source_species_id - 1)
+            / 25 != x.family.into() {
+            let (family_meta, _, _) = catalogue_check(0xffffffff, x.family);
+            family_meta
+        } else {
+            meta
+        };
+        (voice % 128).try_into().unwrap()
     };
     let tonic: u32 = if (meta / 256) % 2 == 1 {
         48

@@ -526,3 +526,41 @@ fn authored_satori_full_effect_settings_match_js_bank() {
         fx += 1;
     }
 }
+
+fn check_mixed_family(family: u8) {
+    for sid in [1_u64, 26, 51].span() {
+        let b = beast(*sid, 0, 0, 0);
+        let mut x = sound_check_inputs(b);
+        x.family = family;
+        for fx in [0_u8, 1, 2, 3].span() {
+            let sound = compose_sound(ComposerInputs::SoundCheck(x), *fx);
+            let m = @sound.midi;
+            let length: u32 = m.at(18).unwrap().into() * 0x1000000
+                + m.at(19).unwrap().into() * 0x10000
+                + m.at(20).unwrap().into() * 0x100
+                + m.at(21).unwrap().into();
+            let second = 22 + length;
+            assert(m.at((second + 9).into()).unwrap() == 0xc0, 'Expected program event');
+            let program = m.at((second + 10).into()).unwrap();
+            let mut installed = false;
+            for timbre in sound.settings.timbres {
+                if !timbre.drum && timbre.slot == program {
+                    installed = true;
+                }
+            }
+            assert(installed, 'Missing Check program');
+        }
+    }
+}
+#[test]
+fn mixed_family_magic_settings() {
+    check_mixed_family(0);
+}
+#[test]
+fn mixed_family_hunter_settings() {
+    check_mixed_family(1);
+}
+#[test]
+fn mixed_family_brute_settings() {
+    check_mixed_family(2);
+}

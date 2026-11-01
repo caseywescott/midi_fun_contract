@@ -245,6 +245,9 @@ pub mod BeastMidiProvider {
     /// A swapped species plays its partner's Genesis Track, so it takes the partner's type.
     fn settings(beast: PackableBeastV3) -> TinySynthSettings {
         let src = genesis_swap(beast.id);
+        if beast_composer::composition::satori411::is_authored_beast(src, 0, 0) {
+            return crate::synth_settings::satori411_effect_synth_settings(beast.shiny == 1, false);
+        }
         if src == YETI {
             return crate::synth_settings::yeti_synth_settings(beast.shiny == 1);
         }

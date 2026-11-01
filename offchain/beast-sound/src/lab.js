@@ -9,6 +9,7 @@
 //   specials       the Yeti (species 68): rock groove, yodel, avalanche, stomp
 //
 // Every function is a pure function of its inputs, like the composer, so each can move to Cairo.
+import {isAuthoredSatori,satori411SongInputs,satori411PurchasedInputs,satori411DriftedInputs,satori411Midi} from './satori411.js';
 import { catalogueCheck, renderCatalogueCheck } from './sound_check_catalogue.js';
 import { cyclopsSoundCheckMidi } from './cyclops_sound_check.js';
 import { poseidonHashMany } from './index.js';
@@ -746,6 +747,15 @@ export function sampleTrackMidi(b, live, { name = 0, seed = null, theme = 'speci
   // seed 0 is the Genesis seed (0 is never a block hash): the Genesis rules, no seeded treatment, the
   // tier's fixed channel count, so the OG track of a species (name 0, seed 0) is known exactly
   if (seed === 0n || seed === 0) seed = null;
+  if (isAuthoredSatori(b.id,name) && theme === 'species' && genesisKey === 'spread' && channels === 'rarity' && motif === 'default') {
+    let recipe=satori411SongInputs(name);
+    if(seed!==null && seed!==undefined)recipe=satori411PurchasedInputs(recipe,seed);
+    const d=epoch===null||epoch===undefined?null:drift2({...b,...nameFromVariant(name)},epoch,blockHashes?dayAnchor():null);
+    if(d)recipe=satori411DriftedInputs(recipe,d);
+    if(bpm)recipe.score.tempo_us=Math.round(60000000/bpm);
+    return {midi:satori411Midi(recipe,{mega:!!b.shiny,echo}),drift:d,
+      result:{beast:b,params:recipe.score},info:{key:keyName(recipe.score),voices:3,sections:1,tempo:Math.round(60000000/recipe.score.tempo_us),channels:['lead','bass','harp','drums'],authored:true},recipe};
+  }
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: live.species_count || 1 };
   const g = genesisBeast(b), nm = nameFromVariant(name);
   const t = seed === null || seed === undefined ? null : trackTreatment(seed);
@@ -906,11 +916,11 @@ export function soundCheckMidi(b, E) {
   const source = !named ? (GENESIS_SWAPS[b.id] || b.id) : b.id;
   const g = genesisBeast({ ...b, id: source });
   const kp = E.mapV3(named ? { ...g, prefix: b.prefix, suffix: b.suffix } : spreadKeyBeast(g), neutral);
-  const satori = b.id === 44 && (!named || nameVariant(b.prefix, b.suffix) === 1);
+  const satori = isAuthoredSatori(b.id,nameVariant(b.prefix,b.suffix));
   const mode = satori ? 7 : !named && GENESIS_MODES[source] !== undefined ? GENESIS_MODES[source] : kp.mode_id;
   const row = catalogueCheck(b.id, b.beast_type);
   const tonic = row.register + ((satori ? 57 : kp.tonic_keynum) % 12);
-  const result = renderCatalogueCheck(row, { tonic, scale: MODE_SCALES[mode], mega: !!b.shiny });
+  const result = renderCatalogueCheck(row, { tonic, scale: MODE_SCALES[mode], mega: !!b.shiny, family:b.beast_type });
   return { midi: result.midi, result: { beast: b, params: { tempo_us: row.tempo_us }, form: { events: result.events, section_ticks: 15360, sections: [0] } }, info: { key: keyName({ mode_id: mode, tonic_keynum: tonic }), presets: [result.program], tempo_us: row.tempo_us, tempo: Math.round(60e6 / row.tempo_us), bpm: 60e6 / row.tempo_us, curated: true, mode_id: mode, tonic_keynum: tonic, phrase: row.phrase, species: b.id } };
 }
 

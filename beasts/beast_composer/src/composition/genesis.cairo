@@ -728,6 +728,15 @@ fn genesis_tracks(beast: PackableBeastV3) -> Array<Array<u8>> {
 fn compose_tracks(
     beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
 ) -> Array<Array<u8>> {
+    if crate::composition::satori411::is_authored_beast(beast.id, prefix, suffix) {
+        let day = match drift {
+            Option::Some(clock) => clock.day,
+            Option::None => 0,
+        };
+        return song_tracks(
+            genesis_song_inputs(beast, prefix, suffix, seed, drift), beast.shiny == 1, false, day,
+        );
+    }
     let unnamed = prefix == 0;
     let unseeded = seed == 0;
     let tm = if unseeded {
@@ -957,11 +966,10 @@ fn compose_tracks(
 pub fn genesis_song_inputs(
     beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
 ) -> SongInputs {
-    let x = song_inputs(beast, prefix, suffix, seed, drift, prefix == 0 && seed == 0);
-    if beast.id == 44 && (prefix == 0 || (prefix == 1 && suffix == 1)) {
-        let mut authored = crate::composition::satori411::from_base(
-            x, special_name_id(prefix, suffix),
-        );
+    if crate::composition::satori411::is_authored_beast(beast.id, prefix, suffix) {
+        // Resolve named controls before applying a purchase or a drift clock. A drifted tonic
+        // must never select a different authored register or receive the key shift twice.
+        let mut authored = crate::composition::satori411::written(special_name_id(prefix, suffix));
         if seed != 0 {
             authored = crate::composition::satori411::purchased(authored, seed);
         }
@@ -971,7 +979,7 @@ pub fn genesis_song_inputs(
         }
         authored
     } else {
-        x
+        song_inputs(beast, prefix, suffix, seed, drift, prefix == 0 && seed == 0)
     }
 }
 
@@ -979,11 +987,10 @@ pub fn genesis_song_inputs(
 /// Genesis Track without the default swap). `bought_song_inputs(beast_song_inputs(b, p, s), seed)`
 /// is `genesis_song_inputs(b, p, s, seed, None)`.
 pub fn beast_song_inputs(beast: PackableBeastV3, prefix: u8, suffix: u8) -> SongInputs {
-    let x = song_inputs(beast, prefix, suffix, 0, Option::None, false);
-    if beast.id == 44 && (prefix == 0 || (prefix == 1 && suffix == 1)) {
-        crate::composition::satori411::from_base(x, special_name_id(prefix, suffix))
+    if crate::composition::satori411::is_authored_beast(beast.id, prefix, suffix) {
+        crate::composition::satori411::written(special_name_id(prefix, suffix))
     } else {
-        x
+        song_inputs(beast, prefix, suffix, 0, Option::None, false)
     }
 }
 
@@ -991,6 +998,9 @@ pub fn beast_song_inputs(beast: PackableBeastV3, prefix: u8, suffix: u8) -> Song
 /// episode direction, 2-4 sections, spacing, key plan side and rhythm cells, and 3-6 channels in a
 /// seeded order (`genesis_song_inputs` with that seed). `purchase_song_inputs` adds the shape.
 pub fn bought_song_inputs(base: SongInputs, seed: felt252) -> SongInputs {
+    if crate::composition::satori411::is_satori411(base) {
+        return crate::composition::satori411::purchased(base, seed);
+    }
     let t = treatment(seed);
     let mut x = base;
     x.score.section_count = t.sections;

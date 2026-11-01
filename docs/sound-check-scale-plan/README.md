@@ -8,7 +8,7 @@ This change adds the reviewed Sound Checks and Satori arrangement within the exi
 
 The shared recipe remains independent of a token's name. Named tracks retain Casey's existing species-theme/name-treatment model. Existing unmarked Satori recipes keep their interpretation; the new arrangement requires both authored markers. Existing input wire versions, interfaces and Manager storage remain intact. Monthly editions retain their current style engines.
 
-The canonical implemented Check table is `offchain/beast-sound/src/sound_check_catalogue_data.js`; `scripts/check_catalogue.mjs` generates its compact Cairo counterpart. The earlier [pairing sheet](pairings.csv) and [structured pairings](pairings.json) are authoring provenance; the implemented table records the final contour edits. The independent Satori oracle uses the retained original lab generator and an unmodified Casey arranger pinned to `cdcad0a`.
+The canonical implemented Check table is `offchain/beast-sound/src/sound_check_catalogue_data.js`; `scripts/check_catalogue.mjs` generates its compact Cairo counterpart. The table includes the final contour edits; superseded draft pairings remain available in staging history. The independent Satori oracle uses the retained original lab generator and an unmodified Casey arranger pinned to `cdcad0a`.
 
 ## Validation and size
 

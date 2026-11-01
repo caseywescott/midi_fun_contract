@@ -9,6 +9,7 @@ const V11=createEngineV11(engine);
 const felt = (s) => BigInt('0x' + [...s].map((c) => c.charCodeAt(0).toString(16)).join(''));
 export const SATORI411_THEME_MARKER = felt('SATORI_LAB_411_V1');
 export const SATORI411_RHYTHM_MARKER = felt('SATORI_FORM_36_V1');
+export const isAuthoredSatori = (species, name = 0) => Number(species) === 44 && (name === 0 || name === 1);
 export const isSatori411Song = (x) => Number(x?.arrangement?.identity?.source_species_id) === 44
   && BigInt(x.theme.motif_seed) === SATORI411_THEME_MARKER
   && BigInt(x.treatment.rhythm_seed) === SATORI411_RHYTHM_MARKER;
@@ -35,6 +36,33 @@ export function satori411PurchasedInputs(base, seed) {
   if (!named) x.score.tonic_keynum = 55 + Number(n % 5n);
   x.score.tempo_us = 480000 + Number(named ? n % 5n : n / 5n % 5n) * 10000;
   x.arrangement.channel_policy = { kind: 'Seeded', seed: n };
+  return x;
+}
+// Apply the same layered overrides as genesis.cairo::drifted_song_inputs, once.
+// The authored register and both opt-in markers belong to the written base.
+export function satori411DriftedInputs(base, drift) {
+  const x = structuredClone(base), low = n => Number(BigInt(n) & 0xffffffffn);
+  if (drift.rhythm !== null) {
+    const k = Math.floor(low(drift.rhythm) / 256) % 3;
+    if (k < 2) { const t = x.score.tonic_keynum + [7, 5][k]; x.score.tonic_keynum = t > 96 ? t - 12 : t; }
+    if (drift.day >= 2 && Math.floor(low(drift.rhythm) / 4096) % 2) x.score.use_inversion = !x.score.use_inversion;
+  }
+  if (drift.rotate !== null) {
+    const h = low(drift.rotate);
+    x.arrangement.channel_policy = {kind:'Seeded',seed:BigInt(drift.rotate)};
+    x.score.ornament_density = Math.floor(h / 128) % ((drift.day < 180 ? 3 : drift.day < 360 ? 5 : 7) + 1);
+    if (drift.day >= 2) {
+      x.score.stretto_lag = 1 + Math.floor(h / 65536) % 4;
+      if (Math.floor(h / 262144) % 2) x.treatment.trill = !x.treatment.trill;
+    }
+  }
+  if (drift.dayKnob === 0) x.treatment.flip_side = !x.treatment.flip_side;
+  else if (drift.dayKnob === 1) x.treatment.direction = x.treatment.direction === 1 ? 2 : 1;
+  else {
+    const t=x.score.tempo_us, d=60000000+drift.delta*t;
+    x.score.tempo_us=Math.floor((2*60000000*t+d)/(2*d));
+    x.score.articulation_profile=drift.delta>0?1:2;
+  }
   return x;
 }
 const vlq = (n) => { const b = [n & 127]; while ((n >>= 7)) b.unshift((n & 127) | 128); return b; };

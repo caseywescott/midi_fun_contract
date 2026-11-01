@@ -1,4 +1,4 @@
-// Curated audition candidates from docs/sound-check-scale-plan/pairings.json.
+// Canonical implemented audition catalogue: each species has an explicit voice and phrase.
 // One source for JS and generated Cairo; edit here, then run scripts/check_catalogue.mjs.
 // Satori warmup uses the approved411 A-minor palette at120BPM; Cyclops64 is overridden by504.
 // Individually varied head tones distinguish otherwise identical phrase candidates.

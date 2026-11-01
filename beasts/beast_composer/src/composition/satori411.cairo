@@ -2,10 +2,13 @@
 //! Reserved dual felt markers opt in without reinterpreting ordinary stored Satori inputs.
 use midi::smf::{TrackWriter, TrackWriterTrait};
 use crate::composition::beast_score::BeastForm;
+use crate::composition::beast_trait_map::prefix2_ornament_policy;
 use crate::composition::beast_v11::{articulated_duration, shape};
+use crate::composition::beast_v3_sound::{PackableBeastV3, map_v3_beast_to_composition_params};
 use crate::composition::full_midi::{
     Arrangement, Voicing, beast_form_to_full_tracks_arranged, mega_lead_pick, note_on_off,
 };
+use crate::composition::genesis::neutral_live;
 use crate::composition::melodic_canon::NoteEvent;
 use crate::inputs::{
     ArrangementInputs, ChannelPolicy, MusicIdentity, ScoreInputs, SongInputs, SpecialArrangement,
@@ -17,6 +20,12 @@ pub const THEME_MARKER: felt252 = 'SATORI_LAB_411_V1';
 pub const RHYTHM_MARKER: felt252 = 'SATORI_FORM_36_V1';
 const END: u32 = 69120;
 
+/// New authoring selects the species or Agony Bane recipe; stored recipes still require both
+/// markers.
+pub fn is_authored_beast(species: u64, prefix: u8, suffix: u8) -> bool {
+    species == 44 && ((prefix == 0 && suffix == 0) || (prefix == 1 && suffix == 1))
+}
+
 pub fn is_satori411(x: SongInputs) -> bool {
     marked(x.arrangement.identity.source_species_id, x.theme.motif_seed, x.treatment.rhythm_seed)
 }
@@ -27,7 +36,7 @@ fn marked(species: u32, theme: felt252, rhythm: felt252) -> bool {
 }
 
 /// Explicitly select the authored score. Existing recipes without both markers keep their music.
-pub fn from_base(base: SongInputs, name: u16) -> SongInputs {
+pub fn written(name: u16) -> SongInputs {
     let mut x = SongInputs {
         theme: ThemeInputs { motif_seed: THEME_MARKER, tier: 4, register_band: 2 },
         score: ScoreInputs {
@@ -67,23 +76,37 @@ pub fn from_base(base: SongInputs, name: u16) -> SongInputs {
         },
     };
     if name == 1 {
+        let base = map_v3_beast_to_composition_params(
+            PackableBeastV3 {
+                id: 44,
+                prefix: 1,
+                suffix: 1,
+                level: 50,
+                health: 200,
+                shiny: 0,
+                animated: 0,
+                tier: 4,
+                beast_type: 1,
+            },
+            neutral_live(),
+        );
         // Casey's named controls on the same species motif, not a new theme seed.
         // The procedural theme keeps its species register; the named register is encoded
         // by Casey's mapped tonic48/60/72 plus pitch class. Select that authored treatment.
         x
             .theme
             .register_band =
-                if base.score.tonic_keynum < 60 {
+                if base.tonic_keynum < 60 {
                     0
-                } else if base.score.tonic_keynum < 72 {
+                } else if base.tonic_keynum < 72 {
                     1
                 } else {
                     2
                 };
-        x.score.mode_id = base.score.mode_id;
-        x.score.tonic_keynum = base.score.tonic_keynum;
-        x.score.ornament_density = base.score.ornament_density;
-        x.treatment.trill = base.treatment.trill;
+        x.score.mode_id = base.mode_id;
+        x.score.tonic_keynum = base.tonic_keynum;
+        x.score.ornament_density = base.ornament_density;
+        x.treatment.trill = prefix2_ornament_policy(0).allow_trill;
     }
     x
 }
@@ -130,11 +153,7 @@ fn note(
     let (profile, ceiling) = expression;
     // Authored gates100..920 share Casey's exact duration rule (portato never hits its floor).
     let duration = articulated_duration(duration, profile);
-    let velocity = if velocity > ceiling {
-        ceiling
-    } else {
-        velocity
-    };
+    let velocity = capped(velocity, ceiling);
     // Use the same exact on/off encoder as the general full-MIDI arranger.
     note_on_off(ref t, channel, time, duration, key, velocity);
 }

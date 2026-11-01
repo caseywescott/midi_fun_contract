@@ -91,7 +91,10 @@ pub fn settings_for(inputs: ComposerInputs, mega: bool, echo: bool) -> TinySynth
             (x.arrangement.family, x.arrangement.special)
         },
         ComposerInputs::SoundCheck(x) => {
-            if x.identity.source_species_id == 64 {
+            if x
+                .identity
+                .source_species_id == beast_composer::composition::cyclops_sound_check::CYCLOPS_SPECIES
+                .into() {
                 return crate::synth_settings::cyclops_sound_check_synth_settings();
             }
             (x.family, SpecialArrangement::None)

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {engine as E} from '../src/index.js';
 import {MODE_SCALES,soundCheckMidi,speciesTier,speciesType,nameFromVariant} from '../src/lab.js';
 import {catalogueCheck,renderCatalogueCheck} from '../src/sound_check_catalogue.js';
+import {beastSynthSettings,variantPrograms} from '../onchain/tinychip/synth_settings.mjs';
 import {CHECK_CATALOGUE} from '../src/sound_check_catalogue_data.js';
 const beast=(id,name=0,shiny=0)=>({id,...nameFromVariant(name),level:1,health:100,tier:speciesTier(id),beast_type:speciesType(id),shiny,animated:0});
 // Independent minimal SMF reader; assertions concern rendered musical events, not writer internals.
@@ -48,4 +49,15 @@ test('short articulation never lengthens40tick blips; boundaries stay valid and 
   for(let i=on.length-row.finalNotes;i<on.length;i++)assert.equal(off[i].time-on[i].time,40);
  }
  for(const family of [0,1,2])assert.ok(renderCatalogueCheck(catalogueCheck(4294967295,family),{tonic:60,scale:MODE_SCALES[4]}).midi.length>0);
+});
+
+test('accepted mixed-family inputs only emit programs installed in their selected bank',()=>{
+ const banks=new Map();
+ for(let id=1;id<=75;id++)if(id!==64)for(const family of [0,1,2])for(const mega of [0,1]){
+  const r=soundCheckMidi({...beast(id,0,mega),beast_type:family},E);
+  const key=`${family}-${mega}`;
+  if(!banks.has(key))banks.set(key,beastSynthSettings(undefined,variantPrograms({type:family,mega:!!mega,yeti:false})));
+  const bank=banks.get(key);
+  assert(bank.timbres.some(t=>!t.drum&&t.slot===r.info.presets[0]),`missing ${id}/${family}/${mega}`);
+ }
 });

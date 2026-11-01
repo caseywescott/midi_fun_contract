@@ -570,3 +570,49 @@ fn mixed_family_brute_settings() {
 fn rejects_full_u8_effect_boundary() {
     compose_sound(genesis(beast(1, 0, 0, 0)), 255);
 }
+
+// Exercise the separately declared production-shaped library route, not only direct helpers.
+fn authored_drift_route(prefix: u8, suffix: u8, seed: felt252, d: u64) {
+    let b = beast(44, prefix, suffix, 0);
+    let base = genesis_song_inputs(b, prefix, suffix, seed, Option::None);
+    let name = if prefix == 0 {
+        0
+    } else {
+        1
+    };
+    let inputs = day(name, d);
+    let actual = composer().compose_drift(ComposerInputs::Song(base), 0, inputs);
+    let clock = DriftClock {
+        day: d,
+        day_hash: inputs.day_hash,
+        week_hash: inputs.week_hash,
+        month_hash: inputs.month_hash,
+    };
+    assert(
+        actual
+            .midi == bytes_to_byte_array(
+                song_smf_bytes(b, prefix, suffix, seed, Option::Some(clock)).span(),
+            ),
+        'Authored drift route differs',
+    );
+    assert(
+        actual.settings == crate::synth_settings::satori411_effect_synth_settings(false, false),
+        'Authored drift bank differs',
+    );
+}
+#[test]
+fn satori_declared_species_drift() {
+    authored_drift_route(0, 0, 0, 173);
+}
+#[test]
+fn satori_declared_named_drift() {
+    authored_drift_route(1, 1, 0, 173);
+}
+#[test]
+fn satori_declared_bought_drift() {
+    authored_drift_route(0, 0, 123, 400);
+}
+#[test]
+fn satori_declared_named_bought_drift() {
+    authored_drift_route(1, 1, 123, 31);
+}

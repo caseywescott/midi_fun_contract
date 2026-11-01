@@ -210,3 +210,35 @@ fn echo_parity_fixture() {
         println!("ECHO id={} shiny={} len={} hex={}", id, shiny, bytes.len(), hex);
     }
 }
+
+#[test]
+fn satori_species_written_through_inputs() {
+    same_song(beast(44, 0, 0, 0), 0, Option::None);
+}
+#[test]
+fn satori_named_mega_through_inputs() {
+    same_song(beast(44, 1, 1, 1), 0, Option::None);
+}
+#[test]
+fn satori_bought_through_inputs() {
+    same_song(beast(44, 0, 0, 0), 123, Option::None);
+}
+#[test]
+fn satori_named_bought_through_inputs() {
+    same_song(beast(44, 1, 1, 0), 123, Option::None);
+}
+#[test]
+fn satori_bought_preserves_authored_recipe() {
+    let b = beast(44, 1, 1, 0);
+    for (p, s) in [(0_u8, 0_u8), (1, 1)].span() {
+        let base = crate::composition::genesis::beast_song_inputs(b, *p, *s);
+        for seed in [1_felt252, 123].span() {
+            let bought = crate::composition::genesis::bought_song_inputs(base, *seed);
+            assert(crate::composition::satori411::is_satori411(bought), 'authored marker lost');
+            assert(
+                bought == genesis_song_inputs(b, *p, *s, *seed, Option::None),
+                'bought route differs',
+            );
+        }
+    }
+}

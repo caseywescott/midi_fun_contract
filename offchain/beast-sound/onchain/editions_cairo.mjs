@@ -17,7 +17,8 @@ export function speciesRecords() {
   const V11E = createEngineV11(ENGINE);
   return Array.from({ length: 75 }, (_, k) => {
     const id = k + 1, tier = Math.floor((k % 25) / 5) + 1, type = Math.floor(k / 25);
-    const o = LAB.genesisMidi(id, false, ENGINE, V11E);
+    // Editions retain their original procedural genome when a Species Song is replaced.
+    const o = LAB.genesisMidi(id, false, ENGINE, V11E, {authored:false});
     return { id, tier, type, tonicPc: o.result.params.tonic_keynum % 12, degrees: o.result.form.theme.degrees };
   });
 }
@@ -44,6 +45,8 @@ function main() {
   w('//! Tables of the Monthly Track Editions engine (editions.cairo), generated from');
   w('//! offchain/beast-sound/src/editions_lite.js by offchain/beast-sound/onchain/editions_cairo.mjs. Do not');
   w('//! edit: change the source and rerun the generator.');
+  w('');
+  w('use crate::packed_data::{Reader, read};');
   w('');
   for (const s of SP) { if (s.degrees.length < 6) throw new Error('short theme ' + s.id); for (const d of s.degrees.slice(0, 6)) if (d < -7 || d > 7) throw new Error('degree ' + d + ' (editions.cairo places the motif with one octave step)'); }
   const packed = SP.map((s) => { let v = BigInt(s.tonicPc); s.degrees.slice(0, 6).forEach((d, i) => { v |= BigInt(d + 8) << BigInt(4 + 4 * i); }); return '0x' + v.toString(16); });
@@ -103,28 +106,6 @@ function main() {
   w('/// at word STYLE_AT[s].');
   w(`const STYLE_DATA: [felt252; ${words.length}] = [${words.join(', ')}];`);
   w(`const STYLE_AT: [u32; ${at.length}] = [${at.join(', ')}];`);
-  w('');
-  w('#[derive(Drop)]');
-  w('struct Reader {');
-  w('    data: Span<felt252>,');
-  w('    pos: u32,');
-  w('    word: u256,');
-  w('    left: u32,');
-  w('}');
-  w('');
-  w('/// The next 32-bit value.');
-  w('#[inline(never)]');
-  w('fn read(ref r: Reader) -> u32 {');
-  w('    if r.left == 0 {');
-  w('        r.word = (*r.data.at(r.pos)).into();');
-  w('        r.pos += 1;');
-  w('        r.left = 7;');
-  w('    }');
-  w('    let (q, v) = DivRem::div_rem(r.word, 0x100000000);');
-  w('    r.word = q;');
-  w('    r.left -= 1;');
-  w('    v.try_into().unwrap()');
-  w('}');
   w('');
   w('/// A list: its length, then its items.');
   w('#[inline(never)]');

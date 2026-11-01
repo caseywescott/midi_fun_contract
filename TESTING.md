@@ -26,6 +26,14 @@ run keeps what it allocates until it ends, so they are `#[ignore]`d, need severa
 run locally in batches through `scripts/*_parity_cairo.sh` and `scripts/*_parity.mjs`. See
 `beasts/beast_composer/README.md`.
 
+Run the complete ignored Composer inventory and every JS/Cairo comparison before publishing changes to Beast composition or the MIDI writer:
+
+```bash
+python3 scripts/verify_music_parity.py --out /tmp/beast-music-parity
+```
+
+The output directory must be new. Each ignored fixture runs once in a separate process with two test threads, so memory is released between batches. The runner checks successful execution and invokes all 13 existing comparators, including the complete 150-case drift matrix; a passing non-ignored suite does not replace this gate. It records the source revision, executed inventory and capture hash, and never terminates unrelated test processes.
+
 ## Generated Cairo
 
 Three files are written by scripts in `offchain/beast-sound/onchain` (run `npm install` in
@@ -37,6 +45,27 @@ result; with unchanged sources, they reproduce the committed files byte for byte
 | `core/midi_contracts/src/page/page_data.cairo` | `node onchain/build.mjs` (needs `npx esbuild`) |
 | `core/midi_contracts/src/page/tests.cairo` | `node onchain/golden.mjs` |
 | `beasts/beast_contracts/src/synth_settings.cairo` | `node onchain/tinychip/synth_settings.mjs --cairo` |
+
+## Catalogue validation and production class sizes
+
+`scripts/check_catalogue.mjs` validates the 75 source rows before packing: numeric/enumerated
+metadata, canonical species order and family programs, degree/rhythm bounds, and the bit widths
+used by the Cairo reader. In particular, `finalNotes` must be 4–16 so the final cadence cannot
+underflow. Valid source reproduces the committed Cairo table byte for byte. Regenerate with
+`node scripts/check_catalogue.mjs`, or verify with `--check`.
+
+```sh
+node --test offchain/beast-sound/test/catalogue-generation.test.mjs offchain/beast-sound/test/production-size.test.mjs
+node scripts/check_catalogue.mjs --check
+scarb --profile dev build -p beast_contracts
+node scripts/check_production_size.mjs target/dev
+```
+
+The existing `beast_contracts` CI job runs these checks. The size gate reads all four named
+production `.compiled_contract_class.json` artifacts, including `BeastPureComposer` and
+`BeastPureGenerator`; snforge test artifacts do not satisfy it. Missing/malformed production
+artifacts or bytecode above 81,920 felts fail the gate. Exactly 81,920 is accepted; this adds no
+extra headroom policy and does not change runtime code or compiler settings.
 
 ## Gas benchmark
 

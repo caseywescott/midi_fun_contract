@@ -502,3 +502,118 @@ fn grace_notes_from_drift_day_2() {
         'no grace notes on day 2',
     );
 }
+
+/// Independent JS bank serialization fingerprints, through actual compose routing.
+#[test]
+fn authored_satori_full_effect_settings_match_js_bank() {
+    let base = genesis(beast(44, 0, 0, 0));
+    let expected = array![
+        0x3354b90140649c632b735cb57e10df5a559ca7ff97c03e41535e157d8213f52,
+        0x63b813b95354c7139ec2b70afa7addb3832856a04593ed0834132b88f355d5b,
+        0x4fad082b68e6aef7f2aff495fae841cbfcd4f237ae1615ef5575aeaac1fd59c,
+        0x2791e8058cab0768e74ee8e19bdc61083758fa0c7af524e344eec786b88ae46,
+    ];
+    let mut fx: u8 = 0;
+    while fx < 4 {
+        let sound = compose_sound(base, fx);
+        midi::settings::validate(@sound.settings);
+        let mut wire = array![];
+        sound.settings.serialize(ref wire);
+        assert(
+            core::poseidon::poseidon_hash_span(wire.span()) == *expected.at(fx.into()),
+            'effect bank route',
+        );
+        fx += 1;
+    }
+}
+
+fn check_mixed_family(family: u8) {
+    let library = composer();
+    for sid in [1_u64, 26, 51].span() {
+        let b = beast(*sid, 0, 0, 0);
+        let mut x = sound_check_inputs(b);
+        x.family = family;
+        for fx in [0_u8, 1, 2, 3].span() {
+            let sound = library.compose(ComposerInputs::SoundCheck(x), *fx);
+            let m = @sound.midi;
+            let length: u32 = m.at(18).unwrap().into() * 0x1000000
+                + m.at(19).unwrap().into() * 0x10000
+                + m.at(20).unwrap().into() * 0x100
+                + m.at(21).unwrap().into();
+            let second = 22 + length;
+            assert(m.at((second + 9).into()).unwrap() == 0xc0, 'Expected program event');
+            let program = m.at((second + 10).into()).unwrap();
+            let mut installed = false;
+            for timbre in sound.settings.timbres {
+                if !timbre.drum && timbre.slot == program {
+                    installed = true;
+                }
+            }
+            assert(installed, 'Missing Check program');
+        }
+    }
+}
+#[test]
+fn mixed_family_magic_settings() {
+    check_mixed_family(0);
+}
+#[test]
+fn mixed_family_hunter_settings() {
+    check_mixed_family(1);
+}
+#[test]
+fn mixed_family_brute_settings() {
+    check_mixed_family(2);
+}
+
+#[test]
+#[should_panic(expected: ('invalid sound effects',))]
+fn rejects_full_u8_effect_boundary() {
+    compose_sound(genesis(beast(1, 0, 0, 0)), 255);
+}
+
+// Exercise the separately declared production-shaped library route, not only direct helpers.
+fn authored_drift_route(prefix: u8, suffix: u8, seed: felt252, d: u64) {
+    let b = beast(44, prefix, suffix, 0);
+    let base = genesis_song_inputs(b, prefix, suffix, seed, Option::None);
+    let name = if prefix == 0 {
+        0
+    } else {
+        1
+    };
+    let inputs = day(name, d);
+    let actual = composer().compose_drift(ComposerInputs::Song(base), 0, inputs);
+    let clock = DriftClock {
+        day: d,
+        day_hash: inputs.day_hash,
+        week_hash: inputs.week_hash,
+        month_hash: inputs.month_hash,
+    };
+    assert(
+        actual
+            .midi == bytes_to_byte_array(
+                song_smf_bytes(b, prefix, suffix, seed, Option::Some(clock)).span(),
+            ),
+        'Authored drift route differs',
+    );
+    assert(
+        actual.settings == crate::synth_settings::satori411_effect_synth_settings(false, false),
+        'Authored drift bank differs',
+    );
+}
+#[test]
+fn satori_declared_species_drift() {
+    authored_drift_route(0, 0, 0, 173);
+}
+#[test]
+fn satori_declared_named_drift() {
+    authored_drift_route(1, 1, 0, 173);
+}
+#[test]
+fn satori_declared_bought_drift() {
+    authored_drift_route(0, 0, 123, 400);
+}
+#[test]
+fn satori_declared_named_bought_drift() {
+    authored_drift_route(1, 1, 123, 31);
+}

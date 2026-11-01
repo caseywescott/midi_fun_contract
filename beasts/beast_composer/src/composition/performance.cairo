@@ -21,9 +21,14 @@ pub fn is_mega(sound_effects: u8) -> bool {
 }
 
 pub fn apply_performance(x: ComposerInputs, sound_effects: u8) -> ComposerInputs {
+    apply_performance_boxed(x, sound_effects).unbox()
+}
+
+#[inline(never)]
+fn apply_performance_boxed(x: ComposerInputs, sound_effects: u8) -> Box<ComposerInputs> {
     validate_inputs(x);
     validate_performance(sound_effects);
-    match x {
+    let performed = match x {
         ComposerInputs::Song(mut song) => {
             let p = song.score;
             let (tempo_us, velocity_ceiling, articulation_profile) = performed(
@@ -43,7 +48,8 @@ pub fn apply_performance(x: ComposerInputs, sound_effects: u8) -> ComposerInputs
         },
         // the style engine plays its own tempo and dynamics; only the mega sound applies
         ComposerInputs::Edition(_) => x,
-    }
+    };
+    BoxTrait::new(performed)
 }
 
 /// The performed tempo, velocity ceiling and articulation. 0 keeps them: the written tempo is at

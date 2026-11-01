@@ -5,8 +5,10 @@
 //! Ignored (heavy): run in batches with scripts/genesis_parity_cairo.sh
 //! (FIXTURE=name_parity_fixture_).
 use crate::composition::beast_v3_sound::{BeastV3LiveState, PackableBeastV3};
-use crate::composition::drift::{DriftClock, drift_anchor_blocks};
-use crate::composition::genesis::{species_tier, species_type};
+use crate::composition::drift::{DriftClock, drift_anchor_blocks, layered_drift};
+use crate::composition::genesis::{
+    drifted_song_inputs, genesis_song_inputs, species_tier, species_type,
+};
 use crate::composition::params_pack::{composer_inputs, pack_inputs};
 use crate::composition::tracks::{
     TRACK_SOUND_CHECK, TRACK_SPECIAL_SONG, TRACK_SPECIES_SONG, track_midi,
@@ -700,4 +702,34 @@ fn drift_parity_fixture_17() {
 #[available_gas(1000000000000)]
 fn drift_parity_fixture_18() {
     drift_parity_range(73, 75);
+}
+
+#[test]
+fn satori_applies_layered_drift_once() {
+    let b = PackableBeastV3 {
+        id: 44,
+        prefix: 1,
+        suffix: 1,
+        level: 1,
+        health: 100,
+        shiny: 0,
+        animated: 0,
+        tier: species_tier(44),
+        beast_type: species_type(44),
+    };
+    for (p, s) in [(0_u8, 0_u8), (1, 1)].span() {
+        for seed in [0_felt252, 123].span() {
+            let base = genesis_song_inputs(b, *p, *s, *seed, Option::None);
+            for day in [1_u64, 2, 7, 8, 30, 31, 32, 173, 180, 360, 540].span() {
+                let clock = lab_clock(*day);
+                let actual = genesis_song_inputs(b, *p, *s, *seed, Option::Some(clock));
+                let expected = drifted_song_inputs(base, layered_drift(44, *p, *s, clock));
+                assert(actual == expected, 'Satori drift applied twice');
+                assert(
+                    actual.theme.register_band == base.theme.register_band, 'Drift changed phrase',
+                );
+                assert(crate::composition::satori411::is_satori411(actual), 'Drift lost marker');
+            }
+        }
+    }
 }

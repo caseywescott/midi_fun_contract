@@ -676,7 +676,7 @@ const PLUCK_ABOVE_BASS_BP: [u32; 13] = [
 
 /// One note: on, then off (velocity 64) on channel `ch` (out of line: CASM size).
 #[inline(never)]
-fn note_on_off(ref track: TrackWriter, ch: u8, t: u32, d: u32, p: u8, v: u8) {
+pub(crate) fn note_on_off(ref track: TrackWriter, ch: u8, t: u32, d: u32, p: u8, v: u8) {
     track.message(t, 0x90 + ch, p, v);
     track.message(t + d, 0x80 + ch, p, 64);
 }

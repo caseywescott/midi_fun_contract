@@ -10,7 +10,7 @@ import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { beastSynthSettings } from './tinychip/synth_settings.mjs';
-import { ESSENTIALS, loadBank } from './tinychip/essentials.mjs';
+import { bankData, ESSENTIALS, loadBank } from './tinychip/essentials.mjs';
 import { beastName } from '../src/index.js';
 import { loadLabCards } from './lab-card-assets.mjs';
 import { labBuildInputs } from './lab-build-inputs.mjs';
@@ -27,8 +27,9 @@ const composer = (await build({
   bundle: true, minify: true, format: 'iife', platform: 'browser', write: false, logLevel: 'error',
 })).outputFiles[0].text;
 const W = { Sine: 'sine', Square: 'square', Sawtooth: 'sawtooth', Triangle: 'triangle', WhiteNoise: 'n0', MetallicNoise: 'n1' };
-const settings = beastSynthSettings(undefined, ESSENTIALS);
-const PRESET_NAMES = Object.fromEntries(loadBank().PRESETS.filter((x) => ESSENTIALS.includes(x.program)).map((x) => [x.program, x.name]));
+const LAB_PROGRAMS = [...ESSENTIALS, 34, 35, 36, 37, 38, 39, 40, 41];
+const settings = beastSynthSettings(bankData(undefined, LAB_PROGRAMS), LAB_PROGRAMS);
+const PRESET_NAMES = Object.fromEntries(loadBank().PRESETS.filter((x) => LAB_PROGRAMS.includes(x.program)).map((x) => [x.program, x.name]));
 const waves = settings.waves.map((w) => w.Samples.map((v) => v / 128));
 const timbres = settings.timbres.map((t) => [t.drum ? 1 : 0, t.slot, t.operators.map((o) => ({ g: o.route, w: typeof o.wave === 'string' ? W[o.wave] : 'nS' + o.wave.Custom, v: o.volume / 1e4, t: o.ratio / 1e4, f: o.offset_hz / 1e4, a: o.attack / 1e4, h: o.hold / 1e4, d: o.decay / 1e4, s: o.sustain / 1e4, r: o.release / 1e4, p: o.pitch_ratio / 1e4, q: o.pitch_time / 1e4, k: o.key_scale / 1e4 }))]);
 
@@ -343,7 +344,7 @@ function make() {
   } else if (mode === 'sc') {
     const n = Math.min(1242, Math.max(0, Math.round(+$('scname').value) || 0));
     out = L.labMidi('soundcheck', b, x.live, { name: n }, BS.engine, BS.v11);
-    head = 'Sound Check \u00b7 ' + (n ? '#' + n + ' ' + nameText(n) + ' ' : '') + x.name + ' \u00b7 ' + out.info.key + ' \u00b7 preset ' + [...new Set(out.info.presets)].map((p) => p + ' ' + (NAMES[p] || '')).join(', ') + ' \u00b7 pattern ' + out.info.pattern.join('-') + ', held degree ' + (out.info.held + 1);
+    head = 'Sound Check \u00b7 ' + (n ? '#' + n + ' ' + nameText(n) + ' ' : '') + x.name + ' \u00b7 ' + out.info.key + ' \u00b7 preset ' + [...new Set(out.info.presets)].map((p) => p + ' ' + (NAMES[p] || '')).join(', ') + (out.info.authored ? ' \u00b7 authored sequence, 175 BPM' : out.info.curated ? ' \u00b7 ' + out.info.phrase + ', ' + out.info.tempo + ' BPM' : ' \u00b7 pattern ' + out.info.pattern.join('-') + ', held degree ' + (out.info.held + 1));
   } else {
     args = { ideas: { develop: $('y-develop').checked, ornaments: $('y-ornaments').checked, thirtyseconds: $('y-32nds').checked, rock: $('y-rock').checked && !$('y-stomp').checked, yodel: $('y-yodel').checked, avalanche: $('y-avalanche').checked, stomp: $('y-stomp').checked, dark: $('y-dark').checked ? $('y-darkmode').value : false, varied: $('y-varied').checked } };
     head = 'Yeti ideas: ' + Object.entries(args.ideas).filter(([, on]) => on).map(([k, v]) => (k === 'dark' ? 'dark (' + v + ')' : k)).join(' + ') + (b.id !== 68 ? ' (on a non-Yeti)' : '');

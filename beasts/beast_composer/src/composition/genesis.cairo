@@ -89,6 +89,7 @@ pub fn genesis_mode(id: u64, mode_id: u8) -> u8 {
 
 /// A mode's scale as named, semitones from the tonic (Locrian, harmonic minor and Dorian #4
 /// included).
+#[inline(never)]
 pub fn named_mode_scale(mode_id: u8) -> Option<Span<u8>> {
     let packed: u32 = match mode_id {
         4 => 0xa975320,
@@ -727,6 +728,15 @@ fn genesis_tracks(beast: PackableBeastV3) -> Array<Array<u8>> {
 fn compose_tracks(
     beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
 ) -> Array<Array<u8>> {
+    if crate::composition::satori411::is_authored_beast(beast.id, prefix, suffix) {
+        let day = match drift {
+            Option::Some(clock) => clock.day,
+            Option::None => 0,
+        };
+        return song_tracks(
+            genesis_song_inputs(beast, prefix, suffix, seed, drift), beast.shiny == 1, false, day,
+        );
+    }
     let unnamed = prefix == 0;
     let unseeded = seed == 0;
     let tm = if unseeded {
@@ -956,20 +966,41 @@ fn compose_tracks(
 pub fn genesis_song_inputs(
     beast: PackableBeastV3, prefix: u8, suffix: u8, seed: felt252, drift: Option<DriftClock>,
 ) -> SongInputs {
-    song_inputs(beast, prefix, suffix, seed, drift, prefix == 0 && seed == 0)
+    if crate::composition::satori411::is_authored_beast(beast.id, prefix, suffix) {
+        // Resolve named controls before applying a purchase or a drift clock. A drifted tonic
+        // must never select a different authored register or receive the key shift twice.
+        let mut authored = crate::composition::satori411::written(special_name_id(prefix, suffix));
+        if seed != 0 {
+            authored = crate::composition::satori411::purchased(authored, seed);
+        }
+        if let Option::Some(clock) = drift {
+            authored =
+                drifted_song_inputs(authored, layered_drift(beast.id, prefix, suffix, clock));
+        }
+        authored
+    } else {
+        song_inputs(beast, prefix, suffix, seed, drift, prefix == 0 && seed == 0)
+    }
 }
 
 /// The base of a Beast's bought tracks: its own song as written (its name track, or its species'
 /// Genesis Track without the default swap). `bought_song_inputs(beast_song_inputs(b, p, s), seed)`
 /// is `genesis_song_inputs(b, p, s, seed, None)`.
 pub fn beast_song_inputs(beast: PackableBeastV3, prefix: u8, suffix: u8) -> SongInputs {
-    song_inputs(beast, prefix, suffix, 0, Option::None, false)
+    if crate::composition::satori411::is_authored_beast(beast.id, prefix, suffix) {
+        crate::composition::satori411::written(special_name_id(prefix, suffix))
+    } else {
+        song_inputs(beast, prefix, suffix, 0, Option::None, false)
+    }
 }
 
 /// A bought track's written treatment and channels from its base and seed: the seed's development,
 /// episode direction, 2-4 sections, spacing, key plan side and rhythm cells, and 3-6 channels in a
 /// seeded order (`genesis_song_inputs` with that seed). `purchase_song_inputs` adds the shape.
 pub fn bought_song_inputs(base: SongInputs, seed: felt252) -> SongInputs {
+    if crate::composition::satori411::is_satori411(base) {
+        return crate::composition::satori411::purchased(base, seed);
+    }
     let t = treatment(seed);
     let mut x = base;
     x.score.section_count = t.sections;
@@ -994,6 +1025,9 @@ pub fn bought_song_inputs(base: SongInputs, seed: felt252) -> SongInputs {
 /// countersubject dropped, each by its own bit; the channels at most the roles left. The theme,
 /// key and instruments stay the base's.
 pub fn purchase_song_inputs(base: SongInputs, seed: felt252) -> SongInputs {
+    if crate::composition::satori411::is_satori411(base) {
+        return crate::composition::satori411::purchased(base, seed);
+    }
     let mut x = bought_song_inputs(base, seed);
     let shape: u256 = poseidon_hash_span(array!['BEAST_SAMPLE_SHAPE_V1', seed].span()).into();
     let shape: u16 = (shape % 512).try_into().unwrap();
@@ -1067,6 +1101,9 @@ pub fn drifted_song_inputs(x: SongInputs, d: Drift) -> SongInputs {
         } else {
             2
         };
+    }
+    if crate::composition::satori411::is_satori411(x) {
+        y.treatment.rhythm_seed = crate::composition::satori411::RHYTHM_MARKER;
     }
     y
 }
@@ -1406,6 +1443,10 @@ fn special_name_id(prefix: u8, suffix: u8) -> u16 {
 /// grow with time (`song_ornaments`). Plays what this engine supports: tied inner voices and the
 /// written phrase in every section.
 pub fn song_tracks(x: SongInputs, mega: bool, echo: bool, day: u64) -> Array<Array<u8>> {
+    if crate::composition::satori411::is_satori411(x) {
+        crate::inputs::validate_song(x);
+        return crate::composition::satori411::tracks(x, mega, echo);
+    }
     let (theme, s, t, a) = (x.theme, x.score, x.treatment, x.arrangement);
     let (grace, fill) = song_ornaments(
         s.ornament_density, a.channel_policy, a.identity.source_species_id.into(), day,

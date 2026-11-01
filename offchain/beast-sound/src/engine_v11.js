@@ -479,5 +479,5 @@ export function createEngineV11(engine) {
 
   // v1's section shifts, for comparison
   const v1KeyPlan = (p) => Array.from({ length: p.section_count }, (_, s) => ({ shift: I.sectionTonicShift(p, s) }));
-  return { render, metrics, keyPlan, v1KeyPlan, trajectory, CELLS, FAMILY, REACH, FAMILIES };
+  return { render, shape, metrics, keyPlan, v1KeyPlan, trajectory, CELLS, FAMILY, REACH, FAMILIES };
 }

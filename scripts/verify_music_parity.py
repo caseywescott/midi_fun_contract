@@ -34,7 +34,15 @@ def main():
                 fixtures.append(f'beast_composer::{module}::{name}')
     if not fixtures or len(set(fixtures)) != len(fixtures):
         raise RuntimeError('Empty or duplicate ignored-fixture inventory')
-    report = {'source': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+    source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+    paths = ['core', 'beasts', 'offchain', 'scripts', 'Scarb.toml', 'Scarb.lock', '.tool-versions']
+    def unchanged():
+        dirty = subprocess.check_output(['git', 'status', '--porcelain', '--', *paths], cwd=ROOT, text=True).strip()
+        head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+        if dirty or head != source:
+            raise RuntimeError('Commit/freeze music sources before qualification and keep them unchanged during capture')
+    unchanged()
+    report = {'source': source,
               'fixtures': fixtures, 'completed': [], 'comparisons': []}
     combined = out / 'captures.log'
     with combined.open('w') as all_logs:
@@ -49,6 +57,7 @@ def main():
                 raise RuntimeError(f'Fixture failed or did not run exactly once: {fixture}; see {log}')
             all_logs.write(captured + '\n')
             all_logs.flush()
+            unchanged()
             report['completed'].append(fixture)
             (out / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
             print(f'{index + 1}/{len(fixtures)} PASS {fixture}', flush=True)
@@ -61,6 +70,7 @@ def main():
             raise RuntimeError(f'JS/Cairo comparison failed: {name}; see {log}')
         report['comparisons'].append(name)
         print(log.read_text().strip(), flush=True)
+    unchanged()
     report['captures_sha256'] = hashlib.sha256(combined.read_bytes()).hexdigest()
     (out / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
     print(f'PASS {len(fixtures)} ignored fixtures and {len(COMPARISONS)} JS/Cairo comparisons')

@@ -9,6 +9,8 @@
 //   specials       the Yeti (species 68): rock groove, yodel, avalanche, stomp
 //
 // Every function is a pure function of its inputs, like the composer, so each can move to Cairo.
+import { catalogueCheck, renderCatalogueCheck } from './sound_check_catalogue.js';
+import { cyclopsSoundCheckMidi } from './cyclops_sound_check.js';
 import { poseidonHashMany } from './index.js';
 import { FAMILIES, MEGA_ALL, MEGA_LEADS, beastFullMidi, beastInstruments, drumEvents, graceOf } from './full_midi.js';
 
@@ -895,51 +897,21 @@ export function genesisMidi(speciesId, shiny, E, v11, opts = {}) {
   return sampleTrackMidi(b, { species_count: 1 }, { ...GENESIS_DEFAULTS, ...opts }, E, v11);
 }
 
-// ── the Sound Check: a Beast's scale on its one preset ───────────────────────────────────────────────
-// Three blocks on the Beast's preset: four quarters on the Beast's scale (a pattern picked by the
-// Beast), a held note, then a sixteenth-note arpeggio up the tonic triad over two octaves. Each block
-// starts a scale degree higher than the one before, on the previous block's last arpeggio note (a
-// hand-off); the drum kit closes it the same way. The preset: (species - 1) % 6 of its family's
-// [...leads, ...plucks], moved on by 1-5 for a special name (by the check's hash), or a mega lead when
-// mega. The
-// presets are the Beast's family (three leads, three plucks) plus the two mega leads when shiny, from
-// a start picked by the Beast. The key is the Beast's own: its special name's key, or for a Beast
-// without one its species' spread key (as on its Species Song), in the mode's real scale. Its inputs
-// are the species, the special name and the shiny flag, all in the packed composer inputs.
-export const SOUND_CHECK_PATTERNS = [[0, 1, 2, 3], [0, 2, 4, 7], [7, 4, 2, 0], [0, 2, 1, 3]];
-export const SOUND_CHECK_KIT = [36, 38, 42, 46, 49, 50, 47, 45];
-export const SOUND_CHECK_BLOCKS = 3;
-const SC_BLOCK = 4800, SC_STEP = 3960, SC_KIT_VOICE = 9;
-export const SOUND_CHECK_ARP = [7, 9, 11, 14, 16, 18];
+// ── curated species Sound Checks (audition candidates) ───────────────────────────────────────
 export function soundCheckMidi(b, E) {
+  if (b.id === 64) return cyclopsSoundCheckMidi();
   const neutral = { adventurers_killed: 0, scars: 0, summit_held_seconds: 0, rank: 0, species_count: 1 };
-  const g = genesisBeast(b), named = b.prefix !== 0;
+  const named = b.prefix !== 0;
+  // Unnamed checks warm up the actual shared song, including the Harpy/Pegasus swap.
+  const source = !named ? (GENESIS_SWAPS[b.id] || b.id) : b.id;
+  const g = genesisBeast({ ...b, id: source });
   const kp = E.mapV3(named ? { ...g, prefix: b.prefix, suffix: b.suffix } : spreadKeyBeast(g), neutral);
-  const mode = !named && GENESIS_MODES[b.id] !== undefined ? GENESIS_MODES[b.id] : kp.mode_id;
-  const scale = MODE_SCALES[mode] ?? [0, 2, 3, 5, 7, 8, 10];
-  const tonic = kp.tonic_keynum;
-  const pitch = (d) => { let p = tonic + 12 * Math.floor(d / 7) + scale[((d % 7) + 7) % 7]; while (p > 127) p -= 12; return p; };
-  const h = low32(H('BEAST_SOUND_CHECK', b.id, nameVariant(b.prefix, b.suffix)));
-  const fam = FAMILIES[b.beast_type] ?? FAMILIES[0];
-  const own = (b.id - 1) % 6;
-  const idx = nameVariant(b.prefix, b.suffix) ? (own + 1 + h % 5) % 6 : own;
-  const one = b.shiny ? MEGA_LEADS[idx % 2] : [...fam.leads, ...fam.plucks][idx];
-  const presets = Array(SOUND_CHECK_BLOCKS).fill(one);
-  const rot = 0, pattern = SOUND_CHECK_PATTERNS[(h >>> 8) % 4], held = (h >>> 12) % 2 ? 4 : 7;
-  const events = [], programs = {};
-  presets.forEach((_, v) => {
-    const t0 = v * SC_STEP; // the climb: each block a scale degree higher
-    programs[v] = presets[(v + rot) % presets.length];
-    pattern.forEach((d, k) => events.push({ time: t0 + k * 480, duration: 420, pitch: pitch(d + v), velocity: 100, voice_id: v }));
-    events.push({ time: t0 + 1920, duration: 1380, pitch: pitch(held + v), velocity: 96, voice_id: v });
-    SOUND_CHECK_ARP.forEach((d, k) => events.push({ time: t0 + 3360 + k * 120, duration: 60, pitch: pitch(d + v), velocity: 90, voice_id: v }));
-  });
-  const k0 = presets.length * SC_STEP;
-  SOUND_CHECK_KIT.forEach((key, k) => events.push({ time: k0 + k * 480, duration: 240, pitch: key, velocity: 100, voice_id: SC_KIT_VOICE }));
-  programs[SC_KIT_VOICE] = 0;
-  const length = k0 + SC_BLOCK;
-  const result = { beast: b, params: { tempo_us: 500000, tier: b.tier, species_id: b.id, name_variant_id: nameVariant(b.prefix, b.suffix) }, form: { events, section_ticks: length, sections: [0] } };
-  return { midi: beastFullMidi(result, (f) => f.section_ticks * f.sections.length, {}, { instruments: 'placeholder', programs, drums: false }), info: { key: keyName({ mode_id: mode, tonic_keynum: tonic }), presets: presets.map((_, v) => programs[v]), pattern, held } };
+  const satori = b.id === 44 && (!named || nameVariant(b.prefix, b.suffix) === 1);
+  const mode = satori ? 7 : !named && GENESIS_MODES[source] !== undefined ? GENESIS_MODES[source] : kp.mode_id;
+  const row = catalogueCheck(b.id, b.beast_type);
+  const tonic = row.register + ((satori ? 57 : kp.tonic_keynum) % 12);
+  const result = renderCatalogueCheck(row, { tonic, scale: MODE_SCALES[mode], mega: !!b.shiny });
+  return { midi: result.midi, result: { beast: b, params: { tempo_us: row.tempo_us }, form: { events: result.events, section_ticks: 15360, sections: [0] } }, info: { key: keyName({ mode_id: mode, tonic_keynum: tonic }), presets: [result.program], tempo_us: row.tempo_us, tempo: Math.round(60e6 / row.tempo_us), bpm: 60e6 / row.tempo_us, curated: true, mode_id: mode, tonic_keynum: tonic, phrase: row.phrase, species: b.id } };
 }
 
 /** A simulated per-Beast auction: the offer's seed chain and a gradual Dutch auction price. */

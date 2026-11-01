@@ -502,3 +502,27 @@ fn grace_notes_from_drift_day_2() {
         'no grace notes on day 2',
     );
 }
+
+/// Independent JS bank serialization fingerprints, through actual compose routing.
+#[test]
+fn authored_satori_full_effect_settings_match_js_bank() {
+    let base = genesis(beast(44, 0, 0, 0));
+    let expected = array![
+        0x3354b90140649c632b735cb57e10df5a559ca7ff97c03e41535e157d8213f52,
+        0x63b813b95354c7139ec2b70afa7addb3832856a04593ed0834132b88f355d5b,
+        0x4fad082b68e6aef7f2aff495fae841cbfcd4f237ae1615ef5575aeaac1fd59c,
+        0x2791e8058cab0768e74ee8e19bdc61083758fa0c7af524e344eec786b88ae46,
+    ];
+    let mut fx: u8 = 0;
+    while fx < 4 {
+        let sound = compose_sound(base, fx);
+        midi::settings::validate(@sound.settings);
+        let mut wire = array![];
+        sound.settings.serialize(ref wire);
+        assert(
+            core::poseidon::poseidon_hash_span(wire.span()) == *expected.at(fx.into()),
+            'effect bank route',
+        );
+        fx += 1;
+    }
+}

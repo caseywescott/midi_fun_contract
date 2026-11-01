@@ -2,6 +2,8 @@
 //! offchain/beast-sound/src/editions_lite.js by offchain/beast-sound/onchain/editions_cairo.mjs. Do
 //! not edit: change the source and rerun the generator.
 
+use crate::packed_data::{Reader, read};
+
 /// Species 1..75: tonic pitch class (bits 0-3), then the first 6 Genesis theme degrees + 8
 /// (4 bits each, from bit 4).
 pub const SPECIES: [u32; 75] = [
@@ -353,28 +355,6 @@ const STYLE_AT: [u32; 24] = [
     0, 12, 24, 38, 49, 66, 79, 91, 103, 117, 133, 149, 161, 174, 186, 202, 214, 226, 240, 255, 270,
     284, 295, 309,
 ];
-
-#[derive(Drop)]
-struct Reader {
-    data: Span<felt252>,
-    pos: u32,
-    word: u256,
-    left: u32,
-}
-
-/// The next 32-bit value.
-#[inline(never)]
-fn read(ref r: Reader) -> u32 {
-    if r.left == 0 {
-        r.word = (*r.data.at(r.pos)).into();
-        r.pos += 1;
-        r.left = 7;
-    }
-    let (q, v) = DivRem::div_rem(r.word, 0x100000000);
-    r.word = q;
-    r.left -= 1;
-    v.try_into().unwrap()
-}
 
 /// A list: its length, then its items.
 #[inline(never)]

@@ -1,0 +1,325 @@
+{
+  "source": "Original lab411 generator from sampler433f826; frozen Casey cdcad0a full_midi.js; independent v1.1 shaping policy.",
+  "cases": [
+    {
+      "name_variant_id": 0,
+      "sound_effects": 0,
+      "bytes": 9720,
+      "sha256": "4b2a582e3c83736b7beaaac19fa44421735006a618c525409d88beb2f2b28aaf",
+      "tempo_us": 500000,
+      "tracks": 5,
+      "channels": [
+        {
+          "channel": 0,
+          "program": 0,
+          "pan": 50,
+          "notes": 112
+        },
+        {
+          "channel": 1,
+          "program": 15,
+          "pan": 40,
+          "notes": 288
+        },
+        {
+          "channel": 2,
+          "program": 17,
+          "pan": 80,
+          "notes": 560
+        },
+        {
+          "channel": 9,
+          "program": null,
+          "pan": 64,
+          "notes": 322
+        }
+      ]
+    },
+    {
+      "name_variant_id": 0,
+      "sound_effects": 1,
+      "bytes": 11284,
+      "sha256": "b08152146e2530c12a85ce38718901c272eb9d5035f7f8843ca2ffbbbdb06e82",
+      "tempo_us": 475000,
+      "tracks": 6,
+      "channels": [
+        {
+          "channel": 0,
+          "program": 50,
+          "pan": 9,
+          "notes": 112
+        },
+        {
+          "channel": 1,
+          "program": 15,
+          "pan": 64,
+          "notes": 288
+        },
+        {
+          "channel": 2,
+          "program": 17,
+          "pan": 118,
+          "notes": 560
+        },
+        {
+          "channel": 3,
+          "program": 65,
+          "pan": 119,
+          "notes": 112
+        },
+        {
+          "channel": 9,
+          "program": null,
+          "pan": null,
+          "notes": 689
+        }
+      ]
+    },
+    {
+      "name_variant_id": 0,
+      "sound_effects": 2,
+      "bytes": 10510,
+      "sha256": "6969454ca7183ed3e0f2390a08ae9ea31085d34e26f93d7961d3126ca1200a20",
+      "tempo_us": 470000,
+      "tracks": 6,
+      "channels": [
+        {
+          "channel": 0,
+          "program": 0,
+          "pan": 9,
+          "notes": 112
+        },
+        {
+          "channel": 1,
+          "program": 15,
+          "pan": 64,
+          "notes": 288
+        },
+        {
+          "channel": 2,
+          "program": 17,
+          "pan": 118,
+          "notes": 560
+        },
+        {
+          "channel": 3,
+          "program": 12,
+          "pan": 119,
+          "notes": 111
+        },
+        {
+          "channel": 9,
+          "program": null,
+          "pan": null,
+          "notes": 322
+        }
+      ]
+    },
+    {
+      "name_variant_id": 0,
+      "sound_effects": 3,
+      "bytes": 12303,
+      "sha256": "237db94adaefd3fa0d6a1dbdafc4b5390461d18612875bfda8ed8b606dfea9ac",
+      "tempo_us": 455000,
+      "tracks": 7,
+      "channels": [
+        {
+          "channel": 0,
+          "program": 50,
+          "pan": 9,
+          "notes": 112
+        },
+        {
+          "channel": 1,
+          "program": 15,
+          "pan": 64,
+          "notes": 288
+        },
+        {
+          "channel": 2,
+          "program": 17,
+          "pan": 118,
+          "notes": 560
+        },
+        {
+          "channel": 3,
+          "program": 65,
+          "pan": 119,
+          "notes": 112
+        },
+        {
+          "channel": 4,
+          "program": 12,
+          "pan": 119,
+          "notes": 111
+        },
+        {
+          "channel": 9,
+          "program": null,
+          "pan": null,
+          "notes": 689
+        }
+      ]
+    },
+    {
+      "name_variant_id": 1,
+      "sound_effects": 0,
+      "bytes": 9720,
+      "sha256": "a8c9470b4e86cca962ea0db79c790ba1c4347aba4fe110657f3502c9563e4c00",
+      "tempo_us": 500000,
+      "tracks": 5,
+      "channels": [
+        {
+          "channel": 0,
+          "program": 0,
+          "pan": 50,
+          "notes": 112
+        },
+        {
+          "channel": 1,
+          "program": 15,
+          "pan": 40,
+          "notes": 288
+        },
+        {
+          "channel": 2,
+          "program": 17,
+          "pan": 80,
+          "notes": 560
+        },
+        {
+          "channel": 9,
+          "program": null,
+          "pan": 64,
+          "notes": 322
+        }
+      ]
+    },
+    {
+      "name_variant_id": 1,
+      "sound_effects": 1,
+      "bytes": 11284,
+      "sha256": "e6d90400f17ba0899abefc671872d14b7e9e5433550088c57e1cc6b097bd77a1",
+      "tempo_us": 475000,
+      "tracks": 6,
+      "channels": [
+        {
+          "channel": 0,
+          "program": 65,
+          "pan": 9,
+          "notes": 112
+        },
+        {
+          "channel": 1,
+          "program": 15,
+          "pan": 64,
+          "notes": 288
+        },
+        {
+          "channel": 2,
+          "program": 17,
+          "pan": 118,
+          "notes": 560
+        },
+        {
+          "channel": 3,
+          "program": 50,
+          "pan": 119,
+          "notes": 112
+        },
+        {
+          "channel": 9,
+          "program": null,
+          "pan": null,
+          "notes": 689
+        }
+      ]
+    },
+    {
+      "name_variant_id": 1,
+      "sound_effects": 2,
+      "bytes": 10510,
+      "sha256": "da279c16c2f10f3f515fac03960fedf25fd7be4937143969043ae7c96b7e8905",
+      "tempo_us": 470000,
+      "tracks": 6,
+      "channels": [
+        {
+          "channel": 0,
+          "program": 0,
+          "pan": 9,
+          "notes": 112
+        },
+        {
+          "channel": 1,
+          "program": 15,
+          "pan": 64,
+          "notes": 288
+        },
+        {
+          "channel": 2,
+          "program": 17,
+          "pan": 118,
+          "notes": 560
+        },
+        {
+          "channel": 3,
+          "program": 12,
+          "pan": 119,
+          "notes": 111
+        },
+        {
+          "channel": 9,
+          "program": null,
+          "pan": null,
+          "notes": 322
+        }
+      ]
+    },
+    {
+      "name_variant_id": 1,
+      "sound_effects": 3,
+      "bytes": 12303,
+      "sha256": "d063354ca70c6f8e8573fb2710b095562789d00ce54ce3927afcd8ca5f4ee8a0",
+      "tempo_us": 455000,
+      "tracks": 7,
+      "channels": [
+        {
+          "channel": 0,
+          "program": 65,
+          "pan": 9,
+          "notes": 112
+        },
+        {
+          "channel": 1,
+          "program": 15,
+          "pan": 64,
+          "notes": 288
+        },
+        {
+          "channel": 2,
+          "program": 17,
+          "pan": 118,
+          "notes": 560
+        },
+        {
+          "channel": 3,
+          "program": 50,
+          "pan": 119,
+          "notes": 112
+        },
+        {
+          "channel": 4,
+          "program": 12,
+          "pan": 119,
+          "notes": 111
+        },
+        {
+          "channel": 9,
+          "program": null,
+          "pan": null,
+          "notes": 689
+        }
+      ]
+    }
+  ]
+}

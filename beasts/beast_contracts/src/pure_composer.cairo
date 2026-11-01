@@ -7,10 +7,9 @@ use beast_composer::composition::editions::edition_byte_array;
 use beast_composer::composition::full_midi::{SMF_DIVISION, SMF_FORMAT};
 use beast_composer::composition::genesis::{drifted_song_inputs, song_tracks};
 use beast_composer::composition::performance::{apply_performance, is_mega};
-use beast_composer::composition::sound_check::sound_check_from_inputs;
+use beast_composer::composition::sound_check::sound_check_tracks;
 use beast_composer::inputs::drift::DriftInputs;
 use beast_composer::inputs::{ComposerInputs, SpecialArrangement};
-use midi::pack::bytes_to_byte_array;
 use midi::smf::smf_byte_array;
 use midi::types::{TinySynthSettings, TinySynthSound};
 
@@ -27,13 +26,13 @@ pub trait IBeastPureComposer<T> {
 }
 
 pub fn compose_sound(inputs: ComposerInputs, sound_effects: u8) -> TinySynthSound {
-    compose_with(inputs, sound_effects, Option::None)
+    compose_with(inputs, sound_effects, Option::None).unbox()
 }
 
 pub fn compose_drift_sound(
     inputs: ComposerInputs, sound_effects: u8, drift: DriftInputs,
 ) -> TinySynthSound {
-    compose_with(inputs, sound_effects, Option::Some(drift))
+    compose_with(inputs, sound_effects, Option::Some(drift)).unbox()
 }
 
 /// `compose`, and with a day (`Some`) `compose_drift`: one body for both (CASM size). The drift
@@ -42,7 +41,7 @@ pub fn compose_drift_sound(
 #[inline(never)]
 fn compose_with(
     inputs: ComposerInputs, sound_effects: u8, drift: Option<DriftInputs>,
-) -> TinySynthSound {
+) -> Box<TinySynthSound> {
     let drifted = match (inputs, drift) {
         (
             ComposerInputs::Song(song), Option::Some(d),
@@ -64,8 +63,8 @@ fn compose_with(
         ComposerInputs::Song(song) => smf_byte_array(
             SMF_FORMAT, SMF_DIVISION, song_tracks(song, mega, echo, day).span(),
         ),
-        ComposerInputs::SoundCheck(check) => bytes_to_byte_array(
-            sound_check_from_inputs(check, mega).span(),
+        ComposerInputs::SoundCheck(check) => smf_byte_array(
+            SMF_FORMAT, SMF_DIVISION, sound_check_tracks(check, mega).span(),
         ),
         ComposerInputs::Edition(edition) => {
             let species = edition.identity.source_species_id;
@@ -76,17 +75,27 @@ fn compose_with(
             edition_byte_array(species, mega, edition.edition, edition.seed, day, echo)
         },
     };
-    TinySynthSound { midi, settings: settings_for(performed, mega) }
+    BoxTrait::new(TinySynthSound { midi, settings: settings_for(performed, mega, echo) })
 }
 
 /// The sounds the file can select: the family's presets and the drum kit, plus the mega leads when
 /// mega. A Yeti special has the Yeti's settings (the Brute family and the avalanche preset: the
 /// Yeti is a Brute; an authored Yeti special on another family plays them too), and an edition its
 /// style's presets (`edition_synth_settings`).
-pub fn settings_for(inputs: ComposerInputs, mega: bool) -> TinySynthSettings {
+pub fn settings_for(inputs: ComposerInputs, mega: bool, echo: bool) -> TinySynthSettings {
     let (family, special) = match inputs {
-        ComposerInputs::Song(x) => (x.arrangement.family, x.arrangement.special),
-        ComposerInputs::SoundCheck(x) => (x.family, SpecialArrangement::None),
+        ComposerInputs::Song(x) => {
+            if beast_composer::composition::satori411::is_satori411(x) {
+                return crate::synth_settings::satori411_effect_synth_settings(mega, echo);
+            }
+            (x.arrangement.family, x.arrangement.special)
+        },
+        ComposerInputs::SoundCheck(x) => {
+            if x.identity.source_species_id == 64 {
+                return crate::synth_settings::cyclops_sound_check_synth_settings();
+            }
+            (x.family, SpecialArrangement::None)
+        },
         // the edition's style for the species' type (1..=75: Magic, Hunter, Brute by 25s): editions
         // take the styles in turn (`edition_genome`)
         ComposerInputs::Edition(x) => {

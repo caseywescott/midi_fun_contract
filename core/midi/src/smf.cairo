@@ -174,6 +174,9 @@ pub impl TrackWriterImpl of TrackWriterTrait {
     }
 
     /// A channel message with two data bytes (note off/on, aftertouch, control, pitch bend).
+    // Shared by authored and generated tracks; keep one encoder rather than specializing every
+    // call.
+    #[inline(never)]
     fn message(ref self: TrackWriter, time: u32, status: u8, data1: u8, data2: u8) {
         self.delta(time);
         self.status(status);
@@ -200,11 +203,13 @@ pub impl TrackWriterImpl of TrackWriterTrait {
         self.message1(time, 0xC0 + channel % 16, program);
     }
 
+    #[inline(never)]
     fn control(ref self: TrackWriter, time: u32, channel: u8, controller: u8, value: u8) {
         self.message(time, 0xB0 + channel % 16, controller, value);
     }
 
     /// A meta event (`FF kind length data`). Clears running status.
+    #[inline(never)]
     fn meta(ref self: TrackWriter, time: u32, kind: u8, data: Span<u8>) {
         self.delta(time);
         self.data.append(0xFF);
@@ -233,6 +238,7 @@ pub impl TrackWriterImpl of TrackWriterTrait {
 
     /// The track body, closed with End of Track at `time`, or at the last event if that is later.
     /// A player that loops to the latest End of Track (onchain-midi-player) then loops at `time`.
+    #[inline(never)]
     fn finish_at(mut self: TrackWriter, time: u32) -> Array<u8> {
         let end = if time > self.time {
             time

@@ -321,3 +321,13 @@ fn reject_species_past_u32() {
     // species ids are u32 (the token's 32 bits): 2^32 does not decode
     decode_inputs(array![5, 0, 0x100000000, 1242, 26, 103, 2, 1048575, 127, 3].span());
 }
+
+/// The mode predicate must accept exactly the same six modes over the complete byte domain.
+#[test]
+fn supported_mode_matches_explicit_membership_for_all_bytes() {
+    for raw in 0_u16..256 {
+        let mode: u8 = raw.try_into().unwrap();
+        let expected = mode == 4 || mode == 5 || mode == 6 || mode == 7 || mode == 8 || mode == 26;
+        assert(super::supported_mode(mode) == expected, 'mode predicate changed');
+    }
+}

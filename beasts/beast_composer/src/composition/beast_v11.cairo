@@ -1423,21 +1423,40 @@ fn stretch_at(events: Span<NoteEvent>, section_ticks: u32) -> Stretch {
     stretch
 }
 
+/// Casey's common gate treatment, including the minimum sixty-tick articulated note.
+#[inline(never)]
+pub(crate) fn articulated_duration(duration: u32, profile: u8) -> u32 {
+    let gate = match profile {
+        1 => duration / 2,
+        5 => duration * 3 / 4,
+        _ => { return duration; },
+    };
+    if gate > 60 {
+        gate
+    } else {
+        60
+    }
+}
+
 /// Phrase arc per voice and section, accents on bar downbeats (the first bar of each pair harder),
 /// the lead's prominence, articulation by profile, under the velocity ceiling.
 ///
 /// The events come in a few long stretches (a voice's line, then its episode, in each section), so
 /// the pitch range of a voice and section is looked up once per stretch, and what depends only on
 /// the stretch is worked out once, not once per event.
-fn shape(
-    ref events: Array<NoteEvent>, p: @BeastCompositionParams, section_ticks: u32, prominence: u32,
+#[inline(never)]
+pub fn shape(
+    ref events: Array<NoteEvent>,
+    velocity_ceiling: u8,
+    profile: u8,
+    section_ticks: u32,
+    prominence: u32,
 ) {
-    let ceil: u32 = if p.velocity_ceiling == 0 {
+    let ceil: u32 = if velocity_ceiling == 0 {
         127
     } else {
-        p.velocity_ceiling.into()
+        velocity_ceiling.into()
     };
-    let profile = p.articulation_profile;
     let all = events.span();
     // pass 1: the stretches, and the pitch range of each voice and section over its stretches
     // (0 until seen, then 1 + lo + 256 * hi)
@@ -1503,23 +1522,7 @@ fn shape(
             } else {
                 v
             }).try_into().unwrap();
-            let duration = if profile == 1 {
-                let x = e.duration / 2;
-                if x > 60 {
-                    x
-                } else {
-                    60
-                }
-            } else if profile == 5 {
-                let x = e.duration * 3 / 4;
-                if x > 60 {
-                    x
-                } else {
-                    60
-                }
-            } else {
-                e.duration
-            };
+            let duration = articulated_duration(e.duration, profile);
             out.append(NoteEvent { velocity: vel, duration, ..e });
         }
         at += s.len;
@@ -1721,7 +1724,7 @@ fn build_resolved(r: V11Resolved) -> Box<V11Score> {
         events.append_span(sec.span());
         s += 1;
     }
-    shape(ref events, @p, section_ticks, tr.prominence);
+    shape(ref events, p.velocity_ceiling, p.articulation_profile, section_ticks, tr.prominence);
     BoxTrait::new(V11Score { events, section_ticks, params: p })
 }
 
@@ -2925,7 +2928,7 @@ mod shape_tests {
         let mut a = clone_events(events);
         let mut b = clone_events(events);
         shape_oracle(ref a, p, st, prominence);
-        shape(ref b, p, st, prominence);
+        shape(ref b, p.velocity_ceiling, p.articulation_profile, st, prominence);
         assert_same(a.span(), b.span());
     }
 
@@ -3095,7 +3098,13 @@ mod shape_tests {
     fn shape_of_no_events_is_empty() {
         let score = score_of(1);
         let mut events: Array<NoteEvent> = array![];
-        shape(ref events, @score.params, score.section_ticks, 1);
+        shape(
+            ref events,
+            score.params.velocity_ceiling,
+            score.params.articulation_profile,
+            score.section_ticks,
+            1,
+        );
         assert(events.is_empty(), 'no events');
     }
 }

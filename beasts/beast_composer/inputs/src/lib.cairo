@@ -154,16 +154,22 @@ pub fn normalize_generation_identity(x: BeastMusicalIdentity) -> MusicIdentity {
     identity
 }
 
+#[inline(never)]
 pub fn validate_identity(x: MusicIdentity) {
     assert(x.source_species_id != 0, 'invalid music identity');
     assert(x.name_variant_id <= 1242, 'invalid music name');
 }
 
+fn supported_mode(mode: u8) -> bool {
+    match mode {
+        4 | 5 | 6 | 7 | 8 | 26 => true,
+        _ => false,
+    }
+}
+
+#[inline(never)]
 pub fn validate_mode(mode: u8) {
-    assert(
-        mode == 4 || mode == 5 || mode == 6 || mode == 7 || mode == 8 || mode == 26,
-        'unsupported musical mode',
-    );
+    assert(supported_mode(mode), 'unsupported musical mode');
 }
 
 pub fn validate_articulation(profile: u8) {
@@ -217,6 +223,17 @@ pub fn validate_song(x: SongInputs) {
     }
 }
 
+/// Validate a Sound Check without first constructing the wider song/edition enum.
+#[inline(never)]
+pub fn validate_sound_check(check: SoundCheckInputs) {
+    validate_identity(check.identity);
+    validate_mode(check.mode_id);
+    // Highest Sound Check degree is 14 = tonic + two octaves.
+    assert(check.tonic_keynum <= 103, 'invalid sound check tonic');
+    assert(check.family <= 2, 'invalid program family');
+    validate_performance_base(check.tempo_us, check.velocity_ceiling, check.articulation_profile);
+}
+
 pub fn validate_inputs(x: ComposerInputs) {
     match x {
         ComposerInputs::Song(song) => validate_song(song),
@@ -228,16 +245,7 @@ pub fn validate_inputs(x: ComposerInputs) {
             );
             assert(edition.edition >= 1, 'invalid edition');
         },
-        ComposerInputs::SoundCheck(check) => {
-            validate_identity(check.identity);
-            validate_mode(check.mode_id);
-            // Highest Sound Check degree is 14 = tonic + two octaves.
-            assert(check.tonic_keynum <= 103, 'invalid sound check tonic');
-            assert(check.family <= 2, 'invalid program family');
-            validate_performance_base(
-                check.tempo_us, check.velocity_ceiling, check.articulation_profile,
-            );
-        },
+        ComposerInputs::SoundCheck(check) => validate_sound_check(check),
     }
 }
 

@@ -5,6 +5,9 @@ pub use beast_composer_inputs as inputs;
 mod articulation_tests;
 #[cfg(test)]
 mod canon_rules_tests;
+
+#[cfg(test)]
+mod check_catalogue_tests;
 pub mod composition;
 #[cfg(test)]
 mod contrapuntal_tests;
@@ -23,6 +26,7 @@ pub mod modes;
 #[cfg(test)]
 mod name_track_tests;
 pub mod opaque;
+pub mod packed_data;
 #[cfg(test)]
 mod params_pack_tests;
 pub mod rng;

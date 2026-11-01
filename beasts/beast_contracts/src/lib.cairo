@@ -100,6 +100,12 @@ pub mod BeastSoundComposer {
 
 #[cfg(test)]
 mod composer_tests;
+
+#[cfg(test)]
+mod cyclops_sound_check_tests;
+
+#[cfg(test)]
+mod historical_satori_tests;
 #[cfg(test)]
 mod pure_composer_tests;
 #[cfg(test)]

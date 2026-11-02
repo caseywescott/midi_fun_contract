@@ -12,10 +12,17 @@ import { PATCHES, UPSTREAM, patchTinySynth } from './vendor/webaudio-tinysynth/p
 import { TINYCHIP_ONCHAIN } from './tinychip/config.mjs';
 import { tinychipSource } from './tinychip/essentials.mjs';
 import { BEATSYNC_ONCHAIN } from './beatsync/config.mjs';
+import { SNES_ONCHAIN, SNES_MANIFEST } from './snes/config.mjs';
+import { buildBank, bundleBank } from './snes/build.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const ESBUILD = ['-y', 'esbuild@0.23.0'];
 mkdirSync(here + 'dist', { recursive: true });
+// Reject an unfinished sample bank before writing any production artifacts.
+const snesBank = SNES_ONCHAIN ? buildBank(SNES_MANIFEST) : null;
+if (snesBank && !snesBank.bank.instruments.length) throw new Error('SNES_ONCHAIN requires a populated manifest');
+const snes = snesBank ? await bundleBank(snesBank.bank) : '';
+if (snesBank) writeFileSync(here + 'dist/snes.min.js', snes + '\n');
 
 // TinySynth stays a classic script (it attaches itself to `window`), so it is minified, not bundled.
 const tinysynth = patchTinySynth(readFileSync(here + 'vendor/webaudio-tinysynth/webaudio-tinysynth.js', 'utf8'));
@@ -23,7 +30,7 @@ const banner = `/*! webaudio-tinysynth (c) g200kg, Apache-2.0; Provable Games fo
 const tinysynthMin = banner + execFileSync('npx', [...ESBUILD, '--loader=js', '--minify', '--charset=utf8', '--target=es2020', '--legal-comments=none'], { input: tinysynth }).toString().trim();
 writeFileSync(here + 'dist/tinysynth.min.js', tinysynthMin + '\n');
 
-execFileSync('npx', [...ESBUILD, here + 'player-src.js', '--bundle', '--minify', '--format=iife', '--charset=utf8', '--target=es2020', `--outfile=${here}dist/player.js`], { stdio: 'inherit' });
+execFileSync('npx', [...ESBUILD, here + (SNES_ONCHAIN ? 'snes/player-src.js' : 'player-src.js'), '--bundle', '--minify', '--format=iife', '--charset=utf8', '--target=es2020', `--outfile=${here}dist/player.js`], { stdio: 'inherit' });
 const player = readFileSync(here + 'dist/player.js', 'utf8').trim();
 
 // Optional TinyChip (onchain/tinychip): the 20-preset runtime with its orchestration, stored onchain
@@ -38,7 +45,7 @@ writeFileSync(here + 'dist/tinychip-bank.min.js', minify(readFileSync(here + 'ti
 const beatsync = execFileSync('npx', [...ESBUILD, '--loader=js', '--minify', '--charset=utf8', '--target=es2020'], { input: readFileSync(here + 'beatsync/beatsync.js', 'utf8') }).toString().trim();
 writeFileSync(here + 'dist/beatsync.min.js', beatsync + '\n');
 
-const js = [tinysynthMin, ...(TINYCHIP_ONCHAIN ? [tinychip] : []), ...(BEATSYNC_ONCHAIN ? [beatsync] : []), player].join('\n');
+const js = [tinysynthMin, ...(SNES_ONCHAIN ? [snes] : TINYCHIP_ONCHAIN ? [tinychip] : []), ...(!SNES_ONCHAIN && BEATSYNC_ONCHAIN ? [beatsync] : []), player].join('\n');
 const stored = storedSegment(js);
 writeFileSync(here + 'dist/stored.b64', stored);
 const sha = createHash('sha256').update(stored).digest('hex');

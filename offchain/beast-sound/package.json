@@ -29,7 +29,9 @@
     "inputs.d.ts"
   ],
   "scripts": {
-    "test": "node --test 'test/*.test.mjs'",
+    "test": "node --test test/*.test.mjs",
+    "snes:build": "node onchain/snes/build.mjs",
+    "snes:test": "node --test test/snes.test.mjs",
     "serve": "node server/build.mjs && node server/node.mjs"
   },
   "dependencies": {

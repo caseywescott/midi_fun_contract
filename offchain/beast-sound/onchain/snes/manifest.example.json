@@ -1,0 +1,32 @@
+{
+  "format": "BSBRR1",
+  "name": "My SNES bank",
+  "maxBrrBytes": 20480,
+  "instruments": [
+    {
+      "id": "lead",
+      "file": "samples/lead.wav",
+      "program": 0,
+      "rootNote": 60,
+      "sampleRate": 16000,
+      "trimStart": 0,
+      "trimEnd": 0.256,
+      "loopStart": 0.064,
+      "tuneCents": 0,
+      "gain": 1,
+      "volume": 0.5,
+      "envelope": { "attack": 0.008, "decay": 0.18, "sustain": 0.7, "release": 0.15 },
+      "credit": { "author": "YOUR NAME", "license": "YOUR SAMPLE LICENSE", "source": "Original recording" }
+    },
+    {
+      "id": "kick",
+      "file": "samples/kick.wav",
+      "drum": 36,
+      "rootNote": 36,
+      "sampleRate": 16000,
+      "volume": 0.7,
+      "envelope": { "attack": 0, "decay": 0.2, "sustain": 0, "release": 0.03 },
+      "credit": { "author": "YOUR NAME", "license": "YOUR SAMPLE LICENSE", "source": "Original recording" }
+    }
+  ]
+}

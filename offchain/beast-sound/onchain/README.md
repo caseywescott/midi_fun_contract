@@ -81,6 +81,14 @@ clock: one frame per eighth note, or the GIF's own timing without drift. It adds
 while `beatsync/config.mjs` has `BEATSYNC_ONCHAIN = true`. To turn it off or keep it client-only,
 see `beatsync/README.md`.
 
+### Optional: SNES-style BRR samples
+
+`snes/` prepares user-supplied WAVs as compact BRR banks, with a sample player and a TinySynth
+adapter. It includes no instrument recordings. See [the setup and size checks](snes/README.md).
+`SNES_ONCHAIN` defaults to false. Enabling it selects the sample page instead of TinyChip/BeatSync;
+unmapped MIDI programs retain TinySynth fallback. Samples and metadata are encoded into the existing
+word-aligned Cairo page constants at build time, with no sample encoding on a `token_uri` call.
+
 ### Player and orchestration
 
 The player decodes the MIDI, builds TinySynth inside the first tap (browsers only start audio from a

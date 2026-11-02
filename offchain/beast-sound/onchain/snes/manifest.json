@@ -1,0 +1,6 @@
+{
+  "format": "BSBRR1",
+  "name": "Beast SNES bank",
+  "maxBrrBytes": 20480,
+  "instruments": []
+}

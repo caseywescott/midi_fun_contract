@@ -16,6 +16,7 @@ import { composeBeast, encodeTokenId, engine } from '../src/index.js';
 import { animationHtml, tokenUri } from './page.js';
 import { TINYCHIP_ONCHAIN } from './tinychip/config.mjs';
 import { BEATSYNC_ONCHAIN } from './beatsync/config.mjs';
+import { SNES_ONCHAIN } from './snes/config.mjs';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const out = here + '../public/onchain/';
@@ -24,7 +25,7 @@ const CANDIDATES = Number(process.argv[3] || 400);
 const net = NETWORKS.mainnet;
 // the page script as build.mjs stores it: TinySynth, the optional modules that are switched on, the player
 const dist = (f) => readFileSync(here + 'dist/' + f, 'utf8').trim();
-const js = [dist('tinysynth.min.js'), ...(TINYCHIP_ONCHAIN ? [dist('tinychip.min.js')] : []), ...(BEATSYNC_ONCHAIN ? [dist('beatsync.min.js')] : []), dist('player.js')].join('\n');
+const js = [dist('tinysynth.min.js'), ...(SNES_ONCHAIN ? [dist('snes.min.js')] : TINYCHIP_ONCHAIN ? [dist('tinychip.min.js')] : []), ...(!SNES_ONCHAIN && BEATSYNC_ONCHAIN ? [dist('beatsync.min.js')] : []), dist('player.js')].join('\n');
 const retired = (live) => ({ ...live, summit_held_seconds: 0 });
 const midiFor = (tokenId, live) => Uint8Array.from(engine.toMidiFile(engine.render(engine.decodeTokenId(BigInt(tokenId)), retired(live))));
 

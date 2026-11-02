@@ -1,0 +1,70 @@
+{
+  "repository": "https://github.com/sgossner/VSCO-2-CE",
+  "revision": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://github.com/sgossner/VSCO-2-CE/blob/440300901dfe9275fd84e0b7763af1f8443ae62e/LICENSE",
+  "homepage": "https://versilian-studios.com/vsco-community/",
+  "samples": [
+    {
+      "id": "harp",
+      "path": "Strings/Harp/KSHarp_D4_mf.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Harp/KSHarp_D4_mf.wav",
+      "sha256": "ebfde8aab4411019e37e3426f4dd88d6a52a38c2d0261d7f10ec63d8ff584dc7",
+      "sourceBytes": 1921690,
+      "mappingUrl": "https://github.com/sgossner/VSCO-2-CE/blob/6dd651d55dde97fd4028699be9d4481f26917891/Harp.sfz",
+      "officialSfzRoot": 62,
+      "soundingRoot": 62
+    },
+    {
+      "id": "marimba",
+      "path": "Percussion/Marimba/Marimba_hit_Outrigger_C4_loud_01.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Percussion/Marimba/Marimba_hit_Outrigger_C4_loud_01.wav",
+      "sha256": "4af539d47a452d7fad26e171b1c8adcca272cee97191f040d192680462c880b8",
+      "sourceBytes": 1016564,
+      "mappingUrl": "https://github.com/sgossner/VSCO-2-CE/blob/6dd651d55dde97fd4028699be9d4481f26917891/Marimba.sfz",
+      "officialSfzRoot": 72,
+      "soundingRoot": 72
+    },
+    {
+      "id": "glockenspiel",
+      "path": "Percussion/Glock/glock_medium_C5.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Percussion/Glock/glock_medium_C5.wav",
+      "sha256": "635f898e0bcb6975b96b18efd9c896f6f1b97ff12174a339ada4814e49675660",
+      "sourceBytes": 1271310,
+      "mappingUrl": "https://github.com/sgossner/VSCO-2-CE/blob/6dd651d55dde97fd4028699be9d4481f26917891/Glockenspiel.sfz",
+      "officialSfzRoot": 72,
+      "soundingRoot": 84
+    },
+    {
+      "id": "strings",
+      "path": "Strings/Violin Section/susVib/VlnEns_susVib_C4_v2.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Violin%20Section/susVib/VlnEns_susVib_C4_v2.wav",
+      "sha256": "5857387b40c412f756ef281c1171247664432a4e5078c98142d595d15cd92ef9",
+      "sourceBytes": 2017512,
+      "mappingUrl": "https://github.com/sgossner/VSCO-2-CE/blob/6dd651d55dde97fd4028699be9d4481f26917891/ViolinEnsSusVib.sfz",
+      "officialSfzRoot": 72,
+      "soundingRoot": 72
+    },
+    {
+      "id": "cello",
+      "path": "Strings/Cello Section/susvib/susvib_C3_v3_1.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Cello%20Section/susvib/susvib_C3_v3_1.wav",
+      "sha256": "51e884d54eea3bf4ba7ee35289a09f15ddb6a52cd849248d01bf18477ccbd07b",
+      "sourceBytes": 3019394,
+      "mappingUrl": "https://github.com/sgossner/VSCO-2-CE/blob/6dd651d55dde97fd4028699be9d4481f26917891/CelloEnsSusVib.sfz",
+      "officialSfzRoot": 60,
+      "soundingRoot": 60
+    },
+    {
+      "id": "flute",
+      "path": "Woodwinds/Flute/susNV/LDFlute_susNV_C4_v3_1.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Woodwinds/Flute/susNV/LDFlute_susNV_C4_v3_1.wav",
+      "sha256": "9e09ce606f8fe31c8dd071c717de54d40c38029e3c2e947500defac474e8cd7d",
+      "sourceBytes": 2539512,
+      "mappingUrl": "https://github.com/sgossner/VSCO-2-CE/blob/6dd651d55dde97fd4028699be9d4481f26917891/FluteSusNV.sfz",
+      "officialSfzRoot": 72,
+      "soundingRoot": 72
+    }
+  ],
+  "checkedDate": "2026-11-03"
+}

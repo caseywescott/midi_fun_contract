@@ -1,32 +1,46 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SNES sample lab</title><style>body{max-width:760px;margin:48px auto;padding:0 24px;background:#141723;color:#f2eee4;font:17px/1.6 system-ui}button,select,input{font:inherit;padding:8px;margin:6px}small{color:#c0c4cf}pre{white-space:pre-wrap}</style>
 <h1>SNES sample lab</h1><p>Audition your BRR bank or play a MIDI file. Audio stays in this page.</p>
-<p id="status"></p><select id="instrument" aria-label="Instrument"></select><button id="audition">Play sample</button><button id="stop">Stop</button>
+<p id="status"></p><select id="instrument" aria-label="Instrument"></select><button id="audition">Play sample</button><button id="demo">Play all + ensemble</button><button id="stop">Stop</button>
 <p><label>MIDI file <input id="midiFile" type="file" accept=".mid,.midi,audio/midi"></label></p>
 <p><small>BRR samples, short loops, eight sampled voices, soft filtering and echo. SNES-inspired playback; not exact hardware emulation. Unmapped MIDI programs use TinySynth.</small></p><pre id="credits"></pre>
-<script>/*__SYNTH__*/</script><script>/*__BANK__*/</script>
+<script>/*__SYNTH__*/</script><script>/*__BANK__*/</script><script>/*__DEMO__*/</script>
 <script>
-let synth, adapter;
+let synth, adapter, demo, demoSampler, demoTimer;
 const bank = SnesBank.bank;
 const status = document.getElementById('status'), select = document.getElementById('instrument');
-status.textContent = bank.instruments.length ? bank.instruments.length + ' instruments ready.' : 'No samples yet. Add WAV files to the manifest and rebuild.';
-for (const i of bank.instruments) { const o = document.createElement('option'); o.value = i.id; o.textContent = i.id; select.append(o); }
+status.textContent = bank.instruments.length ? bank.samples.length + ' instruments ready (' + bank.instruments.length + ' MIDI mappings).' : 'No samples yet. Add WAV files to the manifest and rebuild.';
+for (const i of bank.instruments.filter((i,n,a)=>a.findIndex(x=>x.sample===i.sample)===n)) { const o = document.createElement('option'); o.value = i.id; o.textContent = i.id; select.append(o); }
 document.getElementById('audition').disabled = !bank.instruments.length;
+document.getElementById('demo').disabled = !bank.instruments.length;
 document.getElementById('credits').textContent = bank.instruments.map(i => i.id + ': ' + i.credit.author + ' — ' + i.credit.license + '\n' + i.credit.source).join('\n\n');
 function init() {
   if (!synth) { synth = new WebAudioTinySynth({quality:1,useReverb:0,voices:64}); adapter = SnesBank.attach(synth); window.snesLab = {synth,adapter}; }
   synth.getAudioContext().resume();
 }
+function stop() {
+  clearInterval(demoTimer); if (demo) { demo.dispose(); demo = null; }
+  if (demoSampler) { demoSampler.dispose(); demoSampler = null; }
+  if (synth) { synth.stopMIDI(); adapter.sampler.stop(); }
+}
 document.getElementById('audition').onclick = () => {
-  init(); synth.stopMIDI(); adapter.sampler.stop();
+  init(); stop();
   const i = bank.instruments.find(i => i.id === select.value), t = synth.getAudioContext().currentTime + 0.03;
   adapter.sampler.noteOn({program:i.program,drum:i.drum !== undefined,note:i.drum ?? i.rootNote,time:t});
   adapter.sampler.noteOff(0,i.drum ?? i.rootNote,t+0.7);
 };
-document.getElementById('stop').onclick = () => { if (synth) { synth.stopMIDI(); adapter.sampler.stop(); } };
+document.getElementById('stop').onclick = () => { stop(); status.textContent = 'Stopped'; };
+document.getElementById('demo').onclick = () => {
+  init(); stop(); const ac = synth.getAudioContext(); demoSampler = SnesBank.createSampler(ac); demo = SnesDemo.schedule(demoSampler,ac,bank);
+  demoTimer = setInterval(() => {
+    const position = ac.currentTime - demo.start;
+    status.textContent = demo.sections.filter(s=>s.time<=position).at(-1)?.label ?? 'Starting…';
+    if (position > demo.duration) { stop(); status.textContent = 'Finished'; }
+  },100);
+};
 document.getElementById('midiFile').onchange = async (e) => {
   if (!e.target.files[0]) return;
-  init(); synth.stopMIDI(); adapter.sampler.stop();
+  init(); stop();
   try { synth.loadMIDI(await e.target.files[0].arrayBuffer()); synth.setLoop(0); synth.playMIDI(); status.textContent = 'Playing ' + e.target.files[0].name; }
   catch (error) { status.textContent = error.message; }
 };

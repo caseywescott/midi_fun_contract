@@ -1,0 +1,92 @@
+{
+  "rate": 16000,
+  "samples": [
+    {
+      "id": "harp",
+      "inputRate": 44100,
+      "cropStart": 0.02,
+      "cropSeconds": 0.34,
+      "monoNormalizationGain": 10.070209,
+      "dcRemoved": -0.00002585,
+      "preparedSha256": "c042fdd86296d8755e5275705d01963616446e93c939c5732188fe6132e94618",
+      "preparedBytes": 30032,
+      "measuredHz": 291.554,
+      "tuneCents": 12.49,
+      "loopStart": 3792,
+      "loopEnd": 5328,
+      "boundaryError": 0.016083
+    },
+    {
+      "id": "marimba",
+      "inputRate": 44100,
+      "cropStart": 0,
+      "cropSeconds": 0.36,
+      "monoNormalizationGain": 11.267042,
+      "dcRemoved": 0.00001965,
+      "preparedSha256": "4834cfc0ce1ac50c766686d3fed316bad95bffd6cd1b4e93dddec6b8abdbbb6c",
+      "preparedBytes": 31796,
+      "measuredHz": 524.535,
+      "tuneCents": -4.24
+    },
+    {
+      "id": "glockenspiel",
+      "inputRate": 44100,
+      "cropStart": 0,
+      "cropSeconds": 0.26,
+      "monoNormalizationGain": 18.679315,
+      "dcRemoved": -0.00000161,
+      "preparedSha256": "10ca01162e59d0266d14e122294a2d3b611b7e20a9fb70188652f0a0da19f934",
+      "preparedBytes": 22976,
+      "measuredHz": 1053.596,
+      "tuneCents": -11.7,
+      "loopStart": 2576,
+      "loopEnd": 4064,
+      "boundaryError": 0.047266
+    },
+    {
+      "id": "strings",
+      "inputRate": 44100,
+      "cropStart": 0.012,
+      "cropSeconds": 0.45,
+      "monoNormalizationGain": 5.571783,
+      "dcRemoved": 0.00001111,
+      "preparedSha256": "7dbdfd67792065507a7a360cf6b60cd08660cc3322d182d993480dab7654deb2",
+      "preparedBytes": 39734,
+      "measuredHz": 521.353,
+      "tuneCents": 6.29,
+      "loopStart": 3568,
+      "loopEnd": 6624,
+      "boundaryError": 0.18779
+    },
+    {
+      "id": "cello",
+      "inputRate": 44100,
+      "cropStart": 0,
+      "cropSeconds": 0.44,
+      "monoNormalizationGain": 1.757893,
+      "dcRemoved": -0.00001233,
+      "preparedSha256": "44452fab60d7c791d24b6c8ec52e4b1297854f42963d345441ec214c17ae218a",
+      "preparedBytes": 38852,
+      "measuredHz": 262.352,
+      "tuneCents": -4.8,
+      "loopStart": 4320,
+      "loopEnd": 7040,
+      "boundaryError": 0.188571
+    },
+    {
+      "id": "flute",
+      "inputRate": 44100,
+      "cropStart": 0.008,
+      "cropSeconds": 0.36,
+      "monoNormalizationGain": 5.835588,
+      "dcRemoved": -0.00007485,
+      "preparedSha256": "9a26578e863bfcf12bd8a8dcdf2eb30a2ad6b1e6930e6a9c52cf7ee672e19d39",
+      "preparedBytes": 31796,
+      "measuredHz": 523.189,
+      "tuneCents": 0.21,
+      "loopStart": 3936,
+      "loopEnd": 5312,
+      "boundaryError": 0.000894
+    }
+  ]
+}

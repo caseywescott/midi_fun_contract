@@ -51,6 +51,23 @@ export function prepare(wav, options = {}) {
     }
     out[i] = sum / weight;
   }
+  const fadeFrames = (key) => {
+    const seconds = options[key] ?? 0;
+    if (!Number.isFinite(seconds) || seconds < 0 || seconds > 1) throw new Error(`${key} must be 0–1 seconds`);
+    return Math.round(seconds * rate);
+  };
+  const fadeIn = fadeFrames('fadeIn'), fadeOut = fadeFrames('fadeOut'), crossfade = fadeFrames('loopCrossfade');
+  if (fadeIn + fadeOut > count) throw new Error('Fades exceed sample length');
+  if (looping && fadeOut) throw new Error('Use loopCrossfade instead of fadeOut for loops');
+  if (crossfade && (!looping || crossfade < 2 || crossfade > loopStart || crossfade * 2 > count - loopStart || loopStart - crossfade < fadeIn)) throw new Error('loopCrossfade needs pre-loop history and at least twice its length in the loop');
+  // Fade the tail toward the history immediately BEFORE loop entry. On repetition the next
+  // frame is then loopStart, preserving phase and slope rather than fading toward silence.
+  for (let i = 0; i < crossfade; i++) {
+    const blend = 0.5 - 0.5 * Math.cos(Math.PI * i / (crossfade - 1));
+    out[count - crossfade + i] = out[count - crossfade + i] * (1 - blend) + out[loopStart - crossfade + i] * blend;
+  }
+  for (let i = 0; i < fadeIn; i++) out[i] *= i / Math.max(1, fadeIn - 1);
+  for (let i = 0; i < fadeOut; i++) out[count - fadeOut + i] *= 1 - i / Math.max(1, fadeOut - 1);
   // Headroom helps predictive BRR avoid wraparound. Never amplify by default.
   const gain = options.gain ?? 1;
   if (!Number.isFinite(gain) || gain < 0 || gain > 8) throw new Error('gain must be 0–8');

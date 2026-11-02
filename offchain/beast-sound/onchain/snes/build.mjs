@@ -40,12 +40,17 @@ export function buildBank(manifestPath) {
       loopJump: loopStart === null ? null : Math.abs(decoded[decoded.length - 1] - decoded[loopStart]) / 32768 });
   }
   validateBank(bank);
-  return { bank, report: { format: 'BSBRR1', brrBytes: total, budgetBytes: budget, uniqueSamples: bank.samples.length, instruments: report, bankJsonBytes: Buffer.byteLength(safeJson(bank)) } };
+  return { bank, report: { format: 'BSBRR1', brrBytes: total, decodedPcm16Bytes: total / 9 * 32, budgetBytes: budget, uniqueSamples: bank.samples.length, sharedSampleReferences: bank.instruments.length - bank.samples.length, instruments: report, bankJsonBytes: Buffer.byteLength(safeJson(bank)) } };
 }
 
 export async function bundleBank(bank) {
   validateBank(bank);
-  const result = await build({ stdin: { contents: `import {attach,createSampler} from './runtime.js'; const bank=${safeJson(bank)}; window.SnesBank={bank,attach:(s,o)=>attach(s,bank,o),createSampler:(a,o)=>createSampler(a,bank,o)};`, resolveDir: here, loader: 'js' }, bundle: true, minify: true, format: 'iife', target: 'es2020', write: false });
+  // Store a common credit once in the page; bank.json keeps each instrument self-contained.
+  const credit = bank.instruments[0]?.credit;
+  const shared = bank.instruments.length > 1 && credit && bank.instruments.every((i) => safeJson(i.credit) === safeJson(credit));
+  const data = shared ? { ...bank, instruments: bank.instruments.map(({ credit: _, ...i }) => i) } : bank;
+  const source = `const bank=${safeJson(data)};` + (shared ? `const credit=${safeJson(credit)};for(const i of bank.instruments)i.credit=credit;` : '');
+  const result = await build({ stdin: { contents: `import {attach,createSampler} from './runtime.js'; ${source} window.SnesBank={bank,attach:(s,o)=>attach(s,bank,o),createSampler:(a,o)=>createSampler(a,bank,o)};`, resolveDir: here, loader: 'js' }, bundle: true, minify: true, format: 'iife', target: 'es2020', write: false });
   return result.outputFiles[0].text.trim();
 }
 
@@ -70,7 +75,8 @@ export async function buildArtifacts(manifestPath, outDir) {
   writeFileSync(resolve(outDir, 'stored.b64'), stored);
   writeFileSync(resolve(outDir, 'page_data.cairo'), cairoData(stored));
   writeFileSync(resolve(outDir, 'report.json'), JSON.stringify(report, null, 2) + '\n');
-  const lab = readFileSync(resolve(here, 'lab.html'), 'utf8').replace('/*__SYNTH__*/', () => tiny).replace('/*__BANK__*/', () => script);
+  const demo = await build({ stdin: { contents: "import {scheduleDemo} from './demo.js';window.SnesDemo={schedule:scheduleDemo};", resolveDir: here }, bundle: true, minify: true, write: false });
+  const lab = readFileSync(resolve(here, 'lab.html'), 'utf8').replace('/*__SYNTH__*/', () => tiny).replace('/*__BANK__*/', () => script).replace('/*__DEMO__*/', () => demo.outputFiles[0].text);
   writeFileSync(resolve(outDir, 'lab.html'), lab);
   return report;
 }

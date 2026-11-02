@@ -1,14 +1,56 @@
 # SNES-style sample pipeline
 
-Add your sounds later. `manifest.json` is intentionally empty and `SNES_ONCHAIN` is false.
-The default page build remains byte-for-byte unchanged. No recordings, SoundFonts or game assets
-are included. This module is on the `feat/snes-brr-pipeline` branch, based on `v1.0.1`.
+`manifest.json` contains a six-instrument CC0 test bank from VSCO 2 Community Edition.
+`SNES_ONCHAIN` remains false while auditioning; the default production page stays unchanged.
+This module is on the `feat/snes-brr-pipeline` branch, based on `v1.0.1`.
+
+## Included pocket orchestra
+
+The harp, marimba, glockenspiel, violin section, cello section and flute are short mono derivatives
+of the official [VSCO 2 Community Edition](https://versilian-studios.com/vsco-community/) recordings.
+The upstream [CC0 license](https://github.com/sgossner/VSCO-2-CE/blob/440300901dfe9275fd84e0b7763af1f8443ae62e/LICENSE)
+is included as `VSCO-LICENSE.txt`. `vsco-sources.json` pins the original URLs, revision and SHA-256
+hashes. No Freesound material is needed for these instrument families.
+
+| Sound | MIDI program (zero-based) | BRR bytes | Playback |
+|---|---:|---:|---|
+| Harp | 46 (also 0 for bare scores) | 2,997 | Short attack + loop |
+| Marimba | 12 | 3,240 | One-shot, faded tail |
+| Glockenspiel | 9 | 2,286 | Short attack + loop |
+| Violin section | 48 | 3,726 | Sustain loop |
+| Cello section | 42 | 3,960 | Sustain loop |
+| Flute | 73 | 2,988 | Sustain loop |
+| **Unique sample payload** | **7 mappings / 6 samples** | **19,197** | **Under 20 KiB** |
+
+The program-0 alias reuses the harp bytes. The page stores the shared credit once. Only the six
+short mono source clips (195,186 bytes total) are tracked; full recordings stay in an ignored
+cache. `vsco-processing.json` records crops, normalization, pitch correction and loop selection.
+The original filenames have inconsistent octave conventions: roots are checked against SFZ
+mapping and measured sounding pitch. Glockenspiel uses sounding C6 (MIDI 84), whereas the original
+SFZ maps that recording to 72; this bank plays at the MIDI note's actual sounding pitch.
+
+```sh
+npm run snes:build
+# Open onchain/snes/dist/lab.html; choose a sound or “Play all + ensemble”.
+# Recreate source clips and manifest from the pinned originals:
+node onchain/snes/import-vsco.mjs --download
+# Render the actual bank to a WAV and check levels, live controls, and offline loading:
+PLAYWRIGHT_CORE=/absolute/path/to/playwright node onchain/snes/render-demo.mjs
+```
+
+The renderer writes `dist/audition.wav` and `dist/audio-report.json`. It plays each sound in order,
+then a short ensemble from 19.5 seconds. `CHROMIUM_EXECUTABLE` can select an installed headless browser.
+Measured 3 November 2026: all six sounds render, no clipped frames, peak 0.24435, zero network
+requests/page errors; 62 Node tests pass. The complete candidate page is 97,092 stored bytes
+(3,132 data words), **26,438 CASM felts**, with TinySynth fallback included. See
+`vsco-validation.json` for the snapshot. Gas is not measured. Source clips and test demo data are
+not embedded in the Cairo page; only the BRR bank, metadata and playback runtime are embedded.
 
 ## Add sounds
 
 Run commands from `offchain/beast-sound`:
 
-1. Put short WAV files in `onchain/snes/samples/` (ignored by Git).
+1. Put short WAV files in `onchain/snes/samples/` (ignored by Git except the included `vsco/` subset).
 2. Copy entries from `manifest.example.json` into `manifest.json`, replacing paths, tuning,
    loop points and credits with your own values. Paths are relative to the manifest.
 3. Run `npm run snes:build` and open `onchain/snes/dist/lab.html` to audition samples or a MIDI.
@@ -34,13 +76,16 @@ Identical encoded samples with identical rate/loop metadata are stored once acro
 | `trimStart`, `trimEnd` | Seconds in the original WAV; defaults to the whole file. |
 | `loopStart` | Seconds relative to the trimmed start; omit for one-shot. Rounded to the nearest 16-sample block. The trim end is the loop end, rounded down to a block. Actual indices are in the report. |
 | `gain` | Pre-encoding gain, default 1. Peaks are limited to ±0.9 to leave BRR headroom. |
+| `fadeIn`, `fadeOut` | Optional fades in seconds; `fadeOut` is for one-shots only. |
+| `loopCrossfade` | Optional tail crossfade into the history before loop entry; seconds, with at least that much pre-loop audio and twice that length in the loop. |
 | `tuneCents` | Fine tuning, default 0. |
 | `volume` | Playback gain 0–1, default 0.5. |
 | `envelope` | Attack, decay, release in seconds; sustain level 0–1. These are musical envelopes, not SNES register values. |
 | `credit` | Author, license text/identifier and source. Included in the bank and shown in the lab/page. Supply any required license notice in full. |
 
-Choose loop points by listening. The builder aligns loops and reports the decoded seam jump, but
-does not guess musical sustain regions or crossfade loops. `snrDb` measures encoding error against
+Choose loop points by listening. The builder aligns loops, optionally crossfades, and reports the
+decoded seam jump; it does not guess musical sustain regions. The VSCO importer chooses candidate
+boundaries by waveform matching within preset sustain regions. `snrDb` measures encoding error against
 prepared PCM; it is not a perceptual-quality guarantee. One-shots are padded with silence to a block.
 
 ## Compact Cairo storage
@@ -60,7 +105,7 @@ alone costs about 16/9 of its raw BRR size in stored page text, plus metadata an
 report includes both layers. A data-word count is **not** the compiled Sierra/CASM size or gas cost.
 
 ```sh
-# Compile the actual MidiSoundPage with the candidate in a temporary workspace:
+# Compile the actual MidiSoundPage with the included bank in a temporary workspace:
 node onchain/snes/measure-cairo.mjs
 node onchain/snes/measure-cairo.mjs /absolute/path/to/manifest.json
 # Optional synthetic capacity check; does not add sounds to your bank:

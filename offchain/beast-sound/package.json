@@ -31,6 +31,8 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "snes:build": "node onchain/snes/build.mjs",
+    "snes:import": "node onchain/snes/import-vsco.mjs",
+    "snes:render": "node onchain/snes/render-demo.mjs",
     "snes:test": "node --test test/snes.test.mjs",
     "serve": "node server/build.mjs && node server/node.mjs"
   },

@@ -2,3 +2,4 @@ dist/
 ._*
 samples/*
 !samples/.gitkeep
+!samples/vsco/

@@ -1,6 +1,173 @@
 {
   "format": "BSBRR1",
-  "name": "Beast SNES bank",
+  "name": "VSCO pocket orchestra",
   "maxBrrBytes": 20480,
-  "instruments": []
+  "instruments": [
+    {
+      "id": "harp",
+      "file": "samples/vsco/harp.wav",
+      "program": 46,
+      "rootNote": 62,
+      "sampleRate": 16000,
+      "trimEnd": 0.333,
+      "loopStart": 0.237,
+      "loopCrossfade": 0.012,
+      "fadeIn": 0.001,
+      "tuneCents": 12.49,
+      "volume": 0.48,
+      "envelope": {
+        "attack": 0.002,
+        "decay": 0.65,
+        "sustain": 0.08,
+        "release": 0.24
+      },
+      "credit": {
+        "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
+        "license": "CC0-1.0",
+        "source": "https://versilian-studios.com/vsco-community/"
+      }
+    },
+    {
+      "id": "marimba",
+      "file": "samples/vsco/marimba.wav",
+      "program": 12,
+      "rootNote": 72,
+      "sampleRate": 16000,
+      "fadeOut": 0.035,
+      "fadeIn": 0.001,
+      "tuneCents": -4.24,
+      "volume": 0.6,
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.5,
+        "sustain": 0.2,
+        "release": 0.12
+      },
+      "credit": {
+        "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
+        "license": "CC0-1.0",
+        "source": "https://versilian-studios.com/vsco-community/"
+      }
+    },
+    {
+      "id": "glockenspiel",
+      "file": "samples/vsco/glockenspiel.wav",
+      "program": 9,
+      "rootNote": 84,
+      "sampleRate": 16000,
+      "trimEnd": 0.254,
+      "loopStart": 0.161,
+      "loopCrossfade": 0.012,
+      "fadeIn": 0.001,
+      "tuneCents": -11.7,
+      "volume": 0.48,
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.8,
+        "sustain": 0.1,
+        "release": 0.35
+      },
+      "credit": {
+        "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
+        "license": "CC0-1.0",
+        "source": "https://versilian-studios.com/vsco-community/"
+      }
+    },
+    {
+      "id": "strings",
+      "file": "samples/vsco/strings.wav",
+      "program": 48,
+      "rootNote": 72,
+      "sampleRate": 16000,
+      "trimEnd": 0.414,
+      "loopStart": 0.223,
+      "loopCrossfade": 0.012,
+      "fadeIn": 0.001,
+      "tuneCents": 6.29,
+      "volume": 0.42,
+      "envelope": {
+        "attack": 0.025,
+        "decay": 0.2,
+        "sustain": 0.85,
+        "release": 0.22
+      },
+      "credit": {
+        "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
+        "license": "CC0-1.0",
+        "source": "https://versilian-studios.com/vsco-community/"
+      }
+    },
+    {
+      "id": "cello",
+      "file": "samples/vsco/cello.wav",
+      "program": 42,
+      "rootNote": 60,
+      "sampleRate": 16000,
+      "trimEnd": 0.44,
+      "loopStart": 0.27,
+      "loopCrossfade": 0.012,
+      "fadeIn": 0.001,
+      "tuneCents": -4.8,
+      "volume": 0.48,
+      "envelope": {
+        "attack": 0.012,
+        "decay": 0.24,
+        "sustain": 0.8,
+        "release": 0.2
+      },
+      "credit": {
+        "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
+        "license": "CC0-1.0",
+        "source": "https://versilian-studios.com/vsco-community/"
+      }
+    },
+    {
+      "id": "flute",
+      "file": "samples/vsco/flute.wav",
+      "program": 73,
+      "rootNote": 72,
+      "sampleRate": 16000,
+      "trimEnd": 0.332,
+      "loopStart": 0.246,
+      "loopCrossfade": 0.012,
+      "fadeIn": 0.001,
+      "tuneCents": 0.21,
+      "volume": 0.4,
+      "envelope": {
+        "attack": 0.008,
+        "decay": 0.12,
+        "sustain": 0.8,
+        "release": 0.15
+      },
+      "credit": {
+        "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
+        "license": "CC0-1.0",
+        "source": "https://versilian-studios.com/vsco-community/"
+      }
+    },
+    {
+      "id": "default-harp",
+      "file": "samples/vsco/harp.wav",
+      "program": 0,
+      "rootNote": 62,
+      "sampleRate": 16000,
+      "trimEnd": 0.333,
+      "loopStart": 0.237,
+      "loopCrossfade": 0.012,
+      "fadeIn": 0.001,
+      "tuneCents": 12.49,
+      "volume": 0.48,
+      "envelope": {
+        "attack": 0.002,
+        "decay": 0.65,
+        "sustain": 0.08,
+        "release": 0.24
+      },
+      "credit": {
+        "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
+        "license": "CC0-1.0",
+        "source": "https://versilian-studios.com/vsco-community/"
+      }
+    }
+  ]
 }

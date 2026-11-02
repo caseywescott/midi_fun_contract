@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { runInNewContext } from 'node:vm';
 import { encodeBRR, decodeBRR, validateBRR } from '../onchain/snes/brr.js';
 import { readWav, prepare } from '../onchain/snes/prepare.mjs';
 import { validateBank } from '../onchain/snes/bank.js';
@@ -60,6 +62,17 @@ test('resampling attenuates frequencies above the new Nyquist frequency', () => 
   const high = prepare(readWav(wav(tone(4096, 8 / 3)))).pcm;
   assert.ok(rms(high) / rms(low) < 0.01);
 });
+test('loop crossfade joins pre-loop history and one-shots fade to zero', () => {
+  const input = readWav(wav(tone(4096))), loopStart = 0.04;
+  const plain = prepare(input, { loopStart });
+  const smoothed = prepare(input, { loopStart, loopCrossfade: 0.01, fadeIn: 0.001 });
+  assert.equal(smoothed.pcm.at(-1), plain.pcm[smoothed.loopStart - 1]);
+  assert.equal(smoothed.pcm[0], 0);
+  assert.equal(prepare(input, { fadeOut: 0.02 }).pcm.at(-1), 0);
+  assert.throws(() => prepare(input, { loopCrossfade: 0.01 }), /pre-loop/);
+  assert.throws(() => prepare(input, { loopStart: 0.001, loopCrossfade: 0.01 }), /pre-loop/);
+  assert.throws(() => prepare(input, { loopStart, fadeOut: 0.01 }), /instead/);
+});
 test('bank compilation is deterministic, deduplicated, budgeted and validates mappings', () => fixture((dir) => {
   const path = join(dir, 'manifest.json'), m = example();
   m.instruments.push({ ...m.instruments[0], id: 'second', program: 1 });
@@ -85,4 +98,22 @@ test('empty bank bundles safely, Cairo data is aligned, and encoder stays out of
     assert.ok(readFileSync(join(dir, 'out/page_data.cairo'), 'utf8').includes(`"${stored}"`));
     assert.ok(Buffer.from(stored, 'base64').toString().includes('snes-brr-1'));
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('curated VSCO bank is reproducible, six payloads cover seven mappings below 20 KiB', async () => {
+  const root = new URL('../onchain/snes/', import.meta.url);
+  const processing = JSON.parse(readFileSync(new URL('vsco-processing.json', root)));
+  for (const s of processing.samples) {
+    const bytes = readFileSync(new URL(`samples/vsco/${s.id}.wav`, root));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), s.preparedSha256);
+    assert.ok(bytes.length < 45000);
+  }
+  const { bank, report } = buildBank(new URL('manifest.json', root));
+  assert.equal(bank.samples.length, 6); assert.equal(bank.instruments.length, 7);
+  assert.ok(report.brrBytes < 20480); assert.equal(report.sharedSampleReferences, 1);
+  assert.equal(bank.instruments.find((i) => i.program === 0).sample, bank.instruments.find((i) => i.program === 46).sample);
+  assert.ok(report.instruments.every((i) => i.snrDb > 20));
+  const context = { window: {} }; runInNewContext(await bundleBank(bank), context);
+  assert.deepEqual(JSON.parse(JSON.stringify(context.window.SnesBank.bank)), bank);
+  assert.equal(context.window.SnesBank.bank.instruments[0].credit, context.window.SnesBank.bank.instruments[1].credit);
 });

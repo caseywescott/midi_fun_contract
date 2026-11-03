@@ -9,6 +9,7 @@ import { encodeBRR, decodeBRR, validateBRR } from '../onchain/snes/brr.js';
 import { readWav, prepare } from '../onchain/snes/prepare.mjs';
 import { validateBank } from '../onchain/snes/bank.js';
 import { buildBank, bundleBank, buildArtifacts, cairoData } from '../onchain/snes/build.mjs';
+import { toBase91, fromBase91 } from '../onchain/snes/pack.js';
 
 function wav(pcm, rate = 32000) {
   const b = Buffer.alloc(44 + pcm.length * 2);
@@ -51,7 +52,9 @@ test('WAV preparation aligns loops, preserves one-shot padding and rejects bad m
   const input = readWav(wav(tone(4100)));
   const one = prepare(input), loop = prepare(input, { loopStart: 0.032 });
   assert.equal(one.pcm.length, 2064); assert.equal(loop.pcm.length, 2048); assert.equal(loop.loopStart, 512);
+  assert.equal(prepare(input, { sampleRate: 12000 }).rate, 12000);
   assert.equal(one.pcm.at(-1), 0);
+  assert.throws(() => prepare(input, { sampleRate: 11999 }), /12000/);
   assert.throws(() => prepare(input, { trimEnd: 10 }), /Trim/);
   assert.throws(() => prepare(input, { loopStart: NaN }), /loopStart/);
   assert.throws(() => readWav(wav(tone()).subarray(0, 100)), /Truncated/);
@@ -88,6 +91,9 @@ test('empty bank bundles safely, Cairo data is aligned, and encoder stays out of
   const bank = { format: 'BSBRR1', name: '</script><img>', samples: [], instruments: [] };
   const script = await bundleBank(bank);
   assert.ok(!script.includes('</script>')); assert.ok(!script.includes('PCM length must'));
+  const unnamed = { format: 'BSBRR1', samples: [], instruments: [] };
+  const context = { window: {} }; runInNewContext(await bundleBank(unnamed), context);
+  assert.deepEqual(JSON.parse(JSON.stringify(context.window.SnesBank.bank)), unnamed);
   assert.throws(() => cairoData('AA=='), /aligned/);
   const dir = mkdtempSync(join(tmpdir(), 'snes-artifacts-'));
   try {
@@ -100,7 +106,19 @@ test('empty bank bundles safely, Cairo data is aligned, and encoder stays out of
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('curated VSCO bank is reproducible, nine payloads cover ten mappings below 28 KiB', async () => {
+test('base91 page text round-trips every length and byte, with no quote, backslash or <', () => {
+  let seed = 7;
+  const random = () => (seed = (seed * 1103515245 + 12345) >>> 0) >>> 24;
+  for (let len = 0; len < 300; len++) {
+    for (const fill of [random, () => 0, () => 255]) {
+      const bytes = Array.from({ length: len }, fill), text = toBase91(bytes);
+      assert.deepEqual(fromBase91(text), bytes);
+      assert.ok(!/["\\<]/.test(text));
+    }
+  }
+});
+
+test('curated VSCO bank is reproducible, ten payloads cover ten MIDI programs below 32 KiB', async () => {
   const root = new URL('../onchain/snes/', import.meta.url);
   const processing = JSON.parse(readFileSync(new URL('vsco-processing.json', root)));
   for (const s of processing.samples) {
@@ -109,12 +127,19 @@ test('curated VSCO bank is reproducible, nine payloads cover ten mappings below 
     assert.ok(bytes.length < 45000);
   }
   const { bank, report } = buildBank(new URL('manifest.json', root));
-  assert.equal(bank.samples.length, 9); assert.equal(bank.instruments.length, 10);
-  assert.ok(report.brrBytes < 28672); assert.equal(report.sharedSampleReferences, 1);
-  assert.deepEqual([45, 47, 71].map((program) => bank.instruments.find((i) => i.program === program)?.id), ['pizzicato', 'timpani', 'clarinet']);
-  assert.equal(bank.instruments.find((i) => i.program === 0).sample, bank.instruments.find((i) => i.program === 46).sample);
+  assert.equal(bank.samples.length, 10); assert.equal(bank.instruments.length, 10);
+  assert.ok(report.brrBytes < 32768); assert.equal(report.sharedSampleReferences, 0);
+  assert.deepEqual([0, 45, 47, 71].map((program) => bank.instruments.find((i) => i.program === program)?.id), ['piano', 'pizzicato', 'timpani', 'clarinet']);
+  assert.notEqual(bank.instruments.find((i) => i.program === 0).sample, bank.instruments.find((i) => i.program === 46).sample);
   assert.ok(report.instruments.every((i) => i.snrDb > 20));
   const context = { window: {} }; runInNewContext(await bundleBank(bank), context);
   assert.deepEqual(JSON.parse(JSON.stringify(context.window.SnesBank.bank)), bank);
   assert.equal(context.window.SnesBank.bank.instruments[0].credit, context.window.SnesBank.bank.instruments[1].credit);
+  const economical = buildBank(new URL('manifest-12k.json', root));
+  assert.ok(economical.report.brrBytes < 28672);
+  assert.ok(report.brrBytes - economical.report.brrBytes > 4000);
+  const reduced = new Set(['marimba', 'strings', 'cello', 'clarinet', 'timpani']);
+  economical.bank.instruments.forEach((i) => assert.equal(economical.bank.samples[i.sample].rate, reduced.has(i.id) ? 12000 : 16000));
+  const badRate = structuredClone(economical.bank); badRate.samples[0].rate = 11999;
+  assert.throws(() => validateBank(badRate), /sample rate/);
 });

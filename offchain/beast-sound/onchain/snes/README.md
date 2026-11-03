@@ -1,13 +1,13 @@
 # SNES-style sample pipeline
 
-`manifest.json` contains a nine-instrument CC0 test bank from VSCO 2 Community Edition.
+`manifest.json` contains a ten-instrument CC0 test bank from VSCO 2 Community Edition.
 `SNES_ONCHAIN` remains false while auditioning; the default production page stays unchanged.
 This module is on the `feat/snes-brr-pipeline` branch, based on `v1.0.1`.
 
 ## Included pocket orchestra
 
 The harp, marimba, glockenspiel, violin section, cello section, flute, pizzicato strings,
-clarinet and timpani are short mono derivatives
+clarinet, timpani and upright piano are short mono derivatives
 of the official [VSCO 2 Community Edition](https://versilian-studios.com/vsco-community/) recordings.
 The upstream [CC0 license](https://github.com/sgossner/VSCO-2-CE/blob/440300901dfe9275fd84e0b7763af1f8443ae62e/LICENSE)
 is included as `VSCO-LICENSE.txt`. `vsco-sources.json` pins the original URLs, revision and SHA-256
@@ -15,7 +15,7 @@ hashes. No Freesound material is needed for these instrument families.
 
 | Sound | MIDI program (zero-based) | BRR bytes | Playback |
 |---|---:|---:|---|
-| Harp | 46 (also 0 for bare scores) | 2,997 | Short attack + loop |
+| Harp | 46 | 2,997 | Short attack + loop |
 | Marimba | 12 | 3,240 | One-shot, faded tail |
 | Glockenspiel | 9 | 2,286 | Short attack + loop |
 | Violin section | 48 | 3,726 | Sustain loop |
@@ -24,11 +24,13 @@ hashes. No Freesound material is needed for these instrument families.
 | Pizzicato strings | 45 | 2,160 | One-shot, faded tail |
 | Clarinet | 71 | 3,285 | Sustain loop |
 | Timpani | 47 | 3,420 | One-shot, faded tail |
-| **Unique sample payload** | **10 mappings / 9 samples** | **28,062** | **Under 28 KiB** |
+| Upright piano | 0 | 3,087 | Short attack + loop |
+| **Unique sample payload** | **10 mappings / 10 samples** | **31,149** | **Under 32 KiB** |
 
-The program-0 alias reuses the harp bytes. The page stores the shared credit once. Only the nine
-short mono source clips (283,518 bytes total) are tracked; full recordings stay in an ignored
-cache. `vsco-processing.json` records crops, normalization, pitch correction and loop selection.
+Program 0 now plays piano, including bare Beast scores; harp remains program 46. The page stores
+the shared credit once. Only the ten short mono source clips (316,196 bytes total) are tracked;
+full recordings stay in an ignored cache. `vsco-processing.json` records crops, normalization,
+pitch correction and loop selection.
 The original filenames have inconsistent octave conventions: roots are checked against SFZ
 mapping and measured sounding pitch. Glockenspiel uses sounding C6 (MIDI 84), whereas the original
 SFZ maps that recording to 72; this bank plays at the MIDI note's actual sounding pitch.
@@ -43,12 +45,36 @@ PLAYWRIGHT_CORE=/absolute/path/to/playwright node onchain/snes/render-demo.mjs
 ```
 
 The renderer writes `dist/audition.wav` and `dist/audio-report.json`. It plays each sound in order,
-then a short ensemble from 29 seconds. `CHROMIUM_EXECUTABLE` can select an installed headless browser.
-Measured 3 November 2026: all nine sounds render, no clipped frames, peak 0.25692, zero network
-requests/page errors; 62 Node tests pass. The complete candidate page is 113,460 stored bytes
-(3,660 data words), **28,022 CASM felts**, with TinySynth fallback included. See
+then a short ensemble from 32.2 seconds. `CHROMIUM_EXECUTABLE` can select an installed headless browser.
+Measured 3 November 2026: all ten sounds render, no clipped frames, peak 0.26707, zero network
+requests/page errors; 63 Node tests pass. The complete candidate page is 114,576 stored bytes
+(3,696 data words), **28,130 CASM felts**, with TinySynth fallback included. See
 `vsco-validation.json` for the snapshot. Gas is not measured. Source clips and test demo data are
 not embedded in the Cairo page; only the BRR bank, metadata and playback runtime are embedded.
+
+## Mixed 12 kHz version
+
+`manifest-12k.json` uses 12 kHz for marimba, violin section, cello section, clarinet and timpani.
+The other five sounds remain at 16 kHz to retain their brighter attacks and upper partials.
+The importer recalculates loop points on each 12 kHz waveform; `vsco-processing-12k.json` records
+the selected boundaries. Both manifests use the same ten short source WAVs.
+
+```sh
+npm run snes:build:12k
+# Open onchain/snes/dist-12k/lab.html to compare it with dist/lab.html.
+PLAYWRIGHT_CORE=/absolute/path/to/playwright npm run snes:render:12k
+node onchain/snes/measure-cairo.mjs onchain/snes/manifest-12k.json
+```
+
+| Candidate | BRR bytes | Stored page bytes | CASM felts |
+|---|---:|---:|---:|
+| 16 kHz reference | 31,149 | 114,576 | 28,130 |
+| Mixed 12 kHz | 26,685 | 107,136 | 27,410 |
+| **Saved** | **4,464** | **7,440** | **720** |
+
+The lower sample rate removes some upper frequencies from those five sounds. Both 42-second browser
+renders played all ten sounds with no clipped frames, page errors or network requests. The alternate
+candidate remains under its 28 KiB BRR budget; see `vsco-validation-12k.json` for measurements.
 
 ## Add sounds
 
@@ -67,7 +93,7 @@ npm run snes:test
 ```
 
 Input: mono/stereo RIFF WAV, PCM 8/16/24/32-bit or float32, 8–192 kHz.
-Output: mono BRR at 16–32 kHz, with a 20 KiB default compressed-bank budget, hard maximum 64 KiB.
+Output: mono BRR at 12–32 kHz, with a 20 KiB default compressed-bank budget, hard maximum 64 KiB.
 Each selected clip must be at most four seconds; short attacks plus loops are much more economical.
 Identical encoded samples with identical rate/loop metadata are stored once across instruments.
 
@@ -76,7 +102,7 @@ Identical encoded samples with identical rate/loop metadata are stored once acro
 | `program` | Zero-based MIDI program 0–127; optional slot 128 for callers using the old custom lead. Use program 0 for bare Beast scores. |
 | `drum` | MIDI percussion key, instead of `program`; channel 10 uses the drum mapping. |
 | `rootNote` | MIDI note of the recorded sound; e.g. middle C = 60. Required. |
-| `sampleRate` | Output rate, default 16000; up to 32000. |
+| `sampleRate` | Output rate, default 16000; 12000–32000. |
 | `trimStart`, `trimEnd` | Seconds in the original WAV; defaults to the whole file. |
 | `loopStart` | Seconds relative to the trimmed start; omit for one-shot. Rounded to the nearest 16-sample block. The trim end is the loop end, rounded down to a block. Actual indices are in the report. |
 | `gain` | Pre-encoding gain, default 1. Peaks are limited to ±0.9 to leave BRR headroom. |
@@ -104,12 +130,13 @@ API as the existing TinySynth page. It stores 31-byte words and aligns the HTML 
 base64, using `onchain/page.js`. There is no PCM, sample encoder or resampler in Cairo; only the
 packed fixed page is copied at `token_uri` time. Browser decoding is lazy and cached per sample.
 
-The JSON bank contains base64 BRR, and the page adds its own base64 layer. Consequently sample data
-alone costs about 16/9 of its raw BRR size in stored page text, plus metadata and alignment. The
-report includes both layers. A data-word count is **not** the compiled Sierra/CASM size or gas cost.
-The short attack clips, sustain loops, shared harp payload and shared credit keep this nine-sound
-bank to 28,062 BRR bytes. Deflating the already encoded BRR stream only reduces it to 26,565 bytes;
-an extra browser decompression stage was not added for that small saving.
+`bank.json` contains base64 BRR. The page carries the bank packed instead (`pack.js`): samples as
+base91 text (printable ASCII without `"`, `\` and `<`) and records as arrays, unpacked to the same
+bank on load. The page adds its own base64 layer, so sample data costs about 1.64× its raw BRR
+size in stored page text (base64 inside base64 would be 16/9 ≈ 1.78×), plus metadata and
+alignment. The report includes both layers. A data-word count is **not** the compiled Sierra/CASM size or gas cost.
+Short attack clips, sustain loops and a shared credit keep this ten-sound bank to 31,149 BRR bytes.
+The piano adds only 3,087 bytes through a short attack and a sustain loop.
 
 ```sh
 # Compile the actual MidiSoundPage with the included bank in a temporary workspace:
@@ -130,14 +157,11 @@ TinySynth fallback, sample runtime, player and page assembly:
 | Candidate | BRR bytes | Stored page bytes | CASM felts |
 |---|---:|---:|---:|
 | Existing TinyChip/BeatSync page | — | 65,472 | 23,378 |
-| SNES pipeline, no samples | 0 | 61,380 | 22,982 |
-| Synthetic ~20 KiB bank | 20,475 | 98,208 | 26,546 |
-| Synthetic ~64 KiB bank | 65,529 | 178,188 | 34,286 |
+| 16 kHz VSCO bank | 31,149 | 114,576 | 28,130 |
+| Mixed 12 kHz VSCO bank | 26,685 | 107,136 | 27,410 |
 
-The size probes use one synthetic instrument with short credits. Real metadata changes the totals.
-Both populated probes fit the configured CASM threshold; these measurements do not establish gas
-cost, RPC response suitability, or the maximum deployable bank. The empty candidate uses a smaller
-player and replaces TinyChip/BeatSync, which accounts for its smaller size.
+Both candidates fit the configured CASM threshold; these measurements do not establish gas
+cost, RPC response suitability, or the maximum deployable bank.
 
 To opt into the production page after supplying samples:
 

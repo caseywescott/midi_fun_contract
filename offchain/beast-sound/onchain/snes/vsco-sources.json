@@ -94,6 +94,16 @@
       "mappingUrl": "https://github.com/sgossner/VSCO-2-CE/blob/6dd651d55dde97fd4028699be9d4481f26917891/Timpani.sfz",
       "officialSfzRoot": 42,
       "soundingRoot": 42
+    },
+    {
+      "id": "piano",
+      "path": "Keys/Upright Piano/Player_dyn2_rr1_022.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Keys/Upright%20Piano/Player_dyn2_rr1_022.wav",
+      "sha256": "9a4e03fa389b7e59ea6b3a6719eef52be8d607844283c7163662030f57b60942",
+      "sourceBytes": 4476550,
+      "mappingUrl": "https://github.com/sgossner/VSCO-2-CE/blob/6dd651d55dde97fd4028699be9d4481f26917891/UprightPiano.sfz",
+      "officialSfzRoot": 65,
+      "soundingRoot": 65
     }
   ],
   "checkedDate": "2026-11-03"

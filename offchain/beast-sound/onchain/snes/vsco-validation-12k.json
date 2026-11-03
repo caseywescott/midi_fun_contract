@@ -1,0 +1,209 @@
+{
+  "measuredDate": "2026-11-03",
+  "variant": "mixed-12k",
+  "sourceRevision": "440300901dfe9275fd84e0b7763af1f8443ae62e",
+  "manifestSha256": "7acba271fb419eda1784eeb334175d6ceda1cbf61b9790470231e400d681d16f",
+  "storedPageSha256": "ad84eb0f479a54f8e37f8ca77ac04b8ff82f86bfa0ab8b7033a9e526f0667a4a",
+  "sourceBytes": 20097394,
+  "preparedWavBytes": 316196,
+  "packing": {
+    "format": "BSBRR1",
+    "brrBytes": 26685,
+    "decodedPcm16Bytes": 94880,
+    "budgetBytes": 28672,
+    "uniqueSamples": 10,
+    "sharedSampleReferences": 0,
+    "instruments": [
+      {
+        "id": "harp",
+        "frames": 5328,
+        "rate": 16000,
+        "loopStart": 3792,
+        "brrBytes": 2997,
+        "snrDb": 44.95,
+        "loopJump": 0.02496337890625
+      },
+      {
+        "id": "marimba",
+        "frames": 4320,
+        "rate": 12000,
+        "loopStart": null,
+        "brrBytes": 2430,
+        "snrDb": 28.58,
+        "loopJump": null
+      },
+      {
+        "id": "glockenspiel",
+        "frames": 4064,
+        "rate": 16000,
+        "loopStart": 2576,
+        "brrBytes": 2286,
+        "snrDb": 21.75,
+        "loopJump": 0.00018310546875
+      },
+      {
+        "id": "strings",
+        "frames": 5040,
+        "rate": 12000,
+        "loopStart": 3328,
+        "brrBytes": 2835,
+        "snrDb": 26.74,
+        "loopJump": 0.04718017578125
+      },
+      {
+        "id": "cello",
+        "frames": 5184,
+        "rate": 12000,
+        "loopStart": 3008,
+        "brrBytes": 2916,
+        "snrDb": 29.11,
+        "loopJump": 0.0625
+      },
+      {
+        "id": "flute",
+        "frames": 5312,
+        "rate": 16000,
+        "loopStart": 3936,
+        "brrBytes": 2988,
+        "snrDb": 41.81,
+        "loopJump": 0.04071044921875
+      },
+      {
+        "id": "pizzicato",
+        "frames": 3840,
+        "rate": 16000,
+        "loopStart": null,
+        "brrBytes": 2160,
+        "snrDb": 34.73,
+        "loopJump": null
+      },
+      {
+        "id": "clarinet",
+        "frames": 4304,
+        "rate": 12000,
+        "loopStart": 3040,
+        "brrBytes": 2421,
+        "snrDb": 33.56,
+        "loopJump": 0.02764892578125
+      },
+      {
+        "id": "timpani",
+        "frames": 4560,
+        "rate": 12000,
+        "loopStart": null,
+        "brrBytes": 2565,
+        "snrDb": 57.68,
+        "loopJump": null
+      },
+      {
+        "id": "piano",
+        "frames": 5488,
+        "rate": 16000,
+        "loopStart": 4160,
+        "brrBytes": 3087,
+        "snrDb": 48.7,
+        "loopJump": 0.05108642578125
+      }
+    ],
+    "bankJsonBytes": 39105,
+    "runtimeAndBankBytes": 42102,
+    "pageStoredBytes": 107136,
+    "pageDataWords": 3456,
+    "deltaStoredBytesVsCurrentPage": 41664,
+    "note": "Includes the packed bank (base91 samples) and outer page base64. Not compiled CASM size or gas. No samples are bundled unless supplied in the manifest."
+  },
+  "cairo": {
+    "brrBytes": 26685,
+    "pageStoredBytes": 107136,
+    "pageDataWords": 3456,
+    "casmFelts": 27410,
+    "sierraFelts": 32519,
+    "configuredCasmLimit": 81920,
+    "casmHeadroom": 54510,
+    "gasMeasured": false
+  },
+  "audio": {
+    "rate": 32000,
+    "channels": 2,
+    "seconds": 42,
+    "peak": 0.2594270408153534,
+    "clipped": 0,
+    "sections": [
+      {
+        "time": 0,
+        "label": "harp",
+        "rms": 0.026809479461673984
+      },
+      {
+        "time": 3.2,
+        "label": "marimba",
+        "rms": 0.029426297809208878
+      },
+      {
+        "time": 6.4,
+        "label": "glockenspiel",
+        "rms": 0.011765959007709274
+      },
+      {
+        "time": 9.600000000000001,
+        "label": "strings",
+        "rms": 0.026825980834886028
+      },
+      {
+        "time": 12.8,
+        "label": "cello",
+        "rms": 0.024968360311671472
+      },
+      {
+        "time": 16,
+        "label": "flute",
+        "rms": 0.039766163912442164
+      },
+      {
+        "time": 19.200000000000003,
+        "label": "pizzicato",
+        "rms": 0.014929010643919978
+      },
+      {
+        "time": 22.400000000000002,
+        "label": "clarinet",
+        "rms": 0.03250766241367538
+      },
+      {
+        "time": 25.6,
+        "label": "timpani",
+        "rms": 0.032801836961718546
+      },
+      {
+        "time": 28.8,
+        "label": "piano",
+        "rms": 0.037754538136332214
+      },
+      {
+        "time": 32.2,
+        "label": "Pocket orchestra",
+        "rms": 0.051664940784297536
+      }
+    ],
+    "networkRequests": 0,
+    "pageErrors": []
+  },
+  "nodeTestsPassed": 63,
+  "sampleRates": {
+    "harp": 16000,
+    "marimba": 12000,
+    "glockenspiel": 16000,
+    "strings": 12000,
+    "cello": 12000,
+    "flute": 16000,
+    "pizzicato": 16000,
+    "clarinet": 12000,
+    "timpani": 12000,
+    "piano": 16000
+  },
+  "savedVs16k": {
+    "brrBytes": 4464,
+    "pageStoredBytes": 7440,
+    "casmFelts": 720
+  }
+}

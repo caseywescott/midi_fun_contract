@@ -1,7 +1,7 @@
 {
   "format": "BSBRR1",
   "name": "VSCO pocket orchestra",
-  "maxBrrBytes": 28672,
+  "maxBrrBytes": 32768,
   "instruments": [
     {
       "id": "harp",
@@ -214,22 +214,22 @@
       }
     },
     {
-      "id": "default-harp",
-      "file": "samples/vsco/harp.wav",
+      "id": "piano",
+      "file": "samples/vsco/piano.wav",
       "program": 0,
-      "rootNote": 62,
+      "rootNote": 65,
       "sampleRate": 16000,
-      "trimEnd": 0.333,
-      "loopStart": 0.237,
+      "trimEnd": 0.343,
+      "loopStart": 0.26,
       "loopCrossfade": 0.012,
       "fadeIn": 0.001,
-      "tuneCents": 12.49,
-      "volume": 0.48,
+      "tuneCents": -1.11,
+      "volume": 0.52,
       "envelope": {
-        "attack": 0.002,
-        "decay": 0.65,
-        "sustain": 0.08,
-        "release": 0.24
+        "attack": 0.001,
+        "decay": 0.7,
+        "sustain": 0.12,
+        "release": 0.22
       },
       "credit": {
         "author": "Versilian Studios / Sam Gossner & Simon Dalzell",

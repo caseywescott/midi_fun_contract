@@ -2,7 +2,7 @@
 export function demoSequence(bank) {
   const instruments = bank.instruments.filter((i, n, all) => all.findIndex((x) => x.sample === i.sample) === n && i.program !== undefined);
   const notes = [], sections = [];
-  const registers = { harp: 60, marimba: 60, glockenspiel: 72, strings: 60, cello: 48, flute: 72, pizzicato: 60, clarinet: 62, timpani: 42 };
+  const registers = { harp: 60, marimba: 60, glockenspiel: 72, strings: 60, cello: 48, flute: 72, pizzicato: 60, clarinet: 62, timpani: 42, piano: 60 };
   for (const [index, inst] of instruments.entries()) {
     const at = index * 3.2, base = registers[inst.id] ?? inst.rootNote;
     sections.push({ time: at, label: inst.id });
@@ -25,6 +25,7 @@ export function demoSequence(bank) {
       if (byId.has('clarinet')) add('clarinet', 7, chord[2] + 2, start + 0.9, 0.8, 82, -0.05);
       if (byId.has('pizzicato')) { add('pizzicato', 6, chord[0] + 12, start + 0.75, 0.25, 88, 0.45); add('pizzicato', 6, chord[1] + 12, start + 1.25, 0.25, 82, 0.45); }
       if (byId.has('timpani')) add('timpani', 8, 42 + (bar % 2 ? 3 : 0), start, 0.35, 96, -0.15);
+      if (byId.has('piano')) add('piano', 9, chord[0], start + 1, 0.55, 88, 0.1);
     });
   }
   notes.sort((a, b) => a.time - b.time || a.channel - b.channel);

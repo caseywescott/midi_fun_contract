@@ -1,0 +1,66 @@
+{
+  "reducedRate": 12000,
+  "samples": [
+    {
+      "id": "harp",
+      "rate": 16000,
+      "loopStart": 3792,
+      "loopEnd": 5328,
+      "boundaryError": 0.016083
+    },
+    {
+      "id": "marimba",
+      "rate": 12000
+    },
+    {
+      "id": "glockenspiel",
+      "rate": 16000,
+      "loopStart": 2576,
+      "loopEnd": 4064,
+      "boundaryError": 0.047266
+    },
+    {
+      "id": "strings",
+      "rate": 12000,
+      "loopStart": 3328,
+      "loopEnd": 5040,
+      "boundaryError": 0.202269
+    },
+    {
+      "id": "cello",
+      "rate": 12000,
+      "loopStart": 3008,
+      "loopEnd": 5184,
+      "boundaryError": 0.216959
+    },
+    {
+      "id": "flute",
+      "rate": 16000,
+      "loopStart": 3936,
+      "loopEnd": 5312,
+      "boundaryError": 0.000894
+    },
+    {
+      "id": "pizzicato",
+      "rate": 16000
+    },
+    {
+      "id": "clarinet",
+      "rate": 12000,
+      "loopStart": 3040,
+      "loopEnd": 4304,
+      "boundaryError": 0.002137
+    },
+    {
+      "id": "timpani",
+      "rate": 12000
+    },
+    {
+      "id": "piano",
+      "rate": 16000,
+      "loopStart": 4160,
+      "loopEnd": 5488,
+      "boundaryError": 0.024608
+    }
+  ]
+}

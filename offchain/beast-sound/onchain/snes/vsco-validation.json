@@ -1,17 +1,18 @@
 {
   "measuredDate": "2026-11-03",
+  "variant": "16k",
   "sourceRevision": "440300901dfe9275fd84e0b7763af1f8443ae62e",
-  "manifestSha256": "356a37194299b78b024a1aaf5ee7d5fff396cd14763ce395c4ab592e05a0ccd0",
-  "storedPageSha256": "d6ae8aa7a0769f022a654ae1542f346ef900890e9840fae3b5f1020054e21552",
-  "sourceBytes": 15620844,
-  "preparedWavBytes": 283518,
+  "manifestSha256": "582f9998631f0fc80d16d03681f727ae4aa1b16c37078b8b6195d1a51ef08db7",
+  "storedPageSha256": "34e6bf8f603f474f631a9c74a0b9c8076ce2821356420bf34e9ae386f657e44e",
+  "sourceBytes": 20097394,
+  "preparedWavBytes": 316196,
   "packing": {
     "format": "BSBRR1",
-    "brrBytes": 28062,
-    "decodedPcm16Bytes": 99776,
-    "budgetBytes": 28672,
-    "uniqueSamples": 9,
-    "sharedSampleReferences": 1,
+    "brrBytes": 31149,
+    "decodedPcm16Bytes": 110752,
+    "budgetBytes": 32768,
+    "uniqueSamples": 10,
+    "sharedSampleReferences": 0,
     "instruments": [
       {
         "id": "harp",
@@ -95,37 +96,37 @@
         "loopJump": null
       },
       {
-        "id": "default-harp",
-        "frames": 5328,
+        "id": "piano",
+        "frames": 5488,
         "rate": 16000,
-        "loopStart": 3792,
-        "brrBytes": 2997,
-        "snrDb": 44.95,
-        "loopJump": 0.02496337890625
+        "loopStart": 4160,
+        "brrBytes": 3087,
+        "snrDb": 48.7,
+        "loopJump": 0.05108642578125
       }
     ],
-    "bankJsonBytes": 40903,
-    "runtimeAndBankBytes": 46828,
-    "pageStoredBytes": 113460,
-    "pageDataWords": 3660,
-    "deltaStoredBytesVsCurrentPage": 47988,
-    "note": "Includes bank JSON/base64 and outer page base64. Not compiled CASM size or gas. No samples are bundled unless supplied in the manifest."
+    "bankJsonBytes": 45053,
+    "runtimeAndBankBytes": 47581,
+    "pageStoredBytes": 114576,
+    "pageDataWords": 3696,
+    "deltaStoredBytesVsCurrentPage": 49104,
+    "note": "Includes the packed bank (base91 samples) and outer page base64. Not compiled CASM size or gas. No samples are bundled unless supplied in the manifest."
   },
   "cairo": {
-    "brrBytes": 28062,
-    "pageStoredBytes": 113460,
-    "pageDataWords": 3660,
-    "casmFelts": 28022,
-    "sierraFelts": 34408,
+    "brrBytes": 31149,
+    "pageStoredBytes": 114576,
+    "pageDataWords": 3696,
+    "casmFelts": 28130,
+    "sierraFelts": 34545,
     "configuredCasmLimit": 81920,
-    "casmHeadroom": 53898,
+    "casmHeadroom": 53790,
     "gasMeasured": false
   },
   "audio": {
     "rate": 32000,
     "channels": 2,
-    "seconds": 38.8,
-    "peak": 0.2569229006767273,
+    "seconds": 42,
+    "peak": 0.2670733630657196,
     "clipped": 0,
     "sections": [
       {
@@ -171,16 +172,21 @@
       {
         "time": 25.6,
         "label": "timpani",
-        "rms": 0.031854824514250396
+        "rms": 0.03283520153944229
       },
       {
-        "time": 29,
+        "time": 28.8,
+        "label": "piano",
+        "rms": 0.037754538136332214
+      },
+      {
+        "time": 32.2,
         "label": "Pocket orchestra",
-        "rms": 0.04874465215849029
+        "rms": 0.05262150262123996
       }
     ],
     "networkRequests": 0,
     "pageErrors": []
   },
-  "nodeTestsPassed": 62
+  "nodeTestsPassed": 63
 }

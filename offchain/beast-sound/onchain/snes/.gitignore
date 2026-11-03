@@ -1,4 +1,5 @@
 dist/
+dist-12k/
 ._*
 samples/*
 !samples/.gitkeep

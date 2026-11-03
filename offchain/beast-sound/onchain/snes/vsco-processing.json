@@ -126,6 +126,21 @@
       "preparedBytes": 33560,
       "measuredHz": null,
       "tuneCents": 0
+    },
+    {
+      "id": "piano",
+      "inputRate": 44100,
+      "cropStart": 0,
+      "cropSeconds": 0.37,
+      "monoNormalizationGain": 8.907773,
+      "dcRemoved": -0.00004914,
+      "preparedSha256": "f0759d181339703b37b126af9a3d1b9b7e490ef827ca9e4c2a742460e48bf010",
+      "preparedBytes": 32678,
+      "measuredHz": 349.453,
+      "tuneCents": -1.11,
+      "loopStart": 4160,
+      "loopEnd": 5488,
+      "boundaryError": 0.024608
     }
   ]
 }

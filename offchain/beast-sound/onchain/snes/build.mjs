@@ -2,10 +2,12 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { isDeepStrictEqual } from 'node:util';
 import { build } from 'esbuild';
 import { readWav, prepare } from './prepare.mjs';
 import { encodeBRR, decodeBRR } from './brr.js';
 import { envelope, integer, validateBank } from './bank.js';
+import { packBank, unpackBank } from './pack.js';
 import { storedSegment } from '../page.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -48,9 +50,14 @@ export async function bundleBank(bank) {
   // Store a common credit once in the page; bank.json keeps each instrument self-contained.
   const credit = bank.instruments[0]?.credit;
   const shared = bank.instruments.length > 1 && credit && bank.instruments.every((i) => safeJson(i.credit) === safeJson(credit));
-  const data = shared ? { ...bank, instruments: bank.instruments.map(({ credit: _, ...i }) => i) } : bank;
-  const source = `const bank=${safeJson(data)};` + (shared ? `const credit=${safeJson(credit)};for(const i of bank.instruments)i.credit=credit;` : '');
-  const result = await build({ stdin: { contents: `import {attach,createSampler} from './runtime.js'; ${source} window.SnesBank={bank,attach:(s,o)=>attach(s,bank,o),createSampler:(a,o)=>createSampler(a,bank,o)};`, resolveDir: here, loader: 'js' }, bundle: true, minify: true, format: 'iife', target: 'es2020', write: false });
+  const packed = packBank(bank), credits = bank.instruments.map((i) => i.credit);
+  const unpacked = unpackBank(JSON.parse(safeJson(packed)));
+  unpacked.instruments.forEach((i, j) => { if (credits[j] !== undefined) i.credit = credits[j]; });
+  if (!isDeepStrictEqual(unpacked, JSON.parse(safeJson(bank)))) throw new Error('Bank fields the page form does not carry');
+  const source = `const bank=unpackBank(${safeJson(packed)});` + (shared
+    ? `const credit=${safeJson(credit)};for(const i of bank.instruments)i.credit=credit;`
+    : `${safeJson(credits)}.forEach((c,j)=>{if(c)bank.instruments[j].credit=c});`);
+  const result = await build({ stdin: { contents: `import {attach,createSampler} from './runtime.js'; import {unpackBank} from './pack.js'; ${source} window.SnesBank={bank,attach:(s,o)=>attach(s,bank,o),createSampler:(a,o)=>createSampler(a,bank,o)};`, resolveDir: here, loader: 'js' }, bundle: true, minify: true, format: 'iife', target: 'es2020', write: false });
   return result.outputFiles[0].text.trim();
 }
 
@@ -68,7 +75,7 @@ export async function buildArtifacts(manifestPath, outDir) {
   const stored = storedSegment(pageScript);
   const baseline = readFileSync(resolve(here, '../dist/stored.b64'), 'utf8');
   Object.assign(report, { runtimeAndBankBytes: Buffer.byteLength(script), pageStoredBytes: stored.length, pageDataWords: stored.length / 31, deltaStoredBytesVsCurrentPage: stored.length - baseline.length,
-    note: 'Includes bank JSON/base64 and outer page base64. Not compiled CASM size or gas. No samples are bundled unless supplied in the manifest.' });
+    note: 'Includes the packed bank (base91 samples) and outer page base64. Not compiled CASM size or gas. No samples are bundled unless supplied in the manifest.' });
   mkdirSync(outDir, { recursive: true });
   writeFileSync(resolve(outDir, 'bank.json'), safeJson(bank) + '\n');
   writeFileSync(resolve(outDir, 'bank.min.js'), script + '\n');

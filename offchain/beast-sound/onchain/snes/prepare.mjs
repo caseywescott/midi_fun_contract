@@ -30,7 +30,7 @@ export function readWav(bytes) {
 
 export function prepare(wav, options = {}) {
   const rate = options.sampleRate ?? 16000;
-  if (!Number.isInteger(rate) || rate < 16000 || rate > 32000) throw new Error('sampleRate must be 16000–32000');
+  if (!Number.isInteger(rate) || rate < 12000 || rate > 32000) throw new Error('sampleRate must be 12000–32000');
   const start = options.trimStart ?? 0, end = options.trimEnd ?? wav.pcm.length / wav.rate;
   if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > wav.pcm.length / wav.rate + 1e-9 || end - start > 4) throw new Error('Trim must select 0–4 seconds inside the WAV');
   const frames = Math.round((end - start) * rate), looping = options.loopStart !== undefined && options.loopStart !== null;

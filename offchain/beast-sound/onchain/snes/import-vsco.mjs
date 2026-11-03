@@ -10,6 +10,7 @@ import { readWav, prepare } from './prepare.mjs';
 const here = dirname(fileURLToPath(import.meta.url));
 const sources = JSON.parse(readFileSync(resolve(here, 'vsco-sources.json'), 'utf8'));
 const sha = (b) => createHash('sha256').update(b).digest('hex');
+const lowRateIds = new Set(['marimba', 'strings', 'cello', 'clarinet', 'timpani']);
 const settings = {
   harp: { program: 46, rootNote: 62, start: 0.020, length: 0.34, loopMin: 0.18, volume: 0.48, envelope: { attack: 0.002, decay: 0.65, sustain: 0.08, release: 0.24 } },
   marimba: { program: 12, rootNote: 72, start: 0, length: 0.36, volume: 0.6, envelope: { attack: 0.001, decay: 0.5, sustain: 0.2, release: 0.12 } },
@@ -20,6 +21,7 @@ const settings = {
   pizzicato: { program: 45, rootNote: 72, start: 0, length: 0.24, volume: 0.53, envelope: { attack: 0.001, decay: 0.28, sustain: 0, release: 0.08 } },
   clarinet: { program: 71, rootNote: 74, start: 0.016, length: 0.38, loopMin: 0.16, volume: 0.43, envelope: { attack: 0.012, decay: 0.12, sustain: 0.78, release: 0.16 } },
   timpani: { program: 47, rootNote: 42, start: 0, length: 0.38, tune: false, volume: 0.54, envelope: { attack: 0.001, decay: 0.42, sustain: 0, release: 0.10 } },
+  piano: { program: 0, rootNote: 65, start: 0, length: 0.37, loopMin: 0.16, volume: 0.52, envelope: { attack: 0.001, decay: 0.7, sustain: 0.12, release: 0.22 } },
 };
 function wav16(pcm, rate) {
   const b = Buffer.alloc(44 + pcm.length * 2);
@@ -51,9 +53,10 @@ function tuning(pcm, rate, root) {
 function loop(pcm, minSeconds, rate) {
   let best;
   // Match a 4 ms waveform window before both boundaries; permit up to 40 ms shorter tail.
-  const width = 64, maxEnd = Math.floor(pcm.length / 16) * 16;
-  for (let end = maxEnd - 640; end <= maxEnd; end += 16) {
-    for (let start = Math.ceil(minSeconds * rate / 16) * 16; start <= end - 1280; start += 16) {
+  const width = Math.round(rate * 0.004), maxEnd = Math.floor(pcm.length / 16) * 16;
+  const maxTail = Math.round(rate * 0.04 / 16) * 16, minLoop = Math.round(rate * 0.08 / 16) * 16;
+  for (let end = maxEnd - maxTail; end <= maxEnd; end += 16) {
+    for (let start = Math.ceil(minSeconds * rate / 16) * 16; start <= end - minLoop; start += 16) {
       let error = 0, energy = 0;
       for (let i = 1; i <= width; i++) { error += (pcm[start - i] - pcm[end - i]) ** 2; energy += pcm[start - i] ** 2 + pcm[end - i] ** 2; }
       const score = error / Math.max(energy, 1);
@@ -65,7 +68,7 @@ function loop(pcm, minSeconds, rate) {
 }
 mkdirSync(resolve(here, 'samples/.source-cache'), { recursive: true });
 mkdirSync(resolve(here, 'samples/vsco'), { recursive: true });
-const instruments = [], processing = [];
+const instruments = [], economical = [], processing = [], economicalProcessing = [];
 for (const source of sources.samples) {
   const cached = resolve(here, `samples/.source-cache/${source.id}.wav`);
   if (!existsSync(cached)) {
@@ -82,18 +85,25 @@ for (const source of sources.samples) {
   const file = `samples/vsco/${source.id}.wav`, bytes = wav16(crop.map((v) => (v - mean) * gain), input.rate);
   writeFileSync(resolve(here, file), bytes);
   // Keep original sample rate in these small source clips. The bank build resamples only once.
-  const prepared = prepare(readWav(bytes), { sampleRate: 16000 });
-  const points = s.loopMin ? loop(prepared.pcm, s.loopMin, 16000) : null;
+  const wav = readWav(bytes);
+  const pointsAt = (rate) => s.loopMin ? loop(prepare(wav, { sampleRate: rate }).pcm, s.loopMin, rate) : null;
+  const points = pointsAt(16000);
   // Timpani pitch is unstable across the strike and its inharmonic partials.
   const pitch = s.tune === false ? { measuredHz: null, tuneCents: 0 } : tuning(crop, input.rate, s.rootNote);
-  instruments.push({ id: source.id, file, program: s.program, rootNote: s.rootNote, sampleRate: 16000,
-    ...(points ? { trimEnd: points.end / 16000, loopStart: points.start / 16000, loopCrossfade: 0.012 } : { fadeOut: 0.035 }),
+  const instrumentAt = (rate, loopPoints) => ({ id: source.id, file, program: s.program, rootNote: s.rootNote, sampleRate: rate,
+    ...(loopPoints ? { trimEnd: loopPoints.end / rate, loopStart: loopPoints.start / rate, loopCrossfade: 0.012 } : { fadeOut: 0.035 }),
     fadeIn: 0.001, tuneCents: pitch.tuneCents, volume: s.volume, envelope: s.envelope,
     credit: { author: 'Versilian Studios / Sam Gossner & Simon Dalzell', license: 'CC0-1.0', source: sources.homepage } });
+  instruments.push(instrumentAt(16000, points));
+  const rate = lowRateIds.has(source.id) ? 12000 : 16000;
+  const economyPoints = rate === 12000 ? pointsAt(rate) : points;
+  economical.push(instrumentAt(rate, economyPoints));
+  economicalProcessing.push({ id: source.id, rate, ...(economyPoints ? { loopStart: economyPoints.start, loopEnd: economyPoints.end, boundaryError: +economyPoints.score.toFixed(6) } : {}) });
   processing.push({ id: source.id, inputRate: input.rate, cropStart: s.start, cropSeconds: crop.length / input.rate, monoNormalizationGain: +gain.toFixed(6), dcRemoved: +mean.toFixed(8), preparedSha256: sha(bytes), preparedBytes: bytes.length, ...pitch, ...(points ? { loopStart: points.start, loopEnd: points.end, boundaryError: +points.score.toFixed(6) } : {}) });
 }
-// Bare Beast scores use program 0: reuse the harp payload rather than storing another sample.
-instruments.push({ ...instruments[0], id: 'default-harp', program: 0 });
-writeFileSync(resolve(here, 'manifest.json'), JSON.stringify({ format: 'BSBRR1', name: 'VSCO pocket orchestra', maxBrrBytes: 28672, instruments }, null, 2) + '\n');
+// General MIDI program 0 is piano; bare Beast scores now resolve to this sample.
+writeFileSync(resolve(here, 'manifest.json'), JSON.stringify({ format: 'BSBRR1', name: 'VSCO pocket orchestra', maxBrrBytes: 32768, instruments }, null, 2) + '\n');
+writeFileSync(resolve(here, 'manifest-12k.json'), JSON.stringify({ format: 'BSBRR1', name: 'VSCO pocket orchestra 12k', maxBrrBytes: 28672, instruments: economical }, null, 2) + '\n');
 writeFileSync(resolve(here, 'vsco-processing.json'), JSON.stringify({ rate: 16000, samples: processing }, null, 2) + '\n');
+writeFileSync(resolve(here, 'vsco-processing-12k.json'), JSON.stringify({ reducedRate: 12000, samples: economicalProcessing }, null, 2) + '\n');
 console.log(JSON.stringify(processing, null, 2));

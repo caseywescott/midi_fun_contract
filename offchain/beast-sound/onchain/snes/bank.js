@@ -16,13 +16,14 @@ export function fromBase64(text) {
 }
 export function validateBank(bank) {
   if (bank?.format !== 'BSBRR1' || !Array.isArray(bank.samples) || !Array.isArray(bank.instruments) || bank.samples.length > 256 || bank.instruments.length > 256) throw new Error('Expected BSBRR1 bank (up to 256 samples/instruments)');
+  if (bank.name !== undefined && typeof bank.name !== 'string') throw new Error('Invalid bank name');
   let size = 0;
   for (const s of bank.samples) {
     const bytes = fromBase64(s.data);
     size += bytes.length;
     if (size > 65536) throw new Error('BRR bank exceeds 64 KiB');
     validateBRR(bytes, s.loopStart);
-    if (!integer(s.rate, 16000, 32000)) throw new Error('Invalid sample rate');
+    if (!integer(s.rate, 12000, 32000)) throw new Error('Invalid sample rate');
     // Cached PCM playback must have an independent loop entry.
     if (s.loopStart !== null && (bytes[s.loopStart / 16 * 9] & 12)) throw new Error('Loop entry must use filter 0');
   }

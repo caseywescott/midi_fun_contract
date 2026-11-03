@@ -1,12 +1,13 @@
 # SNES-style sample pipeline
 
-`manifest.json` contains a six-instrument CC0 test bank from VSCO 2 Community Edition.
+`manifest.json` contains a nine-instrument CC0 test bank from VSCO 2 Community Edition.
 `SNES_ONCHAIN` remains false while auditioning; the default production page stays unchanged.
 This module is on the `feat/snes-brr-pipeline` branch, based on `v1.0.1`.
 
 ## Included pocket orchestra
 
-The harp, marimba, glockenspiel, violin section, cello section and flute are short mono derivatives
+The harp, marimba, glockenspiel, violin section, cello section, flute, pizzicato strings,
+clarinet and timpani are short mono derivatives
 of the official [VSCO 2 Community Edition](https://versilian-studios.com/vsco-community/) recordings.
 The upstream [CC0 license](https://github.com/sgossner/VSCO-2-CE/blob/440300901dfe9275fd84e0b7763af1f8443ae62e/LICENSE)
 is included as `VSCO-LICENSE.txt`. `vsco-sources.json` pins the original URLs, revision and SHA-256
@@ -20,10 +21,13 @@ hashes. No Freesound material is needed for these instrument families.
 | Violin section | 48 | 3,726 | Sustain loop |
 | Cello section | 42 | 3,960 | Sustain loop |
 | Flute | 73 | 2,988 | Sustain loop |
-| **Unique sample payload** | **7 mappings / 6 samples** | **19,197** | **Under 20 KiB** |
+| Pizzicato strings | 45 | 2,160 | One-shot, faded tail |
+| Clarinet | 71 | 3,285 | Sustain loop |
+| Timpani | 47 | 3,420 | One-shot, faded tail |
+| **Unique sample payload** | **10 mappings / 9 samples** | **28,062** | **Under 28 KiB** |
 
-The program-0 alias reuses the harp bytes. The page stores the shared credit once. Only the six
-short mono source clips (195,186 bytes total) are tracked; full recordings stay in an ignored
+The program-0 alias reuses the harp bytes. The page stores the shared credit once. Only the nine
+short mono source clips (283,518 bytes total) are tracked; full recordings stay in an ignored
 cache. `vsco-processing.json` records crops, normalization, pitch correction and loop selection.
 The original filenames have inconsistent octave conventions: roots are checked against SFZ
 mapping and measured sounding pitch. Glockenspiel uses sounding C6 (MIDI 84), whereas the original
@@ -39,10 +43,10 @@ PLAYWRIGHT_CORE=/absolute/path/to/playwright node onchain/snes/render-demo.mjs
 ```
 
 The renderer writes `dist/audition.wav` and `dist/audio-report.json`. It plays each sound in order,
-then a short ensemble from 19.5 seconds. `CHROMIUM_EXECUTABLE` can select an installed headless browser.
-Measured 3 November 2026: all six sounds render, no clipped frames, peak 0.24435, zero network
-requests/page errors; 62 Node tests pass. The complete candidate page is 97,092 stored bytes
-(3,132 data words), **26,438 CASM felts**, with TinySynth fallback included. See
+then a short ensemble from 29 seconds. `CHROMIUM_EXECUTABLE` can select an installed headless browser.
+Measured 3 November 2026: all nine sounds render, no clipped frames, peak 0.25692, zero network
+requests/page errors; 62 Node tests pass. The complete candidate page is 113,460 stored bytes
+(3,660 data words), **28,022 CASM felts**, with TinySynth fallback included. See
 `vsco-validation.json` for the snapshot. Gas is not measured. Source clips and test demo data are
 not embedded in the Cairo page; only the BRR bank, metadata and playback runtime are embedded.
 
@@ -103,6 +107,9 @@ packed fixed page is copied at `token_uri` time. Browser decoding is lazy and ca
 The JSON bank contains base64 BRR, and the page adds its own base64 layer. Consequently sample data
 alone costs about 16/9 of its raw BRR size in stored page text, plus metadata and alignment. The
 report includes both layers. A data-word count is **not** the compiled Sierra/CASM size or gas cost.
+The short attack clips, sustain loops, shared harp payload and shared credit keep this nine-sound
+bank to 28,062 BRR bytes. Deflating the already encoded BRR stream only reduces it to 26,565 bytes;
+an extra browser decompression stage was not added for that small saving.
 
 ```sh
 # Compile the actual MidiSoundPage with the included bank in a temporary workspace:

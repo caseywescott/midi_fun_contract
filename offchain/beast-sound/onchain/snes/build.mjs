@@ -75,7 +75,7 @@ export async function buildArtifacts(manifestPath, outDir) {
   writeFileSync(resolve(outDir, 'stored.b64'), stored);
   writeFileSync(resolve(outDir, 'page_data.cairo'), cairoData(stored));
   writeFileSync(resolve(outDir, 'report.json'), JSON.stringify(report, null, 2) + '\n');
-  const demo = await build({ stdin: { contents: "import {scheduleDemo} from './demo.js';window.SnesDemo={schedule:scheduleDemo};", resolveDir: here }, bundle: true, minify: true, write: false });
+  const demo = await build({ stdin: { contents: "import {demoSequence,scheduleDemo} from './demo.js';window.SnesDemo={sequence:demoSequence,schedule:scheduleDemo};", resolveDir: here }, bundle: true, minify: true, write: false });
   const lab = readFileSync(resolve(here, 'lab.html'), 'utf8').replace('/*__SYNTH__*/', () => tiny).replace('/*__BANK__*/', () => script).replace('/*__DEMO__*/', () => demo.outputFiles[0].text);
   writeFileSync(resolve(outDir, 'lab.html'), lab);
   return report;

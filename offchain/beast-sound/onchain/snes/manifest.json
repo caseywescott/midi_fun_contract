@@ -1,7 +1,7 @@
 {
   "format": "BSBRR1",
   "name": "VSCO pocket orchestra",
-  "maxBrrBytes": 20480,
+  "maxBrrBytes": 28672,
   "instruments": [
     {
       "id": "harp",
@@ -138,6 +138,74 @@
         "decay": 0.12,
         "sustain": 0.8,
         "release": 0.15
+      },
+      "credit": {
+        "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
+        "license": "CC0-1.0",
+        "source": "https://versilian-studios.com/vsco-community/"
+      }
+    },
+    {
+      "id": "pizzicato",
+      "file": "samples/vsco/pizzicato.wav",
+      "program": 45,
+      "rootNote": 72,
+      "sampleRate": 16000,
+      "fadeOut": 0.035,
+      "fadeIn": 0.001,
+      "tuneCents": -22.38,
+      "volume": 0.53,
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.28,
+        "sustain": 0,
+        "release": 0.08
+      },
+      "credit": {
+        "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
+        "license": "CC0-1.0",
+        "source": "https://versilian-studios.com/vsco-community/"
+      }
+    },
+    {
+      "id": "clarinet",
+      "file": "samples/vsco/clarinet.wav",
+      "program": 71,
+      "rootNote": 74,
+      "sampleRate": 16000,
+      "trimEnd": 0.365,
+      "loopStart": 0.207,
+      "loopCrossfade": 0.012,
+      "fadeIn": 0.001,
+      "tuneCents": -3.96,
+      "volume": 0.43,
+      "envelope": {
+        "attack": 0.012,
+        "decay": 0.12,
+        "sustain": 0.78,
+        "release": 0.16
+      },
+      "credit": {
+        "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
+        "license": "CC0-1.0",
+        "source": "https://versilian-studios.com/vsco-community/"
+      }
+    },
+    {
+      "id": "timpani",
+      "file": "samples/vsco/timpani.wav",
+      "program": 47,
+      "rootNote": 42,
+      "sampleRate": 16000,
+      "fadeOut": 0.035,
+      "fadeIn": 0.001,
+      "tuneCents": 0,
+      "volume": 0.54,
+      "envelope": {
+        "attack": 0.001,
+        "decay": 0.42,
+        "sustain": 0,
+        "release": 0.1
       },
       "credit": {
         "author": "Versilian Studios / Sam Gossner & Simon Dalzell",

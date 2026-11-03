@@ -100,7 +100,7 @@ test('empty bank bundles safely, Cairo data is aligned, and encoder stays out of
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('curated VSCO bank is reproducible, six payloads cover seven mappings below 20 KiB', async () => {
+test('curated VSCO bank is reproducible, nine payloads cover ten mappings below 28 KiB', async () => {
   const root = new URL('../onchain/snes/', import.meta.url);
   const processing = JSON.parse(readFileSync(new URL('vsco-processing.json', root)));
   for (const s of processing.samples) {
@@ -109,8 +109,9 @@ test('curated VSCO bank is reproducible, six payloads cover seven mappings below
     assert.ok(bytes.length < 45000);
   }
   const { bank, report } = buildBank(new URL('manifest.json', root));
-  assert.equal(bank.samples.length, 6); assert.equal(bank.instruments.length, 7);
-  assert.ok(report.brrBytes < 20480); assert.equal(report.sharedSampleReferences, 1);
+  assert.equal(bank.samples.length, 9); assert.equal(bank.instruments.length, 10);
+  assert.ok(report.brrBytes < 28672); assert.equal(report.sharedSampleReferences, 1);
+  assert.deepEqual([45, 47, 71].map((program) => bank.instruments.find((i) => i.program === program)?.id), ['pizzicato', 'timpani', 'clarinet']);
   assert.equal(bank.instruments.find((i) => i.program === 0).sample, bank.instruments.find((i) => i.program === 46).sample);
   assert.ok(report.instruments.every((i) => i.snrDb > 20));
   const context = { window: {} }; runInNewContext(await bundleBank(bank), context);

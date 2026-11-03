@@ -87,6 +87,45 @@
       "loopStart": 3936,
       "loopEnd": 5312,
       "boundaryError": 0.000894
+    },
+    {
+      "id": "pizzicato",
+      "inputRate": 44100,
+      "cropStart": 0,
+      "cropSeconds": 0.24,
+      "monoNormalizationGain": 2.191943,
+      "dcRemoved": -0.00001554,
+      "preparedSha256": "32a2f431f17b5ce2cebf590dd4ce0aa9ef173c817433ae3fd421a254c9c325e6",
+      "preparedBytes": 21212,
+      "measuredHz": 530.06,
+      "tuneCents": -22.38
+    },
+    {
+      "id": "clarinet",
+      "inputRate": 44100,
+      "cropStart": 0.016,
+      "cropSeconds": 0.38,
+      "monoNormalizationGain": 6.627073,
+      "dcRemoved": -0.00006371,
+      "preparedSha256": "a029f605d31d6dd4c6c2fdeb6d1a701d7536f08b51af8bb30c3d926702be6e10",
+      "preparedBytes": 33560,
+      "measuredHz": 588.674,
+      "tuneCents": -3.96,
+      "loopStart": 3312,
+      "loopEnd": 5840,
+      "boundaryError": 0.002074
+    },
+    {
+      "id": "timpani",
+      "inputRate": 44100,
+      "cropStart": 0,
+      "cropSeconds": 0.38,
+      "monoNormalizationGain": 42.076632,
+      "dcRemoved": -0.00000873,
+      "preparedSha256": "a2cfabd4f35f7acac638b3c2098cfd47a0764d1e89c116736fdca70d7731146e",
+      "preparedBytes": 33560,
+      "measuredHz": null,
+      "tuneCents": 0
     }
   ]
 }

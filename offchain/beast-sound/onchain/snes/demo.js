@@ -2,11 +2,12 @@
 export function demoSequence(bank) {
   const instruments = bank.instruments.filter((i, n, all) => all.findIndex((x) => x.sample === i.sample) === n && i.program !== undefined);
   const notes = [], sections = [];
-  const registers = { harp: 60, marimba: 60, glockenspiel: 72, strings: 60, cello: 48, flute: 72 };
+  const registers = { harp: 60, marimba: 60, glockenspiel: 72, strings: 60, cello: 48, flute: 72, pizzicato: 60, clarinet: 62, timpani: 42 };
   for (const [index, inst] of instruments.entries()) {
     const at = index * 3.2, base = registers[inst.id] ?? inst.rootNote;
     sections.push({ time: at, label: inst.id });
-    [0, 4, 7, 12].forEach((n, i) => notes.push({ id: inst.id, program: inst.program, channel: index, note: base + n, velocity: 108, time: at + i * 0.52, duration: i === 3 ? 0.85 : 0.42, pan: 0 }));
+    const intervals = inst.id === 'timpani' ? [0, 3, 5, 0] : [0, 4, 7, 12];
+    intervals.forEach((n, i) => notes.push({ id: inst.id, program: inst.program, channel: index, note: base + n, velocity: 108, time: at + i * 0.52, duration: i === 3 ? 0.85 : 0.42, pan: 0 }));
   }
   const byId = new Map(instruments.map((i) => [i.id, i]));
   const ensemble = instruments.length * 3.2 + 0.2;
@@ -21,6 +22,9 @@ export function demoSequence(bank) {
       for (let beat = 0; beat < 4; beat++) add(beat % 2 ? 'marimba' : 'harp', beat % 2 ? 1 : 0, chord[beat % 3], start + beat * 0.5, 0.38, 100, -0.35);
       add('flute', 5, chord[2] + 12, start + 0.5, 0.6, 92, 0.1);
       add('glockenspiel', 2, chord[1] + 24, start + 1.5, 0.4, 85, 0.25);
+      if (byId.has('clarinet')) add('clarinet', 7, chord[2] + 2, start + 0.9, 0.8, 82, -0.05);
+      if (byId.has('pizzicato')) { add('pizzicato', 6, chord[0] + 12, start + 0.75, 0.25, 88, 0.45); add('pizzicato', 6, chord[1] + 12, start + 1.25, 0.25, 82, 0.45); }
+      if (byId.has('timpani')) add('timpani', 8, 42 + (bar % 2 ? 3 : 0), start, 0.35, 96, -0.15);
     });
   }
   notes.sort((a, b) => a.time - b.time || a.channel - b.channel);

@@ -64,6 +64,36 @@
       "mappingUrl": "https://github.com/sgossner/VSCO-2-CE/blob/6dd651d55dde97fd4028699be9d4481f26917891/FluteSusNV.sfz",
       "officialSfzRoot": 72,
       "soundingRoot": 72
+    },
+    {
+      "id": "pizzicato",
+      "path": "Strings/Violin Section/Pizz/VlnEns_Pizz_C4_v2_rr1.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Strings/Violin%20Section/Pizz/VlnEns_Pizz_C4_v2_rr1.wav",
+      "sha256": "909eb79fc2c9076909680fa3c2dabdbbd15870f674a883ddab33bbcd0dac965a",
+      "sourceBytes": 184590,
+      "mappingUrl": "https://github.com/sgossner/VSCO-2-CE/blob/6dd651d55dde97fd4028699be9d4481f26917891/ViolinEnsPizz.sfz",
+      "officialSfzRoot": 72,
+      "soundingRoot": 72
+    },
+    {
+      "id": "clarinet",
+      "path": "Woodwinds/Clarinet/susLong/DCClar_susLong_D4_v2_rr1_sum.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Woodwinds/Clarinet/susLong/DCClar_susLong_D4_v2_rr1_sum.wav",
+      "sha256": "4bdc53f3ef917cc9146e10cec5eb33744524e8b510c4a39c080dc5c774b3c956",
+      "sourceBytes": 2047596,
+      "mappingUrl": "https://github.com/sgossner/VSCO-2-CE/blob/6dd651d55dde97fd4028699be9d4481f26917891/ClarinetSus.sfz",
+      "officialSfzRoot": 74,
+      "soundingRoot": 74
+    },
+    {
+      "id": "timpani",
+      "path": "Percussion/Timpani/Timpani1_Hit_v3_rr1_Sum.wav",
+      "url": "https://raw.githubusercontent.com/sgossner/VSCO-2-CE/440300901dfe9275fd84e0b7763af1f8443ae62e/Percussion/Timpani/Timpani1_Hit_v3_rr1_Sum.wav",
+      "sha256": "8b39a785901d08dee14dd89914bdf2201e16ee418965e4d903fdb8e280a14d24",
+      "sourceBytes": 1602676,
+      "mappingUrl": "https://github.com/sgossner/VSCO-2-CE/blob/6dd651d55dde97fd4028699be9d4481f26917891/Timpani.sfz",
+      "officialSfzRoot": 42,
+      "soundingRoot": 42
     }
   ],
   "checkedDate": "2026-11-03"

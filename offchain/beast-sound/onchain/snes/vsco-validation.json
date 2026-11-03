@@ -1,16 +1,16 @@
 {
   "measuredDate": "2026-11-03",
   "sourceRevision": "440300901dfe9275fd84e0b7763af1f8443ae62e",
-  "manifestSha256": "6a81023ec14ed1cc91913df38576f071ca600bdcfe3963478d47b44501cbf4d9",
-  "storedPageSha256": "cccb4ad5b043f1a31140ca6eec8e549fb0d304bb1432ee654264566045606b63",
-  "sourceBytes": 11785982,
-  "preparedWavBytes": 195186,
+  "manifestSha256": "356a37194299b78b024a1aaf5ee7d5fff396cd14763ce395c4ab592e05a0ccd0",
+  "storedPageSha256": "d6ae8aa7a0769f022a654ae1542f346ef900890e9840fae3b5f1020054e21552",
+  "sourceBytes": 15620844,
+  "preparedWavBytes": 283518,
   "packing": {
     "format": "BSBRR1",
-    "brrBytes": 19197,
-    "decodedPcm16Bytes": 68256,
-    "budgetBytes": 20480,
-    "uniqueSamples": 6,
+    "brrBytes": 28062,
+    "decodedPcm16Bytes": 99776,
+    "budgetBytes": 28672,
+    "uniqueSamples": 9,
     "sharedSampleReferences": 1,
     "instruments": [
       {
@@ -68,6 +68,33 @@
         "loopJump": 0.04071044921875
       },
       {
+        "id": "pizzicato",
+        "frames": 3840,
+        "rate": 16000,
+        "loopStart": null,
+        "brrBytes": 2160,
+        "snrDb": 34.73,
+        "loopJump": null
+      },
+      {
+        "id": "clarinet",
+        "frames": 5840,
+        "rate": 16000,
+        "loopStart": 3312,
+        "brrBytes": 3285,
+        "snrDb": 38.79,
+        "loopJump": 0.076171875
+      },
+      {
+        "id": "timpani",
+        "frames": 6080,
+        "rate": 16000,
+        "loopStart": null,
+        "brrBytes": 3420,
+        "snrDb": 58.82,
+        "loopJump": null
+      },
+      {
         "id": "default-harp",
         "frames": 5328,
         "rate": 16000,
@@ -77,28 +104,28 @@
         "loopJump": 0.02496337890625
       }
     ],
-    "bankJsonBytes": 28049,
-    "runtimeAndBankBytes": 34515,
-    "pageStoredBytes": 97092,
-    "pageDataWords": 3132,
-    "deltaStoredBytesVsCurrentPage": 31620,
+    "bankJsonBytes": 40903,
+    "runtimeAndBankBytes": 46828,
+    "pageStoredBytes": 113460,
+    "pageDataWords": 3660,
+    "deltaStoredBytesVsCurrentPage": 47988,
     "note": "Includes bank JSON/base64 and outer page base64. Not compiled CASM size or gas. No samples are bundled unless supplied in the manifest."
   },
   "cairo": {
-    "brrBytes": 19197,
-    "pageStoredBytes": 97092,
-    "pageDataWords": 3132,
-    "casmFelts": 26438,
-    "sierraFelts": 31221,
+    "brrBytes": 28062,
+    "pageStoredBytes": 113460,
+    "pageDataWords": 3660,
+    "casmFelts": 28022,
+    "sierraFelts": 34408,
     "configuredCasmLimit": 81920,
-    "casmHeadroom": 55482,
+    "casmHeadroom": 53898,
     "gasMeasured": false
   },
   "audio": {
     "rate": 32000,
     "channels": 2,
-    "seconds": 29.20003125,
-    "peak": 0.24434947967529297,
+    "seconds": 38.8,
+    "peak": 0.2569229006767273,
     "clipped": 0,
     "sections": [
       {
@@ -129,12 +156,27 @@
       {
         "time": 16,
         "label": "flute",
-        "rms": 0.03857884485269218
+        "rms": 0.039766163060373366
       },
       {
-        "time": 19.400000000000002,
+        "time": 19.200000000000003,
+        "label": "pizzicato",
+        "rms": 0.014929010643919978
+      },
+      {
+        "time": 22.400000000000002,
+        "label": "clarinet",
+        "rms": 0.033414508647934965
+      },
+      {
+        "time": 25.6,
+        "label": "timpani",
+        "rms": 0.031854824514250396
+      },
+      {
+        "time": 29,
         "label": "Pocket orchestra",
-        "rms": 0.04262916265539727
+        "rms": 0.04874465215849029
       }
     ],
     "networkRequests": 0,

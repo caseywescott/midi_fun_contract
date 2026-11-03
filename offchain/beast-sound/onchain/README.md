@@ -84,7 +84,7 @@ see `beatsync/README.md`.
 ### Optional: SNES-style BRR samples
 
 `snes/` prepares user-supplied WAVs as compact BRR banks, with a sample player and a TinySynth
-adapter. It includes a compact six-instrument VSCO Community Edition CC0 test bank. See
+adapter. It includes a compact nine-instrument VSCO Community Edition CC0 test bank. See
 [the setup, audition and size checks](snes/README.md).
 `SNES_ONCHAIN` defaults to false. Enabling it selects the sample page instead of TinyChip/BeatSync;
 unmapped MIDI programs retain TinySynth fallback. Samples and metadata are encoded into the existing

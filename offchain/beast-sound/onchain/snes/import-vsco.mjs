@@ -17,6 +17,9 @@ const settings = {
   strings: { program: 48, rootNote: 72, start: 0.012, length: 0.45, loopMin: 0.20, volume: 0.42, envelope: { attack: 0.025, decay: 0.2, sustain: 0.85, release: 0.22 } },
   cello: { program: 42, rootNote: 60, start: 0, length: 0.44, loopMin: 0.23, volume: 0.48, envelope: { attack: 0.012, decay: 0.24, sustain: 0.8, release: 0.2 } },
   flute: { program: 73, rootNote: 72, start: 0.008, length: 0.36, loopMin: 0.15, volume: 0.40, envelope: { attack: 0.008, decay: 0.12, sustain: 0.8, release: 0.15 } },
+  pizzicato: { program: 45, rootNote: 72, start: 0, length: 0.24, volume: 0.53, envelope: { attack: 0.001, decay: 0.28, sustain: 0, release: 0.08 } },
+  clarinet: { program: 71, rootNote: 74, start: 0.016, length: 0.38, loopMin: 0.16, volume: 0.43, envelope: { attack: 0.012, decay: 0.12, sustain: 0.78, release: 0.16 } },
+  timpani: { program: 47, rootNote: 42, start: 0, length: 0.38, tune: false, volume: 0.54, envelope: { attack: 0.001, decay: 0.42, sustain: 0, release: 0.10 } },
 };
 function wav16(pcm, rate) {
   const b = Buffer.alloc(44 + pcm.length * 2);
@@ -81,7 +84,8 @@ for (const source of sources.samples) {
   // Keep original sample rate in these small source clips. The bank build resamples only once.
   const prepared = prepare(readWav(bytes), { sampleRate: 16000 });
   const points = s.loopMin ? loop(prepared.pcm, s.loopMin, 16000) : null;
-  const pitch = tuning(crop, input.rate, s.rootNote);
+  // Timpani pitch is unstable across the strike and its inharmonic partials.
+  const pitch = s.tune === false ? { measuredHz: null, tuneCents: 0 } : tuning(crop, input.rate, s.rootNote);
   instruments.push({ id: source.id, file, program: s.program, rootNote: s.rootNote, sampleRate: 16000,
     ...(points ? { trimEnd: points.end / 16000, loopStart: points.start / 16000, loopCrossfade: 0.012 } : { fadeOut: 0.035 }),
     fadeIn: 0.001, tuneCents: pitch.tuneCents, volume: s.volume, envelope: s.envelope,
@@ -90,6 +94,6 @@ for (const source of sources.samples) {
 }
 // Bare Beast scores use program 0: reuse the harp payload rather than storing another sample.
 instruments.push({ ...instruments[0], id: 'default-harp', program: 0 });
-writeFileSync(resolve(here, 'manifest.json'), JSON.stringify({ format: 'BSBRR1', name: 'VSCO pocket orchestra', maxBrrBytes: 20480, instruments }, null, 2) + '\n');
+writeFileSync(resolve(here, 'manifest.json'), JSON.stringify({ format: 'BSBRR1', name: 'VSCO pocket orchestra', maxBrrBytes: 28672, instruments }, null, 2) + '\n');
 writeFileSync(resolve(here, 'vsco-processing.json'), JSON.stringify({ rate: 16000, samples: processing }, null, 2) + '\n');
 console.log(JSON.stringify(processing, null, 2));

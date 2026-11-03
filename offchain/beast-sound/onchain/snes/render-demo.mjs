@@ -12,13 +12,13 @@ try {
   page.on('pageerror', (e) => errors.push(e.message));
   await page.route('**/*', (r) => { requests.push(r.request().url()); return r.abort(); });
   await page.setContent(readFileSync(resolve(out, 'lab.html'), 'utf8'));
-  assert.equal(await page.locator('#instrument option').count(), 6);
+  assert.equal(await page.locator('#instrument option').count(), 9);
   await page.getByRole('button', { name: 'Play all + ensemble' }).click();
   await page.waitForFunction(() => document.getElementById('status').textContent === 'harp');
   await page.getByRole('button', { name: 'Stop', exact: true }).click();
   const result = await page.evaluate(async () => {
     const rate = 32000, bank = SnesBank.bank;
-    const ac = new OfflineAudioContext(2, rate * 31, rate);
+    const ac = new OfflineAudioContext(2, Math.ceil((SnesDemo.sequence(bank).duration + 0.2) * rate), rate);
     const output = ac.createGain(); output.gain.value = 0.8; output.connect(ac.destination);
     const sampler = SnesBank.createSampler(ac), sequence = SnesDemo.schedule(sampler, ac, bank, output, 0.1);
     const rendered = await ac.startRendering(), length = Math.ceil((sequence.duration + 0.1) * rate);
@@ -40,7 +40,7 @@ try {
     return { pcm: btoa(text), rate, channels: 2, seconds: length / rate, peak, clipped, sections };
   });
   assert.equal(result.clipped, 0); assert.ok(result.peak > 0.05 && result.peak < 0.95);
-  assert.equal(result.sections.length, 7); assert.ok(result.sections.every((s) => s.rms > 0.002));
+  assert.equal(result.sections.length, 10); assert.ok(result.sections.every((s) => s.rms > 0.002));
   assert.deepEqual(errors, []); assert.deepEqual(requests, []);
   const pcm = Buffer.from(result.pcm, 'base64'), header = Buffer.alloc(44);
   header.write('RIFF'); header.writeUInt32LE(pcm.length + 36, 4); header.write('WAVEfmt ', 8); header.writeUInt32LE(16, 16);

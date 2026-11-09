@@ -73,6 +73,28 @@ export function chordToken(home, numeral) {
   if (!x) throw new Error(`no ${home} numeral ${numeral}`);
   return x[0] + 8 * x[1] + (x[2] ? 128 : 0);
 }
+// Substitutes a chord may take in an answering phrase (same function, another colour), by home.
+const SUBS = {
+  major: { I: ['vi', 'Imaj7', 'iii'], IV: ['ii', 'ii7', 'IVmaj7', 'iv'], V: ['V7', 'vii°7', 'iii'], vi: ['IV', 'vi7'], ii: ['ii7', 'IV'], iii: ['iii7', 'I'], bVI: ['iv', 'bVImaj7'], bVII: ['v', 'IV'], bIII: ['bVI'], V7: ['vii°7'], Imaj7: ['vi7'], IVmaj7: ['ii7'], II: ['II7', 'ii'], II7: ['ii7', 'II'], iv: ['ii', 'bVI'], III7: ['iii7', 'III'], III: ['iii'], VI7: ['vi', 'vi7'], vi7: ['IV'], ii7: ['IV', 'ii'], iii7: ['V'], v: ['bVII'], I7: ['I'] },
+  minor: { i: ['VI', 'i7', 'III'], iv: ['iiø7', 'iv7', 'VI'], V: ['V7', 'vii°7'], V7: ['vii°7'], VI: ['iv', 'VImaj7'], VII: ['VII7', 'v'], III: ['i', 'VII'], v: ['VII'], N: ['iv'], 'iiø7': ['iv'], i7: ['iv'], iv7: ['iiø7'], VImaj7: ['iv7'], VII7: ['v'], II: ['iiø7'], I7: ['iv'] },
+  lydian: { I: ['vi', 'iii'], II: ['vii'], V: ['iii'], vi: ['I'], iii: ['V'] },
+};
+/**
+ * A section's 8 bars of chords (numerals). An 8-chord progression plays as written. A 4-chord one at
+ * one chord a bar plays, then answers: its first chord again (the tune restates its first two bars
+ * there), its second chord or a substitute, and a cadence: closed on the tonic when the section's tune
+ * ends there, open on the dominant when it does not. At two bars a chord, the last chord gets an
+ * approach chord (the cadence's first) in its first bar. `H` draws the choices.
+ */
+export function sectionNumerals(S, prog, closing, H) {
+  // `sub` always takes a substitute when the chord has one; `maybe` half the time
+  const sub = (n) => { const xs = SUBS[S.home][n]; return xs ? xs[H.int(xs.length)] : n; };
+  const maybe = (n) => (H.int(2) ? sub(n) : n);
+  const cads = S.cadences[closing ? 'close' : 'open'], cad = cads[H.int(cads.length)];
+  if (prog.length === 8) return prog.slice();
+  if (S.chordBars === 1) return [...prog, maybe(prog[0]), sub(prog[1]), cad[0], cad[1]];
+  return [prog[0], prog[0], prog[1], sub(prog[1]), prog[2], maybe(prog[2]), cad[0], prog[3]];
+}
 /** Every style's progressions as chord tokens. */
 export const PROGS = STYLES.map((S) => S.progs.map((p) => p.map((n) => chordToken(S.home, n))));
 const deg = (tok) => tok & 7, col = (tok) => (tok >> 3) & 15, sev = (tok) => tok >= 128;
@@ -242,8 +264,13 @@ export function editionTrack(sp, mega, e, seedKey, drift = null) {
   const MR = drift && drift.rhythm !== null ? rng(Number(BigInt(drift.rhythm) & 0xffffffffn)) : R;
   const progOf = [pA, pB, pC, pA];
   const kinds = form.split('').map((x) => x.charCodeAt(0) - 65);
-  const sectionChords = (kind) => { const prog = progs[progOf[kind]]; return Array.from({ length: 8 }, (_, b) => prog[Math.floor(b / S.chordBars) % prog.length]); };
   const lastKind = kinds[3];
+  // each tune's 8 bars of chords: the progression and its answer (sectionNumerals), drawn from a stream
+  // of their own so the purchase's other draws stay as they were; a tune closes on the tonic when its
+  // melody ends there (A, C and A' always, B when the form ends on it)
+  const H = rng((fold ^ imul(e, 0x27d4eb2d) ^ imul(sp.id, 0x165667b1)) >>> 0);
+  const NUM = [0, 1, 2, 3].map((kind) => sectionNumerals(S, S.progs[progOf[kind]], kind !== 1 || lastKind === 1, H));
+  const sectionChords = (kind) => NUM[kind].map((n) => chordToken(S.home, n));
   const degsOf = (kind) => sectionChords(kind).map(deg);
   const melA = melody(c, degsOf(0), -1, 9, motif, true, MR);
   const melB = melody(c, degsOf(1), 1, 11, [], lastKind === 1, MR);
@@ -321,7 +348,7 @@ export function editionTrack(sp, mega, e, seedKey, drift = null) {
   const info = {
     edition: e, month: g.month, name: g.name, engine: S.label, desc: S.desc, family: g.style < 6 ? 'Realm of Common Tones' : 'Kingdom of Sweets',
     key: NOTE[tonic] + ' ' + SCALE_NAMES[S.modes[0]], meter: S.num + '/' + S.den, bpm, form: form.split('').map((x) => (x === 'D' ? "A'" : x)).join(' ') + (formId >= 4 ? (newEnding ? " (A' new ending)" : " (A' decorated)") : ''),
-    progA: S.progs[pA].join(' '), progB: S.progs[pB].join(' '), progC: formId % 4 === 3 ? S.progs[pC].join(' ') : null,
+    progA: NUM[0].join(' '), progB: NUM[1].join(' '), progC: formId % 4 === 3 ? NUM[2].join(' ') : null,
     accomp: S.source + ' ' + fig(S.accomps, accomp), bass: on('bass') ? S.source + ' ' + fig(S.basses, bassFig) + ['', ' doubled', ' detached'][bassMode] : 'none',
     drums: on('percussion') ? S.source + ' ' + fig(S.percs, perc) : 'none', theme: THEMES[theme],
     ornaments: orn ? orn + '% ' + ['upper graces', 'lower graces', 'slides', 'mordents'][ornKind] : 'none', phrasing: detached ? 'detached' : 'legato',

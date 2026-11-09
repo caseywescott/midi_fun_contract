@@ -31,13 +31,15 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "snes:build": "node onchain/snes/build.mjs",
-    "snes:build:12k": "node onchain/snes/build.mjs onchain/snes/manifest-12k.json onchain/snes/dist-12k",
+    "snes:build:12k": "node onchain/snes/build.mjs",
     "snes:import": "node onchain/snes/import-vsco.mjs",
     "snes:render": "node onchain/snes/render-demo.mjs",
-    "snes:render:12k": "node onchain/snes/render-demo.mjs onchain/snes/dist-12k",
+    "snes:render:12k": "node onchain/snes/render-demo.mjs",
     "snes:test": "node --test test/snes.test.mjs",
     "serve": "node server/build.mjs && node server/node.mjs",
-    "snes:ab": "node onchain/snes/build.mjs && node onchain/snes/build.mjs onchain/snes/manifest-12k.json onchain/snes/dist-12k && node onchain/snes/ab.mjs"
+    "snes:ab": "node onchain/snes/build.mjs onchain/snes/manifest.json onchain/snes/dist-16k && node onchain/snes/build.mjs onchain/snes/manifest-12k.json onchain/snes/dist-12k && node onchain/snes/ab.mjs",
+    "snes:build:16k": "node onchain/snes/build.mjs onchain/snes/manifest.json onchain/snes/dist-16k",
+    "snes:render:16k": "node onchain/snes/render-demo.mjs onchain/snes/dist-16k"
   },
   "dependencies": {
     "@scure/starknet": "^2.4.0"

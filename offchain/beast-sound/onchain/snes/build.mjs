@@ -90,7 +90,7 @@ export async function buildArtifacts(manifestPath, outDir) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
-    const report = await buildArtifacts(process.argv[2] ?? resolve(here, 'manifest.json'), resolve(process.argv[3] ?? resolve(here, 'dist')));
+    const report = await buildArtifacts(process.argv[2] ?? resolve(here, 'manifest-12k.json'), resolve(process.argv[3] ?? resolve(here, 'dist')));
     console.log(JSON.stringify(report, null, 2));
   } catch (error) { console.error(`SNES bank: ${error.message}`); process.exitCode = 1; }
 }

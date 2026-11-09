@@ -24,7 +24,7 @@ try {
     bank = { format: 'BSBRR1', samples: [{ rate: 16000, loopStart: null, data: Buffer.from(bytes).toString('base64') }], instruments: [{ id: 'size-test-only', program: 0, sample: 0, rootNote: 60, tuneCents: 0, volume: 0.5, envelope: DEFAULT_ENVELOPE, credit: { author: 'Test', license: 'Test only', source: 'Synthetic size probe' } }] };
     brrBytes = bytes.length;
   } else {
-    const result = buildBank(process.argv[2] ?? resolve(here, 'manifest.json'));
+    const result = buildBank(process.argv[2] ?? resolve(here, 'manifest-12k.json'));
     bank = result.bank; brrBytes = result.report.brrBytes;
   }
   const runtime = await bundleBank(bank);

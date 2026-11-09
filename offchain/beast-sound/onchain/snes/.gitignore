@@ -4,3 +4,4 @@ dist-12k/
 samples/*
 !samples/.gitkeep
 !samples/vsco/
+dist-16k/

@@ -3,7 +3,7 @@
 // upsampling at decode, 5 ms fades on stolen voices, 16 voices). The BRR data is identical in both;
 // only playback differs. Measure renders each variant offline at 48 kHz and reports the energy above
 // 8.5 kHz (no bank sample carries content there, so it is resampling images) and detected clicks.
-//   npm run snes:build && npm run snes:build:12k && node onchain/snes/ab.mjs
+//   npm run snes:ab
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,11 +11,11 @@ import { build } from 'esbuild';
 
 const here = dirname(fileURLToPath(import.meta.url)), out = resolve(here, 'dist-ab');
 const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
-const bank16 = readFileSync(resolve(here, 'dist/bank.min.js'), 'utf8'), bank12 = readFileSync(resolve(here, 'dist-12k/bank.min.js'), 'utf8');
+const bank16 = readFileSync(resolve(here, 'dist-16k/bank.min.js'), 'utf8'), bank12 = readFileSync(resolve(here, 'dist-12k/bank.min.js'), 'utf8');
 const demo = (await build({ stdin: { contents: "import {demoSequence,scheduleDemo} from './demo.js';window.SnesDemo={sequence:demoSequence,schedule:scheduleDemo};", resolveDir: here }, bundle: true, minify: true, write: false })).outputFiles[0].text;
 
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SNES Sampler A/B</title><link rel="icon" href="data:,">
+<title>Sampler A/B</title><link rel="icon" href="data:,">
 <style>
 :root{--bg:#141723;--fg:#f2eee4;--mut:#a9aebb;--card:#1d2131;--line:#2e3348;--acc:#e6b450;--ok:#57c785;--bad:#ef6f6c}
 @media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f5f3ee;--fg:#1b1d24;--mut:#5d6170;--card:#fff;--line:#dcd8cf;--acc:#9a6b00;--ok:#1f8a4c;--bad:#c0392b}}
@@ -29,7 +29,7 @@ button,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid
 table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}td.n{font-variant-numeric:tabular-nums}
 .kbd{font:12px ui-monospace,monospace;border:1px solid var(--line);border-radius:4px;padding:0 5px}#status{min-height:1.5em}
 </style></head><body><main>
-<h1>SNES Sampler A/B</h1>
+<h1>Sampler A/B</h1>
 <p class="mut">The same BRR banks through the sampler before and after the playback fixes. Before: the browser resamples each 12&ndash;16 kHz sample with linear interpolation, and a stolen voice is cut instantly (8 voices). After: each sample is upsampled once at load with a windowed sinc, and stolen voices fade over 5 ms (16 voices). The stored bank and its onchain cost are unchanged.</p>
 <div class="card"><h2>Variant <span class="kbd">1</span>&ndash;<span class="kbd">4</span></h2><div class="grid" id="variants"></div></div>
 <div class="card"><h2>Listen</h2>
@@ -145,5 +145,9 @@ $('measure').onclick = async () => {
 paint();
 </script></body></html>`;
 mkdirSync(out, { recursive: true });
-writeFileSync(resolve(out, 'ab.html'), html);
-console.log('dist-ab/ab.html', html.length, 'bytes');
+// the published page names nothing after the console it imitates (names only; behaviour unchanged)
+const page = html.replace(/SnesBank/g, 'SampleBank').replace(/SnesDemo/g, 'SampleDemo').replace(/__snesSampler/g, '__sampleLayer')
+  .replace(/SNES sampler/g, 'Sampler').replace(/snes-brr-1/g, 'brr-1');
+if (/snes/i.test(page)) throw new Error('the A/B page still names SNES');
+writeFileSync(resolve(out, 'ab.html'), page);
+console.log('dist-ab/ab.html', page.length, 'bytes');

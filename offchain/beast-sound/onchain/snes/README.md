@@ -52,7 +52,11 @@ requests/page errors; 63 Node tests pass. The complete candidate page is 114,576
 `vsco-validation.json` for the snapshot. Gas is not measured. Source clips and test demo data are
 not embedded in the Cairo page; only the BRR bank, metadata and playback runtime are embedded.
 
-## Mixed 12 kHz version
+## Mixed 12 kHz version (the default)
+
+Since 9 November 2026 the engine builds the mixed 12 kHz bank by default (`config.mjs`, `npm run snes:build`
+→ `dist/`); with the playback fixes it measured as clean as 16 kHz. The 16 kHz bank still builds with
+`npm run snes:build:16k` (→ `dist-16k/`).
 
 `manifest-12k.json` uses 12 kHz for marimba, violin section, cello section, clarinet and timpani.
 The other five sounds remain at 16 kHz to retain their brighter attacks and upper partials.

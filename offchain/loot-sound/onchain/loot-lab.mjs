@@ -2,8 +2,8 @@
 // Species Song, Name Song and Sound Check are the Beasts v1.0.1 composer's (its JS reference, lab.js);
 // Monthly Track Editions are src/loot_editions.js (Realm of Common Tones and Kingdom of Sweets
 // harmony). Drift is Casey Drift on Species Songs and editions. Sound effects: 0 regular, 1 mega.
-// Instruments: the sample bank (12 kHz BRR, ten CC0 VSCO 2 instruments; midi_fun_contract branch
-// feat/snes-brr-pipeline, onchain/snes/dist/bank.min.js) by default, each channel's role mapped to a
+// Instruments: the sample bank (16 kHz BRR, ten CC0 VSCO 2 instruments; midi_fun_contract branch
+// feat/snes-brr-pipeline, onchain/snes/dist-16k/bank.min.js) by default, each channel's role mapped to a
 // bank instrument; drums stay on TinySynth's chip kit. TinyChip presets remain a toggle.
 //   node onchain/loot-lab.mjs <engine .min.js> <onchain-midi-player checkout> <midi_fun_contract checkout at v1.0.1> <bank.min.js>
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -101,7 +101,7 @@ dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 12px;mar
 h2{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px}
 </style></head><body><main>
 <h1>Loot Dungeon Sound Lab</h1>
-<p class="sub">Every track the 30 Loot Dungeon Beasts play. Species Songs, Name Songs and Sound Checks come from the Beasts composer unchanged. Monthly Track Editions are new: the edition engine with chromatic harmony after <i>Realm of Common Tones</i> (mode mixture, chromatic mediants, common-tone pivots) and <i>Kingdom of Sweets</i> (applied dominants, diminished sevenths, the Neapolitan and German sixth). Sound effects: regular or mega. Instruments: a ten-instrument sample bank (harp, marimba, glockenspiel, strings, cello, flute, pizzicato, clarinet, timpani, piano) at 12 kHz, with the TinyChip presets one click away. Beast ids, tiers and families are placeholders until the final list.</p>
+<p class="sub">Every track the 30 Loot Dungeon Beasts play. Species Songs, Name Songs and Sound Checks come from the Beasts composer unchanged. Monthly Track Editions are new: the edition engine with chromatic harmony after <i>Realm of Common Tones</i> (mode mixture, chromatic mediants, common-tone pivots) and <i>Kingdom of Sweets</i> (applied dominants, diminished sevenths, the Neapolitan and German sixth). Sound effects: regular or mega. Instruments: a ten-instrument sample bank (harp, marimba, glockenspiel, strings, cello, flute, pizzicato, clarinet, timpani, piano) at 16 kHz, with the TinyChip presets one click away. Beast ids, tiers and families are placeholders until the final list.</p>
 <div class="tabs" role="tablist">
 <button id="t-song"><b>Species Song</b><span>shared by every Beast of the species</span></button>
 <button id="t-name"><b>Name Song</b><span>a Beast with a special name</span></button>

@@ -28,7 +28,7 @@ lead, bass and voicings use the bar's colour, so the melody follows chromatic ch
 ## Instruments
 
 The lab plays every track through the sample bank by default: ten CC0 VSCO 2 Community Edition
-instruments at 12 kHz BRR (midi_fun_contract branch `feat/snes-brr-pipeline`, `onchain/snes/dist/bank.min.js`).
+instruments at 16 kHz BRR (midi_fun_contract branch `feat/snes-brr-pipeline`, `onchain/snes/dist-16k/bank.min.js`).
 Each edition style maps its lead, accompaniment, bass and pad to bank instruments; songs map their
 channels by family. Drums stay on TinySynth's chip kit. The TinyChip presets are a toggle.
 

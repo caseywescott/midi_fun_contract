@@ -14,7 +14,7 @@ Sound effects: 0 regular, 1 mega.
 
 ## Editions
 
-Twelve styles, one a month in turn. Each borrows its meter, figures and presets from a Beasts edition
+Twelve styles, one a month in turn, 32 progressions each. Each borrows its meter, figures and presets from a Beasts edition
 style and brings its own harmony in Roman numerals (`offchain/loot-sound/onchain/make_styles.mjs`):
 
 - **Realm of Common Tones**: Overworld March, Open Field, Royal Lullaby, Forest Dance, Temple Depths,

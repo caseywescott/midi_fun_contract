@@ -8,7 +8,7 @@
 //     lead's notes in that bar use the colour, so mixture chords (bVI, bVII, iv), chromatic mediants
 //     (bIII, III), applied dominants (II7, III7, VI7), the Neapolitan and the German sixth sound with
 //     a melody that follows them instead of clashing.
-//   - Progressions are written in Roman numerals (src/loot_styles.js) and may be 4 or 8 chords long.
+//   - Progressions are written in Roman numerals (src/loot_styles.js), 32 a style, 4 or 8 chords long.
 //   - Sound effects are 0 (regular) and 1 (mega): no chip echo.
 //
 //   editionGenome(e)                         -> the edition's style (e >= 1)
@@ -56,13 +56,14 @@ export const COLOURS = [
 // Roman numerals as [degree, colour, seventh], by the style's home
 const MAJOR = {
   I: [0, 0], ii: [1, 0], iii: [2, 0], IV: [3, 0], V: [4, 0], vi: [5, 0], vii: [6, 0],
-  V7: [4, 0, 1], ii7: [1, 0, 1],
+  V7: [4, 0, 1], ii7: [1, 0, 1], Imaj7: [0, 0, 1], IVmaj7: [3, 0, 1], iii7: [2, 0, 1], vi7: [5, 0, 1], I7: [0, 7, 1], iv7: [3, 1, 1], bVImaj7: [5, 1, 1],
   bIII: [2, 1], iv: [3, 1], bVI: [5, 1], bVII: [6, 7], v: [4, 7],
   N: [1, 3], II: [1, 2], II7: [1, 2, 1], III: [2, 4], III7: [2, 4, 1], VI7: [5, 8, 1], 'vii°7': [6, 5, 1], Ger: [5, 9, 1],
 };
 const MINOR = {
   i: [0, 0], 'ii°': [1, 0], III: [2, 0], iv: [3, 0], v: [4, 0], VI: [5, 0], VII: [6, 0],
   V: [4, 6], V7: [4, 6, 1], 'vii°7': [6, 6, 1], N: [1, 3], Ger: [5, 9, 1], IV: [3, 11], I: [0, 10], I7: [0, 7, 1],
+  i7: [0, 0, 1], iv7: [3, 0, 1], 'iiø7': [1, 0, 1], VImaj7: [5, 0, 1], VII7: [6, 0, 1], II: [1, 2], II7: [1, 2, 1],
 };
 const LYDIAN = { I: [0, 0], II: [1, 0], iii: [2, 0], V: [4, 0], vi: [5, 0], vii: [6, 0] };
 const NUMERALS = { major: MAJOR, minor: MINOR, lydian: LYDIAN };
@@ -181,8 +182,10 @@ export function editionTrack(sp, mega, e, seedKey, drift = null) {
   const R = rng((fold ^ imul(e, 0x9e3779b1) ^ imul(sp.id, 0x85ebca77)) >>> 0);
   let tonic = (sp.tonicPc + R.pick([0, 0, 0, 5, 7, 10, 2, 3])) % 12;
   const bpm = g.bpm + R.pick([-4, -2, 0, 0, 2, 4]);
-  let pA = R.int(16), pB = R.int(16); if (pB === pA) pB = (pA + 1) % 16;
-  let pC = (pA + 1 + R.int(14)) % 16; if (pC === pB) pC = (pC + 1) % 16;
+  // the A, B and C progressions: any of the style's (32), all different
+  const NP = progs.length;
+  let pA = R.int(NP), pB = R.int(NP); if (pB === pA) pB = (pA + 1) % NP;
+  let pC = (pA + 1 + R.int(NP - 2)) % NP; if (pC === pB) pC = (pC + 1) % NP;
   if (knob === 0) [pA, pB] = [pB, pA];
   R.int(S.modes.length); // the mode draw (one home mode per style)
   let formId = R.int(8);

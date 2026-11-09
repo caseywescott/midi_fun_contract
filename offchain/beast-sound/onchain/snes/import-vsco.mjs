@@ -12,16 +12,16 @@ const sources = JSON.parse(readFileSync(resolve(here, 'vsco-sources.json'), 'utf
 const sha = (b) => createHash('sha256').update(b).digest('hex');
 const lowRateIds = new Set(['marimba', 'strings', 'cello', 'clarinet', 'timpani']);
 const settings = {
-  harp: { program: 46, rootNote: 62, start: 0.020, length: 0.34, loopMin: 0.18, volume: 0.48, envelope: { attack: 0.002, decay: 0.65, sustain: 0.08, release: 0.24 } },
-  marimba: { program: 12, rootNote: 72, start: 0, length: 0.36, volume: 0.6, envelope: { attack: 0.001, decay: 0.5, sustain: 0.2, release: 0.12 } },
-  glockenspiel: { program: 9, rootNote: 84, start: 0, length: 0.26, loopMin: 0.12, volume: 0.48, envelope: { attack: 0.001, decay: 0.8, sustain: 0.1, release: 0.35 } },
-  strings: { program: 48, rootNote: 72, start: 0.012, length: 0.45, loopMin: 0.20, volume: 0.42, envelope: { attack: 0.025, decay: 0.2, sustain: 0.85, release: 0.22 } },
-  cello: { program: 42, rootNote: 60, start: 0, length: 0.44, loopMin: 0.23, volume: 0.48, envelope: { attack: 0.012, decay: 0.24, sustain: 0.8, release: 0.2 } },
-  flute: { program: 73, rootNote: 72, start: 0.008, length: 0.36, loopMin: 0.15, volume: 0.40, envelope: { attack: 0.008, decay: 0.12, sustain: 0.8, release: 0.15 } },
-  pizzicato: { program: 45, rootNote: 72, start: 0, length: 0.24, volume: 0.53, envelope: { attack: 0.001, decay: 0.28, sustain: 0, release: 0.08 } },
-  clarinet: { program: 71, rootNote: 74, start: 0.016, length: 0.38, loopMin: 0.16, volume: 0.43, envelope: { attack: 0.012, decay: 0.12, sustain: 0.78, release: 0.16 } },
-  timpani: { program: 47, rootNote: 42, start: 0, length: 0.38, tune: false, volume: 0.54, envelope: { attack: 0.001, decay: 0.42, sustain: 0, release: 0.10 } },
-  piano: { program: 0, rootNote: 65, start: 0, length: 0.37, loopMin: 0.16, volume: 0.52, envelope: { attack: 0.001, decay: 0.7, sustain: 0.12, release: 0.22 } },
+  harp: { program: 46, rootNote: 62, start: 0.020, length: 0.34, loopMin: 0.18, volume: 0.37, envelope: { attack: 0.002, decay: 0.65, sustain: 0.08, release: 0.24 } },
+  marimba: { program: 12, rootNote: 72, start: 0, length: 0.36, volume: 0.347, envelope: { attack: 0.001, decay: 0.5, sustain: 0.2, release: 0.12 } },
+  glockenspiel: { program: 9, rootNote: 84, start: 0, length: 0.26, loopMin: 0.12, volume: 0.973, envelope: { attack: 0.001, decay: 0.8, sustain: 0.1, release: 0.35 } },
+  strings: { program: 48, rootNote: 72, start: 0.012, length: 0.45, loopMin: 0.20, volume: 0.339, envelope: { attack: 0.025, decay: 0.2, sustain: 0.85, release: 0.22 } },
+  cello: { program: 42, rootNote: 60, start: 0, length: 0.44, loopMin: 0.23, volume: 0.304, envelope: { attack: 0.012, decay: 0.24, sustain: 0.8, release: 0.2 } },
+  flute: { program: 73, rootNote: 72, start: 0.008, length: 0.36, loopMin: 0.15, volume: 0.211, envelope: { attack: 0.008, decay: 0.12, sustain: 0.8, release: 0.15 } },
+  pizzicato: { program: 45, rootNote: 72, start: 0, length: 0.24, volume: 0.551, envelope: { attack: 0.001, decay: 0.28, sustain: 0, release: 0.08 } },
+  clarinet: { program: 71, rootNote: 74, start: 0.016, length: 0.38, loopMin: 0.16, volume: 0.263, envelope: { attack: 0.012, decay: 0.12, sustain: 0.78, release: 0.16 } },
+  timpani: { program: 47, rootNote: 42, start: 0, length: 0.38, tune: false, volume: 0.384, envelope: { attack: 0.001, decay: 0.42, sustain: 0, release: 0.10 } },
+  piano: { program: 0, rootNote: 65, start: 0, length: 0.37, loopMin: 0.16, volume: 0.415, envelope: { attack: 0.001, decay: 0.7, sustain: 0.12, release: 0.22 } },
 };
 function wav16(pcm, rate) {
   const b = Buffer.alloc(44 + pcm.length * 2);

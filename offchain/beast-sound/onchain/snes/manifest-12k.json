@@ -14,7 +14,7 @@
       "loopCrossfade": 0.012,
       "fadeIn": 0.001,
       "tuneCents": 12.49,
-      "volume": 0.48,
+      "volume": 0.37,
       "envelope": {
         "attack": 0.002,
         "decay": 0.65,
@@ -36,7 +36,7 @@
       "fadeOut": 0.035,
       "fadeIn": 0.001,
       "tuneCents": -4.24,
-      "volume": 0.6,
+      "volume": 0.347,
       "envelope": {
         "attack": 0.001,
         "decay": 0.5,
@@ -60,7 +60,7 @@
       "loopCrossfade": 0.012,
       "fadeIn": 0.001,
       "tuneCents": -11.7,
-      "volume": 0.48,
+      "volume": 0.973,
       "envelope": {
         "attack": 0.001,
         "decay": 0.8,
@@ -84,7 +84,7 @@
       "loopCrossfade": 0.012,
       "fadeIn": 0.001,
       "tuneCents": 6.29,
-      "volume": 0.42,
+      "volume": 0.339,
       "envelope": {
         "attack": 0.025,
         "decay": 0.2,
@@ -108,7 +108,7 @@
       "loopCrossfade": 0.012,
       "fadeIn": 0.001,
       "tuneCents": -4.8,
-      "volume": 0.48,
+      "volume": 0.304,
       "envelope": {
         "attack": 0.012,
         "decay": 0.24,
@@ -132,7 +132,7 @@
       "loopCrossfade": 0.012,
       "fadeIn": 0.001,
       "tuneCents": 0.21,
-      "volume": 0.4,
+      "volume": 0.211,
       "envelope": {
         "attack": 0.008,
         "decay": 0.12,
@@ -154,7 +154,7 @@
       "fadeOut": 0.035,
       "fadeIn": 0.001,
       "tuneCents": -22.38,
-      "volume": 0.53,
+      "volume": 0.551,
       "envelope": {
         "attack": 0.001,
         "decay": 0.28,
@@ -178,7 +178,7 @@
       "loopCrossfade": 0.012,
       "fadeIn": 0.001,
       "tuneCents": -3.96,
-      "volume": 0.43,
+      "volume": 0.263,
       "envelope": {
         "attack": 0.012,
         "decay": 0.12,
@@ -200,7 +200,7 @@
       "fadeOut": 0.035,
       "fadeIn": 0.001,
       "tuneCents": 0,
-      "volume": 0.54,
+      "volume": 0.384,
       "envelope": {
         "attack": 0.001,
         "decay": 0.42,
@@ -224,7 +224,7 @@
       "loopCrossfade": 0.012,
       "fadeIn": 0.001,
       "tuneCents": -1.11,
-      "volume": 0.52,
+      "volume": 0.415,
       "envelope": {
         "attack": 0.001,
         "decay": 0.7,

@@ -9,7 +9,10 @@ import { envelope, fromBase64, validateBank } from './bank.js';
 // stopped voice over 5 ms instead of cutting it. The old behaviour: { upsample: false,
 // softSteal: false, maxVoices: 8 }.
 const STEAL_FADE = 0.005;
-export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo = true, upsample = true, softSteal = true } = {}) {
+// The sample layer's level against TinySynth: with it, each instrument's manifest volume puts a stem at
+// the loudness the TinyChip presets gave the same part (measured 10 Nov 2026, integrated LUFS, per stem).
+export const LEVEL = 2.5;
+export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo = true, upsample = true, softSteal = true, layerGain = LEVEL } = {}) {
   validateBank(bank);
   if (!Number.isInteger(maxVoices) || maxVoices < 1 || maxVoices > 64) throw new Error('maxVoices must be 1–64');
   const buffers = new Map(), buses = new Map(), voices = new Set();
@@ -124,7 +127,7 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
       if (source.loop) { source.loopStart = sample.loopStart / sample.rate; source.loopEnd = source.buffer.duration; }
       source.playbackRate.value = 2 ** ((note - inst.rootNote) / 12);
       source.detune.setValueAtTime(inst.tuneCents + bend, t);
-      const peak = inst.volume * (velocity / 127) ** 2;
+      const peak = layerGain * inst.volume * (velocity / 127) ** 2;
       gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(peak, t + env.attack);
       gain.gain.linearRampToValueAtTime(peak * env.sustain, t + env.attack + env.decay);
       source.connect(gain); gain.connect(bus(destination));

@@ -18,9 +18,9 @@ export function buildBank(manifestPath) {
   const path = manifestPath instanceof URL ? fileURLToPath(manifestPath) : resolve(manifestPath);
   const manifest = JSON.parse(readFileSync(path, 'utf8'));
   if (manifest.format !== 'BSBRR1' || !Array.isArray(manifest.instruments) || manifest.instruments.length > 256) throw new Error('Expected BSBRR1 manifest with up to 256 instruments');
-  const budget = manifest.maxBrrBytes ?? 20480;
-  if (!integer(budget, 9, 65536)) throw new Error('maxBrrBytes must be 9–65536');
-  const bank = { format: 'BSBRR1', name: manifest.name ?? '', samples: [], instruments: [] };
+  const budget = manifest.maxBrrBytes ?? 20480, evaluation = manifest.evaluation === true;
+  if (!integer(budget, 9, evaluation ? 8 << 20 : 65536)) throw new Error(`maxBrrBytes must be 9–${evaluation ? '8 MiB (evaluation)' : 65536}`);
+  const bank = { format: 'BSBRR1', name: manifest.name ?? '', ...(evaluation ? { evaluation: true } : {}), samples: [], instruments: [] };
   const samples = new Map(), report = [];
   let total = 0;
   for (const inst of manifest.instruments) {
@@ -34,7 +34,7 @@ export function buildBank(manifestPath) {
       samples.set(key, bank.samples.length);
       bank.samples.push({ rate, loopStart, data: Buffer.from(bytes).toString('base64') });
     }
-    bank.instruments.push({ id: inst.id, ...(inst.drum === undefined ? { program: inst.program } : { drum: inst.drum }), sample: samples.get(key), rootNote: inst.rootNote, tuneCents: inst.tuneCents ?? 0, volume: inst.volume ?? 0.5, envelope: envelope(inst.envelope), credit: inst.credit });
+    bank.instruments.push({ id: inst.id, ...(inst.drum === undefined ? { program: inst.program } : { drum: inst.drum }), sample: samples.get(key), rootNote: inst.rootNote, tuneCents: inst.tuneCents ?? 0, volume: inst.volume ?? 0.5, envelope: envelope(inst.envelope), ...(inst.keys ? { keys: inst.keys } : {}), credit: inst.credit });
     const decoded = decodeBRR(bytes, loopStart);
     let error = 0, signal = 0;
     for (let i = 0; i < pcm.length; i++) { error += (pcm[i] - decoded[i]) ** 2; signal += pcm[i] ** 2; }

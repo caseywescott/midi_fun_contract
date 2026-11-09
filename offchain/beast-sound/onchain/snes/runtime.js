@@ -14,7 +14,10 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
   if (!Number.isInteger(maxVoices) || maxVoices < 1 || maxVoices > 64) throw new Error('maxVoices must be 1–64');
   const buffers = new Map(), buses = new Map(), voices = new Set();
   const programs = new Map(), drums = new Map();
-  for (const inst of bank.instruments) (inst.drum === undefined ? programs : drums).set(inst.drum ?? inst.program, inst);
+  for (const inst of bank.instruments) { const m = inst.drum === undefined ? programs : drums, k = inst.drum ?? inst.program; m.set(k, [...(m.get(k) ?? []), inst]); }
+  // the zone for a note: the one whose key range holds it, else the nearest range
+  const zone = (zones, note) => zones && (zones.find((i) => !i.keys || (note >= i.keys[0] && note <= i.keys[1]))
+    ?? zones.reduce((a, b) => (Math.min(Math.abs(note - a.keys[0]), Math.abs(note - a.keys[1])) <= Math.min(Math.abs(note - b.keys[0]), Math.abs(note - b.keys[1])) ? a : b)));
   let disposed = false;
   function buffer(index) {
     if (buffers.has(index)) return buffers.get(index);
@@ -107,7 +110,7 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
     get activeVoices() { return [...voices].filter((v) => v.start <= ac.currentTime && v.end > ac.currentTime).length; },
     noteOn({ channel = 0, program = 0, drum = false, note, velocity = 100, time = ac.currentTime, destination = ac.destination, bend = 0 }) {
       if (disposed) throw new Error('Sampler is disposed');
-      const inst = (drum ? drums : programs).get(drum ? note : program);
+      const inst = zone((drum ? drums : programs).get(drum ? note : program), note);
       if (!inst) return false; // caller may fall back to TinySynth
       if (velocity === 0) { api.noteOff(channel, note, time); return true; }
       if (![note, velocity, time, bend].every(Number.isFinite) || note < 0 || note > 127 || velocity < 0 || velocity > 127) throw new Error('Invalid note');

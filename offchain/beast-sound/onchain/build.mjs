@@ -21,6 +21,7 @@ mkdirSync(here + 'dist', { recursive: true });
 // Reject an unfinished sample bank before writing any production artifacts.
 const snesBank = SNES_ONCHAIN ? buildBank(SNES_MANIFEST) : null;
 if (snesBank && !snesBank.bank.instruments.length) throw new Error('SNES_ONCHAIN requires a populated manifest');
+if (snesBank?.bank.evaluation) throw new Error('An evaluation bank (local listening only) cannot go onchain');
 const snes = snesBank ? await bundleBank(snesBank.bank) : '';
 if (snesBank) writeFileSync(here + 'dist/snes.min.js', snes + '\n');
 

@@ -143,3 +143,39 @@ test('curated VSCO bank is reproducible, ten payloads cover ten MIDI programs be
   const badRate = structuredClone(economical.bank); badRate.samples[0].rate = 11999;
   assert.throws(() => validateBank(badRate), /sample rate/);
 });
+
+test('key zones share a program over disjoint ranges, pack round-trip and pick the zone holding a note', async () => {
+  const { packBank, unpackBank } = await import('../onchain/snes/pack.js');
+  const { createSampler } = await import('../onchain/snes/runtime.js');
+  fixture((dir) => {
+    const zone = (id, root, keys) => ({ id, file: 'tone.wav', program: 12, rootNote: root, keys, credit: { author: 'Test', license: 'Test only', source: 'Generated sine' } });
+    const path = join(dir, 'zones.json');
+    writeFileSync(path, JSON.stringify({ format: 'BSBRR1', instruments: [zone('low', 48, [0, 59]), zone('high', 72, [60, 127])] }));
+    const { bank } = buildBank(path);
+    assert.deepEqual(bank.instruments.map((i) => i.keys), [[0, 59], [60, 127]]);
+    assert.deepEqual(unpackBank(JSON.parse(JSON.stringify(packBank(bank)))), JSON.parse(JSON.stringify((({ ...b }) => { for (const i of b.instruments) delete i.credit; return b; })(structuredClone(bank)))));
+    // overlapping zones on one program are rejected
+    assert.throws(() => validateBank({ ...bank, instruments: [bank.instruments[0], { ...bank.instruments[1], keys: [50, 127] }] }), /Duplicate MIDI mapping p12/);
+    // the sampler plays the zone that holds the note
+    const roots = [];
+    const ac = { currentTime: 0, sampleRate: 48000, destination: {},
+      createBuffer: (c, n, r) => ({ duration: n / r, getChannelData: () => new Float32Array(n) }),
+      createBufferSource: () => { const src = { playbackRate: {}, detune: { setValueAtTime() {} }, connect() {}, start() {}, stop() {} }; roots.push(src); return src; },
+      createGain: () => ({ gain: { setValueAtTime() {}, linearRampToValueAtTime() {}, cancelScheduledValues() {} }, connect() {} }),
+      createBiquadFilter: () => ({ frequency: {}, Q: {}, connect() {} }) };
+    const s = createSampler(ac, bank, { echo: false, upsample: false });
+    const notes = [40, 59, 60, 90];
+    for (const note of notes) assert.ok(s.noteOn({ program: 12, note }));
+    // playbackRate = 2^((note - root) / 12): the low zone (root 48) below 60, the high (72) from 60
+    assert.deepEqual(roots.map((src, i) => Math.round(notes[i] - 12 * Math.log2(src.playbackRate.value))), [48, 48, 72, 72]);
+  });
+});
+
+test('an evaluation bank may pass 64 KiB; a normal bank may not', () => {
+  const big = { format: 'BSBRR1', samples: [], instruments: [] };
+  const block = Buffer.alloc(9); block[0] = 0; // filter 0, range 0
+  const sample = (n) => { const b = Buffer.concat(Array(n).fill(block)); b[b.length - 9] |= 1; return { rate: 16000, loopStart: null, data: b.toString('base64') }; };
+  big.samples = [sample(4000), sample(4000)]; // 72,000 bytes
+  assert.throws(() => validateBank(big), /exceeds 64 KiB/);
+  assert.doesNotThrow(() => validateBank({ ...big, evaluation: true }));
+});

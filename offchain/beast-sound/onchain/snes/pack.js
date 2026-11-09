@@ -43,19 +43,20 @@ function base64(bytes) {
   return out;
 }
 
-/** Instruments as [id, program or 256 + drum key, sample, rootNote, tuneCents, volume, ...envelope]. */
+/** Instruments as [id, program or 256 + drum key, sample, rootNote, tuneCents, volume, ...envelope,
+ *  lowest key, highest key] (the key range only for a key zone); an evaluation bank adds `1`. */
 export function packBank(bank) {
   return [bank.name, bank.samples.map((s) => [s.rate, s.loopStart, toBase91(Buffer.from(s.data, 'base64'))]),
-    bank.instruments.map((i) => [i.id, i.drum === undefined ? i.program : 256 + i.drum, i.sample, i.rootNote, i.tuneCents, i.volume, ...ENVELOPE.map((k) => i.envelope[k])])];
+    bank.instruments.map((i) => [i.id, i.drum === undefined ? i.program : 256 + i.drum, i.sample, i.rootNote, i.tuneCents, i.volume, ...ENVELOPE.map((k) => i.envelope[k]), ...(i.keys ?? [])]), ...(bank.evaluation ? [1] : [])];
 }
 
-export function unpackBank([name, samples, instruments]) {
+export function unpackBank([name, samples, instruments, evaluation]) {
   return {
-    format: 'BSBRR1', ...(name === null ? {} : { name }),
+    format: 'BSBRR1', ...(name === null ? {} : { name }), ...(evaluation ? { evaluation: true } : {}),
     samples: samples.map(([rate, loopStart, data]) => ({ rate, loopStart, data: base64(fromBase91(data)) })),
-    instruments: instruments.map(([id, slot, sample, rootNote, tuneCents, volume, ...envelope]) => ({
+    instruments: instruments.map(([id, slot, sample, rootNote, tuneCents, volume, ...rest]) => ({
       id, ...(slot > 255 ? { drum: slot - 256 } : { program: slot }), sample, rootNote, tuneCents, volume,
-      envelope: Object.fromEntries(ENVELOPE.map((k, j) => [k, envelope[j]])),
+      envelope: Object.fromEntries(ENVELOPE.map((k, j) => [k, rest[j]])), ...(rest.length > 4 ? { keys: rest.slice(4, 6) } : {}),
     })),
   };
 }

@@ -76,6 +76,29 @@ The lower sample rate removes some upper frequencies from those five sounds. Bot
 renders played all ten sounds with no clipped frames, page errors or network requests. The alternate
 candidate remains under its 28 KiB BRR budget; see `vsco-validation-12k.json` for measurements.
 
+## Playback A/B (before and after the sampler fixes)
+
+`npm run snes:ab` builds both banks and `onchain/snes/dist-ab/ab.html`: each bank through the sampler as
+it was (the browser's linear resampling, instant voice stealing, 8 voices) and as fixed (whole-factor
+windowed-sinc upsampling when a sample is decoded, 5 ms fades on stolen voices, 16 voices). The BRR
+data and stored bank are identical in both; the runtime grows by 1,116 stored bytes. Its Measure
+button renders each variant offline at 48 kHz.
+
+Measured 9 November 2026 (headless Chromium, 48 kHz):
+
+| Content | Variant | Images above 8.5 kHz | Clicks detected |
+|---|---|---:|---:|
+| All sounds + ensemble | 16 kHz before / after | −49.8 / −57.9 dB | 19 / 20 |
+| All sounds + ensemble | 12 kHz before / after | −49.7 / −58.0 dB | 20 / 20 |
+| Busy ensemble | 16 kHz before / after | −46.0 / −47.8 dB | 57 / 36 |
+| Busy ensemble | 12 kHz before / after | −45.8 / −47.7 dB | 61 / 35 |
+
+The click detector also counts sharp note attacks (about 20 in the demo), so the busy ensemble's drop
+is the voice-steal clicks removed. Two-octave sweeps move real harmonics above 8.5 kHz, so the image
+figure does not apply to them. Loop seams measured by second difference against each loop's own
+99th percentile are smooth except the piano's, about −38 dB at the seam (BRR quantization at the
+loop's first block; a longer crossfade did not change it).
+
 ## Add sounds
 
 Run commands from `offchain/beast-sound`:

@@ -1,9 +1,15 @@
 import { decodeBRR } from './brr.js';
 import { envelope, fromBase64, validateBank } from './bank.js';
 
-// Decode once per AudioContext. Browser resampling + binomial smoothing approximate
-// the soft SNES character; this is deliberately not a cycle-accurate S-DSP emulator.
-export function createSampler(ac, bank, { maxVoices = 8, smoothing = true, echo = true } = {}) {
+// Decode once per AudioContext. Binomial smoothing approximates the soft SNES character; this is
+// deliberately not a cycle-accurate S-DSP emulator. `upsample` raises each decoded sample by a whole
+// factor (to at least the context rate) with a windowed sinc before the browser plays it: the browser's
+// own resampler is linear interpolation, which leaves audible images of a 12-16 kHz sample in the
+// 6-12 kHz band. A whole factor keeps loop points on exact frames. `softSteal` fades a stolen or
+// stopped voice over 5 ms instead of cutting it. The old behaviour: { upsample: false,
+// softSteal: false, maxVoices: 8 }.
+const STEAL_FADE = 0.005;
+export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo = true, upsample = true, softSteal = true } = {}) {
   validateBank(bank);
   if (!Number.isInteger(maxVoices) || maxVoices < 1 || maxVoices > 64) throw new Error('maxVoices must be 1–64');
   const buffers = new Map(), buses = new Map(), voices = new Set();
@@ -23,6 +29,28 @@ export function createSampler(ac, bank, { maxVoices = 8, smoothing = true, echo 
     };
     for (let i = 0; i < pcm.length; i++) out[i] = smoothing
       ? (read(i - 2, i) + 4 * read(i - 1, i) + 6 * read(i, i) + 4 * read(i + 1, i) + read(i + 2, i)) / 16 : pcm[i] / 32768;
+    const k = upsample ? Math.max(1, Math.ceil(ac.sampleRate / sample.rate)) : 1;
+    if (k > 1) {
+      // Windowed sinc (8 source samples each side, cutoff 0.95 of the source Nyquist), reading
+      // through the loop so the seam is interpolated as it plays.
+      const src = out.slice(), n = src.length, R = 8, fc = 0.95, up = ac.createBuffer(1, n * k, sample.rate * k), dst = up.getChannelData(0);
+      const at = (i, center) => {
+        if (sample.loopStart !== null && center >= sample.loopStart) { const length = n - sample.loopStart; i = sample.loopStart + ((i - sample.loopStart) % length + length) % length; }
+        return src[Math.max(0, Math.min(n - 1, i))];
+      };
+      const taps = [];
+      for (let f = 0; f < k; f++) {
+        const row = [];
+        for (let j = -R + 1; j <= R; j++) { const d = j - f / k, x = Math.PI * fc * d; row.push(fc * (d === 0 ? 1 : Math.sin(x) / x) * (0.5 + 0.5 * Math.cos(Math.PI * d / R))); }
+        const sum = row.reduce((a, b) => a + b, 0); taps.push(row.map((w) => w / sum));
+      }
+      for (let i = 0; i < n; i++) for (let f = 0; f < k; f++) {
+        let v = 0; const row = taps[f];
+        for (let j = -R + 1, t = 0; j <= R; j++, t++) v += row[t] * at(i + j, i);
+        dst[i * k + f] = v;
+      }
+      buffers.set(index, up); return up;
+    }
     buffers.set(index, result); return result;
   }
   function bus(destination) {
@@ -59,9 +87,17 @@ export function createSampler(ac, bank, { maxVoices = 8, smoothing = true, echo 
     voice.source.stop(voice.end);
   }
   function kill(voice, time) {
-    const t = Math.max(ac.currentTime, time);
-    voice.gain.gain.cancelScheduledValues(t); voice.gain.gain.setValueAtTime(0, t);
-    voice.end = Math.min(voice.end, t); voice.source.stop(voice.end);
+    const t = Math.max(ac.currentTime, time), g = voice.gain.gain;
+    if (!softSteal) {
+      g.cancelScheduledValues(t); g.setValueAtTime(0, t);
+      voice.end = Math.min(voice.end, t); voice.source.stop(voice.end); return;
+    }
+    // hold the level the envelope has reached, then fade it out
+    if (g.cancelAndHoldAtTime) g.cancelAndHoldAtTime(t);
+    else { g.cancelScheduledValues(t); g.setValueAtTime(voice.released ? 0 : level(voice, t), t); }
+    g.linearRampToValueAtTime(0, t + STEAL_FADE);
+    voice.released = true;
+    voice.end = Math.min(voice.end, t + STEAL_FADE + 0.001); voice.source.stop(voice.end);
   }
   const api = {
     get activeVoices() { return [...voices].filter((v) => v.start <= ac.currentTime && v.end > ac.currentTime).length; },

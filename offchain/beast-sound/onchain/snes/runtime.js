@@ -71,7 +71,9 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
     }
     buses.set(destination, { input, nodes }); return input;
   }
+  // The envelope's level at `time`, including a release in progress.
   function level(voice, time) {
+    if (voice.released) return time >= voice.relTime + voice.env.release ? 0 : voice.relLevel * (1 - (time - voice.relTime) / Math.max(1e-6, voice.env.release));
     const dt = Math.max(0, time - voice.start), e = voice.env;
     if (e.attack && dt < e.attack) return voice.peak * dt / e.attack;
     if (e.decay && dt < e.attack + e.decay) return voice.peak * (1 - (1 - e.sustain) * (dt - e.attack) / e.decay);
@@ -79,10 +81,12 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
   }
   function release(voice, time) {
     if (voice.released) return;
-    const t = Math.max(ac.currentTime, time, voice.start), g = voice.gain.gain;
-    voice.released = true;
-    g.cancelScheduledValues(t); g.setValueAtTime(level(voice, t), t);
+    const t = Math.max(ac.currentTime, time, voice.start), g = voice.gain.gain, from = level(voice, t);
+    // Cancelling removes the ramp in progress, so redraw it up to `t` (a linear ramp to the level
+    // it has reached there) instead of jumping from the ramp's start to that level: the click.
+    g.cancelScheduledValues(t); g.linearRampToValueAtTime(from, t);
     g.linearRampToValueAtTime(0, t + voice.env.release);
+    Object.assign(voice, { released: true, relTime: t, relLevel: from });
     voice.end = Math.min(voice.end, t + voice.env.release + 0.002);
     voice.source.stop(voice.end);
   }
@@ -92,11 +96,11 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
       g.cancelScheduledValues(t); g.setValueAtTime(0, t);
       voice.end = Math.min(voice.end, t); voice.source.stop(voice.end); return;
     }
-    // hold the level the envelope has reached, then fade it out
-    if (g.cancelAndHoldAtTime) g.cancelAndHoldAtTime(t);
-    else { g.cancelScheduledValues(t); g.setValueAtTime(voice.released ? 0 : level(voice, t), t); }
+    // redraw the envelope up to the level it has reached, then fade it out
+    const from = level(voice, t);
+    g.cancelScheduledValues(t); g.linearRampToValueAtTime(from, t);
     g.linearRampToValueAtTime(0, t + STEAL_FADE);
-    voice.released = true;
+    Object.assign(voice, { released: true, relTime: t, relLevel: from, env: { ...voice.env, release: STEAL_FADE } });
     voice.end = Math.min(voice.end, t + STEAL_FADE + 0.001); voice.source.stop(voice.end);
   }
   const api = {

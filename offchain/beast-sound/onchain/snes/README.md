@@ -84,17 +84,21 @@ windowed-sinc upsampling when a sample is decoded, 5 ms fades on stolen voices, 
 data and stored bank are identical in both; the runtime grows by 1,116 stored bytes. Its Measure
 button renders each variant offline at 48 kHz.
 
-Measured 9 November 2026 (headless Chromium, 48 kHz):
+A note-off bug affected every variant: `release()` cancelled the decay ramp in progress, so the note
+held its peak until the note-off and then dropped to the decayed level, a click on every note-off
+(clearest on harp and marimba, whose decays outlast their notes). Releases and steals now redraw the
+envelope up to the level it has reached before fading; this fix is in all four variants.
+
+Measured 9 November 2026 (headless Chromium, 48 kHz, after the note-off fix):
 
 | Content | Variant | Images above 8.5 kHz | Clicks detected |
 |---|---|---:|---:|
-| All sounds + ensemble | 16 kHz before / after | −49.8 / −57.9 dB | 19 / 20 |
-| All sounds + ensemble | 12 kHz before / after | −49.7 / −58.0 dB | 20 / 20 |
-| Busy ensemble | 16 kHz before / after | −46.0 / −47.8 dB | 57 / 36 |
-| Busy ensemble | 12 kHz before / after | −45.8 / −47.7 dB | 61 / 35 |
+| All sounds + ensemble | 16 kHz before / after | −49.4 / −58.5 dB | 0 / 0 |
+| All sounds + ensemble | 12 kHz before / after | −49.2 / −58.6 dB | 0 / 0 |
+| Busy ensemble | 16 kHz before / after | −45.5 / −47.5 dB | 24 / 0 |
+| Busy ensemble | 12 kHz before / after | −45.2 / −47.5 dB | 27 / 0 |
 
-The click detector also counts sharp note attacks (about 20 in the demo), so the busy ensemble's drop
-is the voice-steal clicks removed. Two-octave sweeps move real harmonics above 8.5 kHz, so the image
+Two-octave sweeps move real harmonics above 8.5 kHz, so the image
 figure does not apply to them. Loop seams measured by second difference against each loop's own
 99th percentile are smooth except the piano's, about −38 dB at the seam (BRR quantization at the
 loop's first block; a longer crossfade did not change it).

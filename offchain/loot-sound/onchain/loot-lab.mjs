@@ -15,16 +15,18 @@ import { SPECIES } from '../src/loot_species.js';
 import { STYLES } from '../src/loot_styles.js';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-// optional: a second bank to compare (local evaluation), and its label; the page then cycles three sounds
-const [engineFile, omp, ref, bankFile, extraBank, extraLabel = 'second bank', outName = 'loot-lab.html'] = process.argv.slice(2);
+// optional: the output name, then label/bank pairs to compare (local evaluation); the Instruments button
+// cycles the sample bank, each extra bank, then TinyChip
+const [engineFile, omp, ref, bankFile, outName = 'loot-lab.html', ...pairs] = process.argv.slice(2);
+const extras = []; for (let i = 0; i + 1 < pairs.length; i += 2) extras.push([pairs[i], pairs[i + 1]]);
 if (!engineFile || !omp || !ref || !bankFile) { console.error('usage: node onchain/loot-lab.mjs <engine .min.js> <onchain-midi-player checkout> <midi_fun_contract checkout> <bank.min.js>'); process.exit(2); }
 const BSRC = join(ref, 'offchain/beast-sound');
 const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
 const tiny = readFileSync(engineFile, 'utf8');
 // the sample bank, its globals named for what they are
 const clean = (f) => { const js = readFileSync(f, 'utf8').replace(/SnesBank/g, 'SampleBank').replace(/__snesSampler/g, '__sampleLayer').replace(/SNES sampler/g, 'Sampler').replace(/snes-brr-1/g, 'brr-1'); if (/snes/i.test(js)) throw new Error('bank script still names SNES'); return js; };
-const bankJs = clean(bankFile) + '\nwindow.Banks=[SampleBank];' + (extraBank ? '\n' + clean(extraBank) + '\nwindow.Banks.push(SampleBank);' : '');
-const INSTS = ['sample bank', ...(extraBank ? [extraLabel] : []), 'TinyChip'];
+const bankJs = [clean(bankFile) + '\nwindow.Banks=[SampleBank];', ...extras.map(([, f]) => clean(f) + '\nwindow.Banks.push(SampleBank);')].join('\n');
+const INSTS = ['sample bank', ...extras.map(([label]) => label), 'TinyChip'];
 const bundle = (await build({
   stdin: {
     contents: `import { engine } from ${JSON.stringify(BSRC + '/src/index.js')}; import { createEngineV11 } from ${JSON.stringify(BSRC + '/src/engine_v11.js')};

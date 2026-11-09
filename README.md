@@ -25,6 +25,13 @@ style and brings its own harmony in Roman numerals (`offchain/loot-sound/onchain
 A chord is a scale degree, a colour (the scale it borrows for its bar) and an optional seventh; the
 lead, bass and voicings use the bar's colour, so the melody follows chromatic chords.
 
+## Instruments
+
+The lab plays every track through the sample bank by default: ten CC0 VSCO 2 Community Edition
+instruments at 12 kHz BRR (midi_fun_contract branch `feat/snes-brr-pipeline`, `onchain/snes/dist/bank.min.js`).
+Each edition style maps its lead, accompaniment, bass and pad to bank instruments; songs map their
+channels by family. Drums stay on TinySynth's chip kit. The TinyChip presets are a toggle.
+
 ## Build the lab
 
 From `offchain/loot-sound/`, with a midi_fun_contract checkout at `v1.0.1` and an onchain-midi-player
@@ -33,7 +40,7 @@ checkout (the same inputs as the Beasts labs):
 ```sh
 node onchain/make_styles.mjs <midi_fun_contract>
 node onchain/make_species.mjs <midi_fun_contract>
-node onchain/loot-lab.mjs <engine .min.js> <onchain-midi-player> <midi_fun_contract>
+node onchain/loot-lab.mjs <engine .min.js> <onchain-midi-player> <midi_fun_contract> <bank.min.js>
 open public/loot-lab.html
 ```
 

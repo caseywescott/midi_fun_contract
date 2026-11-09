@@ -2,3 +2,4 @@ node_modules
 target
 .DS_Store
 ._*
+offchain/loot-sound/public/loot-lab-local.html

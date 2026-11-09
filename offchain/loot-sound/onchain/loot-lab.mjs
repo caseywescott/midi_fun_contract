@@ -15,14 +15,16 @@ import { SPECIES } from '../src/loot_species.js';
 import { STYLES } from '../src/loot_styles.js';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-const [engineFile, omp, ref, bankFile] = process.argv.slice(2);
+// optional: a second bank to compare (local evaluation), and its label; the page then cycles three sounds
+const [engineFile, omp, ref, bankFile, extraBank, extraLabel = 'second bank', outName = 'loot-lab.html'] = process.argv.slice(2);
 if (!engineFile || !omp || !ref || !bankFile) { console.error('usage: node onchain/loot-lab.mjs <engine .min.js> <onchain-midi-player checkout> <midi_fun_contract checkout> <bank.min.js>'); process.exit(2); }
 const BSRC = join(ref, 'offchain/beast-sound');
 const inline = (js) => js.replace(/<\/script/gi, '<\\/script');
 const tiny = readFileSync(engineFile, 'utf8');
 // the sample bank, its globals named for what they are
-const bankJs = readFileSync(bankFile, 'utf8').replace(/SnesBank/g, 'SampleBank').replace(/__snesSampler/g, '__sampleLayer').replace(/SNES sampler/g, 'Sampler').replace(/snes-brr-1/g, 'brr-1');
-if (/snes/i.test(bankJs)) throw new Error('bank script still names SNES');
+const clean = (f) => { const js = readFileSync(f, 'utf8').replace(/SnesBank/g, 'SampleBank').replace(/__snesSampler/g, '__sampleLayer').replace(/SNES sampler/g, 'Sampler').replace(/snes-brr-1/g, 'brr-1'); if (/snes/i.test(js)) throw new Error('bank script still names SNES'); return js; };
+const bankJs = clean(bankFile) + '\nwindow.Banks=[SampleBank];' + (extraBank ? '\n' + clean(extraBank) + '\nwindow.Banks.push(SampleBank);' : '');
+const INSTS = ['sample bank', ...(extraBank ? [extraLabel] : []), 'TinyChip'];
 const bundle = (await build({
   stdin: {
     contents: `import { engine } from ${JSON.stringify(BSRC + '/src/index.js')}; import { createEngineV11 } from ${JSON.stringify(BSRC + '/src/engine_v11.js')};
@@ -67,7 +69,7 @@ const ORCH = {
   names: Object.fromEntries(Object.entries(BANK).map(([k, v]) => [v, k])),
 };
 if (Object.keys(ROLES).length !== STYLES.length || STYLES.some((S) => !ROLES[S.key])) throw new Error('every style needs sample roles');
-const DATA = { orch: ORCH, beasts: BEASTS, types: ['Magic', 'Hunter', 'Brute'], names: NAMES, family: FAMILY, edition: EDITION, styles: STYLES.map((s) => ({ key: s.key, label: s.label, desc: s.desc, home: s.home })) };
+const DATA = { insts: INSTS, orch: ORCH, beasts: BEASTS, types: ['Magic', 'Hunter', 'Brute'], names: NAMES, family: FAMILY, edition: EDITION, styles: STYLES.map((s) => ({ key: s.key, label: s.label, desc: s.desc, home: s.home })) };
 
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -124,13 +126,14 @@ h2{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em
 <script>
 const DATA = ${JSON.stringify(DATA)};
 const $ = (id) => document.getElementById(id), E = BS.engine, V = BS.v11, L = BS.lab, ED = BS.ed, U64 = (1n << 64n) - 1n, N = DATA.beasts.length, NSTYLE = DATA.styles.length;
-const st = { kind: 'song', b: 0, name: 1, e: 1, p: 1, day: 1, mega: false, chip: false };
+const st = { kind: 'song', b: 0, name: 1, e: 1, p: 1, day: 1, mega: false, inst: 0 };
 (function readUrl() {
   const q = new URLSearchParams(location.search), num = (k, lo, hi, d) => (q.has(k) ? Math.max(lo, Math.min(hi, Math.round(+q.get(k)) || 0)) : d);
   if (['song', 'name', 'check', 'edition'].includes(q.get('track'))) st.kind = q.get('track');
-  st.b = num('b', 0, N - 1, 0); st.name = num('name', 1, L.NAME_COUNT, 1); st.e = num('e', 1, NSTYLE * 2, 1); st.p = num('p', 1, 1e6, 1); st.day = num('day', 1, 400, 1); st.mega = q.get('mega') === '1'; st.chip = q.get('inst') === 'chip';
+  st.b = num('b', 0, N - 1, 0); st.name = num('name', 1, L.NAME_COUNT, 1); st.e = num('e', 1, NSTYLE * 2, 1); st.p = num('p', 1, 1e6, 1); st.day = num('day', 1, 400, 1); st.mega = q.get('mega') === '1'; st.inst = q.get('inst') === 'chip' ? DATA.insts.length - 1 : Math.max(0, Math.min(DATA.insts.length - 1, +(q.get('inst') || 0) || 0));
 })();
-let synth = null, playing = false, cur = null, layer = null, setProgram0 = null;
+let synth = null, playing = false, cur = null, layer = null, layerBank = -1, setProgram0 = null;
+const isChip = () => st.inst === DATA.insts.length - 1;
 const anchor = L.dayAnchor();
 const beast = () => DATA.beasts[st.b];
 function purchaseSeed(n) { let x = BigInt(n) * 0x9e3779b97f4a7c15n & U64; x ^= x >> 30n; x = x * 0xbf58476d1ce4e5b9n & U64; x ^= x >> 27n; x = x * 0x94d049bb133111ebn & U64; return x ^ (x >> 31n); }
@@ -162,7 +165,7 @@ function show() {
   $('e-val').innerHTML = st.e + ' · ' + esc(g.name) + ' <small>' + esc(S.label) + ' · ' + g.month + '</small>';
   $('p-val').innerHTML = '#' + st.p;
   $('mega').textContent = 'Mega: ' + (st.mega ? 'on' : 'off'); $('mega').classList.toggle('on', st.mega);
-  $('inst').textContent = 'Instruments: ' + (st.chip ? 'TinyChip' : 'sample bank');
+  $('inst').textContent = 'Instruments: ' + DATA.insts[st.inst];
   $('d-val').textContent = st.day; $('day').value = st.day;
   cur = track();
   const i = cur.info || {};
@@ -175,7 +178,7 @@ function show() {
   $('styles').innerHTML = DATA.styles.map((s, k) => '<button data-k="' + k + '" class="' + (st.kind === 'edition' && g.style === k ? 'on' : '') + '"><b>' + (k + 1) + '. ' + esc(s.label) + '</b><span>' + (k < 6 ? 'Realm' : 'Sweets') + ' · ' + esc(s.desc) + '</span></button>').join('');
   for (const bt of $('styles').querySelectorAll('button')) bt.onclick = () => { st.kind = 'edition'; st.e = +bt.dataset.k + 1; change(); };
   roll(cur.midi);
-  history.replaceState(null, '', '?' + new URLSearchParams({ track: st.kind, b: st.b, name: st.name, e: st.e, p: st.p, day: st.day, ...(st.mega ? { mega: 1 } : {}), ...(st.chip ? { inst: 'chip' } : {}) }));
+  history.replaceState(null, '', '?' + new URLSearchParams({ track: st.kind, b: st.b, name: st.name, e: st.e, p: st.p, day: st.day, ...(st.mega ? { mega: 1 } : {}), ...(st.inst ? { inst: isChip() ? 'chip' : st.inst } : {}) }));
 }
 function notesOf(u8) {
   const notes = [], prog = {}; let end = 0, i = 14, ntr = (u8[10] << 8) | u8[11];
@@ -197,7 +200,7 @@ function notesOf(u8) {
 }
 const ROLES = { 0: 'lead', 1: 'descant', 2: 'accomp', 3: 'bass', 4: 'pad', 5: 'mega double' };
 // a channel's instrument as it sounds: the bank's (the orchestration) or the TinyChip preset
-const instName = (ch, prog) => (st.chip || !cur ? DATA.names[prog] || '' : DATA.orch.names[cur.orch[ch % cur.orch.length]] || '');
+const instName = (ch, prog) => (isChip() || !cur ? DATA.names[prog] || '' : DATA.orch.names[cur.orch[ch % cur.orch.length]] || '');
 let rollData = null;
 function roll(midi) {
   rollData = notesOf(midi);
@@ -221,8 +224,8 @@ function start() {
   if (!synth) synth = new WebAudioTinySynth({ quality: 1, useReverb: 1, voices: 64 });
   synth.getAudioContext().resume(); synth.stopMIDI();
   BS.installSettings(synth, cur.settings);
-  if (!st.chip && !layer) { layer = SampleBank.attach(synth, { maxVoices: 24 }); setProgram0 = synth.setProgram; synth.setProgram = (ch, p, ...r) => setProgram0.call(synth, ch, ch === 9 || !cur ? p : cur.orch[ch % cur.orch.length], ...r); }
-  if (st.chip && layer) { synth.setProgram = setProgram0; layer.dispose(); layer = null; }
+  if (layer && (isChip() || layerBank !== st.inst)) { synth.setProgram = setProgram0; layer.dispose(); layer = null; layerBank = -1; }
+  if (!isChip() && !layer) { layer = Banks[st.inst].attach(synth, { maxVoices: 24 }); layerBank = st.inst; setProgram0 = synth.setProgram; synth.setProgram = (ch, p, ...r) => setProgram0.call(synth, ch, ch === 9 || !cur ? p : cur.orch[ch % cur.orch.length], ...r); }
   const m = cur.midi;
   synth.loadMIDI(m.buffer.slice(m.byteOffset, m.byteOffset + m.length));
   synth.setLoop(1); synth.setLoopEnd(synth.getPlayStatus().maxTick); synth.playMIDI(); playing = true;
@@ -236,7 +239,7 @@ $('b-prev').onclick = () => step('b', -1); $('b-next').onclick = () => step('b',
 $('n-prev').onclick = () => step('n', -1); $('n-next').onclick = () => step('n', 1);
 $('e-prev').onclick = () => step('e', -1); $('e-next').onclick = () => step('e', 1);
 $('p-prev').onclick = () => step('p', -1); $('p-next').onclick = () => step('p', 1);
-$('play').onclick = start; $('stop').onclick = stop; $('mega').onclick = () => { st.mega = !st.mega; change(); }; $('inst').onclick = () => { st.chip = !st.chip; change(); };
+$('play').onclick = start; $('stop').onclick = stop; $('mega').onclick = () => { st.mega = !st.mega; change(); }; $('inst').onclick = () => { st.inst = (st.inst + 1) % DATA.insts.length; change(); };
 $('day').oninput = () => { st.day = +$('day').value; show(); }; $('day').onchange = () => { if (playing) start(); };
 document.addEventListener('keydown', (ev) => {
   if (ev.target.tagName === 'INPUT' || ev.metaKey || ev.ctrlKey) return;
@@ -249,5 +252,5 @@ document.addEventListener('keydown', (ev) => {
 show();
 </script></body></html>`;
 mkdirSync(new URL('../public/', import.meta.url), { recursive: true });
-writeFileSync(new URL('../public/loot-lab.html', import.meta.url), html);
-console.log('loot-lab.html', html.length, 'bytes');
+writeFileSync(new URL('../public/' + outName, import.meta.url), html);
+console.log(outName, html.length, 'bytes');

@@ -1,0 +1,24 @@
+{
+  "id": "flute",
+  "file": "samples/vsco/flute.wav",
+  "program": 73,
+  "rootNote": 72,
+  "sampleRate": 16000,
+  "trimEnd": 0.332,
+  "loopStart": 0.246,
+  "loopCrossfade": 0.012,
+  "fadeIn": 0.001,
+  "tuneCents": 0.21,
+  "volume": 0.211,
+  "envelope": {
+    "attack": 0.008,
+    "decay": 0.12,
+    "sustain": 0.8,
+    "release": 0.15
+  },
+  "credit": {
+    "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
+    "license": "CC0-1.0",
+    "source": "https://versilian-studios.com/vsco-community/"
+  }
+}

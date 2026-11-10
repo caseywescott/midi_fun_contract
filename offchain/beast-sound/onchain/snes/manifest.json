@@ -1,7 +1,7 @@
 {
   "format": "BSBRR1",
   "name": "VSCO pocket orchestra",
-  "maxBrrBytes": 32768,
+  "maxBrrBytes": 40960,
   "instruments": [
     {
       "id": "harp",
@@ -122,17 +122,21 @@
       }
     },
     {
-      "id": "flute",
-      "file": "samples/vsco/flute.wav",
+      "id": "flute-C4",
+      "file": "samples/loot/flute_C4_src.wav",
       "program": 73,
-      "rootNote": 72,
+      "keys": [
+        0,
+        66
+      ],
+      "rootNote": 60,
       "sampleRate": 16000,
-      "trimEnd": 0.332,
-      "loopStart": 0.246,
-      "loopCrossfade": 0.012,
-      "fadeIn": 0.001,
-      "tuneCents": 0.21,
-      "volume": 0.211,
+      "gain": 4.713,
+      "loopStart": 0.292,
+      "trimEnd": 0.447,
+      "loopCrossfade": 0.02,
+      "tuneCents": 0,
+      "volume": 0.336,
       "envelope": {
         "attack": 0.008,
         "decay": 0.12,
@@ -140,9 +144,37 @@
         "release": 0.15
       },
       "credit": {
-        "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
-        "license": "CC0-1.0",
-        "source": "https://versilian-studios.com/vsco-community/"
+        "author": "Casey Wescott",
+        "license": "Own work",
+        "source": "new_samples_loot_survivor/Classic Electric Pianoflute_c4.aif"
+      }
+    },
+    {
+      "id": "flute-C5",
+      "file": "samples/loot/flute_C5_src.wav",
+      "program": 73,
+      "keys": [
+        67,
+        127
+      ],
+      "rootNote": 72,
+      "sampleRate": 16000,
+      "gain": 6.695,
+      "loopStart": 0.398,
+      "trimEnd": 0.654,
+      "loopCrossfade": 0.02,
+      "tuneCents": 0,
+      "volume": 0.203,
+      "envelope": {
+        "attack": 0.008,
+        "decay": 0.12,
+        "sustain": 0.8,
+        "release": 0.15
+      },
+      "credit": {
+        "author": "Casey Wescott",
+        "license": "Own work",
+        "source": "new_samples_loot_survivor/Classic Electric Pianoflute_c5.aif"
       }
     },
     {

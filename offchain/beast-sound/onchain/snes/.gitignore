@@ -6,3 +6,5 @@ samples/*
 !samples/vsco/
 dist-16k/
 dist-ab/
+!samples/loot/
+samples/loot/._*

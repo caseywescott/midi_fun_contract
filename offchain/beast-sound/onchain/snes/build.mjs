@@ -27,12 +27,12 @@ export function buildBank(manifestPath) {
     if (typeof inst.file !== 'string' || !inst.file || !inst.credit || ['author', 'license', 'source'].some((k) => typeof inst.credit[k] !== 'string' || !inst.credit[k].trim())) throw new Error(`Supply file and credit author/license/source for ${inst.id}`);
     const wav = readWav(readFileSync(resolve(dirname(path), inst.file)));
     const { pcm, rate, loopStart } = prepare(wav, inst);
-    const bytes = encodeBRR(pcm, loopStart), key = `${rate}:${loopStart}:${sha(bytes)}`;
+    const smooth = inst.smoothing !== false, bytes = encodeBRR(pcm, loopStart), key = `${rate}:${loopStart}:${smooth}:${sha(bytes)}`;
     if (!samples.has(key)) {
       total += bytes.length;
       if (total > budget) throw new Error(`BRR budget exceeded: ${total} > ${budget} bytes`);
       samples.set(key, bank.samples.length);
-      bank.samples.push({ rate, loopStart, data: Buffer.from(bytes).toString('base64') });
+      bank.samples.push({ rate, loopStart, data: Buffer.from(bytes).toString('base64'), ...(smooth ? {} : { smoothing: false }) });
     }
     bank.instruments.push({ id: inst.id, ...(inst.drum === undefined ? { program: inst.program } : { drum: inst.drum }), sample: samples.get(key), rootNote: inst.rootNote, tuneCents: inst.tuneCents ?? 0, volume: inst.volume ?? 0.5, envelope: envelope(inst.envelope), ...(inst.keys ? { keys: inst.keys } : {}), credit: inst.credit });
     const decoded = decodeBRR(bytes, loopStart);

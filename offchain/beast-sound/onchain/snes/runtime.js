@@ -33,7 +33,8 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
       }
       return pcm[Math.max(0, Math.min(pcm.length - 1, i))] / 32768;
     };
-    for (let i = 0; i < pcm.length; i++) out[i] = smoothing
+    // a sample marked `smoothing: false` keeps its top end (recordings meant to sound as recorded)
+    for (let i = 0; i < pcm.length; i++) out[i] = smoothing && sample.smoothing !== false
       ? (read(i - 2, i) + 4 * read(i - 1, i) + 6 * read(i, i) + 4 * read(i + 1, i) + read(i + 2, i)) / 16 : pcm[i] / 32768;
     const k = upsample ? Math.max(1, Math.ceil(ac.sampleRate / sample.rate)) : 1;
     if (k > 1) {

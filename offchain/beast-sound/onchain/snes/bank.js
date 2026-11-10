@@ -26,6 +26,7 @@ export function validateBank(bank) {
     if (size > cap) throw new Error(cap === 65536 ? 'BRR bank exceeds 64 KiB' : 'Evaluation bank exceeds 8 MiB');
     validateBRR(bytes, s.loopStart);
     if (!integer(s.rate, 12000, 32000)) throw new Error('Invalid sample rate');
+    if (s.smoothing !== undefined && s.smoothing !== false) throw new Error('Sample smoothing is false or absent');
     // Cached PCM playback must have an independent loop entry.
     if (s.loopStart !== null && (bytes[s.loopStart / 16 * 9] & 12)) throw new Error('Loop entry must use filter 0');
   }

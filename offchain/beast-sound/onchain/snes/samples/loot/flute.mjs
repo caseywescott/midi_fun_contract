@@ -46,15 +46,16 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop()
   // a 1.2 s note at its root as the player plays it (attack, then the loop): its level after the attack
   const level = (file, opt) => { const p = prepare(readWav(readFileSync(new URL(file, snes))), opt), d = decodeBRR(encodeBRR(p.pcm, p.loopStart), p.loopStart);
     let s = 0, n = 0; for (let i = Math.round(0.2 * p.rate); i < 1.2 * p.rate; i++, n++) { const v = d[i < d.length ? i : p.loopStart + ((i - d.length) % (d.length - p.loopStart))] / 32768; s += v * v; } return 10 * Math.log10(s / n); };
-  // measured in the Loot lab against the TinyChip stems: the level match leaves it 0.7 dB loud
-  const TRIM_DB = 0.7, ref = level(old.file, old), zones = [];
+  // measured in the Loot lab against the TinyChip stems: the level match leaves it 1.4 dB loud
+  // (unsmoothed, the flute's top end adds 0.7 dB)
+  const TRIM_DB = 1.4, ref = level(old.file, old), zones = [];
   // measured 10 Nov 2026 on the re-exported notes (they sound at their names): tuning and vibrato rate
   for (const [name, root, keys, hz, vib, tune] of [['C4', 60, [0, 66], 261.6256, 2.5, -18.9], ['C5', 72, [67, 127], 523.2511, 6.2, 0.3]]) {
     const file = `samples/loot/flute_${name}_src.wav`, x = readWav(readFileSync(new URL(file, snes))).pcm; let pk = 0; for (const v of x) pk = Math.max(pk, Math.abs(v));
     const gain = +(0.708 / pk).toFixed(3), L = findLoop(`flute_${name}_src.wav`, gain, hz, vib);
     const opt = { sampleRate: 16000, gain, loopStart: +L.loopStart.toFixed(4), trimEnd: +L.trimEnd.toFixed(4), loopCrossfade: 0.02 };
     console.error(name, 'loop', opt.loopStart, '-', opt.trimEnd, 's,', L.cycles, 'vibrato cycle(s), pitch gap', L.pitchGap.toFixed(1), 'cents');
-    zones.push({ id: `flute-${name}`, file, program: old.program, keys, rootNote: root, ...opt, tuneCents: tune, volume: +(old.volume * 10 ** ((ref - level(file, opt) - TRIM_DB) / 20)).toFixed(3),
+    zones.push({ id: `flute-${name}`, file, program: old.program, keys, rootNote: root, ...opt, smoothing: false, tuneCents: tune, volume: +(old.volume * 10 ** ((ref - level(file, opt) - TRIM_DB) / 20)).toFixed(3),
       envelope: old.envelope, credit: { author: 'Casey Wescott', license: 'Own work', source: `new_samples_loot_survivor/Classic Electric Pianoflute_${name.toLowerCase()}.aif` } });
   }
   writeFileSync(new URL('flute.json', here), JSON.stringify(zones, null, 2) + '\n');

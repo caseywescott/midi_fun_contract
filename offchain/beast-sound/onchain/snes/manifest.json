@@ -136,7 +136,7 @@
       "trimEnd": 0.857,
       "loopCrossfade": 0.02,
       "tuneCents": -18.9,
-      "volume": 0.319,
+      "volume": 0.294,
       "envelope": {
         "attack": 0.008,
         "decay": 0.12,
@@ -147,7 +147,8 @@
         "author": "Casey Wescott",
         "license": "Own work",
         "source": "new_samples_loot_survivor/Classic Electric Pianoflute_c4.aif"
-      }
+      },
+      "smoothing": false
     },
     {
       "id": "flute-C5",
@@ -164,7 +165,7 @@
       "trimEnd": 0.916,
       "loopCrossfade": 0.02,
       "tuneCents": 0.3,
-      "volume": 0.409,
+      "volume": 0.377,
       "envelope": {
         "attack": 0.008,
         "decay": 0.12,
@@ -175,7 +176,8 @@
         "author": "Casey Wescott",
         "license": "Own work",
         "source": "new_samples_loot_survivor/Classic Electric Pianoflute_c5.aif"
-      }
+      },
+      "smoothing": false
     },
     {
       "id": "pizzicato",

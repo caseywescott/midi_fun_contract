@@ -118,7 +118,7 @@ test('base91 page text round-trips every length and byte, with no quote, backsla
   }
 });
 
-test('curated bank is reproducible: VSCO plus a two-zone flute, eleven payloads over ten MIDI programs below 40 KiB', async () => {
+test('curated bank is reproducible: VSCO plus a two-zone flute, eleven payloads over ten MIDI programs below 48 KiB', async () => {
   const root = new URL('../onchain/snes/', import.meta.url);
   const processing = JSON.parse(readFileSync(new URL('vsco-processing.json', root)));
   for (const s of processing.samples) {
@@ -128,7 +128,7 @@ test('curated bank is reproducible: VSCO plus a two-zone flute, eleven payloads 
   }
   const { bank, report } = buildBank(new URL('manifest.json', root));
   assert.equal(bank.samples.length, 11); assert.equal(bank.instruments.length, 11);
-  assert.ok(report.brrBytes < 40960); assert.equal(report.sharedSampleReferences, 0);
+  assert.ok(report.brrBytes < 49152); assert.equal(report.sharedSampleReferences, 0);
   assert.deepEqual(bank.instruments.filter((i) => i.program === 73).map((i) => [i.id, i.keys]), [['flute-C4', [0, 66]], ['flute-C5', [67, 127]]]);
   assert.deepEqual([0, 45, 47, 71].map((program) => bank.instruments.find((i) => i.program === program)?.id), ['piano', 'pizzicato', 'timpani', 'clarinet']);
   assert.notEqual(bank.instruments.find((i) => i.program === 0).sample, bank.instruments.find((i) => i.program === 46).sample);
@@ -138,7 +138,7 @@ test('curated bank is reproducible: VSCO plus a two-zone flute, eleven payloads 
   assert.deepEqual(context.window.SnesBank.bank.instruments[0].credit, context.window.SnesBank.bank.instruments[1].credit);
   assert.equal(context.window.SnesBank.bank.instruments.find((i) => i.id === 'flute-C4').credit.author, 'Casey Wescott');
   const economical = buildBank(new URL('manifest-12k.json', root));
-  assert.ok(economical.report.brrBytes < 36864);
+  assert.ok(economical.report.brrBytes < 45056);
   assert.ok(report.brrBytes - economical.report.brrBytes > 4000);
   const reduced = new Set(['marimba', 'strings', 'cello', 'clarinet', 'timpani']);
   economical.bank.instruments.forEach((i) => assert.equal(economical.bank.samples[i.sample].rate, reduced.has(i.id) ? 12000 : 16000));

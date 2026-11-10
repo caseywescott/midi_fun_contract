@@ -1,5 +1,5 @@
-// Casey's flute (new_samples_loot_survivor/Classic Electric Pianoflute_c4/c5.aif, as 16-bit WAV): two key
-// zones, each its attack and a loop in the steady part at 16 kHz. The notes carry a ~7 Hz vibrato, so a
+// Casey's flute (new_samples_loot_survivor/Classic Electric Pianoflute_c4/c5.aif, re-exported 10 Nov 2026 to
+// sound at their names; as 16-bit WAV): two key zones, each its attack and a loop in the steady part at 16 kHz. The notes carry a ~7 Hz vibrato, so a
 // loop is a whole number of vibrato cycles with the same pitch and direction at both ends, as well as
 // matching waveform and level.
 import { readFileSync } from 'node:fs';
@@ -19,11 +19,13 @@ function pitchTrack(x, r, hz0) {
 export function findLoop(file, gain, hz0, vibratoHz) {
   const w = readWav(readFileSync(new URL(file, here))), rate = 16000, P = pitchTrack(w.pcm, w.rate, hz0);
   const pitch = (t) => P[Math.min(P.length - 1, Math.round(t / 0.005))], slope = (t) => pitch(t + 0.01) - pitch(t - 0.01);
-  const x = prepare(w, { sampleRate: rate, trimEnd: 0.9, gain }).pcm, env = (i, n = 160) => { let s = 0; for (let j = i - n; j < i; j++) s += x[j] * x[j]; return Math.sqrt(s / n); };
+  const x = prepare(w, { sampleRate: rate, trimEnd: 1.4, gain }).pcm, env = (i, n = 160) => { let s = 0; for (let j = i - n; j < i; j++) s += x[j] * x[j]; return Math.sqrt(s / n); };
   const cycle = rate / vibratoHz;
   let best = null;
-  for (let start = 16 * Math.round(0.25 * rate / 16); start <= 0.45 * rate; start += 16)
-    for (const k of [1, 2]) for (let end = start + 16 * Math.floor((k * cycle - 0.012 * rate) / 16); end <= start + k * cycle + 0.012 * rate && end <= x.length - 16; end += 16) {
+  // the loop starts in the settled tone: the C5 note's first 0.3 s is brighter (3rd harmonic level with
+  // the fundamental) than what follows
+  for (let start = 16 * Math.round(0.45 * rate / 16); start <= 0.65 * rate; start += 16)
+    for (const k of [1, 2]) if (k * cycle <= 0.75 * rate) for (let end = start + 16 * Math.floor((k * cycle - 0.012 * rate) / 16); end <= start + k * cycle + 0.012 * rate && end <= x.length - 16; end += 16) {
       let err = 0, en = 0; for (let i = 1; i <= 96; i++) { err += (x[start - i] - x[end - i]) ** 2; en += x[start - i] ** 2 + x[end - i] ** 2; }
       const ts = start / rate, te = end / rate, lv = Math.abs(env(start) - env(end)) / Math.max(env(start), 1);
       const dp = Math.abs(pitch(ts) - pitch(te)), ds = Math.sign(slope(ts)) === Math.sign(slope(te)) ? 0 : 1;
@@ -46,11 +48,13 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop()
     let s = 0, n = 0; for (let i = Math.round(0.2 * p.rate); i < 1.2 * p.rate; i++, n++) { const v = d[i < d.length ? i : p.loopStart + ((i - d.length) % (d.length - p.loopStart))] / 32768; s += v * v; } return 10 * Math.log10(s / n); };
   // measured in the Loot lab against the TinyChip stems: the level match leaves it 0.7 dB loud
   const TRIM_DB = 0.7, ref = level(old.file, old), zones = [];
-  for (const [name, root, keys, hz, vib] of [['C4', 60, [0, 66], 261.6256, 6.9], ['C5', 72, [67, 127], 523.2511, 7.5]]) {
+  // measured 10 Nov 2026 on the re-exported notes (they sound at their names): tuning and vibrato rate
+  for (const [name, root, keys, hz, vib, tune] of [['C4', 60, [0, 66], 261.6256, 2.5, -18.9], ['C5', 72, [67, 127], 523.2511, 6.2, 0.3]]) {
     const file = `samples/loot/flute_${name}_src.wav`, x = readWav(readFileSync(new URL(file, snes))).pcm; let pk = 0; for (const v of x) pk = Math.max(pk, Math.abs(v));
     const gain = +(0.708 / pk).toFixed(3), L = findLoop(`flute_${name}_src.wav`, gain, hz, vib);
     const opt = { sampleRate: 16000, gain, loopStart: +L.loopStart.toFixed(4), trimEnd: +L.trimEnd.toFixed(4), loopCrossfade: 0.02 };
-    zones.push({ id: `flute-${name}`, file, program: old.program, keys, rootNote: root, ...opt, tuneCents: 0, volume: +(old.volume * 10 ** ((ref - level(file, opt) - TRIM_DB) / 20)).toFixed(3),
+    console.error(name, 'loop', opt.loopStart, '-', opt.trimEnd, 's,', L.cycles, 'vibrato cycle(s), pitch gap', L.pitchGap.toFixed(1), 'cents');
+    zones.push({ id: `flute-${name}`, file, program: old.program, keys, rootNote: root, ...opt, tuneCents: tune, volume: +(old.volume * 10 ** ((ref - level(file, opt) - TRIM_DB) / 20)).toFixed(3),
       envelope: old.envelope, credit: { author: 'Casey Wescott', license: 'Own work', source: `new_samples_loot_survivor/Classic Electric Pianoflute_${name.toLowerCase()}.aif` } });
   }
   writeFileSync(new URL('flute.json', here), JSON.stringify(zones, null, 2) + '\n');

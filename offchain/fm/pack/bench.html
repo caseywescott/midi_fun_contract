@@ -1,0 +1,40 @@
+<!doctype html><meta charset="utf-8"><title>bank bench</title>
+<script>
+// ?bank=<script url>&mode=first|all|hash. Times from just before the bank script starts loading.
+window.T0 = performance.now();
+const q = new URLSearchParams(location.search);
+if (q.get('mode') === 'serial') window.Worker = undefined; // no workers: every zone renders on this thread
+const s = document.createElement('script'); s.src = q.get('bank');
+s.onload = async () => {
+  const B = window.LootFmPack || window.SnesBank, res = { evalMs: performance.now() - T0 }, ac = new AudioContext();
+  const firsts = []; for (const i of B.bank.instruments) firsts.push(i.drum !== undefined ? [-1, i.drum] : [i.program, i.rootNote]);
+  const mode = q.get('mode');
+  if (mode === 'first') {
+    // a typical edition track's first notes: flute lead, harp accompaniment, cello bass, strings pad, kick/snare/hat
+    const track = [[73, 72], [46, 64], [42, 40], [48, 60], [-1, 36], [-1, 38], [-1, 42]];
+    await B.need(track); res.needMs = performance.now() - T0;
+    const sm = B.createSampler(ac, { maxVoices: 24 }), t = ac.currentTime + 0.05;
+    for (const [p, n] of track) sm.noteOn({ channel: p < 0 ? 9 : 0, program: Math.max(0, p), drum: p < 0, note: n, velocity: 100, time: t });
+    res.soundMs = performance.now() - T0;
+    // a second wave of notes in other zones (playing on): how long the sampler blocks per new buffer
+    const more = [[73, 79], [46, 71], [42, 47], [48, 67]]; await B.need(more); const t1 = performance.now();
+    for (const [p, n] of more) sm.noteOn({ channel: 0, program: p, note: n, velocity: 100, time: ac.currentTime + 0.05 });
+    res.noteOnMsPerBuffer = (performance.now() - t1) / more.length;
+  } else if (mode === 'all') {
+    await B.need(firsts); res.allFirstMs = performance.now() - T0;
+    if (performance.memory) res.heapMB = Math.round(performance.memory.usedJSHeapSize / 1048576);
+  } else if (mode === 'serial') {
+    // every first take rendered one after another on the page's thread: the engine's speed alone
+    const t1 = performance.now(), seen = new Set();
+    for (const i of B.bank.instruments) if (!seen.has(i.sample)) { seen.add(i.sample); B.bank.samples[i.sample].render(); }
+    res.serialFirstMs = performance.now() - t1;
+  } else if (mode === 'hash') {
+    await B.need(firsts); res.allFirstMs = performance.now() - T0;
+    const seen = new Set(), hashes = [];
+    for (const i of B.bank.instruments) { if (seen.has(i.sample)) continue; seen.add(i.sample); const y = B.bank.samples[i.sample].render(), u = new Uint32Array(y.buffer, y.byteOffset, y.length); let h = 2166136261; for (let k = 0; k < u.length; k++) h = Math.imul(h ^ u[k], 16777619); hashes.push([i.sample, y.length, h >>> 0]); }
+    res.hashes = hashes;
+  }
+  window.RESULT = res;
+};
+document.head.appendChild(s);
+</script>

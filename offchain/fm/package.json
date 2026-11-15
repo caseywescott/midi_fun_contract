@@ -1,0 +1,13 @@
+{
+  "name": "loot-fm-pack",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node pack/build.mjs",
+    "parity": "node pack/parity.mjs pack/engine.js . --pack",
+    "cairo": "node pack/cairo.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.23.0"
+  }
+}

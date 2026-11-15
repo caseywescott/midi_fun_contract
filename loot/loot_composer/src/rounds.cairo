@@ -17,6 +17,21 @@ use crate::rounds_data::{
 use crate::species::loot_species;
 
 pub const TPQ: u16 = 480;
+const SHIFTS: [u32; 8] = [0, 0, 0, 5, 7, 10, 2, 3];
+const BPM0: [u32; 3] = [96, 110, 84];
+const ORN_PICK: [u32; 4] = [0, 0, 1, 2];
+const ORN_BASE: [u32; 3] = [0, 12, 24];
+const SUS_SHARE: [u32; 3] = [35, 55, 75];
+/// By meter (4/4, 6/8, 3/4): the slot, the bar, how late a suspension resolves, the time signature.
+const SLOT: [u32; 3] = [960, 720, 1440];
+const BAR: [u32; 3] = [1920, 1440, 1440];
+const LATE: [u32; 3] = [480, 240, 480];
+const SIGS: [u8; 12] = [4, 2, 24, 8, 6, 3, 36, 8, 3, 2, 24, 8];
+const GLISS_WEIGHTS: [u32; 5] = [0, 1, 3, 3, 2];
+const OCTAVE: [i32; 4] = [0, -1, 0, -1];
+const PAN: [u8; 6] = [64, 40, 88, 52, 64, 76];
+const PROGRAMS: [u8; 18] = [0, 9, 7, 15, 17, 13, 2, 1, 8, 12, 19, 6, 3, 4, 5, 16, 14, 18];
+const MEGA_LEADS: [u8; 2] = [50, 65];
 const EP_UNITS: u32 = 7;
 const EP_SLOTS: u32 = 8;
 const BIG: u32 = 0x40000000;
@@ -132,7 +147,7 @@ pub fn pitch_of(base: i32, scale: Span<u32>, d: i32) -> i32 {
 /// A mode's index in ROUND_MODES.
 pub fn mode_index(mode: u32) -> u32 {
     let ids = MODE_IDS.span();
-    let mut k = 0;
+    let mut k: u32 = opaque(0);
     while k != 6 {
         let m: u32 = (*ids.at(k)).into();
         if m == mode {
@@ -147,9 +162,9 @@ pub fn mode_index(mode: u32) -> u32 {
 /// `n` base-`b` digits of `v`, the lowest first.
 #[inline(never)]
 pub fn unpack(v: u32, b: u32, n: u32) -> Span<u32> {
-    let mut out = array![];
+    let mut out = opaque(array![]);
     let mut x = v;
-    let mut k = 0;
+    let mut k: u32 = opaque(0);
     while k != n {
         out.append(x % b);
         x /= b;
@@ -159,7 +174,7 @@ pub fn unpack(v: u32, b: u32, n: u32) -> Span<u32> {
 }
 
 pub fn unpack_i(v: u32, b: u32, n: u32) -> Span<i32> {
-    let mut out = array![];
+    let mut out = opaque(array![]);
     for x in unpack(v, b, n) {
         out.append(i(*x));
     }
@@ -183,8 +198,8 @@ fn pool_loop(eight: bool, bad: u32, idx: u32) -> Span<u32> {
     } else {
         (LOOPS4.span(), 4, 0x1000)
     };
-    let mut c = 0;
-    let mut k = 0;
+    let mut c: u32 = opaque(0);
+    let mut k: u32 = opaque(0);
     loop {
         let v = *tab.at(k);
         if (v / place) & bad == 0 {
@@ -225,7 +240,7 @@ fn digits4(c: u32) -> (u32, u32, u32, u32) {
 
 /// The code of a deal given as members.
 fn code(d: Span<u32>) -> u32 {
-    let mut c = 0;
+    let mut c: u32 = opaque(0);
     let mut p = 1;
     for x in d {
         c += *x * p;
@@ -238,9 +253,9 @@ fn code(d: Span<u32>) -> u32 {
 #[inline(never)]
 fn deal_cost(b: u32, k: u32) -> u32 {
     let (b0, b1, b2, b3) = digits4(b);
-    let mut n0 = 0;
-    let mut n1 = 0;
-    let mut n2 = 0;
+    let mut n0: u32 = opaque(0);
+    let mut n1: u32 = opaque(0);
+    let mut n2: u32 = opaque(0);
     count(b0, ref n0, ref n1, ref n2);
     count(b1, ref n0, ref n1, ref n2);
     count(b2, ref n0, ref n1, ref n2);
@@ -415,11 +430,11 @@ fn move_table(shapes: Span<u32>, chords: Span<u32>, s: u32) -> Span<u32> {
     let n = chords.len();
     let c1 = *chords.at(s - 1);
     let c2 = *chords.at(s);
-    let mut out = array![];
+    let mut out = opaque(array![]);
     for shape in shapes {
-        let mut a = 0;
+        let mut a: u32 = opaque(0);
         while a != 3 {
-            let mut b = 0;
+            let mut b: u32 = opaque(0);
             while b != 3 {
                 out.append(move_cost(*shape, c1 + 2 * a, c2 + 2 * b, s, n));
                 b += 1;
@@ -451,7 +466,7 @@ fn deal_roles(
 ) -> Span<u32> {
     let n_s = chords.len();
     let n = ac.len();
-    let mut first = array![];
+    let mut first = opaque(array![]);
     for d in ac {
         if *d % 3 == 0 && deal_cost(*d, k) == 0 {
             first.append(*d);
@@ -459,9 +474,9 @@ fn deal_roles(
     }
     let r0 = *first.at(h.int(first.len()));
     // every line moves on to the next: line j takes line j + 1's member
-    let mut turn = 0;
+    let mut turn: u32 = opaque(0);
     let mut p3 = 1;
-    let mut j = 0;
+    let mut j: u32 = opaque(0);
     while j != k {
         turn += dig(r0, (j + 1) % k) * p3;
         p3 *= 3;
@@ -470,7 +485,7 @@ fn deal_roles(
     let chg0 = *chords.at(0) != *chords.at(n_s - 1);
     let mt_last = move_table(shapes, chords, n_s - 1);
     let chg_last = *chords.at(n_s - 1) != *chords.at(n_s - 2);
-    let mut tails = array![];
+    let mut tails = opaque(array![]);
     let mut ci: u64 = 0;
     for c in ac {
         let tail: u64 = (deal_cost(*c, k) + 16 * deal_penalty(*c, turn, k, chg0, 2)).into();
@@ -480,14 +495,14 @@ fn deal_roles(
     let tails = sort_keys(tails.span());
     let mut roles = array![r0];
     let mut prev = r0;
-    let mut s = 1;
+    let mut s: u32 = opaque(1);
     while s != n_s {
         let start = h.int(n);
         let mt = move_table(shapes, chords, s);
         let chg = *chords.at(s) != *chords.at(s - 1);
         let mut best = prev;
         let mut best_p = BIG;
-        let mut kk = 0;
+        let mut kk: u32 = opaque(0);
         while kk != n {
             let b = *ac.at((start + kk) % n);
             if !(s == 1 && b % 3 != forced) {
@@ -541,7 +556,7 @@ fn join_deal(
     let n = a.len();
     let mut best = *a.at(0);
     let mut best_p = BIG;
-    let mut x = 0;
+    let mut x: u32 = opaque(0);
     while x != n {
         let b = *a.at((start + x) % n);
         let p = deal_penalty(prev, b, k, changed_prev, 8)
@@ -605,7 +620,7 @@ fn cell_notes(mi: u32, cell: u32, t0: u32, a: i32, next: i32, role: u32) -> Arra
     let cells = CELL_NOTES.span();
     let mut k = *at.at(mi * 12 + cell);
     let stop = *at.at(mi * 12 + cell + 1);
-    let mut out = array![];
+    let mut out = opaque(array![]);
     let mut p = a;
     while k != stop {
         let x = *cells.at(k);
@@ -643,7 +658,7 @@ fn ornament(ref out: Array<Note>, c: Ctx, notes: Span<Note>, key: u32, after: i3
     } else {
         480
     };
-    let mut k = 0;
+    let mut k: u32 = opaque(0);
     while k != n {
         let x = *notes.at(k);
         if orn == 0 || x.len < min_len || (stage < 1 && !x.anchor) {
@@ -697,8 +712,8 @@ fn line_notes(
         .span()
         .at(c.mi * 9 + c.typ * 3 + *ACTIVITY.span().at(level * 4 + j));
     let h = mix(cseed, j * 8 + level + 1);
-    let mut picks = array![];
-    let mut q = 0;
+    let mut picks = opaque(array![]);
+    let mut q: u32 = opaque(0);
     let mut hh = h;
     while q != 5 {
         picks.append(fam / pow16(hh % 4) % 16);
@@ -720,8 +735,8 @@ fn line_notes(
     };
     let motif = c.motif;
     let head = c.head;
-    let mut out = array![];
-    let mut s = 0;
+    let mut out = opaque(array![]);
+    let mut s: u32 = opaque(0);
     while s != n_s {
         let a = *theme.at(j * n_s + s);
         let next = if s + 1 < n_s {
@@ -792,7 +807,7 @@ const SHAPE_START: [i32; 5] = [2, -2, -2, 0, 2];
 fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
     let n_s = c.n_s;
     let k = c.k;
-    let mut ch = array![];
+    let mut ch = opaque(array![]);
     for r in loop_ {
         ch.append(*r);
         if c.hr == 0 {
@@ -821,13 +836,13 @@ fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
     // the theme's chord tones
     let shapes = c.shapes;
     let centre = c.centre;
-    let mut theme = array![];
-    let mut j = 0;
+    let mut theme = opaque(array![]);
+    let mut j: u32 = opaque(0);
     while j != k {
         let shape = *shapes.at(j);
         let cj = *centre.at(j);
         let mut prev: i32 = 0;
-        let mut s = 0;
+        let mut s: u32 = opaque(0);
         while s != n_s {
             let cls = (*chords.at(s) + 2 * dig(*roles.at(s), j)) % 7;
             let d = if j == 0 && s == 0 {
@@ -855,10 +870,10 @@ fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
     }
     let theme = theme.span();
     // suspensions
-    let mut sus = array![];
-    let mut j = 0;
+    let mut sus = opaque(array![]);
+    let mut j: u32 = opaque(0);
     while j != k {
-        let mut s = 0;
+        let mut s: u32 = opaque(0);
         while s != n_s {
             let a = *theme.at(j * n_s + s);
             let mut v = false;
@@ -866,8 +881,8 @@ fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
                 && *theme.at(j * n_s + s + 1) == a - 1 {
                 let nr = *roles.at(s + 1);
                 let mine = dig(nr, j);
-                let mut cnt = 0;
-                let mut x = 0;
+                let mut cnt: u32 = opaque(0);
+                let mut x: u32 = opaque(0);
                 while x != k {
                     if dig(nr, x) == mine {
                         cnt += 1;
@@ -882,10 +897,10 @@ fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
         j += 1;
     }
     let sus = sus.span();
-    let mut lines = array![];
-    let mut j = 0;
+    let mut lines = opaque(array![]);
+    let mut j: u32 = opaque(0);
     while j != k {
-        let mut level = 0;
+        let mut level: u32 = opaque(0);
         while level != 3 {
             lines.append(line_notes(c, chords, roles, theme, sus, j, level, tag, cseed));
             level += 1;
@@ -938,15 +953,7 @@ pub fn sounding(
         if (g == 3 && len < 180) || ((g == 1 || g == 2) && len < 120) {
             g = 0;
         }
-        if g == 1 || g == 2 {
-            let up = if g == 1 {
-                1
-            } else {
-                -1
-            };
-            out.append(Sound { t: n.t, len: 80, p: pitch_of(base, scale, n.d + up), v: v - 10 });
-            out.append(Sound { t: n.t + 80, len: len - 80, p: pitch_of(base, scale, n.d), v });
-        } else if g == 6 {
+        if g == 6 {
             out.append(Sound { t: n.t, len: n.len - 260, p: pitch_of(base, scale, n.d), v });
             out
                 .append(
@@ -963,26 +970,36 @@ pub fn sounding(
                         v: v - 8,
                     },
                 );
-        } else if g >= 3 {
-            let ds: Span<i32> = if g == 3 {
-                array![0, 1].span()
+        } else {
+            // the figure's notes (a grace: one, 80 ticks, quieter; else 32nds, the first at full
+            // velocity), then the note itself
+            let (ds, unit, v0): (Span<i32>, u32, u32) = if g == 1 {
+                (FIG_UP.span(), 80, v - 10)
+            } else if g == 2 {
+                (FIG_DOWN.span(), 80, v - 10)
+            } else if g == 3 {
+                (FIG_MORDENT.span(), 60, v)
             } else if g == 4 {
-                array![1, 0, -1].span()
-            } else if len >= 700 {
-                array![0, 1, 0, 1, 0, 1].span()
+                (FIG_TURN.span(), 60, v)
+            } else if g == 5 {
+                (if len >= 700 {
+                    FIG_TRILL6.span()
+                } else {
+                    FIG_TRILL4.span()
+                }, 60, v)
             } else {
-                array![0, 1, 0, 1].span()
+                (FIG_NONE.span(), 60, v)
             };
-            let mut k = 0;
+            let mut k: u32 = opaque(0);
             for x in ds {
                 out
                     .append(
                         Sound {
-                            t: n.t + k * 60,
-                            len: 60,
+                            t: n.t + k * unit,
+                            len: unit,
                             p: pitch_of(base, scale, n.d + *x),
                             v: if k == 0 {
-                                v
+                                v0
                             } else {
                                 v - 10
                             },
@@ -990,12 +1007,18 @@ pub fn sounding(
                     );
                 k += 1;
             }
-            out.append(Sound { t: n.t + k * 60, len: len - k * 60, p: pitch_of(base, scale, n.d), v });
-        } else {
-            out.append(Sound { t: n.t, len, p: pitch_of(base, scale, n.d), v });
+            out.append(Sound { t: n.t + k * unit, len: len - k * unit, p: pitch_of(base, scale, n.d), v });
         }
     }
 }
+
+const FIG_UP: [i32; 1] = [1];
+const FIG_DOWN: [i32; 1] = [-1];
+const FIG_MORDENT: [i32; 2] = [0, 1];
+const FIG_TURN: [i32; 3] = [1, 0, -1];
+const FIG_TRILL4: [i32; 4] = [0, 1, 0, 1];
+const FIG_TRILL6: [i32; 6] = [0, 1, 0, 1, 0, 1];
+const FIG_NONE: [i32; 0] = [];
 
 /// Sorts distinct keys (a natural merge sort: the runs already in order, then merged pairwise).
 #[inline(never)]
@@ -1004,8 +1027,8 @@ pub fn sort_keys(xs: Span<u64>) -> Span<u64> {
     if n < 2 {
         return xs;
     }
-    let mut runs: Array<Span<u64>> = array![];
-    let mut start = 0;
+    let mut runs: Array<Span<u64>> = opaque(array![]);
+    let mut start: u32 = opaque(0);
     let mut k = 1;
     while k != n {
         if *xs.at(k) < *xs.at(k - 1) {
@@ -1016,7 +1039,7 @@ pub fn sort_keys(xs: Span<u64>) -> Span<u64> {
     }
     runs.append(xs.slice(start, n - start));
     while runs.len() > 1 {
-        let mut merged: Array<Span<u64>> = array![];
+        let mut merged: Array<Span<u64>> = opaque(array![]);
         loop {
             match runs.pop_front() {
                 Option::Some(a) => match runs.pop_front() {
@@ -1033,7 +1056,7 @@ pub fn sort_keys(xs: Span<u64>) -> Span<u64> {
 
 #[inline(never)]
 fn merge(a: Span<u64>, b: Span<u64>) -> Span<u64> {
-    let mut out = array![];
+    let mut out = opaque(array![]);
     let mut a = a;
     let mut b = b;
     let mut x = *a.pop_front().unwrap();
@@ -1076,8 +1099,8 @@ pub fn note_track(ch: u8, program: u8, vol: u8, pan: u8, notes: Span<Sound>, end
         tw.control(0, ch, 10, pan);
         tw.control(0, ch, 91, 40);
     }
-    let mut keys: Array<u64> = array![];
-    let mut offs: Array<u64> = array![];
+    let mut keys: Array<u64> = opaque(array![]);
+    let mut offs: Array<u64> = opaque(array![]);
     let mut idx: u64 = 0;
     for n in notes {
         let n = *n;
@@ -1115,20 +1138,14 @@ pub fn tempo_track(us: u32, sig: Span<u8>, end: u32) -> Array<u8> {
 
 /// TinyChip programs (FAMILIES): leads then plucks, by family.
 pub fn family_programs(typ: u32) -> Span<u8> {
-    if typ == 0 {
-        array![0, 9, 7, 15, 17, 13].span()
-    } else if typ == 1 {
-        array![2, 1, 8, 12, 19, 6].span()
-    } else {
-        array![3, 4, 5, 16, 14, 18].span()
-    }
+    PROGRAMS.span().slice(typ * 6, 6)
 }
 
 /// The channels' programs: [lead, second lead, pluck, second pluck, bass, mega double].
 pub fn programs_of(id: u32, typ: u32, mega: bool) -> Span<u8> {
     let f = family_programs(typ);
     let lead = id % 3;
-    let mega_leads = array![50_u8, 65].span();
+    let mega_leads = MEGA_LEADS.span();
     let (p0, p5) = if mega {
         (*mega_leads.at(id % 2), *mega_leads.at((id + 1) % 2))
     } else {
@@ -1159,10 +1176,10 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
         3
     };
     // the purchase's draws, in a fixed order
-    let shift = *array![0_u32, 0, 0, 5, 7, 10, 2, 3].span().at(r.int(8));
+    let shift = *SHIFTS.span().at(r.int(8));
     let keep_mode = r.int(2);
     let mode_pick = r.int(6);
-    let bpm0 = *array![96_u32, 110, 84].span().at(typ) + r.int(29);
+    let bpm0 = *BPM0.span().at(typ) + r.int(29);
     let loop_draw = r.int(65536);
     let mut hr = r.int(3);
     let mut contour = r.int(4);
@@ -1182,7 +1199,7 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
     let mut perc_on = r.int(100) < perc_share;
     let mut ep_kind = r.int(6);
     let mut ep_leader = r.int(k);
-    let mut orn_i = *array![0_u32, 0, 1, 2].span().at(r.int(4));
+    let mut orn_i = *ORN_PICK.span().at(r.int(4));
     let orn_seed = r.int(100);
     let orn_kind = r.int(3);
     let mut shape = r.int(4);
@@ -1206,9 +1223,9 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
     } else {
         2
     };
-    let sl = *array![960_u32, 720, 1440].span().at(mi);
-    let br = *array![1920_u32, 1440, 1440].span().at(mi);
-    let late = *array![480_u32, 240, 480].span().at(mi);
+    let sl = *SLOT.span().at(mi);
+    let br = *BAR.span().at(mi);
+    let late = *LATE.span().at(mi);
     let cadl = br;
     let own = seed == 0;
     let tonic_pc: u32 = sp.tonic_pc.into();
@@ -1223,12 +1240,12 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
         mode_pick
     };
     // drift
-    let mut rot = 0;
-    let mut level0 = 0;
+    let mut rot: u32 = opaque(0);
+    let mut level0: u32 = opaque(0);
     let mut reverse = false;
     let mut bpm_delta: i64 = 0;
-    let mut art = 0;
-    let mut loop_step = 0;
+    let mut art: u32 = opaque(0);
+    let mut loop_step: u32 = opaque(0);
     let mut gl_seed = gl_seed0;
     let mut age: u64 = 1;
     if let Option::Some(dr) = drift {
@@ -1291,14 +1308,14 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
     } else {
         grown_u64.try_into().unwrap()
     };
-    let orn_raw = *array![0_u32, 12, 24].span().at(orn_i) + grown;
+    let orn_raw = *ORN_BASE.span().at(orn_i) + grown;
     let orn = if orn_raw > 85 {
         85
     } else {
         orn_raw
     };
     let mut palette = array![1 + orn_kind];
-    let mut g = 0;
+    let mut g: u32 = opaque(0);
     while g != stage {
         palette.append(3 + g);
         g += 1;
@@ -1331,9 +1348,9 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
         8
     };
     let cyc = n_s * sl;
-    let mut motif = array![];
+    let mut motif = opaque(array![]);
     let d0: i32 = (*sp.degrees.span().at(0)).into();
-    let mut q = 0;
+    let mut q: u32 = opaque(0);
     while q != 4 {
         let dq: i32 = (*sp.degrees.span().at(q)).into();
         motif.append(dq - d0);
@@ -1363,7 +1380,7 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
         head,
         centre,
         shapes,
-        sus_share: *array![35_u32, 55, 75].span().at(sus_i),
+        sus_share: *SUS_SHARE.span().at(sus_i),
         orn,
         stage,
         orn_seed,
@@ -1409,9 +1426,9 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
     let ep_cell = (*FAMILY.span().at(mi * 9 + typ * 3 + 1 + mix(cell_seed, 977) % 2))
         / pow16((mix(cell_seed, 978) / 8) % 4)
         % 16;
-    let mut ep_anchors = array![];
+    let mut ep_anchors = opaque(array![]);
     let mut ep: i32 = 0;
-    let mut u = 0;
+    let mut u: u32 = opaque(0);
     while u != EP_UNITS {
         let cls = (e_step * u + 2 * *e_cycle.at(u % 3)) % 7;
         ep = if u == 0 {
@@ -1432,16 +1449,16 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
     while role_at(ra, rb, ca, k, ep_leader, ca - 1, n_s - 1) == 0 {
         ep_leader = (ep_leader + 1) % k;
     }
-    let mut prev_deal = array![];
-    let mut next_deal = array![];
-    let mut q = 0;
+    let mut prev_deal = opaque(array![]);
+    let mut next_deal = opaque(array![]);
+    let mut q: u32 = opaque(0);
     while q != 3 {
         prev_deal.append(*e_cycle.at((EP_UNITS - 1 - q) % 3));
         next_deal.append(role_at(ra, rb, ca, k, (ep_leader + q) % k, ca, 0));
         q += 1;
     }
-    let mut triples = array![];
-    let mut t3 = 0;
+    let mut triples = opaque(array![]);
+    let mut t3: u32 = opaque(0);
     while t3 != 27 {
         triples.append(t3);
         t3 += 1;
@@ -1459,8 +1476,8 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
         3,
         3,
     );
-    let mut before = array![];
-    let mut v = 0;
+    let mut before = opaque(array![]);
+    let mut v: u32 = opaque(0);
     while v != k {
         before.append(role_at(ra, rb, ca, k, v, ca + cb - 1, n_s - 1));
         v += 1;
@@ -1468,13 +1485,13 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
     let before = code(before.span());
     let ac = ctx.ac;
     // the final deals: line 0 on the root, no fifth on a diminished tonic
-    let mut finals = array![];
+    let mut finals = opaque(array![]);
     for x in ac {
         if *x % 3 == 0 {
             if tonic_dim {
-                let mut f = 0;
+                let mut f: u32 = opaque(0);
                 let mut p3 = 1;
-                let mut j = 0;
+                let mut j: u32 = opaque(0);
                 while j != k {
                     let y = dig(*x, j);
                     if y != 2 {
@@ -1493,10 +1510,10 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
     let n_ac = ac.len();
     let cad_from = mix(role_seed, 32) % n_ac;
     let rb_last_changed = *rb.chords.at(n_s - 1) != cad;
-    let mut cad_code = 0;
-    let mut end_code = 0;
+    let mut cad_code: u32 = opaque(0);
+    let mut end_code: u32 = opaque(0);
     let mut cad_p = BIG;
-    let mut kk = 0;
+    let mut kk: u32 = opaque(0);
     while kk != n_ac {
         let b = *ac.at((cad_from + kk) % n_ac);
         let f = join_deal(finals, k, b, true, Option::None, false, 0);
@@ -1510,8 +1527,8 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
     }
     let cad_deal = unpack(cad_code, 3, k);
     let end_deal = unpack(end_code, 3, k);
-    let mut ep_lead = array![];
-    let mut u = 0;
+    let mut ep_lead = opaque(array![]);
+    let mut u: u32 = opaque(0);
     while u != EP_UNITS {
         let a = *ep_anchors.at(u);
         let next = if u + 1 < EP_UNITS {
@@ -1536,16 +1553,16 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
     }
     let ep_lead = ep_lead.span();
     // the voices by order of entry
-    let mut voices: Array<Span<Note>> = array![];
-    let mut chans = array![];
-    let mut vi = 0;
+    let mut voices: Array<Span<Note>> = opaque(array![]);
+    let mut chans = opaque(array![]);
+    let mut vi: u32 = opaque(0);
     while vi != k {
         chans.append(((if reverse {
             k - 1 - vi
         } else {
             vi
         }) + rot) % k);
-        let mut notes: Array<Note> = array![];
+        let mut notes: Array<Note> = opaque(array![]);
         let mut last: i32 = 0;
         let mut gg = vi;
         while gg != ca + cb {
@@ -1600,14 +1617,14 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
     }
     let chans = chans.span();
     // the bass on the roots
-    let mut bass: Array<Note> = array![];
+    let mut bass: Array<Note> = opaque(array![]);
     if bass_on {
         // [time, root, slots] (0 slots: a held note of `len`)
-        let mut spans: Array<(u32, u32, u32, u32)> = array![];
-        let mut gg = 0;
+        let mut spans: Array<(u32, u32, u32, u32)> = opaque(array![]);
+        let mut gg: u32 = opaque(0);
         while gg != ca + cb {
             if gg == ca {
-                let mut u = 0;
+                let mut u: u32 = opaque(0);
                 while u != EP_UNITS {
                     spans.append((ep_start + u * sl, e_step * u, 1, 0));
                     u += 1;
@@ -1620,13 +1637,13 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
                 (rb, b_start + (gg - ca) * cyc)
             };
             if hr == 0 {
-                let mut b = 0;
+                let mut b: u32 = opaque(0);
                 while b != 4 {
                     spans.append((base + 2 * b * sl, *rd.loop_.at(b), 2, 0));
                     b += 1;
                 }
             } else {
-                let mut s = 0;
+                let mut s: u32 = opaque(0);
                 while s != n_s {
                     spans.append((base + s * sl, *rd.chords.at(s), 1, 0));
                     s += 1;
@@ -1638,7 +1655,7 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
         spans.append((cad_start + cadl, 0, 0, cadl));
         let spans = spans.span();
         let ns = spans.len();
-        let mut x = 0;
+        let mut x: u32 = opaque(0);
         while x != ns {
             let (t, rr, nn, len) = *spans.at(x);
             let d = root_deg(rr);
@@ -1686,7 +1703,7 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
         }
     }
     // the percussion, from the second voice's entry
-    let mut perc: Array<Sound> = array![];
+    let mut perc: Array<Sound> = opaque(array![]);
     if perc_on {
         let at = PERC_AT.span();
         let from = *at.at(mi * 3 + perc_i);
@@ -1712,8 +1729,8 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
     } else {
         48 + tonic
     });
-    let mut gliss: Array<Sound> = array![];
-    if let Option::Some(plan) = gliss_plan(gl_draw, gl_seed, array![0, 1, 3, 3, 2].span()) {
+    let mut gliss: Array<Sound> = opaque(array![]);
+    if let Option::Some(plan) = gliss_plan(gl_draw, gl_seed, GLISS_WEIGHTS.span()) {
         let at = *array![ep_start, b_start, cad_start, cad_start + cadl].span().at(plan.spot);
         let span = if sl == 1440 {
             960
@@ -1737,20 +1754,13 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
         };
     }
     let programs = programs_of(id, typ, mega);
-    let sig = if mi == 0 {
-        array![4_u8, 2, 24, 8]
-    } else if mi == 1 {
-        array![6_u8, 3, 36, 8]
-    } else {
-        array![3_u8, 2, 24, 8]
-    };
-    let mut tracks = array![tempo_track(us, sig.span(), end)];
-    let octave = array![0_i32, -1, 0, -1].span();
-    let pan = array![64_u8, 40, 88, 52, 64, 76].span();
+    let mut tracks = array![tempo_track(us, SIGS.span().slice(mi * 4, 4), end)];
+    let octave = OCTAVE.span();
+    let pan = PAN.span();
     let mut first_voice = *voices.at(0);
-    let mut ch = 0;
+    let mut ch: u32 = opaque(0);
     while ch != k {
-        let mut vi = 0;
+        let mut vi: u32 = opaque(0);
         while *chans.at(vi) != ch {
             vi += 1;
         }
@@ -1759,7 +1769,7 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
             first_voice = part;
         }
         let prog = *programs.at(ch);
-        let mut s = array![];
+        let mut s = opaque(array![]);
         sounding(ref s, part, base + 12 * *octave.at(ch), scale, art, br);
         let chu: u8 = ch.try_into().unwrap();
         tracks
@@ -1780,12 +1790,12 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
         ch += 1;
     }
     if bass.len() != 0 {
-        let mut s = array![];
+        let mut s = opaque(array![]);
         sounding(ref s, bass.span(), base - 24, scale, art, br);
         tracks.append(note_track(4, *programs.at(4), 118, 64, s.span(), end));
     }
     if mega {
-        let mut s = array![];
+        let mut s = opaque(array![]);
         sounding(ref s, first_voice, base + 12, scale, art, br);
         tracks.append(note_track(5, *programs.at(5), 56, 76, s.span(), end));
     }

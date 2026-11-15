@@ -8,3 +8,5 @@ pub mod editions;
 pub mod editions_data;
 #[cfg(test)]
 mod editions_tests;
+#[cfg(test)]
+mod editions_gas;

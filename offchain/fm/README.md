@@ -47,6 +47,7 @@ const pack = window.LootFmPack;
 npm install                      # esbuild
 node pack/build.mjs [bank.js]    # reference bank (default kankyo.min.js) -> pack/kankyo-data.js, dist/*
 node pack/parity.mjs             # every zone and take, reference vs dist/loot-fm-pack.min.js, sample by sample
+node pack/sampler-parity.mjs [rate]  # the sampler's upsampled playback buffers, reference vs pack (one zone per instrument)
 node pack/bench.mjs [runs]       # Chrome timings, and the zones the pack's workers render hashed against the reference's
 node pack/cairo.mjs              # loot/loot_contracts/src/fm_pack_data.cairo and the contract test's fixture
 sh scripts/cairo_run.sh snforge test -p loot_contracts --max-threads 2 fm_pack   # from the worktree root
@@ -109,7 +110,8 @@ Chrome as the lab uses it (6 workers; median of 9 page loads alternating referen
 
 Parity (`node pack/parity.mjs`): all 27 instruments and drums, 374 zone takes, 39.6 M samples, bit-identical
 to kankyo.min.js's worker engine; the instrument table (zones, keys, tuning, volumes, envelopes, takes) is
-identical; in Chrome the 240 first takes the pack's workers render hash the same as the reference's.
+identical; in Chrome the 240 first takes the pack's workers render hash the same as the reference's; the
+sampler's playback buffers (upsampled for a 44.1, 48 or 96 kHz context) are identical too.
 
 Caveat: the computed harp and clarinet zones use `Math.pow`/`Math.log` in the page and round to 4 decimals,
 as banks.mjs did when it stored them. In V8 (Chrome, Node) they match the stored numbers exactly (checked at

@@ -8,6 +8,7 @@
 //! - `orchestrate`: every program change on a pitched channel set to its band instrument, and every
 //!   pitched note lifted by `lift` semitones (the lab plays Name Songs +12, Rounds +7).
 
+use crate::species::musical_id;
 use core::num::traits::{WrappingAdd, WrappingMul};
 use beast_composer::composition::drift::Drift;
 use super::orchestra_data::{
@@ -89,6 +90,7 @@ fn pick(
 /// An edition's band (`band(key, id, e, p, drift)`): style index `style`, species `id`, edition `e`,
 /// purchase number `p`; channels 0-7.
 pub fn band(style: u32, id: u32, e: u32, p: u32, drift: Option<Drift>) -> Array<u8> {
+    let id = musical_id(id);
     let (month, week) = drift_steps(drift);
     let lead = pick(style, 0, id, e, p, month, Option::None);
     let acc = pick(style, 1, id, e, p, week, Option::Some(lead));
@@ -140,13 +142,13 @@ fn choose(
 /// A Species or Name Song's band (`choose(songPools[type], songKinds, id, 1, drift)`): 8 channels.
 /// The lab drifts the band of a Species Song only (a Name Song keeps its band).
 pub fn song_band(beast_type: u8, id: u32, drift: Option<Drift>) -> Array<u8> {
-    choose(SONG_POOL0 + beast_type.into() * 8, 8, SONG_MONTHLY, id, 1, drift)
+    choose(SONG_POOL0 + beast_type.into() * 8, 8, SONG_MONTHLY, musical_id(id), 1, drift)
 }
 
 /// A Round's or Sound Check's band (`choose(roundPools[type], roundKinds, id, 2, drift)`): 7
 /// channels (a Sound Check never drifts).
 pub fn round_band(beast_type: u8, id: u32, drift: Option<Drift>) -> Array<u8> {
-    choose(ROUND_POOL0 + beast_type.into() * 7, 7, ROUND_MONTHLY, id, 2, drift)
+    choose(ROUND_POOL0 + beast_type.into() * 7, 7, ROUND_MONTHLY, musical_id(id), 2, drift)
 }
 
 #[inline(never)]

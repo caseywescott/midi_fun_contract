@@ -1,3 +1,4 @@
+import { musicalId } from '../offchain/loot-sound/src/loot_beasts.js';
 // Writes the Rounds parity fixture (loot/loot_composer/src/rounds_parity.cairo: #[ignore]d batches of
 // four cases, each printing `RD i=<case> len=<bytes> hex=<file>`) and its case list
 // (scripts/rounds_parity_cases.json, read by rounds_parity.mjs). Cases: every species at seed 0 (mega
@@ -14,7 +15,7 @@ const L = await import(REF + '/offchain/beast-sound/src/lab.js');
 const U64 = (1n << 64n) - 1n;
 export function purchaseSeed(n) { let x = BigInt(n) * 0x9e3779b97f4a7c15n & U64; x ^= x >> 30n; x = x * 0xbf58476d1ce4e5b9n & U64; x ^= x >> 27n; x = x * 0x94d049bb133111ebn & U64; return x ^ (x >> 31n); }
 const DAYS = [0, 9, 45, 100, 200, 290];
-const driftOf = (id, day) => (day ? L.drift2({ id, prefix: 0, suffix: 0 }, day, L.dayAnchor()) : null);
+const driftOf = (id, day) => (day ? L.drift2({ id: musicalId(id), prefix: 0, suffix: 0 }, day, L.dayAnchor()) : null);
 
 const cases = [];
 const add = (sp, mega, p, day) => cases.push({ sp, mega, p, seed: p ? purchaseSeed(p).toString() : '0', day });

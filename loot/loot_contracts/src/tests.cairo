@@ -48,19 +48,19 @@ fn round_class() -> felt252 {
 #[test]
 fn species_song_through_the_front() {
     let s = deploy(0, 0);
-    assert_eq!(sum(@s.species_song(76, false, Option::None)), (4861, 4282407724));
+    assert_eq!(sum(@s.species_song(78, false, Option::None)), (4861, 4282407724));
     assert_eq!(s.sound_pack(), 0x1234.try_into().unwrap());
 }
 
 #[test]
 fn name_song_and_drift_through_the_front() {
     let s = deploy(0, 0);
-    assert_eq!(sum(@s.name_song(90, false, 1242, Option::None)), (3522, 4065962252));
+    assert_eq!(sum(@s.name_song(92, false, 1242, Option::None)), (3522, 4065962252));
     let clock = DriftClock {
         day: 45,
         day_hash: 0x2956ffbf266d21c7d5e01968335e1bab126495564d8dcf5a92c5b14507e72c6,
         week_hash: 0x52e10e4521547a4ed4aa421ffc96e651368b640e0f5998520234a674eb594dc,
         month_hash: 0x3b2372967bbbc009fcabee385f9fd3a22c32d4f5cd9f29b6b424a25ea8b9ec3,
     };
-    assert_eq!(sum(@s.species_song(80, false, Option::Some(clock))), (2439, 1886200172));
+    assert_eq!(sum(@s.species_song(82, false, Option::Some(clock))), (2439, 1886200172));
 }

@@ -192,17 +192,20 @@ const padOf = (ch, p) => (DATA.orch.fallback[p] !== undefined && !Banks[st.inst]
 const anchor = L.dayAnchor();
 const beast = () => DATA.beasts[st.b];
 function purchaseSeed(n) { let x = BigInt(n) * 0x9e3779b97f4a7c15n & U64; x ^= x >> 30n; x = x * 0xbf58476d1ce4e5b9n & U64; x ^= x >> 27n; x = x * 0x94d049bb133111ebn & U64; return x ^ (x >> 31n); }
-const bOf = (x, named) => { const n = named ? L.nameFromVariant(st.name) : { prefix: 0, suffix: 0 }; return { id: x.id, prefix: n.prefix, suffix: n.suffix, level: 1, health: 100, shiny: st.mega ? 1 : 0, animated: 0, tier: x.tier, beast_type: x.type }; };
+const bOf = (x, named) => { const n = named ? L.nameFromVariant(st.name) : { prefix: 0, suffix: 0 }; return { id: musicalId(x.id), prefix: n.prefix, suffix: n.suffix, level: 1, health: 100, shiny: st.mega ? 1 : 0, animated: 0, tier: x.tier, beast_type: x.type }; };
 // the band: a style's four pools give this track's lead, accompaniment, bass and pad, by Beast, edition and
 // purchase (the pad is not the lead's instrument; a bell lead is doubled by the flute, any other by the
 // glockenspiel); a song's or a round's channels each take one of their pool by species
 const mix = (a, b) => { let x = (Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.imul(b + 0x7f4a7c15, 0xc2b2ae35)) >>> 0; x ^= x >>> 15; x = Math.imul(x, 0x2c1b3c6d) >>> 0; return (x ^ (x >>> 12)) >>> 0; };
+// Stable soundtrack identity; displayed and contract IDs remain 78-107.
+const musicalId = (id) => { if (id < 78 || id > 107) throw new RangeError('not a Loot Beast'); return id - 2; };
 // Drift moves the band, at the pace it moves everything else: each month (when the rhythm drifts) a new lead
 // and bass, each week (when the channels rotate) a new accompaniment and pad, always another from the same
 // pool, never the one the track was written with. Day 1 is as written.
 const stepOf = (drift) => (drift ? { month: drift.rhythm !== null ? Number(BigInt(drift.rhythm) & 0xffffffffn) : null, week: drift.rotate !== null ? Number(BigInt(drift.rotate) & 0xffffffffn) : null } : { month: null, week: null });
 const moved = (pool, i, h, salt) => (h === null || pool.length < 2 ? i : (i + 1 + mix(h, salt) % (pool.length - 1)) % pool.length);
 function band(key, id, e, p, drift) {
+  id = musicalId(id);
   const P = DATA.orch.pools[key], { month, week } = stepOf(drift), when = [month, week, month, week];
   const pick = (r, avoid) => { const pool = P[r]; let i = moved(pool, mix(mix(id, e * 131 + r), p) % pool.length, when[r], 31 + r); if (pool[i] === avoid && pool.length > 1) i = (i + 1) % pool.length; return pool[i]; };
   const lead = pick(0), acc = pick(1, lead), bass = pick(2, lead), pad = pick(3, lead);
@@ -210,7 +213,7 @@ function band(key, id, e, p, drift) {
   const second = P[0][(P[0].indexOf(lead) + 1 + mix(id, e * 977 + p) % Math.max(1, P[0].length - 1)) % P[0].length];
   return [lead, lead, acc, bass, pad, DATA.orch.bells.includes(lead) ? DATA.orch.flute : DATA.orch.glock, DATA.orch.harp, second];
 }
-const choose = (pools, kinds, id, salt, drift) => { const { month, week } = stepOf(drift); return pools.map((pool, ch) => pool[moved(pool, mix(mix(id, ch * 977 + 13), salt) % pool.length, kinds[ch] === 'melody' || kinds[ch] === 'bass' ? month : week, 57 + ch)]); };
+const choose = (pools, kinds, id, salt, drift) => { id = musicalId(id); const { month, week } = stepOf(drift); return pools.map((pool, ch) => pool[moved(pool, mix(mix(id, ch * 977 + 13), salt) % pool.length, kinds[ch] === 'melody' || kinds[ch] === 'bass' ? month : week, 57 + ch)]); };
 // Name Songs and Rounds are written low (a Name Song's theme centres on D3, an octave and a half under a Species
 // Song's): the lab plays Name Songs an octave up and Rounds a fifth up, which puts both in the editions'
 // register, and plays both with quicker attacks and shorter releases so the low entries do not smear. This is
@@ -238,17 +241,17 @@ function lifted(u8, by) {
 function track() {
   const x = beast(), day = st.day > 1 ? st.day : null;
   if (st.kind === 'edition') {
-    const d = day ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null;
+    const d = day ? L.drift2({ id: musicalId(x.id), prefix: 0, suffix: 0 }, day, anchor) : null;
     const o = ED.editionMidi(x, st.mega, st.e, purchaseSeed(st.p), d, false, st.walk);
     return { midi: o.midi, info: o.info, settings: DATA.edition[(st.e - 1) % NSTYLE][x.type][st.mega ? 1 : 0], orch: band(DATA.styles[(st.e - 1) % NSTYLE].key, x.id, st.e, st.p, d) };
   }
   const settings = DATA.family[x.type * 2 + (st.mega ? 1 : 0)];
   if (st.kind === 'round') {
-    const d = day ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null;
+    const d = day ? L.drift2({ id: musicalId(x.id), prefix: 0, suffix: 0 }, day, anchor) : null;
     const o = RD.roundMidi(x, st.mega, st.r ? purchaseSeed(st.r) : 0n, d);
     return { midi: lifted(o.midi, LIFT.round), info: o.info, settings, orch: choose(DATA.orch.roundPools[x.type], DATA.orch.roundKinds, x.id, 2, d) };
   }
-  const orch = choose(DATA.orch.songPools[x.type], DATA.orch.songKinds, x.id, 1, day && st.kind === 'song' ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null);
+  const orch = choose(DATA.orch.songPools[x.type], DATA.orch.songKinds, x.id, 1, day && st.kind === 'song' ? L.drift2({ id: musicalId(x.id), prefix: 0, suffix: 0 }, day, anchor) : null);
   if (st.kind === 'check') { const o = CK.soundCheckMidi(x, st.mega, st.c ? purchaseSeed(st.c) : 0n); return { midi: o.midi, info: o.info, settings, orch: choose(DATA.orch.roundPools[x.type], DATA.orch.roundKinds, x.id, 2, null) }; }
   const opts = { ...L.GENESIS_DEFAULTS, ...(st.kind === 'name' ? { name: st.name } : {}), ...(day ? { epoch: day, driftMode: 'v2', blockHashes: true } : {}) };
   const o = L.sampleTrackMidi(bOf(x, st.kind === 'name'), { species_count: 1 }, opts, E, V);

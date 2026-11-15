@@ -2,6 +2,7 @@
 //! band (a class of its own: the edition engine is about 37k CASM felts).
 #[starknet::contract]
 pub mod LootEditionComposer {
+    use loot_composer::species::musical_id;
     use beast_composer::composition::drift::{DriftClock, layered_drift};
     use loot_composer::common::purchase_seed;
     use loot_composer::editions::edition_played_byte_array;
@@ -27,7 +28,7 @@ pub mod LootEditionComposer {
             // the lab's drift: none on day 1
             let d = match drift {
                 Option::Some(c) => if c.day >= 2 {
-                    Option::Some(layered_drift(species.into(), 0, 0, c))
+                    Option::Some(layered_drift(musical_id(species).into(), 0, 0, c))
                 } else {
                     Option::None
                 },

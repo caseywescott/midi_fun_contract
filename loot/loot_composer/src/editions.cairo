@@ -21,7 +21,7 @@ use crate::common::{GLISS_CHANNEL, GlissPlan, Rng, RngTrait, fold64, gliss_plan,
 use crate::editions_data::{
     COLOURS, INTRO_PLAN, SCALES, STYLE_COUNT, SUBS, SUBS_AT, Style, WALKS, style,
 };
-use crate::species::loot_species;
+use crate::species::{loot_species, musical_id};
 
 const SEVEN: NonZero<u32> = 7;
 const MAX_TEMPO_US: u32 = 1048575;
@@ -1815,7 +1815,7 @@ fn plan(
     let sp = loot_species(species);
     let (_, sb, g_bpm) = edition_genome(e);
     let s = sb.unbox();
-    let id = species;
+    let id = musical_id(species);
     let ty: u32 = sp.beast_type.into();
     let fold = fold64(seed);
     let mm = main_draws(
@@ -1977,7 +1977,7 @@ pub fn edition_tracks_played(
         tracks.append(part(ctx, 9, 9, 0));
     }
     if mega {
-        tracks.append(part(ctx, 5, 5, *MEGA_LEADS.span().at((species + 1) % 2)));
+        tracks.append(part(ctx, 5, 5, *MEGA_LEADS.span().at((musical_id(species) + 1) % 2)));
     }
     if let Option::Some(gp) = gliss_plan(p.gl_draw, p.gl_seed, [3, 3, 1, 0, 2].span()) {
         tracks.append(gliss_track(ctx, gp, p.gl_seed, acc_p, ticks));

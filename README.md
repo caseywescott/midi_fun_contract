@@ -43,8 +43,9 @@ Parity with the JS (all identical):
 | Orchestration (bands) | 255 vectors | `scripts/songs_parity.mjs` |
 | Deployed front vs the lab's playback | 15 | `scripts/front_parity.mjs <midi_fun_contract v1.0.1> rounds` |
 
-Gas (l2, per call): Species/Name Song ~100-250M; Edition as played ~36-140M (typical 92M: band instruments are
-written in place, a third cheaper than patching the file); Round 58-263M (median 136M); Sound Check 16-31M.
+Gas depends on species, purchase and drift. Measure the current catalogue with
+`--gas-report --tracked-resource sierra-gas` and `scripts/gas_sweep.sh`; the
+preserved soundtrack still needs its final integration budget measured.
 
 Run Cairo only through `sh scripts/cairo_run.sh <cmd>` (one at a time, memory watchdog). Parity fixtures are
 `#[ignore]`d batches: e.g. `sh scripts/cairo_run.sh scarb test -p loot_contracts -- --include-ignored`.
@@ -177,4 +178,21 @@ node onchain/loot-lab.mjs <engine .min.js> <onchain-midi-player> <midi_fun_contr
 open public/loot-lab.html
 ```
 
-`src/loot_beasts.js` is a placeholder list (ids 76-105) until the final Beasts are known.
+`src/loot_beasts.js` is the canonical 30-species catalogue, IDs **78-107**, from
+Koschei through Domovoi. IDs 76 and 77 belong to two preceding Beasts. Call the
+Cairo front and JS lab with the same actual species ID; there is no ID translation.
+
+The soundtrack keeps its original internal musical identities 76-105: public
+Koschei ID 78 sounds exactly like provisional ID 76, through public Domovoi 107
+and provisional 105. `musicalId` / `musical_id` normalize only musical seeds,
+upstream composition and drift; catalogue structs, lab labels and contract
+arguments retain the actual 78-107 IDs. There is no downstream ID adapter.
+
+The frozen original published lab at commit `965a782` supplies 600 regression
+cases covering every species, regular/mega, Species/Name Songs, Sound Checks,
+Rounds, Editions, purchases and drift. Complete MIDI hashes, bands and synth
+settings must match; another 360 cases freeze the source engines, and existing
+Cairo parity checksums are retained. The original checked-in HTML has an older
+12-style bundle while the source/Cairo have 15 styles; this change preserves each
+soundtrack independently and does not upgrade that bundle. Build/class
+hashes change, so verify the final integration's gas budget before deployment.

@@ -6,7 +6,7 @@
 import { writeFileSync, existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
-import { LOOT_BEASTS } from '../offchain/loot-sound/src/loot_beasts.js';
+import { LOOT_BEASTS, musicalId, LOOT_FIRST } from '../offchain/loot-sound/src/loot_beasts.js';
 import { SPECIES } from '../offchain/loot-sound/src/loot_species.js';
 import { STYLES } from '../offchain/loot-sound/src/loot_styles.js';
 import * as ED from '../offchain/loot-sound/src/loot_editions.js';
@@ -37,10 +37,10 @@ function remap(u8, band) {
 }
 const hex = (x) => '0x' + BigInt(x).toString(16);
 const clock = (day) => (day > 1 ? `Option::Some(DriftClock { day: ${day}, day_hash: ${hex(anchor(day))}, week_hash: ${hex(anchor(Math.floor((day - 1) / 7) * 7 + 1))}, month_hash: ${hex(anchor(Math.floor((day - 1) / 30) * 30 + 1))} })` : 'Option::None');
-const beast = (id) => ({ ...LOOT_BEASTS[id - 76], ...SPECIES.find((s) => s.id === id) });
-const dr = (id, day) => (day > 1 ? L.drift2({ id, prefix: 0, suffix: 0 }, day, anchor) : null);
+const beast = (id) => ({ ...LOOT_BEASTS[id - LOOT_FIRST], ...SPECIES.find((s) => s.id === id) });
+const dr = (id, day) => (day > 1 ? L.drift2({ id: musicalId(id), prefix: 0, suffix: 0 }, day, anchor) : null);
 const calls = [];
-for (const [id, mega, e, p, day] of [[76, false, 1, 1, 1], [83, true, 5, 2, 1], [90, false, 9, 3, 45], [99, false, 13, 1, 290], [105, true, 15, 4, 9], [88, false, 22, 7, 100]]) {
+for (const [id, mega, e, p, day] of [[78, false, 1, 1, 1], [85, true, 5, 2, 1], [92, false, 9, 3, 45], [101, false, 13, 1, 290], [107, true, 15, 4, 9], [90, false, 22, 7, 100]]) {
   const x = beast(id), d = dr(id, day);
   const midi = ED.editionMidi(x, mega, e, purchaseSeed(p), d, false, null).midi;
   const out = remap(midi, O.band(STYLES[(e - 1) % STYLES.length].key, id, e, p, d));
@@ -49,13 +49,13 @@ for (const [id, mega, e, p, day] of [[76, false, 1, 1, 1], [83, true, 5, 2, 1], 
 if (withRounds) {
   const RD = await import('../offchain/loot-sound/src/loot_rounds.js');
   const CK = await import('../offchain/loot-sound/src/loot_checks.js');
-  for (const [id, mega, r, day] of [[76, false, 0, 1], [84, true, 0, 1], [91, false, 3, 45], [100, false, 0, 290], [95, true, 2, 9]]) {
+  for (const [id, mega, r, day] of [[78, false, 0, 1], [86, true, 0, 1], [93, false, 3, 45], [102, false, 0, 290], [97, true, 2, 9]]) {
     const x = beast(id), d = dr(id, day);
     const midi = RD.roundMidi(x, mega, r ? purchaseSeed(r) : 0n, d).midi;
     const out = remap(O.lifted(midi, LIFT.round), O.choose(O.ORCH.roundPools[x.type], O.ORCH.roundKinds, id, 2, d));
     calls.push(`s.round(${id}, ${mega}, ${r}, ${clock(day)})`, [out.length, sum(out)]);
   }
-  for (const [id, mega, c] of [[77, false, 0], [86, true, 0], [96, false, 5], [103, true, 2]]) {
+  for (const [id, mega, c] of [[79, false, 0], [88, true, 0], [98, false, 5], [105, true, 2]]) {
     const x = beast(id);
     const midi = CK.soundCheckMidi(x, mega, c ? purchaseSeed(c) : 0n).midi;
     const out = remap(midi, O.choose(O.ORCH.roundPools[x.type], O.ORCH.roundKinds, id, 2, null));

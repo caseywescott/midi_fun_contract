@@ -4,7 +4,7 @@
 import { writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
-import { LOOT_BEASTS } from '../src/loot_beasts.js';
+import { LOOT_BEASTS, musicalId } from '../src/loot_beasts.js';
 
 const ref = process.argv[2];
 if (!ref) { console.error('usage: node onchain/make_species.mjs <midi_fun_contract checkout>'); process.exit(2); }
@@ -14,7 +14,7 @@ const { createEngineV11 } = await src('engine_v11.js');
 const LAB = await src('lab.js');
 const V11E = createEngineV11(E);
 const recs = LOOT_BEASTS.map((x) => {
-  const b = { id: x.id, prefix: 0, suffix: 0, level: 1, health: 100, shiny: 0, animated: 0, tier: x.tier, beast_type: x.type };
+  const b = { id: musicalId(x.id), prefix: 0, suffix: 0, level: 1, health: 100, shiny: 0, animated: 0, tier: x.tier, beast_type: x.type };
   const o = LAB.sampleTrackMidi(b, { species_count: 1 }, LAB.GENESIS_DEFAULTS, E, V11E);
   const degrees = o.result.form.theme.degrees.slice(0, 6);
   for (const d of degrees) if (d < -7 || d > 7) throw new Error(`species ${x.id}: theme degree ${d}`);

@@ -6,7 +6,7 @@
 use beast_composer::composition::beast_v3_sound::PackableBeastV3;
 use beast_composer::composition::drift::DriftClock;
 use beast_composer::composition::genesis::song_smf_bytes;
-use crate::species::loot_species;
+use crate::species::{loot_species, musical_id};
 
 /// A special name's prefix and suffix from its variant number (lab.js `nameFromVariant`).
 pub fn name_from_variant(n: u16) -> (u8, u8) {
@@ -20,7 +20,7 @@ pub fn name_from_variant(n: u16) -> (u8, u8) {
 fn beast(species: u32, mega: bool, prefix: u8, suffix: u8) -> PackableBeastV3 {
     let s = loot_species(species);
     PackableBeastV3 {
-        id: species.into(),
+        id: musical_id(species).into(),
         prefix,
         suffix,
         level: 1,

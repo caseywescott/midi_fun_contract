@@ -5,7 +5,7 @@ pub mod LootSongComposer {
     use beast_composer::composition::drift::{DriftClock, layered_drift};
     use loot_composer::orchestra::{orchestrate, song_band};
     use loot_composer::songs::song_bytes;
-    use loot_composer::species::loot_species;
+    use loot_composer::species::{loot_species, musical_id};
     use midi::pack::bytes_to_byte_array;
     use crate::interfaces::ILootSongComposer;
 
@@ -21,7 +21,7 @@ pub mod LootSongComposer {
             // the lab drifts a Species Song's band, not a Name Song's
             let d = match drift {
                 Option::Some(c) => if name == 0 && c.day >= 2 {
-                    Option::Some(layered_drift(species.into(), 0, 0, c))
+                    Option::Some(layered_drift(musical_id(species).into(), 0, 0, c))
                 } else {
                     Option::None
                 },

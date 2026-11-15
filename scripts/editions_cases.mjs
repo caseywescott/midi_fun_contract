@@ -4,6 +4,7 @@
 // days none, 1, 9, 45, 100, 290 from the Beasts lab (midi_fun_contract v1.0.1 offchain/beast-sound
 // src/lab.js drift2({ id, prefix: 0, suffix: 0 }, day, dayAnchor())).
 //   node scripts/editions_cases.mjs [ref checkout]   (default: ../midi_fun_contract-ref101)
+import { LOOT_FIRST, musicalId } from '../offchain/loot-sound/src/loot_beasts.js';
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { join } from 'node:path';
@@ -18,9 +19,9 @@ const DAYS = [null, 1, 9, 45, 100, 290];
 const PER = 4, N = 96;
 const cases = [];
 for (let i = 0; i < N; i++) {
-  const e = (i % 30) + 1, sp = 76 + ((i * 7 + Math.floor(i / 30)) % 30), mega = (i + Math.floor(i / 15)) % 2 === 1;
+  const e = (i % 30) + 1, sp = LOOT_FIRST + ((i * 7 + Math.floor(i / 30)) % 30), mega = (i + Math.floor(i / 15)) % 2 === 1;
   const p = 1 + ((i * 37) % 200), day = DAYS[Math.floor(i / 15) % 6];
-  const d = day === null ? null : L.drift2({ id: sp, prefix: 0, suffix: 0 }, day, anchor);
+  const d = day === null ? null : L.drift2({ id: musicalId(sp), prefix: 0, suffix: 0 }, day, anchor);
   cases.push({
     i, e, sp, mega, p, seed: purchaseSeed(p).toString(), day,
     drift: d && { rhythm: d.rhythm === null ? null : String(d.rhythm), rotate: d.rotate === null ? null : String(d.rotate), dayKnob: d.dayKnob, delta: d.delta, day: d.day },

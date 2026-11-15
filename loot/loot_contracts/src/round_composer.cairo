@@ -7,7 +7,7 @@ pub mod LootRoundComposer {
     use loot_composer::common::purchase_seed;
     use loot_composer::orchestra::{orchestrate_byte_array, round_band};
     use loot_composer::rounds::round_smf_bytes;
-    use loot_composer::species::loot_species;
+    use loot_composer::species::{loot_species, musical_id};
     use crate::interfaces::ILootRoundComposer;
 
     #[storage]
@@ -29,7 +29,7 @@ pub mod LootRoundComposer {
             // the lab's drift: none on day 1
             let d = match drift {
                 Option::Some(c) => if c.day >= 2 {
-                    Option::Some(layered_drift(species.into(), 0, 0, c))
+                    Option::Some(layered_drift(musical_id(species).into(), 0, 0, c))
                 } else {
                     Option::None
                 },

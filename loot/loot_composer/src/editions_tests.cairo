@@ -25,215 +25,215 @@ fn case(i: u32, sp: u32, mega: bool, e: u32, p: u64, drift: Option<Drift>) {
 #[test]
 #[ignore]
 fn editions_parity_00() {
-    case(0, 76, false, 1, 1, Option::None);
-    case(1, 83, true, 2, 38, Option::None);
-    case(2, 90, false, 3, 75, Option::None);
-    case(3, 97, true, 4, 112, Option::None);
+    case(0, 78, false, 1, 1, Option::None);
+    case(1, 85, true, 2, 38, Option::None);
+    case(2, 92, false, 3, 75, Option::None);
+    case(3, 99, true, 4, 112, Option::None);
 }
 
 #[test]
 #[ignore]
 fn editions_parity_01() {
-    case(4, 104, false, 5, 149, Option::None);
-    case(5, 81, true, 6, 186, Option::None);
-    case(6, 88, false, 7, 23, Option::None);
-    case(7, 95, true, 8, 60, Option::None);
+    case(4, 106, false, 5, 149, Option::None);
+    case(5, 83, true, 6, 186, Option::None);
+    case(6, 90, false, 7, 23, Option::None);
+    case(7, 97, true, 8, 60, Option::None);
 }
 
 #[test]
 #[ignore]
 fn editions_parity_02() {
-    case(8, 102, false, 9, 97, Option::None);
-    case(9, 79, true, 10, 134, Option::None);
-    case(10, 86, false, 11, 171, Option::None);
-    case(11, 93, true, 12, 8, Option::None);
+    case(8, 104, false, 9, 97, Option::None);
+    case(9, 81, true, 10, 134, Option::None);
+    case(10, 88, false, 11, 171, Option::None);
+    case(11, 95, true, 12, 8, Option::None);
 }
 
 #[test]
 #[ignore]
 fn editions_parity_03() {
-    case(12, 100, false, 13, 45, Option::None);
-    case(13, 77, true, 14, 82, Option::None);
-    case(14, 84, false, 15, 119, Option::None);
-    case(15, 91, false, 16, 156, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 1 }));
+    case(12, 102, false, 13, 45, Option::None);
+    case(13, 79, true, 14, 82, Option::None);
+    case(14, 86, false, 15, 119, Option::None);
+    case(15, 93, false, 16, 156, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 1 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_04() {
-    case(16, 98, true, 17, 193, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 0, delta_bpm: 0, day: 1 }));
-    case(17, 105, false, 18, 30, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3564593375362968883131099305714311964244173212731488492745205402367787630544), day_knob: 4, delta_bpm: 2, day: 1 }));
-    case(18, 82, true, 19, 67, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2559786337742015437009616756487366667627505151055269408949393887808727781876), day_knob: 3, delta_bpm: -2, day: 1 }));
-    case(19, 89, false, 20, 104, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3178641771511061352007650462563494781906830076770573921447504428523464630784), day_knob: 2, delta_bpm: -4, day: 1 }));
+    case(16, 100, true, 17, 193, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 0, delta_bpm: 0, day: 1 }));
+    case(17, 107, false, 18, 30, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3564593375362968883131099305714311964244173212731488492745205402367787630544), day_knob: 4, delta_bpm: 2, day: 1 }));
+    case(18, 84, true, 19, 67, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2559786337742015437009616756487366667627505151055269408949393887808727781876), day_knob: 3, delta_bpm: -2, day: 1 }));
+    case(19, 91, false, 20, 104, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3178641771511061352007650462563494781906830076770573921447504428523464630784), day_knob: 2, delta_bpm: -4, day: 1 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_05() {
-    case(20, 96, true, 21, 141, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(250991126566557030078091356217868257121423461533193920393676120046567387100), day_knob: 5, delta_bpm: 4, day: 1 }));
-    case(21, 103, false, 22, 178, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2518962659834981508682151250939852376492268208985406203553951942206493969922), day_knob: 1, delta_bpm: 0, day: 1 }));
-    case(22, 80, true, 23, 15, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3474822635532871011694493413788446924415119815421484429204328906601299769611), day_knob: 1, delta_bpm: 0, day: 1 }));
-    case(23, 87, false, 24, 52, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(232276083951072944301990999924085189107467364918585574106429041224936718487), day_knob: 5, delta_bpm: 4, day: 1 }));
+    case(20, 98, true, 21, 141, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(250991126566557030078091356217868257121423461533193920393676120046567387100), day_knob: 5, delta_bpm: 4, day: 1 }));
+    case(21, 105, false, 22, 178, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2518962659834981508682151250939852376492268208985406203553951942206493969922), day_knob: 1, delta_bpm: 0, day: 1 }));
+    case(22, 82, true, 23, 15, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3474822635532871011694493413788446924415119815421484429204328906601299769611), day_knob: 1, delta_bpm: 0, day: 1 }));
+    case(23, 89, false, 24, 52, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(232276083951072944301990999924085189107467364918585574106429041224936718487), day_knob: 5, delta_bpm: 4, day: 1 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_06() {
-    case(24, 94, true, 25, 89, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3302749818142308337732309649697915171761258027706234017897339219924807934903), day_knob: 1, delta_bpm: 0, day: 1 }));
-    case(25, 101, false, 26, 126, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(630963292376151260472300866740820307966511053937817703994438940167593938715), day_knob: 5, delta_bpm: 4, day: 1 }));
-    case(26, 78, true, 27, 163, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 0, delta_bpm: 0, day: 1 }));
-    case(27, 85, false, 28, 200, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 1 }));
+    case(24, 96, true, 25, 89, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3302749818142308337732309649697915171761258027706234017897339219924807934903), day_knob: 1, delta_bpm: 0, day: 1 }));
+    case(25, 103, false, 26, 126, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(630963292376151260472300866740820307966511053937817703994438940167593938715), day_knob: 5, delta_bpm: 4, day: 1 }));
+    case(26, 80, true, 27, 163, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 0, delta_bpm: 0, day: 1 }));
+    case(27, 87, false, 28, 200, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 1 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_07() {
-    case(28, 92, true, 29, 37, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1100936060279958631285967267356620645435264741164176314710694493980332919472), day_knob: 1, delta_bpm: 0, day: 1 }));
-    case(29, 99, false, 30, 74, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1781603998057052266480555284798633146983556235492958520207109539533442154606), day_knob: 0, delta_bpm: 0, day: 1 }));
-    case(30, 77, false, 1, 111, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2430935806671928527020825827467903663489607617593191475478550264770379531013), day_knob: 5, delta_bpm: 4, day: 9 }));
-    case(31, 84, true, 2, 148, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2092924704044125108839513301428181733863093882766565669674386536903002231262), day_knob: 5, delta_bpm: 4, day: 9 }));
+    case(28, 94, true, 29, 37, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1100936060279958631285967267356620645435264741164176314710694493980332919472), day_knob: 1, delta_bpm: 0, day: 1 }));
+    case(29, 101, false, 30, 74, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1781603998057052266480555284798633146983556235492958520207109539533442154606), day_knob: 0, delta_bpm: 0, day: 1 }));
+    case(30, 79, false, 1, 111, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2430935806671928527020825827467903663489607617593191475478550264770379531013), day_knob: 5, delta_bpm: 4, day: 9 }));
+    case(31, 86, true, 2, 148, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2092924704044125108839513301428181733863093882766565669674386536903002231262), day_knob: 5, delta_bpm: 4, day: 9 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_08() {
-    case(32, 91, false, 3, 185, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2957132877244667125619163761172862856276845133847363832564324859394429510456), day_knob: 0, delta_bpm: 0, day: 9 }));
-    case(33, 98, true, 4, 22, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1980173228036859217483917148124162065571282075160572243791027079474032260019), day_knob: 0, delta_bpm: 0, day: 9 }));
-    case(34, 105, false, 5, 59, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3059954302406379704806971629253194059560301193822799014910172682653424311100), day_knob: 2, delta_bpm: -4, day: 9 }));
-    case(35, 82, true, 6, 96, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 }));
+    case(32, 93, false, 3, 185, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2957132877244667125619163761172862856276845133847363832564324859394429510456), day_knob: 0, delta_bpm: 0, day: 9 }));
+    case(33, 100, true, 4, 22, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1980173228036859217483917148124162065571282075160572243791027079474032260019), day_knob: 0, delta_bpm: 0, day: 9 }));
+    case(34, 107, false, 5, 59, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3059954302406379704806971629253194059560301193822799014910172682653424311100), day_knob: 2, delta_bpm: -4, day: 9 }));
+    case(35, 84, true, 6, 96, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_09() {
-    case(36, 89, false, 7, 133, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1556706781891220427039487002997264764288086700332909458831237407103564601400), day_knob: 1, delta_bpm: 0, day: 9 }));
-    case(37, 96, true, 8, 170, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 9 }));
-    case(38, 103, false, 9, 7, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 }));
-    case(39, 80, true, 10, 44, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1094873784985197874657414530957792745891205887886982839050793267371568594206), day_knob: 3, delta_bpm: -2, day: 9 }));
+    case(36, 91, false, 7, 133, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1556706781891220427039487002997264764288086700332909458831237407103564601400), day_knob: 1, delta_bpm: 0, day: 9 }));
+    case(37, 98, true, 8, 170, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 9 }));
+    case(38, 105, false, 9, 7, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 }));
+    case(39, 82, true, 10, 44, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1094873784985197874657414530957792745891205887886982839050793267371568594206), day_knob: 3, delta_bpm: -2, day: 9 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_10() {
-    case(40, 87, false, 11, 81, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2259063440421390942589953775750955852821059303997751273688849247402858224884), day_knob: 0, delta_bpm: 0, day: 9 }));
-    case(41, 94, true, 12, 118, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2640337171719219856250458790487024879399878105379892710611381142548103295185), day_knob: 4, delta_bpm: 2, day: 9 }));
-    case(42, 101, false, 13, 155, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1238352935354718385728055589202500634866523405281884588597215936088960539048), day_knob: 5, delta_bpm: 4, day: 9 }));
-    case(43, 78, true, 14, 192, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(144023015694441074277888158865733414403774095372297359969876874279737455766), day_knob: 4, delta_bpm: 2, day: 9 }));
+    case(40, 89, false, 11, 81, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2259063440421390942589953775750955852821059303997751273688849247402858224884), day_knob: 0, delta_bpm: 0, day: 9 }));
+    case(41, 96, true, 12, 118, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2640337171719219856250458790487024879399878105379892710611381142548103295185), day_knob: 4, delta_bpm: 2, day: 9 }));
+    case(42, 103, false, 13, 155, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1238352935354718385728055589202500634866523405281884588597215936088960539048), day_knob: 5, delta_bpm: 4, day: 9 }));
+    case(43, 80, true, 14, 192, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(144023015694441074277888158865733414403774095372297359969876874279737455766), day_knob: 4, delta_bpm: 2, day: 9 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_11() {
-    case(44, 85, false, 15, 29, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 }));
-    case(45, 92, false, 16, 66, Option::Some(Drift { rhythm: Option::Some(2438131419516257726585569860144607235438216530620695571078187699643445658787), rotate: Option::Some(400834654931794382059856718517279646045827874399075634581045237422702952352), day_knob: 3, delta_bpm: -2, day: 45 }));
-    case(46, 99, true, 17, 103, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2349354694944915629605043059044537524480307972705477398557087303684041983991), day_knob: 4, delta_bpm: 2, day: 45 }));
-    case(47, 76, false, 18, 140, Option::Some(Drift { rhythm: Option::Some(320540267957876303002721948469149944666025362047689216293268511650599191790), rotate: Option::Some(3174669301695810990898822051583955962582828303236567784812111639193943116075), day_knob: 0, delta_bpm: 0, day: 45 }));
+    case(44, 87, false, 15, 29, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 }));
+    case(45, 94, false, 16, 66, Option::Some(Drift { rhythm: Option::Some(2438131419516257726585569860144607235438216530620695571078187699643445658787), rotate: Option::Some(400834654931794382059856718517279646045827874399075634581045237422702952352), day_knob: 3, delta_bpm: -2, day: 45 }));
+    case(46, 101, true, 17, 103, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2349354694944915629605043059044537524480307972705477398557087303684041983991), day_knob: 4, delta_bpm: 2, day: 45 }));
+    case(47, 78, false, 18, 140, Option::Some(Drift { rhythm: Option::Some(320540267957876303002721948469149944666025362047689216293268511650599191790), rotate: Option::Some(3174669301695810990898822051583955962582828303236567784812111639193943116075), day_knob: 0, delta_bpm: 0, day: 45 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_12() {
-    case(48, 83, true, 19, 177, Option::Some(Drift { rhythm: Option::Some(338658186126115479515498376420247142640071313869535497569768405477117711271), rotate: Option::Some(284120804038459325100655201450073323064893240567517895321878197708721955944), day_knob: 3, delta_bpm: -2, day: 45 }));
-    case(49, 90, false, 20, 14, Option::Some(Drift { rhythm: Option::Some(2746213876644746020052073419710752723869996316995050430318032382673721143941), rotate: Option::Some(1777443051047505738702378846517467593115000503829565941652518847992894103636), day_knob: 1, delta_bpm: 0, day: 45 }));
-    case(50, 97, true, 21, 51, Option::Some(Drift { rhythm: Option::Some(1798493537907694719303837995654156899229020384679707601102426720155233968657), rotate: Option::Some(348337996993976784801997053144266016526346452936605333705736167784429599869), day_knob: 5, delta_bpm: 4, day: 45 }));
-    case(51, 104, false, 22, 88, Option::Some(Drift { rhythm: Option::Some(344802756214807585864672034350052901595584428324090972231305028582399966642), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 45 }));
+    case(48, 85, true, 19, 177, Option::Some(Drift { rhythm: Option::Some(338658186126115479515498376420247142640071313869535497569768405477117711271), rotate: Option::Some(284120804038459325100655201450073323064893240567517895321878197708721955944), day_knob: 3, delta_bpm: -2, day: 45 }));
+    case(49, 92, false, 20, 14, Option::Some(Drift { rhythm: Option::Some(2746213876644746020052073419710752723869996316995050430318032382673721143941), rotate: Option::Some(1777443051047505738702378846517467593115000503829565941652518847992894103636), day_knob: 1, delta_bpm: 0, day: 45 }));
+    case(50, 99, true, 21, 51, Option::Some(Drift { rhythm: Option::Some(1798493537907694719303837995654156899229020384679707601102426720155233968657), rotate: Option::Some(348337996993976784801997053144266016526346452936605333705736167784429599869), day_knob: 5, delta_bpm: 4, day: 45 }));
+    case(51, 106, false, 22, 88, Option::Some(Drift { rhythm: Option::Some(344802756214807585864672034350052901595584428324090972231305028582399966642), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 45 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_13() {
-    case(52, 81, true, 23, 125, Option::Some(Drift { rhythm: Option::Some(396378043804358204629248093684246008312845031343435174599661364276347286838), rotate: Option::Some(2126174942458582494977558713495584774511858967381973032455875299063546606377), day_knob: 2, delta_bpm: -4, day: 45 }));
-    case(53, 88, false, 24, 162, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 45 }));
-    case(54, 95, true, 25, 199, Option::Some(Drift { rhythm: Option::Some(2596060996700248424560441132061069153356054694849091856061570857195185336860), rotate: Option::Some(202517752316539013840114224748778041714014606050094406387459203398420611870), day_knob: 1, delta_bpm: 0, day: 45 }));
-    case(55, 102, false, 26, 36, Option::Some(Drift { rhythm: Option::Some(2306447568060684052362755455099312328764647000821433929079763462903585746442), rotate: Option::Some(1785100349581231547851786433790945915082767412497960109411836776347680600446), day_knob: 0, delta_bpm: 0, day: 45 }));
+    case(52, 83, true, 23, 125, Option::Some(Drift { rhythm: Option::Some(396378043804358204629248093684246008312845031343435174599661364276347286838), rotate: Option::Some(2126174942458582494977558713495584774511858967381973032455875299063546606377), day_knob: 2, delta_bpm: -4, day: 45 }));
+    case(53, 90, false, 24, 162, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 45 }));
+    case(54, 97, true, 25, 199, Option::Some(Drift { rhythm: Option::Some(2596060996700248424560441132061069153356054694849091856061570857195185336860), rotate: Option::Some(202517752316539013840114224748778041714014606050094406387459203398420611870), day_knob: 1, delta_bpm: 0, day: 45 }));
+    case(55, 104, false, 26, 36, Option::Some(Drift { rhythm: Option::Some(2306447568060684052362755455099312328764647000821433929079763462903585746442), rotate: Option::Some(1785100349581231547851786433790945915082767412497960109411836776347680600446), day_knob: 0, delta_bpm: 0, day: 45 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_14() {
-    case(56, 79, true, 27, 73, Option::Some(Drift { rhythm: Option::Some(3316430784936846105976273970610378094814986933351598887561543750362221188210), rotate: Option::Some(1868267777191056629065150279014295031038838588767892418247100623211261707214), day_knob: 0, delta_bpm: 0, day: 45 }));
-    case(57, 86, false, 28, 110, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2436348328900145568079591835499244275532400954500158999859655499351145537087), day_knob: 1, delta_bpm: 0, day: 45 }));
-    case(58, 93, true, 29, 147, Option::Some(Drift { rhythm: Option::Some(3189067157820015438339411587270798585215391233617659700119281219904520066333), rotate: Option::Some(2685197885777197919437432036485579330620867091800842926771978292623223895514), day_knob: 4, delta_bpm: 2, day: 45 }));
-    case(59, 100, false, 30, 184, Option::Some(Drift { rhythm: Option::Some(1831399183652605831988758498417328253589993442722543432186724331906124622346), rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 45 }));
+    case(56, 81, true, 27, 73, Option::Some(Drift { rhythm: Option::Some(3316430784936846105976273970610378094814986933351598887561543750362221188210), rotate: Option::Some(1868267777191056629065150279014295031038838588767892418247100623211261707214), day_knob: 0, delta_bpm: 0, day: 45 }));
+    case(57, 88, false, 28, 110, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2436348328900145568079591835499244275532400954500158999859655499351145537087), day_knob: 1, delta_bpm: 0, day: 45 }));
+    case(58, 95, true, 29, 147, Option::Some(Drift { rhythm: Option::Some(3189067157820015438339411587270798585215391233617659700119281219904520066333), rotate: Option::Some(2685197885777197919437432036485579330620867091800842926771978292623223895514), day_knob: 4, delta_bpm: 2, day: 45 }));
+    case(59, 102, false, 30, 184, Option::Some(Drift { rhythm: Option::Some(1831399183652605831988758498417328253589993442722543432186724331906124622346), rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 45 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_15() {
-    case(60, 78, false, 1, 21, Option::Some(Drift { rhythm: Option::Some(1419396760486525658141959126740515360966333739768051002789443148158455487654), rotate: Option::Some(3264409154054685163463063034167751730945494027060608833873442985882191548025), day_knob: 2, delta_bpm: -4, day: 100 }));
-    case(61, 85, true, 2, 58, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3370443682236510951033961386597001186065090474821873477277489727236952742555), day_knob: 1, delta_bpm: 0, day: 100 }));
-    case(62, 92, false, 3, 95, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3513230466277515358528724425961644787620258267375471301093534828525907721667), day_knob: 0, delta_bpm: 0, day: 100 }));
-    case(63, 99, true, 4, 132, Option::Some(Drift { rhythm: Option::Some(899034411916161091199035124698321734628559431130550462680512990555007181023), rotate: Option::Some(301676301234753533473423073317639970933638575150870782552766727574319404115), day_knob: 4, delta_bpm: 2, day: 100 }));
+    case(60, 80, false, 1, 21, Option::Some(Drift { rhythm: Option::Some(1419396760486525658141959126740515360966333739768051002789443148158455487654), rotate: Option::Some(3264409154054685163463063034167751730945494027060608833873442985882191548025), day_knob: 2, delta_bpm: -4, day: 100 }));
+    case(61, 87, true, 2, 58, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3370443682236510951033961386597001186065090474821873477277489727236952742555), day_knob: 1, delta_bpm: 0, day: 100 }));
+    case(62, 94, false, 3, 95, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3513230466277515358528724425961644787620258267375471301093534828525907721667), day_knob: 0, delta_bpm: 0, day: 100 }));
+    case(63, 101, true, 4, 132, Option::Some(Drift { rhythm: Option::Some(899034411916161091199035124698321734628559431130550462680512990555007181023), rotate: Option::Some(301676301234753533473423073317639970933638575150870782552766727574319404115), day_knob: 4, delta_bpm: 2, day: 100 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_16() {
-    case(64, 76, false, 5, 169, Option::Some(Drift { rhythm: Option::Some(637078577061791661770791280333862507616612355435282113174345288526009080787), rotate: Option::Some(1039651160595205605252970487167462179072600116402501309500800106208595949825), day_knob: 5, delta_bpm: 4, day: 100 }));
-    case(65, 83, true, 6, 6, Option::Some(Drift { rhythm: Option::Some(1425216882311758671811219937150814409344670970943518784866914616404820401389), rotate: Option::Some(2488487569123449399789904088032289304852189879589522403129098026606257950783), day_knob: 2, delta_bpm: -4, day: 100 }));
-    case(66, 90, false, 7, 43, Option::Some(Drift { rhythm: Option::Some(78598742744315064448582616525982228459201387737254859588975521247107586648), rotate: Option::Some(178301699269455265840538710526801724189042137143537568878578534433425928771), day_knob: 4, delta_bpm: 2, day: 100 }));
-    case(67, 97, true, 8, 80, Option::Some(Drift { rhythm: Option::Some(707597781066141990937977291982810798832549063171959151468249406993084941426), rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 100 }));
+    case(64, 78, false, 5, 169, Option::Some(Drift { rhythm: Option::Some(637078577061791661770791280333862507616612355435282113174345288526009080787), rotate: Option::Some(1039651160595205605252970487167462179072600116402501309500800106208595949825), day_knob: 5, delta_bpm: 4, day: 100 }));
+    case(65, 85, true, 6, 6, Option::Some(Drift { rhythm: Option::Some(1425216882311758671811219937150814409344670970943518784866914616404820401389), rotate: Option::Some(2488487569123449399789904088032289304852189879589522403129098026606257950783), day_knob: 2, delta_bpm: -4, day: 100 }));
+    case(66, 92, false, 7, 43, Option::Some(Drift { rhythm: Option::Some(78598742744315064448582616525982228459201387737254859588975521247107586648), rotate: Option::Some(178301699269455265840538710526801724189042137143537568878578534433425928771), day_knob: 4, delta_bpm: 2, day: 100 }));
+    case(67, 99, true, 8, 80, Option::Some(Drift { rhythm: Option::Some(707597781066141990937977291982810798832549063171959151468249406993084941426), rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 100 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_17() {
-    case(68, 104, false, 9, 117, Option::Some(Drift { rhythm: Option::Some(2426685545258297496169952571750092026598294755600674681358488553301010806584), rotate: Option::Some(2355946014814145848261688748770789253469866818231316461004462937486973423977), day_knob: 2, delta_bpm: -4, day: 100 }));
-    case(69, 81, true, 10, 154, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1147422815910452994485634882020033426917366410028677254731739025631363638739), day_knob: 2, delta_bpm: -4, day: 100 }));
-    case(70, 88, false, 11, 191, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(871849616479257931772851707522383085937269913219511472574695894760962435935), day_knob: 3, delta_bpm: -2, day: 100 }));
-    case(71, 95, true, 12, 28, Option::Some(Drift { rhythm: Option::Some(1980466149368427730760478284166203770321543703719512113337743653779815227229), rotate: Option::Some(1671849672868943219598055936210636699512662201253468459988560240044211927803), day_knob: 3, delta_bpm: -2, day: 100 }));
+    case(68, 106, false, 9, 117, Option::Some(Drift { rhythm: Option::Some(2426685545258297496169952571750092026598294755600674681358488553301010806584), rotate: Option::Some(2355946014814145848261688748770789253469866818231316461004462937486973423977), day_knob: 2, delta_bpm: -4, day: 100 }));
+    case(69, 83, true, 10, 154, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1147422815910452994485634882020033426917366410028677254731739025631363638739), day_knob: 2, delta_bpm: -4, day: 100 }));
+    case(70, 90, false, 11, 191, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(871849616479257931772851707522383085937269913219511472574695894760962435935), day_knob: 3, delta_bpm: -2, day: 100 }));
+    case(71, 97, true, 12, 28, Option::Some(Drift { rhythm: Option::Some(1980466149368427730760478284166203770321543703719512113337743653779815227229), rotate: Option::Some(1671849672868943219598055936210636699512662201253468459988560240044211927803), day_knob: 3, delta_bpm: -2, day: 100 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_18() {
-    case(72, 102, false, 13, 65, Option::Some(Drift { rhythm: Option::Some(2065533894750949855117443501751754238805707501151117395648049533772781567467), rotate: Option::Some(1143063074243910374825589563730581437792525835584970554162952022794382983812), day_knob: 4, delta_bpm: 2, day: 100 }));
-    case(73, 79, true, 14, 102, Option::Some(Drift { rhythm: Option::Some(3102418058939042047254106148147320438632387852838757235460609967280579878872), rotate: Option::Some(2442833307727071816608893822954818519733898360747569022073345632645217206123), day_knob: 4, delta_bpm: 2, day: 100 }));
-    case(74, 86, false, 15, 139, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2875701109501981620753610199828033648432928215619804500546994928884302066712), day_knob: 4, delta_bpm: 2, day: 100 }));
-    case(75, 93, false, 16, 176, Option::Some(Drift { rhythm: Option::Some(1175063455547662521921313432830040861167595769895042684554300201993857437473), rotate: Option::Some(269780875702175826553295610815289574621361172357975151961008032680977067172), day_knob: 0, delta_bpm: 0, day: 290 }));
+    case(72, 104, false, 13, 65, Option::Some(Drift { rhythm: Option::Some(2065533894750949855117443501751754238805707501151117395648049533772781567467), rotate: Option::Some(1143063074243910374825589563730581437792525835584970554162952022794382983812), day_knob: 4, delta_bpm: 2, day: 100 }));
+    case(73, 81, true, 14, 102, Option::Some(Drift { rhythm: Option::Some(3102418058939042047254106148147320438632387852838757235460609967280579878872), rotate: Option::Some(2442833307727071816608893822954818519733898360747569022073345632645217206123), day_knob: 4, delta_bpm: 2, day: 100 }));
+    case(74, 88, false, 15, 139, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(2875701109501981620753610199828033648432928215619804500546994928884302066712), day_knob: 4, delta_bpm: 2, day: 100 }));
+    case(75, 95, false, 16, 176, Option::Some(Drift { rhythm: Option::Some(1175063455547662521921313432830040861167595769895042684554300201993857437473), rotate: Option::Some(269780875702175826553295610815289574621361172357975151961008032680977067172), day_knob: 0, delta_bpm: 0, day: 290 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_19() {
-    case(76, 100, true, 17, 13, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3247907967075765105148286782353806964112166379066076042589066910241550953690), day_knob: 0, delta_bpm: 0, day: 290 }));
-    case(77, 77, false, 18, 50, Option::Some(Drift { rhythm: Option::Some(3580526533137586841042948961171473100205916951796413834068662695612288479187), rotate: Option::Some(1864323951555507092445572079642723352368002324401402346200201655481639317160), day_knob: 4, delta_bpm: 2, day: 290 }));
-    case(78, 84, true, 19, 87, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1865838926132577079620128546846371837719409732459825896681242862727432662548), day_knob: 4, delta_bpm: 2, day: 290 }));
-    case(79, 91, false, 20, 124, Option::Some(Drift { rhythm: Option::Some(2427364327691956495939952408060088214660137143842843349086355863034800859965), rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 290 }));
+    case(76, 102, true, 17, 13, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3247907967075765105148286782353806964112166379066076042589066910241550953690), day_knob: 0, delta_bpm: 0, day: 290 }));
+    case(77, 79, false, 18, 50, Option::Some(Drift { rhythm: Option::Some(3580526533137586841042948961171473100205916951796413834068662695612288479187), rotate: Option::Some(1864323951555507092445572079642723352368002324401402346200201655481639317160), day_knob: 4, delta_bpm: 2, day: 290 }));
+    case(78, 86, true, 19, 87, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1865838926132577079620128546846371837719409732459825896681242862727432662548), day_knob: 4, delta_bpm: 2, day: 290 }));
+    case(79, 93, false, 20, 124, Option::Some(Drift { rhythm: Option::Some(2427364327691956495939952408060088214660137143842843349086355863034800859965), rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 290 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_20() {
-    case(80, 98, true, 21, 161, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1813124030389055698973154123096871912597216948557358343169251978661153563992), day_knob: 5, delta_bpm: 4, day: 290 }));
-    case(81, 105, false, 22, 198, Option::Some(Drift { rhythm: Option::Some(2946296256901583642351720760359842803160253573269440072785347486196331143768), rotate: Option::Some(3459088912545790459519129738279850408566767928615650004490311630716862183925), day_knob: 3, delta_bpm: -2, day: 290 }));
-    case(82, 82, true, 23, 35, Option::Some(Drift { rhythm: Option::Some(801464572391727789598359426595822823875109295393262960920969129172077285475), rotate: Option::Some(1073499564490484284773966268069383781722657909547882050849314746697120165594), day_knob: 3, delta_bpm: -2, day: 290 }));
-    case(83, 89, false, 24, 72, Option::Some(Drift { rhythm: Option::Some(3260248559602683320207292834875670130876964116816657194739074517635053417150), rotate: Option::Some(3436098665331819411017680851933443311153643419913275014580989946417446838923), day_knob: 0, delta_bpm: 0, day: 290 }));
+    case(80, 100, true, 21, 161, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(1813124030389055698973154123096871912597216948557358343169251978661153563992), day_knob: 5, delta_bpm: 4, day: 290 }));
+    case(81, 107, false, 22, 198, Option::Some(Drift { rhythm: Option::Some(2946296256901583642351720760359842803160253573269440072785347486196331143768), rotate: Option::Some(3459088912545790459519129738279850408566767928615650004490311630716862183925), day_knob: 3, delta_bpm: -2, day: 290 }));
+    case(82, 84, true, 23, 35, Option::Some(Drift { rhythm: Option::Some(801464572391727789598359426595822823875109295393262960920969129172077285475), rotate: Option::Some(1073499564490484284773966268069383781722657909547882050849314746697120165594), day_knob: 3, delta_bpm: -2, day: 290 }));
+    case(83, 91, false, 24, 72, Option::Some(Drift { rhythm: Option::Some(3260248559602683320207292834875670130876964116816657194739074517635053417150), rotate: Option::Some(3436098665331819411017680851933443311153643419913275014580989946417446838923), day_knob: 0, delta_bpm: 0, day: 290 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_21() {
-    case(84, 96, true, 25, 109, Option::Some(Drift { rhythm: Option::Some(3093699066792375454186766890847550771079925476212009052907477621256142703445), rotate: Option::Some(3514421389686018420560107328622669220316822108601509187216719416930785280846), day_knob: 0, delta_bpm: 0, day: 290 }));
-    case(85, 103, false, 26, 146, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3401920525739339959559792998603390163884332717272916081142812881099677466359), day_knob: 4, delta_bpm: 2, day: 290 }));
-    case(86, 80, true, 27, 183, Option::Some(Drift { rhythm: Option::Some(3154763337778670251205927324534591243248178468277791437185894736108766893985), rotate: Option::Some(1629206233229454001374674663437534102771642672440708764608831635545849081072), day_knob: 1, delta_bpm: 0, day: 290 }));
-    case(87, 87, false, 28, 20, Option::Some(Drift { rhythm: Option::Some(2455496511439173440417980690487413597990376028978290475843677727259953244531), rotate: Option::Some(1583619891915040939628601942928644814431515382020277975782299056246257567994), day_knob: 3, delta_bpm: -2, day: 290 }));
+    case(84, 98, true, 25, 109, Option::Some(Drift { rhythm: Option::Some(3093699066792375454186766890847550771079925476212009052907477621256142703445), rotate: Option::Some(3514421389686018420560107328622669220316822108601509187216719416930785280846), day_knob: 0, delta_bpm: 0, day: 290 }));
+    case(85, 105, false, 26, 146, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(3401920525739339959559792998603390163884332717272916081142812881099677466359), day_knob: 4, delta_bpm: 2, day: 290 }));
+    case(86, 82, true, 27, 183, Option::Some(Drift { rhythm: Option::Some(3154763337778670251205927324534591243248178468277791437185894736108766893985), rotate: Option::Some(1629206233229454001374674663437534102771642672440708764608831635545849081072), day_knob: 1, delta_bpm: 0, day: 290 }));
+    case(87, 89, false, 28, 20, Option::Some(Drift { rhythm: Option::Some(2455496511439173440417980690487413597990376028978290475843677727259953244531), rotate: Option::Some(1583619891915040939628601942928644814431515382020277975782299056246257567994), day_knob: 3, delta_bpm: -2, day: 290 }));
 }
 
 #[test]
 #[ignore]
 fn editions_parity_22() {
-    case(88, 94, true, 29, 57, Option::Some(Drift { rhythm: Option::Some(3102183975201523729911232682759493045282317327249246182199600330668113356631), rotate: Option::Some(1040235999172853722550653712196284088100707721779477573846719475993937573928), day_knob: 0, delta_bpm: 0, day: 290 }));
-    case(89, 101, false, 30, 94, Option::Some(Drift { rhythm: Option::Some(1905071469993442814513501886010765232186992592305085357117677320174456191487), rotate: Option::Some(371891754678387043435045912838460357983882934872214847975973466317453494307), day_knob: 0, delta_bpm: 0, day: 290 }));
-    case(90, 79, false, 1, 131, Option::None);
-    case(91, 86, true, 2, 168, Option::None);
+    case(88, 96, true, 29, 57, Option::Some(Drift { rhythm: Option::Some(3102183975201523729911232682759493045282317327249246182199600330668113356631), rotate: Option::Some(1040235999172853722550653712196284088100707721779477573846719475993937573928), day_knob: 0, delta_bpm: 0, day: 290 }));
+    case(89, 103, false, 30, 94, Option::Some(Drift { rhythm: Option::Some(1905071469993442814513501886010765232186992592305085357117677320174456191487), rotate: Option::Some(371891754678387043435045912838460357983882934872214847975973466317453494307), day_knob: 0, delta_bpm: 0, day: 290 }));
+    case(90, 81, false, 1, 131, Option::None);
+    case(91, 88, true, 2, 168, Option::None);
 }
 
 #[test]
 #[ignore]
 fn editions_parity_23() {
-    case(92, 93, false, 3, 5, Option::None);
-    case(93, 100, true, 4, 42, Option::None);
-    case(94, 77, false, 5, 79, Option::None);
-    case(95, 84, true, 6, 116, Option::None);
+    case(92, 95, false, 3, 5, Option::None);
+    case(93, 102, true, 4, 42, Option::None);
+    case(94, 79, false, 5, 79, Option::None);
+    case(95, 86, true, 6, 116, Option::None);
 }

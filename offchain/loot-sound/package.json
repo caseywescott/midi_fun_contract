@@ -4,5 +4,5 @@
   "private": true,
   "type": "module",
   "description": "Loot Dungeon Beast Sound: the edition engine (Realm and Sweets harmony) and its lab.",
-  "scripts": { "test": "node --test test/" }
+  "scripts": { "test": "node --test test/*.test.mjs" }
 }

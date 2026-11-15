@@ -1,5 +1,5 @@
 use crate::common::{GlissNote, GlissPlan, RngTrait, fold64, gliss_plan, glissando, mix, purchase_seed};
-use crate::species::{LOOT_FIRST, loot_species};
+use crate::species::{LOOT_FIRST, loot_species, musical_id};
 
 #[test]
 fn rng_matches_js() {
@@ -25,7 +25,7 @@ fn mix_and_seeds_match_js() {
 #[test]
 fn species_table() {
     let s = loot_species(LOOT_FIRST);
-    assert_eq!(s.id, 76);
+    assert_eq!(s.id, 78);
     assert_eq!(s.degrees, [0, 1, 3, 5, 3, 4]);
 }
 
@@ -45,3 +45,21 @@ fn gliss_matches_js() {
     assert_eq!(*n2.at(15), GlissNote { t: 4940, len: 360, d: 0, v: 59 });
     assert!(gliss_plan(5, 1, [0, 2, 3, 3, 1].span()).is_none());
 }
+
+#[test]
+fn species_allocation_boundaries() {
+    assert_eq!(musical_id(78), 76);
+    assert_eq!(musical_id(107), 105);
+    let last = loot_species(107);
+    assert_eq!(last.id, 107);
+    assert_eq!(last.tier, 5);
+    assert_eq!(last.beast_type, 2);
+}
+
+#[test]
+#[should_panic(expected: 'not a Loot Beast')]
+fn preceding_beast_is_not_a_loot_species() { loot_species(77); }
+
+#[test]
+#[should_panic(expected: 'not a Loot Beast')]
+fn following_beast_is_not_a_loot_species() { loot_species(108); }

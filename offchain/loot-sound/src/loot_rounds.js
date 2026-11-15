@@ -1,3 +1,4 @@
+import { musicalId } from './loot_beasts.js';
 // Loot Dungeon Rounds: canons over a chord loop.
 //
 // The Beasts composer writes a theme first and then repairs every follower note against what is
@@ -326,7 +327,7 @@ const low32 = (x) => Number(BigInt(x) & 0xffffffffn);
 export function roundScore(sp, mega, seedKey, drift = null) {
   const seed = BigInt(String(seedKey).replace(/^seed:/, ''));
   const fold = Number((seed & 0xffffffffn) ^ ((seed >> 32n) & 0xffffffffn));
-  const R = rng((fold ^ imul(sp.id, 0x85ebca77) ^ 0x524f554e) >>> 0);
+  const R = rng((fold ^ imul(musicalId(sp.id), 0x85ebca77) ^ 0x524f554e) >>> 0);
   const K = sp.tier <= 2 ? 4 : 3;
   // the purchase's draws, in a fixed order
   const shift = R.pick([0, 0, 0, 5, 7, 10, 2, 3]), keepMode = R.int(2), modePick = R.int(ROUND_MODES.length);
@@ -388,7 +389,7 @@ export function roundScore(sp, mega, seedKey, drift = null) {
   const S = hr === 1 ? 4 : 8, cyc = S * SL;
   // the species motif, from the tonic, and its rhythm
   const motif = sp.degrees.slice(0, 4).map((d) => d - sp.degrees[0]);
-  const headI = [sp.id % 3, Math.floor(sp.id / 3) % 3], headR = headI.map((h) => meter.head[h]);
+  const headI = [musicalId(sp.id) % 3, Math.floor(musicalId(sp.id) / 3) % 3], headR = headI.map((h) => meter.head[h]);
   const centre = CONTOURS[K][contour], shapes = SHAPES[K][shape], susShare = [35, 55, 75][susI];
   // a slot's notes from a cell: { t, len, d, anchor }
   const cellNotes = (cell, t0, a, next, role) => {
@@ -571,9 +572,9 @@ export function roundScore(sp, mega, seedKey, drift = null) {
   const bpm = bpm0, base = tonic < 6 ? 60 + tonic : 48 + tonic;
   let us = Math.round(60e6 / bpm);
   if (bpmDelta) { const D = 60000000 + bpmDelta * us; us = Math.min(1048575, Math.floor((2 * 60000000 * us + D) / (2 * D))); }
-  const fam = FAMILIES[sp.type], lead = sp.id % 3;
+  const fam = FAMILIES[sp.type], lead = musicalId(sp.id) % 3;
   const programs = [fam.leads[lead], fam.leads[(lead + 1) % 3], fam.plucks[1], fam.plucks[2], fam.plucks[0]];
-  if (mega) { programs[0] = MEGA_LEADS[sp.id % 2]; programs[5] = MEGA_LEADS[(sp.id + 1) % 2]; }
+  if (mega) { programs[0] = MEGA_LEADS[musicalId(sp.id) % 2]; programs[5] = MEGA_LEADS[(musicalId(sp.id) + 1) % 2]; }
   const info = {
     key: NOTE[tonic] + ' ' + MODE_NAMES[mode], bpm: Math.round(60e6 / us), voices: K, meter: meter.name,
     loop: loop.map((r) => numeral(scale, r)).join(' – ') + (hr === 0 || mi === 2 ? ' · a bar each' : ' · half a bar each'), loopBars: cyc / BR,

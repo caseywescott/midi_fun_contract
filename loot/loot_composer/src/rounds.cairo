@@ -14,7 +14,7 @@ use crate::rounds_data::{
     LOOPS4, LOOPS8, MODE_BAD, MODE_CAD, MODE_DIM, MODE_IDS, MODE_N4, MODE_N8, MODE_SCALE, PERC_AT,
     PERC_HITS, SHAPES,
 };
-use crate::species::loot_species;
+use crate::species::{loot_species, musical_id};
 
 pub const TPQ: u16 = 480;
 const SHIFTS: [u32; 8] = [0, 0, 0, 5, 7, 10, 2, 3];
@@ -1177,7 +1177,7 @@ pub fn low32(x: felt252) -> u32 {
 /// The Round's tracks: tempo, the canon voices by channel, the bass, the mega double, the harp, the kit.
 pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -> Array<Array<u8>> {
     let sp = loot_species(species);
-    let id = sp.id;
+    let id = musical_id(sp.id);
     let tier: u32 = sp.tier.into();
     let typ: u32 = sp.beast_type.into();
     let mut r = RngTrait::new(fold64(seed) ^ id.wrapping_mul(0x85ebca77) ^ 0x524f554e);

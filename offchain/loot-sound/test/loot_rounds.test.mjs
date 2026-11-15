@@ -136,7 +136,7 @@ test('ornaments grow with the days of drift', () => {
     assert.ok(kinds(at[4]) >= 4);
     for (const sc of at) for (const art of [0, 1, 2]) for (const v of sc.voices) for (const [, len, p] of M.soundingNotes({ ...sc, art }, v.notes, 0)) assert.ok(len > 0 && p > 0);
   }
-  console.log('species 76, ornamented notes at days 2, 100, 200, 300, 400:', [2, 100, 200, 300, 400].map((d) => count(on(SPECIES[0], d))).join(', '), 'of', total(on(SPECIES[0], 400)));
+  console.log('first Loot species, ornamented notes at days 2, 100, 200, 300, 400:', [2, 100, 200, 300, 400].map((d) => count(on(SPECIES[0], d))).join(', '), 'of', total(on(SPECIES[0], 400)));
 });
 
 test('suspensions: a note held over a chord change is not in the new chord and steps down into it a beat late', () => {

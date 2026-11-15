@@ -1,3 +1,4 @@
+import { musicalId } from '../offchain/loot-sound/src/loot_beasts.js';
 // Rounds parity: the Cairo port (loot/loot_composer/src/rounds.cairo) against roundMidi
 // (offchain/loot-sound/src/loot_rounds.js), case by case from the RD lines the fixture prints.
 //   sh scripts/rounds_parity_cairo.sh /tmp/rd.txt && node scripts/rounds_parity.mjs /tmp/rd.txt
@@ -16,7 +17,7 @@ for (const line of lines) {
   const x = cases[+c.i];
   seen.add(+c.i);
   const sp = SPECIES.find((s) => s.id === x.sp);
-  const d = x.day ? L.drift2({ id: x.sp, prefix: 0, suffix: 0 }, x.day, L.dayAnchor()) : null;
+  const d = x.day ? L.drift2({ id: musicalId(x.sp), prefix: 0, suffix: 0 }, x.day, L.dayAnchor()) : null;
   const js = Buffer.from(roundMidi(sp, x.mega, BigInt(x.seed), d).midi).toString('hex');
   if (js !== c.hex) {
     failures++;

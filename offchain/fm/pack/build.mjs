@@ -4,7 +4,7 @@
 // 2. writes pack/kankyo-data.js: the definitions in compact form (see data.js), checking that they decode to
 //    exactly the reference's,
 // 3. bundles pack/main.js and wraps it in `function LootFmPack(){...}` (its own source is the workers' script),
-// 4. writes dist/loot-fm-pack.min.js, dist/loot-fm-pack.min.js.gz and dist/loot-fm-pack.min.js.gz.b64.
+// 4. writes dist/loot-fm-pack.min.js, dist/loot-fm-pack.min.js.gz, dist/loot-fm-pack.min.js.gz.b64 and dist/demo.html.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { gzipSync, constants } from 'node:zlib';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -67,6 +67,8 @@ const gz = gzipSync(Buffer.from(text), { level: constants.Z_BEST_COMPRESSION });
 writeFileSync(resolve(dist, 'loot-fm-pack.min.js'), text);
 writeFileSync(resolve(dist, 'loot-fm-pack.min.js.gz'), gz);
 writeFileSync(resolve(dist, 'loot-fm-pack.min.js.gz.b64'), gz.toString('base64')); // no newline: the contract returns exactly this
+// the demo page, carrying the pack as the contract stores it
+writeFileSync(resolve(dist, 'demo.html'), readFileSync(resolve(here, 'demo.src.html'), 'utf8').replace('/*__PACK_B64__*/', () => gz.toString('base64')));
 const dataText = (await build({ stdin: { contents: readFileSync(resolve(here, 'kankyo-data.js'), 'utf8'), loader: 'js' }, minify: true, write: false })).outputFiles[0].text;
 const refGz = gzipSync(Buffer.from(ref.text), { level: 9 }).length;
 console.log(JSON.stringify({ pack: { raw: text.length, gzip: gz.length, gzipBase64: Math.ceil(gz.length / 3) * 4, data: dataText.length }, reference: { raw: Buffer.byteLength(ref.text.replace('jobs:f0,', '')), gzip: refGz }, instruments: rows.length, drums: drums.length, zones: ref.jobs.length }, null, 1));

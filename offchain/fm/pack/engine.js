@@ -13,6 +13,7 @@ function fft(re, im) {
 const TAU = 2 * Math.PI, hz = (m) => 440 * 2 ** ((m - 69) / 12);
 const level = (y, a, b, lvl) => { let s = 0; for (let i = a; i < b; i++) s += y[i] * y[i]; const k = lvl / (Math.sqrt(s / (b - a)) || 1); for (let i = 0; i < y.length; i++) y[i] *= k; return y; };
 const fade = (y, n = 640) => { for (let i = 0; i < n && i < y.length; i++) y[y.length - 1 - i] *= i / n; return y; };
+// The biquad cascade of `tone12`, coefficients and state in typed arrays (the same arithmetic as the reference)
 function tone12(d, f, y, loopStart) {
   const eq = (d.eq ?? []).map(([type, hz0, q, db, track]) => {
     const fc = Math.min(14000, track ? hz0 * f : hz0), A = 10 ** (db / 40), w = TAU * fc / RATE, cs = Math.cos(w), sn = Math.sin(w);
@@ -22,66 +23,84 @@ function tone12(d, f, y, loopStart) {
     const al = sn / 2 * Math.SQRT2, r = 2 * Math.sqrt(A) * al, a0 = (A + 1) - (A - 1) * cs + r;
     return [A * ((A + 1) + (A - 1) * cs + r) / a0, -2 * A * ((A - 1) + (A + 1) * cs) / a0, A * ((A + 1) + (A - 1) * cs - r) / a0, 2 * ((A - 1) - (A + 1) * cs) / a0, ((A + 1) - (A - 1) * cs - r) / a0];
   });
-  const c = d.lp || d.lpk ? 1 - Math.exp(-TAU * Math.min(14000, Math.max(d.lp ?? 0, (d.lpk ?? 0) * f + (d.lpo ?? 0))) / RATE) : 0;
-  if (!c && !eq.length) return y;
-  const st = eq.map(() => [0, 0, 0, 0]); let a = 0, b = 0;
-  for (let pass = 0; pass < (loopStart ? 2 : 1); pass++) for (let i = pass ? loopStart : 0; i < y.length; i++) {
+  const c = d.lp || d.lpk ? 1 - Math.exp(-TAU * Math.min(14000, Math.max(d.lp ?? 0, (d.lpk ?? 0) * f + (d.lpo ?? 0))) / RATE) : 0, K = eq.length, Q = new Float64Array(eq.flat()), Z = new Float64Array(4 * K), L = y.length;
+  if (!c && !K) return y;
+  let a = 0, b = 0;
+  for (let pass = 0; pass < (loopStart ? 2 : 1); pass++) for (let i = pass ? loopStart : 0; i < L; i++) {
     let v = y[i];
-    for (let k = 0; k < eq.length; k++) { const q = eq[k], z = st[k], o = q[0] * v + q[1] * z[0] + q[2] * z[1] - q[3] * z[2] - q[4] * z[3]; z[1] = z[0]; z[0] = v; z[3] = z[2]; z[2] = o; v = o; }
+    for (let k = 0, q = 0, z = 0; k < K; k++, q += 5, z += 4) { const o = Q[q] * v + Q[q + 1] * Z[z] + Q[q + 2] * Z[z + 1] - Q[q + 3] * Z[z + 2] - Q[q + 4] * Z[z + 3]; Z[z + 1] = Z[z]; Z[z] = v; Z[z + 3] = Z[z + 2]; Z[z + 2] = o; v = o; }
     if (c) { a += c * (v - a); b += c * (a - b); v = b; }
     if (pass || !loopStart || i < loopStart) y[i] = v; // the loop's first pass only settles the filters
   }
   return y;
 }
 // FM: operators [carrier ratio, modulator ratio, index at the attack, index held, index time constant (s),
-// level, level decay dB/s (struck) or beat cycles over the loop (sustained), feedback, [ratio, index]]:
-// a carrier with its modulator; `feedback` turns the modulator on itself (towards a sawtooth: bowed and
-// brassy tones; eased off up the keyboard, where its overtones would fold), and the last pair is a
-// second modulator stacked on the first (richer, less regular overtones).
+// level, level decay dB/s (struck) or beat cycles over the loop (sustained), feedback, [ratio, index]].
+// Same arithmetic as the reference engine, sample for sample; what changed is only what is computed once:
+// a modulator shared by several operators (same ratio, feedback and stack) is run once, an operator whose
+// index is zero throughout skips its modulator, and envelopes that cancel out (index held = attack) skip Math.exp.
 function fm(d, midi) {
-  const f = hz(midi), ease = Math.min(1, Math.sqrt(523 / f));
+  const f = hz(midi), ease = Math.min(1, Math.sqrt(523 / f)), mods = new Map();
   if (!d.sus) {
-    // Struck or plucked. Beyond the fields above an operator may give, after two unused places, `i2`
-    // [index, s]: a second, slower stage the index settles to after the first (a bright attack, a warm
-    // tail); its own attack time in s; and `dry`, to skip the pluck-position comb. `comb` is where along
-    // the string it is plucked (0.08-0.48): the sound minus itself delayed by that fraction of a period,
-    // which notches the harmonics at multiples of 1/position. `len` caps the seconds kept.
     const k = (f / hz(60)) ** (d.dk ?? 0.4), n = Math.round(Math.min(d.len ?? 2.5, 55 / (Math.min(...d.ops.map((o) => o[6])) * k) + 0.1) * RATE), y = new Float32Array(n), dry = d.comb ? new Float32Array(n) : y;
     for (const [cr, mr, i0, is, tau, lv, ad, fb = 0, st, , , i2, atk = 0, isDry] of d.ops) {
       if (f * cr > 14000) continue; // a negative ratio is a fixed frequency in Hz (a pick's click does not follow the note)
-      const out = isDry ? dry : y, [is2, tau2] = i2 ?? [is, 1], wc = TAU * (cr < 0 ? -cr : f * cr) / RATE, wm = TAU * (mr < 0 ? -mr : f * mr) / RATE, w2 = st ? TAU * f * st[0] / RATE : 0, dec = Math.exp(-ad * k * Math.LN10 / 20 / RATE); let m1 = 0, m2 = 0, amp = lv;
-      for (let i = 0; i < n; i++) { const t = i / RATE, e = Math.exp(-t / tau), m = Math.sin(wm * i + fb * ease * 0.5 * (m1 + m2) + (st ? st[1] * (0.15 + 0.85 * e) * Math.sin(w2 * i) : 0)); m2 = m1; m1 = m;
-        out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(wc * i + (is2 + (is - is2) * Math.exp(-t / tau2) + (i0 - is) * e) * m); amp *= dec; }
+      const out = isDry ? dry : y, [is2, tau2] = i2 ?? [is, 1], wc = TAU * (cr < 0 ? -cr : f * cr) / RATE, wm = TAU * (mr < 0 ? -mr : f * mr) / RATE, dec = Math.exp(-ad * k * Math.LN10 / 20 / RATE), fbe = fb * ease * 0.5, d2 = is - is2, d0 = i0 - is;
+      let amp = lv;
+      if (!i0 && !is && !is2) { // no modulation at all: wc * i + 0 * m is wc * i
+        for (let i = 0; i < n; i++) { const t = i / RATE; out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(wc * i); amp *= dec; }
+        continue;
+      }
+      // the modulator, shared by operators with the same one (it does not depend on the carrier unless it is stacked)
+      const key = st ? null : wm + ',' + fbe; let M = key && mods.get(key);
+      if (!M) {
+        M = new Float64Array(n); let m1 = 0, m2 = 0;
+        if (st) { const w2 = TAU * f * st[0] / RATE; for (let i = 0; i < n; i++) { const t = i / RATE, e = Math.exp(-t / tau), m = Math.sin(wm * i + fbe * (m1 + m2) + st[1] * (0.15 + 0.85 * e) * Math.sin(w2 * i)); m2 = m1; m1 = m; M[i] = m; } }
+        else { for (let i = 0; i < n; i++) { const m = Math.sin(wm * i + fbe * (m1 + m2) + 0); m2 = m1; m1 = m; M[i] = m; } if (key) mods.set(key, M); }
+      }
+      // (is2 + (is - is2) * e2 + (i0 - is) * e) * m, leaving out the terms that are exactly zero
+      if (d2 === 0 && d0 === 0) for (let i = 0; i < n; i++) { const t = i / RATE; out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(wc * i + (is2 + 0 + 0) * M[i]); amp *= dec; }
+      else if (d2 === 0) for (let i = 0; i < n; i++) { const t = i / RATE; out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(wc * i + (is2 + 0 + d0 * Math.exp(-t / tau)) * M[i]); amp *= dec; }
+      else for (let i = 0; i < n; i++) { const t = i / RATE; out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(wc * i + (is2 + d2 * Math.exp(-t / tau2) + d0 * Math.exp(-t / tau)) * M[i]); amp *= dec; }
     }
     if (d.trem) for (let i = 0; i < n; i++) y[i] *= 1 + d.trem[0] * Math.sin(TAU * d.trem[1] * i / RATE); // a vibraphone's motor: [depth, Hz]
     if (d.comb) { const D = d.comb * RATE / f, g = 1 / (2 * Math.sin(Math.PI * d.comb)); for (let i = n - 1; i >= 0; i--) { const x = i - D, j = Math.floor(x), fr = x - j; y[i] = (y[i] - (j >= 0 ? y[j] * (1 - fr) + y[j + 1] * fr : 0)) * g + dry[i]; } }
     return fade(tone12(d, f, y, 0));
   }
-  // Sustained: `pre` samples of attack, then a loop. `vib` is [cents, cycles in the loop, delay s, fade s]:
-  // with a delay the vibrato arrives during the attack, so short notes stay plain. `vibAmp`, `vibIdx` and
-  // the air's `vib` move level, brightness and breath with it. `drift` is a slow pitch wander in cents and
-  // `scoop` [cents, s] a dip as the note is tongued. The attack's pitch is integrated back from the loop's
-  // first sample, so whatever happens in it the phase arrives where the loop begins.
-  const A = d.pre, cycles = Math.round(f * N / RATE), y = new Float32Array(A + N), [vc, vm, vdel = 0, vfade = 0] = d.vib, pv = cycles * vc * Math.LN2 / 1200 / vm;
-  const reg = Math.max(0, Math.min(1, Math.log2(f / 261.626) / 3)), ph = new Float64Array(A + N), vcos = new Float32Array(A + N), rnd = rng(midi + 3);
+  // Sustained: `pre` samples of attack, then a loop of N. `vib` [cents, cycles in the loop, delay s, fade s],
+  // `vibAmp`, `vibIdx`, `vibWob`, `drift` (cents), `scoop` [cents, s]; the attack's pitch is integrated back from the loop's first sample.
+  const A = d.pre, L = A + N, cycles = Math.round(f * N / RATE), y = new Float32Array(L), [vc, vm, vdel = 0, vfade = 0] = d.vib, pv = cycles * vc * Math.LN2 / 1200 / vm;
+  const reg = Math.max(0, Math.min(1, Math.log2(f / 261.626) / 3)), ph = new Float64Array(L), vcos = new Float32Array(L), rnd = rng(midi + 3);
   const dr = [1, 2, 3].map((m) => [m, (d.drift ?? 0) / Math.sqrt(0.9167) * cycles * Math.LN2 / 1200 / m / Math.sqrt(m), TAU * rnd()]);
-  // `vibWob`: the vibrato's depth itself swells and eases once over the loop, by this fraction (no player's is even)
-  const wob = (n) => 1 + (d.vibWob ?? 0) * Math.sin(TAU * n / N + 1.3), vibOf = (n) => pv * wob(n) * Math.sin(TAU * vm * n / N), dev = (n) => { let v = vibOf(n); for (const [m, c, p] of dr) v += c * Math.sin(TAU * m * n / N + p); return v; };
-  for (let n = 0; n < N; n++) { ph[A + n] = dev(n); vcos[A + n] = Math.cos(TAU * vm * n / N); }
-  for (let n = -1, acc = dev(0); n >= -A; n--) {
-    const t = (n + A) / RATE, x = vdel || vfade ? Math.max(0, Math.min(1, (t - vdel) / Math.max(vfade, 1e-3))) : 1, e = 1 - (1 - x) ** 2;
-    acc -= (vibOf(n + 1) - vibOf(n)) * e + (dev(n + 1) - vibOf(n + 1)) - (dev(n) - vibOf(n)) - (d.scoop ? TAU * f / RATE * d.scoop[0] * Math.LN2 / 1200 * Math.exp(-t / d.scoop[1]) : 0);
-    ph[A + n] = acc; vcos[A + n] = e * Math.cos(TAU * vm * n / N);
+  // vibrato and pitch deviation at every n from -A to N - 1 (each once; the reference evaluated them several times over)
+  const wk = d.vibWob ?? 0, tv = TAU * vm, VIB = new Float64Array(L + 1), DEV = new Float64Array(L + 1);
+  for (let n = -A; n <= 0 || n < N; n++) { const vb = pv * (1 + wk * Math.sin(TAU * n / N + 1.3)) * Math.sin(tv * n / N); let v = vb; for (let q = 0; q < 3; q++) v += dr[q][1] * Math.sin(TAU * dr[q][0] * n / N + dr[q][2]); VIB[n + A] = vb; DEV[n + A] = v; }
+  for (let n = 0; n < N; n++) { ph[A + n] = DEV[A + n]; vcos[A + n] = Math.cos(tv * n / N); }
+  const sc = d.scoop, scK = sc && TAU * f / RATE * sc[0] * Math.LN2 / 1200;
+  for (let n = -1, acc = DEV[A]; n >= -A; n--) {
+    const t = (n + A) / RATE, x = vdel || vfade ? Math.max(0, Math.min(1, (t - vdel) / Math.max(vfade, 1e-3))) : 1, e = 1 - (1 - x) ** 2, j = n + A;
+    acc -= (VIB[j + 1] - VIB[j]) * e + (DEV[j + 1] - VIB[j + 1]) - (DEV[j] - VIB[j]) - (sc ? scK * Math.exp(-t / sc[1]) : 0);
+    ph[j] = acc; vcos[j] = e * Math.cos(tv * n / N);
   }
-  // an operator may add modulators in parallel, `par` [ratio, index, key scaling] or a list of them, and ease its
-  // indices up the keyboard, `ks` (a flute's upper register is purer): index * (1 - ks * register)
+  const vI = d.vibIdx ?? 0, BR = new Float64Array(L); for (let i = 0; i < L; i++) BR[i] = 1 + vI * vcos[i];
   d.ops.forEach(([cr, mr, i0, is, tau, lv, beat, fb = 0, st, par, ks = 0], j) => {
-    // each operator starts at its own phase, or a detuned stack would meet in a peak where the loop begins
-    let m1 = 0, m2 = 0; const phj = d.align ? 0 : TAU * ((j * 0.618034 * (1 + (d.ps ?? 0))) % 1), kI = 1 - reg * ks, pars = (par ? (Array.isArray(par[0]) ? par : [par]) : []).map(([r, x, k = 0]) => [Math.round(r * cycles), r, x * (1 - reg * k)]);
-    for (let n = -A; n < N; n++) {
-      const i = n + A, p = ph[i], u = i / A, bright = 1 + (d.vibIdx ?? 0) * vcos[i], m = Math.sin(TAU * Math.round(mr * cycles) * n / N + mr * p + fb * ease * 0.5 * (m1 + m2) + (st ? st[1] * Math.sin(TAU * Math.round(st[0] * cycles) * n / N + st[0] * p) : 0)); m2 = m1; m1 = m;
-      let pm = 0; for (const [c, r, x] of pars) pm += x * Math.sin(TAU * c * n / N + r * p);
-      y[i] += lv * Math.sin(TAU * (Math.round(cr * cycles) + beat) * n / N + phj + cr * p + bright * ((is + (n < 0 ? (i0 - is) * Math.exp(-i / (tau * RATE)) * (1 - u ** 4) : 0)) * kI * m + pm));
+    const phj = d.align ? 0 : TAU * ((j * 0.618034 * (1 + (d.ps ?? 0))) % 1), kI = 1 - reg * ks, pars = (par ? (Array.isArray(par[0]) ? par : [par]) : []).map(([r, x, k = 0]) => [TAU * Math.round(r * cycles), r, x * (1 - reg * k)]), P = pars.length;
+    const tc = TAU * (Math.round(cr * cycles) + beat);
+    if (!i0 && !is && !P) { for (let n = -A; n < N; n++) { const i = n + A; y[i] += lv * Math.sin(tc * n / N + phj + cr * ph[i]); } return; } // index 0 throughout
+    const key = mr + ',' + fb + ',' + (st ? st[0] + ',' + st[1] : ''); let M = mods.get(key);
+    if (!M) {
+      M = new Float64Array(L); mods.set(key, M); let m1 = 0, m2 = 0; const tm = TAU * Math.round(mr * cycles), fbe = fb * ease * 0.5;
+      if (st) { const ts = TAU * Math.round(st[0] * cycles); for (let n = -A; n < N; n++) { const i = n + A, p = ph[i], m = Math.sin(tm * n / N + mr * p + fbe * (m1 + m2) + st[1] * Math.sin(ts * n / N + st[0] * p)); m2 = m1; m1 = m; M[i] = m; } }
+      else for (let n = -A; n < N; n++) { const i = n + A, m = Math.sin(tm * n / N + mr * ph[i] + fbe * (m1 + m2) + 0); m2 = m1; m1 = m; M[i] = m; }
+    }
+    const d0 = i0 - is, tr = tau * RATE;
+    for (let n = -A; n < 0; n++) { // the attack: the index from i0 to is
+      const i = n + A, p = ph[i], u = i / A; let pm = 0; for (let q = 0; q < P; q++) { const s = pars[q]; pm += s[2] * Math.sin(s[0] * n / N + s[1] * p); }
+      y[i] += lv * Math.sin(tc * n / N + phj + cr * p + BR[i] * ((is + d0 * Math.exp(-i / tr) * (1 - u ** 4)) * kI * M[i] + pm));
+    }
+    for (let n = 0; n < N; n++) {
+      const i = n + A, p = ph[i]; let pm = 0; for (let q = 0; q < P; q++) { const s = pars[q]; pm += s[2] * Math.sin(s[0] * n / N + s[1] * p); }
+      y[i] += lv * Math.sin(tc * n / N + phj + cr * p + BR[i] * ((is + 0) * kI * M[i] + pm));
     }
   });
   // air: noise bands [Hz, + this many times the note, bandwidth/centre, gain, lowest, highest centre, kind],

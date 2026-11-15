@@ -15,3 +15,11 @@ pub mod editions_data;
 mod editions_tests;
 #[cfg(test)]
 mod editions_gas;
+pub mod rounds;
+pub mod rounds_data;
+#[cfg(test)]
+mod rounds_parity;
+pub mod checks;
+pub mod checks_data;
+#[cfg(test)]
+mod checks_parity;

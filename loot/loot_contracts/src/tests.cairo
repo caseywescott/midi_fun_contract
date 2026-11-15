@@ -42,7 +42,7 @@ pub fn deploy_all() -> ILootSoundDispatcher {
 }
 
 fn round_class() -> felt252 {
-    0
+    declare("LootRoundComposer").unwrap().contract_class().class_hash.into()
 }
 
 #[test]

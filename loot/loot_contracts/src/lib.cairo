@@ -4,6 +4,7 @@ pub mod edition_composer;
 pub mod fm_pack;
 pub mod fm_pack_data;
 pub mod interfaces;
+pub mod round_composer;
 pub mod song_composer;
 pub mod sound;
 #[cfg(test)]

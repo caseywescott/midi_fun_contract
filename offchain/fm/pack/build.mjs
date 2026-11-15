@@ -66,7 +66,7 @@ mkdirSync(dist, { recursive: true });
 const gz = gzipSync(Buffer.from(text), { level: constants.Z_BEST_COMPRESSION });
 writeFileSync(resolve(dist, 'loot-fm-pack.min.js'), text);
 writeFileSync(resolve(dist, 'loot-fm-pack.min.js.gz'), gz);
-writeFileSync(resolve(dist, 'loot-fm-pack.min.js.gz.b64'), gz.toString('base64') + '\n');
+writeFileSync(resolve(dist, 'loot-fm-pack.min.js.gz.b64'), gz.toString('base64')); // no newline: the contract returns exactly this
 const dataText = (await build({ stdin: { contents: readFileSync(resolve(here, 'kankyo-data.js'), 'utf8'), loader: 'js' }, minify: true, write: false })).outputFiles[0].text;
 const refGz = gzipSync(Buffer.from(ref.text), { level: 9 }).length;
 console.log(JSON.stringify({ pack: { raw: text.length, gzip: gz.length, gzipBase64: Math.ceil(gz.length / 3) * 4, data: dataText.length }, reference: { raw: Buffer.byteLength(ref.text.replace('jobs:f0,', '')), gzip: refGz }, instruments: rows.length, drums: drums.length, zones: ref.jobs.length }, null, 1));

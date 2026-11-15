@@ -74,7 +74,8 @@ function fm(d, midi) {
   const dr = [1, 2, 3].map((m) => [m, (d.drift ?? 0) / Math.sqrt(0.9167) * cycles * Math.LN2 / 1200 / m / Math.sqrt(m), TAU * rnd()]);
   // vibrato and pitch deviation at every n from -A to N - 1 (each once; the reference evaluated them several times over)
   const wk = d.vibWob ?? 0, tv = TAU * vm, VIB = new Float64Array(L + 1), DEV = new Float64Array(L + 1);
-  for (let n = -A; n <= 0 || n < N; n++) { const vb = pv * (1 + wk * Math.sin(TAU * n / N + 1.3)) * Math.sin(tv * n / N); let v = vb; for (let q = 0; q < 3; q++) v += dr[q][1] * Math.sin(TAU * dr[q][0] * n / N + dr[q][2]); VIB[n + A] = vb; DEV[n + A] = v; }
+  const dq = dr[0][1] ? 3 : 0; // no vibrato or no drift: those terms are zero (a zero only ever adds to a phase)
+  if (pv || dq) for (let n = -A; n <= 0 || n < N; n++) { const vb = pv ? pv * (1 + wk * Math.sin(TAU * n / N + 1.3)) * Math.sin(tv * n / N) : 0; let v = vb; for (let q = 0; q < dq; q++) v += dr[q][1] * Math.sin(TAU * dr[q][0] * n / N + dr[q][2]); VIB[n + A] = vb; DEV[n + A] = v; }
   for (let n = 0; n < N; n++) { ph[A + n] = DEV[A + n]; vcos[A + n] = Math.cos(tv * n / N); }
   const sc = d.scoop, scK = sc && TAU * f / RATE * sc[0] * Math.LN2 / 1200;
   for (let n = -1, acc = DEV[A]; n >= -A; n--) {
@@ -82,7 +83,8 @@ function fm(d, midi) {
     acc -= (VIB[j + 1] - VIB[j]) * e + (DEV[j + 1] - VIB[j + 1]) - (DEV[j] - VIB[j]) - (sc ? scK * Math.exp(-t / sc[1]) : 0);
     ph[j] = acc; vcos[j] = e * Math.cos(tv * n / N);
   }
-  const vI = d.vibIdx ?? 0, BR = new Float64Array(L); for (let i = 0; i < L; i++) BR[i] = 1 + vI * vcos[i];
+  const vI = d.vibIdx ?? 0, BR = new Float64Array(L), U4 = new Float64Array(A), EX = new Map(); for (let i = 0; i < L; i++) BR[i] = 1 + vI * vcos[i];
+  for (let i = 0; i < A; i++) { const u = i / A; U4[i] = 1 - u ** 4; }
   d.ops.forEach(([cr, mr, i0, is, tau, lv, beat, fb = 0, st, par, ks = 0], j) => {
     const phj = d.align ? 0 : TAU * ((j * 0.618034 * (1 + (d.ps ?? 0))) % 1), kI = 1 - reg * ks, pars = (par ? (Array.isArray(par[0]) ? par : [par]) : []).map(([r, x, k = 0]) => [TAU * Math.round(r * cycles), r, x * (1 - reg * k)]), P = pars.length;
     const tc = TAU * (Math.round(cr * cycles) + beat);
@@ -94,9 +96,10 @@ function fm(d, midi) {
       else for (let n = -A; n < N; n++) { const i = n + A, m = Math.sin(tm * n / N + mr * ph[i] + fbe * (m1 + m2) + 0); m2 = m1; m1 = m; M[i] = m; }
     }
     const d0 = i0 - is, tr = tau * RATE;
+    let E = d0 && EX.get(tr); if (d0 && !E) { E = new Float64Array(A); for (let i = 0; i < A; i++) E[i] = Math.exp(-i / tr); EX.set(tr, E); }
     for (let n = -A; n < 0; n++) { // the attack: the index from i0 to is
-      const i = n + A, p = ph[i], u = i / A; let pm = 0; for (let q = 0; q < P; q++) { const s = pars[q]; pm += s[2] * Math.sin(s[0] * n / N + s[1] * p); }
-      y[i] += lv * Math.sin(tc * n / N + phj + cr * p + BR[i] * ((is + d0 * Math.exp(-i / tr) * (1 - u ** 4)) * kI * M[i] + pm));
+      const i = n + A, p = ph[i]; let pm = 0; for (let q = 0; q < P; q++) { const s = pars[q]; pm += s[2] * Math.sin(s[0] * n / N + s[1] * p); }
+      y[i] += lv * Math.sin(tc * n / N + phj + cr * p + BR[i] * ((is + (d0 ? d0 * E[i] * U4[i] : 0)) * kI * M[i] + pm));
     }
     for (let n = 0; n < N; n++) {
       const i = n + A, p = ph[i]; let pm = 0; for (let q = 0; q < P; q++) { const s = pars[q]; pm += s[2] * Math.sin(s[0] * n / N + s[1] * p); }
@@ -109,7 +112,7 @@ function fm(d, midi) {
   // `puff` [Hz, bandwidth/centre, gain, + times the note, decay s] is a burst as the note starts.
   const air = () => {
     const re = new Float64Array(N), im = new Float64Array(N), bands = d.air.bands.map(([b, k, rq, g, lo = 0, hi = 14000, kind = 0]) => [Math.max(lo, Math.min(hi, b + k * f)), rq, g * g, kind]), ga = (d.airGain ?? d.air.gain) * (1 + reg * (d.air.reg ?? 0));
-    for (let k = 1; k < N / 2; k++) { const fr = k * RATE / N; let h = 0; for (const [fc, rq, g2, kind] of bands) h += g2 * (kind === 2 ? 1 / (1 + (fc / fr) ** 4) : 1 / (1 + ((fr / fc - fc / fr) / rq) ** 2)) * (kind ? 311.6 / fr : 1); const c = Math.sqrt(2 / 72000 * RATE / N * h), q = TAU * rnd(); re[k] = c * Math.cos(q); im[k] = -c * Math.sin(q); }
+    const nb = bands.length; for (let k = 1; k < N / 2; k++) { const fr = k * RATE / N; let h = 0; for (let q = 0; q < nb; q++) { const [fc, rq, g2, kind] = bands[q]; h += g2 * (kind === 2 ? 1 / (1 + (fc / fr) ** 4) : 1 / (1 + ((fr / fc - fc / fr) / rq) ** 2)) * (kind ? 311.6 / fr : 1); } const c = Math.sqrt(2 / 72000 * RATE / N * h), q = TAU * rnd(); re[k] = c * Math.cos(q); im[k] = -c * Math.sin(q); }
     fft(re, im);
     const [pf0, prq, pg, pk = 0, ptau = 0.025] = d.air.puff ?? [2600, 0.9, 0], w0 = TAU * Math.max(500, Math.min(8000, pf0 + pk * f)) / RATE, al = Math.sin(w0) * prq / 2, b0 = al / (1 + al), a1 = -2 * Math.cos(w0) / (1 + al), a2 = (1 - al) / (1 + al); let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
     for (let i = 0; i < A + N; i++) {

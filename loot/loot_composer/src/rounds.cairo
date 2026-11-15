@@ -145,6 +145,7 @@ pub fn pitch_of(base: i32, scale: Span<u32>, d: i32) -> i32 {
 }
 
 /// A mode's index in ROUND_MODES.
+#[inline(never)]
 pub fn mode_index(mode: u32) -> u32 {
     let ids = MODE_IDS.span();
     let mut k: u32 = opaque(0);
@@ -182,6 +183,7 @@ pub fn unpack_i(v: u32, b: u32, n: u32) -> Span<i32> {
 }
 
 /// A mode's scale.
+#[inline(never)]
 pub fn mode_scale(mx: u32) -> Span<u32> {
     unpack(*MODE_SCALE.span().at(mx), 16, 7)
 }
@@ -192,6 +194,7 @@ pub fn mode_cad(mx: u32) -> u32 {
 }
 
 /// The `idx`-th loop of the mode whose bad degrees are `bad`: roots.
+#[inline(never)]
 fn pool_loop(eight: bool, bad: u32, idx: u32) -> Span<u32> {
     let (tab, n, place): (Span<u32>, u32, u32) = if eight {
         (LOOPS8.span(), 8, 0x1000000)
@@ -400,6 +403,7 @@ fn shape_delta(want: i32, c1: i32, c2: i32) -> i32 {
     }
 }
 
+#[inline(never)]
 fn move_cost(shape: u32, c1: u32, c2: u32, s: u32, n: u32) -> u32 {
     if shape_restart(shape, s, n) {
         return 0;
@@ -426,6 +430,7 @@ fn move_cost(shape: u32, c1: u32, c2: u32, s: u32, n: u32) -> u32 {
 }
 
 /// What the lines' moves into slot s cost, by line and members: [j * 9 + a * 3 + b].
+#[inline(never)]
 fn move_table(shapes: Span<u32>, chords: Span<u32>, s: u32) -> Span<u32> {
     let n = chords.len();
     let c1 = *chords.at(s - 1);
@@ -461,6 +466,7 @@ fn moves(mt: Span<u32>, a: u32, b: u32, k: u32) -> u32 {
 /// last takes the deals of the last slot in order of what they cost apart from the move into them, and
 /// stops where that alone is no cheaper than the best found: the same minimum. A candidate already no
 /// cheaper than the best without it is not looked ahead from.)
+#[inline(never)]
 fn deal_roles(
     ac: Span<u32>, k: u32, chords: Span<u32>, ref h: Rng, forced: u32, shapes: Span<u32>,
 ) -> Span<u32> {
@@ -544,6 +550,7 @@ fn deal_roles(
 }
 
 /// The cheapest deal between two others (`joinDeal`), as codes of k lines: `next` none for none.
+#[inline(never)]
 fn join_deal(
     a: Span<u32>,
     k: u32,
@@ -693,6 +700,7 @@ fn weak_of(want: i32, a: i32, next: i32) -> i32 {
 }
 
 /// Line j at a level (`lineNotes`).
+#[inline(never)]
 fn line_notes(
     c: Ctx,
     chords: Span<u32>,
@@ -804,6 +812,7 @@ fn pow16(e: u32) -> u32 {
 const SHAPE_START: [i32; 5] = [2, -2, -2, 0, 2];
 
 /// A round over a loop (`makeRound`): its deals, its theme and its lines.
+#[inline(never)]
 fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
     let n_s = c.n_s;
     let k = c.k;
@@ -1129,6 +1138,7 @@ pub fn note_track(ch: u8, program: u8, vol: u8, pan: u8, notes: Span<Sound>, end
 }
 
 /// The tempo track: tempo and time signature at 0, closed at `end`.
+#[inline(never)]
 pub fn tempo_track(us: u32, sig: Span<u8>, end: u32) -> Array<u8> {
     let mut tw: TrackWriter = TrackWriterTrait::new();
     tw.tempo(0, us);
@@ -1142,6 +1152,7 @@ pub fn family_programs(typ: u32) -> Span<u8> {
 }
 
 /// The channels' programs: [lead, second lead, pluck, second pluck, bass, mega double].
+#[inline(never)]
 pub fn programs_of(id: u32, typ: u32, mega: bool) -> Span<u8> {
     let f = family_programs(typ);
     let lead = id % 3;
@@ -1809,6 +1820,7 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
 }
 
 /// A root degree in -3..3.
+#[inline(never)]
 fn root_deg(r: u32) -> i32 {
     let m = r % 7;
     if m > 3 {
@@ -1819,6 +1831,7 @@ fn root_deg(r: u32) -> i32 {
 }
 
 /// Which member a voice (by entry) holds in round cycle g at slot s.
+#[inline(never)]
 fn role_at(ra: Rd, rb: Rd, ca: u32, k: u32, v: u32, g: u32, s: u32) -> u32 {
     let rd = if g < ca {
         ra

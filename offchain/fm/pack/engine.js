@@ -23,15 +23,22 @@ function tone12(d, f, y, loopStart) {
     const al = sn / 2 * Math.SQRT2, r = 2 * Math.sqrt(A) * al, a0 = (A + 1) - (A - 1) * cs + r;
     return [A * ((A + 1) + (A - 1) * cs + r) / a0, -2 * A * ((A - 1) + (A + 1) * cs) / a0, A * ((A + 1) + (A - 1) * cs - r) / a0, 2 * ((A - 1) - (A + 1) * cs) / a0, ((A + 1) - (A - 1) * cs - r) / a0];
   });
-  const c = d.lp || d.lpk ? 1 - Math.exp(-TAU * Math.min(14000, Math.max(d.lp ?? 0, (d.lpk ?? 0) * f + (d.lpo ?? 0))) / RATE) : 0, K = eq.length, Q = new Float64Array(eq.flat()), Z = new Float64Array(4 * K), L = y.length;
+  const c = d.lp || d.lpk ? 1 - Math.exp(-TAU * Math.min(14000, Math.max(d.lp ?? 0, (d.lpk ?? 0) * f + (d.lpo ?? 0))) / RATE) : 0, K = eq.length, Q = new Float64Array(eq.flat()), L = y.length;
   if (!c && !K) return y;
-  let a = 0, b = 0;
-  for (let pass = 0; pass < (loopStart ? 2 : 1); pass++) for (let i = pass ? loopStart : 0; i < L; i++) {
-    let v = y[i];
-    for (let k = 0, q = 0, z = 0; k < K; k++, q += 5, z += 4) { const o = Q[q] * v + Q[q + 1] * Z[z] + Q[q + 2] * Z[z + 1] - Q[q + 3] * Z[z + 2] - Q[q + 4] * Z[z + 3]; Z[z + 1] = Z[z]; Z[z] = v; Z[z + 3] = Z[z + 2]; Z[z + 2] = o; v = o; }
-    if (c) { a += c * (v - a); b += c * (a - b); v = b; }
-    if (pass || !loopStart || i < loopStart) y[i] = v; // the loop's first pass only settles the filters
+  // The cascade a filter at a time over the whole signal (each stage only needs the one before it, so this is the
+  // reference's sample-at-a-time cascade, value for value): the signal is y, then, for a loop, y's loop again
+  // (the first pass only settles the filters; the loop's samples are taken from the second).
+  const ls = loopStart || L, X = new Float64Array(L + (loopStart ? L - ls : 0));
+  for (let i = 0; i < L; i++) X[i] = y[i];
+  for (let i = ls; i < L && loopStart; i++) X[L + i - ls] = y[i];
+  const M = X.length;
+  for (let k = 0, q = 0; k < K; k++, q += 5) {
+    const b0 = Q[q], b1 = Q[q + 1], b2 = Q[q + 2], a1 = Q[q + 3], a2 = Q[q + 4]; let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < M; i++) { const v = X[i], o = b0 * v + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2; x2 = x1; x1 = v; y2 = y1; y1 = o; X[i] = o; }
   }
+  if (c) { let a = 0, b = 0; for (let i = 0; i < M; i++) { a += c * (X[i] - a); b += c * (a - b); X[i] = b; } }
+  for (let i = 0; i < ls; i++) y[i] = X[i];
+  for (let i = ls; i < L; i++) y[i] = X[L + i - ls];
   return y;
 }
 // FM: operators [carrier ratio, modulator ratio, index at the attack, index held, index time constant (s),

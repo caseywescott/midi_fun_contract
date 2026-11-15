@@ -19,6 +19,9 @@ if (worker) {
 } else {
   const set = decode(), defOf = (r) => (r < 0 ? set.drums[~r].d : set.inst[r].d);
   const bank = { format: 'BSBRR1', name: 'kankyo', samples: [], instruments: [] }, jobs = [];
+  // roughly how long a zone takes to render (samples x operators and filters), so that among zones of the same
+  // priority the longest start first and the workers finish together
+  const cost = (d, m) => { const z = d.zones ? d.zones[0] : d; return (d.sus ? d.pre + 65536 : (d.len ?? 2.5) * RATE * (m < 60 ? 1 : 0.8)) * (2 + (z.ops?.length ?? 2) + ((z.eq ?? d.eq)?.length ?? 0) / 2 + (d.air ? 4 : 0)); };
   const finish = (j, y) => { if (j.state === 2) return; j.state = 2; if (y) j.s.pcm = y; j.s.ready = true; j.wait.splice(0).forEach((f) => f()); };
   // a sample: rendered by a worker ahead of time, or here the moment it is played before that; playing a zone's
   // first take queues its other takes
@@ -28,7 +31,7 @@ if (worker) {
       const p = s.pcm; s.pcm = null;
       if (take <= 0) for (const o of jobs) if (o.prog === prog && o.lo === lo && o.take > 0 && o.state === 0 && o.pri < 2) o.pri = 2;
       pump(); return p;
-    } }, j = { s, a: [r, m, k, take], prog, lo, hi, take, pri, state: 0, wait: [] };
+    } }, j = { s, a: [r, m, k, take], prog, lo, hi, take, pri, state: 0, wait: [], cost: cost(defOf(r), m) };
     jobs.push(j); return bank.samples.push(s) - 1;
   };
   set.inst.forEach(({ id, program, lo, hi, volume, env: [attack, decay, sustain, release], d }, r) => {
@@ -50,7 +53,7 @@ if (worker) {
       pool.push(w);
     }
   } catch (e) { pool = []; }
-  const next = () => { let b = null; for (const j of jobs) if (j.state === 0 && j.pri > 0 && (!b || j.pri > b.pri)) b = j; return b; };
+  const next = () => { let b = null; for (const j of jobs) if (j.state === 0 && j.pri > 0 && (!b || j.pri > b.pri || (j.pri === b.pri && j.cost > b.cost))) b = j; return b; };
   function pump() {
     if (pool.length) { for (const w of pool) { if (w.job) continue; const j = next(); if (!j) return; j.state = 1; w.job = j; w.postMessage(j.a); } }
     else if (!timer) timer = setTimeout(() => { timer = 0; const j = next(); if (j) { j.s.pcm = zone(defOf(j.a[0]), j.a[1], j.a[2], j.a[3] < 0 ? undefined : j.a[3]).make(); finish(j); pump(); } }, 20);

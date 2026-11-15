@@ -1,0 +1,22 @@
+[package]
+name = "loot_composer"
+version.workspace = true
+edition.workspace = true
+description = "Loot Dungeon Sound composer: Editions, Rounds and Sound Checks (Cairo port of offchain/loot-sound/src)."
+
+[dependencies]
+midi.workspace = true
+beast_composer.workspace = true
+beast_composer_inputs.workspace = true
+
+[dev-dependencies]
+snforge_std.workspace = true
+assert_macros.workspace = true
+
+[lib]
+
+[scripts]
+test.workspace = true
+
+[tool.scarb]
+allow-prebuilt-plugins = ["snforge_std"]

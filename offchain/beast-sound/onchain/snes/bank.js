@@ -15,12 +15,17 @@ export function fromBase64(text) {
   return Uint8Array.from(atob(text), (ch) => ch.charCodeAt(0));
 }
 export function validateBank(bank) {
-  if (bank?.format !== 'BSBRR1' || !Array.isArray(bank.samples) || !Array.isArray(bank.instruments) || bank.samples.length > 256 || bank.instruments.length > 256) throw new Error('Expected BSBRR1 bank (up to 256 samples/instruments)');
+  // The 256 limit is for stored samples and their instruments; samples the page renders (several takes of
+  // many zones) are not stored, and a bank of those may have more of both.
+  const rendered = Array.isArray(bank?.samples) ? bank.samples.filter((x) => typeof x.render === 'function').length : 0;
+  if (bank?.format !== 'BSBRR1' || !Array.isArray(bank.samples) || !Array.isArray(bank.instruments) || bank.samples.length - rendered > 256 || bank.instruments.length > (rendered ? 4096 : 256)) throw new Error('Expected BSBRR1 bank (up to 256 samples/instruments)');
   if (bank.name !== undefined && typeof bank.name !== 'string') throw new Error('Invalid bank name');
   // An evaluation bank (local listening only) may exceed the onchain 64 KiB; the onchain build refuses it.
   const cap = bank.evaluation === true ? 8 << 20 : 65536;
   let size = 0;
   for (const s of bank.samples) {
+    // a sample the page renders when it loads (resynth/synth.js) carries no stored bytes
+    if (typeof s.render === 'function') { if (!integer(s.rate, 12000, 32000) || !(s.loopStart === null || integer(s.loopStart, 0, 1 << 24))) throw new Error('Invalid rendered sample'); continue; }
     const bytes = fromBase64(s.data);
     size += bytes.length;
     if (size > cap) throw new Error(cap === 65536 ? 'BRR bank exceeds 64 KiB' : 'Evaluation bank exceeds 8 MiB');

@@ -52,6 +52,35 @@ requests/page errors; 63 Node tests pass. The complete candidate page is 114,576
 `vsco-validation.json` for the snapshot. Gas is not measured. Source clips and test demo data are
 not embedded in the Cairo page; only the BRR bank, metadata and playback runtime are embedded.
 
+## Casey's recordings (key zones from one file of notes)
+
+The flute (`samples/loot/flute.mjs`) and the violin, which replaces the VSCO violin section on
+program 48, are Casey Wescott's own recordings and play without the SNES softening.
+`samples/loot/notes.mjs` turns one recording of an instrument's notes, played one after another at
+equal spacing, into key zones:
+
+```sh
+node onchain/snes/samples/loot/notes.mjs "<recording>" --id violin --replace strings --count 11 \
+  --zones 43,48,55,60,67,72,79 --loop 0.2,0.3,0.3,0.35,0.3,0.3,0.2   # --dry prints the analysis only
+```
+
+It measures each note at the pitch it sounds (not its name: Logic calls middle C "C3"), takes the
+louder channel when the mono sum cancels (up to 7.3 dB on the violin), tunes each zone, picks the
+lowest sample rate that keeps the A-weighted loss under -40 dB, loops the steady tone (block-aligned
+ends matched in waveform and level, 30 ms crossfade), matches the level to the instrument replaced,
+and writes the zones into both manifests. The sample starts in the steady tone: this patch's own
+attack is a 0.2-0.9 s swell, too slow for the parts, so the envelope shapes the attack.
+
+Zones go where the part plays: across 3,180 Loot tracks the strings part's notes run MIDI 44-78 (2nd
+to 98th percentile, median 62). The violin recording (`Classicviolin2.wav`, eleven notes sounding C2
+to C7 in fifths and fourths) keeps the seven from G2 to G5, each covering at most three semitones
+either side inside that range, with shorter loops on the two outer zones (3% of notes each); C2
+(0.8% of notes, played from G2) and C6, G6, C7 (0.6%, from G5) are left out. Measured 15 November
+2026 against the recording: tuning within 1.1 cents, loop seams no rougher than the loop itself (at most 1.13 times its 99th percentile).
+The violin is 22,284 BRR bytes (the section it replaces was 3,726); the banks are 62,676 bytes at
+16 kHz and 59,103 mixed, and the budget is the format's 64 KiB maximum. The CASM figures below
+predate both recordings.
+
 ## Mixed 12 kHz version (the default)
 
 Since 9 November 2026 the engine builds the mixed 12 kHz bank by default (`config.mjs`, `npm run snes:build`

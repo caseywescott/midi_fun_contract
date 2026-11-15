@@ -118,7 +118,7 @@ test('base91 page text round-trips every length and byte, with no quote, backsla
   }
 });
 
-test('curated bank is reproducible: VSCO plus a two-zone flute, eleven payloads over ten MIDI programs below 48 KiB', async () => {
+test('curated bank is reproducible: VSCO plus a two-zone flute and a seven-zone violin, seventeen payloads over ten MIDI programs within 64 KiB', async () => {
   const root = new URL('../onchain/snes/', import.meta.url);
   const processing = JSON.parse(readFileSync(new URL('vsco-processing.json', root)));
   for (const s of processing.samples) {
@@ -127,11 +127,13 @@ test('curated bank is reproducible: VSCO plus a two-zone flute, eleven payloads 
     assert.ok(bytes.length < 45000);
   }
   const { bank, report } = buildBank(new URL('manifest.json', root));
-  assert.equal(bank.samples.length, 11); assert.equal(bank.instruments.length, 11);
-  assert.ok(report.brrBytes < 49152); assert.equal(report.sharedSampleReferences, 0);
+  assert.equal(bank.samples.length, 17); assert.equal(bank.instruments.length, 17);
+  assert.ok(report.brrBytes <= 65536); assert.equal(report.sharedSampleReferences, 0);
   assert.deepEqual(bank.instruments.filter((i) => i.program === 73).map((i) => [i.id, i.keys]), [['flute-C4', [0, 66]], ['flute-C5', [67, 127]]]);
-  // the flute's samples skip the softening; the VSCO samples keep it
-  assert.deepEqual(bank.instruments.filter((i) => bank.samples[i.sample].smoothing === false).map((i) => i.id), ['flute-C4', 'flute-C5']);
+  // the violin (notes.mjs): a zone per recorded note the strings part uses, each at the rate its top end needs
+  assert.deepEqual(bank.instruments.filter((i) => i.program === 48).map((i) => [i.id, i.keys, i.rootNote, bank.samples[i.sample].rate]), [['violin-G2', [0, 45], 43, 16000], ['violin-C3', [46, 51], 48, 16000], ['violin-G3', [52, 57], 55, 16000], ['violin-C4', [58, 63], 60, 16000], ['violin-G4', [64, 69], 67, 20000], ['violin-C5', [70, 75], 72, 24000], ['violin-G5', [76, 127], 79, 28000]]);
+  // Casey's samples skip the softening; the VSCO samples keep it
+  assert.deepEqual(bank.instruments.filter((i) => bank.samples[i.sample].smoothing === false).map((i) => i.id), ['violin-G2', 'violin-C3', 'violin-G3', 'violin-C4', 'violin-G4', 'violin-C5', 'violin-G5', 'flute-C4', 'flute-C5']);
   assert.deepEqual([0, 45, 47, 71].map((program) => bank.instruments.find((i) => i.program === program)?.id), ['piano', 'pizzicato', 'timpani', 'clarinet']);
   assert.notEqual(bank.instruments.find((i) => i.program === 0).sample, bank.instruments.find((i) => i.program === 46).sample);
   assert.ok(report.instruments.every((i) => i.snrDb > 20));
@@ -140,10 +142,10 @@ test('curated bank is reproducible: VSCO plus a two-zone flute, eleven payloads 
   assert.deepEqual(context.window.SnesBank.bank.instruments[0].credit, context.window.SnesBank.bank.instruments[1].credit);
   assert.equal(context.window.SnesBank.bank.instruments.find((i) => i.id === 'flute-C4').credit.author, 'Casey Wescott');
   const economical = buildBank(new URL('manifest-12k.json', root));
-  assert.ok(economical.report.brrBytes < 45056);
-  assert.ok(report.brrBytes - economical.report.brrBytes > 4000);
-  const reduced = new Set(['marimba', 'strings', 'cello', 'clarinet', 'timpani']);
-  economical.bank.instruments.forEach((i) => assert.equal(economical.bank.samples[i.sample].rate, reduced.has(i.id) ? 12000 : 16000));
+  assert.ok(economical.report.brrBytes <= 65536);
+  assert.ok(report.brrBytes - economical.report.brrBytes > 3000);
+  const reduced = new Set(['marimba', 'cello', 'clarinet', 'timpani']);
+  economical.bank.instruments.filter((i) => !i.id.startsWith('violin-')).forEach((i) => assert.equal(economical.bank.samples[i.sample].rate, reduced.has(i.id) ? 12000 : 16000));
   const badRate = structuredClone(economical.bank); badRate.samples[0].rate = 11999;
   assert.throws(() => validateBank(badRate), /sample rate/);
 });

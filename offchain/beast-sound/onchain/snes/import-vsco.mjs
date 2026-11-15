@@ -102,11 +102,14 @@ for (const source of sources.samples) {
   processing.push({ id: source.id, inputRate: input.rate, cropStart: s.start, cropSeconds: crop.length / input.rate, monoNormalizationGain: +gain.toFixed(6), dcRemoved: +mean.toFixed(8), preparedSha256: sha(bytes), preparedBytes: bytes.length, ...pitch, ...(points ? { loopStart: points.start, loopEnd: points.end, boundaryError: +points.score.toFixed(6) } : {}) });
 }
 // General MIDI program 0 is piano; bare Beast scores now resolve to this sample.
-// Casey's flute (samples/loot/flute.json) replaces the VSCO flute in both banks
-const own = existsSync(resolve(here, 'samples/loot/flute.json')) ? JSON.parse(readFileSync(resolve(here, 'samples/loot/flute.json'), 'utf8')) : null;
-for (const list of [instruments, economical]) if (own) list.splice(list.findIndex((i) => i.id === 'flute'), 1, ...own);
-writeFileSync(resolve(here, 'manifest.json'), JSON.stringify({ format: 'BSBRR1', name: 'VSCO pocket orchestra', maxBrrBytes: 49152, instruments }, null, 2) + '\n');
-writeFileSync(resolve(here, 'manifest-12k.json'), JSON.stringify({ format: 'BSBRR1', name: 'VSCO pocket orchestra 12k', maxBrrBytes: 45056, instruments: economical }, null, 2) + '\n');
+// Casey's recordings (samples/loot/<name>.json, from flute.mjs and notes.mjs) replace the VSCO flute and
+// violin section in both banks
+for (const [vsco, mine] of [['flute', 'flute'], ['strings', 'violin']]) {
+  const own = existsSync(resolve(here, `samples/loot/${mine}.json`)) ? JSON.parse(readFileSync(resolve(here, `samples/loot/${mine}.json`), 'utf8')) : null;
+  for (const list of [instruments, economical]) if (own) list.splice(list.findIndex((i) => i.id === vsco), 1, ...own);
+}
+writeFileSync(resolve(here, 'manifest.json'), JSON.stringify({ format: 'BSBRR1', name: 'VSCO pocket orchestra', maxBrrBytes: 65536, instruments }, null, 2) + '\n');
+writeFileSync(resolve(here, 'manifest-12k.json'), JSON.stringify({ format: 'BSBRR1', name: 'VSCO pocket orchestra 12k', maxBrrBytes: 65536, instruments: economical }, null, 2) + '\n');
 writeFileSync(resolve(here, 'vsco-processing.json'), JSON.stringify({ rate: 16000, samples: processing }, null, 2) + '\n');
 writeFileSync(resolve(here, 'vsco-processing-12k.json'), JSON.stringify({ reducedRate: 12000, samples: economicalProcessing }, null, 2) + '\n');
 console.log(JSON.stringify(processing, null, 2));

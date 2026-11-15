@@ -1,7 +1,7 @@
 {
   "format": "BSBRR1",
   "name": "VSCO pocket orchestra 12k",
-  "maxBrrBytes": 45056,
+  "maxBrrBytes": 65536,
   "instruments": [
     {
       "id": "harp",
@@ -74,17 +74,24 @@
       }
     },
     {
-      "id": "strings",
-      "file": "samples/vsco/strings.wav",
+      "id": "violin-G2",
+      "file": "samples/loot/violin_G2_src.wav",
       "program": 48,
-      "rootNote": 72,
-      "sampleRate": 12000,
-      "trimEnd": 0.42,
-      "loopStart": 0.2773333333333333,
-      "loopCrossfade": 0.012,
-      "fadeIn": 0.001,
-      "tuneCents": 6.29,
-      "volume": 0.339,
+      "keys": [
+        0,
+        45
+      ],
+      "rootNote": 43,
+      "sampleRate": 16000,
+      "gain": 1,
+      "trimStart": 0.05,
+      "trimEnd": 0.276,
+      "loopStart": 0.032,
+      "loopCrossfade": 0.03,
+      "fadeIn": 0.002,
+      "smoothing": false,
+      "tuneCents": 0.1,
+      "volume": 0.261,
       "envelope": {
         "attack": 0.025,
         "decay": 0.2,
@@ -92,9 +99,195 @@
         "release": 0.22
       },
       "credit": {
-        "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
-        "license": "CC0-1.0",
-        "source": "https://versilian-studios.com/vsco-community/"
+        "author": "Casey Wescott",
+        "license": "Own work",
+        "source": "LootSampleBank/Classicviolin2.wav"
+      }
+    },
+    {
+      "id": "violin-C3",
+      "file": "samples/loot/violin_C3_src.wav",
+      "program": 48,
+      "keys": [
+        46,
+        51
+      ],
+      "rootNote": 48,
+      "sampleRate": 16000,
+      "gain": 1,
+      "trimStart": 0.0500208,
+      "trimEnd": 0.3800208,
+      "loopStart": 0.032,
+      "loopCrossfade": 0.03,
+      "fadeIn": 0.002,
+      "smoothing": false,
+      "tuneCents": -1,
+      "volume": 0.284,
+      "envelope": {
+        "attack": 0.025,
+        "decay": 0.2,
+        "sustain": 0.85,
+        "release": 0.22
+      },
+      "credit": {
+        "author": "Casey Wescott",
+        "license": "Own work",
+        "source": "LootSampleBank/Classicviolin2.wav"
+      }
+    },
+    {
+      "id": "violin-G3",
+      "file": "samples/loot/violin_G3_src.wav",
+      "program": 48,
+      "keys": [
+        52,
+        57
+      ],
+      "rootNote": 55,
+      "sampleRate": 16000,
+      "gain": 1,
+      "trimStart": 0.05,
+      "trimEnd": 0.383,
+      "loopStart": 0.032,
+      "loopCrossfade": 0.03,
+      "fadeIn": 0.002,
+      "smoothing": false,
+      "tuneCents": -0.2,
+      "volume": 0.245,
+      "envelope": {
+        "attack": 0.025,
+        "decay": 0.2,
+        "sustain": 0.85,
+        "release": 0.22
+      },
+      "credit": {
+        "author": "Casey Wescott",
+        "license": "Own work",
+        "source": "LootSampleBank/Classicviolin2.wav"
+      }
+    },
+    {
+      "id": "violin-C4",
+      "file": "samples/loot/violin_C4_src.wav",
+      "program": 48,
+      "keys": [
+        58,
+        63
+      ],
+      "rootNote": 60,
+      "sampleRate": 16000,
+      "gain": 1,
+      "trimStart": 0.0500208,
+      "trimEnd": 0.3990208,
+      "loopStart": 0.032,
+      "loopCrossfade": 0.03,
+      "fadeIn": 0.002,
+      "smoothing": false,
+      "tuneCents": -1.2,
+      "volume": 0.233,
+      "envelope": {
+        "attack": 0.025,
+        "decay": 0.2,
+        "sustain": 0.85,
+        "release": 0.22
+      },
+      "credit": {
+        "author": "Casey Wescott",
+        "license": "Own work",
+        "source": "LootSampleBank/Classicviolin2.wav"
+      }
+    },
+    {
+      "id": "violin-G4",
+      "file": "samples/loot/violin_G4_src.wav",
+      "program": 48,
+      "keys": [
+        64,
+        69
+      ],
+      "rootNote": 67,
+      "sampleRate": 20000,
+      "gain": 1,
+      "trimStart": 0.0500167,
+      "trimEnd": 0.3604167,
+      "loopStart": 0.032,
+      "loopCrossfade": 0.03,
+      "fadeIn": 0.002,
+      "smoothing": false,
+      "tuneCents": 1.6,
+      "volume": 0.312,
+      "envelope": {
+        "attack": 0.025,
+        "decay": 0.2,
+        "sustain": 0.85,
+        "release": 0.22
+      },
+      "credit": {
+        "author": "Casey Wescott",
+        "license": "Own work",
+        "source": "LootSampleBank/Classicviolin2.wav"
+      }
+    },
+    {
+      "id": "violin-C5",
+      "file": "samples/loot/violin_C5_src.wav",
+      "program": 48,
+      "keys": [
+        70,
+        75
+      ],
+      "rootNote": 72,
+      "sampleRate": 24000,
+      "gain": 1,
+      "trimStart": 0.05,
+      "trimEnd": 0.3573333,
+      "loopStart": 0.032,
+      "loopCrossfade": 0.03,
+      "fadeIn": 0.002,
+      "smoothing": false,
+      "tuneCents": 1.5,
+      "volume": 0.285,
+      "envelope": {
+        "attack": 0.025,
+        "decay": 0.2,
+        "sustain": 0.85,
+        "release": 0.22
+      },
+      "credit": {
+        "author": "Casey Wescott",
+        "license": "Own work",
+        "source": "LootSampleBank/Classicviolin2.wav"
+      }
+    },
+    {
+      "id": "violin-G5",
+      "file": "samples/loot/violin_G5_src.wav",
+      "program": 48,
+      "keys": [
+        76,
+        127
+      ],
+      "rootNote": 79,
+      "sampleRate": 28000,
+      "gain": 1,
+      "trimStart": 0.0500119,
+      "trimEnd": 0.2722976,
+      "loopStart": 0.032,
+      "loopCrossfade": 0.03,
+      "fadeIn": 0.002,
+      "smoothing": false,
+      "tuneCents": 1.8,
+      "volume": 0.239,
+      "envelope": {
+        "attack": 0.025,
+        "decay": 0.2,
+        "sustain": 0.85,
+        "release": 0.22
+      },
+      "credit": {
+        "author": "Casey Wescott",
+        "license": "Own work",
+        "source": "LootSampleBank/Classicviolin2.wav"
       }
     },
     {

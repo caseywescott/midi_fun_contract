@@ -1,0 +1,24 @@
+{
+  "id": "strings",
+  "file": "samples/vsco/strings.wav",
+  "program": 48,
+  "rootNote": 72,
+  "sampleRate": 16000,
+  "trimEnd": 0.414,
+  "loopStart": 0.223,
+  "loopCrossfade": 0.012,
+  "fadeIn": 0.001,
+  "tuneCents": 6.29,
+  "volume": 0.339,
+  "envelope": {
+    "attack": 0.025,
+    "decay": 0.2,
+    "sustain": 0.85,
+    "release": 0.22
+  },
+  "credit": {
+    "author": "Versilian Studios / Sam Gossner & Simon Dalzell",
+    "license": "CC0-1.0",
+    "source": "https://versilian-studios.com/vsco-community/"
+  }
+}

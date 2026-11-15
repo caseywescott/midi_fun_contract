@@ -21,10 +21,10 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
   // the zone for a note: the one whose key range holds it, else the nearest range
   const zone = (zones, note) => zones && (zones.find((i) => !i.keys || (note >= i.keys[0] && note <= i.keys[1]))
     ?? zones.reduce((a, b) => (Math.min(Math.abs(note - a.keys[0]), Math.abs(note - a.keys[1])) <= Math.min(Math.abs(note - b.keys[0]), Math.abs(note - b.keys[1])) ? a : b)));
-  let disposed = false;
+  let disposed = false, art = null; // art: see articulate
   function buffer(index) {
     if (buffers.has(index)) return buffers.get(index);
-    const sample = bank.samples[index], pcm = decodeBRR(fromBase64(sample.data), sample.loopStart);
+    const sample = bank.samples[index], pcm = sample.render ? sample.render() : decodeBRR(fromBase64(sample.data), sample.loopStart);
     const result = ac.createBuffer(1, pcm.length, sample.rate), out = result.getChannelData(0);
     const read = (i, center) => {
       if (sample.loopStart !== null && center >= sample.loopStart) {
@@ -111,6 +111,9 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
     voice.end = Math.min(voice.end, t + STEAL_FADE + 0.001); voice.source.stop(voice.end);
   }
   const api = {
+    /** Play every instrument more crisply (or pass nothing for as set): { attack, release } scale those
+     *  envelope times and attackMax caps the attack in seconds. For pieces that want it; the bank is unchanged. */
+    articulate(a) { art = a || null; },
     get activeVoices() { return [...voices].filter((v) => v.start <= ac.currentTime && v.end > ac.currentTime).length; },
     noteOn({ channel = 0, program = 0, drum = false, note, velocity = 100, time = ac.currentTime, destination = ac.destination, bend = 0 }) {
       if (disposed) throw new Error('Sampler is disposed');
@@ -118,26 +121,40 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
       if (!inst) return false; // caller may fall back to TinySynth
       if (velocity === 0) { api.noteOff(channel, note, time); return true; }
       if (![note, velocity, time, bend].every(Number.isFinite) || note < 0 || note > 127 || velocity < 0 || velocity > 127) throw new Error('Invalid note');
-      const t = Math.max(ac.currentTime, time), sample = bank.samples[inst.sample], env = envelope(inst.envelope);
+      // An instrument may have several takes of each zone (the same note rendered with slightly different
+      // settings): a note plays one at random, never the same twice running, from those already rendered.
+      let si = inst.sample;
+      if (inst.takes) { const ok = inst.takes.filter((i) => bank.samples[i].ready !== false); if (ok.length) { si = ok[Math.floor(Math.random() * ok.length)]; if (ok.length > 1 && si === inst.last) si = ok[(ok.indexOf(si) + 1) % ok.length]; inst.last = si; } }
+      // `human`: each note a few tenths of a cent to a cent off and a touch louder or softer
+      const jitter = inst.human ? (Math.random() * 2 - 1) * inst.human : 0, touch = inst.human ? 1 + (Math.random() * 2 - 1) * 0.05 : 1;
+      const t = Math.max(ac.currentTime, time), sample = bank.samples[si]; let env = envelope(inst.envelope), offset = 0;
+      if (art) env = { ...env, attack: Math.min(env.attack * (art.attack ?? 1), art.attackMax ?? Infinity), release: env.release * (art.release ?? 1) };
       // Scheduler submits notes chronologically. Pending future voices are not stolen early.
       const overlapping = [...voices].filter((v) => v.start <= t && v.end > t).sort((a, b) => a.start - b.start);
       while (overlapping.length >= maxVoices) kill(overlapping.shift(), t);
       const source = ac.createBufferSource(), gain = ac.createGain();
-      source.buffer = buffer(inst.sample);
+      source.buffer = buffer(si);
+      // A slurred instrument joins a note to the one before it on its channel (still sounding, or let go
+      // under 80 ms ago): no new attack. It starts inside the loop, at a place that varies, and fades in
+      // over 20 ms while the old note's release finishes.
+      if (inst.slur && sample.loopStart !== null && [...voices].some((v) => v.channel === channel && v.slur && v.start < t - 0.03 && v.end > t && (!v.released || t - v.relTime < 0.08))) {
+        const from = sample.loopStart / sample.rate; env = { ...env, attack: 0.02, decay: 0 };
+        offset = from + ((note * 7919 + Math.round(t * 1000)) % 997) / 997 * (source.buffer.duration - from);
+      }
       source.loop = sample.loopStart !== null;
       if (source.loop) { source.loopStart = sample.loopStart / sample.rate; source.loopEnd = source.buffer.duration; }
       source.playbackRate.value = 2 ** ((note - inst.rootNote) / 12);
-      source.detune.setValueAtTime(inst.tuneCents + bend, t);
-      const peak = layerGain * inst.volume * (velocity / 127) ** 2;
+      source.detune.setValueAtTime(inst.tuneCents + jitter + bend, t);
+      const peak = layerGain * inst.volume * touch * (velocity / 127) ** 2;
       gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(peak, t + env.attack);
       gain.gain.linearRampToValueAtTime(peak * env.sustain, t + env.attack + env.decay);
       source.connect(gain); gain.connect(bus(destination));
-      const voice = { channel, note, source, gain, env, peak, start: t, end: Infinity, released: false, held: false, tune: inst.tuneCents };
+      const voice = { channel, note, source, gain, env, peak, start: t, end: Infinity, released: false, held: false, tune: inst.tuneCents + jitter, slur: !!inst.slur };
       voices.add(voice);
       source.onended = () => { source.disconnect(); gain.disconnect(); voices.delete(voice); };
-      source.start(t);
+      source.start(t, offset);
       // One-shots end naturally; loops require a note-off (drum loops get an automatic gate).
-      if (!source.loop) voice.end = t + source.buffer.duration / (source.playbackRate.value * 2 ** ((inst.tuneCents + bend) / 1200));
+      if (!source.loop) voice.end = t + source.buffer.duration / (source.playbackRate.value * 2 ** ((inst.tuneCents + jitter + bend) / 1200));
       if (drum && source.loop) release(voice, t + env.attack + env.decay + 0.1);
       return true;
     },

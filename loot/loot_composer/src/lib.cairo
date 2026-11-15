@@ -23,3 +23,5 @@ pub mod checks;
 pub mod checks_data;
 #[cfg(test)]
 mod checks_parity;
+#[cfg(test)]
+mod played_tests;

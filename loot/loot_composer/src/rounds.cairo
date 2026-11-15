@@ -1096,14 +1096,40 @@ fn merge(a: Span<u64>, b: Span<u64>) -> Span<u64> {
     out.span()
 }
 
+/// How the lab plays a file: each pitched channel's program from `band[ch % band.len()]` (as
+/// written when empty) and its notes raised `lift` semitones, at most to 127; drums untouched.
+/// Written into the tracks directly: the same bytes as `orchestra::orchestrate` on the written file.
+#[derive(Copy, Drop)]
+pub struct Play {
+    pub band: Span<u8>,
+    pub lift: u8,
+}
+
+/// The file as written.
+pub fn as_written() -> Play {
+    Play { band: array![].span(), lift: 0 }
+}
+
 /// A part's track (`track` in roundMidi, `smfFile`'s parts): program, volume, pan, reverb (none for
 /// channel 9), then the notes' on and off events by time, offs before ons at the same tick, in the
 /// order the notes come otherwise.
 #[inline(never)]
-pub fn note_track(ch: u8, program: u8, vol: u8, pan: u8, notes: Span<Sound>, end: u32) -> Array<u8> {
+pub fn note_track(
+    ch: u8, program: u8, vol: u8, pan: u8, notes: Span<Sound>, end: u32, play: Play,
+) -> Array<u8> {
     let mut tw = TrackWriterTrait::new();
+    let lift: u8 = if ch != 9 {
+        play.lift
+    } else {
+        0
+    };
     if ch != 9 {
-        tw.program(0, ch, program);
+        let nb = play.band.len();
+        tw.program(0, ch, if nb != 0 {
+            *play.band.at(ch.into() % nb)
+        } else {
+            program
+        });
         tw.control(0, ch, 7, vol);
         tw.control(0, ch, 10, pan);
         tw.control(0, ch, 91, 40);
@@ -1125,7 +1151,14 @@ pub fn note_track(ch: u8, program: u8, vol: u8, pan: u8, notes: Span<Sound>, end
     for key in sort_keys(keys.span()) {
         let key = *key;
         let tv: u32 = (key / 0x100000000).try_into().unwrap();
-        let p: u8 = ((key / 0x100) % 0x100).try_into().unwrap();
+        let mut p: u8 = ((key / 0x100) % 0x100).try_into().unwrap();
+        if lift != 0 {
+            p = if p > 127 - lift {
+                127
+            } else {
+                p + lift
+            };
+        }
         let v: u8 = (key % 0x100).try_into().unwrap();
         let time = tv / 8;
         if tv % 8 == 5 {
@@ -1175,7 +1208,9 @@ pub fn low32(x: felt252) -> u32 {
 }
 
 /// The Round's tracks: tempo, the canon voices by channel, the bass, the mega double, the harp, the kit.
-pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -> Array<Array<u8>> {
+pub fn round_tracks(
+    species: u32, mega: bool, seed: u64, drift: Option<Drift>, play: Play,
+) -> Array<Array<u8>> {
     let sp = loot_species(species);
     let id = sp.id;
     let tier: u32 = sp.tier.into();
@@ -1796,6 +1831,7 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
                     *pan.at(ch),
                     s.span(),
                     end,
+                    play,
                 ),
             );
         ch += 1;
@@ -1803,18 +1839,18 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
     if bass.len() != 0 {
         let mut s = opaque(array![]);
         sounding(ref s, bass.span(), base - 24, scale, art, br);
-        tracks.append(note_track(4, *programs.at(4), 118, 64, s.span(), end));
+        tracks.append(note_track(4, *programs.at(4), 118, 64, s.span(), end, play));
     }
     if mega {
         let mut s = opaque(array![]);
         sounding(ref s, first_voice, base + 12, scale, art, br);
-        tracks.append(note_track(5, *programs.at(5), 56, 76, s.span(), end));
+        tracks.append(note_track(5, *programs.at(5), 56, 76, s.span(), end, play));
     }
     if gliss.len() != 0 {
-        tracks.append(note_track(GLISS_CHANNEL, *programs.at(2), 100, 100, gliss.span(), end));
+        tracks.append(note_track(GLISS_CHANNEL, *programs.at(2), 100, 100, gliss.span(), end, play));
     }
     if perc.len() != 0 {
-        tracks.append(note_track(9, 0, 0, 0, perc.span(), end));
+        tracks.append(note_track(9, 0, 0, 0, perc.span(), end, play));
     }
     tracks
 }
@@ -1843,11 +1879,18 @@ fn role_at(ra: Rd, rb: Rd, ca: u32, k: u32, v: u32, g: u32, s: u32) -> u32 {
 
 /// The Round of Loot Beast `species` as a format-1 MIDI file (`roundMidi(...).midi`).
 pub fn round_smf_bytes(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -> Array<u8> {
-    smf_bytes(1, TPQ, round_tracks(species, mega, seed, drift).span())
+    smf_bytes(1, TPQ, round_tracks(species, mega, seed, drift, as_written()).span())
 }
 
 /// The same as a ByteArray.
 pub fn round_byte_array(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -> ByteArray {
-    smf_byte_array(1, TPQ, round_tracks(species, mega, seed, drift).span())
+    smf_byte_array(1, TPQ, round_tracks(species, mega, seed, drift, as_written()).span())
+}
+
+/// The Round as the lab plays it (`play`), straight into the ByteArray a contract returns.
+pub fn round_played_byte_array(
+    species: u32, mega: bool, seed: u64, drift: Option<Drift>, play: Play,
+) -> ByteArray {
+    smf_byte_array(1, TPQ, round_tracks(species, mega, seed, drift, play).span())
 }
 

@@ -11,7 +11,7 @@ use crate::checks_data::{OPS, PIECE_AT};
 use crate::common::{RngTrait, fold64, gliss_plan, glissando};
 use crate::rounds::{
     Sound, TPQ, i, is_lead, mode_cad, mode_index, mode_scale, mod7, note_track, opaque, pitch_of,
-    programs_of, sign, sort_keys, tempo_track,
+    Play, as_written, programs_of, sign, sort_keys, tempo_track,
 };
 use crate::rounds_data::MODE_DIM;
 use crate::species::loot_species;
@@ -238,7 +238,7 @@ fn by_start(xs: Span<Sound>) -> Span<Sound> {
 }
 
 /// The Sound Check's tracks: tempo, then each part that plays (by channel), then the kit.
-pub fn sound_check_tracks(species: u32, mega: bool, take: u64) -> Array<Array<u8>> {
+pub fn sound_check_tracks(species: u32, mega: bool, take: u64, how: Play) -> Array<Array<u8>> {
     let sp = loot_species(species);
     let id = sp.id;
     let typ: u32 = sp.beast_type.into();
@@ -377,24 +377,29 @@ pub fn sound_check_tracks(species: u32, mega: bool, take: u64) -> Array<Array<u8
             tracks
                 .append(
                     note_track(
-                        ch.try_into().unwrap(), prog, vol, *PAN.span().at(ch), by_start(part.span()), end,
+                        ch.try_into().unwrap(), prog, vol, *PAN.span().at(ch), by_start(part.span()), end, how,
                     ),
                 );
         }
         ch += 1;
     }
     if c.hits.len() != 0 {
-        tracks.append(note_track(9, 0, 0, 0, by_start(c.hits.span()), end));
+        tracks.append(note_track(9, 0, 0, 0, by_start(c.hits.span()), end, how));
     }
     tracks
 }
 
 /// The Sound Check of Loot Beast `species` as a format-1 MIDI file (`soundCheckMidi(...).midi`).
 pub fn sound_check_smf_bytes(species: u32, mega: bool, take: u64) -> Array<u8> {
-    smf_bytes(1, TPQ, sound_check_tracks(species, mega, take).span())
+    smf_bytes(1, TPQ, sound_check_tracks(species, mega, take, as_written()).span())
 }
 
 /// The same as a ByteArray.
 pub fn sound_check_byte_array(species: u32, mega: bool, take: u64) -> ByteArray {
-    smf_byte_array(1, TPQ, sound_check_tracks(species, mega, take).span())
+    smf_byte_array(1, TPQ, sound_check_tracks(species, mega, take, as_written()).span())
+}
+
+/// The Sound Check as the lab plays it (`play`), straight into the ByteArray a contract returns.
+pub fn sound_check_played_byte_array(species: u32, mega: bool, take: u64, how: Play) -> ByteArray {
+    smf_byte_array(1, TPQ, sound_check_tracks(species, mega, take, how).span())
 }

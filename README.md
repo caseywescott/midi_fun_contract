@@ -24,7 +24,7 @@ snforge 0.64.1). It depends on midi_fun_contract `v1.0.1` by tag (`midi`, `beast
 | `LootSound` | front contract: `species_song`, `name_song`, `edition`, `round`, `sound_check`, `sound_pack`; library-calls the three classes below | 3,570 |
 | `LootSongComposer` | Species and Name Songs (Beasts composer v1.0.1) | 71,969 |
 | `LootEditionComposer` | Monthly Track Editions | 42,229 |
-| `LootRoundComposer` | Rounds and Sound Checks | 56,166 |
+| `LootRoundComposer` | Rounds and Sound Checks | 51,559 |
 | `LootFmPack` | the FM sound pack (gzip+base64 script, `pack()` / chunks / sha256) | 5,361 |
 
 Every getter returns the file **as the lab plays it**: each channel's program is the instrument the lab's band
@@ -42,9 +42,12 @@ Parity with the JS (all identical):
 | Species/Name Songs, raw and as played | 44 | `scripts/songs_parity.mjs` |
 | Orchestration (bands) | 255 vectors | `scripts/songs_parity.mjs` |
 | Deployed front vs the lab's playback | 15 | `scripts/front_parity.mjs <midi_fun_contract v1.0.1> rounds` |
+| Rounds/Checks played in place vs orchestrating the written file | 14 | `loot_composer::played_tests` |
 
 Gas (l2, per call): Species/Name Song ~100-250M; Edition as played ~36-140M (typical 92M: band instruments are
-written in place, a third cheaper than patching the file); Round 58-263M (median 136M); Sound Check 16-31M.
+written in place, a third cheaper than patching the file); Round 58-263M (median 136M) and Sound Check 16-31M
+before their band and +7 lift were also written in place, which cut another 11-16% (front tests: Rounds 181-289M,
+Checks 44-61M through the front).
 
 Run Cairo only through `sh scripts/cairo_run.sh <cmd>` (one at a time, memory watchdog). Parity fixtures are
 `#[ignore]`d batches: e.g. `sh scripts/cairo_run.sh scarb test -p loot_contracts -- --include-ignored`.

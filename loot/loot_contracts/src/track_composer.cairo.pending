@@ -1,0 +1,72 @@
+//! `LootTrackComposer`: Monthly Track Editions, Rounds and Sound Checks of the Loot Beasts,
+//! orchestrated as the Loot lab plays them (Rounds lifted a fifth).
+#[starknet::contract]
+pub mod LootTrackComposer {
+    use beast_composer::composition::drift::{Drift, DriftClock, layered_drift};
+    use loot_composer::checks::sound_check_smf_bytes;
+    use loot_composer::common::purchase_seed;
+    use loot_composer::editions::edition_smf_bytes;
+    use loot_composer::orchestra::{band, orchestrate, round_band};
+    use loot_composer::rounds::round_smf_bytes;
+    use loot_composer::species::loot_species;
+    use midi::pack::bytes_to_byte_array;
+    use crate::interfaces::ILootTrackComposer;
+
+    #[storage]
+    struct Storage {}
+
+    /// The lab's drift: none on day 1.
+    fn drift_of(species: u32, drift: Option<DriftClock>) -> Option<Drift> {
+        match drift {
+            Option::Some(c) => if c.day >= 2 {
+                Option::Some(layered_drift(species.into(), 0, 0, c))
+            } else {
+                Option::None
+            },
+            Option::None => Option::None,
+        }
+    }
+
+    fn seed_of(purchase: u64) -> u64 {
+        if purchase == 0 {
+            0
+        } else {
+            purchase_seed(purchase)
+        }
+    }
+
+    #[abi(embed_v0)]
+    impl TrackImpl of ILootTrackComposer<ContractState> {
+        fn edition(
+            self: @ContractState,
+            species: u32,
+            mega: bool,
+            edition: u32,
+            purchase: u64,
+            drift: Option<DriftClock>,
+        ) -> ByteArray {
+            assert(edition >= 1, 'editions start at 1');
+            assert(purchase >= 1, 'purchases start at 1');
+            let d = drift_of(species, drift);
+            let midi = edition_smf_bytes(species, mega, edition, purchase_seed(purchase), d);
+            let style = (edition - 1) % loot_composer::orchestra_data::STYLE_COUNT;
+            let b = band(style, species, edition, purchase.try_into().unwrap(), d);
+            bytes_to_byte_array(orchestrate(midi.span(), b.span(), 0).span())
+        }
+
+        fn round(
+            self: @ContractState, species: u32, mega: bool, purchase: u64, drift: Option<DriftClock>,
+        ) -> ByteArray {
+            let d = drift_of(species, drift);
+            let midi = round_smf_bytes(species, mega, seed_of(purchase), d);
+            let b = round_band(loot_species(species).beast_type, species, d);
+            bytes_to_byte_array(orchestrate(midi.span(), b.span(), 7).span())
+        }
+
+        fn sound_check(self: @ContractState, species: u32, mega: bool, take: u64) -> ByteArray {
+            let midi = sound_check_smf_bytes(species, mega, seed_of(take));
+            let b = round_band(loot_species(species).beast_type, species, Option::None);
+            bytes_to_byte_array(orchestrate(midi.span(), b.span(), 0).span())
+        }
+    }
+}

@@ -9,3 +9,9 @@ pub mod species;
 mod common_tests;
 #[cfg(test)]
 mod songs_parity_tests;
+pub mod editions;
+pub mod editions_data;
+#[cfg(test)]
+mod editions_tests;
+#[cfg(test)]
+mod editions_gas;

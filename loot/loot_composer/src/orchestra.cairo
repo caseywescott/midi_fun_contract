@@ -251,3 +251,86 @@ pub fn orchestrate(smf: Span<u8>, band: Span<u8>, lift: u8) -> Array<u8> {
     }
     out
 }
+
+/// A VLQ's value, moving `i` past it (no copy).
+#[inline(never)]
+fn skip_vlq(smf: Span<u8>, ref i: u32) -> u32 {
+    let mut l: u32 = 0;
+    loop {
+        let b = *smf.at(i);
+        i += 1;
+        l = l * 128 + (b & 127).into();
+        if b < 128 {
+            break;
+        }
+    }
+    l
+}
+
+/// `orchestrate` packed into the `ByteArray` a contract returns. With no lift only the program
+/// changes differ from the file, so it finds them and packs the untouched runs between them as
+/// slices of the input (far fewer steps than copying byte by byte); with a lift it is
+/// `orchestrate` then `bytes_to_byte_array`. Same bytes either way.
+pub fn orchestrate_byte_array(smf: Span<u8>, band: Span<u8>, lift: u8) -> ByteArray {
+    if lift != 0 || band.len() == 0 {
+        return midi::pack::bytes_to_byte_array(orchestrate(smf, band, lift).span());
+    }
+    let nb = band.len();
+    let mut chunks: Array<Span<u8>> = array![];
+    let mut from: u32 = 0;
+    let ntr: u32 = (*smf.at(10)).into() * 256 + (*smf.at(11)).into();
+    let mut i: u32 = 14;
+    let mut tr = 0;
+    while tr != ntr {
+        let len: u32 = (*smf.at(i + 4)).into() * 0x1000000
+            + (*smf.at(i + 5)).into() * 0x10000
+            + (*smf.at(i + 6)).into() * 0x100
+            + (*smf.at(i + 7)).into();
+        i += 8;
+        let stop = i + len;
+        let mut run: u8 = 0;
+        while i < stop {
+            skip_vlq(smf, ref i);
+            let mut s = *smf.at(i);
+            if s >= 128 {
+                i += 1;
+            } else {
+                s = run;
+            }
+            if s == 0xff {
+                i += 1;
+                let l = skip_vlq(smf, ref i);
+                i += l;
+                continue;
+            }
+            if s == 0xf0 || s == 0xf7 {
+                let l = skip_vlq(smf, ref i);
+                i += l;
+                continue;
+            }
+            run = s;
+            let ty = s & 0xf0;
+            if ty == 0xc0 {
+                let ch: u32 = (s & 15).into();
+                if ch != 9 {
+                    let p = band.slice(ch % nb, 1);
+                    if *p.at(0) != *smf.at(i) {
+                        chunks.append(smf.slice(from, i - from));
+                        chunks.append(p);
+                        from = i + 1;
+                    }
+                }
+                i += 1;
+                continue;
+            }
+            if ty == 0xd0 {
+                i += 1;
+                continue;
+            }
+            i += 2;
+        }
+        tr += 1;
+    }
+    chunks.append(smf.slice(from, smf.len() - from));
+    midi::pack::chunks_to_byte_array(chunks.span())
+}

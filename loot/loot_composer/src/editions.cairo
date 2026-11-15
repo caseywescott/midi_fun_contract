@@ -239,9 +239,16 @@ fn vol_of(flags: u32, ch: u8, program: u32) -> u8 {
 
 /// A channel's track, opened with its program, volume, pan and reverb.
 #[inline(never)]
-fn channel_track(ch: u8, program: u32, flags: u32) -> TrackWriter {
+fn channel_track(ch: u8, program: u32, flags: u32, band: Span<u8>) -> TrackWriter {
     let mut tw = TrackWriterTrait::new();
-    tw.message1(0, 0xC0 + ch, program.try_into().unwrap());
+    // the band's instrument when one is given (the lab's setProgram override; drums keep theirs);
+    // the volume still follows the written program, as in the lab
+    let played: u8 = if band.len() != 0 && ch != 9 {
+        *band.at(ch.into() % band.len())
+    } else {
+        program.try_into().unwrap()
+    };
+    tw.message1(0, 0xC0 + ch, played);
     tw.message(0, 0xB0 + ch, 7, vol_of(flags, ch, program));
     tw.message(0, 0xB0 + ch, 10, *PAN.span().at(ch.into()));
     tw.message(0, 0xB0 + ch, 91, 40);
@@ -690,6 +697,8 @@ struct Ctx {
     walk_tunes: u32,
     walk_seed: u32,
     month: u32,
+    /// The instruments the channels play (orchestra::band), or empty: as written.
+    band: Span<u8>,
 }
 
 fn gap_of(detached: bool, len: u32) -> u32 {
@@ -1255,7 +1264,7 @@ fn rhythm_bar(ref tw: TrackWriter, k: Box<Ctx>, role: u32, tok: u32, b: u32, t: 
 #[inline(never)]
 fn part(k: Box<Ctx>, role: u32, ch: u8, program: u32) -> Array<u8> {
     let c = k.unbox();
-    let mut tw = channel_track(ch, program, c.flags);
+    let mut tw = channel_track(ch, program, c.flags, c.band);
     if c.intro.bars > 0 {
         intro(ref tw, k, role);
     }
@@ -1436,7 +1445,7 @@ fn gliss_track(k: Box<Ctx>, plan: GlissPlan, seed: u32, program: u32, ticks: u32
         ev_push(ref ev, n.t, true, p, n.v);
         ev_push(ref ev, n.t + n.len, false, p, 0);
     }
-    let mut tw = channel_track(GLISS_CHANNEL, program, c.flags);
+    let mut tw = channel_track(GLISS_CHANNEL, program, c.flags, c.band);
     ev_write(ref tw, GLISS_CHANNEL, ev.span());
     tw.finish_at(ticks)
 }
@@ -1785,7 +1794,9 @@ struct Plan {
 }
 
 #[inline(never)]
-fn plan(species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>) -> Box<Plan> {
+fn plan(
+    species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>, band: Span<u8>,
+) -> Box<Plan> {
     let (month, rotate, knob, day) = match drift {
         Option::Some(d) => (
             match d.rhythm {
@@ -1906,6 +1917,7 @@ fn plan(species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>) -> Bo
                 Option::Some(x) => x,
                 Option::None => 0,
             },
+            band,
         },
     );
     BoxTrait::new(
@@ -1930,7 +1942,15 @@ fn plan(species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>) -> Bo
 pub fn edition_tracks(
     species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>,
 ) -> Array<Array<u8>> {
-    let p = plan(species, mega, e, seed, drift).unbox();
+    edition_tracks_played(species, mega, e, seed, drift, array![].span())
+}
+
+/// `edition_tracks` with each pitched channel's program change set to `band[ch % band.len()]`
+/// (empty: as written): the file `orchestra::orchestrate` would make, written that way directly.
+pub fn edition_tracks_played(
+    species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>, band: Span<u8>,
+) -> Array<Array<u8>> {
+    let p = plan(species, mega, e, seed, drift, band).unbox();
     let (knob, delta) = match drift {
         Option::Some(d) => (d.day_knob, d.delta_bpm),
         Option::None => (6, 0),
@@ -1981,4 +2001,11 @@ pub fn edition_byte_array(
     species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>,
 ) -> ByteArray {
     smf_byte_array(1, 480, edition_tracks(species, mega, e, seed, drift).span())
+}
+
+/// The edition as the lab plays it, packed for a contract: band instruments written in place.
+pub fn edition_played_byte_array(
+    species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>, band: Span<u8>,
+) -> ByteArray {
+    smf_byte_array(1, 480, edition_tracks_played(species, mega, e, seed, drift, band).span())
 }

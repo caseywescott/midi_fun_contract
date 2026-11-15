@@ -33,3 +33,46 @@ fn editions_gas_typical() {
 fn editions_gas_largest() {
     assert_eq!(edition_byte_array(77, true, 14, purchase_seed(82), Option::None).len(), 12491);
 }
+
+/// The typical file again, orchestrated and packed as LootEditionComposer returns it: the cost of
+/// `orchestrate` + `bytes_to_byte_array` is the difference from editions_gas_typical.
+#[test]
+#[ignore]
+fn editions_gas_typical_played() {
+    let midi = edition_smf_bytes(76, false, 1, purchase_seed(1), Option::None);
+    let b = crate::orchestra::band(0, 76, 1, 1, Option::None);
+    let played = crate::orchestra::orchestrate(midi.span(), b.span(), 0);
+    let fast = crate::orchestra::orchestrate_byte_array(midi.span(), b.span(), 0);
+    assert!(fast == midi::pack::bytes_to_byte_array(played.span()));
+}
+
+#[test]
+#[ignore]
+fn editions_gas_typical_played_fast() {
+    let midi = edition_smf_bytes(76, false, 1, purchase_seed(1), Option::None);
+    let b = crate::orchestra::band(0, 76, 1, 1, Option::None);
+    assert_eq!(crate::orchestra::orchestrate_byte_array(midi.span(), b.span(), 0).len(), 6346);
+}
+
+#[test]
+#[ignore]
+fn editions_gas_typical_played_inline() {
+    let b = crate::orchestra::band(0, 76, 1, 1, Option::None);
+    let x = crate::editions::edition_played_byte_array(76, false, 1, purchase_seed(1), Option::None, b.span());
+    let midi = edition_smf_bytes(76, false, 1, purchase_seed(1), Option::None);
+    assert!(x == crate::orchestra::orchestrate_byte_array(midi.span(), b.span(), 0));
+}
+
+#[test]
+#[ignore]
+fn editions_gas_typical_inline_only() {
+    let b = crate::orchestra::band(0, 76, 1, 1, Option::None);
+    assert_eq!(crate::editions::edition_played_byte_array(76, false, 1, purchase_seed(1), Option::None, b.span()).len(), 6346);
+}
+
+#[test]
+#[ignore]
+fn editions_gas_typical_bytes_only() {
+    let midi = edition_smf_bytes(76, false, 1, purchase_seed(1), Option::None);
+    assert_eq!(midi::pack::bytes_to_byte_array(midi.span()).len(), 6346);
+}

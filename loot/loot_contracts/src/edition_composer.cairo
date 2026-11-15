@@ -4,10 +4,9 @@
 pub mod LootEditionComposer {
     use beast_composer::composition::drift::{DriftClock, layered_drift};
     use loot_composer::common::purchase_seed;
-    use loot_composer::editions::edition_smf_bytes;
-    use loot_composer::orchestra::{band, orchestrate};
+    use loot_composer::editions::edition_played_byte_array;
+    use loot_composer::orchestra::band;
     use loot_composer::orchestra_data::STYLE_COUNT;
-    use midi::pack::bytes_to_byte_array;
     use crate::interfaces::ILootEditionComposer;
 
     #[storage]
@@ -34,9 +33,10 @@ pub mod LootEditionComposer {
                 },
                 Option::None => Option::None,
             };
-            let midi = edition_smf_bytes(species, mega, edition, purchase_seed(purchase), d);
+            // the band's instruments are written in place (the same file as orchestrate, a third
+            // less gas)
             let b = band((edition - 1) % STYLE_COUNT, species, edition, purchase.try_into().unwrap(), d);
-            bytes_to_byte_array(orchestrate(midi.span(), b.span(), 0).span())
+            edition_played_byte_array(species, mega, edition, purchase_seed(purchase), d, b.span())
         }
     }
 }

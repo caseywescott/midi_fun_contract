@@ -10,6 +10,7 @@ use crate::rounds::{
     Sound, TPQ, i, is_lead, mode_cad, mode_index, mode_scale, mod7, note_track, pitch_of,
     programs_of, sign, sort_keys, tempo_track,
 };
+use crate::checks_data::{OPS, PIECE_AT};
 use crate::rounds_data::MODE_DIM;
 use crate::species::loot_species;
 
@@ -97,404 +98,213 @@ impl BandImpl of BandTrait {
     }
 }
 
-fn opening(ref c: Band, which: u32, t: u32) {
-    if which == 0 {
-        // tuning over a drone
-        c.put(4, t, SEG - 20, 0, 70);
-        c.put(3, t + 480, SEG - 500, c.fifth, 60);
-        c.put(0, t + 960, 70, 2, 70);
-        c.put(0, t + 1040, 70, 3, 74);
-        c.put(0, t + 1120, 780, 4, 88);
-        c.run(0, t + 1920, 120, 110, array![5, 4, 3, 4].span(), 80);
-        c.put(0, t + 2400, 460, 4, 88);
-        c.put(0, t + 2880, 460, 2, 84);
-        c.put(0, t + 3360, 460, 0, 92);
-        c.put(1, t + 3360, 460, 0, 70);
-    } else if which == 1 {
-        // a count-in
-        c.hit(t, 42, 70);
-        c.hit(t + 480, 42, 70);
-        c.hit(t + 960, 42, 90);
-        c.hit(t + 1440, 42, 90);
-        c.hit(t + 1680, 45, 84);
-        c.hit(t + 1800, 43, 92);
-        c.hit(t + BAR, 36, 104);
-        c.hit(t + BAR, 49, 84);
-        c.roll(2, t + BAR, 1500, 86);
-        c.put(4, t + BAR, 1880, 0, 84);
-        let x = c.f4(2);
-        c.put(0, t + BAR + 960, 460, x, 72);
-        c.put(0, t + BAR + 1440, 460, 7, 80);
-    } else {
-        // the motif alone, and its echo
-        c.motif_on(0, t, 1, 0, 92);
-        c.motif_on(1, t + BAR, 1, 0, 62);
-    }
-}
-
 const GROOVE: [u32; 19] = [
-    // offset * 65536 + key * 256 + velocity; family 0 [0, 6), 1 [6, 14), 2 [14, 19)
+    // a bar of the kit by family: offset * 65536 + key * 256 + velocity; family 0 [0, 6), 1 [6, 14),
+    // 2 [14, 19)
     0x002464, 0x1E02A3C, 0x2D02A32, 0x3C02654, 0x5A02A3C, 0x6902A32, 0x002464, 0xF02A38,
     0x1E02654, 0x2D02450, 0x3C02460, 0x4B02A38, 0x5A02658, 0x6902A38, 0x00246C, 0x1E02954,
     0x3C02464, 0x4B02454, 0x5A02B58,
 ];
 
-fn drill(ref c: Band, which: u32, t: u32, v: u32) {
-    let odd = v % 2 == 1;
-    if which == 0 {
-        // the motif called and answered
-        c.motif_on(0, t, 1, 0, 92);
-        if odd {
-            c.motif_on(1, t + BAR, -1, 4, 84);
-        } else {
-            c.motif_on(1, t + BAR, 1, 2, 84);
-        }
-        c.put(4, t, BAR - 20, 0, 76);
-        c.put(4, t + BAR, BAR - 20, 0, 76);
-    } else if which == 1 {
-        // the scale in thirds
-        let mut k: u32 = 0;
-        while k != 7 {
-            let ki = i(k);
-            c.put(2, t + 2 * k * 240, 220, if odd {
-                7 - ki
-            } else {
-                ki
-            }, 84);
-            c.put(2, t + (2 * k + 1) * 240, 220, if odd {
-                5 - ki
-            } else {
-                ki + 2
-            }, 76);
-            k += 1;
-        }
-        c.put(2, t + 3360, 460, if odd {
-            0
-        } else {
-            7
-        }, 92);
-        c.put(4, t, BAR - 20, 0, 76);
-        c.put(4, t + BAR, BAR - 20, 7, 72);
-        if (v / 2) % 2 == 1 {
-            let mut k = 0;
-            while k != 8 {
-                c.hit(t + k * 480, 42, if k % 2 == 1 {
-                    46
-                } else {
-                    58
-                });
-                k += 1;
-            }
-        }
-    } else if which == 2 {
-        // the mode's colour note
-        let x = if c.colour < 3 {
-            c.colour + 7
-        } else {
-            c.colour
-        };
-        c.run(0, t, 240, 220, array![x - 1, x, x + 1, x].span(), 80);
-        c.put(0, t + 960, 940, x, 104);
-        let mut home = x - 1;
-        loop {
-            let h = mod7(home);
-            if (h == 0 || h == 2 || h == 4) && !(h == 4 && c.fifth != 4) {
-                break;
-            }
-            home -= 1;
-        }
-        // the way down, padded in front to four notes (x + 1, x, ...), its last four
-        let mut way: Array<i32> = array![];
-        let n = x - home;
-        let mut pad = if n < 4 {
-            4 - n
-        } else {
-            0
-        };
-        // the padding alternates back from the front: ... x, x + 1, then x down to home + 1
-        let mut front: Array<i32> = array![];
-        while pad != 0 {
-            front.append(if pad % 2 == 1 {
-                x + 1
-            } else {
-                x
-            });
-            pad -= 1;
-        }
-        way.append_span(front.span());
-        let mut d = x;
-        while d > home {
-            way.append(d);
-            d -= 1;
-        }
-        let w = way.span();
-        c.run(0, t + BAR, 240, 220, w.slice(w.len() - 4, 4), 84);
-        c.put(0, t + BAR + 960, 940, home, 92);
-        c.put(1, t, SEG - 20, 0, 62);
-        c.put(4, t, SEG - 20, 0, 70);
-    } else if which == 3 {
-        // an arpeggio through the cadence
-        let k = if c.cad > 3 {
-            c.cad - 7
-        } else {
-            c.cad
-        };
-        let a1 = array![0_i32, 2, 4, 7, 9, 11, 14, 11, 9, 7, 4, 2, 0, 2, 4, 7];
-        let mut q = 0;
-        for d in a1 {
-            c.put(2, t + q * 120, 100, d, if q % 4 == 0 {
-                88
-            } else {
-                72
-            });
-            q += 1;
-        }
-        let a2 = array![k, k + 2, k + 4, k + 7, k + 4, k + 2, k, k + 2];
-        let mut q = 0;
-        for d in a2 {
-            c.put(2, t + BAR + q * 120, 100, d, if q % 4 == 0 {
-                88
-            } else {
-                72
-            });
-            q += 1;
-        }
-        c.roll(2, t + BAR + 960, 900, 90);
-        c.put(4, t, BAR - 20, 0, 80);
-        c.put(4, t + BAR, 940, k, 80);
-        c.put(4, t + BAR + 960, 940, 0, 84);
-        if odd {
-            let f = c.f4(7);
-            c.run(3, t + 480, 0, 200, array![0, 2, f].span(), 66);
-            c.run(3, t + 1440, 0, 200, array![0, 2, f].span(), 66);
-        }
-    } else if which == 4 {
-        // a canon a beat apart
-        let m = c.m;
-        let x = *m.at(5);
-        let a = if x == 0 {
-            1
-        } else {
-            x - sign(x)
-        };
-        let b = if a == 0 {
-            1
-        } else {
-            a - sign(a)
-        };
-        let mut line = array![];
-        line.append_span(m);
-        line.append(a);
-        line.append(b);
-        let up = if odd {
-            2
-        } else {
-            0
-        };
-        let mut k = 0;
-        for d in line {
-            c.put(0, t + k * 240, 220, d, 88);
-            c.put(1, t + 480 + k * 240, 220, d, 78);
-            c.put(0, t + BAR + k * 240, 220, d + up, 88);
-            if k < 6 {
-                c.put(1, t + BAR + 480 + k * 240, 220, d + up, 78);
-            }
-            k += 1;
-        }
-        c.put(4, t, BAR - 20, 0, 72);
-        c.put(4, t + BAR, BAR - 20, 0, 72);
-    } else if which == 5 {
-        // leaps with a swell
-        let f = c.f4(2);
-        let ds = array![0, 7, f, 9, 7, 14, 2, 0];
-        let mut k = 0;
-        for d in ds {
-            c.put(0, t + k * 480, 440, d, if odd {
-                108 - 8 * k
-            } else {
-                52 + 8 * k
-            });
-            k += 1;
-        }
-        let f = c.f4(7);
-        let mut k = 0;
-        while k != 4 {
-            c.run(3, t + BAR + 240 + k * 480, 0, 120, array![0, 2, f].span(), 60);
-            c.hit(t + BAR + k * 480, 36, 84);
-            k += 1;
-        }
-    } else if which == 6 {
-        // a drum break
-        let (from, stop) = if c.typ == 0 {
-            (0, 6)
-        } else if c.typ == 1 {
-            (6, 14)
-        } else {
-            (14, 19)
-        };
-        let g = GROOVE.span();
-        let mut y = from;
-        while y != stop {
-            let z = *g.at(y);
-            let off = z / 65536;
-            let key = (z / 256) % 256;
-            let vel = z % 256;
-            c.hit(t + off, key, vel);
-            if off < 960 {
-                c.hit(t + BAR + off, key, vel);
-            }
-            y += 1;
-        }
-        let keys = array![45_u32, 45, 43, 43, 41, 41, 38, 38];
-        let mut k = 0;
-        for key in keys {
-            c.hit(t + BAR + 960 + k * 120, key, 76 + 5 * k);
-            k += 1;
-        }
-        let mr = c.mr;
-        let mut at = t;
-        let mut k: u32 = 0;
-        for l in mr {
-            let d = if k % 2 == 1 && c.fifth == 4 {
-                4
-            } else {
-                0
-            };
-            c.put(4, at, *l - 20, d, 84);
-            at += *l;
-            k += 1;
-        }
-        c.put(4, t + BAR, 940, 0, 84);
-    } else if which == 7 {
-        // trills and graces
-        let ds = if odd {
-            array![7_i32, 4, 2, 0]
-        } else {
-            array![0_i32, 2, 4, 7]
-        };
-        let f = c.f4(7);
-        let mut k = 0;
-        for d0 in ds {
-            let d = if mod7(d0) == 4 && c.fifth != 4 {
-                d0 + 1
-            } else {
-                d0
-            };
-            let t0 = t + k * 960;
-            if k == 3 {
-                c.put(0, t0, 70, d + 1, 78);
-                c.put(0, t0 + 80, 860, d, 92);
-            } else {
-                let fig: Span<i32> = if k == 0 {
-                    array![0, 1].span()
-                } else if k == 1 {
-                    array![1, 0, -1].span()
-                } else {
-                    array![0, 1, 0, 1, 0, 1].span()
-                };
-                let mut q = 0;
-                for x in fig {
-                    c.put(0, t0 + q * 60, 55, d + *x, if q == 0 {
-                        88
-                    } else {
-                        78
-                    });
-                    q += 1;
-                }
-                c.put(0, t0 + q * 60, 940 - q * 60, d, 88);
-            }
-            c.run(3, t0, 240, 220, array![0, f, 2, f].span(), 60);
-            k += 1;
-        }
+/// The mode's colour note: circled, leaned on, then a step down to the nearest note of the tonic chord.
+#[inline(never)]
+fn colour_drill(ref c: Band, t: u32) {
+    let x = if c.colour < 3 {
+        c.colour + 7
     } else {
-        // the motif handed round the band
-        let order = array![0_u32, 2, 1, 3];
-        let at: Span<i32> = if odd {
-            array![7, 4, 2, 0].span()
-        } else {
-            array![0, 2, 4, 7].span()
-        };
-        let m = c.m;
-        let mut k = 0;
-        for part in order {
-            let mut q = 0;
-            while q != 4 {
-                c.put(part, t + k * 960 + q * 240, if q == 3 {
-                    460
-                } else {
-                    220
-                }, *m.at(q) + *at.at(k), 86);
-                q += 1;
-            }
-            k += 1;
+        c.colour
+    };
+    c.run(0, t, 240, 220, array![x - 1, x, x + 1, x].span(), 80);
+    c.put(0, t + 960, 940, x, 104);
+    let mut home = x - 1;
+    loop {
+        let h = mod7(home);
+        if (h == 0 || h == 2 || h == 4) && !(h == 4 && c.fifth != 4) {
+            break;
         }
-        c.put(4, t, SEG - 20, 0, 66);
+        home -= 1;
+    }
+    // the way down from x to home + 1, padded in front to four notes (x + 1 next to it, then x, ...)
+    let mut way: Array<i32> = array![];
+    let n = x - home;
+    let mut pad = if n < 4 {
+        4 - n
+    } else {
+        0
+    };
+    while pad != 0 {
+        way.append(if pad % 2 == 1 {
+            x + 1
+        } else {
+            x
+        });
+        pad -= 1;
+    }
+    let mut d = x;
+    while d > home {
+        way.append(d);
+        d -= 1;
+    }
+    let w = way.span();
+    c.run(0, t + BAR, 240, 220, w.slice(w.len() - 4, 4), 84);
+    c.put(0, t + BAR + 960, 940, home, 92);
+    c.put(1, t, SEG - 20, 0, 62);
+    c.put(4, t, SEG - 20, 0, 70);
+}
+
+/// The motif and two steps home in eighths, the second lead a beat later an octave below; the second
+/// bar a third higher on an odd draw.
+#[inline(never)]
+fn canon_drill(ref c: Band, t: u32, odd: bool) {
+    let m = c.m;
+    let x = *m.at(5);
+    let a = if x == 0 {
+        1
+    } else {
+        x - sign(x)
+    };
+    let b = if a == 0 {
+        1
+    } else {
+        a - sign(a)
+    };
+    let mut line = array![];
+    line.append_span(m);
+    line.append(a);
+    line.append(b);
+    let up = if odd {
+        2
+    } else {
+        0
+    };
+    let mut k = 0;
+    for d in line {
+        c.put(0, t + k * 240, 220, d, 88);
+        c.put(1, t + 480 + k * 240, 220, d, 78);
+        c.put(0, t + BAR + k * 240, 220, d + up, 88);
+        if k < 6 {
+            c.put(1, t + BAR + 480 + k * 240, 220, d + up, 78);
+        }
+        k += 1;
+    }
+    c.put(4, t, BAR - 20, 0, 72);
+    c.put(4, t + BAR, BAR - 20, 0, 72);
+}
+
+/// The drum break's groove (the family's bar, its first half again), and the bass in the motif's rhythm
+/// on the root and the fifth.
+#[inline(never)]
+fn break_drill(ref c: Band, t: u32) {
+    let (from, stop) = if c.typ == 0 {
+        (0, 6)
+    } else if c.typ == 1 {
+        (6, 14)
+    } else {
+        (14, 19)
+    };
+    let g = GROOVE.span();
+    let mut y = from;
+    while y != stop {
+        let z = *g.at(y);
+        let off = z / 65536;
+        let key = (z / 256) % 256;
+        let vel = z % 256;
+        c.hit(t + off, key, vel);
+        if off < 960 {
+            c.hit(t + BAR + off, key, vel);
+        }
+        y += 1;
+    }
+    let mr = c.mr;
+    let mut at = t;
+    let mut k: u32 = 0;
+    for l in mr {
+        let d = if k % 2 == 1 && c.fifth == 4 {
+            4
+        } else {
+            0
+        };
+        c.put(4, at, *l - 20, d, 84);
+        at += *l;
+        k += 1;
     }
 }
 
-fn close(ref c: Band, which: u32, t: u32) {
-    if which == 0 {
-        // a run into a stinger
-        let k = if c.cad > 3 {
-            c.cad - 7
+/// Plays piece p (0-2 openings, 3-11 drills, 12-14 closes; checks_data.cairo) from tick t with draw v.
+#[inline(never)]
+fn play(ref c: Band, p: u32, t: u32, v: u32) {
+    let at = PIECE_AT.span();
+    let ops = OPS.span();
+    let mut y = *at.at(p);
+    let stop = *at.at(p + 1);
+    let odd = v % 2 == 1;
+    while y != stop {
+        let x = *ops.at(y);
+        let (x, a) = DivRem::div_rem(x, 128);
+        let (x, dk) = DivRem::div_rem(x, 8);
+        let (x, vel) = DivRem::div_rem(x, 128);
+        let (x, len) = DivRem::div_rem(x, 4096);
+        let (x, off) = DivRem::div_rem(x, 4096);
+        let (x, part) = DivRem::div_rem(x, 8);
+        let (op, cond) = DivRem::div_rem(x, 4);
+        let a: i32 = a.try_into().unwrap();
+        let vel: u32 = vel.try_into().unwrap();
+        let len: u32 = len.try_into().unwrap();
+        let part: u32 = part.try_into().unwrap();
+        let tt: u32 = t + off.try_into().unwrap();
+        let on = if cond == 0 {
+            true
+        } else if cond == 1 {
+            odd
+        } else if cond == 2 {
+            !odd
         } else {
-            c.cad
+            (v / 2) % 2 == 1
         };
-        c.put(4, t, 940, k, 84);
-        c.hit(t, 36, 96);
-        c.hit(t + 480, 36, 88);
-        let mut q: u32 = 0;
-        while q != 8 {
-            c.put(0, t + 960 + q * 120, 110, i(q) - 1, 70 + 5 * q);
-            c.hit(t + 960 + q * 120, 38, 60 + 7 * q);
-            q += 1;
-        }
-        c.put(0, t + BAR, 1400, 7, 104);
-        let f = c.f4(2);
-        c.put(1, t + BAR, 1400, f, 96);
-        c.roll(2, t + BAR, 1400, 96);
-        c.put(3, t + BAR, 1400, 2, 90);
-        c.put(4, t + BAR, 1400, 0, 100);
-        c.hit(t + BAR, 36, 110);
-        c.hit(t + BAR, 49, 96);
-    } else if which == 1 {
-        // a scale that settles
-        let mut k: u32 = 0;
-        while k != 8 {
-            c.put(0, t + k * 240, 220, 7 - i(k), 84 - 2 * k);
-            if k < 7 {
-                c.put(2, t + k * 240, 220, 5 - i(k), 70 - 2 * k);
+        if on {
+            if op == 0 {
+                let d = if dk == 0 {
+                    a - 64
+                } else if dk == 1 {
+                    c.f4(a - 64)
+                } else if dk == 2 {
+                    c.fifth
+                } else if dk == 3 {
+                    (if c.cad > 3 {
+                        c.cad - 7
+                    } else {
+                        c.cad
+                    }) + a - 64
+                } else if dk == 4 {
+                    *c.m.at((a / 16).try_into().unwrap()) + a % 16 - 8
+                } else {
+                    let d0 = a / 8;
+                    (if mod7(d0) == 4 && c.fifth != 4 {
+                        d0 + 1
+                    } else {
+                        d0
+                    }) + a % 8 - 4
+                };
+                c.put(part, tt, len, d, vel);
+            } else if op == 1 {
+                c.hit(tt, len, vel);
+            } else if op == 2 {
+                if a >= 8 {
+                    c.motif_on(part, tt, -1, a - 8, vel);
+                } else {
+                    c.motif_on(part, tt, 1, a, vel);
+                }
+            } else if op == 3 {
+                c.roll(part, tt, len, vel);
+            } else if op == 4 {
+                colour_drill(ref c, tt);
+            } else if op == 5 {
+                canon_drill(ref c, tt, odd);
+            } else {
+                break_drill(ref c, tt);
             }
-            k += 1;
         }
-        c.put(4, t, BAR - 20, 0, 70);
-        c.put(0, t + BAR, 1700, 0, 80);
-        c.put(1, t + BAR, 1700, 0, 70);
-        c.roll(2, t + BAR, 1700, 76);
-        c.put(4, t + BAR, 1700, 0, 76);
-        c.hit(t + BAR, 36, 80);
-    } else {
-        // the motif as a tag
-        let m = c.m;
-        let mut k: u32 = 0;
-        while k != 3 {
-            let mut part = 0;
-            while part != 5 {
-                c.put(part, t + k * 480, 400, *m.at(k), 96);
-                part += 1;
-            }
-            c.hit(t + k * 480, 36, 96);
-            k += 1;
-        }
-        c.hit(t + 1440, 38, 80);
-        c.hit(t + 1680, 38, 96);
-        c.put(0, t + BAR, 1400, 0, 104);
-        c.put(1, t + BAR, 1400, 0, 104);
-        c.put(3, t + BAR, 1400, 0, 104);
-        c.put(4, t + BAR, 1400, 0, 104);
-        c.roll(2, t + BAR, 1400, 100);
-        c.hit(t + BAR, 36, 110);
-        c.hit(t + BAR, 49, 96);
+        y += 1;
     }
 }
 
@@ -593,13 +403,13 @@ pub fn sound_check_tracks(species: u32, mega: bool, take: u64) -> Array<Array<u8
         },
         typ,
     };
-    opening(ref c, op, 0);
+    play(ref c, op, 0, 0);
     let mut q = 0;
     while q != 3 {
-        drill(ref c, *drills.at(q), (q + 1) * SEG, *draws.at(q));
+        play(ref c, 3 + *drills.at(q), (q + 1) * SEG, *draws.at(q));
         q += 1;
     }
-    close(ref c, cl, 4 * SEG);
+    play(ref c, 12 + cl, 4 * SEG, 0);
     let end = 5 * SEG;
     let puts = c.puts.span();
     let octave = array![0_i32, -1, 0, -1, -2, 1, 0].span();

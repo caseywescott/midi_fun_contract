@@ -1828,38 +1828,3 @@ pub fn round_byte_array(species: u32, mega: bool, seed: u64, drift: Option<Drift
     smf_byte_array(1, TPQ, round_tracks(species, mega, seed, drift).span())
 }
 
-#[cfg(test)]
-mod profile {
-    use core::testing::get_available_gas;
-    use super::*;
-
-    #[test]
-    #[ignore]
-    fn rounds_profile() {
-        let g0 = get_available_gas();
-        let ad = assign(4);
-        let chords = array![0_u32, 5, 3, 4, 0, 6, 2, 5].span();
-        let mut h = RngTrait::new(12345);
-        let g1 = get_available_gas();
-        let _roles = deal_roles(ad, 4, chords, ref h, 1, array![2, 0, 1, 3].span());
-        let g2 = get_available_gas();
-        let tracks = round_tracks(76, false, 0, Option::None);
-        let g3 = get_available_gas();
-        let mut n = 0;
-        for t in tracks.span() {
-            n += t.len();
-        }
-        let _ = smf_bytes(1, TPQ, tracks.span());
-        let g4 = get_available_gas();
-        let mut notes = array![];
-        let mut k = 0;
-        while k != 600 {
-            notes.append(Sound { t: k * 240, len: 200 + (k % 3) * 200, p: 60, v: 80 });
-            k += 1;
-        }
-        let g5 = get_available_gas();
-        let _ = note_track(0, 1, 2, 3, notes.span(), 200000);
-        let g6 = get_available_gas();
-        println!("assign {} deal_roles {} round_tracks {} smf {} (bytes {}) note_track600 {}", g0 - g1, g1 - g2, g2 - g3, g3 - g4, n, g5 - g6);
-    }
-}

@@ -9,5 +9,6 @@ pub mod rounds_data;
 #[cfg(test)]
 mod rounds_parity;
 pub mod checks;
+pub mod checks_data;
 #[cfg(test)]
 mod checks_parity;

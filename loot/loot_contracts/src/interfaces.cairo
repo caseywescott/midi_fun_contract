@@ -37,12 +37,17 @@ pub trait ILootSongComposer<T> {
     fn song(self: @T, species: u32, mega: bool, name: u16, drift: Option<DriftClock>) -> ByteArray;
 }
 
-/// The Editions / Rounds / Sound Checks class(es) (library-called by LootSound).
+/// The Monthly Track Editions class (library-called by LootSound).
 #[starknet::interface]
-pub trait ILootTrackComposer<T> {
+pub trait ILootEditionComposer<T> {
     fn edition(
         self: @T, species: u32, mega: bool, edition: u32, purchase: u64, drift: Option<DriftClock>,
     ) -> ByteArray;
+}
+
+/// The Rounds and Sound Checks class (library-called by LootSound).
+#[starknet::interface]
+pub trait ILootRoundComposer<T> {
     fn round(
         self: @T, species: u32, mega: bool, purchase: u64, drift: Option<DriftClock>,
     ) -> ByteArray;

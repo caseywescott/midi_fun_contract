@@ -7,7 +7,8 @@ pub mod LootSound {
     use starknet::{ClassHash, ContractAddress};
     use crate::interfaces::{
         ILootSongComposerDispatcherTrait, ILootSongComposerLibraryDispatcher, ILootSound,
-        ILootTrackComposerDispatcherTrait, ILootTrackComposerLibraryDispatcher,
+        ILootEditionComposerDispatcherTrait, ILootEditionComposerLibraryDispatcher,
+        ILootRoundComposerDispatcherTrait, ILootRoundComposerLibraryDispatcher,
     };
 
     #[storage]
@@ -18,8 +19,8 @@ pub mod LootSound {
         pack: ContractAddress,
     }
 
-    /// `edition_class` serves `edition`; `round_class` serves `round` and `sound_check` (the same
-    /// class hash for both when one class holds all three).
+    /// `edition_class` serves `edition` (LootEditionComposer); `round_class` serves `round` and
+    /// `sound_check` (LootRoundComposer).
     #[constructor]
     fn constructor(
         ref self: ContractState,
@@ -59,19 +60,19 @@ pub mod LootSound {
             purchase: u64,
             drift: Option<DriftClock>,
         ) -> ByteArray {
-            ILootTrackComposerLibraryDispatcher { class_hash: self.edition_class.read() }
+            ILootEditionComposerLibraryDispatcher { class_hash: self.edition_class.read() }
                 .edition(species, mega, edition, purchase, drift)
         }
 
         fn round(
             self: @ContractState, species: u32, mega: bool, purchase: u64, drift: Option<DriftClock>,
         ) -> ByteArray {
-            ILootTrackComposerLibraryDispatcher { class_hash: self.round_class.read() }
+            ILootRoundComposerLibraryDispatcher { class_hash: self.round_class.read() }
                 .round(species, mega, purchase, drift)
         }
 
         fn sound_check(self: @ContractState, species: u32, mega: bool, take: u64) -> ByteArray {
-            ILootTrackComposerLibraryDispatcher { class_hash: self.round_class.read() }
+            ILootRoundComposerLibraryDispatcher { class_hash: self.round_class.read() }
                 .sound_check(species, mega, take)
         }
 

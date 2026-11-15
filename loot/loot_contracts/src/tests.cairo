@@ -35,6 +35,16 @@ pub fn deploy(edition_class: felt252, round_class: felt252) -> ILootSoundDispatc
     ILootSoundDispatcher { contract_address: addr }
 }
 
+/// The front with every class this build has (Editions; Rounds/Sound Checks when present).
+pub fn deploy_all() -> ILootSoundDispatcher {
+    let ed = declare("LootEditionComposer").unwrap().contract_class().class_hash;
+    deploy(ed.into(), round_class())
+}
+
+fn round_class() -> felt252 {
+    0
+}
+
 #[test]
 fn species_song_through_the_front() {
     let s = deploy(0, 0);

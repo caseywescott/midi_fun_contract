@@ -4,3 +4,7 @@ pub mod common;
 pub mod species;
 #[cfg(test)]
 mod common_tests;
+pub mod editions;
+pub mod editions_data;
+#[cfg(test)]
+mod editions_tests;

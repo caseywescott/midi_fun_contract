@@ -3,3 +3,5 @@
 pub mod interfaces;
 pub mod song_composer;
 pub mod sound;
+#[cfg(test)]
+mod tests;

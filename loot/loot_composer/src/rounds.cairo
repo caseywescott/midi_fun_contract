@@ -198,100 +198,147 @@ fn pool_loop(eight: bool, bad: u32, idx: u32) -> Span<u32> {
 }
 
 // ── the deals ──
+// A deal (which member of the chord, 0 root, 1 third, 2 fifth, each line holds) is a base-3 code:
+// line j's member at 3^j.
+
+/// Line j's member in deal `c`.
+#[inline(never)]
+pub fn dig(c: u32, j: u32) -> u32 {
+    if j == 0 {
+        c % 3
+    } else if j == 1 {
+        (c / 3) % 3
+    } else if j == 2 {
+        (c / 9) % 3
+    } else {
+        c / 27
+    }
+}
+
+/// A deal's four members (the fourth 0 for three lines).
+fn digits4(c: u32) -> (u32, u32, u32, u32) {
+    let (d3, r) = DivRem::div_rem(c, 27);
+    let (d2, r) = DivRem::div_rem(r, 9);
+    let (d1, d0) = DivRem::div_rem(r, 3);
+    (d0, d1, d2, d3)
+}
+
+/// The code of a deal given as members.
+fn code(d: Span<u32>) -> u32 {
+    let mut c = 0;
+    let mut p = 1;
+    for x in d {
+        c += *x * p;
+        p *= 3;
+    }
+    c
+}
 
 /// A deal's own cost: 1 when it doubles the third, 1 for each member of the chord it leaves out.
 #[inline(never)]
-fn deal_cost(b: Span<u32>) -> u32 {
-    let mut ones: u32 = 0;
-    let mut h0 = false;
-    let mut h1 = false;
-    let mut h2 = false;
-    for r in b {
-        let r = *r;
-        if r == 0 {
-            h0 = true;
-        } else if r == 1 {
-            h1 = true;
-            ones += 1;
-        } else {
-            h2 = true;
-        }
+fn deal_cost(b: u32, k: u32) -> u32 {
+    let (b0, b1, b2, b3) = digits4(b);
+    let mut n0 = 0;
+    let mut n1 = 0;
+    let mut n2 = 0;
+    count(b0, ref n0, ref n1, ref n2);
+    count(b1, ref n0, ref n1, ref n2);
+    count(b2, ref n0, ref n1, ref n2);
+    if k == 4 {
+        count(b3, ref n0, ref n1, ref n2);
     }
-    (if ones > 1 {
+    (if n1 > 1 {
         1
     } else {
         0
-    }) + (if h0 {
-        0
-    } else {
-        1
-    }) + (if h1 {
-        0
-    } else {
-        1
-    }) + (if h2 {
-        0
-    } else {
-        1
     })
+        + (if n0 == 0 {
+            1
+        } else {
+            0
+        })
+        + (if n1 == 0 {
+            1
+        } else {
+            0
+        })
+        + (if n2 == 0 {
+            1
+        } else {
+            0
+        })
 }
 
-/// loot_rounds.js `dealPenalty(a, b, changed, swap)`.
-#[inline(never)]
-fn deal_penalty(a: Span<u32>, b: Span<u32>, changed: bool, swap: u32) -> u32 {
-    let n = a.len();
-    if !changed {
-        let mut same = true;
-        let mut x = 0;
-        while x != n {
-            if *a.at(x) != *b.at(x) {
-                same = false;
-            }
-            x += 1;
+#[inline(always)]
+fn count(x: u32, ref n0: u32, ref n1: u32, ref n2: u32) {
+    if x == 0 {
+        n0 += 1;
+    } else if x == 1 {
+        n1 += 1;
+    } else {
+        n2 += 1;
+    }
+}
+
+#[inline(always)]
+fn kept(x: u32, y: u32) -> u32 {
+    if x == y && x != 1 {
+        8
+    } else {
+        0
+    }
+}
+
+#[inline(always)]
+fn pair(ax: u32, ay: u32, bx: u32, by: u32, swap: u32) -> u32 {
+    (if ax == ay && bx == by {
+        8
+    } else {
+        0
+    })
+        + if ax != 1 && ay != 1 && ax != ay && bx == ay && by == ax {
+            swap
+        } else {
+            0
         }
-        return if same {
+}
+
+/// loot_rounds.js `dealPenalty(a, b, changed, swap)` for deals of k lines.
+#[inline(never)]
+fn deal_penalty(a: u32, b: u32, k: u32, changed: bool, swap: u32) -> u32 {
+    if !changed {
+        return if a == b {
             1
         } else {
             0
         };
     }
-    let mut p = 0;
-    let mut x = 0;
-    while x != n {
-        let ax = *a.at(x);
-        let bx = *b.at(x);
-        if ax == bx && ax != 1 {
-            p += 8;
-        }
-        let mut y = x + 1;
-        while y != n {
-            let ay = *a.at(y);
-            let by = *b.at(y);
-            if ax == ay && bx == by {
-                p += 8;
-            }
-            if ax != 1 && ay != 1 && ax != ay && bx == ay && by == ax {
-                p += swap;
-            }
-            y += 1;
-        }
-        x += 1;
+    let (a0, a1, a2, a3) = digits4(a);
+    let (b0, b1, b2, b3) = digits4(b);
+    let p = kept(a0, b0)
+        + kept(a1, b1)
+        + kept(a2, b2)
+        + pair(a0, a1, b0, b1, swap)
+        + pair(a0, a2, b0, b2, swap)
+        + pair(a1, a2, b1, b2, swap);
+    if k == 4 {
+        p
+            + kept(a3, b3)
+            + pair(a0, a3, b0, b3, swap)
+            + pair(a1, a3, b1, b3, swap)
+            + pair(a2, a3, b2, b3, swap)
+    } else {
+        p
     }
-    p
 }
 
-/// The deals of K lines, as digit lists (ASSIGN[K]).
-fn assign(k: u32) -> Span<Span<u32>> {
-    let codes = if k == 4 {
+/// The deals of K lines (ASSIGN[K]), as codes.
+fn assign(k: u32) -> Span<u32> {
+    if k == 4 {
         ASSIGN4.span()
     } else {
         ASSIGN3.span()
-    };
-    let mut out = array![];
-    for c in codes {
-        out.append(unpack(*c, 3, k));
     }
-    out.span()
 }
 
 fn shape_want(shape: u32, s: u32, n: u32) -> i32 {
@@ -384,46 +431,53 @@ fn move_table(shapes: Span<u32>, chords: Span<u32>, s: u32) -> Span<u32> {
 }
 
 #[inline(never)]
-fn moves(mt: Span<u32>, a: Span<u32>, b: Span<u32>) -> u32 {
-    let mut p = 0;
-    let mut j = 0;
-    let n = a.len();
-    while j != n {
-        p += *mt.at(j * 9 + *a.at(j) * 3 + *b.at(j));
-        j += 1;
+fn moves(mt: Span<u32>, a: u32, b: u32, k: u32) -> u32 {
+    let (a0, a1, a2, a3) = digits4(a);
+    let (b0, b1, b2, b3) = digits4(b);
+    let p = *mt.at(a0 * 3 + b0) + *mt.at(9 + a1 * 3 + b1) + *mt.at(18 + a2 * 3 + b2);
+    if k == 4 {
+        p + *mt.at(27 + a3 * 3 + b3)
+    } else {
+        p
     }
-    p
 }
 
-/// loot_rounds.js `dealRoles`.
+/// loot_rounds.js `dealRoles`: the deal of each slot, as codes. (The look ahead at the slot before the
+/// last takes the deals of the last slot in order of what they cost apart from the move into them, and
+/// stops where that alone is no cheaper than the best found: the same minimum. A candidate already no
+/// cheaper than the best without it is not looked ahead from.)
 fn deal_roles(
-    ad: Span<Span<u32>>, chords: Span<u32>, ref h: Rng, forced: u32, shapes: Span<u32>,
-) -> Span<Span<u32>> {
+    ac: Span<u32>, k: u32, chords: Span<u32>, ref h: Rng, forced: u32, shapes: Span<u32>,
+) -> Span<u32> {
     let n_s = chords.len();
-    let n = ad.len();
+    let n = ac.len();
     let mut first = array![];
-    for d in ad {
-        if *d.at(0) == 0 && deal_cost(*d) == 0 {
+    for d in ac {
+        if *d % 3 == 0 && deal_cost(*d, k) == 0 {
             first.append(*d);
         }
     }
     let r0 = *first.at(h.int(first.len()));
-    let k = r0.len();
-    let mut turn = array![];
+    // every line moves on to the next: line j takes line j + 1's member
+    let mut turn = 0;
+    let mut p3 = 1;
     let mut j = 0;
     while j != k {
-        turn.append(*r0.at((j + 1) % k));
+        turn += dig(r0, (j + 1) % k) * p3;
+        p3 *= 3;
         j += 1;
     }
-    let turn = turn.span();
     let chg0 = *chords.at(0) != *chords.at(n_s - 1);
     let mt_last = move_table(shapes, chords, n_s - 1);
     let chg_last = *chords.at(n_s - 1) != *chords.at(n_s - 2);
-    let mut tail = array![];
-    for c in ad {
-        tail.append(deal_cost(*c) + 16 * deal_penalty(*c, turn, chg0, 2));
+    let mut tails = array![];
+    let mut ci: u64 = 0;
+    for c in ac {
+        let tail: u64 = (deal_cost(*c, k) + 16 * deal_penalty(*c, turn, k, chg0, 2)).into();
+        tails.append(tail * 64 + ci);
+        ci += 1;
     }
-    let tail = tail.span();
+    let tails = sort_keys(tails.span());
     let mut roles = array![r0];
     let mut prev = r0;
     let mut s = 1;
@@ -435,24 +489,28 @@ fn deal_roles(
         let mut best_p = BIG;
         let mut kk = 0;
         while kk != n {
-            let b = *ad.at((start + kk) % n);
-            if !(s == 1 && *b.at(0) != forced) {
-                let mut p = 16 * deal_penalty(prev, b, chg, 2) + deal_cost(b) + moves(mt, prev, b);
+            let b = *ac.at((start + kk) % n);
+            if !(s == 1 && b % 3 != forced) {
+                let mut p = 16 * deal_penalty(prev, b, k, chg, 2)
+                    + deal_cost(b, k)
+                    + moves(mt, prev, b, k);
                 if s == n_s - 1 {
-                    p += 16 * deal_penalty(b, turn, chg0, 2);
+                    p += 16 * deal_penalty(b, turn, k, chg0, 2);
                 }
-                if s == n_s - 2 {
+                if s == n_s - 2 && p < best_p {
                     let mut ahead = BIG;
-                    let mut ci = 0;
-                    while ci != n {
-                        let c = *ad.at(ci);
-                        let q = 16 * deal_penalty(b, c, chg_last, 2)
-                            + moves(mt_last, b, c)
-                            + *tail.at(ci);
+                    for key in tails {
+                        let tail: u32 = (*key / 64).try_into().unwrap();
+                        if tail >= ahead {
+                            break;
+                        }
+                        let c = *ac.at((*key % 64).try_into().unwrap());
+                        let q = 16 * deal_penalty(b, c, k, chg_last, 2)
+                            + moves(mt_last, b, c, k)
+                            + tail;
                         if q < ahead {
                             ahead = q;
                         }
-                        ci += 1;
                     }
                     p += ahead;
                 }
@@ -470,33 +528,33 @@ fn deal_roles(
     roles.span()
 }
 
-/// The cheapest deal between two others (`joinDeal`): `next` empty for none.
+/// The cheapest deal between two others (`joinDeal`), as codes of k lines: `next` none for none.
 fn join_deal(
-    a: Span<Span<u32>>,
-    prev: Span<u32>,
+    a: Span<u32>,
+    k: u32,
+    prev: u32,
     changed_prev: bool,
-    next: Span<u32>,
+    next: Option<u32>,
     changed_next: bool,
     start: u32,
-) -> Span<u32> {
+) -> u32 {
     let n = a.len();
     let mut best = *a.at(0);
     let mut best_p = BIG;
-    let mut k = 0;
-    while k != n {
-        let b = *a.at((start + k) % n);
-        let p = deal_penalty(prev, b, changed_prev, 8)
-            + if next.len() == 0 {
-                0
-            } else {
-                deal_penalty(b, next, changed_next, 8)
+    let mut x = 0;
+    while x != n {
+        let b = *a.at((start + x) % n);
+        let p = deal_penalty(prev, b, k, changed_prev, 8)
+            + match next {
+                Option::Some(y) => deal_penalty(b, y, k, changed_next, 8),
+                Option::None => 0,
             }
-            + deal_cost(b);
+            + deal_cost(b, k);
         if p < best_p {
             best = b;
             best_p = p;
         }
-        k += 1;
+        x += 1;
     }
     best
 }
@@ -523,14 +581,15 @@ struct Ctx {
     palette: Span<u32>,
     role_seed: u32,
     cell_seed: u32,
-    ad: Span<Span<u32>>,
+    ac: Span<u32>,
 }
 
 #[derive(Copy, Drop)]
 struct Rd {
     loop_: Span<u32>,
     chords: Span<u32>,
-    roles: Span<Span<u32>>,
+    /// Each slot's deal (a code).
+    roles: Span<u32>,
     /// Line j at level l: [j * 3 + l].
     lines: Span<Span<Note>>,
 }
@@ -622,7 +681,7 @@ fn weak_of(want: i32, a: i32, next: i32) -> i32 {
 fn line_notes(
     c: Ctx,
     chords: Span<u32>,
-    roles: Span<Span<u32>>,
+    roles: Span<u32>,
     theme: Span<i32>,
     sus: Span<bool>,
     j: u32,
@@ -703,7 +762,7 @@ fn line_notes(
                 };
             array![note(t, len, a, !held)]
         } else {
-            cell_notes(c.mi, *plan.at(s), s * sl, a, next, *(*roles.at(s)).at(j))
+            cell_notes(c.mi, *plan.at(s), s * sl, a, next, dig(*roles.at(s), j))
         };
         if s < 2 && j == 0 {
             out.append_span(notes.span());
@@ -757,7 +816,7 @@ fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
         r += 1;
     }
     let mut h = RngTrait::new(mix(c.role_seed, tag));
-    let roles = deal_roles(c.ad, chords, ref h, forced, c.shapes);
+    let roles = deal_roles(c.ac, k, chords, ref h, forced, c.shapes);
     let cseed = mix(c.cell_seed, tag);
     // the theme's chord tones
     let shapes = c.shapes;
@@ -770,7 +829,7 @@ fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
         let mut prev: i32 = 0;
         let mut s = 0;
         while s != n_s {
-            let cls = (*chords.at(s) + 2 * *(*roles.at(s)).at(j)) % 7;
+            let cls = (*chords.at(s) + 2 * dig(*roles.at(s), j)) % 7;
             let d = if j == 0 && s == 0 {
                 0
             } else if j == 0 && s == 1 {
@@ -806,12 +865,14 @@ fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
             if s >= 2 && s + 1 < n_s && *chords.at(s + 1) != *chords.at(s)
                 && *theme.at(j * n_s + s + 1) == a - 1 {
                 let nr = *roles.at(s + 1);
-                let mine = *nr.at(j);
+                let mine = dig(nr, j);
                 let mut cnt = 0;
-                for x in nr {
-                    if *x == mine {
+                let mut x = 0;
+                while x != k {
+                    if dig(nr, x) == mine {
                         cnt += 1;
                     }
+                    x += 1;
                 }
                 v = cnt == 1 && mix(cseed ^ 0x5355, j * 16 + s) % 100 < c.sus_share;
             }
@@ -975,27 +1036,29 @@ fn merge(a: Span<u64>, b: Span<u64>) -> Span<u64> {
     let mut out = array![];
     let mut a = a;
     let mut b = b;
+    let mut x = *a.pop_front().unwrap();
+    let mut y = *b.pop_front().unwrap();
     loop {
-        match a.get(0) {
-            Option::Some(x) => match b.get(0) {
-                Option::Some(y) => {
-                    if *x.unbox() < *y.unbox() {
-                        out.append(*x.unbox());
-                        a = a.slice(1, a.len() - 1);
-                    } else {
-                        out.append(*y.unbox());
-                        b = b.slice(1, b.len() - 1);
-                    }
-                },
+        if x < y {
+            out.append(x);
+            match a.pop_front() {
+                Option::Some(n) => { x = *n; },
                 Option::None => {
+                    out.append(y);
+                    out.append_span(b);
+                    break;
+                },
+            }
+        } else {
+            out.append(y);
+            match b.pop_front() {
+                Option::Some(n) => { y = *n; },
+                Option::None => {
+                    out.append(x);
                     out.append_span(a);
                     break;
                 },
-            },
-            Option::None => {
-                out.append_span(b);
-                break;
-            },
+            }
         }
     }
     out.span()
@@ -1307,7 +1370,7 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
         palette: palette.span(),
         role_seed,
         cell_seed,
-        ad: assign(k),
+        ac: assign(k),
     };
     let ra = make_round(ctx, pool_loop(eight, bad, loop_i), 1);
     let rb = make_round(
@@ -1380,16 +1443,21 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
     let mut triples = array![];
     let mut t3 = 0;
     while t3 != 27 {
-        triples.append(unpack(t3, 3, 3));
+        triples.append(t3);
         t3 += 1;
     }
-    let ep_deal = join_deal(
-        triples.span(),
-        prev_deal.span(),
-        (e_step * (EP_UNITS - 1)) % 7 != cad,
-        next_deal.span(),
-        true,
-        mix(role_seed, 31) % 27,
+    let ep_deal = unpack(
+        join_deal(
+            triples.span(),
+            3,
+            code(prev_deal.span()),
+            (e_step * (EP_UNITS - 1)) % 7 != cad,
+            Option::Some(code(next_deal.span())),
+            true,
+            mix(role_seed, 31) % 27,
+        ),
+        3,
+        3,
     );
     let mut before = array![];
     let mut v = 0;
@@ -1397,45 +1465,51 @@ pub fn round_tracks(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -
         before.append(role_at(ra, rb, ca, k, v, ca + cb - 1, n_s - 1));
         v += 1;
     }
-    let before = before.span();
-    let ad = ctx.ad;
+    let before = code(before.span());
+    let ac = ctx.ac;
+    // the final deals: line 0 on the root, no fifth on a diminished tonic
     let mut finals = array![];
-    for x in ad {
-        if *(*x).at(0) == 0 {
+    for x in ac {
+        if *x % 3 == 0 {
             if tonic_dim {
-                let mut f = array![];
-                for y in *x {
-                    f.append(if *y == 2 {
-                        0
-                    } else {
-                        *y
-                    });
+                let mut f = 0;
+                let mut p3 = 1;
+                let mut j = 0;
+                while j != k {
+                    let y = dig(*x, j);
+                    if y != 2 {
+                        f += y * p3;
+                    }
+                    p3 *= 3;
+                    j += 1;
                 }
-                finals.append(f.span());
+                finals.append(f);
             } else {
                 finals.append(*x);
             }
         }
     }
     let finals = finals.span();
-    let n_ad = ad.len();
-    let cad_from = mix(role_seed, 32) % n_ad;
+    let n_ac = ac.len();
+    let cad_from = mix(role_seed, 32) % n_ac;
     let rb_last_changed = *rb.chords.at(n_s - 1) != cad;
-    let mut cad_deal = *ad.at(0);
-    let mut end_deal = *ad.at(0);
+    let mut cad_code = 0;
+    let mut end_code = 0;
     let mut cad_p = BIG;
     let mut kk = 0;
-    while kk != n_ad {
-        let b = *ad.at((cad_from + kk) % n_ad);
-        let f = join_deal(finals, b, true, array![].span(), false, 0);
-        let p = deal_penalty(before, b, rb_last_changed, 2) + deal_penalty(b, f, true, 2);
+    while kk != n_ac {
+        let b = *ac.at((cad_from + kk) % n_ac);
+        let f = join_deal(finals, k, b, true, Option::None, false, 0);
+        let p = deal_penalty(before, b, k, rb_last_changed, 2) + deal_penalty(b, f, k, true, 2);
         if p < cad_p {
-            cad_deal = b;
-            end_deal = f;
+            cad_code = b;
+            end_code = f;
             cad_p = p;
         }
         kk += 1;
     }
+    let cad_deal = unpack(cad_code, 3, k);
+    let end_deal = unpack(end_code, 3, k);
     let mut ep_lead = array![];
     let mut u = 0;
     while u != EP_UNITS {
@@ -1741,7 +1815,7 @@ fn role_at(ra: Rd, rb: Rd, ca: u32, k: u32, v: u32, g: u32, s: u32) -> u32 {
     } else {
         rb
     };
-    *(*rd.roles.at(s)).at((g - v) % k)
+    dig(*rd.roles.at(s), (g - v) % k)
 }
 
 /// The Round of Loot Beast `species` as a format-1 MIDI file (`roundMidi(...).midi`).
@@ -1752,4 +1826,40 @@ pub fn round_smf_bytes(species: u32, mega: bool, seed: u64, drift: Option<Drift>
 /// The same as a ByteArray.
 pub fn round_byte_array(species: u32, mega: bool, seed: u64, drift: Option<Drift>) -> ByteArray {
     smf_byte_array(1, TPQ, round_tracks(species, mega, seed, drift).span())
+}
+
+#[cfg(test)]
+mod profile {
+    use core::testing::get_available_gas;
+    use super::*;
+
+    #[test]
+    #[ignore]
+    fn rounds_profile() {
+        let g0 = get_available_gas();
+        let ad = assign(4);
+        let chords = array![0_u32, 5, 3, 4, 0, 6, 2, 5].span();
+        let mut h = RngTrait::new(12345);
+        let g1 = get_available_gas();
+        let _roles = deal_roles(ad, 4, chords, ref h, 1, array![2, 0, 1, 3].span());
+        let g2 = get_available_gas();
+        let tracks = round_tracks(76, false, 0, Option::None);
+        let g3 = get_available_gas();
+        let mut n = 0;
+        for t in tracks.span() {
+            n += t.len();
+        }
+        let _ = smf_bytes(1, TPQ, tracks.span());
+        let g4 = get_available_gas();
+        let mut notes = array![];
+        let mut k = 0;
+        while k != 600 {
+            notes.append(Sound { t: k * 240, len: 200 + (k % 3) * 200, p: 60, v: 80 });
+            k += 1;
+        }
+        let g5 = get_available_gas();
+        let _ = note_track(0, 1, 2, 3, notes.span(), 200000);
+        let g6 = get_available_gas();
+        println!("assign {} deal_roles {} round_tracks {} smf {} (bytes {}) note_track600 {}", g0 - g1, g1 - g2, g2 - g3, g3 - g4, n, g5 - g6);
+    }
 }

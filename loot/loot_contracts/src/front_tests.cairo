@@ -44,3 +44,66 @@ fn front_05() {
     let s = deploy_all();
     assert_eq!(sum(@s.edition(88, false, 22, 7, Option::Some(DriftClock { day: 100, day_hash: 0x424299bd48783d29b2b4bd3b800452f896b8831ca15e580c2e90058fbb57091, week_hash: 0x7354236a67c1d070dc3f282b7e5f9a135380a661e492db1cd15d9376682d8c4, month_hash: 0x643c4d65b73686fc75a9dd2d353a8d1d2e08f1901dddc40b74ac3f2257a3bcf }))), (3990, 1440606665));
 }
+
+#[test]
+#[ignore]
+fn front_06() {
+    let s = deploy_all();
+    assert_eq!(sum(@s.round(76, false, 0, Option::None)), (5617, 632388666));
+}
+
+#[test]
+#[ignore]
+fn front_07() {
+    let s = deploy_all();
+    assert_eq!(sum(@s.round(84, true, 0, Option::None)), (6265, 1340017555));
+}
+
+#[test]
+#[ignore]
+fn front_08() {
+    let s = deploy_all();
+    assert_eq!(sum(@s.round(91, false, 3, Option::Some(DriftClock { day: 45, day_hash: 0x2956ffbf266d21c7d5e01968335e1bab126495564d8dcf5a92c5b14507e72c6, week_hash: 0x52e10e4521547a4ed4aa421ffc96e651368b640e0f5998520234a674eb594dc, month_hash: 0x3b2372967bbbc009fcabee385f9fd3a22c32d4f5cd9f29b6b424a25ea8b9ec3 }))), (4628, 4283293440));
+}
+
+#[test]
+#[ignore]
+fn front_09() {
+    let s = deploy_all();
+    assert_eq!(sum(@s.round(100, false, 0, Option::Some(DriftClock { day: 290, day_hash: 0x751b50a16a83719e77709e3993d8e7647a1369f95c1ff67af8612ec4847fede, week_hash: 0x5df86804762153ce15b694cff782ea1b150ea9168b47ac3480b91c366f49920, month_hash: 0x58e4df17f5c690f07fa000d1ab0463862d39799a04d559de783506519689c7f }))), (7827, 3109647215));
+}
+
+#[test]
+#[ignore]
+fn front_10() {
+    let s = deploy_all();
+    assert_eq!(sum(@s.round(95, true, 2, Option::Some(DriftClock { day: 9, day_hash: 0x34279274b2038b00d9c5b37e9ce4e185f05ecf8faf3ce3f78aa064f915449d4, week_hash: 0x418f5d30068fe217b6e4fcada355b570426efa0bc0fff7a8bfe100e05e3f87a, month_hash: 0x3e1800ea5338d65c1bf7bf773eaa1c0daccf374beae3941cbd080109de1ecda }))), (4892, 2614601938));
+}
+
+#[test]
+#[ignore]
+fn front_11() {
+    let s = deploy_all();
+    assert_eq!(sum(@s.sound_check(77, false, 0)), (1245, 2800981774));
+}
+
+#[test]
+#[ignore]
+fn front_12() {
+    let s = deploy_all();
+    assert_eq!(sum(@s.sound_check(86, true, 0)), (1723, 1262844212));
+}
+
+#[test]
+#[ignore]
+fn front_13() {
+    let s = deploy_all();
+    assert_eq!(sum(@s.sound_check(96, false, 5)), (1322, 1167880854));
+}
+
+#[test]
+#[ignore]
+fn front_14() {
+    let s = deploy_all();
+    assert_eq!(sum(@s.sound_check(103, true, 2)), (1486, 1213411487));
+}

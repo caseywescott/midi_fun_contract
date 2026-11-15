@@ -14,6 +14,45 @@ depends on by tag and never modifies.
 
 Sound effects: 0 regular, 1 mega.
 
+## Cairo (onchain)
+
+Everything above is ported to Cairo, byte for byte, in a Scarb workspace at the repo root (scarb 2.21.0,
+snforge 0.64.1). It depends on midi_fun_contract `v1.0.1` by tag (`midi`, `beast_composer`) and never modifies it.
+
+| Class | What | CASM felts (limit 81,920) |
+|---|---|---|
+| `LootSound` | front contract: `species_song`, `name_song`, `edition`, `round`, `sound_check`, `sound_pack`; library-calls the three classes below | 3,570 |
+| `LootSongComposer` | Species and Name Songs (Beasts composer v1.0.1) | 71,969 |
+| `LootEditionComposer` | Monthly Track Editions | 42,229 |
+| `LootRoundComposer` | Rounds and Sound Checks | 56,166 |
+| `LootFmPack` | the FM sound pack (gzip+base64 script, `pack()` / chunks / sha256) | 5,361 |
+
+Every getter returns the file **as the lab plays it**: each channel's program is the instrument the lab's band
+picks (`loot_composer::orchestra`, ported from `loot-lab.mjs` band/choose, drifting monthly/weekly), and Name
+Songs / Rounds are lifted +12 / +7 like the lab's `lifted`. ABI and arguments: `loot/loot_contracts/src/interfaces.cairo`
+(`purchase` is the lab's purchase number, seed = `purchase_seed(purchase)`; drift is a `DriftClock`, day 1 = as written).
+
+Parity with the JS (all identical):
+
+| What | Cases | Script |
+|---|---|---|
+| Editions | 96 (15 styles, mega, drift days, intros, walks, second leads...) | `scripts/editions_parity_cairo.sh` + `editions_parity.mjs` |
+| Rounds | 116 (30 species, purchases, drift days 9-290, rare modes) | `scripts/rounds_parity_cairo.sh` + `rounds_parity.mjs` |
+| Sound Checks | 100 | `KIND=checks PREFIX=CK sh scripts/rounds_parity_cairo.sh` + `checks_parity.mjs` |
+| Species/Name Songs, raw and as played | 44 | `scripts/songs_parity.mjs` |
+| Orchestration (bands) | 255 vectors | `scripts/songs_parity.mjs` |
+| Deployed front vs the lab's playback | 15 | `scripts/front_parity.mjs <midi_fun_contract v1.0.1> rounds` |
+
+Gas (l2, per call): Species/Name Song ~100-250M; Edition as played ~36-140M (typical 92M: band instruments are
+written in place, a third cheaper than patching the file); Round 58-263M (median 136M); Sound Check 16-31M.
+
+Run Cairo only through `sh scripts/cairo_run.sh <cmd>` (one at a time, memory watchdog). Parity fixtures are
+`#[ignore]`d batches: e.g. `sh scripts/cairo_run.sh scarb test -p loot_contracts -- --include-ignored`.
+
+The FM pack (`offchain/fm/`, see its README): the Kankyo FM bank as one 28 KB script (12.7 KB gzip; was 59 KB),
+bit-identical renders, faster startup; `offchain/fm/dist/demo.html` plays any .mid through it. The JS sources the
+port was made from are snapshotted at commit 33c18b1 (2026-11-16 00:48); later lab changes must be re-ported.
+
 ## Editions
 
 Twelve styles, one a month in turn, 64 progressions each. Each borrows its meter, figures and presets from a Beasts edition

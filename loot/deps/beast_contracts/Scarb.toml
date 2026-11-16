@@ -1,0 +1,22 @@
+# midi_fun_contract v1.1.0 `beasts/beast_contracts` as a library (the way its own bench/deps does it):
+# the production package's name, version, edition and dependencies, a [lib] target, and its src
+# copied verbatim from the v1.1.0 tag (test modules left out). Only here so the tests can declare the
+# pinned `BeastPureComposer`; the Loot classes never compile it in.
+[package]
+name = "beast_contracts"
+version = "0.1.0"
+edition = "2025_12"
+
+[dependencies]
+beast_composer.workspace = true
+midi.workspace = true
+openzeppelin_access = "=4.0.1"
+openzeppelin_upgrades = "=4.0.1"
+openzeppelin_interfaces = "=2.2.0"
+starknet.workspace = true
+
+[lib]
+
+[[target.starknet-contract]]
+sierra = true
+casm = true

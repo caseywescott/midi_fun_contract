@@ -17,20 +17,31 @@ Sound effects: 0 regular, 1 mega.
 ## Cairo (onchain)
 
 Everything above is ported to Cairo, byte for byte, in a Scarb workspace at the repo root (scarb 2.21.0,
-snforge 0.64.1). It depends on midi_fun_contract `v1.0.1` by tag (`midi`, `beast_composer`) and never modifies it.
+snforge 0.64.1). It is pinned to Beast Sound **v1.1.0** (midi_fun_contract tag `v1.1.0`: `midi`,
+`beast_composer`) and follows its pattern: one storage-free composer class behind a
+`compose(inputs, sound_effects)` / `compose_drift(inputs, sound_effects, drift)` ABI, and an Ownable,
+Upgradeable provider.
 
 | Class | What | CASM felts (limit 81,920) |
 |---|---|---|
-| `LootSound` | front contract: `species_song`, `name_song`, `edition`, `round`, `sound_check`, `sound_pack`; library-calls the three classes below | 3,570 |
-| `LootSongComposer` | Species and Name Songs (Beasts composer v1.0.1) | 71,969 |
-| `LootEditionComposer` | Monthly Track Editions | 42,229 |
-| `LootRoundComposer` | Rounds and Sound Checks | 51,559 |
+| `LootPureComposer` | the Loot composer, storage-free: Editions, Rounds, Sound Checks, each with the lab's band (and the Round's +7 lift) written in place | 79,517 |
+| `LootMidiProvider` | every track behind one ABI (`ILootMidiProvider`): Editions/Rounds/Checks library-call `LootPureComposer`; Species/Name Songs build the Loot Beast's `SongInputs` and library-call the pinned v1.1.0 `BeastPureComposer`, then add the band (and the Name Song's +12); OpenZeppelin Ownable + Upgradeable, `set_classes` | 26,628 |
+| `BeastPureComposer` | not ours: Beast Sound v1.1.0's class (`0x07eb6480…02eb63`), used as is | 81,920 |
 | `LootFmPack` | the FM sound pack (gzip+base64 script, `pack()` / chunks / sha256) | 5,361 |
 
-Every getter returns the file **as the lab plays it**: each channel's program is the instrument the lab's band
-picks (`loot_composer::orchestra`, ported from `loot-lab.mjs` band/choose, drifting monthly/weekly), and Name
-Songs / Rounds are lifted +12 / +7 like the lab's `lifted`. ABI and arguments: `loot/loot_contracts/src/interfaces.cairo`
-(`purchase` is the lab's purchase number, seed = `purchase_seed(purchase)`; drift is a `DriftClock`, day 1 = as written).
+ABI (`loot/loot_contracts/src/interfaces.cairo`): `LootInputs` is `Song { species, name }`,
+`Edition { species, edition, purchase }`, `Round { species, purchase }` or `SoundCheck { species, take }`.
+`sound_effects` is v1.1's (0 written, 1 mega, 2 echo, 3 both; 4+ revert): Songs get v1.1's whole
+performance (mega leads, echo, faster, louder, articulation) because the Beast class plays them; Editions,
+Rounds and Sound Checks take the mega sound only, as v1.1's editions do. **So a mega Song is not the
+lab's Mega** (the lab's is the arrangement alone): the lab needs updating to match. `drift` is v1.1's
+`DriftInputs`; day 1 is as written; a Song's drift is its name's. `purchase` is the lab's purchase number
+(seed = `purchase_seed(purchase)`); Rounds/Checks 0 is the species' own. Songs and Loot species: under
+v1.1.0 the Loot songs are byte-identical to v1.0.1 (`v11_song_tests`).
+
+The tests declare the real `BeastPureComposer`: `loot/deps/beast_contracts` is v1.1.0's
+`beasts/beast_contracts/src` verbatim with a `[lib]` target (as v1.1's own bench does); it builds to the
+release class hash, which `tests::the_song_class_is_the_v110_release` checks.
 
 Parity with the JS (all identical):
 
@@ -41,13 +52,14 @@ Parity with the JS (all identical):
 | Sound Checks | 100 | `KIND=checks PREFIX=CK sh scripts/rounds_parity_cairo.sh` + `checks_parity.mjs` |
 | Species/Name Songs, raw and as played | 44 | `scripts/songs_parity.mjs` |
 | Orchestration (bands) | 255 vectors | `scripts/songs_parity.mjs` |
-| Deployed front vs the lab's playback | 15 | `scripts/front_parity.mjs <midi_fun_contract v1.0.1> rounds` |
+| Deployed provider vs the lab's playback (Songs, Editions, Rounds, Checks) | 20 | `scripts/front_parity.mjs <midi_fun_contract v1.0.1 checkout> rounds` |
 | Rounds/Checks played in place vs orchestrating the written file | 14 | `loot_composer::played_tests` |
+| Songs through the v1.1 path vs the lab's (species, name, drift) | 7 | `loot_contracts::v11_song_tests` |
+| Mega/echo Songs through the provider vs the pinned class called directly | 2 | `loot_contracts::tests` |
 
-Gas (l2, per call): Species/Name Song ~100-250M; Edition as played ~36-140M (typical 92M: band instruments are
-written in place, a third cheaper than patching the file); Round 58-263M (median 136M) and Sound Check 16-31M
-before their band and +7 lift were also written in place, which cut another 11-16% (front tests: Rounds 181-289M,
-Checks 44-61M through the front).
+Gas (l2, per call, approximate): Species/Name Song ~180-390M through the provider (the pinned class plus the band pass); Edition ~36-140M (typical
+92M); Round ~180-290M and Sound Check ~45-65M through the provider. Fitting one class cost Rounds ~1% and
+Sound Checks ~4% (packed tables), Editions ~0.1%.
 
 Run Cairo only through `sh scripts/cairo_run.sh <cmd>` (one at a time, memory watchdog). Parity fixtures are
 `#[ignore]`d batches: e.g. `sh scripts/cairo_run.sh scarb test -p loot_contracts -- --include-ignored`.

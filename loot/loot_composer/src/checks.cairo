@@ -8,9 +8,9 @@
 use core::num::traits::WrappingMul;
 use midi::smf::{smf_byte_array, smf_bytes};
 use crate::checks_data::{OPS, PIECE_AT};
-use crate::common::{RngTrait, fold64, gliss_plan, glissando};
+use crate::common::{RngTrait, at32, fold64, gliss_plan, glissando};
 use crate::rounds::{
-    Sound, TPQ, i, is_lead, mode_cad, mode_index, mode_scale, mod7, note_track, opaque, pitch_of,
+    Sound, TPQ, i, is_lead, m7, mode_cad, mode_index, mode_scale, note_track, opaque, pitch_of, to_i,
     Play, as_written, programs_of, sign, sort_keys, tempo_track,
 };
 use crate::rounds_data::MODE_DIM;
@@ -35,10 +35,8 @@ struct Put {
     v: u32,
 }
 
-#[derive(Drop)]
+#[derive(Copy, Drop)]
 struct Band {
-    puts: Array<Put>,
-    hits: Array<Sound>,
     /// The motif (six degrees from the tonic).
     m: Span<i32>,
     /// The canon's two tail notes: the motif's last note stepped home once and twice.
@@ -52,43 +50,35 @@ struct Band {
     rhythm: u32,
 }
 
-#[generate_trait]
-impl BandImpl of BandTrait {
-    #[inline(never)]
-    fn put(ref self: Band, part: u32, t: u32, len: u32, d: i32, v: u32) {
-        self.puts.append(Put { part, t, len, d, v });
-    }
-}
-
 /// One step home: toward 0, from 0 up.
 fn home_step(x: i32) -> i32 {
     if x == 0 {
         1
     } else {
-        x - sign(x)
+        to_i(x.into() - sign(x).into())
     }
 }
 
 /// The mode's colour note: circled, leaned on, then a step down to the nearest note of the tonic chord.
 #[inline(never)]
-fn colour_drill(ref c: Band, t: u32) {
-    let x = if c.colour < 3 {
-        c.colour + 7
+fn colour_drill(ref puts: Array<Put>, colour: i32, fifth: i32, t: u32) {
+    let x: felt252 = colour.into() + if colour < 3 {
+        7
     } else {
-        c.colour
+        0
     };
     let mut home = x - 1;
     loop {
-        let h = mod7(home);
-        if (h == 0 || h == 2 || h == 4) && !(h == 4 && c.fifth != 4) {
+        let h = m7(home);
+        if (h == 0 || h == 2 || h == 4) && !(h == 4 && fifth != 4) {
             break;
         }
         home -= 1;
     }
     // the circle, then the way down from x to home + 1 padded in front to four notes (x + 1 next to
     // it, then x, ...)
-    let mut way: Array<i32> = array![x - 1, x, x + 1, x];
-    let n = x - home;
+    let mut way: Array<felt252> = array![x - 1, x, x + 1, x];
+    let n: u32 = (x - home).try_into().unwrap();
     let mut pad = if n < 4 {
         4 - n
     } else {
@@ -103,73 +93,85 @@ fn colour_drill(ref c: Band, t: u32) {
         pad -= 1;
     }
     let mut d = x;
-    while d > home {
+    let mut left = n;
+    while left != 0 {
         way.append(d);
         d -= 1;
+        left -= 1;
     }
     // sixteenths: the circle, then (in the second bar) the way's last four
     let w = way.span();
     let last = w.slice(w.len() - 4, 4);
-    let mut q: u32 = 0;
+    let mut out: Array<Put> = opaque(array![]);
+    let mut q: u32 = opaque(0);
     while q != 8 {
         let (at, d, vel) = if q < 4 {
             (t + q * 240, *w.at(q), 80)
         } else {
             (t + BAR + (q - 4) * 240, *last.at(q - 4), 84)
         };
-        c.put(0, at, 220, d, vel);
+        out.append(Put { part: 0, t: at, len: 220, d: to_i(d), v: vel });
         if q == 3 {
-            c.put(0, t + 960, 940, x, 104);
+            out.append(Put { part: 0, t: t + 960, len: 940, d: to_i(x), v: 104 });
         }
         q += 1;
     }
-    c.put(0, t + BAR + 960, 940, home, 92);
-    c.put(1, t, SEG - 20, 0, 62);
-    c.put(4, t, SEG - 20, 0, 70);
+    out.append(Put { part: 0, t: t + BAR + 960, len: 940, d: to_i(home), v: 92 });
+    out.append(Put { part: 1, t, len: SEG - 20, d: 0, v: 62 });
+    out.append(Put { part: 4, t, len: SEG - 20, d: 0, v: 70 });
+    puts.append_span(out.span());
 }
 
 /// A note's degree from its op's kind and value (see checks_data.cairo).
 #[inline(never)]
-fn degree(c: @Band, dk: u64, a: i32) -> i32 {
-    let o = a % 16 - 8;
-    if dk == 0 {
-        a - 64
-    } else if dk == 1 {
-        if c.fifth == 4 {
-            4
+fn degree(c: @Band, dk: u64, a: u32) -> i32 {
+    let fa: felt252 = a.into();
+    let (hi, lo) = DivRem::div_rem(a, 16);
+    let o: felt252 = lo.into() - 8;
+    let fifth = c.fifth;
+    to_i(
+        if dk == 0 {
+            fa - 64
+        } else if dk == 1 {
+            if fifth == 4 {
+                4
+            } else {
+                fa - 64
+            }
+        } else if dk == 2 {
+            fifth.into()
+        } else if dk == 3 {
+            c.k.into() + fa - 64
+        } else if dk == 4 {
+            (*c.m.at(hi)).into() + o
+        } else if dk == 5 {
+            let (d0, r8) = DivRem::div_rem(a, 8);
+            let d0: felt252 = d0.into();
+            (if m7(d0) == 4 && fifth != 4 {
+                d0 + 1
+            } else {
+                d0
+            })
+                + r8.into()
+                - 4
+        } else if dk == 6 {
+            let (t0, t1) = c.tail;
+            (if hi == 0 {
+                t0
+            } else {
+                t1
+            })
+                .into()
+                + o
         } else {
-            a - 64
-        }
-    } else if dk == 2 {
-        c.fifth
-    } else if dk == 3 {
-        c.k + a - 64
-    } else if dk == 4 {
-        *c.m.at((a / 16).try_into().unwrap()) + o
-    } else if dk == 5 {
-        let d0 = a / 8;
-        (if mod7(d0) == 4 && c.fifth != 4 {
-            d0 + 1
-        } else {
-            d0
-        })
-            + a % 8
-            - 4
-    } else if dk == 6 {
-        let (t0, t1) = c.tail;
-        (if a / 16 == 0 {
-            t0
-        } else {
-            t1
-        }) + o
-    } else {
-        o - *c.m.at((a / 16).try_into().unwrap())
-    }
+            o - (*c.m.at(hi)).into()
+        },
+    )
 }
 
 /// Plays piece p (0-2 openings, 3-11 drills, 12-14 closes) from tick t with draw v.
 #[inline(never)]
-fn play(ref c: Band, p: u32, t: u32, v: u32) {
+fn play(c: @Band, ref puts: Array<Put>, ref hits: Array<Sound>, p: u32, t: u32, v: u32) {
     let at = PIECE_AT.span();
     let ops = OPS.span();
     let mut y = *at.at(p);
@@ -178,7 +180,8 @@ fn play(ref c: Band, p: u32, t: u32, v: u32) {
     let typ: u64 = c.typ.into();
     let rhythm: u64 = c.rhythm.into();
     while y != stop {
-        let (x, a) = DivRem::div_rem(*ops.at(y), 128);
+        let op: u64 = at32(ops, 2 * y).into() + 0x100000000 * at32(ops, 2 * y + 1).into();
+        let (x, a) = DivRem::div_rem(op, 128);
         let (x, dk) = DivRem::div_rem(x, 8);
         let (x, vel) = DivRem::div_rem(x, 128);
         let (x, len) = DivRem::div_rem(x, 4096);
@@ -207,12 +210,12 @@ fn play(ref c: Band, p: u32, t: u32, v: u32) {
             let len: u32 = len.try_into().unwrap();
             let vel: u32 = vel.try_into().unwrap();
             if op == 0 {
-                let d = degree(@c, dk, a.try_into().unwrap());
-                c.put(part.try_into().unwrap(), tt, len, d, vel);
+                let d = degree(c, dk, a.try_into().unwrap());
+                puts.append(Put { part: part.try_into().unwrap(), t: tt, len, d, v: vel });
             } else if op == 1 {
-                c.hits.append(Sound { t: tt, len: 120, p: i(len), v: vel });
+                hits.append(Sound { t: tt, len: 120, p: i(len), v: vel });
             } else {
-                colour_drill(ref c, tt);
+                colour_drill(ref puts, c.colour, c.fifth, tt);
             }
         }
         y += 1;
@@ -222,8 +225,8 @@ fn play(ref c: Band, p: u32, t: u32, v: u32) {
 /// Sounds sorted by start, ties in the order they come (the source's stable sort).
 #[inline(never)]
 fn by_start(xs: Span<Sound>) -> Span<Sound> {
-    let mut keys: Array<u64> = array![];
-    let mut k: u64 = 0;
+    let mut keys: Array<u64> = opaque(array![]);
+    let mut k: u64 = opaque(0);
     for x in xs {
         let t: u64 = x.t.into();
         keys.append(t * 0x10000 + k);
@@ -260,8 +263,8 @@ pub fn sound_check_tracks(species: u32, mega: bool, take: u64, how: Play) -> Arr
     );
     while q != 3 {
         let pick = r.int(left.len());
-        let mut rest = array![];
-        let mut x = 0;
+        let mut rest = opaque(array![]);
+        let mut x: u32 = opaque(0);
         for d in left.span() {
             if x == pick {
                 drills.append(*d);
@@ -276,11 +279,11 @@ pub fn sound_check_tracks(species: u32, mega: bool, take: u64, how: Play) -> Arr
     let draws = array![r.int(4), r.int(4), r.int(4)];
     let gl_draw = r.int(20);
     let gl_seed = r.next();
-    let d0: i32 = (*sp.degrees.span().at(0)).into();
+    let d0: felt252 = (*sp.degrees.span().at(0)).into();
     let mut m = array![];
     for d in sp.degrees.span() {
-        let dd: i32 = (*d).into();
-        m.append(dd - d0);
+        let dd: felt252 = (*d).into();
+        m.append(to_i(dd - d0));
     }
     let m = m.span();
     let mode: u32 = sp.mode.into();
@@ -297,13 +300,11 @@ pub fn sound_check_tracks(species: u32, mega: bool, take: u64, how: Play) -> Arr
     };
     let cad = i(mode_cad(mx));
     let t0 = home_step(*m.at(5));
-    let mut c = Band {
-        puts: array![],
-        hits: array![],
+    let c = Band {
         m,
         tail: (t0, home_step(t0)),
         k: if cad > 3 {
-            cad - 7
+            to_i(cad.into() - 7)
         } else {
             cad
         },
@@ -316,15 +317,17 @@ pub fn sound_check_tracks(species: u32, mega: bool, take: u64, how: Play) -> Arr
         typ,
         rhythm: id % 3,
     };
-    play(ref c, op, 0, 0);
-    let mut q = 0;
+    let mut puts: Array<Put> = array![];
+    let mut hits: Array<Sound> = array![];
+    play(@c, ref puts, ref hits, op, 0, 0);
+    let mut q: u32 = opaque(0);
     while q != 3 {
-        play(ref c, 3 + *drills.at(q), (q + 1) * SEG, *draws.at(q));
+        play(@c, ref puts, ref hits, 3 + *drills.at(q), (q + 1) * SEG, *draws.at(q));
         q += 1;
     }
-    play(ref c, 12 + cl, 4 * SEG, 0);
+    play(@c, ref puts, ref hits, 12 + cl, 4 * SEG, 0);
     let end = 5 * SEG;
-    let puts = c.puts.span();
+    let puts = puts.span();
     let programs = programs_of(id, typ, mega);
     let us = (120000000 + bpm) / (2 * bpm);
     let (mut tracks, mut ch): (Array<Array<u8>>, u32) = opaque(
@@ -336,7 +339,7 @@ pub fn sound_check_tracks(species: u32, mega: bool, take: u64, how: Play) -> Arr
             if let Option::Some(plan) = gliss_plan(gl_draw, gl_seed, GLISS_WEIGHTS.span()) {
                 let at = *GLISS_AT.span().at(plan.spot);
                 for g in glissando(plan, at, opaque(960), gl_seed, at + 480) {
-                    part.append(Sound { t: g.t, len: g.len, p: pitch_of(base, scale, g.d), v: g.v.into() });
+                    part.append(Sound { t: g.t, len: g.len, p: pitch_of(base, scale, g.d.into()), v: g.v.into() });
                 }
             }
         } else if ch != 5 || mega {
@@ -355,7 +358,7 @@ pub fn sound_check_tracks(species: u32, mega: bool, take: u64, how: Play) -> Arr
                     } else {
                         x.v - 14
                     };
-                    part.append(Sound { t: x.t, len: x.len, p: pitch_of(b, scale, x.d), v });
+                    part.append(Sound { t: x.t, len: x.len, p: pitch_of(b, scale, x.d.into()), v });
                 }
             }
         }
@@ -383,8 +386,8 @@ pub fn sound_check_tracks(species: u32, mega: bool, take: u64, how: Play) -> Arr
         }
         ch += 1;
     }
-    if c.hits.len() != 0 {
-        tracks.append(note_track(9, 0, 0, 0, by_start(c.hits.span()), end, how));
+    if hits.len() != 0 {
+        tracks.append(note_track(9, 0, 0, 0, by_start(hits.span()), end, how));
     }
     tracks
 }

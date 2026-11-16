@@ -9,15 +9,20 @@ loot_composer = { path = "../loot_composer" }
 midi.workspace = true
 beast_composer.workspace = true
 beast_composer_inputs.workspace = true
+openzeppelin_access.workspace = true
+openzeppelin_upgrades.workspace = true
+openzeppelin_interfaces.workspace = true
 starknet.workspace = true
 
 [dev-dependencies]
+beast_contracts = { path = "../deps/beast_contracts" }
 snforge_std.workspace = true
 assert_macros.workspace = true
 
 [[target.starknet-contract]]
 sierra = true
 casm = true
+build-external-contracts = ["beast_contracts::pure_composer::BeastPureComposer"]
 
 [scripts]
 test.workspace = true

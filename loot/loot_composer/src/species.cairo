@@ -22,38 +22,28 @@ pub struct LootSpecies {
 /// Loot Beast `id` (LOOT_FIRST..LOOT_FIRST + LOOT_COUNT).
 pub fn loot_species(id: u32) -> LootSpecies {
     assert(id >= LOOT_FIRST && id < LOOT_FIRST + LOOT_COUNT, 'not a Loot Beast');
-    *ALL.span().at(id - LOOT_FIRST)
+    let mut x: u64 = *ALL.span().at(id - LOOT_FIRST);
+    let tier = nib(ref x);
+    let beast_type = nib(ref x);
+    let tonic_pc = nib(ref x);
+    let mode = nib(ref x);
+    let degrees = [deg(ref x), deg(ref x), deg(ref x), deg(ref x), deg(ref x), deg(ref x)];
+    LootSpecies { id, tier, beast_type, tonic_pc, mode, degrees }
 }
 
-const ALL: [LootSpecies; 30] = [
-        LootSpecies { id: 76, tier: 1, beast_type: 0, tonic_pc: 6, mode: 4, degrees: [0, 1, 3, 5, 3, 4] },
-        LootSpecies { id: 77, tier: 1, beast_type: 0, tonic_pc: 7, mode: 8, degrees: [0, -2, -3, -1, 1, 2] },
-        LootSpecies { id: 78, tier: 2, beast_type: 0, tonic_pc: 8, mode: 7, degrees: [0, 2, 3, 4, 2, 0] },
-        LootSpecies { id: 79, tier: 2, beast_type: 0, tonic_pc: 9, mode: 5, degrees: [0, -2, -1, 1, 2, 3] },
-        LootSpecies { id: 80, tier: 3, beast_type: 0, tonic_pc: 10, mode: 4, degrees: [0, -2, 0, 2, 1, 3] },
-        LootSpecies { id: 81, tier: 3, beast_type: 0, tonic_pc: 11, mode: 8, degrees: [0, -2, -1, 0, 2, 1] },
-        LootSpecies { id: 82, tier: 4, beast_type: 0, tonic_pc: 0, mode: 7, degrees: [0, -2, -4, -6, -7, -6] },
-        LootSpecies { id: 83, tier: 4, beast_type: 0, tonic_pc: 1, mode: 5, degrees: [0, 1, -1, 1, 3, 2] },
-        LootSpecies { id: 84, tier: 5, beast_type: 0, tonic_pc: 2, mode: 4, degrees: [0, 1, 3, 5, 7, 5] },
-        LootSpecies { id: 85, tier: 5, beast_type: 0, tonic_pc: 3, mode: 8, degrees: [0, 2, 0, -1, 1, -1] },
-        LootSpecies { id: 86, tier: 1, beast_type: 1, tonic_pc: 4, mode: 7, degrees: [0, -1, -2, -3, -5, -4] },
-        LootSpecies { id: 87, tier: 1, beast_type: 1, tonic_pc: 5, mode: 5, degrees: [0, 1, -1, -3, -1, -2] },
-        LootSpecies { id: 88, tier: 2, beast_type: 1, tonic_pc: 6, mode: 4, degrees: [0, -1, -3, -5, -4, -5] },
-        LootSpecies { id: 89, tier: 2, beast_type: 1, tonic_pc: 7, mode: 8, degrees: [0, 1, 3, 1, 2, 0] },
-        LootSpecies { id: 90, tier: 3, beast_type: 1, tonic_pc: 8, mode: 7, degrees: [0, -2, 0, 2, 0, 2] },
-        LootSpecies { id: 91, tier: 3, beast_type: 1, tonic_pc: 9, mode: 5, degrees: [0, -2, -4, -2, -4, -5] },
-        LootSpecies { id: 92, tier: 4, beast_type: 1, tonic_pc: 10, mode: 4, degrees: [0, -2, 0, 1, 0, 1] },
-        LootSpecies { id: 93, tier: 4, beast_type: 1, tonic_pc: 11, mode: 8, degrees: [0, -2, -3, -4, -5, -4] },
-        LootSpecies { id: 94, tier: 5, beast_type: 1, tonic_pc: 0, mode: 7, degrees: [0, 1, -1, -3, -4, -5] },
-        LootSpecies { id: 95, tier: 5, beast_type: 1, tonic_pc: 1, mode: 5, degrees: [0, -1, -2, -3, -1, 1] },
-        LootSpecies { id: 96, tier: 1, beast_type: 2, tonic_pc: 2, mode: 4, degrees: [0, 1, 0, 1, -1, -3] },
-        LootSpecies { id: 97, tier: 1, beast_type: 2, tonic_pc: 3, mode: 8, degrees: [0, -1, 1, 0, 1, 2] },
-        LootSpecies { id: 98, tier: 2, beast_type: 2, tonic_pc: 4, mode: 7, degrees: [0, -2, 0, -1, 1, 0] },
-        LootSpecies { id: 99, tier: 2, beast_type: 2, tonic_pc: 5, mode: 5, degrees: [0, 1, 3, 4, 3, 5] },
-        LootSpecies { id: 100, tier: 3, beast_type: 2, tonic_pc: 6, mode: 4, degrees: [0, -1, 1, 3, 1, 2] },
-        LootSpecies { id: 101, tier: 3, beast_type: 2, tonic_pc: 7, mode: 8, degrees: [0, -2, -4, -2, -3, -1] },
-        LootSpecies { id: 102, tier: 4, beast_type: 2, tonic_pc: 8, mode: 7, degrees: [0, 1, 3, 1, -1, 0] },
-        LootSpecies { id: 103, tier: 4, beast_type: 2, tonic_pc: 9, mode: 5, degrees: [0, 2, 1, 0, 2, 1] },
-        LootSpecies { id: 104, tier: 5, beast_type: 2, tonic_pc: 10, mode: 4, degrees: [0, -1, 0, 1, 0, -1] },
-        LootSpecies { id: 105, tier: 5, beast_type: 2, tonic_pc: 11, mode: 8, degrees: [0, -2, 0, -1, 1, 3] },
-];
+/// The low 4 bits of `x`, shifted out.
+#[inline(never)]
+fn nib(ref x: u64) -> u8 {
+    let (q, r) = DivRem::div_rem(x, 16);
+    x = q;
+    r.try_into().unwrap()
+}
+
+/// A degree (stored + 8).
+fn deg(ref x: u64) -> i8 {
+    let d: felt252 = nib(ref x).into() - 8;
+    d.try_into().unwrap()
+}
+
+/// Each species: tier, type, tonic, mode, then the six degrees + 8, 4 bits each from the low end.
+const ALL: [u64; 30] = [0xcbdb984601, 0xa975688701, 0x8acba87802, 0xba97685902, 0xb9a8684a03, 0x9a87688b03, 0x2124687004, 0xab97985104, 0xdfdb984205, 0x7978a88305, 0x4356787411, 0x6757985511, 0x3435784612, 0x8a9b988712, 0xa8a8687813, 0x3464685913, 0x9898684a14, 0x4345688b14, 0x3457987015, 0x9756785115, 0x5798984221, 0xa989788321, 0x8978687422, 0xdbcb985522, 0xa9b9784623, 0x7564688723, 0x879b987824, 0x9a89a85924, 0x7898784a25, 0xb978688b25];

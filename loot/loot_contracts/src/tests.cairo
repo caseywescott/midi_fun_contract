@@ -1,10 +1,12 @@
-//! LootSound end to end: deploy the front with the classes declared, call it as a client would, and
-//! compare the files with the lab's (checksums from scripts/songs_parity.mjs).
-use beast_composer::composition::drift::DriftClock;
+//! LootMidiProvider end to end: declare the classes (the pinned v1.1.0 BeastPureComposer included),
+//! deploy the provider and call it as a client would.
 use core::num::traits::{WrappingAdd, WrappingMul};
-use snforge_std::{ContractClassTrait, DeclareResultTrait, declare};
-use starknet::ContractAddress;
-use crate::interfaces::{ILootSoundDispatcher, ILootSoundDispatcherTrait};
+use openzeppelin_interfaces::ownable::{IOwnableDispatcher, IOwnableDispatcherTrait};
+use snforge_std::{ContractClassTrait, DeclareResultTrait, declare, start_cheat_caller_address};
+use starknet::{ClassHash, ContractAddress};
+use crate::interfaces::{
+    IBeastPureComposerDispatcherTrait, ILootMidiProviderDispatcher, ILootMidiProviderDispatcherTrait,
+};
 
 /// The lab's checksum over a file's bytes (h * 31 + b, 32 bits) and its length.
 pub fn sum(x: @ByteArray) -> (u32, u32) {
@@ -17,50 +19,100 @@ pub fn sum(x: @ByteArray) -> (u32, u32) {
     (x.len(), h)
 }
 
-pub fn deploy(edition_class: felt252, round_class: felt252) -> ILootSoundDispatcher {
-    let song = declare("LootSongComposer").unwrap().contract_class().class_hash;
+pub const BEAST_PURE_COMPOSER_V110: felt252 =
+    0x07eb6480204a1367381b782116e6a3d6dedd8fb8b03535ca453e5c681002eb63;
+
+pub fn owner() -> ContractAddress {
+    0x0a11ce.try_into().unwrap()
+}
+
+pub fn deploy() -> ILootMidiProviderDispatcher {
+    let composer = declare("LootPureComposer").unwrap().contract_class().class_hash;
+    let song = declare("BeastPureComposer").unwrap().contract_class().class_hash;
     let pack: ContractAddress = 0x1234.try_into().unwrap();
-    let edition = if edition_class == 0 {
-        song.into()
-    } else {
-        edition_class
-    };
-    let round = if round_class == 0 {
-        song.into()
-    } else {
-        round_class
-    };
-    let front = declare("LootSound").unwrap().contract_class();
-    let (addr, _) = front.deploy(@array![song.into(), edition, round, pack.into()]).unwrap();
-    ILootSoundDispatcher { contract_address: addr }
-}
-
-/// The front with every class this build has (Editions; Rounds/Sound Checks when present).
-pub fn deploy_all() -> ILootSoundDispatcher {
-    let ed = declare("LootEditionComposer").unwrap().contract_class().class_hash;
-    deploy(ed.into(), round_class())
-}
-
-fn round_class() -> felt252 {
-    declare("LootRoundComposer").unwrap().contract_class().class_hash.into()
+    let provider = declare("LootMidiProvider").unwrap().contract_class();
+    let (addr, _) = provider
+        .deploy(@array![composer.into(), song.into(), pack.into(), owner().into()])
+        .unwrap();
+    ILootMidiProviderDispatcher { contract_address: addr }
 }
 
 #[test]
-fn species_song_through_the_front() {
-    let s = deploy(0, 0);
-    assert_eq!(sum(@s.species_song(76, false, Option::None)), (4861, 4282407724));
+fn the_song_class_is_the_v110_release() {
+    let s = deploy();
+    let want: ClassHash = BEAST_PURE_COMPOSER_V110.try_into().unwrap();
+    assert_eq!(s.get_song_class(), want);
     assert_eq!(s.sound_pack(), 0x1234.try_into().unwrap());
+    assert_eq!(IOwnableDispatcher { contract_address: s.contract_address }.owner(), owner());
 }
 
 #[test]
-fn name_song_and_drift_through_the_front() {
-    let s = deploy(0, 0);
-    assert_eq!(sum(@s.name_song(90, false, 1242, Option::None)), (3522, 4065962252));
-    let clock = DriftClock {
-        day: 45,
-        day_hash: 0x2956ffbf266d21c7d5e01968335e1bab126495564d8dcf5a92c5b14507e72c6,
-        week_hash: 0x52e10e4521547a4ed4aa421ffc96e651368b640e0f5998520234a674eb594dc,
-        month_hash: 0x3b2372967bbbc009fcabee385f9fd3a22c32d4f5cd9f29b6b424a25ea8b9ec3,
-    };
-    assert_eq!(sum(@s.species_song(80, false, Option::Some(clock))), (2439, 1886200172));
+#[should_panic]
+fn only_the_owner_sets_classes() {
+    let s = deploy();
+    let c = s.get_composer_class();
+    s.set_classes(c, c, 0x1.try_into().unwrap());
+}
+
+#[test]
+fn the_owner_sets_classes() {
+    let s = deploy();
+    let c = s.get_composer_class();
+    start_cheat_caller_address(s.contract_address, owner());
+    s.set_classes(c, c, 0x1.try_into().unwrap());
+    assert_eq!(s.get_song_class(), c);
+}
+
+/// A song with sound effects through the provider is the pinned class's own performed file (called
+/// directly here), given the lab's band and lift.
+fn performed_song_matches(species: u32, name: u16, sound_effects: u8) {
+    let s = deploy();
+    let (prefix, suffix) = loot_composer::songs::name_from_variant(name);
+    let beast = crate::provider::loot_beast(species, prefix, suffix);
+    let inputs = beast_composer::inputs::ComposerInputs::Song(
+        beast_composer::composition::genesis::genesis_song_inputs(beast, prefix, suffix, 0, Option::None),
+    );
+    let (addr, _) = declare("BeastPureComposer").unwrap().contract_class().deploy(@array![]).unwrap();
+    let direct = crate::interfaces::IBeastPureComposerDispatcher { contract_address: addr }
+        .compose(inputs, sound_effects);
+    let band = loot_composer::orchestra::song_band(
+        loot_composer::species::loot_species(species).beast_type, species, Option::None,
+    );
+    let want = loot_composer::orchestra::orchestrate_byte_array(
+        loot_composer::orchestra::byte_array_bytes(@direct.midi).span(),
+        band.span(),
+        if name == 0 {
+            0
+        } else {
+            12
+        },
+    );
+    let got = s
+        .compose(crate::interfaces::LootInputs::Song(crate::interfaces::LootSongInputs { species, name }), sound_effects);
+    assert!(got == want, "performed song differs");
+}
+
+#[test]
+#[ignore]
+fn mega_species_song() {
+    performed_song_matches(84, 0, 1);
+}
+
+#[test]
+#[ignore]
+fn mega_echo_name_song() {
+    performed_song_matches(99, 300, 3);
+}
+
+#[test]
+#[should_panic]
+fn sound_effects_above_3_revert() {
+    let s = deploy();
+    s
+        .compose(
+            crate::interfaces::LootInputs::SoundCheck(
+                crate::interfaces::LootSoundCheckInputs { species: 80, take: 0 },
+            ),
+            4,
+        );
 }

@@ -5,6 +5,12 @@ use core::num::traits::{WrappingAdd, WrappingMul};
 
 const TWO32: u64 = 0x100000000;
 
+/// Returns `x`, hiding a constant from the compiler (one copy of a loop entered with constant state).
+#[inline(never)]
+pub fn opaque<T, +Drop<T>>(x: T) -> T {
+    x
+}
+
 /// mulberry32, as loot_editions.js `rng(seed)`.
 #[derive(Copy, Drop)]
 pub struct Rng {
@@ -38,6 +44,28 @@ pub impl RngImpl of RngTrait {
     fn pick<T, +Copy<T>, +Drop<T>>(ref self: Rng, xs: Span<T>) -> T {
         *xs.at(self.int(xs.len()))
     }
+}
+
+/// Item `i` of a table of u32s packed 7 to a felt252 (item i at bit 32 * (i % 7) of felt i / 7).
+#[inline(never)]
+pub fn at32(data: Span<felt252>, i: u32) -> u32 {
+    let (q, r) = DivRem::div_rem(i, 7);
+    let w: u256 = (*data.at(q)).into();
+    let (h, s) = if r < 4 {
+        (w.low, r)
+    } else {
+        (w.high, r - 4)
+    };
+    let x = if s == 0 {
+        h
+    } else if s == 1 {
+        h / 0x100000000
+    } else if s == 2 {
+        h / 0x10000000000000000
+    } else {
+        h / 0x1000000000000000000000000
+    };
+    (x % 0x100000000).try_into().unwrap()
 }
 
 /// loot_editions.js `mix(h, x)`: imul(h ^ x, 0x9e3779b1), xor its top 17 bits down.
@@ -83,7 +111,7 @@ pub fn gliss_plan(draw20: u32, seed: u32, weights: Span<u32>) -> Option<GlissPla
         return Option::None;
     }
     let spot = *weights.at(seed % weights.len());
-    let mut sh: u32 = 1;
+    let mut sh: u32 = opaque(1);
     let mut k = 16 + spot;
     while k != 0 {
         sh *= 2;
@@ -114,8 +142,8 @@ pub fn glissando(plan: GlissPlan, end: u32, span: u32, seed: u32, last: u32) -> 
     } else {
         0
     };
-    let mut out = array![];
-    let mut k: u32 = 0;
+    let mut out = opaque(array![]);
+    let mut k: u32 = opaque(0);
     while k != n {
         let t = end - (n - k) * GLISS_STEP;
         let len = if last - t < 360 {

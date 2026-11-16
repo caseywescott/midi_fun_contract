@@ -10,6 +10,7 @@
 
 use core::num::traits::{WrappingAdd, WrappingMul};
 use beast_composer::composition::drift::Drift;
+use crate::common::{at32, opaque};
 use super::orchestra_data::{
     BELL_A, BELL_B, FLUTE, GLOCK, HARP, POOL_DATA, POOL_OFFS, ROUND_MONTHLY, ROUND_POOL0,
     SONG_MONTHLY, SONG_POOL0,
@@ -28,9 +29,14 @@ pub fn lab_mix(a: u32, b: u32) -> u32 {
 #[inline(never)]
 fn pool(id: u32) -> Span<u8> {
     let offs = POOL_OFFS.span();
-    let a: u32 = (*offs.at(id)).into();
-    let b: u32 = (*offs.at(id + 1)).into();
-    POOL_DATA.span().slice(a, b - a)
+    let mut a = at32(offs, id);
+    let b = at32(offs, id + 1);
+    let mut out: Array<u8> = opaque(array![]);
+    while a != b {
+        out.append(at32(POOL_DATA.span(), a).try_into().unwrap());
+        a += 1;
+    }
+    out.span()
 }
 
 /// `moved(pool, i, h, salt)`: another instrument of the pool when its clock has drifted.
@@ -96,7 +102,7 @@ pub fn band(style: u32, id: u32, e: u32, p: u32, drift: Option<Drift>) -> Array<
     let pad = pick(style, 3, id, e, p, week, Option::Some(lead));
     let p0 = pool(style * 4);
     let n0 = p0.len();
-    let mut at = 0;
+    let mut at: u32 = opaque(0);
     while *p0.at(at) != lead {
         at += 1;
     }
@@ -119,9 +125,9 @@ fn choose(
     pool0: u32, channels: u32, monthly: u32, id: u32, salt: u32, drift: Option<Drift>,
 ) -> Array<u8> {
     let (month, week) = drift_steps(drift);
-    let mut out = array![];
-    let mut ch: u32 = 0;
-    let mut bit: u32 = 1;
+    let mut out = opaque(array![]);
+    let mut ch: u32 = opaque(0);
+    let mut bit: u32 = opaque(1);
     while ch != channels {
         let pl = pool(pool0 + ch);
         let h = if monthly & bit != 0 {
@@ -333,4 +339,16 @@ pub fn orchestrate_byte_array(smf: Span<u8>, band: Span<u8>, lift: u8) -> ByteAr
     }
     chunks.append(smf.slice(from, smf.len() - from));
     midi::pack::chunks_to_byte_array(chunks.span())
+}
+
+/// A `ByteArray`'s bytes (a file a class returned, to orchestrate).
+pub fn byte_array_bytes(x: @ByteArray) -> Array<u8> {
+    let mut out = array![];
+    let n = x.len();
+    let mut i = 0;
+    while i != n {
+        out.append(x.at(i).unwrap());
+        i += 1;
+    }
+    out
 }

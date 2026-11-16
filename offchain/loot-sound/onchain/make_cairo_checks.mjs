@@ -138,10 +138,15 @@ piece(() => {
 
 const flat = pieces.flat(), at = [];
 let n = 0; for (const p of pieces) { at.push(n); n += p.length; } at.push(n);
+// each op as two u32s, low then high, packed 7 u32s to a felt252 (item i at bit 32 * (i % 7))
+const words = flat.flatMap((x) => { if (!Number.isSafeInteger(x) || x < 0) throw new Error('op'); return [x % 2 ** 32, Math.floor(x / 2 ** 32)]; });
+const packed = [];
+for (let i = 0; i < words.length; i += 7) packed.push('0x' + words.slice(i, i + 7).reduce((v, w, j) => v + (BigInt(w) << BigInt(32 * j)), 0n).toString(16));
 const src = `//! The Sound Checks' openings (pieces 0-2), drills (3-11) and closes (12-14) as op lists, packed (see
 //! offchain/loot-sound/onchain/make_cairo_checks.mjs, which generated this file: do not edit).
 
-pub const OPS: [u64; ${flat.length}] = [${flat.join(', ')}];
+/// Op y is u32s 2y (low) and 2y + 1 (high), 7 u32s to a felt (common::at32).
+pub const OPS: [felt252; ${packed.length}] = [${packed.join(', ')}];
 /// Where piece p starts in OPS (and ends: the next).
 pub const PIECE_AT: [u32; ${at.length}] = [${at.join(', ')}];
 `;

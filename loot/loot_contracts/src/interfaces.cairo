@@ -1,55 +1,92 @@
-//! The Loot Dungeon Sound ABI. Every getter returns a Standard MIDI File as the Loot lab plays it:
-//! orchestrated for the Loot FM pack (each channel's program is the instrument the lab's band gives
-//! it) and, for Name Songs and Rounds, lifted as the lab lifts them (+12, +7 semitones).
+//! The Loot Dungeon Sound ABI, in the pattern of Beast Sound v1.1.0 (`beast_contracts::pure_composer`):
+//! one call shape for every track, `compose(inputs, sound_effects)` and, on a day of drift,
+//! `compose_drift(inputs, sound_effects, drift)`, returning a Standard MIDI File as the Loot lab plays
+//! it: each pitched channel's program is the instrument the lab's band gives it (for the Loot FM
+//! pack), and Name Songs and Rounds are lifted as the lab lifts them (+12, +7 semitones).
 //!
-//! `drift`: none plays a track as written; a day (`DriftClock`: the day from 1 and the hashes of
-//! the first blocks of its day, week and month, `beast_composer::composition::drift`) plays it on
-//! that day. Day 1 is as written, as in the lab. `purchase`: the purchase number the lab uses
-//! (1, 2, ...); the track's seed is `purchase_seed(purchase)`. For Rounds and Sound Checks 0 is the
-//! species' own.
-use beast_composer::composition::drift::DriftClock;
+//! `sound_effects` is a token's, as in v1.1 (`beast_composer::composition::performance`): 0 as
+//! written, 1 mega, 2 echo, 3 mega and echo; 4 and up are rejected. Songs are rendered by the pinned
+//! v1.1 `BeastPureComposer`, so they get the whole v1.1 performance (mega leads, echo, faster tempo,
+//! louder, articulation). Editions, Rounds and Sound Checks play their own tempo and dynamics: only
+//! the mega sound applies (as v1.1 does for its editions).
+//!
+//! `drift`: v1.1's `DriftInputs` (the day from 1 and the hashes of the first blocks of its day, week
+//! and month). Day 1 plays the track as written, as in the lab. A Song's drift belongs to the song's
+//! name: its `name_variant_id` is taken from the inputs. Sound Checks do not drift.
+use beast_composer::inputs::ComposerInputs;
+use beast_composer::inputs::drift::DriftInputs;
+use midi::types::TinySynthSound;
+use starknet::{ClassHash, ContractAddress};
 
-#[starknet::interface]
-pub trait ILootSound<T> {
-    /// The Species Song (Beasts composer v1.0.1, unchanged).
-    fn species_song(self: @T, species: u32, mega: bool, drift: Option<DriftClock>) -> ByteArray;
-    /// A Name Song: special-name variant `name` (1..1242).
-    fn name_song(
-        self: @T, species: u32, mega: bool, name: u16, drift: Option<DriftClock>,
-    ) -> ByteArray;
-    /// Monthly Track Edition `edition` (from 1), bought as purchase `purchase` (from 1).
-    fn edition(
-        self: @T, species: u32, mega: bool, edition: u32, purchase: u64, drift: Option<DriftClock>,
-    ) -> ByteArray;
-    /// A Round (0 = the species' own).
-    fn round(
-        self: @T, species: u32, mega: bool, purchase: u64, drift: Option<DriftClock>,
-    ) -> ByteArray;
-    /// A Sound Check (take 0 = the species' own). Sound Checks do not drift.
-    fn sound_check(self: @T, species: u32, mega: bool, take: u64) -> ByteArray;
-    /// The FM sound pack contract that plays these files.
-    fn sound_pack(self: @T) -> starknet::ContractAddress;
+/// A Species Song (`name` 0) or a Name Song (special-name variant 1..1242) of Loot Beast `species`
+/// (76..105).
+#[derive(Copy, Drop, Serde, PartialEq, Debug)]
+pub struct LootSongInputs {
+    pub species: u32,
+    pub name: u16,
 }
 
-/// The Species/Name Song class (library-called by LootSound).
-#[starknet::interface]
-pub trait ILootSongComposer<T> {
-    fn song(self: @T, species: u32, mega: bool, name: u16, drift: Option<DriftClock>) -> ByteArray;
+/// Monthly Track Edition `edition` (from 1), bought as purchase `purchase` (the lab's purchase
+/// number, from 1; the seed is `purchase_seed(purchase)`).
+#[derive(Copy, Drop, Serde, PartialEq, Debug)]
+pub struct LootEditionInputs {
+    pub species: u32,
+    pub edition: u32,
+    pub purchase: u64,
 }
 
-/// The Monthly Track Editions class (library-called by LootSound).
-#[starknet::interface]
-pub trait ILootEditionComposer<T> {
-    fn edition(
-        self: @T, species: u32, mega: bool, edition: u32, purchase: u64, drift: Option<DriftClock>,
-    ) -> ByteArray;
+/// A Round: purchase 0 is the species' own, 1.. a bought Round.
+#[derive(Copy, Drop, Serde, PartialEq, Debug)]
+pub struct LootRoundInputs {
+    pub species: u32,
+    pub purchase: u64,
 }
 
-/// The Rounds and Sound Checks class (library-called by LootSound).
+/// A Sound Check: take 0 is the species' own, 1.. another take.
+#[derive(Copy, Drop, Serde, PartialEq, Debug)]
+pub struct LootSoundCheckInputs {
+    pub species: u32,
+    pub take: u64,
+}
+
+#[derive(Copy, Drop, Serde, PartialEq, Debug)]
+pub enum LootInputs {
+    Song: LootSongInputs,
+    Edition: LootEditionInputs,
+    Round: LootRoundInputs,
+    SoundCheck: LootSoundCheckInputs,
+}
+
+/// `LootPureComposer`: storage-free, Editions, Rounds and Sound Checks (a `Song` reverts: songs are
+/// the Beast composer's, through the provider).
 #[starknet::interface]
-pub trait ILootRoundComposer<T> {
-    fn round(
-        self: @T, species: u32, mega: bool, purchase: u64, drift: Option<DriftClock>,
-    ) -> ByteArray;
-    fn sound_check(self: @T, species: u32, mega: bool, take: u64) -> ByteArray;
+pub trait ILootPureComposer<T> {
+    fn compose(self: @T, inputs: LootInputs, sound_effects: u8) -> ByteArray;
+    fn compose_drift(self: @T, inputs: LootInputs, sound_effects: u8, drift: DriftInputs) -> ByteArray;
+}
+
+/// `LootMidiProvider`: every Loot track (`compose` / `compose_drift`, songs included) and where the
+/// pieces live.
+#[starknet::interface]
+pub trait ILootMidiProvider<T> {
+    fn compose(self: @T, inputs: LootInputs, sound_effects: u8) -> ByteArray;
+    fn compose_drift(self: @T, inputs: LootInputs, sound_effects: u8, drift: DriftInputs) -> ByteArray;
+    /// The FM sound pack contract (`LootFmPack`) that plays these files.
+    fn sound_pack(self: @T) -> ContractAddress;
+    /// The `LootPureComposer` class (Editions, Rounds, Sound Checks).
+    fn get_composer_class(self: @T) -> ClassHash;
+    /// The Beast Sound v1.1.0 `BeastPureComposer` class (Songs).
+    fn get_song_class(self: @T) -> ClassHash;
+    /// Owner only (until ownership is renounced): point at new classes or a new sound pack.
+    fn set_classes(ref self: T, composer_class: ClassHash, song_class: ClassHash, pack: ContractAddress);
+}
+
+/// Beast Sound v1.1.0 `beast_contracts::pure_composer::IBeastPureComposer`, the same ABI (the
+/// selectors are the function names), for library calls into the pinned class.
+#[starknet::interface]
+pub trait IBeastPureComposer<T> {
+    fn compose(self: @T, inputs: ComposerInputs, sound_effects: u8) -> TinySynthSound;
+    fn compose_drift(
+        self: @T, inputs: ComposerInputs, sound_effects: u8, drift: DriftInputs,
+    ) -> TinySynthSound;
 }

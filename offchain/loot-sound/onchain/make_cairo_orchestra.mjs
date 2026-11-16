@@ -8,6 +8,8 @@ import { O } from './orchestra_ref.mjs';
 const { ORCH } = O;
 const pools = [...STYLES.flatMap((S) => ORCH.pools[S.key]), ...ORCH.songPools.flat(), ...ORCH.roundPools.flat()];
 const data = pools.flat(), offs = [0]; for (const p of pools) offs.push(offs.at(-1) + p.length);
+// u32s 7 to a felt252, item i at bit 32 * (i % 7) of felt i / 7 (read with common::at32)
+const packed = (xs) => { const fs = []; for (let i = 0; i < xs.length; i += 7) fs.push('0x' + xs.slice(i, i + 7).reduce((v, w, j) => v + (BigInt(w) << BigInt(32 * j)), 0n).toString(16)); return fs; };
 const monthly = (kinds) => kinds.reduce((m, k, c) => m | ((k === 'melody' || k === 'bass') ? 1 << c : 0), 0);
 if (ORCH.songKinds.length !== 8 || ORCH.roundKinds.length !== 7) throw new Error('channel counts changed');
 const out = `//! The Loot lab's orchestration tables (onchain/loot-lab.mjs POOLS, SONG, ROUND, ALIKE), as bank programs.
@@ -25,8 +27,10 @@ pub const GLOCK: u8 = ${ORCH.glock};
 pub const FLUTE: u8 = ${ORCH.flute};
 pub const HARP: u8 = ${ORCH.harp};
 
-pub const POOL_OFFS: [u16; ${offs.length}] = [${offs.join(', ')}];
-pub const POOL_DATA: [u8; ${data.length}] = [${data.join(', ')}];
+/// Where pool i starts in POOL_DATA (and ends: the next), u32s 7 to a felt (common::at32).
+pub const POOL_OFFS: [felt252; ${packed(offs).length}] = [${packed(offs).join(', ')}];
+/// The pools' programs, flat, u32s 7 to a felt (common::at32).
+pub const POOL_DATA: [felt252; ${packed(data).length}] = [${packed(data).join(', ')}];
 `;
 writeFileSync(new URL('../../../loot/loot_composer/src/orchestra_data.cairo', import.meta.url), out);
 console.log(pools.length, 'pools,', data.length, 'programs');

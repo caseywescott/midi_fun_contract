@@ -1,9 +1,10 @@
 # Loot Dungeon Sound: the Cairo port of the Loot engines (offchain/loot-sound/src), byte for byte.
-# - loot/loot_composer: library (Editions, Rounds, Sound Checks, orchestration; Species and Name Songs
-#   come from the Beasts composer at midi_fun_contract v1.0.1, unchanged).
-# - loot/loot_contracts: contracts (the composer class(es) and the FM sound pack).
+# - loot/loot_composer: library (Editions, Rounds, Sound Checks, orchestration).
+# - loot/loot_contracts: LootPureComposer, LootMidiProvider (Songs through Beast Sound v1.1.0's
+#   BeastPureComposer), LootFmPack.
+# - loot/deps/beast_contracts: v1.1.0's beast_contracts verbatim as a library, for tests only.
 [workspace]
-members = ["loot/loot_composer", "loot/loot_contracts"]
+members = ["loot/loot_composer", "loot/loot_contracts", "loot/deps/beast_contracts"]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,12 +12,19 @@ edition = "2025_12"
 
 [workspace.dependencies]
 # Beast Sound, by tag, never modified: `midi` (SMF writing) and `beast_composer` (Species/Name Songs, drift).
-midi = { git = "https://github.com/caseywescott/midi_fun_contract", tag = "v1.0.1" }
-beast_composer = { git = "https://github.com/caseywescott/midi_fun_contract", tag = "v1.0.1" }
-beast_composer_inputs = { git = "https://github.com/caseywescott/midi_fun_contract", tag = "v1.0.1" }
+midi = { git = "https://github.com/caseywescott/midi_fun_contract", tag = "v1.1.0" }
+beast_composer = { git = "https://github.com/caseywescott/midi_fun_contract", tag = "v1.1.0" }
+beast_composer_inputs = { git = "https://github.com/caseywescott/midi_fun_contract", tag = "v1.1.0" }
 starknet = "2.21.0"
+openzeppelin_access = "=4.0.1"
+openzeppelin_upgrades = "=4.0.1"
+openzeppelin_interfaces = "=2.2.0"
 snforge_std = "=0.64.1"
 assert_macros = "2.21.0"
 
 [workspace.scripts]
 test = "snforge test --max-n-steps 4294967295 --max-threads 2"
+
+[profile.dev.cairo]
+# debug names for scripts/casm_size.cjs (not part of the class hash)
+sierra-replace-ids = true

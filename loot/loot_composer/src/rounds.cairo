@@ -8,7 +8,7 @@
 use core::num::traits::WrappingMul;
 use beast_composer::composition::drift::Drift;
 use midi::smf::{TrackWriter, TrackWriterTrait, smf_byte_array, smf_bytes};
-use crate::common::{GLISS_CHANNEL, Rng, RngTrait, fold64, gliss_plan, glissando, mix};
+use crate::common::{GLISS_CHANNEL, Rng, RngTrait, at32, fold64, gliss_plan, glissando, mix};
 use crate::rounds_data::{
     ASSIGN3, ASSIGN4, BASS_AT, BASS_NOTES, CELL_AT, CELL_NOTES, CONTOURS, EPISODES, FAMILY, HEADS,
     LOOPS4, LOOPS8, MODE_BAD, MODE_CAD, MODE_DIM, MODE_IDS, MODE_N4, MODE_N8, MODE_SCALE, PERC_AT,
@@ -57,31 +57,32 @@ pub struct Sound {
     pub v: u32,
 }
 
-/// Returns `x`, hiding a constant from the compiler (one copy of a loop entered with constant state).
-#[inline(never)]
-pub fn opaque<T, +Drop<T>>(x: T) -> T {
-    x
-}
+pub use crate::common::opaque;
 
 // ── small arithmetic ──
 
 /// ((d % 7) + 7) % 7.
 #[inline(never)]
 pub fn mod7(d: i32) -> u32 {
+    m7(d.into())
+}
+
+/// ((d % 7) + 7) % 7 of a small signed value held in a felt.
+#[inline(never)]
+pub fn m7(d: felt252) -> u32 {
     let x: u32 = (d + 7000).try_into().unwrap();
     x % 7
 }
 
-/// Math.floor(d / 7).
-pub fn floor7(d: i32) -> i32 {
-    let x: u32 = (d + 7000).try_into().unwrap();
-    let q: i32 = (x / 7).try_into().unwrap();
-    q - 1000
+/// A small signed value held in a felt, as an i32 (the arithmetic before it unchecked: CASM size).
+#[inline(never)]
+pub fn to_i(x: felt252) -> i32 {
+    x.try_into().unwrap()
 }
 
 pub fn abs(x: i32) -> i32 {
     if x < 0 {
-        -x
+        to_i(-x.into())
     } else {
         x
     }
@@ -98,50 +99,66 @@ pub fn sign(x: i32) -> i32 {
 }
 
 pub fn i(x: u32) -> i32 {
-    x.try_into().unwrap()
+    to_i(x.into())
 }
 
 /// The degree of scale-degree class `cls` nearest to `prev`.
 #[inline(never)]
 pub fn nearest(prev: i32, cls: u32) -> i32 {
-    let mut d: i32 = i(mod7(i(cls) - prev));
-    if d > 3 {
-        d -= 7;
-    }
-    prev + d
+    let p: felt252 = prev.into();
+    let m = m7(cls.into() - p);
+    to_i(p + m.into() - if m > 3 {
+        7
+    } else {
+        0
+    })
 }
 
+#[inline(never)]
 fn passing(a: i32, b: i32) -> i32 {
-    let d = b - a;
-    if abs(d) >= 2 {
-        a + sign(d)
-    } else if d == 0 {
-        a + 1
+    let fa: felt252 = a.into();
+    let d = to_i(b.into() - fa);
+    if d >= 2 || d == 0 {
+        to_i(fa + 1)
+    } else if d <= -2 {
+        to_i(fa - 1)
     } else {
         b
     }
 }
 
 fn skip(a: i32, role: u32, up: bool) -> i32 {
-    if up {
-        a + if role == 2 {
-            3
+    let fa: felt252 = a.into();
+    to_i(
+        if up {
+            fa + if role == 2 {
+                3
+            } else {
+                2
+            }
         } else {
-            2
-        }
-    } else {
-        a - if role == 0 {
-            3
-        } else {
-            2
-        }
-    }
+            fa - if role == 0 {
+                3
+            } else {
+                2
+            }
+        },
+    )
+}
+
+/// |a - b| <= 1, for small signed values held in felts.
+fn near1(a: felt252, b: felt252) -> bool {
+    let y = a - b + 1;
+    y == 0 || y == 1 || y == 2
 }
 
 /// `base + 12 * floor(d / 7) + scale[mod7(d)]`.
 #[inline(never)]
-pub fn pitch_of(base: i32, scale: Span<u32>, d: i32) -> i32 {
-    base + 12 * floor7(d) + i(*scale.at(mod7(d)))
+pub fn pitch_of(base: i32, scale: Span<u32>, d: felt252) -> i32 {
+    let x: u32 = (d + 7000).try_into().unwrap();
+    let (q, r) = DivRem::div_rem(x, 7);
+    let s: felt252 = (*scale.at(r)).into();
+    to_i(base.into() + 12 * q.into() - 12000 + s)
 }
 
 /// A mode's index in ROUND_MODES.
@@ -196,7 +213,7 @@ pub fn mode_cad(mx: u32) -> u32 {
 /// The `idx`-th loop of the mode whose bad degrees are `bad`: roots.
 #[inline(never)]
 fn pool_loop(eight: bool, bad: u32, idx: u32) -> Span<u32> {
-    let (tab, n, place): (Span<u32>, u32, u32) = if eight {
+    let (tab, n, place): (Span<felt252>, u32, u32) = if eight {
         (LOOPS8.span(), 8, 0x1000000)
     } else {
         (LOOPS4.span(), 4, 0x1000)
@@ -204,7 +221,7 @@ fn pool_loop(eight: bool, bad: u32, idx: u32) -> Span<u32> {
     let mut c: u32 = opaque(0);
     let mut k: u32 = opaque(0);
     loop {
-        let v = *tab.at(k);
+        let v = at32(tab, k);
         if (v / place) & bad == 0 {
             if c == idx {
                 break unpack(v % place, 8, n);
@@ -378,29 +395,22 @@ fn shape_restart(shape: u32, s: u32, n: u32) -> bool {
 }
 
 #[inline(never)]
-fn shape_delta(want: i32, c1: i32, c2: i32) -> i32 {
-    let up = i(mod7(c2 - c1));
-    if want == 0 {
-        return if up > 3 {
-            up - 7
-        } else {
-            up
-        };
-    }
-    if up == 0 {
-        return 0;
-    }
-    if want > 0 {
-        if up <= 4 {
-            up
-        } else {
-            up - 7
-        }
-    } else if up >= 3 {
-        up - 7
+fn shape_delta(want: i32, diff: felt252) -> i32 {
+    let u = m7(diff);
+    let neg = if want == 0 {
+        u > 3
+    } else if u == 0 {
+        false
+    } else if want > 0 {
+        u > 4
     } else {
-        up
-    }
+        u >= 3
+    };
+    to_i(u.into() - if neg {
+        7
+    } else {
+        0
+    })
 }
 
 #[inline(never)]
@@ -409,12 +419,11 @@ fn move_cost(shape: u32, c1: u32, c2: u32, s: u32, n: u32) -> u32 {
         return 0;
     }
     let want = shape_want(shape, s, n);
-    let d = shape_delta(want, i(c1), i(c2));
-    let ad = abs(d);
+    let d = shape_delta(want, c2.into() - c1.into());
     if want == 0 {
-        return if ad == 1 {
+        return if d == 1 || d == -1 {
             0
-        } else if ad == 3 {
+        } else if d == 3 || d == -3 {
             2
         } else {
             1
@@ -422,7 +431,7 @@ fn move_cost(shape: u32, c1: u32, c2: u32, s: u32, n: u32) -> u32 {
     }
     if d == 0 {
         2
-    } else if sign(d) != want || ad > 2 {
+    } else if (d > 0) != (want > 0) || d > 2 || d < -2 {
         1
     } else {
         0
@@ -625,12 +634,12 @@ fn note(t: u32, len: u32, d: i32, anchor: bool) -> Note {
 fn cell_notes(mi: u32, cell: u32, t0: u32, a: i32, next: i32, role: u32) -> Array<Note> {
     let at = CELL_AT.span();
     let cells = CELL_NOTES.span();
-    let mut k = *at.at(mi * 12 + cell);
-    let stop = *at.at(mi * 12 + cell + 1);
+    let mut k = at32(at, mi * 12 + cell);
+    let stop = at32(at, mi * 12 + cell + 1);
     let mut out = opaque(array![]);
     let mut p = a;
     while k != stop {
-        let x = *cells.at(k);
+        let x = at32(cells, k);
         let off = x / 65536;
         let len = (x / 8) % 8192;
         let src = x % 8;
@@ -656,10 +665,13 @@ fn cell_notes(mi: u32, cell: u32, t0: u32, a: i32, next: i32, role: u32) -> Arra
 
 /// `ornament(notes, key, after)`, appended to `out`.
 #[inline(never)]
-fn ornament(ref out: Array<Note>, c: Ctx, notes: Span<Note>, key: u32, after: i32) {
+fn ornament(ref out: Array<Note>, cb: Box<Ctx>, notes: Span<Note>, key: u32, after: i32) {
+    let c = cb.unbox();
     let n = notes.len();
     let orn = c.orn;
     let stage = c.stage;
+    let orn_seed = c.orn_seed;
+    let pal: Span<u32> = c.palette;
     let min_len = if stage >= 3 {
         240
     } else {
@@ -671,9 +683,8 @@ fn ornament(ref out: Array<Note>, c: Ctx, notes: Span<Note>, key: u32, after: i3
         if orn == 0 || x.len < min_len || (stage < 1 && !x.anchor) {
             out.append(x);
         } else {
-            let h = mix(c.orn_seed, key * 8 + k);
+            let h = mix(orn_seed, key * 8 + k);
             if h % 100 < orn {
-                let pal: Span<u32> = c.palette;
                 let to = if k + 1 < n {
                     notes.at(k + 1).d
                 } else {
@@ -691,9 +702,10 @@ fn ornament(ref out: Array<Note>, c: Ctx, notes: Span<Note>, key: u32, after: i3
 const ACTIVITY: [u32; 12] = [1, 0, 1, 0, 1, 1, 2, 0, 2, 1, 2, 1];
 
 /// The motif's weak note: kept when it moves by step, else a passing note.
-fn weak_of(want: i32, a: i32, next: i32) -> i32 {
-    if abs(want - a) <= 1 || abs(want - next) <= 1 {
-        want
+#[inline(never)]
+fn weak_of(want: felt252, a: i32, next: i32) -> i32 {
+    if near1(want, a.into()) || near1(want, next.into()) {
+        to_i(want)
     } else {
         passing(a, next)
     }
@@ -702,7 +714,7 @@ fn weak_of(want: i32, a: i32, next: i32) -> i32 {
 /// Line j at a level (`lineNotes`).
 #[inline(never)]
 fn line_notes(
-    c: Ctx,
+    cb: Box<Ctx>,
     chords: Span<u32>,
     roles: Span<u32>,
     theme: Span<i32>,
@@ -712,13 +724,13 @@ fn line_notes(
     tag: u32,
     cseed: u32,
 ) -> Span<Note> {
+    let c = cb.unbox();
     let n_s = c.n_s;
     let k = c.k;
     let sl = c.sl;
     let late = c.late;
-    let fam = *FAMILY
-        .span()
-        .at(c.mi * 9 + c.typ * 3 + *ACTIVITY.span().at(level * 4 + j));
+    let mi = c.mi;
+    let fam = at32(FAMILY.span(), c.mi * 9 + c.typ * 3 + *ACTIVITY.span().at(level * 4 + j));
     let h = mix(cseed, j * 8 + level + 1);
     let mut picks = opaque(array![]);
     let mut q: u32 = opaque(0);
@@ -742,6 +754,8 @@ fn line_notes(
         array![p0, p1, p2, end]
     };
     let motif = c.motif;
+    let w0: felt252 = (*motif.at(1)).into() - (*motif.at(0)).into();
+    let w1: felt252 = (*motif.at(3)).into() - (*motif.at(2)).into();
     let head = c.head;
     let mut out = opaque(array![]);
     let mut s: u32 = opaque(0);
@@ -756,11 +770,11 @@ fn line_notes(
         let held = s > 0 && *sus.at(j * n_s + s - 1);
         let here = *sus.at(j * n_s + s);
         let notes = if s < 2 {
-            let want = a
+            let want: felt252 = a.into()
                 + if s == 0 {
-                    *motif.at(1) - *motif.at(0)
+                    w0
                 } else {
-                    *motif.at(3) - *motif.at(2)
+                    w1
                 };
             let l0 = *head.at(2 * s);
             let l1 = *head.at(2 * s + 1);
@@ -785,12 +799,12 @@ fn line_notes(
                 };
             array![note(t, len, a, !held)]
         } else {
-            cell_notes(c.mi, *plan.at(s), s * sl, a, next, dig(*roles.at(s), j))
+            cell_notes(mi, *plan.at(s), s * sl, a, next, dig(*roles.at(s), j))
         };
         if s < 2 && j == 0 {
             out.append_span(notes.span());
         } else {
-            ornament(ref out, c, notes.span(), okey, next);
+            ornament(ref out, cb, notes.span(), okey, next);
         }
         s += 1;
     }
@@ -813,13 +827,16 @@ const SHAPE_START: [i32; 5] = [2, -2, -2, 0, 2];
 
 /// A round over a loop (`makeRound`): its deals, its theme and its lines.
 #[inline(never)]
-fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
+fn make_round(cb: Box<Ctx>, loop_: Span<u32>, tag: u32) -> Box<Rd> {
+    let c = cb.unbox();
+    let sus_share = c.sus_share;
+    let hr = c.hr;
     let n_s = c.n_s;
     let k = c.k;
     let mut ch = opaque(array![]);
     for r in loop_ {
         ch.append(*r);
-        if c.hr == 0 {
+        if hr == 0 {
             ch.append(*r);
         }
     }
@@ -834,7 +851,10 @@ fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
     };
     let mut r = forced;
     while r != 3 {
-        if abs(nearest(m2, (c1 + 2 * r) % 7) - m2) < abs(nearest(m2, (c1 + 2 * forced) % 7) - m2) {
+        let fm2: felt252 = m2.into();
+        if abs(to_i(nearest(m2, (c1 + 2 * r) % 7).into() - fm2)) < abs(
+            to_i(nearest(m2, (c1 + 2 * forced) % 7).into() - fm2),
+        ) {
             forced = r;
         }
         r += 1;
@@ -859,17 +879,20 @@ fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
             } else if j == 0 && s == 1 {
                 nearest(m2, cls)
             } else if s == 0 || shape_restart(shape, s, n_s) {
-                nearest(cj + *SHAPE_START.span().at(shape), cls)
+                nearest(to_i(cj.into() + (*SHAPE_START.span().at(shape)).into()), cls)
             } else {
-                let mut d = prev + shape_delta(shape_want(shape, s, n_s), prev, i(cls));
-                if abs(d - cj) > 6 {
-                    d += if d > cj {
-                        -7
+                let fp: felt252 = prev.into();
+                let x = fp + shape_delta(shape_want(shape, s, n_s), cls.into() - fp).into();
+                let dd = to_i(x - cj.into());
+                to_i(
+                    if dd > 6 {
+                        x - 7
+                    } else if dd < -6 {
+                        x + 7
                     } else {
-                        7
-                    };
-                }
-                d
+                        x
+                    },
+                )
             };
             theme.append(d);
             prev = d;
@@ -887,7 +910,7 @@ fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
             let a = *theme.at(j * n_s + s);
             let mut v = false;
             if s >= 2 && s + 1 < n_s && *chords.at(s + 1) != *chords.at(s)
-                && *theme.at(j * n_s + s + 1) == a - 1 {
+                && (*theme.at(j * n_s + s + 1)).into() == a.into() - 1_felt252 {
                 let nr = *roles.at(s + 1);
                 let mine = dig(nr, j);
                 let mut cnt: u32 = opaque(0);
@@ -898,7 +921,7 @@ fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
                     }
                     x += 1;
                 }
-                v = cnt == 1 && mix(cseed ^ 0x5355, j * 16 + s) % 100 < c.sus_share;
+                v = cnt == 1 && mix(cseed ^ 0x5355, j * 16 + s) % 100 < sus_share;
             }
             sus.append(v);
             s += 1;
@@ -911,12 +934,12 @@ fn make_round(c: Ctx, loop_: Span<u32>, tag: u32) -> Rd {
     while j != k {
         let mut level: u32 = opaque(0);
         while level != 3 {
-            lines.append(line_notes(c, chords, roles, theme, sus, j, level, tag, cseed));
+            lines.append(line_notes(cb, chords, roles, theme, sus, j, level, tag, cseed));
             level += 1;
         }
         j += 1;
     }
-    Rd { loop_, chords, roles, lines: lines.span() }
+    BoxTrait::new(Rd { loop_, chords, roles, lines: lines.span() })
 }
 
 // ── the file ──
@@ -948,12 +971,13 @@ pub fn sounding(
             76
         };
         let mut g = n.grace;
+        let gap = to_i(n.to.into() - n.d.into());
         let step = if g == 0 {
             0
         } else {
-            sign(n.to - n.d)
+            sign(gap)
         };
-        if g == 6 && (n.len < 480 || abs(n.to - n.d) < 3) {
+        if g == 6 && (n.len < 480 || (gap < 3 && gap > -3)) {
             g = 3;
         }
         if (g == 5 && len < 360) || (g == 4 && len < 300) {
@@ -963,11 +987,11 @@ pub fn sounding(
             g = 0;
         }
         if g == 6 {
-            out.append(Sound { t: n.t, len: n.len - 260, p: pitch_of(base, scale, n.d), v });
+            out.append(Sound { t: n.t, len: n.len - 260, p: pitch_of(base, scale, n.d.into()), v });
             out
                 .append(
                     Sound {
-                        t: n.t + n.len - 240, len: 120, p: pitch_of(base, scale, n.d + step), v: v - 12,
+                        t: n.t + n.len - 240, len: 120, p: pitch_of(base, scale, n.d.into() + step.into()), v: v - 12,
                     },
                 );
             out
@@ -975,7 +999,7 @@ pub fn sounding(
                     Sound {
                         t: n.t + n.len - 120,
                         len: 100,
-                        p: pitch_of(base, scale, n.d + 2 * step),
+                        p: pitch_of(base, scale, n.d.into() + 2 * step.into()),
                         v: v - 8,
                     },
                 );
@@ -1006,7 +1030,7 @@ pub fn sounding(
                         Sound {
                             t: n.t + k * unit,
                             len: unit,
-                            p: pitch_of(base, scale, n.d + *x),
+                            p: pitch_of(base, scale, n.d.into() + (*x).into()),
                             v: if k == 0 {
                                 v0
                             } else {
@@ -1016,7 +1040,7 @@ pub fn sounding(
                     );
                 k += 1;
             }
-            out.append(Sound { t: n.t + k * unit, len: len - k * unit, p: pitch_of(base, scale, n.d), v });
+            out.append(Sound { t: n.t + k * unit, len: len - k * unit, p: pitch_of(base, scale, n.d.into()), v });
         }
     }
 }
@@ -1395,17 +1419,17 @@ pub fn round_tracks(
     };
     let cyc = n_s * sl;
     let mut motif = opaque(array![]);
-    let d0: i32 = (*sp.degrees.span().at(0)).into();
+    let d0: felt252 = (*sp.degrees.span().at(0)).into();
     let mut q: u32 = opaque(0);
     while q != 4 {
-        let dq: i32 = (*sp.degrees.span().at(q)).into();
-        motif.append(dq - d0);
+        let dq: felt252 = (*sp.degrees.span().at(q)).into();
+        motif.append(to_i(dq - d0));
         q += 1;
     }
     let motif = motif.span();
     let heads = HEADS.span();
-    let h0 = *heads.at(mi * 3 + id % 3);
-    let h1 = *heads.at(mi * 3 + (id / 3) % 3);
+    let h0 = at32(heads, mi * 3 + id % 3);
+    let h1 = at32(heads, mi * 3 + (id / 3) % 3);
     let head = array![h0 / 65536, h0 % 65536, h1 / 65536, h1 % 65536].span();
     let kx = if k == 4 {
         4
@@ -1414,7 +1438,8 @@ pub fn round_tracks(
     };
     let centre = unpack_i(*CONTOURS.span().at(kx + contour), 8, k);
     let shapes = unpack(*SHAPES.span().at(kx + shape), 8, k);
-    let ctx = Ctx {
+    let ac = assign(k);
+    let ctx = BoxTrait::new(Ctx {
         k,
         n_s,
         sl,
@@ -1433,8 +1458,8 @@ pub fn round_tracks(
         palette: palette.span(),
         role_seed,
         cell_seed,
-        ac: assign(k),
-    };
+        ac,
+    });
     let ra = make_round(ctx, pool_loop(eight, bad, loop_i), 1);
     let rb = make_round(
         ctx, pool_loop(eight, bad, (loop_i + 1 + loop_draw_b % (pool_n - 1)) % pool_n), 2,
@@ -1469,7 +1494,7 @@ pub fn round_tracks(
     let e_step = (e % 1024) % 8;
     let e_cycle = unpack((e % 1024) / 8, 3, 3);
     // the episode leader's line
-    let ep_cell = (*FAMILY.span().at(mi * 9 + typ * 3 + 1 + mix(cell_seed, 977) % 2))
+    let ep_cell = at32(FAMILY.span(), mi * 9 + typ * 3 + 1 + mix(cell_seed, 977) % 2)
         / pow16((mix(cell_seed, 978) / 8) % 4)
         % 16;
     let mut ep_anchors = opaque(array![]);
@@ -1483,9 +1508,9 @@ pub fn round_tracks(
             nearest(ep, cls)
         };
         if ep > 9 {
-            ep -= 7;
+            ep = to_i(ep.into() - 7);
         } else if ep < -5 {
-            ep += 7;
+            ep = to_i(ep.into() + 7);
         }
         ep_anchors.append(ep);
         u += 1;
@@ -1529,7 +1554,6 @@ pub fn round_tracks(
         v += 1;
     }
     let before = code(before.span());
-    let ac = ctx.ac;
     // the final deals: line 0 on the root, no fifth on a diminished tonic
     let mut finals = opaque(array![]);
     for x in ac {
@@ -1555,7 +1579,7 @@ pub fn round_tracks(
     let finals = finals.span();
     let n_ac = ac.len();
     let cad_from = mix(role_seed, 32) % n_ac;
-    let rb_last_changed = *rb.chords.at(n_s - 1) != cad;
+    let rb_last_changed = *rb.unbox().chords.at(n_s - 1) != cad;
     let mut cad_code: u32 = opaque(0);
     let mut end_code: u32 = opaque(0);
     let mut cad_p = BIG;
@@ -1583,7 +1607,7 @@ pub fn round_tracks(
             nearest(a, cad % 7)
         };
         let notes = if e_motif {
-            let weak = weak_of(a + *motif.at(1) - *motif.at(0), a, next);
+            let weak = weak_of(a.into() + (*motif.at(1)).into() - (*motif.at(0)).into(), a, next);
             array![
                 note(u * sl, *head.at(0), a, true), note(u * sl + *head.at(0), *head.at(1), weak, false),
             ]
@@ -1631,21 +1655,24 @@ pub fn round_tracks(
             } else {
                 (rb, b_start + (gg - ca) * cyc)
             };
-            for n in *rd.lines.at((uu % k) * 3 + lv) {
+            for n in *rd.unbox().lines.at((uu % k) * 3 + lv) {
                 notes.append(Note { t: t0 + n.t, ..*n });
                 last = n.d;
             }
             if gg == ca - 1 {
                 let qv = (vi + k - ep_leader) % k;
                 if qv < 3 {
-                    let mut tr: i32 = i((e_step * qv) % 7);
-                    if tr > 3 {
-                        tr -= 7;
-                    }
+                    let tm = (e_step * qv) % 7;
+                    let tr: felt252 = tm.into() - if tm > 3 {
+                        7
+                    } else {
+                        0
+                    };
                     for n in ep_lead {
                         if n.t + qv * sl < EP_UNITS * sl {
-                            notes.append(Note { t: ep_start + qv * sl + n.t, d: n.d + tr, ..*n });
-                            last = n.d + tr;
+                            let d = to_i(n.d.into() + tr);
+                            notes.append(Note { t: ep_start + qv * sl + n.t, d, ..*n });
+                            last = d;
                         }
                     }
                     let close = nearest(last, (cad + 2 * *ep_deal.at(qv)) % 7);
@@ -1685,13 +1712,13 @@ pub fn round_tracks(
             if hr == 0 {
                 let mut b: u32 = opaque(0);
                 while b != 4 {
-                    spans.append((base + 2 * b * sl, *rd.loop_.at(b), 2, 0));
+                    spans.append((base + 2 * b * sl, *rd.unbox().loop_.at(b), 2, 0));
                     b += 1;
                 }
             } else {
                 let mut s: u32 = opaque(0);
                 while s != n_s {
-                    spans.append((base + s * sl, *rd.chords.at(s), 1, 0));
+                    spans.append((base + s * sl, *rd.unbox().chords.at(s), 1, 0));
                     s += 1;
                 }
             }
@@ -1710,12 +1737,13 @@ pub fn round_tracks(
             } else {
                 let (_, r2, _, _) = *spans.at(x + 1);
                 let nd = root_deg(r2);
-                let toward = if nd > d {
-                    nd - 1
+                let fd: felt252 = d.into();
+                let toward: felt252 = if nd > d {
+                    nd.into() - 1
                 } else if nd < d {
-                    nd + 1
+                    nd.into() + 1
                 } else {
-                    d
+                    fd
                 };
                 let fig = (mi * 2 + if nn == 2 {
                     0
@@ -1724,24 +1752,24 @@ pub fn round_tracks(
                 }) * 6
                     + bass_fig;
                 let at = BASS_AT.span();
-                let mut y = *at.at(fig);
-                let stop = *at.at(fig + 1);
+                let mut y = at32(at, fig);
+                let stop = at32(at, fig + 1);
                 while y != stop {
-                    let z = *BASS_NOTES.span().at(y);
+                    let z = at32(BASS_NOTES.span(), y);
                     let off = z / 65536;
                     let src = z % 8;
                     let dd = if src == 0 {
-                        d
+                        fd
                     } else if src == 1 {
-                        d + 7
+                        fd + 7
                     } else if src == 2 {
-                        d + 2
+                        fd + 2
                     } else if src == 3 {
-                        d + 4
+                        fd + 4
                     } else {
                         toward
                     };
-                    bass.append(note(t + off, (z / 8) % 8192, dd, off == 0));
+                    bass.append(note(t + off, (z / 8) % 8192, to_i(dd), off == 0));
                     y += 1;
                 }
             }
@@ -1752,13 +1780,13 @@ pub fn round_tracks(
     let mut perc: Array<Sound> = opaque(array![]);
     if perc_on {
         let at = PERC_AT.span();
-        let from = *at.at(mi * 3 + perc_i);
-        let stop = *at.at(mi * 3 + perc_i + 1);
+        let from = at32(at, mi * 3 + perc_i);
+        let stop = at32(at, mi * 3 + perc_i + 1);
         let mut t = cyc;
         while t < cad_start {
             let mut y = from;
             while y != stop {
-                let z = *PERC_HITS.span().at(y);
+                let z = at32(PERC_HITS.span(), y);
                 perc.append(Sound { t: t + z / 65536, len: 120, p: i((z / 256) % 256), v: z % 256 });
                 y += 1;
             }
@@ -1784,7 +1812,7 @@ pub fn round_tracks(
             sl
         };
         for gn in glissando(plan, at, span, gl_seed, at + 480) {
-            gliss.append(Sound { t: gn.t, len: gn.len, p: pitch_of(base, scale, gn.d), v: (gn.v).into() });
+            gliss.append(Sound { t: gn.t, len: gn.len, p: pitch_of(base, scale, gn.d.into()), v: (gn.v).into() });
         }
     }
     // the tempo
@@ -1859,22 +1887,22 @@ pub fn round_tracks(
 #[inline(never)]
 fn root_deg(r: u32) -> i32 {
     let m = r % 7;
-    if m > 3 {
-        i(m) - 7
+    to_i(m.into() - if m > 3 {
+        7
     } else {
-        i(m)
-    }
+        0
+    })
 }
 
 /// Which member a voice (by entry) holds in round cycle g at slot s.
 #[inline(never)]
-fn role_at(ra: Rd, rb: Rd, ca: u32, k: u32, v: u32, g: u32, s: u32) -> u32 {
+fn role_at(ra: Box<Rd>, rb: Box<Rd>, ca: u32, k: u32, v: u32, g: u32, s: u32) -> u32 {
     let rd = if g < ca {
         ra
     } else {
         rb
     };
-    dig(*rd.roles.at(s), (g - v) % k)
+    dig(*rd.unbox().roles.at(s), (g - v) % k)
 }
 
 /// The Round of Loot Beast `species` as a format-1 MIDI file (`roundMidi(...).midi`).

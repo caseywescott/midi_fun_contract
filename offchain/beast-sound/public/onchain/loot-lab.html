@@ -172,7 +172,7 @@ function track0() {
     const o = RD.roundMidi(x, st.mega, st.r ? purchaseSeed(st.r) : 0n, d);
     return { midi: lifted(o.midi, LIFT.round), info: o.info, settings, orch: choose(DATA.orch.roundPools[x.type], DATA.orch.roundKinds, x.id, 2, d) };
   }
-  const orch = choose(DATA.orch.songPools[x.type], DATA.orch.songKinds, x.id, 1, day && st.kind === 'song' ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null, true);
+  const orch = choose(DATA.orch.songPools[x.type], DATA.orch.songKinds, x.id, 1, day && (st.kind === 'song' || st.kind === 'name') ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null, true);
   if (st.kind === 'check') { const o = CK.soundCheckMidi(x, st.mega, st.c ? purchaseSeed(st.c) : 0n); return { midi: o.midi, info: o.info, settings, orch: choose(DATA.orch.roundPools[x.type], DATA.orch.roundKinds, x.id, 2, null) }; }
   const opts = { ...L.GENESIS_DEFAULTS, ...(st.kind === 'name' ? { name: st.name } : {}), ...(day ? { epoch: day, driftMode: 'v2', blockHashes: true } : {}) };
   const o = L.sampleTrackMidi(bOf(x, st.kind === 'name'), { species_count: 1 }, opts, E, V), lf = isChip() ? 0 : DATA.orch.leadSoft[padOf(0, orch[0])];
@@ -184,7 +184,7 @@ function show() {
   for (const k of KINDS) $('t-' + k).classList.toggle('on', st.kind === k);
   $('row-n').classList.toggle('off', st.kind !== 'name'); $('row-e').classList.toggle('off', st.kind !== 'edition'); $('row-p').classList.toggle('off', st.kind !== 'edition' && st.kind !== 'round' && st.kind !== 'check');
   $('p-lbl').textContent = st.kind === 'check' ? 'Take' : 'Purchase';
-  $('row-d').classList.toggle('off', st.kind === 'check' || st.kind === 'name');
+  $('row-d').classList.toggle('off', st.kind === 'check'); // a Name Song drifts by its name, as in Beasts v1.0.1; a Sound Check never drifts
   const x = beast();
   $('b-val').innerHTML = x.id + '. ' + esc(x.name) + ' <small>tier ' + x.tier + ' ' + DATA.types[x.type] + '</small>';
   const nm = L.nameFromVariant(st.name); $('n-val').innerHTML = '#' + st.name + ' <small>prefix ' + nm.prefix + ', suffix ' + nm.suffix + '</small>';

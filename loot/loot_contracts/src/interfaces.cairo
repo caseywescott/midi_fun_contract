@@ -13,6 +13,12 @@
 //! `drift`: v1.1's `DriftInputs` (the day from 1 and the hashes of the first blocks of its day, week
 //! and month). Day 1 plays the track as written, as in the lab. A Song's drift belongs to the song's
 //! name: its `name_variant_id` is taken from the inputs. Sound Checks do not drift.
+//!
+//! `species` is a Loot Beast's public (registry) id, 78..107; anything else reverts 'not a Loot Beast'.
+//! Each Beast keeps the soundtrack written for it at the provisional ids 76..105 (loothero's PR #35):
+//! its music (keys and themes, every random stream, leads, the band, and the drift's species, as the
+//! pinned BeastPureComposer's Song input) is keyed by its musical id, `species::musical_id(species)`,
+//! the public id less two. The musical id never appears in the ABI.
 use beast_composer::inputs::ComposerInputs;
 use beast_composer::inputs::drift::DriftInputs;
 use midi::types::TinySynthSound;

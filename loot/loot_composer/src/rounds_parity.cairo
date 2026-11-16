@@ -86,197 +86,197 @@ fn rounds_parity_07() {
 fn rounds_parity_08() {
     case(28, 106, false, 0, Option::None);
     case(29, 107, false, 0, Option::None);
-    case(30, 78, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x51839e8e79a62df278bdd2d8109e4084bab065d4e5a0bd4460e68d69517496), day_knob: 4, delta_bpm: 2, day: 9 }));
-    case(31, 79, true, 0, Option::Some(Drift { rhythm: Option::Some(0x7550886a87dbd2aa2b8143a5ae60cfc0224cb7b75a29b96342ef4126f331472), rotate: Option::Some(0x42166ef4d89aa15d97a873db473073813669978e29f75ae9cc8cdd22225c3ce), day_knob: 0, delta_bpm: 0, day: 45 }));
+    case(30, 78, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x4f3746ab2694fa470a55d3796931299d7553bca94d2a762707cfc87492c2c20), day_knob: 1, delta_bpm: 0, day: 9 }));
+    case(31, 79, true, 0, Option::Some(Drift { rhythm: Option::Some(0x8b4311587783b4cc629c1eed29820e94ccf5ffebe01664b5f9a3443f9981cc), rotate: Option::Some(0x4bfac1570adb42831a004116efb666980fe93050e7adbd043422c3c95b5d8d5), day_knob: 3, delta_bpm: -2, day: 45 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_09() {
-    case(32, 80, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2e87bac5fb814bb5649cf35a25060e945502a15f6b12c10c84aaa4a1f30f597), day_knob: 4, delta_bpm: 2, day: 100 }));
-    case(33, 81, true, 0, Option::Some(Drift { rhythm: Option::Some(0x47fedc704cbf913fa49fdb1b6a6c258ad2b55bf5bf59a60d27584ded0d6e19), rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 200 }));
-    case(34, 82, true, 0, Option::Some(Drift { rhythm: Option::Some(0x1c59ce536f8d8e73fdac441e9935728d4ec052a157219c0687b839200829063), rotate: Option::Some(0x25f9447dfa9bc9139a8b01054eeee25c1a4df574768436555e844cf5bf72eda), day_knob: 3, delta_bpm: -2, day: 290 }));
-    case(35, 83, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3615797e166bd4c81ab3d7bcd2cd43a97fec41d60645d9d489ccee90623e363), day_knob: 1, delta_bpm: 0, day: 9 }));
+    case(32, 80, true, 0, Option::Some(Drift { rhythm: Option::Some(0x323599ff14fd21657647009ab2112d836bc591e4ff2455932ac9bcd6f0f9ca6), rotate: Option::Some(0x73797112034671d1e08920398b6e2a1b1af262c41e044ef5d8ddf84cf2e4e79), day_knob: 2, delta_bpm: -4, day: 100 }));
+    case(33, 81, true, 0, Option::Some(Drift { rhythm: Option::Some(0x1310302bbdcc0a69b7e51360f0caefcfab6a6b75de4a9d7c2b665dd7c7ca3cc), rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 200 }));
+    case(34, 82, true, 0, Option::Some(Drift { rhythm: Option::Some(0x6f98863c3b777734f93f97fb56d7cf53b517c3bb2cb5a70ab2ce8ad982817a1), rotate: Option::Some(0x39a1919cf71c579301024fe8c6d147c7194a5b58e967fe840a5515d63ec2cf0), day_knob: 1, delta_bpm: 0, day: 290 }));
+    case(35, 83, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x18c39d1f796cc8cc030e2b12bf4562f9718b048752510ed830c48295fde2d6f), day_knob: 3, delta_bpm: -2, day: 9 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_10() {
-    case(36, 84, true, 0, Option::Some(Drift { rhythm: Option::Some(0x540b92479fa32c804ce06c15f932a0b60f5c8aa86b36f63fc60b3c4f8cc8312), rotate: Option::Some(0x52d338fba33d475343d2da86f7c681eaf4bc44ec4854c8816ef8c8c743ea4ba), day_knob: 5, delta_bpm: 4, day: 45 }));
-    case(37, 85, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x7739a805df1e51486c8621af83d4bed24c1c3293d7bdcfe35b035644bbada9b), day_knob: 1, delta_bpm: 0, day: 100 }));
-    case(38, 86, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 200 }));
-    case(39, 87, true, 0, Option::Some(Drift { rhythm: Option::Some(0x56dc303a1d8f7341031423a96b38a1eb65e4b774fc5052c93e5aba42348a973), rotate: Option::Some(0x3804c0e6f364af8142fc9804c3acf470e16daa0b29fb4eec639b4f159e348fa), day_knob: 3, delta_bpm: -2, day: 290 }));
+    case(36, 84, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x5de363415c268dd82ecbba3e6730300a1b69541daa22347549d0fc022804b02), day_knob: 1, delta_bpm: 0, day: 45 }));
+    case(37, 85, true, 0, Option::Some(Drift { rhythm: Option::Some(0x326a4e8426451e62828f9f095009c7779774b6467cc07d9b3d7076d23589ced), rotate: Option::Some(0x5806f1df917c3f469418e622a10bf145119fb54ea4403f700e1655275ced03f), day_knob: 2, delta_bpm: -4, day: 100 }));
+    case(38, 86, true, 0, Option::Some(Drift { rhythm: Option::Some(0x322a125e541d20d23a7ed4257bd1af26bed63baadadfe734e1e3ffd65ec76ee), rotate: Option::Some(0x7fae3f920fe579e8468ff51319c0e81268f2e01a10f801dc827ca3d6bf3adc4), day_knob: 1, delta_bpm: 0, day: 200 }));
+    case(39, 87, true, 0, Option::Some(Drift { rhythm: Option::Some(0x11c7a15d2851fea4cc43a773fb9b15b3e1932bcb88993616cd69492b1d590e2), rotate: Option::Some(0x7238d2cd58ccaed437bc735b890309a13c242bcf3a35a4bd3d8e5516ed5e314), day_knob: 2, delta_bpm: -4, day: 290 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_11() {
-    case(40, 88, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2c1bb7e16b8d0bda614c6c272566bdd5459dc76522ca591675e56d431af7c7a), day_knob: 2, delta_bpm: -4, day: 9 }));
-    case(41, 89, true, 0, Option::Some(Drift { rhythm: Option::Some(0x5bf6ae6d6c016fd698c893925f5aebe333b44b34cc0bda72c522230df66601), rotate: Option::Some(0x7b9e04ede6e154c8e0a492be5d181cc3bcba03596348a4f5369dd05ab381955), day_knob: 1, delta_bpm: 0, day: 45 }));
-    case(42, 90, true, 0, Option::Some(Drift { rhythm: Option::Some(0x2c7c3d6675cf054920d528238a78130588494ac7e6088016ee15c4bf419a58), rotate: Option::Some(0x64ea499898e249f200fb666c466b6eb81fb944af377b82b1ed807b1fa73243), day_knob: 4, delta_bpm: 2, day: 100 }));
-    case(43, 91, true, 0, Option::Some(Drift { rhythm: Option::Some(0xba940af63b8ff1e000638c13c56fb9845cfde5fffe3a2ab464440fa508cb68), rotate: Option::Some(0x74e22aaa8e253951c7e34116554a6b2f8a3f79a9d740e039b326cc1e1281fb5), day_knob: 4, delta_bpm: 2, day: 200 }));
+    case(40, 88, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 9 }));
+    case(41, 89, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 45 }));
+    case(42, 90, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x1ed730b9964bbe9bb601de0232efd05998786fb2979f84534748eabfc70ab5f), day_knob: 3, delta_bpm: -2, day: 100 }));
+    case(43, 91, true, 0, Option::Some(Drift { rhythm: Option::Some(0x663d7bd97a8670dbdc76af47c47aac724ce703b40569d1318af5a42280891ff), rotate: Option::Some(0x678f8f7ea9c92fe2e21baddb8ae9ee5ac29ceab6920cb97c9a6ab202ba161b5), day_knob: 3, delta_bpm: -2, day: 200 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_12() {
-    case(44, 92, true, 0, Option::Some(Drift { rhythm: Option::Some(0x3528a2b128876a6247b24f8c2c936496117d1c7ab9b6e3dc5b0db3a0917d101), rotate: Option::Some(0x667fcf3c29ecd96019d7f23ed942abdb553211853f25c649c4c8b45c76208e7), day_knob: 5, delta_bpm: 4, day: 290 }));
-    case(45, 93, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x4d2af03cf556f321235aa4bd432a371ce906cbbea3bb98a6efec7c8f02f8bc1), day_knob: 0, delta_bpm: 0, day: 9 }));
-    case(46, 94, true, 0, Option::Some(Drift { rhythm: Option::Some(0x5bb38db7d749d1f5cab108d014682e012fbbe6a0b8198327b28367a992fdb78), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 45 }));
-    case(47, 95, true, 0, Option::Some(Drift { rhythm: Option::Some(0x460e77439830f2ac5c3063925769e696da524af453e8d323ebbd6e02d075f5d), rotate: Option::Some(0x3b23bbee574128e3a67a507f05bb4c6ef2b3ee332dc358d033aa55e23037afb), day_knob: 3, delta_bpm: -2, day: 100 }));
+    case(44, 92, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x29ae64944760bf42eb55f40d958eaac1b8dfa294e2c5a5e10f7e4b08174286d), day_knob: 5, delta_bpm: 4, day: 290 }));
+    case(45, 93, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x689ad8a91171ff6e0c18997ff61f687ed74b18d9ab1ea16b21a53325a3b6338), day_knob: 0, delta_bpm: 0, day: 9 }));
+    case(46, 94, true, 0, Option::Some(Drift { rhythm: Option::Some(0x563eef8931506718ae348aea3f0bebcbb5e93e3ab60a106ec518fd3d263c4a3), rotate: Option::Some(0xe2dd47acc0cb86f408dde674b95253fcbb4d82d38466e38ab0d55ebff77fa0), day_knob: 3, delta_bpm: -2, day: 45 }));
+    case(47, 95, true, 0, Option::Some(Drift { rhythm: Option::Some(0x5a9b21ba915b7ac065a2bd7f0f47274d17b65badbfd1d0ad25e5e4b24ad0a94), rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 100 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_13() {
-    case(48, 96, true, 0, Option::Some(Drift { rhythm: Option::Some(0xb362764f08532251dfeef766570b87e72b15a29b812d353bc412e25d933e56), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 200 }));
-    case(49, 97, true, 0, Option::Some(Drift { rhythm: Option::Some(0x1636d95aa1bd2a179836eed1024f7ff42a6601f5a09f516b88f0e678488eb08), rotate: Option::Some(0x5fab22e4ee37c5e3f6afe8025f620689a9f80f46fb140317169f6e78879b64b), day_knob: 1, delta_bpm: 0, day: 290 }));
-    case(50, 98, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x460bd032b29f2f037ec86d7df73505b22baca6e2149297bb73139696241b3b3), day_knob: 0, delta_bpm: 0, day: 9 }));
-    case(51, 99, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x531b008d8ab1531e64703c41b852f5b95e949fc6ad74a7a087969a9293bc7f7), day_knob: 4, delta_bpm: 2, day: 45 }));
+    case(48, 96, true, 0, Option::Some(Drift { rhythm: Option::Some(0x1f7f5c162a2999de4690c4ce892afc3c9d88a15ffff0512f8a53f4c4089bc7e), rotate: Option::Some(0x6482793995f5409b54f6b9d080777083849da41fa0c76e3375b8871b54b2350), day_knob: 3, delta_bpm: -2, day: 200 }));
+    case(49, 97, true, 0, Option::Some(Drift { rhythm: Option::Some(0x34b0474b31b82d87d4eb3c1cfce0e3c997864de527af5f92d328129b96d6a2b), rotate: Option::None, day_knob: 0, delta_bpm: 0, day: 290 }));
+    case(50, 98, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 9 }));
+    case(51, 99, true, 0, Option::Some(Drift { rhythm: Option::Some(0x3f9e948ed838410a13a514b1a5abdb9a13daaee4b955905583c939bb9b06211), rotate: Option::Some(0xc526fe68e0ea993f2a3a001bc904637c76d9c9a23d712aa212001863873c7d), day_knob: 5, delta_bpm: 4, day: 45 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_14() {
-    case(52, 100, true, 0, Option::Some(Drift { rhythm: Option::Some(0x5ddebb8310b2d8eb07a732d9516848af91385153df2f1c6cfd21f9302f0ce0b), rotate: Option::Some(0x42b31681e7ca2ac4b0335f3761bdc0194f23f75ac7bbc2ce871761d7870c7ef), day_knob: 1, delta_bpm: 0, day: 100 }));
-    case(53, 101, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x24eb504c3014dcc5ac437f77b1c121bf55c63cbca9c11100682372e16598920), day_knob: 3, delta_bpm: -2, day: 200 }));
-    case(54, 102, true, 0, Option::Some(Drift { rhythm: Option::Some(0x2f41962f02d390c3c470a95e0dca3175c39ffc0f532cd8178ab5c5c8e6d4e07), rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 290 }));
-    case(55, 103, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 }));
+    case(52, 100, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x4adb4e8a68b6a4fd05328cb51eda8439fd9a610837dd5ff15bdada2f1ee576c), day_knob: 1, delta_bpm: 0, day: 100 }));
+    case(53, 101, true, 0, Option::Some(Drift { rhythm: Option::Some(0x491b01d384cfc10355f18a13f1e982690ad7b91aa3c91d08b87d87f6153d3b0), rotate: Option::Some(0x543b7644c0fb3e44e777fe094dacf69208b30e40a71797f47204825a77106a9), day_knob: 0, delta_bpm: 0, day: 200 }));
+    case(54, 102, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x72e4032155c64d3e58f9ea28da97557c60d87d9e9cd5135a1db85d99eceecda), day_knob: 0, delta_bpm: 0, day: 290 }));
+    case(55, 103, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2bce2073ed23c543435e4e2118e8a9f245db522d2689086ea4f01bb246219a8), day_knob: 5, delta_bpm: 4, day: 9 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_15() {
-    case(56, 104, true, 0, Option::Some(Drift { rhythm: Option::Some(0xc326c50a8ff9d55d69a44f7d0adb9a1d31a0426d97ab6e96935309b9067db2), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 45 }));
-    case(57, 105, true, 0, Option::Some(Drift { rhythm: Option::Some(0x57f03df8ef41335ab5c2bb9e9b3bd4c03d692f9eb695a7405bbabaa3367bdc3), rotate: Option::Some(0x1b45333524ab274d8122764430dc000843c28d4cf70b3a1e07bc670848bdafe), day_knob: 5, delta_bpm: 4, day: 100 }));
-    case(58, 106, true, 0, Option::Some(Drift { rhythm: Option::Some(0x61c3d05b0eaeaa6269a8e8f85372a40ead48c6e29100a25f04afaa7b07feb7), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 200 }));
-    case(59, 107, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x421697989727d9e6cf566501fc3aea6a3bee5bfdeb6cab87118b83db03384ac), day_knob: 5, delta_bpm: 4, day: 290 }));
+    case(56, 104, true, 0, Option::Some(Drift { rhythm: Option::Some(0x519672f0e902b3b517d34a002e70ca210da0cf79818b52c32a7993c22e6ae0a), rotate: Option::Some(0x3f254bbf66d96e23b974e4265ada92cc1304fe98502bdf386a3bf444f9f717e), day_knob: 0, delta_bpm: 0, day: 45 }));
+    case(57, 105, true, 0, Option::Some(Drift { rhythm: Option::Some(0x78c545de46f54224d4392faa3356e4c4370c25c4aedf14af370a4bea5c44814), rotate: Option::Some(0x1d5b5424911b26ee8afac6f0571dbf46caa3fcb45b303a399e0c8c4837572aa), day_knob: 0, delta_bpm: 0, day: 100 }));
+    case(58, 106, true, 0, Option::Some(Drift { rhythm: Option::Some(0x1c2fe1ed8987fc124488fcc98d224f5ed274176fa5fae4621ef9ae6a21e07cd), rotate: Option::Some(0x2c552ff42c6f62c664ac0d6d5e91047cdeb734f2ddb3565bea6bfeb3375767c), day_knob: 2, delta_bpm: -4, day: 200 }));
+    case(59, 107, true, 0, Option::Some(Drift { rhythm: Option::Some(0x6838b69fa7ccd072cc4722f7e439f4e712a815752b27ef279821d85674f6258), rotate: Option::Some(0x7a5c662b3af65ac1b77a25361fda0c4c0b3f359f5dc880ef7af189c6593b9f5), day_knob: 3, delta_bpm: -2, day: 290 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_16() {
-    case(60, 85, false, 16294208416658607535, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 }));
-    case(61, 92, true, 7960286522194355700, Option::Some(Drift { rhythm: Option::Some(0x563eef8931506718ae348aea3f0bebcbb5e93e3ab60a106ec518fd3d263c4a3), rotate: Option::Some(0xe2dd47acc0cb86f408dde674b95253fcbb4d82d38466e38ab0d55ebff77fa0), day_knob: 3, delta_bpm: -2, day: 45 }));
-    case(62, 99, false, 487617019471545679, Option::Some(Drift { rhythm: Option::Some(0x1fcd5dfb41e85bbf46c045b69f61798c80f95ea0f0a92b843de826af8b560df), rotate: Option::Some(0xaabe23ebaa331fed8d4a2270a5961b7dd2ef40dd80c79aa22f461c752e1453), day_knob: 4, delta_bpm: 2, day: 100 }));
-    case(63, 106, true, 17909611376780542444, Option::Some(Drift { rhythm: Option::Some(0x61c3d05b0eaeaa6269a8e8f85372a40ead48c6e29100a25f04afaa7b07feb7), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 200 }));
+    case(60, 85, false, 16294208416658607535, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3615797e166bd4c81ab3d7bcd2cd43a97fec41d60645d9d489ccee90623e363), day_knob: 1, delta_bpm: 0, day: 9 }));
+    case(61, 92, true, 7960286522194355700, Option::Some(Drift { rhythm: Option::Some(0x6124d4e06069cbaa2ed20110e2d59fcfa313225ef56176bd540f166ccfeb285), rotate: Option::Some(0x3edff42f9739af0d8672ab59145caa85fa864794cf9dbe1a42d470526b0a054), day_knob: 1, delta_bpm: 0, day: 45 }));
+    case(62, 99, false, 487617019471545679, Option::Some(Drift { rhythm: Option::Some(0x1907c746adce47de806b053a1fdbc954dae0145d05e6714d910716fe5838472), rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 100 }));
+    case(63, 106, true, 17909611376780542444, Option::Some(Drift { rhythm: Option::Some(0x1c2fe1ed8987fc124488fcc98d224f5ed274176fa5fae4621ef9ae6a21e07cd), rotate: Option::Some(0x2c552ff42c6f62c664ac0d6d5e91047cdeb734f2ddb3565bea6bfeb3375767c), day_knob: 2, delta_bpm: -4, day: 200 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_17() {
-    case(64, 83, false, 1961750202426094747, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3b539361012d45d61b7803d2be9bd86abca1f9d8214b23fa7246f19b47bca4), day_knob: 5, delta_bpm: 4, day: 290 }));
+    case(64, 83, false, 1961750202426094747, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0xd346093c12b26e2027df230b1bd3a8a73b3d83c928f40231d2fb9760808267), day_knob: 1, delta_bpm: 0, day: 290 }));
     case(65, 90, true, 6038094601263162090, Option::None);
-    case(66, 97, false, 3207296026000306913, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x23b08718223b2dd0594a450dcf596dda105c1e67d7588119960ea247b618b1d), day_knob: 2, delta_bpm: -4, day: 9 }));
-    case(67, 104, true, 14232521865600346940, Option::Some(Drift { rhythm: Option::Some(0xc326c50a8ff9d55d69a44f7d0adb9a1d31a0426d97ab6e96935309b9067db2), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 45 }));
+    case(66, 97, false, 3207296026000306913, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 9 }));
+    case(67, 104, true, 14232521865600346940, Option::Some(Drift { rhythm: Option::Some(0x519672f0e902b3b517d34a002e70ca210da0cf79818b52c32a7993c22e6ae0a), rotate: Option::Some(0x3f254bbf66d96e23b974e4265ada92cc1304fe98502bdf386a3bf444f9f717e), day_knob: 0, delta_bpm: 0, day: 45 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_18() {
-    case(68, 81, false, 4532161160992623299, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2896b15a98218210de6bf8e32eb2b441e0596ad14143f1d597c6b11efa2a5d3), day_knob: 2, delta_bpm: -4, day: 100 }));
-    case(69, 88, true, 17561866513979060390, Option::Some(Drift { rhythm: Option::Some(0x705107ee42dc59e5ce3c4c7dfee91095adf07295042aacac38a12b4e753906), rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 200 }));
-    case(70, 95, false, 7313543279846440201, Option::Some(Drift { rhythm: Option::Some(0x34b0474b31b82d87d4eb3c1cfce0e3c997864de527af5f92d328129b96d6a2b), rotate: Option::None, day_knob: 0, delta_bpm: 0, day: 290 }));
+    case(68, 81, false, 4532161160992623299, Option::Some(Drift { rhythm: Option::Some(0x6dbe809765304aa608c313ec2d18e94a9e0fc1c86e5e19c855399be35231fd8), rotate: Option::Some(0x566983b4d1ef392139d049f73b37bdbef19761629f79db7e82a25fcef373f6b), day_knob: 4, delta_bpm: 2, day: 100 }));
+    case(69, 88, true, 17561866513979060390, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 200 }));
+    case(70, 95, false, 7313543279846440201, Option::Some(Drift { rhythm: Option::Some(0x2990ff5f7b82d0ae5ab143ca15b15e0c5155cd8d9eee89246e47e5a48a48f21), rotate: Option::Some(0x98b0c8d5bd8bc89115d34c42e78fa37d695e1c86022a294f92ff10adff6ca4), day_knob: 0, delta_bpm: 0, day: 290 }));
     case(71, 102, true, 14038607207048404726, Option::None);
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_19() {
-    case(72, 79, false, 9665182471527586683, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x43d117093b7bb2756a4ac712bcdbb9ee86f988403f71165b365c9a9716fd0ca), day_knob: 4, delta_bpm: 2, day: 9 }));
-    case(73, 86, true, 10241033088150448431, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x562ec9e11570ac380ba50b4c724a5a34fb0a93687263ebe03656e1b44735e3f), day_knob: 1, delta_bpm: 0, day: 45 }));
-    case(74, 93, false, 13064396156225473817, Option::Some(Drift { rhythm: Option::Some(0x5a9b21ba915b7ac065a2bd7f0f47274d17b65badbfd1d0ad25e5e4b24ad0a94), rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 100 }));
-    case(75, 100, true, 9564308153959284907, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x5326affe2fde4258c1165682baf4dacd0c600720e0e5a4b8276195ca3f2987b), day_knob: 5, delta_bpm: 4, day: 200 }));
+    case(72, 79, false, 9665182471527586683, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x55fdc6475d8b6ff01d64565c0870688fa687ab4dced6ec2d53fb036117a4305), day_knob: 5, delta_bpm: 4, day: 9 }));
+    case(73, 86, true, 10241033088150448431, Option::Some(Drift { rhythm: Option::Some(0x540b92479fa32c804ce06c15f932a0b60f5c8aa86b36f63fc60b3c4f8cc8312), rotate: Option::Some(0x52d338fba33d475343d2da86f7c681eaf4bc44ec4854c8816ef8c8c743ea4ba), day_knob: 5, delta_bpm: 4, day: 45 }));
+    case(74, 93, false, 13064396156225473817, Option::Some(Drift { rhythm: Option::Some(0xf12f994f3f75a3be552495f3c023fe1ecc1f60e247748493284fd4873c017e), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 100 }));
+    case(75, 100, true, 9564308153959284907, Option::Some(Drift { rhythm: Option::Some(0xe289c2ea7d7ba3dcd5a364a33ec600288fb148cc9025f44b25553c1bc3c6c0), rotate: Option::Some(0x6317d4bcfcae32fc4abf0290ba9001ab3d0b67765cb546e795772cf489957ea), day_knob: 4, delta_bpm: 2, day: 200 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_20() {
-    case(76, 107, false, 9018883062403043925, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x421697989727d9e6cf566501fc3aea6a3bee5bfdeb6cab87118b83db03384ac), day_knob: 5, delta_bpm: 4, day: 290 }));
+    case(76, 107, false, 9018883062403043925, Option::Some(Drift { rhythm: Option::Some(0x6838b69fa7ccd072cc4722f7e439f4e712a815752b27ef279821d85674f6258), rotate: Option::Some(0x7a5c662b3af65ac1b77a25361fda0c4c0b3f359f5dc880ef7af189c6593b9f5), day_knob: 3, delta_bpm: -2, day: 290 }));
     case(77, 84, true, 14109521515791744902, Option::None);
-    case(78, 91, false, 3775962213208117092, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x689ad8a91171ff6e0c18997ff61f687ed74b18d9ab1ea16b21a53325a3b6338), day_knob: 0, delta_bpm: 0, day: 9 }));
-    case(79, 98, true, 15571913878924461484, Option::Some(Drift { rhythm: Option::Some(0x1a84acbf4264ce6461d21b0a011910cbcfd31a77ad87266d4a53f38a4ef7869), rotate: Option::Some(0x3eef2596aa1660243c67afd9bd58fd16c2f3cfb70c38f337383471ce2a01257), day_knob: 1, delta_bpm: 0, day: 45 }));
+    case(78, 91, false, 3775962213208117092, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3711097b3bb57ae375b46e0ee037bc21238ce0c240c73006197d651effb5838), day_knob: 1, delta_bpm: 0, day: 9 }));
+    case(79, 98, true, 15571913878924461484, Option::Some(Drift { rhythm: Option::Some(0x52f5fc95773902e7df075b432108e423bf4f9cf46c99f2422ac0e3c30a52ed8), rotate: Option::Some(0x410390f58e16e148bdeb6a343e0223fb478a7ece90ede1362ee8093d2b6023c), day_knob: 3, delta_bpm: -2, day: 45 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_21() {
-    case(80, 105, false, 15781000307351985879, Option::Some(Drift { rhythm: Option::Some(0x57f03df8ef41335ab5c2bb9e9b3bd4c03d692f9eb695a7405bbabaa3367bdc3), rotate: Option::Some(0x1b45333524ab274d8122764430dc000843c28d4cf70b3a1e07bc670848bdafe), day_knob: 5, delta_bpm: 4, day: 100 }));
-    case(81, 82, true, 12178730177414951181, Option::Some(Drift { rhythm: Option::Some(0x316523074b311d34d10e8debde70946c283801dc20b5cb741a4d7b364f64f95), rotate: Option::Some(0x59813b30c811a4c513878dec6fc99f01f7d670ec2bee5dd44f1ae4da1cac62b), day_knob: 3, delta_bpm: -2, day: 200 }));
-    case(82, 89, false, 17146877070824583018, Option::Some(Drift { rhythm: Option::Some(0x7353c3c19b91befabf05ce15d8d87899334f414640fa7241af0f57e8ac872be), rotate: Option::Some(0x798c34f09c5eb08b14218a116cdda37142bc35426bafb55b9cacdef14e6e28b), day_knob: 0, delta_bpm: 0, day: 290 }));
+    case(80, 105, false, 15781000307351985879, Option::Some(Drift { rhythm: Option::Some(0x78c545de46f54224d4392faa3356e4c4370c25c4aedf14af370a4bea5c44814), rotate: Option::Some(0x1d5b5424911b26ee8afac6f0571dbf46caa3fcb45b303a399e0c8c4837572aa), day_knob: 0, delta_bpm: 0, day: 100 }));
+    case(81, 82, true, 12178730177414951181, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 200 }));
+    case(82, 89, false, 17146877070824583018, Option::Some(Drift { rhythm: Option::Some(0x56dc303a1d8f7341031423a96b38a1eb65e4b774fc5052c93e5aba42348a973), rotate: Option::Some(0x3804c0e6f364af8142fc9804c3acf470e16daa0b29fb4eec639b4f159e348fa), day_knob: 3, delta_bpm: -2, day: 290 }));
     case(83, 96, true, 6073503041918755660, Option::None);
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_22() {
-    case(84, 103, false, 15959633193653531241, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 }));
-    case(85, 80, true, 10619068946664148859, Option::Some(Drift { rhythm: Option::Some(0x2aa371ef3dd586c198d5f045856a9db031919ad746d8209520d3dc351b16b6d), rotate: Option::Some(0x75f829442d46cce35c53ef76d978cae282071652cf996f0042696c02b617ed7), day_knob: 1, delta_bpm: 0, day: 45 }));
-    case(86, 87, false, 7617890157137703680, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 100 }));
-    case(87, 94, true, 4670970265874846992, Option::Some(Drift { rhythm: Option::Some(0x1f7f5c162a2999de4690c4ce892afc3c9d88a15ffff0512f8a53f4c4089bc7e), rotate: Option::Some(0x6482793995f5409b54f6b9d080777083849da41fa0c76e3375b8871b54b2350), day_knob: 3, delta_bpm: -2, day: 200 }));
+    case(84, 103, false, 15959633193653531241, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2bce2073ed23c543435e4e2118e8a9f245db522d2689086ea4f01bb246219a8), day_knob: 5, delta_bpm: 4, day: 9 }));
+    case(85, 80, true, 10619068946664148859, Option::Some(Drift { rhythm: Option::Some(0x3b50140f1ed77a9d3b5905d98d4e0e4a86f3f01d9a72da52b62c8a3783f18ec), rotate: Option::Some(0x777ebb57484dbb8e9eb6f5bc2459a683e97e7cf5cf5b72a5370806e05846e41), day_knob: 3, delta_bpm: -2, day: 45 }));
+    case(86, 87, false, 7617890157137703680, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x7739a805df1e51486c8621af83d4bed24c1c3293d7bdcfe35b035644bbada9b), day_knob: 1, delta_bpm: 0, day: 100 }));
+    case(87, 94, true, 4670970265874846992, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x47bf3cba9713c93279e3882977c28ccbe9296c0e265ef49109e89056d7ad37c), day_knob: 1, delta_bpm: 0, day: 200 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_23() {
-    case(88, 101, false, 11741057589345805078, Option::Some(Drift { rhythm: Option::Some(0x4363b7423d641d27e9d96bfe32bca6bb3c2ac4d41ec234e749179b2007eb9ff), rotate: Option::Some(0xd27bb7d6a35b07838eeba981d23482c2a223b2ff5a63f3c522dc7fb3db8823), day_knob: 0, delta_bpm: 0, day: 290 }));
+    case(88, 101, false, 11741057589345805078, Option::Some(Drift { rhythm: Option::Some(0x2e99c5bb7a6887f6a31c576184964f67b8ae30fb1b451460de1dde602733fa3), rotate: Option::Some(0x2abc48f0c9d7a9ce949ab1c147c2e1740db7f5e6c939fc8c6348fd791107cfc), day_knob: 5, delta_bpm: 4, day: 290 }));
     case(89, 78, true, 17172820739197057138, Option::None);
-    case(90, 85, false, 17395526219779491151, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 }));
-    case(91, 92, true, 3998411274607395365, Option::Some(Drift { rhythm: Option::Some(0x563eef8931506718ae348aea3f0bebcbb5e93e3ab60a106ec518fd3d263c4a3), rotate: Option::Some(0xe2dd47acc0cb86f408dde674b95253fcbb4d82d38466e38ab0d55ebff77fa0), day_knob: 3, delta_bpm: -2, day: 45 }));
+    case(90, 85, false, 17395526219779491151, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3615797e166bd4c81ab3d7bcd2cd43a97fec41d60645d9d489ccee90623e363), day_knob: 1, delta_bpm: 0, day: 9 }));
+    case(91, 92, true, 3998411274607395365, Option::Some(Drift { rhythm: Option::Some(0x6124d4e06069cbaa2ed20110e2d59fcfa313225ef56176bd540f166ccfeb285), rotate: Option::Some(0x3edff42f9739af0d8672ab59145caa85fa864794cf9dbe1a42d470526b0a054), day_knob: 1, delta_bpm: 0, day: 45 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_24() {
-    case(92, 99, false, 900130614242687664, Option::Some(Drift { rhythm: Option::Some(0x1fcd5dfb41e85bbf46c045b69f61798c80f95ea0f0a92b843de826af8b560df), rotate: Option::Some(0xaabe23ebaa331fed8d4a2270a5961b7dd2ef40dd80c79aa22f461c752e1453), day_knob: 4, delta_bpm: 2, day: 100 }));
-    case(93, 106, true, 385107482673595689, Option::Some(Drift { rhythm: Option::Some(0x61c3d05b0eaeaa6269a8e8f85372a40ead48c6e29100a25f04afaa7b07feb7), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 200 }));
-    case(94, 83, false, 15155866324004882167, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3b539361012d45d61b7803d2be9bd86abca1f9d8214b23fa7246f19b47bca4), day_knob: 5, delta_bpm: 4, day: 290 }));
+    case(92, 99, false, 900130614242687664, Option::Some(Drift { rhythm: Option::Some(0x1907c746adce47de806b053a1fdbc954dae0145d05e6714d910716fe5838472), rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 100 }));
+    case(93, 106, true, 385107482673595689, Option::Some(Drift { rhythm: Option::Some(0x1c2fe1ed8987fc124488fcc98d224f5ed274176fa5fae4621ef9ae6a21e07cd), rotate: Option::Some(0x2c552ff42c6f62c664ac0d6d5e91047cdeb734f2ddb3565bea6bfeb3375767c), day_knob: 2, delta_bpm: -4, day: 200 }));
+    case(94, 83, false, 15155866324004882167, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0xd346093c12b26e2027df230b1bd3a8a73b3d83c928f40231d2fb9760808267), day_knob: 1, delta_bpm: 0, day: 290 }));
     case(95, 90, true, 7593930394342328515, Option::None);
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_25() {
-    case(96, 95, false, 4719483656716592003, Option::Some(Drift { rhythm: Option::Some(0x34b0474b31b82d87d4eb3c1cfce0e3c997864de527af5f92d328129b96d6a2b), rotate: Option::None, day_knob: 0, delta_bpm: 0, day: 290 }));
-    case(97, 106, false, 4340416312237048737, Option::Some(Drift { rhythm: Option::Some(0x61c3d05b0eaeaa6269a8e8f85372a40ead48c6e29100a25f04afaa7b07feb7), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 200 }));
-    case(98, 87, true, 7933530951116992991, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 100 }));
-    case(99, 98, false, 5740394572501292841, Option::Some(Drift { rhythm: Option::Some(0x1a84acbf4264ce6461d21b0a011910cbcfd31a77ad87266d4a53f38a4ef7869), rotate: Option::Some(0x3eef2596aa1660243c67afd9bd58fd16c2f3cfb70c38f337383471ce2a01257), day_knob: 1, delta_bpm: 0, day: 45 }));
+    case(96, 95, false, 4719483656716592003, Option::Some(Drift { rhythm: Option::Some(0x2990ff5f7b82d0ae5ab143ca15b15e0c5155cd8d9eee89246e47e5a48a48f21), rotate: Option::Some(0x98b0c8d5bd8bc89115d34c42e78fa37d695e1c86022a294f92ff10adff6ca4), day_knob: 0, delta_bpm: 0, day: 290 }));
+    case(97, 106, false, 4340416312237048737, Option::Some(Drift { rhythm: Option::Some(0x1c2fe1ed8987fc124488fcc98d224f5ed274176fa5fae4621ef9ae6a21e07cd), rotate: Option::Some(0x2c552ff42c6f62c664ac0d6d5e91047cdeb734f2ddb3565bea6bfeb3375767c), day_knob: 2, delta_bpm: -4, day: 200 }));
+    case(98, 87, true, 7933530951116992991, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x7739a805df1e51486c8621af83d4bed24c1c3293d7bdcfe35b035644bbada9b), day_knob: 1, delta_bpm: 0, day: 100 }));
+    case(99, 98, false, 5740394572501292841, Option::Some(Drift { rhythm: Option::Some(0x52f5fc95773902e7df075b432108e423bf4f9cf46c99f2422ac0e3c30a52ed8), rotate: Option::Some(0x410390f58e16e148bdeb6a343e0223fb478a7ece90ede1362ee8093d2b6023c), day_knob: 3, delta_bpm: -2, day: 45 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_26() {
-    case(100, 79, false, 9577824162912834090, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x43d117093b7bb2756a4ac712bcdbb9ee86f988403f71165b365c9a9716fd0ca), day_knob: 4, delta_bpm: 2, day: 9 }));
+    case(100, 79, false, 9577824162912834090, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x55fdc6475d8b6ff01d64565c0870688fa687ab4dced6ec2d53fb036117a4305), day_knob: 5, delta_bpm: 4, day: 9 }));
     case(101, 90, true, 1391454601869358542, Option::None);
-    case(102, 101, false, 566489329403328680, Option::Some(Drift { rhythm: Option::Some(0x4363b7423d641d27e9d96bfe32bca6bb3c2ac4d41ec234e749179b2007eb9ff), rotate: Option::Some(0xd27bb7d6a35b07838eeba981d23482c2a223b2ff5a63f3c522dc7fb3db8823), day_knob: 0, delta_bpm: 0, day: 290 }));
-    case(103, 82, false, 1351103705685551415, Option::Some(Drift { rhythm: Option::Some(0x316523074b311d34d10e8debde70946c283801dc20b5cb741a4d7b364f64f95), rotate: Option::Some(0x59813b30c811a4c513878dec6fc99f01f7d670ec2bee5dd44f1ae4da1cac62b), day_knob: 3, delta_bpm: -2, day: 200 }));
+    case(102, 101, false, 566489329403328680, Option::Some(Drift { rhythm: Option::Some(0x2e99c5bb7a6887f6a31c576184964f67b8ae30fb1b451460de1dde602733fa3), rotate: Option::Some(0x2abc48f0c9d7a9ce949ab1c147c2e1740db7f5e6c939fc8c6348fd791107cfc), day_knob: 5, delta_bpm: 4, day: 290 }));
+    case(103, 82, false, 1351103705685551415, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 200 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_27() {
-    case(104, 93, true, 14701652534245454904, Option::Some(Drift { rhythm: Option::Some(0x5a9b21ba915b7ac065a2bd7f0f47274d17b65badbfd1d0ad25e5e4b24ad0a94), rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 100 }));
-    case(105, 104, false, 17072694713458957879, Option::Some(Drift { rhythm: Option::Some(0xc326c50a8ff9d55d69a44f7d0adb9a1d31a0426d97ab6e96935309b9067db2), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 45 }));
-    case(106, 85, false, 4504985774214511021, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 }));
+    case(104, 93, true, 14701652534245454904, Option::Some(Drift { rhythm: Option::Some(0xf12f994f3f75a3be552495f3c023fe1ecc1f60e247748493284fd4873c017e), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 100 }));
+    case(105, 104, false, 17072694713458957879, Option::Some(Drift { rhythm: Option::Some(0x519672f0e902b3b517d34a002e70ca210da0cf79818b52c32a7993c22e6ae0a), rotate: Option::Some(0x3f254bbf66d96e23b974e4265ada92cc1304fe98502bdf386a3bf444f9f717e), day_knob: 0, delta_bpm: 0, day: 45 }));
+    case(106, 85, false, 4504985774214511021, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3615797e166bd4c81ab3d7bcd2cd43a97fec41d60645d9d489ccee90623e363), day_knob: 1, delta_bpm: 0, day: 9 }));
     case(107, 96, true, 7570221628877614665, Option::None);
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_28() {
-    case(108, 94, false, 16079692208719082326, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x5d660bcc5b52a32ac94653d6fddd047e90009c01289ccc23e947ba973e7f0d1), day_knob: 4, delta_bpm: 2, day: 9 }));
-    case(109, 95, true, 1961486146552941677, Option::Some(Drift { rhythm: Option::Some(0x460e77439830f2ac5c3063925769e696da524af453e8d323ebbd6e02d075f5d), rotate: Option::Some(0x3b23bbee574128e3a67a507f05bb4c6ef2b3ee332dc358d033aa55e23037afb), day_knob: 3, delta_bpm: -2, day: 100 }));
-    case(110, 101, false, 9328884436841815888, Option::Some(Drift { rhythm: Option::Some(0x4363b7423d641d27e9d96bfe32bca6bb3c2ac4d41ec234e749179b2007eb9ff), rotate: Option::Some(0xd27bb7d6a35b07838eeba981d23482c2a223b2ff5a63f3c522dc7fb3db8823), day_knob: 0, delta_bpm: 0, day: 290 }));
-    case(111, 80, true, 13712640352318547628, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x26bad35c662261b79214202a94a0d5d0bb0342c3937210c3e6172344c28fd1e), day_knob: 3, delta_bpm: -2, day: 9 }));
+    case(108, 94, false, 16079692208719082326, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 0, delta_bpm: 0, day: 9 }));
+    case(109, 89, true, 2964889177012845576, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 100 }));
+    case(110, 94, false, 5091879769981517896, Option::Some(Drift { rhythm: Option::Some(0x3528a2b128876a6247b24f8c2c936496117d1c7ab9b6e3dc5b0db3a0917d101), rotate: Option::Some(0x667fcf3c29ecd96019d7f23ed942abdb553211853f25c649c4c8b45c76208e7), day_knob: 5, delta_bpm: 4, day: 290 }));
+    case(111, 90, true, 4980508477708824225, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2c1bb7e16b8d0bda614c6c272566bdd5459dc76522ca591675e56d431af7c7a), day_knob: 2, delta_bpm: -4, day: 9 }));
 }
 
 #[test]
 #[ignore]
 fn rounds_parity_29() {
-    case(112, 86, false, 11176082467843938053, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 9 }));
-    case(113, 80, true, 17419004622730762118, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2e87bac5fb814bb5649cf35a25060e945502a15f6b12c10c84aaa4a1f30f597), day_knob: 4, delta_bpm: 2, day: 100 }));
-    case(114, 85, false, 15591217396223136993, Option::Some(Drift { rhythm: Option::Some(0x11c7a15d2851fea4cc43a773fb9b15b3e1932bcb88993616cd69492b1d590e2), rotate: Option::Some(0x7238d2cd58ccaed437bc735b890309a13c242bcf3a35a4bd3d8e5516ed5e314), day_knob: 2, delta_bpm: -4, day: 290 }));
-    case(115, 81, true, 10855209924439447272, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x18c39d1f796cc8cc030e2b12bf4562f9718b048752510ed830c48295fde2d6f), day_knob: 3, delta_bpm: -2, day: 9 }));
+    case(112, 98, false, 2500434509708612314, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 9 }));
+    case(113, 99, true, 3469464161541295809, Option::Some(Drift { rhythm: Option::Some(0x1907c746adce47de806b053a1fdbc954dae0145d05e6714d910716fe5838472), rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 100 }));
+    case(114, 83, false, 3061154374864262414, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0xd346093c12b26e2027df230b1bd3a8a73b3d83c928f40231d2fb9760808267), day_knob: 1, delta_bpm: 0, day: 290 }));
+    case(115, 103, true, 6261192649386533117, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2bce2073ed23c543435e4e2118e8a9f245db522d2689086ea4f01bb246219a8), day_knob: 5, delta_bpm: 4, day: 9 }));
 }
 
 #[test]
@@ -492,245 +492,245 @@ fn rounds_gas_029() {
 #[test]
 #[ignore]
 fn rounds_gas_030() {
-    let n = round_smf_bytes(78, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x51839e8e79a62df278bdd2d8109e4084bab065d4e5a0bd4460e68d69517496), day_knob: 4, delta_bpm: 2, day: 9 })).len();
+    let n = round_smf_bytes(78, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x4f3746ab2694fa470a55d3796931299d7553bca94d2a762707cfc87492c2c20), day_knob: 1, delta_bpm: 0, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_031() {
-    let n = round_smf_bytes(79, true, 0, Option::Some(Drift { rhythm: Option::Some(0x7550886a87dbd2aa2b8143a5ae60cfc0224cb7b75a29b96342ef4126f331472), rotate: Option::Some(0x42166ef4d89aa15d97a873db473073813669978e29f75ae9cc8cdd22225c3ce), day_knob: 0, delta_bpm: 0, day: 45 })).len();
+    let n = round_smf_bytes(79, true, 0, Option::Some(Drift { rhythm: Option::Some(0x8b4311587783b4cc629c1eed29820e94ccf5ffebe01664b5f9a3443f9981cc), rotate: Option::Some(0x4bfac1570adb42831a004116efb666980fe93050e7adbd043422c3c95b5d8d5), day_knob: 3, delta_bpm: -2, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_032() {
-    let n = round_smf_bytes(80, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2e87bac5fb814bb5649cf35a25060e945502a15f6b12c10c84aaa4a1f30f597), day_knob: 4, delta_bpm: 2, day: 100 })).len();
+    let n = round_smf_bytes(80, true, 0, Option::Some(Drift { rhythm: Option::Some(0x323599ff14fd21657647009ab2112d836bc591e4ff2455932ac9bcd6f0f9ca6), rotate: Option::Some(0x73797112034671d1e08920398b6e2a1b1af262c41e044ef5d8ddf84cf2e4e79), day_knob: 2, delta_bpm: -4, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_033() {
-    let n = round_smf_bytes(81, true, 0, Option::Some(Drift { rhythm: Option::Some(0x47fedc704cbf913fa49fdb1b6a6c258ad2b55bf5bf59a60d27584ded0d6e19), rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 200 })).len();
+    let n = round_smf_bytes(81, true, 0, Option::Some(Drift { rhythm: Option::Some(0x1310302bbdcc0a69b7e51360f0caefcfab6a6b75de4a9d7c2b665dd7c7ca3cc), rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_034() {
-    let n = round_smf_bytes(82, true, 0, Option::Some(Drift { rhythm: Option::Some(0x1c59ce536f8d8e73fdac441e9935728d4ec052a157219c0687b839200829063), rotate: Option::Some(0x25f9447dfa9bc9139a8b01054eeee25c1a4df574768436555e844cf5bf72eda), day_knob: 3, delta_bpm: -2, day: 290 })).len();
+    let n = round_smf_bytes(82, true, 0, Option::Some(Drift { rhythm: Option::Some(0x6f98863c3b777734f93f97fb56d7cf53b517c3bb2cb5a70ab2ce8ad982817a1), rotate: Option::Some(0x39a1919cf71c579301024fe8c6d147c7194a5b58e967fe840a5515d63ec2cf0), day_knob: 1, delta_bpm: 0, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_035() {
-    let n = round_smf_bytes(83, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3615797e166bd4c81ab3d7bcd2cd43a97fec41d60645d9d489ccee90623e363), day_knob: 1, delta_bpm: 0, day: 9 })).len();
+    let n = round_smf_bytes(83, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x18c39d1f796cc8cc030e2b12bf4562f9718b048752510ed830c48295fde2d6f), day_knob: 3, delta_bpm: -2, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_036() {
-    let n = round_smf_bytes(84, true, 0, Option::Some(Drift { rhythm: Option::Some(0x540b92479fa32c804ce06c15f932a0b60f5c8aa86b36f63fc60b3c4f8cc8312), rotate: Option::Some(0x52d338fba33d475343d2da86f7c681eaf4bc44ec4854c8816ef8c8c743ea4ba), day_knob: 5, delta_bpm: 4, day: 45 })).len();
+    let n = round_smf_bytes(84, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x5de363415c268dd82ecbba3e6730300a1b69541daa22347549d0fc022804b02), day_knob: 1, delta_bpm: 0, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_037() {
-    let n = round_smf_bytes(85, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x7739a805df1e51486c8621af83d4bed24c1c3293d7bdcfe35b035644bbada9b), day_knob: 1, delta_bpm: 0, day: 100 })).len();
+    let n = round_smf_bytes(85, true, 0, Option::Some(Drift { rhythm: Option::Some(0x326a4e8426451e62828f9f095009c7779774b6467cc07d9b3d7076d23589ced), rotate: Option::Some(0x5806f1df917c3f469418e622a10bf145119fb54ea4403f700e1655275ced03f), day_knob: 2, delta_bpm: -4, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_038() {
-    let n = round_smf_bytes(86, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 200 })).len();
+    let n = round_smf_bytes(86, true, 0, Option::Some(Drift { rhythm: Option::Some(0x322a125e541d20d23a7ed4257bd1af26bed63baadadfe734e1e3ffd65ec76ee), rotate: Option::Some(0x7fae3f920fe579e8468ff51319c0e81268f2e01a10f801dc827ca3d6bf3adc4), day_knob: 1, delta_bpm: 0, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_039() {
-    let n = round_smf_bytes(87, true, 0, Option::Some(Drift { rhythm: Option::Some(0x56dc303a1d8f7341031423a96b38a1eb65e4b774fc5052c93e5aba42348a973), rotate: Option::Some(0x3804c0e6f364af8142fc9804c3acf470e16daa0b29fb4eec639b4f159e348fa), day_knob: 3, delta_bpm: -2, day: 290 })).len();
+    let n = round_smf_bytes(87, true, 0, Option::Some(Drift { rhythm: Option::Some(0x11c7a15d2851fea4cc43a773fb9b15b3e1932bcb88993616cd69492b1d590e2), rotate: Option::Some(0x7238d2cd58ccaed437bc735b890309a13c242bcf3a35a4bd3d8e5516ed5e314), day_knob: 2, delta_bpm: -4, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_040() {
-    let n = round_smf_bytes(88, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2c1bb7e16b8d0bda614c6c272566bdd5459dc76522ca591675e56d431af7c7a), day_knob: 2, delta_bpm: -4, day: 9 })).len();
+    let n = round_smf_bytes(88, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_041() {
-    let n = round_smf_bytes(89, true, 0, Option::Some(Drift { rhythm: Option::Some(0x5bf6ae6d6c016fd698c893925f5aebe333b44b34cc0bda72c522230df66601), rotate: Option::Some(0x7b9e04ede6e154c8e0a492be5d181cc3bcba03596348a4f5369dd05ab381955), day_knob: 1, delta_bpm: 0, day: 45 })).len();
+    let n = round_smf_bytes(89, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_042() {
-    let n = round_smf_bytes(90, true, 0, Option::Some(Drift { rhythm: Option::Some(0x2c7c3d6675cf054920d528238a78130588494ac7e6088016ee15c4bf419a58), rotate: Option::Some(0x64ea499898e249f200fb666c466b6eb81fb944af377b82b1ed807b1fa73243), day_knob: 4, delta_bpm: 2, day: 100 })).len();
+    let n = round_smf_bytes(90, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x1ed730b9964bbe9bb601de0232efd05998786fb2979f84534748eabfc70ab5f), day_knob: 3, delta_bpm: -2, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_043() {
-    let n = round_smf_bytes(91, true, 0, Option::Some(Drift { rhythm: Option::Some(0xba940af63b8ff1e000638c13c56fb9845cfde5fffe3a2ab464440fa508cb68), rotate: Option::Some(0x74e22aaa8e253951c7e34116554a6b2f8a3f79a9d740e039b326cc1e1281fb5), day_knob: 4, delta_bpm: 2, day: 200 })).len();
+    let n = round_smf_bytes(91, true, 0, Option::Some(Drift { rhythm: Option::Some(0x663d7bd97a8670dbdc76af47c47aac724ce703b40569d1318af5a42280891ff), rotate: Option::Some(0x678f8f7ea9c92fe2e21baddb8ae9ee5ac29ceab6920cb97c9a6ab202ba161b5), day_knob: 3, delta_bpm: -2, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_044() {
-    let n = round_smf_bytes(92, true, 0, Option::Some(Drift { rhythm: Option::Some(0x3528a2b128876a6247b24f8c2c936496117d1c7ab9b6e3dc5b0db3a0917d101), rotate: Option::Some(0x667fcf3c29ecd96019d7f23ed942abdb553211853f25c649c4c8b45c76208e7), day_knob: 5, delta_bpm: 4, day: 290 })).len();
+    let n = round_smf_bytes(92, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x29ae64944760bf42eb55f40d958eaac1b8dfa294e2c5a5e10f7e4b08174286d), day_knob: 5, delta_bpm: 4, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_045() {
-    let n = round_smf_bytes(93, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x4d2af03cf556f321235aa4bd432a371ce906cbbea3bb98a6efec7c8f02f8bc1), day_knob: 0, delta_bpm: 0, day: 9 })).len();
+    let n = round_smf_bytes(93, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x689ad8a91171ff6e0c18997ff61f687ed74b18d9ab1ea16b21a53325a3b6338), day_knob: 0, delta_bpm: 0, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_046() {
-    let n = round_smf_bytes(94, true, 0, Option::Some(Drift { rhythm: Option::Some(0x5bb38db7d749d1f5cab108d014682e012fbbe6a0b8198327b28367a992fdb78), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 45 })).len();
+    let n = round_smf_bytes(94, true, 0, Option::Some(Drift { rhythm: Option::Some(0x563eef8931506718ae348aea3f0bebcbb5e93e3ab60a106ec518fd3d263c4a3), rotate: Option::Some(0xe2dd47acc0cb86f408dde674b95253fcbb4d82d38466e38ab0d55ebff77fa0), day_knob: 3, delta_bpm: -2, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_047() {
-    let n = round_smf_bytes(95, true, 0, Option::Some(Drift { rhythm: Option::Some(0x460e77439830f2ac5c3063925769e696da524af453e8d323ebbd6e02d075f5d), rotate: Option::Some(0x3b23bbee574128e3a67a507f05bb4c6ef2b3ee332dc358d033aa55e23037afb), day_knob: 3, delta_bpm: -2, day: 100 })).len();
+    let n = round_smf_bytes(95, true, 0, Option::Some(Drift { rhythm: Option::Some(0x5a9b21ba915b7ac065a2bd7f0f47274d17b65badbfd1d0ad25e5e4b24ad0a94), rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_048() {
-    let n = round_smf_bytes(96, true, 0, Option::Some(Drift { rhythm: Option::Some(0xb362764f08532251dfeef766570b87e72b15a29b812d353bc412e25d933e56), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 200 })).len();
+    let n = round_smf_bytes(96, true, 0, Option::Some(Drift { rhythm: Option::Some(0x1f7f5c162a2999de4690c4ce892afc3c9d88a15ffff0512f8a53f4c4089bc7e), rotate: Option::Some(0x6482793995f5409b54f6b9d080777083849da41fa0c76e3375b8871b54b2350), day_knob: 3, delta_bpm: -2, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_049() {
-    let n = round_smf_bytes(97, true, 0, Option::Some(Drift { rhythm: Option::Some(0x1636d95aa1bd2a179836eed1024f7ff42a6601f5a09f516b88f0e678488eb08), rotate: Option::Some(0x5fab22e4ee37c5e3f6afe8025f620689a9f80f46fb140317169f6e78879b64b), day_knob: 1, delta_bpm: 0, day: 290 })).len();
+    let n = round_smf_bytes(97, true, 0, Option::Some(Drift { rhythm: Option::Some(0x34b0474b31b82d87d4eb3c1cfce0e3c997864de527af5f92d328129b96d6a2b), rotate: Option::None, day_knob: 0, delta_bpm: 0, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_050() {
-    let n = round_smf_bytes(98, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x460bd032b29f2f037ec86d7df73505b22baca6e2149297bb73139696241b3b3), day_knob: 0, delta_bpm: 0, day: 9 })).len();
+    let n = round_smf_bytes(98, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_051() {
-    let n = round_smf_bytes(99, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x531b008d8ab1531e64703c41b852f5b95e949fc6ad74a7a087969a9293bc7f7), day_knob: 4, delta_bpm: 2, day: 45 })).len();
+    let n = round_smf_bytes(99, true, 0, Option::Some(Drift { rhythm: Option::Some(0x3f9e948ed838410a13a514b1a5abdb9a13daaee4b955905583c939bb9b06211), rotate: Option::Some(0xc526fe68e0ea993f2a3a001bc904637c76d9c9a23d712aa212001863873c7d), day_knob: 5, delta_bpm: 4, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_052() {
-    let n = round_smf_bytes(100, true, 0, Option::Some(Drift { rhythm: Option::Some(0x5ddebb8310b2d8eb07a732d9516848af91385153df2f1c6cfd21f9302f0ce0b), rotate: Option::Some(0x42b31681e7ca2ac4b0335f3761bdc0194f23f75ac7bbc2ce871761d7870c7ef), day_knob: 1, delta_bpm: 0, day: 100 })).len();
+    let n = round_smf_bytes(100, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x4adb4e8a68b6a4fd05328cb51eda8439fd9a610837dd5ff15bdada2f1ee576c), day_knob: 1, delta_bpm: 0, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_053() {
-    let n = round_smf_bytes(101, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x24eb504c3014dcc5ac437f77b1c121bf55c63cbca9c11100682372e16598920), day_knob: 3, delta_bpm: -2, day: 200 })).len();
+    let n = round_smf_bytes(101, true, 0, Option::Some(Drift { rhythm: Option::Some(0x491b01d384cfc10355f18a13f1e982690ad7b91aa3c91d08b87d87f6153d3b0), rotate: Option::Some(0x543b7644c0fb3e44e777fe094dacf69208b30e40a71797f47204825a77106a9), day_knob: 0, delta_bpm: 0, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_054() {
-    let n = round_smf_bytes(102, true, 0, Option::Some(Drift { rhythm: Option::Some(0x2f41962f02d390c3c470a95e0dca3175c39ffc0f532cd8178ab5c5c8e6d4e07), rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 290 })).len();
+    let n = round_smf_bytes(102, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x72e4032155c64d3e58f9ea28da97557c60d87d9e9cd5135a1db85d99eceecda), day_knob: 0, delta_bpm: 0, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_055() {
-    let n = round_smf_bytes(103, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 })).len();
+    let n = round_smf_bytes(103, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2bce2073ed23c543435e4e2118e8a9f245db522d2689086ea4f01bb246219a8), day_knob: 5, delta_bpm: 4, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_056() {
-    let n = round_smf_bytes(104, true, 0, Option::Some(Drift { rhythm: Option::Some(0xc326c50a8ff9d55d69a44f7d0adb9a1d31a0426d97ab6e96935309b9067db2), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 45 })).len();
+    let n = round_smf_bytes(104, true, 0, Option::Some(Drift { rhythm: Option::Some(0x519672f0e902b3b517d34a002e70ca210da0cf79818b52c32a7993c22e6ae0a), rotate: Option::Some(0x3f254bbf66d96e23b974e4265ada92cc1304fe98502bdf386a3bf444f9f717e), day_knob: 0, delta_bpm: 0, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_057() {
-    let n = round_smf_bytes(105, true, 0, Option::Some(Drift { rhythm: Option::Some(0x57f03df8ef41335ab5c2bb9e9b3bd4c03d692f9eb695a7405bbabaa3367bdc3), rotate: Option::Some(0x1b45333524ab274d8122764430dc000843c28d4cf70b3a1e07bc670848bdafe), day_knob: 5, delta_bpm: 4, day: 100 })).len();
+    let n = round_smf_bytes(105, true, 0, Option::Some(Drift { rhythm: Option::Some(0x78c545de46f54224d4392faa3356e4c4370c25c4aedf14af370a4bea5c44814), rotate: Option::Some(0x1d5b5424911b26ee8afac6f0571dbf46caa3fcb45b303a399e0c8c4837572aa), day_knob: 0, delta_bpm: 0, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_058() {
-    let n = round_smf_bytes(106, true, 0, Option::Some(Drift { rhythm: Option::Some(0x61c3d05b0eaeaa6269a8e8f85372a40ead48c6e29100a25f04afaa7b07feb7), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 200 })).len();
+    let n = round_smf_bytes(106, true, 0, Option::Some(Drift { rhythm: Option::Some(0x1c2fe1ed8987fc124488fcc98d224f5ed274176fa5fae4621ef9ae6a21e07cd), rotate: Option::Some(0x2c552ff42c6f62c664ac0d6d5e91047cdeb734f2ddb3565bea6bfeb3375767c), day_knob: 2, delta_bpm: -4, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_059() {
-    let n = round_smf_bytes(107, true, 0, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x421697989727d9e6cf566501fc3aea6a3bee5bfdeb6cab87118b83db03384ac), day_knob: 5, delta_bpm: 4, day: 290 })).len();
+    let n = round_smf_bytes(107, true, 0, Option::Some(Drift { rhythm: Option::Some(0x6838b69fa7ccd072cc4722f7e439f4e712a815752b27ef279821d85674f6258), rotate: Option::Some(0x7a5c662b3af65ac1b77a25361fda0c4c0b3f359f5dc880ef7af189c6593b9f5), day_knob: 3, delta_bpm: -2, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_060() {
-    let n = round_smf_bytes(85, false, 16294208416658607535, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 })).len();
+    let n = round_smf_bytes(85, false, 16294208416658607535, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3615797e166bd4c81ab3d7bcd2cd43a97fec41d60645d9d489ccee90623e363), day_knob: 1, delta_bpm: 0, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_061() {
-    let n = round_smf_bytes(92, true, 7960286522194355700, Option::Some(Drift { rhythm: Option::Some(0x563eef8931506718ae348aea3f0bebcbb5e93e3ab60a106ec518fd3d263c4a3), rotate: Option::Some(0xe2dd47acc0cb86f408dde674b95253fcbb4d82d38466e38ab0d55ebff77fa0), day_knob: 3, delta_bpm: -2, day: 45 })).len();
+    let n = round_smf_bytes(92, true, 7960286522194355700, Option::Some(Drift { rhythm: Option::Some(0x6124d4e06069cbaa2ed20110e2d59fcfa313225ef56176bd540f166ccfeb285), rotate: Option::Some(0x3edff42f9739af0d8672ab59145caa85fa864794cf9dbe1a42d470526b0a054), day_knob: 1, delta_bpm: 0, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_062() {
-    let n = round_smf_bytes(99, false, 487617019471545679, Option::Some(Drift { rhythm: Option::Some(0x1fcd5dfb41e85bbf46c045b69f61798c80f95ea0f0a92b843de826af8b560df), rotate: Option::Some(0xaabe23ebaa331fed8d4a2270a5961b7dd2ef40dd80c79aa22f461c752e1453), day_knob: 4, delta_bpm: 2, day: 100 })).len();
+    let n = round_smf_bytes(99, false, 487617019471545679, Option::Some(Drift { rhythm: Option::Some(0x1907c746adce47de806b053a1fdbc954dae0145d05e6714d910716fe5838472), rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_063() {
-    let n = round_smf_bytes(106, true, 17909611376780542444, Option::Some(Drift { rhythm: Option::Some(0x61c3d05b0eaeaa6269a8e8f85372a40ead48c6e29100a25f04afaa7b07feb7), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 200 })).len();
+    let n = round_smf_bytes(106, true, 17909611376780542444, Option::Some(Drift { rhythm: Option::Some(0x1c2fe1ed8987fc124488fcc98d224f5ed274176fa5fae4621ef9ae6a21e07cd), rotate: Option::Some(0x2c552ff42c6f62c664ac0d6d5e91047cdeb734f2ddb3565bea6bfeb3375767c), day_knob: 2, delta_bpm: -4, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_064() {
-    let n = round_smf_bytes(83, false, 1961750202426094747, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3b539361012d45d61b7803d2be9bd86abca1f9d8214b23fa7246f19b47bca4), day_knob: 5, delta_bpm: 4, day: 290 })).len();
+    let n = round_smf_bytes(83, false, 1961750202426094747, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0xd346093c12b26e2027df230b1bd3a8a73b3d83c928f40231d2fb9760808267), day_knob: 1, delta_bpm: 0, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
@@ -744,35 +744,35 @@ fn rounds_gas_065() {
 #[test]
 #[ignore]
 fn rounds_gas_066() {
-    let n = round_smf_bytes(97, false, 3207296026000306913, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x23b08718223b2dd0594a450dcf596dda105c1e67d7588119960ea247b618b1d), day_knob: 2, delta_bpm: -4, day: 9 })).len();
+    let n = round_smf_bytes(97, false, 3207296026000306913, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_067() {
-    let n = round_smf_bytes(104, true, 14232521865600346940, Option::Some(Drift { rhythm: Option::Some(0xc326c50a8ff9d55d69a44f7d0adb9a1d31a0426d97ab6e96935309b9067db2), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 45 })).len();
+    let n = round_smf_bytes(104, true, 14232521865600346940, Option::Some(Drift { rhythm: Option::Some(0x519672f0e902b3b517d34a002e70ca210da0cf79818b52c32a7993c22e6ae0a), rotate: Option::Some(0x3f254bbf66d96e23b974e4265ada92cc1304fe98502bdf386a3bf444f9f717e), day_knob: 0, delta_bpm: 0, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_068() {
-    let n = round_smf_bytes(81, false, 4532161160992623299, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2896b15a98218210de6bf8e32eb2b441e0596ad14143f1d597c6b11efa2a5d3), day_knob: 2, delta_bpm: -4, day: 100 })).len();
+    let n = round_smf_bytes(81, false, 4532161160992623299, Option::Some(Drift { rhythm: Option::Some(0x6dbe809765304aa608c313ec2d18e94a9e0fc1c86e5e19c855399be35231fd8), rotate: Option::Some(0x566983b4d1ef392139d049f73b37bdbef19761629f79db7e82a25fcef373f6b), day_knob: 4, delta_bpm: 2, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_069() {
-    let n = round_smf_bytes(88, true, 17561866513979060390, Option::Some(Drift { rhythm: Option::Some(0x705107ee42dc59e5ce3c4c7dfee91095adf07295042aacac38a12b4e753906), rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 200 })).len();
+    let n = round_smf_bytes(88, true, 17561866513979060390, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_070() {
-    let n = round_smf_bytes(95, false, 7313543279846440201, Option::Some(Drift { rhythm: Option::Some(0x34b0474b31b82d87d4eb3c1cfce0e3c997864de527af5f92d328129b96d6a2b), rotate: Option::None, day_knob: 0, delta_bpm: 0, day: 290 })).len();
+    let n = round_smf_bytes(95, false, 7313543279846440201, Option::Some(Drift { rhythm: Option::Some(0x2990ff5f7b82d0ae5ab143ca15b15e0c5155cd8d9eee89246e47e5a48a48f21), rotate: Option::Some(0x98b0c8d5bd8bc89115d34c42e78fa37d695e1c86022a294f92ff10adff6ca4), day_knob: 0, delta_bpm: 0, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
@@ -786,35 +786,35 @@ fn rounds_gas_071() {
 #[test]
 #[ignore]
 fn rounds_gas_072() {
-    let n = round_smf_bytes(79, false, 9665182471527586683, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x43d117093b7bb2756a4ac712bcdbb9ee86f988403f71165b365c9a9716fd0ca), day_knob: 4, delta_bpm: 2, day: 9 })).len();
+    let n = round_smf_bytes(79, false, 9665182471527586683, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x55fdc6475d8b6ff01d64565c0870688fa687ab4dced6ec2d53fb036117a4305), day_knob: 5, delta_bpm: 4, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_073() {
-    let n = round_smf_bytes(86, true, 10241033088150448431, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x562ec9e11570ac380ba50b4c724a5a34fb0a93687263ebe03656e1b44735e3f), day_knob: 1, delta_bpm: 0, day: 45 })).len();
+    let n = round_smf_bytes(86, true, 10241033088150448431, Option::Some(Drift { rhythm: Option::Some(0x540b92479fa32c804ce06c15f932a0b60f5c8aa86b36f63fc60b3c4f8cc8312), rotate: Option::Some(0x52d338fba33d475343d2da86f7c681eaf4bc44ec4854c8816ef8c8c743ea4ba), day_knob: 5, delta_bpm: 4, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_074() {
-    let n = round_smf_bytes(93, false, 13064396156225473817, Option::Some(Drift { rhythm: Option::Some(0x5a9b21ba915b7ac065a2bd7f0f47274d17b65badbfd1d0ad25e5e4b24ad0a94), rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 100 })).len();
+    let n = round_smf_bytes(93, false, 13064396156225473817, Option::Some(Drift { rhythm: Option::Some(0xf12f994f3f75a3be552495f3c023fe1ecc1f60e247748493284fd4873c017e), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_075() {
-    let n = round_smf_bytes(100, true, 9564308153959284907, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x5326affe2fde4258c1165682baf4dacd0c600720e0e5a4b8276195ca3f2987b), day_knob: 5, delta_bpm: 4, day: 200 })).len();
+    let n = round_smf_bytes(100, true, 9564308153959284907, Option::Some(Drift { rhythm: Option::Some(0xe289c2ea7d7ba3dcd5a364a33ec600288fb148cc9025f44b25553c1bc3c6c0), rotate: Option::Some(0x6317d4bcfcae32fc4abf0290ba9001ab3d0b67765cb546e795772cf489957ea), day_knob: 4, delta_bpm: 2, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_076() {
-    let n = round_smf_bytes(107, false, 9018883062403043925, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x421697989727d9e6cf566501fc3aea6a3bee5bfdeb6cab87118b83db03384ac), day_knob: 5, delta_bpm: 4, day: 290 })).len();
+    let n = round_smf_bytes(107, false, 9018883062403043925, Option::Some(Drift { rhythm: Option::Some(0x6838b69fa7ccd072cc4722f7e439f4e712a815752b27ef279821d85674f6258), rotate: Option::Some(0x7a5c662b3af65ac1b77a25361fda0c4c0b3f359f5dc880ef7af189c6593b9f5), day_knob: 3, delta_bpm: -2, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
@@ -828,35 +828,35 @@ fn rounds_gas_077() {
 #[test]
 #[ignore]
 fn rounds_gas_078() {
-    let n = round_smf_bytes(91, false, 3775962213208117092, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x689ad8a91171ff6e0c18997ff61f687ed74b18d9ab1ea16b21a53325a3b6338), day_knob: 0, delta_bpm: 0, day: 9 })).len();
+    let n = round_smf_bytes(91, false, 3775962213208117092, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3711097b3bb57ae375b46e0ee037bc21238ce0c240c73006197d651effb5838), day_knob: 1, delta_bpm: 0, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_079() {
-    let n = round_smf_bytes(98, true, 15571913878924461484, Option::Some(Drift { rhythm: Option::Some(0x1a84acbf4264ce6461d21b0a011910cbcfd31a77ad87266d4a53f38a4ef7869), rotate: Option::Some(0x3eef2596aa1660243c67afd9bd58fd16c2f3cfb70c38f337383471ce2a01257), day_knob: 1, delta_bpm: 0, day: 45 })).len();
+    let n = round_smf_bytes(98, true, 15571913878924461484, Option::Some(Drift { rhythm: Option::Some(0x52f5fc95773902e7df075b432108e423bf4f9cf46c99f2422ac0e3c30a52ed8), rotate: Option::Some(0x410390f58e16e148bdeb6a343e0223fb478a7ece90ede1362ee8093d2b6023c), day_knob: 3, delta_bpm: -2, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_080() {
-    let n = round_smf_bytes(105, false, 15781000307351985879, Option::Some(Drift { rhythm: Option::Some(0x57f03df8ef41335ab5c2bb9e9b3bd4c03d692f9eb695a7405bbabaa3367bdc3), rotate: Option::Some(0x1b45333524ab274d8122764430dc000843c28d4cf70b3a1e07bc670848bdafe), day_knob: 5, delta_bpm: 4, day: 100 })).len();
+    let n = round_smf_bytes(105, false, 15781000307351985879, Option::Some(Drift { rhythm: Option::Some(0x78c545de46f54224d4392faa3356e4c4370c25c4aedf14af370a4bea5c44814), rotate: Option::Some(0x1d5b5424911b26ee8afac6f0571dbf46caa3fcb45b303a399e0c8c4837572aa), day_knob: 0, delta_bpm: 0, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_081() {
-    let n = round_smf_bytes(82, true, 12178730177414951181, Option::Some(Drift { rhythm: Option::Some(0x316523074b311d34d10e8debde70946c283801dc20b5cb741a4d7b364f64f95), rotate: Option::Some(0x59813b30c811a4c513878dec6fc99f01f7d670ec2bee5dd44f1ae4da1cac62b), day_knob: 3, delta_bpm: -2, day: 200 })).len();
+    let n = round_smf_bytes(82, true, 12178730177414951181, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_082() {
-    let n = round_smf_bytes(89, false, 17146877070824583018, Option::Some(Drift { rhythm: Option::Some(0x7353c3c19b91befabf05ce15d8d87899334f414640fa7241af0f57e8ac872be), rotate: Option::Some(0x798c34f09c5eb08b14218a116cdda37142bc35426bafb55b9cacdef14e6e28b), day_knob: 0, delta_bpm: 0, day: 290 })).len();
+    let n = round_smf_bytes(89, false, 17146877070824583018, Option::Some(Drift { rhythm: Option::Some(0x56dc303a1d8f7341031423a96b38a1eb65e4b774fc5052c93e5aba42348a973), rotate: Option::Some(0x3804c0e6f364af8142fc9804c3acf470e16daa0b29fb4eec639b4f159e348fa), day_knob: 3, delta_bpm: -2, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
@@ -870,35 +870,35 @@ fn rounds_gas_083() {
 #[test]
 #[ignore]
 fn rounds_gas_084() {
-    let n = round_smf_bytes(103, false, 15959633193653531241, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 })).len();
+    let n = round_smf_bytes(103, false, 15959633193653531241, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2bce2073ed23c543435e4e2118e8a9f245db522d2689086ea4f01bb246219a8), day_knob: 5, delta_bpm: 4, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_085() {
-    let n = round_smf_bytes(80, true, 10619068946664148859, Option::Some(Drift { rhythm: Option::Some(0x2aa371ef3dd586c198d5f045856a9db031919ad746d8209520d3dc351b16b6d), rotate: Option::Some(0x75f829442d46cce35c53ef76d978cae282071652cf996f0042696c02b617ed7), day_knob: 1, delta_bpm: 0, day: 45 })).len();
+    let n = round_smf_bytes(80, true, 10619068946664148859, Option::Some(Drift { rhythm: Option::Some(0x3b50140f1ed77a9d3b5905d98d4e0e4a86f3f01d9a72da52b62c8a3783f18ec), rotate: Option::Some(0x777ebb57484dbb8e9eb6f5bc2459a683e97e7cf5cf5b72a5370806e05846e41), day_knob: 3, delta_bpm: -2, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_086() {
-    let n = round_smf_bytes(87, false, 7617890157137703680, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 100 })).len();
+    let n = round_smf_bytes(87, false, 7617890157137703680, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x7739a805df1e51486c8621af83d4bed24c1c3293d7bdcfe35b035644bbada9b), day_knob: 1, delta_bpm: 0, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_087() {
-    let n = round_smf_bytes(94, true, 4670970265874846992, Option::Some(Drift { rhythm: Option::Some(0x1f7f5c162a2999de4690c4ce892afc3c9d88a15ffff0512f8a53f4c4089bc7e), rotate: Option::Some(0x6482793995f5409b54f6b9d080777083849da41fa0c76e3375b8871b54b2350), day_knob: 3, delta_bpm: -2, day: 200 })).len();
+    let n = round_smf_bytes(94, true, 4670970265874846992, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x47bf3cba9713c93279e3882977c28ccbe9296c0e265ef49109e89056d7ad37c), day_knob: 1, delta_bpm: 0, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_088() {
-    let n = round_smf_bytes(101, false, 11741057589345805078, Option::Some(Drift { rhythm: Option::Some(0x4363b7423d641d27e9d96bfe32bca6bb3c2ac4d41ec234e749179b2007eb9ff), rotate: Option::Some(0xd27bb7d6a35b07838eeba981d23482c2a223b2ff5a63f3c522dc7fb3db8823), day_knob: 0, delta_bpm: 0, day: 290 })).len();
+    let n = round_smf_bytes(101, false, 11741057589345805078, Option::Some(Drift { rhythm: Option::Some(0x2e99c5bb7a6887f6a31c576184964f67b8ae30fb1b451460de1dde602733fa3), rotate: Option::Some(0x2abc48f0c9d7a9ce949ab1c147c2e1740db7f5e6c939fc8c6348fd791107cfc), day_knob: 5, delta_bpm: 4, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
@@ -912,35 +912,35 @@ fn rounds_gas_089() {
 #[test]
 #[ignore]
 fn rounds_gas_090() {
-    let n = round_smf_bytes(85, false, 17395526219779491151, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 })).len();
+    let n = round_smf_bytes(85, false, 17395526219779491151, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3615797e166bd4c81ab3d7bcd2cd43a97fec41d60645d9d489ccee90623e363), day_knob: 1, delta_bpm: 0, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_091() {
-    let n = round_smf_bytes(92, true, 3998411274607395365, Option::Some(Drift { rhythm: Option::Some(0x563eef8931506718ae348aea3f0bebcbb5e93e3ab60a106ec518fd3d263c4a3), rotate: Option::Some(0xe2dd47acc0cb86f408dde674b95253fcbb4d82d38466e38ab0d55ebff77fa0), day_knob: 3, delta_bpm: -2, day: 45 })).len();
+    let n = round_smf_bytes(92, true, 3998411274607395365, Option::Some(Drift { rhythm: Option::Some(0x6124d4e06069cbaa2ed20110e2d59fcfa313225ef56176bd540f166ccfeb285), rotate: Option::Some(0x3edff42f9739af0d8672ab59145caa85fa864794cf9dbe1a42d470526b0a054), day_knob: 1, delta_bpm: 0, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_092() {
-    let n = round_smf_bytes(99, false, 900130614242687664, Option::Some(Drift { rhythm: Option::Some(0x1fcd5dfb41e85bbf46c045b69f61798c80f95ea0f0a92b843de826af8b560df), rotate: Option::Some(0xaabe23ebaa331fed8d4a2270a5961b7dd2ef40dd80c79aa22f461c752e1453), day_knob: 4, delta_bpm: 2, day: 100 })).len();
+    let n = round_smf_bytes(99, false, 900130614242687664, Option::Some(Drift { rhythm: Option::Some(0x1907c746adce47de806b053a1fdbc954dae0145d05e6714d910716fe5838472), rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_093() {
-    let n = round_smf_bytes(106, true, 385107482673595689, Option::Some(Drift { rhythm: Option::Some(0x61c3d05b0eaeaa6269a8e8f85372a40ead48c6e29100a25f04afaa7b07feb7), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 200 })).len();
+    let n = round_smf_bytes(106, true, 385107482673595689, Option::Some(Drift { rhythm: Option::Some(0x1c2fe1ed8987fc124488fcc98d224f5ed274176fa5fae4621ef9ae6a21e07cd), rotate: Option::Some(0x2c552ff42c6f62c664ac0d6d5e91047cdeb734f2ddb3565bea6bfeb3375767c), day_knob: 2, delta_bpm: -4, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_094() {
-    let n = round_smf_bytes(83, false, 15155866324004882167, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3b539361012d45d61b7803d2be9bd86abca1f9d8214b23fa7246f19b47bca4), day_knob: 5, delta_bpm: 4, day: 290 })).len();
+    let n = round_smf_bytes(83, false, 15155866324004882167, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0xd346093c12b26e2027df230b1bd3a8a73b3d83c928f40231d2fb9760808267), day_knob: 1, delta_bpm: 0, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
@@ -954,35 +954,35 @@ fn rounds_gas_095() {
 #[test]
 #[ignore]
 fn rounds_gas_096() {
-    let n = round_smf_bytes(95, false, 4719483656716592003, Option::Some(Drift { rhythm: Option::Some(0x34b0474b31b82d87d4eb3c1cfce0e3c997864de527af5f92d328129b96d6a2b), rotate: Option::None, day_knob: 0, delta_bpm: 0, day: 290 })).len();
+    let n = round_smf_bytes(95, false, 4719483656716592003, Option::Some(Drift { rhythm: Option::Some(0x2990ff5f7b82d0ae5ab143ca15b15e0c5155cd8d9eee89246e47e5a48a48f21), rotate: Option::Some(0x98b0c8d5bd8bc89115d34c42e78fa37d695e1c86022a294f92ff10adff6ca4), day_knob: 0, delta_bpm: 0, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_097() {
-    let n = round_smf_bytes(106, false, 4340416312237048737, Option::Some(Drift { rhythm: Option::Some(0x61c3d05b0eaeaa6269a8e8f85372a40ead48c6e29100a25f04afaa7b07feb7), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 200 })).len();
+    let n = round_smf_bytes(106, false, 4340416312237048737, Option::Some(Drift { rhythm: Option::Some(0x1c2fe1ed8987fc124488fcc98d224f5ed274176fa5fae4621ef9ae6a21e07cd), rotate: Option::Some(0x2c552ff42c6f62c664ac0d6d5e91047cdeb734f2ddb3565bea6bfeb3375767c), day_knob: 2, delta_bpm: -4, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_098() {
-    let n = round_smf_bytes(87, true, 7933530951116992991, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 100 })).len();
+    let n = round_smf_bytes(87, true, 7933530951116992991, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x7739a805df1e51486c8621af83d4bed24c1c3293d7bdcfe35b035644bbada9b), day_knob: 1, delta_bpm: 0, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_099() {
-    let n = round_smf_bytes(98, false, 5740394572501292841, Option::Some(Drift { rhythm: Option::Some(0x1a84acbf4264ce6461d21b0a011910cbcfd31a77ad87266d4a53f38a4ef7869), rotate: Option::Some(0x3eef2596aa1660243c67afd9bd58fd16c2f3cfb70c38f337383471ce2a01257), day_knob: 1, delta_bpm: 0, day: 45 })).len();
+    let n = round_smf_bytes(98, false, 5740394572501292841, Option::Some(Drift { rhythm: Option::Some(0x52f5fc95773902e7df075b432108e423bf4f9cf46c99f2422ac0e3c30a52ed8), rotate: Option::Some(0x410390f58e16e148bdeb6a343e0223fb478a7ece90ede1362ee8093d2b6023c), day_knob: 3, delta_bpm: -2, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_100() {
-    let n = round_smf_bytes(79, false, 9577824162912834090, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x43d117093b7bb2756a4ac712bcdbb9ee86f988403f71165b365c9a9716fd0ca), day_knob: 4, delta_bpm: 2, day: 9 })).len();
+    let n = round_smf_bytes(79, false, 9577824162912834090, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x55fdc6475d8b6ff01d64565c0870688fa687ab4dced6ec2d53fb036117a4305), day_knob: 5, delta_bpm: 4, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
@@ -996,35 +996,35 @@ fn rounds_gas_101() {
 #[test]
 #[ignore]
 fn rounds_gas_102() {
-    let n = round_smf_bytes(101, false, 566489329403328680, Option::Some(Drift { rhythm: Option::Some(0x4363b7423d641d27e9d96bfe32bca6bb3c2ac4d41ec234e749179b2007eb9ff), rotate: Option::Some(0xd27bb7d6a35b07838eeba981d23482c2a223b2ff5a63f3c522dc7fb3db8823), day_knob: 0, delta_bpm: 0, day: 290 })).len();
+    let n = round_smf_bytes(101, false, 566489329403328680, Option::Some(Drift { rhythm: Option::Some(0x2e99c5bb7a6887f6a31c576184964f67b8ae30fb1b451460de1dde602733fa3), rotate: Option::Some(0x2abc48f0c9d7a9ce949ab1c147c2e1740db7f5e6c939fc8c6348fd791107cfc), day_knob: 5, delta_bpm: 4, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_103() {
-    let n = round_smf_bytes(82, false, 1351103705685551415, Option::Some(Drift { rhythm: Option::Some(0x316523074b311d34d10e8debde70946c283801dc20b5cb741a4d7b364f64f95), rotate: Option::Some(0x59813b30c811a4c513878dec6fc99f01f7d670ec2bee5dd44f1ae4da1cac62b), day_knob: 3, delta_bpm: -2, day: 200 })).len();
+    let n = round_smf_bytes(82, false, 1351103705685551415, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 200 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_104() {
-    let n = round_smf_bytes(93, true, 14701652534245454904, Option::Some(Drift { rhythm: Option::Some(0x5a9b21ba915b7ac065a2bd7f0f47274d17b65badbfd1d0ad25e5e4b24ad0a94), rotate: Option::None, day_knob: 1, delta_bpm: 0, day: 100 })).len();
+    let n = round_smf_bytes(93, true, 14701652534245454904, Option::Some(Drift { rhythm: Option::Some(0xf12f994f3f75a3be552495f3c023fe1ecc1f60e247748493284fd4873c017e), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_105() {
-    let n = round_smf_bytes(104, false, 17072694713458957879, Option::Some(Drift { rhythm: Option::Some(0xc326c50a8ff9d55d69a44f7d0adb9a1d31a0426d97ab6e96935309b9067db2), rotate: Option::None, day_knob: 4, delta_bpm: 2, day: 45 })).len();
+    let n = round_smf_bytes(104, false, 17072694713458957879, Option::Some(Drift { rhythm: Option::Some(0x519672f0e902b3b517d34a002e70ca210da0cf79818b52c32a7993c22e6ae0a), rotate: Option::Some(0x3f254bbf66d96e23b974e4265ada92cc1304fe98502bdf386a3bf444f9f717e), day_knob: 0, delta_bpm: 0, day: 45 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_106() {
-    let n = round_smf_bytes(85, false, 4504985774214511021, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 9 })).len();
+    let n = round_smf_bytes(85, false, 4504985774214511021, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x3615797e166bd4c81ab3d7bcd2cd43a97fec41d60645d9d489ccee90623e363), day_knob: 1, delta_bpm: 0, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
@@ -1038,55 +1038,55 @@ fn rounds_gas_107() {
 #[test]
 #[ignore]
 fn rounds_gas_108() {
-    let n = round_smf_bytes(94, false, 16079692208719082326, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x5d660bcc5b52a32ac94653d6fddd047e90009c01289ccc23e947ba973e7f0d1), day_knob: 4, delta_bpm: 2, day: 9 })).len();
+    let n = round_smf_bytes(94, false, 16079692208719082326, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 0, delta_bpm: 0, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_109() {
-    let n = round_smf_bytes(95, true, 1961486146552941677, Option::Some(Drift { rhythm: Option::Some(0x460e77439830f2ac5c3063925769e696da524af453e8d323ebbd6e02d075f5d), rotate: Option::Some(0x3b23bbee574128e3a67a507f05bb4c6ef2b3ee332dc358d033aa55e23037afb), day_knob: 3, delta_bpm: -2, day: 100 })).len();
+    let n = round_smf_bytes(89, true, 2964889177012845576, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 3, delta_bpm: -2, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_110() {
-    let n = round_smf_bytes(101, false, 9328884436841815888, Option::Some(Drift { rhythm: Option::Some(0x4363b7423d641d27e9d96bfe32bca6bb3c2ac4d41ec234e749179b2007eb9ff), rotate: Option::Some(0xd27bb7d6a35b07838eeba981d23482c2a223b2ff5a63f3c522dc7fb3db8823), day_knob: 0, delta_bpm: 0, day: 290 })).len();
+    let n = round_smf_bytes(94, false, 5091879769981517896, Option::Some(Drift { rhythm: Option::Some(0x3528a2b128876a6247b24f8c2c936496117d1c7ab9b6e3dc5b0db3a0917d101), rotate: Option::Some(0x667fcf3c29ecd96019d7f23ed942abdb553211853f25c649c4c8b45c76208e7), day_knob: 5, delta_bpm: 4, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_111() {
-    let n = round_smf_bytes(80, true, 13712640352318547628, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x26bad35c662261b79214202a94a0d5d0bb0342c3937210c3e6172344c28fd1e), day_knob: 3, delta_bpm: -2, day: 9 })).len();
+    let n = round_smf_bytes(90, true, 4980508477708824225, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2c1bb7e16b8d0bda614c6c272566bdd5459dc76522ca591675e56d431af7c7a), day_knob: 2, delta_bpm: -4, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_112() {
-    let n = round_smf_bytes(86, false, 11176082467843938053, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 2, delta_bpm: -4, day: 9 })).len();
+    let n = round_smf_bytes(98, false, 2500434509708612314, Option::Some(Drift { rhythm: Option::None, rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 9 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_113() {
-    let n = round_smf_bytes(80, true, 17419004622730762118, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2e87bac5fb814bb5649cf35a25060e945502a15f6b12c10c84aaa4a1f30f597), day_knob: 4, delta_bpm: 2, day: 100 })).len();
+    let n = round_smf_bytes(99, true, 3469464161541295809, Option::Some(Drift { rhythm: Option::Some(0x1907c746adce47de806b053a1fdbc954dae0145d05e6714d910716fe5838472), rotate: Option::None, day_knob: 5, delta_bpm: 4, day: 100 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_114() {
-    let n = round_smf_bytes(85, false, 15591217396223136993, Option::Some(Drift { rhythm: Option::Some(0x11c7a15d2851fea4cc43a773fb9b15b3e1932bcb88993616cd69492b1d590e2), rotate: Option::Some(0x7238d2cd58ccaed437bc735b890309a13c242bcf3a35a4bd3d8e5516ed5e314), day_knob: 2, delta_bpm: -4, day: 290 })).len();
+    let n = round_smf_bytes(83, false, 3061154374864262414, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0xd346093c12b26e2027df230b1bd3a8a73b3d83c928f40231d2fb9760808267), day_knob: 1, delta_bpm: 0, day: 290 })).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn rounds_gas_115() {
-    let n = round_smf_bytes(81, true, 10855209924439447272, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x18c39d1f796cc8cc030e2b12bf4562f9718b048752510ed830c48295fde2d6f), day_knob: 3, delta_bpm: -2, day: 9 })).len();
+    let n = round_smf_bytes(103, true, 6261192649386533117, Option::Some(Drift { rhythm: Option::None, rotate: Option::Some(0x2bce2073ed23c543435e4e2118e8a9f245db522d2689086ea4f01bb246219a8), day_knob: 5, delta_bpm: 4, day: 9 })).len();
     assert(n > 0, 'empty');
 }

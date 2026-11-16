@@ -13,7 +13,7 @@ use loot_composer::editions::edition_played_byte_array;
 use loot_composer::orchestra::{band, has_soft, round_band};
 use loot_composer::orchestra_data::STYLE_COUNT;
 use loot_composer::rounds::{Play, round_played_byte_array};
-use loot_composer::species::loot_species;
+use loot_composer::species::{loot_species, musical_id};
 use crate::interfaces::LootInputs;
 
 /// The mega sound of a token's `sound_effects` (v1.1: 1 and 3); 4 and up revert.
@@ -29,7 +29,7 @@ pub fn loot_drift(species: u32, drift: Option<DriftInputs>) -> Option<Drift> {
         Option::Some(d) => if d.day >= 2 {
             Option::Some(
                 layered_drift(
-                    species.into(),
+                    musical_id(species).into(),
                     0,
                     0,
                     DriftClock {

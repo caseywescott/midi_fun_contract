@@ -3,6 +3,7 @@
 //   sh scripts/rounds_parity_cairo.sh /tmp/rd.txt && node scripts/rounds_parity.mjs /tmp/rd.txt
 import { readFileSync } from 'node:fs';
 import { SPECIES } from '../offchain/loot-sound/src/loot_species.js';
+import { musicalId } from '../offchain/loot-sound/src/loot_beasts.js';
 import { roundMidi } from '../offchain/loot-sound/src/loot_rounds.js';
 
 const REF = process.env.REF || '/Volumes/Extreme SSD/Generative_Music_Series/midi_fun_contract-ref101';
@@ -16,7 +17,7 @@ for (const line of lines) {
   const x = cases[+c.i];
   seen.add(+c.i);
   const sp = SPECIES.find((s) => s.id === x.sp);
-  const d = x.day ? L.drift2({ id: x.sp, prefix: 0, suffix: 0 }, x.day, L.dayAnchor()) : null;
+  const d = x.day ? L.drift2({ id: musicalId(x.sp), prefix: 0, suffix: 0 }, x.day, L.dayAnchor()) : null;
   const js = Buffer.from(roundMidi(sp, x.mega, BigInt(x.seed), d).midi).toString('hex');
   if (js !== c.hex) {
     failures++;

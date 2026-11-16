@@ -245,7 +245,8 @@ fn by_start(xs: Span<Sound>) -> Span<Sound> {
 /// The Sound Check's tracks: tempo, then each part that plays (by channel), then the kit.
 pub fn sound_check_tracks(species: u32, mega: bool, take: u64, how: Play) -> Array<Array<u8>> {
     let sp = loot_species(species);
-    let id = sp.id;
+    // the music is keyed by the musical id (loothero's PR #35)
+    let id = sp.music;
     let typ: u32 = sp.beast_type.into();
     let mut r = RngTrait::new(fold64(take) ^ id.wrapping_mul(0x85ebca77) ^ 0x43484b21);
     let mx = mode_index(sp.mode.into());

@@ -1264,7 +1264,8 @@ pub fn round_tracks(
     species: u32, mega: bool, seed: u64, drift: Option<Drift>, play: Play,
 ) -> Array<Array<u8>> {
     let sp = loot_species(species);
-    let id = sp.id;
+    // the music is keyed by the musical id (loothero's PR #35)
+    let id = sp.music;
     let tier: u32 = sp.tier.into();
     let typ: u32 = sp.beast_type.into();
     let mut r = RngTrait::new(fold64(seed) ^ id.wrapping_mul(0x85ebca77) ^ 0x524f554e);

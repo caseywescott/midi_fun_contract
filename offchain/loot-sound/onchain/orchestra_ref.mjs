@@ -13,6 +13,9 @@ import { STYLES } from '../src/loot_styles.js';
 const src = readFileSync(new URL('./loot-lab.mjs', import.meta.url), 'utf8');
 const between = (a, b) => { const i = src.indexOf(a), j = src.indexOf(b, i); if (i < 0 || j < 0) throw new Error('loot-lab.mjs changed: ' + a); return src.slice(i, j); };
 const swap = (s, a, b) => { if (!s.includes(a)) throw new Error('loot-lab.mjs changed: ' + a); return s.replace(a, b); };
+// a Beast's musical id (the lab's musicalId): styleVol and songBand take the public id `id` as the lab's
+// track0 does; band and choose (the lab's own) take the musical id, as the lab passes them
+const musicalId = between('const musicalId = ', '\n');
 const tables = between('const BANK = ', 'if (Object.keys(POOLS)');
 const fns = between('const mix = (a, b) =>', 'const LIFT = ');
 const lifted = between('function lifted(u8, by', '// the track as it plays');
@@ -36,8 +39,8 @@ if (!src.includes('const m0 = lifted(o.midi, LIFT[st.kind], vol && Object.keys(v
 if (!src.includes("midi: st.kind === 'name' ? drumSoft(m0, [35, 36], DATA.orch.nameKickSoft) : m0")) throw new Error('loot-lab.mjs changed: the Name Song kick');
 // a song's band: track0's `named` / `pools` / `orch` lines, for kind 'song' or 'name', name, drift d
 const songPools = swap(between('const named = st.kind', ';\n'), "const named = st.kind === 'name'", "const named = kind === 'name'");
-const songChoose = swap(swap(between('const orch = choose(pools,', ';\n'), 'x.id, named ? 1 + st.name * 7919 : 1,', 'id, named ? 1 + name * 7919 : 1,'), "day && (st.kind === 'song' || named) ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null", 'd');
-const make = new Function('STYLES', `${tables}\n${fns}\n${drumSoft}\n${lifted}\n${notesOf}\nconst DATA = { orch: ORCH };\nconst padOf = (ch, p) => p;\n${track}\nfunction styleVol(key, orch, midi, accompLow, id, e, p) { const mixOf = DATA.orch.mix[key]; ${pmCode}\n${vol}; }\nfunction songVol(orch, named) { ${songVol}; }\nfunction songBand(kind, type, id, name, d) { const x = { type }; ${songPools}; ${songChoose}; return orch; }\nreturn { BANK, POOLS, ALIKE, MIX, TOP_SOFT, LEAD_SOFT, LEAD_ALL, LEAD_DROP, NAME_SOFT, NAME_LEADS, SONG, ROUND, SONG_KINDS, ROUND_KINDS, ORCH, mix, stepOf, moved, band, choose, drumSoft, lifted, notesOf, track, styleVol, songVol, songBand };`);
+const songChoose = swap(swap(between('const orch = choose(pools,', ';\n'), 'musicalId(x.id), named ? 1 + st.name * 7919 : 1,', 'musicalId(id), named ? 1 + name * 7919 : 1,'), "day && (st.kind === 'song' || named) ? L.drift2({ id: musicalId(x.id), prefix: 0, suffix: 0 }, day, anchor) : null", 'd');
+const make = new Function('STYLES', `${musicalId}\n${tables}\n${fns}\n${drumSoft}\n${lifted}\n${notesOf}\nconst DATA = { orch: ORCH };\nconst padOf = (ch, p) => p;\n${track}\nfunction styleVol(key, orch, midi, accompLow, id, e, p) { const mixOf = DATA.orch.mix[key]; ${pmCode}\n${vol}; }\nfunction songVol(orch, named) { ${songVol}; }\nfunction songBand(kind, type, id, name, d) { const x = { type }; ${songPools}; ${songChoose}; return orch; }\nreturn { BANK, POOLS, ALIKE, MIX, TOP_SOFT, LEAD_SOFT, LEAD_ALL, LEAD_DROP, NAME_SOFT, NAME_LEADS, SONG, ROUND, SONG_KINDS, ROUND_KINDS, ORCH, mix, stepOf, moved, band, choose, drumSoft, lifted, notesOf, track, styleVol, songVol, songBand };`);
 export const O = make(STYLES);
 export const LIFT = Function(`${between('const LIFT = ', 'function lifted')}; return LIFT;`)();
 /** The file the lab plays for a written track: `kind` edition (style `key` and `ed` = { accompLow, id, e,

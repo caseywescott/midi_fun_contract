@@ -1954,7 +1954,8 @@ fn plan(
     let sp = loot_species(species);
     let (style, sb, g_bpm) = edition_genome(e);
     let s = sb.unbox();
-    let id = species;
+    // the music is keyed by the musical id (loothero's PR #35)
+    let id = sp.music;
     let ty: u32 = sp.beast_type.into();
     let fold = fold64(seed);
     let mm = main_draws(
@@ -2156,6 +2157,7 @@ pub fn edition_tracks_played(
         add_part(ref tracks, ref voices, ctx, 9, 9, 0);
     }
     if mega {
+        // (the musical id is the public id less two: the same parity)
         add_part(ref tracks, ref voices, ctx, 5, 5, *MEGA_LEADS.span().at((species + 1) % 2));
     }
     if let Option::Some(gp) = gliss_plan(p.gl_draw, p.gl_seed, [3, 3, 1, 0, 2].span()) {

@@ -14,6 +14,7 @@
 use core::dict::Felt252Dict;
 use beast_composer::composition::drift::Drift;
 use crate::common::{at32, opaque, shr, wadd, wmul};
+use crate::species::musical_id;
 use super::orchestra_data::{
     BELL_A, BELL_B, EDITION_LEAD_DROP, FLUTE, GLOCK, HARP, LEAD_DROP, LEAD_K, NAME_POOL, POOL_DATA, POOL_OFFS,
     STYLE_LEAD_BOOST,
@@ -98,6 +99,8 @@ fn pick(
 /// An edition's band (`band(key, id, e, p, drift)`): style index `style`, species `id`, edition `e`,
 /// purchase number `p`; channels 0-7.
 pub fn band(style: u32, id: u32, e: u32, p: u32, drift: Option<Drift>) -> Array<u8> {
+    // (Beast `id`'s band is keyed by its musical id, loothero's PR #35)
+    let id = musical_id(id);
     let (month, week) = drift_steps(drift);
     let lead = pick(style, 0, id, e, p, month, Option::None);
     let acc = pick(style, 1, id, e, p, week, Option::Some(lead));
@@ -220,9 +223,9 @@ fn unlike_theme(band: Array<u8>, pool0: u32) -> Array<u8> {
 pub fn song_band(beast_type: u8, id: u32, name: u32, drift: Option<Drift>) -> Array<u8> {
     let pool0 = SONG_POOL0 + beast_type.into() * 8;
     let b = if name == 0 {
-        choose(pool0, 8, SONG_MONTHLY, id, 1, drift, pool0)
+        choose(pool0, 8, SONG_MONTHLY, musical_id(id), 1, drift, pool0)
     } else {
-        choose(pool0, 8, SONG_MONTHLY, id, 1 + name * 7919, drift, NAME_POOL)
+        choose(pool0, 8, SONG_MONTHLY, musical_id(id), 1 + name * 7919, drift, NAME_POOL)
     };
     unlike_theme(b, pool0)
 }
@@ -231,7 +234,7 @@ pub fn song_band(beast_type: u8, id: u32, name: u32, drift: Option<Drift>) -> Ar
 /// channels (a Sound Check never drifts).
 pub fn round_band(beast_type: u8, id: u32, drift: Option<Drift>) -> Array<u8> {
     let pool0 = ROUND_POOL0 + beast_type.into() * 7;
-    choose(pool0, 7, ROUND_MONTHLY, id, 2, drift, pool0)
+    choose(pool0, 7, ROUND_MONTHLY, musical_id(id), 2, drift, pool0)
 }
 
 #[inline(never)]

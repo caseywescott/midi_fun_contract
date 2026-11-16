@@ -5,11 +5,11 @@ use crate::checks::{sound_check_played_byte_array, sound_check_smf_bytes};
 use crate::common::purchase_seed;
 use crate::orchestra::{has_soft, orchestrate, round_band, top_soft_byte_array};
 use crate::rounds::{Play, round_played_byte_array, round_smf_bytes};
-use crate::species::loot_species;
+use crate::species::{loot_species, musical_id};
 
 fn round_same(species: u32, mega: bool, purchase: u64, clock: Option<DriftClock>) {
     let d = match clock {
-        Option::Some(c) => Option::Some(layered_drift(species.into(), 0, 0, c)),
+        Option::Some(c) => Option::Some(layered_drift(musical_id(species).into(), 0, 0, c)),
         Option::None => Option::None,
     };
     let seed = purchase_seed(purchase);

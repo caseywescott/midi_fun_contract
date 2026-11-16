@@ -16,6 +16,7 @@
 // `species` = { id, tier, type, tonicPc, degrees } (its Species Song theme's scale degrees).
 
 import { STYLES } from './loot_styles.js';
+import { musicalId } from './loot_beasts.js';
 export { STYLES };
 
 export const TPQ = 480;
@@ -333,11 +334,11 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
   const S = STYLES[g.style], progs = PROGS[g.style];
   const seed = BigInt(String(seedKey).replace(/^seed:/, ''));
   const fold = Number((seed & 0xffffffffn) ^ ((seed >> 32n) & 0xffffffffn));
-  const R = rng((fold ^ imul(e, 0x9e3779b1) ^ imul(sp.id, 0x85ebca77)) >>> 0);
+  const R = rng((fold ^ imul(e, 0x9e3779b1) ^ imul(musicalId(sp.id), 0x85ebca77)) >>> 0);
   let tonic = (sp.tonicPc + R.pick([0, 0, 0, 5, 7, 10, 2, 3])) % 12;
   // the slower styles (those that top out at 124 or under) are often taken faster, by anything up to 42%,
   // from a stream of its own: three purchases in nine as written, the rest spread over six steps
-  const TP = rng((fold ^ imul(e, 0x5bd1e995) ^ imul(sp.id, 0x1b56c4e9)) >>> 0);
+  const TP = rng((fold ^ imul(e, 0x5bd1e995) ^ imul(musicalId(sp.id), 0x1b56c4e9)) >>> 0);
   const quicker = S.bpm[1] <= SLOW_TOP ? QUICKER[TP.int(QUICKER.length)] : 0;
   const bpm = Math.round((g.bpm + R.pick([-4, -2, 0, 0, 2, 4])) * (100 + quicker) / 100);
   // the A, B and C progressions: any of the style's (32), all different
@@ -384,7 +385,7 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
   // or the third tune only; the style's figure plays elsewhere. One week in four trades the walk for the
   // figure or back, and a week moves it to another span; `walk` true or false overrides the draw (true
   // brings the bass in)
-  const WK = rng((fold ^ imul(e, 0x51ed270b) ^ imul(sp.id, 0x2f0b4a13)) >>> 0);
+  const WK = rng((fold ^ imul(e, 0x51ed270b) ^ imul(musicalId(sp.id), 0x2f0b4a13)) >>> 0);
   let walking = WK.int(WALK_SHARE) < WALK_HITS;
   const walkSeed = WK();
   let walkSpan = WK.int(WALK_SPANS.length);
@@ -400,7 +401,7 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
   const sc = (tok) => (col(tok) === 0 ? scale : COLOURS[col(tok)]);
   const P = (d, tok) => pitch(base, sc(tok), d), PB = (d, tok) => pitch(bassBase, sc(tok), d);
   const pal = S.palette.map((r) => r[sp.type]);
-  if (mega) { pal[0] = MEGA_LEADS[sp.id % 2]; pal.push(MEGA_LEADS[(sp.id + 1) % 2]); }
+  if (mega) { pal[0] = MEGA_LEADS[musicalId(sp.id) % 2]; pal.push(MEGA_LEADS[(musicalId(sp.id) + 1) % 2]); }
   if (!mega && RARE_LEADS.includes(pal[0]) && (ornSeed + roll) % 4 !== 0) pal[0] = pal[1];
   pal[1] = pal[0];
   let accDown = pal[2] === 99 && Math.floor(ornSeed / 8) % 3 === 0;
@@ -414,24 +415,24 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
   const lastKind = kinds[3];
   // On two purchases in five a B tune (or the C tune, when the form has one, half of those times) is led by
   // a second instrument on a channel of its own; every time that tune comes round. A stream of its own.
-  const AL = rng((fold ^ imul(e, 0x7ed55d16) ^ imul(sp.id, 0x165667c5)) >>> 0);
+  const AL = rng((fold ^ imul(e, 0x7ed55d16) ^ imul(musicalId(sp.id), 0x165667c5)) >>> 0);
   const altDraw = AL.int(ALT_SHARE[1]) < ALT_SHARE[0], altC = AL.int(2) === 0;
   const altKind = !altDraw ? -1 : kinds.includes(2) && altC ? 2 : kinds.includes(1) ? 1 : -1;
   // A tune that follows itself (A A, B B) may come back with the lead doubled in harmony on every note: a
   // third above, or a fourth or a fifth below, in the descant's voice (which then sounds even when the
   // descant part is off). Four such repeats in five, from a stream of its own so the purchase's other
   // draws stay as they were.
-  const DB = rng((fold ^ imul(e, 0x3c6ef372) ^ imul(sp.id, 0x1b873593)) >>> 0);
+  const DB = rng((fold ^ imul(e, 0x3c6ef372) ^ imul(musicalId(sp.id), 0x1b873593)) >>> 0);
   const doubled = kinds.map((k, s) => (s > 0 && k === kinds[s - 1] && (DB.int(2) === 0 || DB.int(5) < 3) ? [2, -3, -4][DB.int(3)] : 0));
   // and the first pass of such a pair is left plain (no descant either), so the harmony arrives with the repeat
   const plainPass = kinds.map((k, s) => s < 3 && kinds[s + 1] === k);
   // each tune's 8 bars of chords: the progression and its answer (sectionNumerals), drawn from a stream
   // of their own so the purchase's other draws stay as they were; a tune closes on the tonic when its
   // melody ends there (A, C and A' always, B when the form ends on it)
-  const H = rng((fold ^ imul(e, 0x27d4eb2d) ^ imul(sp.id, 0x165667b1)) >>> 0);
+  const H = rng((fold ^ imul(e, 0x27d4eb2d) ^ imul(musicalId(sp.id), 0x165667b1)) >>> 0);
   // the spread chords, from a stream of their own too: the month spreads other bars, the week changes
   // how many and which way they lean
-  const SP = rng((fold ^ imul(e, 0x2545f491) ^ imul(sp.id, 0x61c88647)) >>> 0);
+  const SP = rng((fold ^ imul(e, 0x2545f491) ^ imul(musicalId(sp.id), 0x61c88647)) >>> 0);
   let spreadShare = SP.int(3), spreadLean = SP.int(3), spreadSeed = SP();
   if (month !== null) spreadSeed = mix(spreadSeed, month);
   if (drift && drift.rotate !== null) { const h = Number(BigInt(drift.rotate) & 0xffffffffn); spreadShare = (spreadShare + 1 + Math.floor(h / 2048) % 2) % 3; spreadLean = (spreadLean + 1 + Math.floor(h / 4096) % 2) % 3; }
@@ -443,10 +444,10 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
   // The accompaniment's octave doubling (a figure's root-and-octave, or its lone upper root) sits above the
   // root; on one purchase in three it sits below instead, for the whole track, from a stream of its own. Not
   // when the accompaniment is already an octave lower.
-  const octaveBelow = rng((fold ^ imul(e, 0x4cf5ad43) ^ imul(sp.id, 0x2745937f)) >>> 0).int(OCTAVE_BELOW[1]) < OCTAVE_BELOW[0] && !accDown;
+  const octaveBelow = rng((fold ^ imul(e, 0x4cf5ad43) ^ imul(musicalId(sp.id), 0x2745937f)) >>> 0).int(OCTAVE_BELOW[1]) < OCTAVE_BELOW[0] && !accDown;
   const octave = octaveBelow ? -12 : 12;
   // harp glissandi: into the second, third or fourth tune, or into the end; the week moves them
-  const GL = rng((fold ^ imul(e, 0x7feb352d) ^ imul(sp.id, 0x846ca68b)) >>> 0);
+  const GL = rng((fold ^ imul(e, 0x7feb352d) ^ imul(musicalId(sp.id), 0x846ca68b)) >>> 0);
   const glDraw = GL.int(20);
   let glSeed = GL();
   if (drift && drift.rotate !== null) glSeed = mix(glSeed, Number(BigInt(drift.rotate) & 0xffffffffn));
@@ -478,7 +479,7 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
   // How each tune's last bar goes in the drums, from a stream of its own: 7 times in 20 a fill of snare and
   // toms over its second half, 5 in 20 a cut (the drums drop out for the bar, as a dance track mutes them
   // before the next section), otherwise the pattern as usual.
-  const DF = rng((fold ^ imul(e, 0x2c1b3c6d) ^ imul(sp.id, 0x297a2d39)) >>> 0), halfBar = bar >> 1;
+  const DF = rng((fold ^ imul(e, 0x2c1b3c6d) ^ imul(musicalId(sp.id), 0x297a2d39)) >>> 0), halfBar = bar >> 1;
   const drumEnds = [0, 1, 2, 3].map(() => { const r = DF.int(20); return r < DRUM_FILLS ? 1 : r < DRUM_FILLS + DRUM_CUTS ? 2 : 0; });
   // An intro before the first tune, on half the purchases, from a stream of its own: one to four bars (two to
   // four in 2/4) that close on the dominant. It is a dialogue: the lead calls with the opening of the tune,
@@ -489,7 +490,7 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
   // crash. Now and then, and quietly, a run of sixteenths into the tune or an arpeggio through the chord.
   // Each layer plays only if its part is in the track. `intro` false leaves it out, true or a number of bars
   // puts it in. The tunes after it are note for note what they are without it.
-  const IN = rng((fold ^ imul(e, 0x6a09e667) ^ imul(sp.id, 0x3c6ef35f)) >>> 0);
+  const IN = rng((fold ^ imul(e, 0x6a09e667) ^ imul(musicalId(sp.id), 0x3c6ef35f)) >>> 0);
   let introBars = IN.int(2) === 0 ? 1 + IN.int(4) : 0;
   const inKind = IN.int(4), inUp = IN.int(3) > 0;
   // the dialogue: the answer's interval (a fourth below, a third above, a sixth below), whether it is turned

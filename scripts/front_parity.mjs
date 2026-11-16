@@ -10,7 +10,7 @@
 import { writeFileSync, existsSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
-import { LOOT_BEASTS } from '../offchain/loot-sound/src/loot_beasts.js';
+import { LOOT_BEASTS, musicalId } from '../offchain/loot-sound/src/loot_beasts.js';
 import { SPECIES } from '../offchain/loot-sound/src/loot_species.js';
 import { STYLES } from '../offchain/loot-sound/src/loot_styles.js';
 import * as ED from '../offchain/loot-sound/src/loot_editions.js';
@@ -47,15 +47,15 @@ const drift = (day) => `DriftInputs { name_variant_id: 0, day: ${day}, day_hash:
 // a provider call: compose on day 1 (as written), compose_drift with the day's hashes after
 const call = (inputs, mega, day) => (day > 1 ? `s.compose_drift(${inputs}, ${mega ? 1 : 0}, ${drift(day)})` : `s.compose(${inputs}, ${mega ? 1 : 0})`);
 const beast = (id) => ({ ...LOOT_BEASTS[id - LOOT_BEASTS[0].id], ...SPECIES.find((s) => s.id === id) });
-const dr = (id, day) => (day > 1 ? L.drift2({ id, prefix: 0, suffix: 0 }, day, anchor) : null);
+const dr = (id, day) => (day > 1 ? L.drift2({ id: musicalId(id), prefix: 0, suffix: 0 }, day, anchor) : null);
 const calls = []; let changed = 0;
 const differs = (a, b) => { if (Buffer.compare(Buffer.from(a), Buffer.from(b))) changed++; };
 for (const [id, name, day] of [[78, 0, 1], [92, 1242, 1], [82, 0, 45], [99, 12, 70], [105, 0, 290], [85, 0, 9], [85, 400, 45]]) {
   const x = LOOT_BEASTS[id - LOOT_BEASTS[0].id], n = L.nameFromVariant(name);
-  const bb = { id, prefix: n.prefix, suffix: n.suffix, level: 1, health: 100, shiny: 0, animated: 0, tier: x.tier, beast_type: x.type };
+  const bb = { id: musicalId(id), prefix: n.prefix, suffix: n.suffix, level: 1, health: 100, shiny: 0, animated: 0, tier: x.tier, beast_type: x.type };
   const opts = { ...L.GENESIS_DEFAULTS, ...(name ? { name } : {}), ...(day > 1 ? { epoch: day, driftMode: 'v2', blockHashes: true } : {}) };
   const midi = L.sampleTrackMidi(bb, { species_count: 1 }, opts, E, V).midi;
-  const d = day > 1 ? L.drift2({ id, prefix: 0, suffix: 0 }, day, anchor) : null;
+  const d = dr(id, day);
   const band = O.songBand(name ? 'name' : 'song', x.type, id, name, d);
   const out = remap(playedRef(name ? 'name' : 'song', midi, band), band);
   differs(out, remap(O.lifted(midi, name ? 12 : 0), band));
@@ -63,14 +63,16 @@ for (const [id, name, day] of [[78, 0, 1], [92, 1242, 1], [82, 0, 45], [99, 12, 
 }
 const edCases = [[78, false, 1, 1, 1], [85, true, 5, 2, 1], [92, false, 9, 3, 45], [101, false, 13, 1, 290], [107, true, 15, 4, 9], [90, false, 22, 7, 100], [78, false, 15, 1, 1], [85, false, 3, 2, 1], [85, false, 10, 1, 1],
   // the edition mix (8c9284f): a high accompaniment, Speedrun an octave lower, Forest's drop and high, Speedrun high, Dungeon Dash's leads
-  [78, false, 2, 3, 1], [78, false, 13, 2, 1], [98, false, 19, 1, 1], [88, false, 13, 4, 1], [78, false, 14, 3, 1],
+  // (these and the TOP_SOFT cases at their 8c9284f ids + 2, 9103b11: the same musical ids, so the same files but
+  // where the tier moved with the public id; the second lead's vibraphone is 83's now)
+  [80, false, 2, 3, 1], [80, false, 13, 2, 1], [100, false, 19, 1, 1], [90, false, 13, 4, 1], [80, false, 14, 3, 1],
   // TOP_SOFT in the composer: a vibraphone on top (the accompaniment, the descant, the second lead), a vibraphone not on
   // top, and a vibraphone accompaniment written an octave lower (played pizzicato)
-  [102, false, 5, 3, 1], [78, false, 10, 2, 1], [81, false, 10, 2, 1], [78, false, 2, 2, 1], [99, false, 3, 2, 1]];
+  [104, false, 5, 3, 1], [80, false, 10, 2, 1], [83, false, 10, 2, 1], [80, false, 2, 2, 1], [101, false, 3, 2, 1]];
 for (const [id, mega, e, p, day] of edCases) {
   const x = beast(id), d = dr(id, day), key = STYLES[(e - 1) % STYLES.length].key;
   const o = ED.editionMidi(x, mega, e, purchaseSeed(p), d, false, null);
-  const band = O.band(key, id, e, p, d, o.info.accompLow);
+  const band = O.band(key, musicalId(id), e, p, d, o.info.accompLow);
   const out = remap(playedRef('edition', o.midi, band, key, { accompLow: o.info.accompLow, id, e, p }), band);
   differs(out, remap(o.midi, band));
   calls.push(call(`LootInputs::Edition(LootEditionInputs { species: ${id}, edition: ${e}, purchase: ${p} })`, mega, day), [out.length, sum(out)]);
@@ -81,7 +83,7 @@ if (withRounds) {
   for (const [id, mega, r, day] of [[78, false, 0, 1], [86, true, 0, 1], [93, false, 3, 45], [102, false, 0, 290], [97, true, 2, 9], [86, false, 0, 1], [92, false, 2, 1]]) {
     const x = beast(id), d = dr(id, day);
     const midi = RD.roundMidi(x, mega, r ? purchaseSeed(r) : 0n, d).midi;
-    const band = O.choose(O.ORCH.roundPools[x.type], O.ORCH.roundKinds, id, 2, d);
+    const band = O.choose(O.ORCH.roundPools[x.type], O.ORCH.roundKinds, musicalId(id), 2, d);
     const out = remap(playedRef('round', midi, band), band);
     differs(out, remap(O.lifted(midi, 7), band));
     calls.push(call(`LootInputs::Round(LootRoundInputs { species: ${id}, purchase: ${r} })`, mega, day), [out.length, sum(out)]);
@@ -89,7 +91,7 @@ if (withRounds) {
   for (const [id, mega, c] of [[79, false, 0], [88, true, 0], [98, false, 5], [105, true, 2], [87, false, 1], [92, false, 2]]) {
     const x = beast(id);
     const midi = CK.soundCheckMidi(x, mega, c ? purchaseSeed(c) : 0n).midi;
-    const band = O.choose(O.ORCH.roundPools[x.type], O.ORCH.roundKinds, id, 2, null);
+    const band = O.choose(O.ORCH.roundPools[x.type], O.ORCH.roundKinds, musicalId(id), 2, null);
     const out = remap(playedRef('check', midi, band), band);
     differs(out, remap(midi, band));
     calls.push(call(`LootInputs::SoundCheck(LootSoundCheckInputs { species: ${id}, take: ${c} })`, mega, 1), [out.length, sum(out)]);

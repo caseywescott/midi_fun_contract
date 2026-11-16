@@ -7,6 +7,7 @@
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { SPECIES } from '../offchain/loot-sound/src/loot_species.js';
+import { musicalId } from '../offchain/loot-sound/src/loot_beasts.js';
 import { roundScore } from '../offchain/loot-sound/src/loot_rounds.js';
 
 const REF = process.argv[2] || '/Volumes/Extreme SSD/Generative_Music_Series/midi_fun_contract-ref101';
@@ -14,7 +15,7 @@ const L = await import(REF + '/offchain/beast-sound/src/lab.js');
 const U64 = (1n << 64n) - 1n;
 export function purchaseSeed(n) { let x = BigInt(n) * 0x9e3779b97f4a7c15n & U64; x ^= x >> 30n; x = x * 0xbf58476d1ce4e5b9n & U64; x ^= x >> 27n; x = x * 0x94d049bb133111ebn & U64; return x ^ (x >> 31n); }
 const DAYS = [0, 9, 45, 100, 200, 290];
-const driftOf = (id, day) => (day ? L.drift2({ id, prefix: 0, suffix: 0 }, day, L.dayAnchor()) : null);
+const driftOf = (id, day) => (day ? L.drift2({ id: musicalId(id), prefix: 0, suffix: 0 }, day, L.dayAnchor()) : null);
 
 const cases = [];
 const add = (sp, mega, p, day) => cases.push({ sp, mega, p, seed: p ? purchaseSeed(p).toString() : '0', day });

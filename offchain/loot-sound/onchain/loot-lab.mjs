@@ -242,7 +242,10 @@ const padOf = (ch, p) => (DATA.orch.fallback[p] !== undefined && !Banks[st.inst]
 const anchor = L.dayAnchor();
 const beast = () => DATA.beasts[st.b];
 function purchaseSeed(n) { let x = BigInt(n) * 0x9e3779b97f4a7c15n & U64; x ^= x >> 30n; x = x * 0xbf58476d1ce4e5b9n & U64; x ^= x >> 27n; x = x * 0x94d049bb133111ebn & U64; return x ^ (x >> 31n); }
-const bOf = (x, named) => { const n = named ? L.nameFromVariant(st.name) : { prefix: 0, suffix: 0 }; return { id: x.id, prefix: n.prefix, suffix: n.suffix, level: 1, health: 100, shiny: st.mega ? 1 : 0, animated: 0, tier: x.tier, beast_type: x.type }; };
+// a Beast's soundtrack identity (its musical id, the public id less two: the soundtrack written at the provisional
+// ids 76-105, after loothero's PR #35); shown and contract ids stay 78-107
+const musicalId = (id) => { if (id < 78 || id > 107) throw new RangeError('not a Loot Beast'); return id - 2; };
+const bOf = (x, named) => { const n = named ? L.nameFromVariant(st.name) : { prefix: 0, suffix: 0 }; return { id: musicalId(x.id), prefix: n.prefix, suffix: n.suffix, level: 1, health: 100, shiny: st.mega ? 1 : 0, animated: 0, tier: x.tier, beast_type: x.type }; };
 // the band: a style's four pools give this track's lead, accompaniment, bass and pad, by Beast, edition and
 // purchase (the pad is not the lead's instrument; a bell lead is doubled by the flute, any other by the
 // glockenspiel); a song's or a round's channels each take one of their pool by species
@@ -329,28 +332,28 @@ const LEAD_CH = [0, 7]; // an edition's lead and second lead (the descant has it
 function track0() {
   const x = beast(), day = st.day > 1 ? st.day : null;
   if (st.kind === 'edition') {
-    const d = day ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null;
+    const d = day ? L.drift2({ id: musicalId(x.id), prefix: 0, suffix: 0 }, day, anchor) : null;
     const o = ED.editionMidi(x, st.mega, st.e, purchaseSeed(st.p), d, false, st.walk);
-    const key = DATA.styles[(st.e - 1) % NSTYLE].key, orch = band(key, x.id, st.e, st.p, d, o.info.accompLow), mixOf = DATA.orch.mix[key];
+    const key = DATA.styles[(st.e - 1) % NSTYLE].key, orch = band(key, musicalId(x.id), st.e, st.p, d, o.info.accompLow), mixOf = DATA.orch.mix[key];
     // each channel's mean pitch as written (for the high accompaniment)
     const pm = {}; { const acc = {}; for (const n of notesOf(o.midi).notes) { if (n[3] === 9) continue; const a = acc[n[3]] || (acc[n[3]] = [0, 0]); a[0] += n[2]; a[1]++; } for (const c in acc) pm[c] = acc[c][0] / acc[c][1]; }
     // the style's mix for the instruments this track drew (sample banks only: the chip presets keep their own)
     // and the lead's own turn-down (leadSoft) on the lead, descant and second-lead channels
-    const vol = isChip() ? null : Object.fromEntries(orch.map((g, ch) => { const f = ((mixOf && mixOf[padOf(ch, g)]) || 1) * (LEAD_CH.includes(ch) ? (DATA.orch.leadSoft[padOf(ch, g)] || 1) * DATA.orch.leadAll : 1); const hi = ch === 2 && !o.info.accompLow, lw = DATA.orch.styleAccompLower[key], at = hi && lw && mix(mix(x.id, st.e * 613 + 5), st.p) % lw === 0 ? -12 : 0;
+    const vol = isChip() ? null : Object.fromEntries(orch.map((g, ch) => { const f = ((mixOf && mixOf[padOf(ch, g)]) || 1) * (LEAD_CH.includes(ch) ? (DATA.orch.leadSoft[padOf(ch, g)] || 1) * DATA.orch.leadAll : 1); const hi = ch === 2 && !o.info.accompLow, lw = DATA.orch.styleAccompLower[key], at = hi && lw && mix(mix(musicalId(x.id), st.e * 613 + 5), st.p) % lw === 0 ? -12 : 0;
       const ad = hi ? (DATA.orch.styleAccompDrop[key] || 0) + (pm[2] !== undefined && pm[0] !== undefined && pm[2] + at > pm[0] ? DATA.orch.highAccompDrop : 0) : 0;
       return [ch, LEAD_CH.includes(ch) ? { f, d: DATA.orch.editionLeadDrop - (DATA.orch.styleLeadBoost[key] || 0) } : ad || at ? { f, d: ad, t: at } : f]; }).filter(([, f]) => f !== 1));
     return { midi: lifted(o.midi, 0, vol), info: o.info, settings: DATA.edition[(st.e - 1) % NSTYLE][x.type][st.mega ? 1 : 0], orch };
   }
   const settings = DATA.family[x.type * 2 + (st.mega ? 1 : 0)];
   if (st.kind === 'round') {
-    const d = day ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null;
+    const d = day ? L.drift2({ id: musicalId(x.id), prefix: 0, suffix: 0 }, day, anchor) : null;
     const o = RD.roundMidi(x, st.mega, st.r ? purchaseSeed(st.r) : 0n, d);
-    return { midi: lifted(o.midi, LIFT.round), info: o.info, settings, orch: choose(DATA.orch.roundPools[x.type], DATA.orch.roundKinds, x.id, 2, d) };
+    return { midi: lifted(o.midi, LIFT.round), info: o.info, settings, orch: choose(DATA.orch.roundPools[x.type], DATA.orch.roundKinds, musicalId(x.id), 2, d) };
   }
   // a Name Song's band by species and name, its lead from NAME_LEADS; a Species Song's by species
   const named = st.kind === 'name', pools = named ? [DATA.orch.nameLeads, ...DATA.orch.songPools[x.type].slice(1)] : DATA.orch.songPools[x.type];
-  const orch = choose(pools, DATA.orch.songKinds, x.id, named ? 1 + st.name * 7919 : 1, day && (st.kind === 'song' || named) ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null, true);
-  if (st.kind === 'check') { const o = CK.soundCheckMidi(x, st.mega, st.c ? purchaseSeed(st.c) : 0n); return { midi: o.midi, info: o.info, settings, orch: choose(DATA.orch.roundPools[x.type], DATA.orch.roundKinds, x.id, 2, null) }; }
+  const orch = choose(pools, DATA.orch.songKinds, musicalId(x.id), named ? 1 + st.name * 7919 : 1, day && (st.kind === 'song' || named) ? L.drift2({ id: musicalId(x.id), prefix: 0, suffix: 0 }, day, anchor) : null, true);
+  if (st.kind === 'check') { const o = CK.soundCheckMidi(x, st.mega, st.c ? purchaseSeed(st.c) : 0n); return { midi: o.midi, info: o.info, settings, orch: choose(DATA.orch.roundPools[x.type], DATA.orch.roundKinds, musicalId(x.id), 2, null) }; }
   const opts = { ...L.GENESIS_DEFAULTS, ...(st.kind === 'name' ? { name: st.name } : {}), ...(day ? { epoch: day, driftMode: 'v2', blockHashes: true } : {}) };
   const o = L.sampleTrackMidi(bOf(x, st.kind === 'name'), { species_count: 1 }, opts, E, V);
   // the theme's lead turn-down (leadSoft), and on a Name Song the nameSoft instruments on any channel

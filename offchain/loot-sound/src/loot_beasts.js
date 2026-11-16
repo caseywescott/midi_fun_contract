@@ -1,6 +1,6 @@
 // The 30 Loot Dungeon Beasts: the final list (Casey, 16 November 2026, with the art in Loot_Beasts_Final):
 // species ids 78-107, 10 per family (0 Magic, 1 Hunter, 2 Brute), two per tier within each family. The id,
-// tier and family reach the music (key, theme, drift); the names are labels.
+// tier and family reach the music (through musicalId, below); the names are labels.
 const LIST = [
   [78, 'Koschei', 0, 1], [79, 'Dybbuk', 0, 1], [80, 'Siren', 0, 2], [81, 'Pontianak', 0, 2], [82, 'Poltergeist', 0, 3],
   [83, 'Leshy', 0, 3], [84, 'Tengu', 0, 4], [85, 'Kikimora', 0, 4], [86, 'Kodama', 0, 5], [87, 'Brownie', 0, 5],
@@ -11,4 +11,11 @@ const LIST = [
 ];
 export const LOOT_FIRST = 78, LOOT_COUNT = 30;
 export const LOOT_BEASTS = LIST.map(([id, name, type, tier]) => ({ id, name, tier, type }));
-export const lootBeast = (id) => LOOT_BEASTS[id - LOOT_FIRST];
+export const lootBeast = (id) => (Number.isInteger(id) && id >= LOOT_FIRST && id < LOOT_FIRST + LOOT_COUNT ? LOOT_BEASTS[id - LOOT_FIRST] : undefined);
+// Each Beast keeps the soundtrack it was written with at the provisional ids 76-105 (Casey, following loothero's
+// PR #35): its music (keys and themes, every random stream, leads, drift, the band) is keyed by its musical id, the
+// public id less two; the public and contract ids stay 78-107.
+export function musicalId(id) {
+  if (!lootBeast(id)) throw new RangeError('not a Loot Beast');
+  return id - LOOT_FIRST + 76;
+}

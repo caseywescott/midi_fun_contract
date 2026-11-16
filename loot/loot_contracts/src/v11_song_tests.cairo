@@ -30,13 +30,13 @@ fn v11_song(inputs: ComposerInputs, sound_effects: u8, drift: Option<DriftInputs
     }
 }
 use loot_composer::songs::name_from_variant;
-use loot_composer::species::loot_species;
+use loot_composer::species::{loot_species, musical_id};
 use midi::pack::bytes_to_byte_array;
 
 fn beast(species: u32, mega: bool, prefix: u8, suffix: u8) -> PackableBeastV3 {
     let s = loot_species(species);
     PackableBeastV3 {
-        id: species.into(), prefix, suffix, level: 1, health: 100, shiny: if mega { 1 } else { 0 },
+        id: musical_id(species).into(), prefix, suffix, level: 1, health: 100, shiny: if mega { 1 } else { 0 },
         animated: 0, tier: s.tier, beast_type: s.beast_type,
     }
 }

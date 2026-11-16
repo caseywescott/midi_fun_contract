@@ -1,5 +1,5 @@
 use crate::common::{GlissNote, GlissPlan, RngTrait, fold64, gliss_plan, glissando, mix, purchase_seed};
-use crate::species::{LOOT_FIRST, loot_species};
+use crate::species::{LOOT_COUNT, LOOT_FIRST, loot_species};
 
 #[test]
 fn rng_matches_js() {
@@ -26,7 +26,9 @@ fn mix_and_seeds_match_js() {
 fn species_table() {
     let s = loot_species(LOOT_FIRST);
     assert_eq!(s.id, 78);
-    assert_eq!(s.degrees, [0, 2, 3, 4, 2, 0]);
+    assert_eq!(s.degrees, [0, 1, 3, 5, 3, 4]);
+    assert_eq!(crate::species::musical_id(LOOT_FIRST), 76);
+    assert_eq!(crate::species::musical_id(LOOT_FIRST + LOOT_COUNT - 1), 105);
 }
 
 #[test]

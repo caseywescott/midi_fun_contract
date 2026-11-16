@@ -24,7 +24,7 @@ pub fn loot_beast(
 ) -> beast_composer::composition::beast_v3_sound::PackableBeastV3 {
     let s = loot_composer::species::loot_species(species);
     beast_composer::composition::beast_v3_sound::PackableBeastV3 {
-        id: species.into(),
+        id: loot_composer::species::musical_id(species).into(),
         prefix,
         suffix,
         level: 1,

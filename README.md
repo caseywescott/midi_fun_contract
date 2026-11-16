@@ -1,8 +1,9 @@
 # Loot Dungeon Sound
 
-Music for the 30 Loot Dungeon Beasts, as its own contracts. Built on Beast Sound
-([caseywescott/midi_fun_contract](https://github.com/caseywescott/midi_fun_contract) `v1.0.1`), which it
-depends on by tag and never modifies.
+Music for the 30 Loot Dungeon Beasts (ids 78–107), as its own contracts. Built on Beast Sound
+([caseywescott/midi_fun_contract](https://github.com/caseywescott/midi_fun_contract); the JS lab on `v1.0.1`,
+the Cairo on `v1.1.0`), which it depends on by tag and never modifies. **Release notes for the contracts
+(classes, deploy, gas, parity): [loot/README.md](loot/README.md).**
 
 | Track | Engine |
 |---|---|
@@ -25,7 +26,7 @@ Upgradeable provider.
 | Class | What | CASM felts (limit 81,920) |
 |---|---|---|
 | `LootPureComposer` | the Loot composer, storage-free: Editions, Rounds, Sound Checks, each with the lab's band (and the Round's +7 lift) written in place, and an Edition's volumes (style MIX; LEAD_SOFT x LEAD_ALL, then EDITION_LEAD_DROP less the style's boost, on the lead and second lead; the accompaniment's drops and its octave-lower tracks; TOP_SOFT on the highest voice, its mean kept as the notes are written) | 79,000 |
-| `LootMidiProvider` | every track behind one ABI (`ILootMidiProvider`): Editions/Rounds/Checks library-call `LootPureComposer`; Species/Name Songs build the Loot Beast's `SongInputs` and library-call the pinned v1.1.0 `BeastPureComposer`, then add the band (a Name Song's lead from NAME_LEADS), the Name Song's +12 and the volumes in one pass; a Name Song's kick softer and TOP_SOFT on Songs; OpenZeppelin Ownable + Upgradeable, `set_classes` | 33,424 |
+| `LootMidiProvider` | every track behind one ABI (`ILootMidiProvider`): Editions/Rounds/Checks library-call `LootPureComposer`; Species/Name Songs build the Loot Beast's `SongInputs` and library-call the pinned v1.1.0 `BeastPureComposer`, then add the band (a Name Song's lead from NAME_LEADS), the Name Song's +12 and the volumes in one pass; a Name Song's kick softer and TOP_SOFT on Songs; OpenZeppelin Ownable + Upgradeable, `set_classes` | 33,600 |
 | `BeastPureComposer` | not ours: Beast Sound v1.1.0's class (`0x07eb6480…02eb63`), used as is | 81,920 |
 | `LootFmPack` | the FM sound pack (gzip+base64 script, `pack()` / chunks / sha256) | 5,499 |
 
@@ -74,7 +75,10 @@ compressed and swapped), not RSS.
 
 The FM pack (`offchain/fm/`, see its README): the Kankyo FM bank as one 31.5 KB script (13.8 KB gzip; the reference is 58.7 KB),
 bit-identical renders, faster startup; `offchain/fm/dist/demo.html` plays any .mid through it. The port matches the
-Loot lab at loot_dungeon_sound **8c9284f** (the final 30 Beasts, ids 78-107; engines, the Rounds' drums and fills,
+Loot lab at loot_dungeon_sound **9103b11** (the final 30 Beasts, public ids 78-107, each keeping the soundtrack
+written at the provisional ids 76-105 through its musical id, the public id less two, after loothero's PR #35:
+`species::musical_id` keys the engines' random streams, leads, the band, the drift and the Beasts composer's Song
+input, as the lab's `musicalId`; engines, the Rounds' drums and fills,
 band pools, the descant's own instrument, a song's melody voices off the theme's instrument, Name Song leads
 (NAME_LEADS) and drift, and the lab's playback: style MIX, LEAD_SOFT x LEAD_ALL then LEAD_DROP on a song's theme and
 EDITION_LEAD_DROP less STYLE_LEAD_BOOST on an edition's leads, the accompaniment's STYLE_ACCOMP_DROP,
@@ -213,4 +217,6 @@ node onchain/loot-lab.mjs <engine .min.js> <onchain-midi-player> <midi_fun_contr
 open public/loot-lab.html
 ```
 
-`src/loot_beasts.js` is the final list of the 30 Loot Dungeon Beasts (ids 78-107).
+`src/loot_beasts.js` is the final list of the 30 Loot Dungeon Beasts (ids 78-107), with `musicalId(id)` (the
+public id less two): the id the music is keyed by, so each Beast keeps the soundtrack written at the provisional
+ids 76-105 (loothero's PR #35).

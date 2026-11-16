@@ -55,6 +55,42 @@ function tone12(d, f, y, loopStart) {
   }
   return y;
 }
+// Sections and formants, after Chowning's FM singing voice (1980). A definition may be played by several players,
+// `section` [[detune cents, level, vibrato cents, vibrato cycles in the loop, phase, jitter cents, jitter cycles]]:
+// each plays the template operators detuned (whole beat cycles over the loop at each harmonic, so the loop stays
+// seamless) with their own vibrato, a slow jitter and `rvib` [cents, [cycles, ...]], a random-sounding vibrato
+// made of a few faster components at each player's own phases. `form` { f: [Hz, ...] or [[at range[0]], [at
+// range[1]]], range, db, idx, rise } adds, per player and formant, carriers at the two harmonics either side of
+// it, weighted by how near each is (equal power), each driven by a modulator at the note whose index (rising
+// from `rise` of it in the attack) sets the formant's width. `choir` is both at once, its players `singers`,
+// with the first formant never below 1.1 times the note (a soprano tunes it up to her pitch). `fmv` [index,
+// attack ratio, tau] replaces the template with Schottstaedt's fm-violin (CLM): one carrier and modulators at
+// 1, 3 and 4 times the note whose indices follow his formulas in pitch (5 / ln f; (8.5 - ln f) / (3 + f / 1000);
+// 1 / sqrt f, as phase-modulation indices), brighter by `attack ratio` at the start.
+function sectionOps(d, f, cycles) {
+  const c = d.choir, form = d.form ?? c, players = d.section ?? c?.singers ?? [[0, 1, 0, 1, 0]], m = 69 + 12 * Math.log2(f / 440), ops = [];
+  let F = [];
+  if (form) {
+    const two = Array.isArray(form.f[0]), u = two ? Math.max(0, Math.min(1, (m - form.range[0]) / (form.range[1] - form.range[0]))) : 0;
+    F = two ? form.f[0].map((x, k) => x + (form.f[1][k] - x) * u) : [...form.f];
+    if (c) F[0] = Math.max(F[0], 1.1 * f);
+  }
+  let tpl = d.ops;
+  if (d.fmv) { const [k, ar = 2, tau = 0.15] = d.fmv, lf = Math.log(f), i1 = Math.min(Math.PI, 5 / lf) * k, i2 = Math.min(Math.PI, (8.5 - lf) / (3 + f / 1000)) * k, i3 = Math.min(Math.PI, 1 / Math.sqrt(f)) * k;
+    // the parallel modulators carry the attack brightness too (`ar`, their indices at the start), settling with the main one
+    tpl = [[1, 1, i1 * ar, i1, tau, 1, 0, d.fmvFb ?? 0, null, [[3, i2], [4, i3]], 0]]; tpl[0].ar = [i2 * ar, i3 * ar];
+  }
+  players.forEach(([cents, lv, vc, vr, vq, jc = 0, jr = 3], s) => {
+    const b = cents * cycles * Math.LN2 / 1200, beat = (h) => Math.round(h * b);
+    const ov = [[vc, vr, vq], [jc, jr, vq * 2.3 + 1], ...(d.rvib ? d.rvib[1].map((r, k) => [d.rvib[0], r, vq * (k + 1.7) + 0.9 * k + s]) : [])];
+    for (const o of tpl) { const q = [o[0], o[1], o[2], o[3], o[4], o[5] * lv, beat(o[0]) + (o[6] ?? 0), o[7], o[8], o[9], o[10], ov]; if (o.ar) q.ar = o.ar; ops.push(q); }
+    F.forEach((fk, k) => {
+      const r = fk / f, h0 = Math.max(1, Math.floor(r)), w = Math.max(0, Math.min(1, r - h0)), a = lv * 10 ** (form.db[k] / 20), x = form.idx[k];
+      for (const [h, g] of [[h0, Math.cos(w * Math.PI / 2)], [h0 + 1, Math.sin(w * Math.PI / 2)]]) if (g > 0.05 && h * f < 12000) ops.push([h, 1, x * (form.rise ?? 0.5), x, form.tau ?? 0.15, a * g, beat(h), 0, null, null, 0, ov]);
+    });
+  });
+  return ops;
+}
 // FM: operators [carrier ratio, modulator ratio, index at the attack, index held, index time constant (s),
 // level, level decay dB/s (struck) or beat cycles over the loop (sustained), feedback, [ratio, index]]:
 // a carrier with its modulator; `feedback` turns the modulator on itself (towards a sawtooth: bowed and
@@ -69,11 +105,16 @@ function fm(d, midi) {
     // the string it is plucked (0.08-0.48): the sound minus itself delayed by that fraction of a period,
     // which notches the harmonics at multiples of 1/position. `len` caps the seconds kept.
     const k = (f / hz(60)) ** (d.dk ?? 0.4), n = Math.round(Math.min(d.len ?? 2.5, 55 / (Math.min(...d.ops.map((o) => o[6])) * k) + 0.1) * RATE), y = new Float32Array(n), dry = d.comb ? new Float32Array(n) : y;
+    // `bend` [cents, s]: the note starts that far flat and slides up into pitch (a koto's or shamisen's pluck);
+    // the phase it loses, as a multiple of the note's, for the operators that follow the note
+    let bp = null;
+    if (d.bend) { bp = new Float64Array(n); let acc = 0; for (let i = 0; i < n; i++) { bp[i] = acc; acc += TAU * f / RATE * (2 ** (-d.bend[0] * Math.exp(-i / RATE / d.bend[1]) / 1200) - 1); } }
     for (const [cr, mr, i0, is, tau, lv, ad, fb = 0, st, , , i2, atk = 0, isDry] of d.ops) {
       if (f * cr > 14000) continue; // a negative ratio is a fixed frequency in Hz (a pick's click does not follow the note)
       const out = isDry ? dry : y, [is2, tau2] = i2 ?? [is, 1], wc = TAU * (cr < 0 ? -cr : f * cr) / RATE, wm = TAU * (mr < 0 ? -mr : f * mr) / RATE, w2 = st ? TAU * f * st[0] / RATE : 0, dec = Math.exp(-ad * k * Math.LN10 / 20 / RATE); let m1 = 0, m2 = 0, amp = lv;
-      for (let i = 0; i < n; i++) { const t = i / RATE, e = Math.exp(-t / tau), m = Math.sin(wm * i + fb * ease * 0.5 * (m1 + m2) + (st ? st[1] * (0.15 + 0.85 * e) * Math.sin(w2 * i) : 0)); m2 = m1; m1 = m;
-        out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(wc * i + (is2 + (is - is2) * Math.exp(-t / tau2) + (i0 - is) * e) * m); amp *= dec; }
+      const bc = bp && cr > 0 ? cr : 0, bm = bp && mr > 0 ? mr : 0;
+      for (let i = 0; i < n; i++) { const t = i / RATE, e = Math.exp(-t / tau), b = bp ? bp[i] : 0, m = Math.sin(wm * i + bm * b + fb * ease * 0.5 * (m1 + m2) + (st ? st[1] * (0.15 + 0.85 * e) * Math.sin(w2 * i) : 0)); m2 = m1; m1 = m;
+        out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(wc * i + bc * b + (is2 + (is - is2) * Math.exp(-t / tau2) + (i0 - is) * e) * m); amp *= dec; }
     }
     if (d.trem) for (let i = 0; i < n; i++) y[i] *= 1 + d.trem[0] * Math.sin(TAU * d.trem[1] * i / RATE); // a vibraphone's motor: [depth, Hz]
     if (d.comb) { const D = d.comb * RATE / f, g = 1 / (2 * Math.sin(Math.PI * d.comb)); for (let i = n - 1; i >= 0; i--) { const x = i - D, j = Math.floor(x), fr = x - j; y[i] = (y[i] - (j >= 0 ? y[j] * (1 - fr) + y[j + 1] * fr : 0)) * g + dry[i]; } }
@@ -85,7 +126,7 @@ function fm(d, midi) {
   // `scoop` [cents, s] a dip as the note is tongued. The attack's pitch is integrated back from the loop's
   // first sample, so whatever happens in it the phase arrives where the loop begins.
   const A = d.pre, cycles = Math.round(f * N / RATE), y = new Float32Array(A + N), [vc, vm, vdel = 0, vfade = 0] = d.vib, pv = cycles * vc * Math.LN2 / 1200 / vm;
-  const reg = Math.max(0, Math.min(1, Math.log2(f / 261.626) / 3)), ph = new Float64Array(A + N), vcos = new Float32Array(A + N), rnd = rng(midi + 3);
+  const reg = Math.max(0, Math.min(1, Math.log2(f / 261.626) / 3)), ph = new Float64Array(A + N), vcos = new Float32Array(A + N), ven = new Float32Array(A + N).fill(1), rnd = rng(midi + 3);
   const dr = [1, 2, 3].map((m) => [m, (d.drift ?? 0) / Math.sqrt(0.9167) * cycles * Math.LN2 / 1200 / m / Math.sqrt(m), TAU * rnd()]);
   // `vibWob`: the vibrato's depth itself swells and eases once over the loop, by this fraction (no player's is even)
   const wob = (n) => 1 + (d.vibWob ?? 0) * Math.sin(TAU * n / N + 1.3), vibOf = (n) => pv * wob(n) * Math.sin(TAU * vm * n / N), dev = (n) => { let v = vibOf(n); for (const [m, c, p] of dr) v += c * Math.sin(TAU * m * n / N + p); return v; };
@@ -93,16 +134,23 @@ function fm(d, midi) {
   for (let n = -1, acc = dev(0); n >= -A; n--) {
     const t = (n + A) / RATE, x = vdel || vfade ? Math.max(0, Math.min(1, (t - vdel) / Math.max(vfade, 1e-3))) : 1, e = 1 - (1 - x) ** 2;
     acc -= (vibOf(n + 1) - vibOf(n)) * e + (dev(n + 1) - vibOf(n + 1)) - (dev(n) - vibOf(n)) - (d.scoop ? TAU * f / RATE * d.scoop[0] * Math.LN2 / 1200 * Math.exp(-t / d.scoop[1]) : 0);
-    ph[A + n] = acc; vcos[A + n] = e * Math.cos(TAU * vm * n / N);
+    ph[A + n] = acc; vcos[A + n] = e * Math.cos(TAU * vm * n / N); ven[A + n] = e;
   }
+  // `nmod` [depth, bandwidth Hz]: breath inside the tone: slow noise moving every operator's index (so the noise
+  // sits in sidebands around each harmonic, not beside the tone), periodic over the loop
+  let nz = null;
+  if (d.nmod) { const re = new Float64Array(N), im = new Float64Array(N), kmax = Math.round(d.nmod[1] * N / RATE); for (let k = 1; k <= kmax; k++) { const q = TAU * rnd(), g = 1 / (1 + (k / kmax) ** 2); re[k] = g * Math.cos(q); im[k] = -g * Math.sin(q); } fft(re, im); let e = 0; for (let k = 0; k < N; k++) e += re[k] * re[k]; const g = d.nmod[0] / Math.sqrt(e / N); nz = Float32Array.from(re, (v) => v * g); }
   // an operator may add modulators in parallel, `par` [ratio, index, key scaling] or a list of them, and ease its
   // indices up the keyboard, `ks` (a flute's upper register is purer): index * (1 - ks * register)
-  d.ops.forEach(([cr, mr, i0, is, tau, lv, beat, fb = 0, st, par, ks = 0], j) => {
+  // an operator's own vibrato, `ov` [[cents, cycles in the loop, phase], ...], on top of the shared one (a choir's
+  // singers each have theirs); it arrives with the shared vibrato's delay
+  (d.choir || d.section || d.form || d.fmv ? sectionOps(d, f, cycles) : d.ops).forEach((op, j) => { const [cr, mr, i0, is, tau, lv, beat, fb = 0, st, par, ks = 0, ov] = op;
     // each operator starts at its own phase, or a detuned stack would meet in a peak where the loop begins
-    let m1 = 0, m2 = 0; const phj = d.align ? 0 : TAU * ((j * 0.618034 * (1 + (d.ps ?? 0))) % 1), kI = 1 - reg * ks, pars = (par ? (Array.isArray(par[0]) ? par : [par]) : []).map(([r, x, k = 0]) => [Math.round(r * cycles), r, x * (1 - reg * k)]);
+    let m1 = 0, m2 = 0; const ovs = (ov ?? []).map(([c, r, q]) => [cycles * c * Math.LN2 / 1200 / r, r, q]); const phj = d.align ? 0 : TAU * ((j * 0.618034 * (1 + (d.ps ?? 0))) % 1), kI = 1 - reg * ks, pars = (par ? (Array.isArray(par[0]) ? par : [par]) : []).map(([r, x, k = 0], q) => [Math.round(r * cycles), r, x * (1 - reg * k), op.ar ? op.ar[q] : x * (1 - reg * k)]);
     for (let n = -A; n < N; n++) {
-      const i = n + A, p = ph[i], u = i / A, bright = 1 + (d.vibIdx ?? 0) * vcos[i], m = Math.sin(TAU * Math.round(mr * cycles) * n / N + mr * p + fb * ease * 0.5 * (m1 + m2) + (st ? st[1] * Math.sin(TAU * Math.round(st[0] * cycles) * n / N + st[0] * p) : 0)); m2 = m1; m1 = m;
-      let pm = 0; for (const [c, r, x] of pars) pm += x * Math.sin(TAU * c * n / N + r * p);
+      let i = n + A, p = ph[i]; if (ovs.length) { let o = 0; for (const [a, r, q] of ovs) o += a * Math.sin(TAU * r * n / N + q); p += o * ven[i]; }
+      const u = i / A, bright = (1 + (d.vibIdx ?? 0) * vcos[i]) * (nz ? 1 + nz[(n % N + N) % N] : 1), m = Math.sin(TAU * Math.round(mr * cycles) * n / N + mr * p + fb * ease * 0.5 * (m1 + m2) + (st ? st[1] * Math.sin(TAU * Math.round(st[0] * cycles) * n / N + st[0] * p) : 0)); m2 = m1; m1 = m;
+      let pm = 0; const ae = n < 0 ? Math.exp(-i / (tau * RATE)) * (1 - u ** 4) : 0; for (const [c, r, x, x1] of pars) pm += (x1 + (x - x1) * (1 - ae)) * Math.sin(TAU * c * n / N + r * p);
       y[i] += lv * Math.sin(TAU * (Math.round(cr * cycles) + beat) * n / N + phj + cr * p + bright * ((is + (n < 0 ? (i0 - is) * Math.exp(-i / (tau * RATE)) * (1 - u ** 4) : 0)) * kI * m + pm));
     }
   });

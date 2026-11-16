@@ -134,6 +134,9 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
       const overlapping = [...voices].filter((v) => v.start <= t && v.end > t).sort((a, b) => a.start - b.start);
       while (overlapping.length >= maxVoices) kill(overlapping.shift(), t);
       const source = ac.createBufferSource(), gain = ac.createGain();
+      // silent until the envelope starts: a gain is 1 until its first event, and a note starting between two samples
+      // may sound one sample early, at full gain; from the middle of a waveform (a slur) that sample is a click
+      gain.gain.value = 0;
       source.buffer = buffer(si);
       // A slurred instrument joins a note to the one before it on its channel (still sounding, or let go
       // under 80 ms ago): no new attack. It starts inside the loop, at a place that varies, and fades in

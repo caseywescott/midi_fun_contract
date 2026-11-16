@@ -3,6 +3,7 @@
 //! feature (all on by default): a batch script builds only its own (`--no-default-features --features
 //! rounds_fx`), so the test crate compiles in less memory.
 pub mod common;
+pub mod writer;
 pub mod orchestra;
 pub mod orchestra_data;
 pub mod songs;

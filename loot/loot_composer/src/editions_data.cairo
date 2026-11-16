@@ -2,10 +2,10 @@
 //! loot_editions.js and loot_styles.js by offchain/loot-sound/onchain/make_cairo_editions.mjs. Do not
 //! edit: change the source and rerun the generator.
 
-/// Home scales: ionian, aeolian, harmonic minor, lydian, phrygian.
-pub const SCALES: [[u8; 7]; 5] = [[0, 2, 4, 5, 7, 9, 11], [0, 2, 3, 5, 7, 8, 10], [0, 2, 3, 5, 7, 8, 11], [0, 2, 4, 6, 7, 9, 11], [0, 1, 3, 5, 7, 8, 10]];
-/// The colours a chord borrows (colour 0, the home scale, is a placeholder here).
-pub const COLOURS: [[u8; 7]; 12] = [[0, 0, 0, 0, 0, 0, 0], [0, 2, 3, 5, 7, 8, 10], [0, 2, 4, 6, 7, 9, 11], [0, 1, 3, 5, 7, 8, 10], [0, 2, 4, 5, 8, 9, 11], [0, 2, 4, 5, 7, 8, 11], [0, 2, 3, 5, 7, 8, 11], [0, 2, 4, 5, 7, 9, 10], [1, 2, 4, 5, 7, 9, 11], [0, 2, 3, 5, 6, 8, 11], [0, 2, 4, 5, 7, 9, 11], [0, 2, 3, 5, 7, 9, 10]];
+/// Home scales: ionian, aeolian, harmonic minor, lydian, phrygian; each step 4 bits from the low end.
+pub const SCALES: [u32; 5] = [194466848, 176640800, 193418016, 194470944, 176640784];
+/// The colours a chord borrows (colour 0, the home scale, is a placeholder here), as SCALES.
+pub const COLOURS: [u32; 12] = [0, 176640800, 194470944, 176640784, 194532384, 193418272, 193418016, 177689632, 194466849, 193352480, 194466848, 177689376];
 
 /// The substitutes an answering phrase may take (loot_editions.js SUBS), by home (major, minor,
 /// lydian) from SUBS_AT[home]: token | count << 8 | substitute k << (11 + 8k).
@@ -71,15 +71,19 @@ struct Reader {
 /// The next 32-bit value.
 #[inline(never)]
 fn read(ref r: Reader) -> u32 {
+    // (no panic path: CASM size; the reader stays inside its table)
     if r.left == 0 {
-        r.word = (*r.data.at(r.pos)).into();
-        r.pos += 1;
+        r.word = match r.data.get(r.pos) {
+            Option::Some(x) => (*x.unbox()).into(),
+            Option::None => 0,
+        };
+        r.pos = crate::common::wadd(r.pos, 1);
         r.left = 7;
     }
     let (q, v) = DivRem::div_rem(r.word, 0x100000000);
     r.word = q;
-    r.left -= 1;
-    v.try_into().unwrap()
+    r.left = crate::common::wadd(r.left, 0xffffffff);
+    crate::common::u32_of(v.low.into())
 }
 
 /// A list: its length, then its items.

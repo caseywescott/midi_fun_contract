@@ -15,9 +15,11 @@
 
 use beast_composer::composition::drift::{Drift, nudge_tempo};
 use beast_composer::opaque::opaque;
-use core::num::traits::WrappingMul;
-use midi::smf::{TrackWriter, TrackWriterTrait, smf_byte_array, smf_bytes};
-use crate::common::{GLISS_CHANNEL, GlissPlan, Rng, RngTrait, fold64, gliss_plan, glissando, mix};
+use midi::smf::{smf_byte_array, smf_bytes};
+use crate::writer::{TrackWriter, TrackWriterTrait, byte as b8};
+use crate::common::{
+    GLISS_CHANNEL, GlissPlan, Rng, RngTrait, fold64, gliss_plan, glissando, mix, u32_of, wmul,
+};
 use crate::editions_data::{
     COLOURS, INTRO_PLAN, SCALES, STYLE_COUNT, SUBS, SUBS_AT, Style, WALKS, style,
 };
@@ -56,38 +58,58 @@ fn f(x: u32) -> felt252 {
 /// d mod 7 (d >= -70).
 #[inline(never)]
 fn m7(d: felt252) -> u32 {
-    let x: u32 = (d + 70).try_into().unwrap();
-    let (_, r) = DivRem::div_rem(x, SEVEN);
+    let (_, r) = DivRem::div_rem(u32_of(d + 70), SEVEN);
     r
 }
 
 /// The scale a chord token plays in: the home scale (colour 0) or the colour it borrows.
 #[inline(never)]
-fn scale_of(home: Span<u8>, tok: u32) -> Span<u8> {
-    let col = (tok / 8) % 16;
+fn scale_of(home: u32, tok: u32) -> u32 {
+    let (q, _) = DivRem::div_rem(tok, 8);
+    let (_, col) = DivRem::div_rem(q, 16);
     if col == 0 {
         home
     } else {
-        (*COLOURS.span().at(col)).span()
+        match COLOURS.span().get(col) {
+            Option::Some(c) => *c.unbox(),
+            Option::None => home,
+        }
     }
 }
 
 /// `pitch(base, scale, d)`: base + 12 floor(d / 7) + scale[d mod 7].
 #[inline(never)]
-fn pitch(base: felt252, scale: Span<u8>, d: felt252) -> felt252 {
-    let x: u32 = (d + 70).try_into().unwrap();
-    let (o, i) = DivRem::div_rem(x, SEVEN);
-    let s: u8 = *scale.at(i);
+fn pitch(base: felt252, scale: u32, d: felt252) -> felt252 {
+    let (o, i) = DivRem::div_rem(u32_of(d + 70), SEVEN);
+    // step i of the scale (4 bits each)
+    let p: NonZero<u32> = if i == 0 {
+        1
+    } else if i == 1 {
+        0x10
+    } else if i == 2 {
+        0x100
+    } else if i == 3 {
+        0x1000
+    } else if i == 4 {
+        0x10000
+    } else if i == 5 {
+        0x100000
+    } else {
+        0x1000000
+    };
+    let (q, _) = DivRem::div_rem(scale, p);
+    let (_, s) = DivRem::div_rem(q, 16);
     base + 12 * o.into() - 120 + s.into()
 }
 
 /// Degree `d` in chord `tok`'s colour (the source's `P` and `PB`).
 #[inline(never)]
-fn pt(base: felt252, home: Span<u8>, d: felt252, tok: u32) -> felt252 {
+fn pt(base: felt252, home: u32, d: felt252, tok: u32) -> felt252 {
     pitch(base, scale_of(home, tok), d)
 }
 
 /// The melody's `snap`: `d` to the nearest tone of the triad on `c`.
+#[inline(never)]
 fn snap(d: i32, c: i32) -> i32 {
     let x: felt252 = d.into() - c.into();
     d + *SNAP.span().at(m7(x))
@@ -126,6 +148,7 @@ fn vel(v: felt252) -> u8 {
 }
 
 /// Math.round(a / b) for a >= 0, b > 0.
+#[inline(never)]
 fn round_div(a: u32, b: u32) -> felt252 {
     ((2 * a + b) / (2 * b)).into()
 }
@@ -162,51 +185,45 @@ fn block(ref tw: TrackWriter, ch: u8, t: u32, d: felt252, ps: Span<felt252>, v: 
 /// `block` of one note.
 #[inline(never)]
 fn one(ref tw: TrackWriter, ch: u8, t: u32, d: felt252, p: felt252, v: felt252) {
-    block(ref tw, ch, t, d, [p].span(), v);
+    // `block` of one pitch, without its loops (no panic path: CASM size)
+    let d: u32 = match d.try_into() {
+        Option::Some(x) => x,
+        Option::None => { return; },
+    };
+    let p: u8 = match p.try_into() {
+        Option::Some(x) => x,
+        Option::None => { return; },
+    };
+    if d == 0 || p >= 128 {
+        return;
+    }
+    tw.message(t, b8(0x90 + ch.into()), p, vel(v));
+    tw.message(u32_of(t.into() + d.into()), b8(0x80 + ch.into()), p, 0);
 }
 
 /// An event to sort: time, off (0) before on (1), then the order it was made in.
 #[inline(never)]
 fn ev_push(ref ev: Array<u64>, t: u32, on: bool, p: u32, v: u8) {
-    let idx: u64 = ev.len().into();
-    let flag: u64 = if on {
+    let idx: felt252 = ev.len().into();
+    let flag: felt252 = if on {
         1
     } else {
         0
     };
-    let t: u64 = t.into();
-    let p: u64 = p.into();
-    let v: u64 = v.into();
-    ev.append(((t * 2 + flag) * 1024 + idx) * 16384 + p * 128 + v);
-}
-
-/// Stable merge sort (the keys are unique).
-fn sort(xs: Span<u64>) -> Span<u64> {
-    let n = xs.len();
-    if n < 2 {
-        return xs;
-    }
-    let h = n / 2;
-    let a = sort(xs.slice(0, h));
-    let b = sort(xs.slice(h, n - h));
-    let mut out: Array<u64> = array![];
-    let (mut x, mut y) = (0, 0);
-    while x < h || y < n - h {
-        if y == n - h || (x < h && *a.at(x) < *b.at(y)) {
-            out.append(*a.at(x));
-            x += 1;
-        } else {
-            out.append(*b.at(y));
-            y += 1;
-        }
-    }
-    out.span()
+    let k: felt252 = ((t.into() * 2 + flag) * 1024 + idx) * 16384 + p.into() * 128 + v.into();
+    ev.append(
+        match k.try_into() {
+            Option::Some(x) => x,
+            Option::None => 0,
+        },
+    );
 }
 
 /// The events sorted, written as note ons and offs on channel `ch`.
 #[inline(never)]
 fn ev_write(ref tw: TrackWriter, ch: u8, ev: Span<u64>) {
-    for x in sort(ev) {
+    // (the keys are distinct: each carries its event's index)
+    for x in crate::rounds::sort_keys(ev) {
         let x = *x;
         let v: u8 = (x % 128).try_into().unwrap();
         let p: u8 = ((x / 128) % 128).try_into().unwrap();
@@ -277,15 +294,15 @@ fn channel_track(ch: u8, program: u32, c: @Ctx) -> TrackWriter {
 
 #[inline(never)]
 fn stream(fold: u32, e: u32, id: u32, a: u32, b: u32) -> Rng {
-    RngTrait::new(fold ^ e.wrapping_mul(a) ^ id.wrapping_mul(b))
+    RngTrait::new(fold ^ wmul(e, a) ^ wmul(id, b))
 }
 
 fn low32(x: felt252) -> u32 {
-    let w: u256 = x.into();
-    (w % 0x100000000).try_into().unwrap()
+    crate::rounds::low32(x)
 }
 
 /// Byte `k` of a packed word (tokens).
+#[inline(never)]
 fn byte(x: u32, k: u32) -> u32 {
     (x / *[1_u32, 0x100, 0x10000, 0x1000000].span().at(k)) % 256
 }
@@ -312,6 +329,7 @@ fn sub(home: u32, tok: u32, ref h: Rng) -> u32 {
     tok
 }
 
+#[inline(never)]
 fn maybe(home: u32, tok: u32, ref h: Rng) -> u32 {
     if h.int(2) == 1 {
         sub(home, tok, ref h)
@@ -366,6 +384,7 @@ struct Mel {
     motif: Span<i32>,
 }
 
+#[inline(never)]
 fn strong(t: u32, bar: u32, strong2: u32) -> bool {
     let pos = t % bar;
     pos == 0 || (strong2 > 0 && pos == strong2)
@@ -687,7 +706,7 @@ struct Ctx {
     /// the style's index (its MIX)
     style: u32,
     base: felt252,
-    home: Span<u8>,
+    home: u32,
     bar: u32,
     rot: u32,
     parts: u32,
@@ -792,6 +811,7 @@ fn voices(
 }
 
 /// An accompaniment or bass figure event: offset, duration, voice (bass: tone), velocity delta.
+#[inline(never)]
 fn fig(x: u32) -> (u32, u32, u32, felt252) {
     (x % 2048, (x / 2048) % 2048, (x / 0x400000) % 16, f(x / 0x4000000) - 32)
 }
@@ -848,7 +868,7 @@ fn call_line(
     neg: bool,
     add: felt252,
     base: felt252,
-    home: Span<u8>,
+    home: u32,
     tok: u32,
     v: felt252,
     cut: u32,
@@ -1374,6 +1394,7 @@ pub fn edition_genome(e: u32) -> (u32, Box<Style>, u32) {
     (st, sb, bpm)
 }
 
+#[inline(never)]
 fn kind_of(form: u32, sec: u32) -> u32 {
     (form / *[1_u32, 4, 16, 64].span().at(sec)) % 4
 }
@@ -2001,7 +2022,7 @@ fn plan(
             } else {
                 48 + m.tonic
             }),
-            home: (*SCALES.span().at(s.mode)).span(),
+            home: *SCALES.span().at(s.mode),
             bar,
             rot: m.rot,
             parts: m.parts,

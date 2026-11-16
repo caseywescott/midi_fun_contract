@@ -24,8 +24,8 @@ Upgradeable provider.
 
 | Class | What | CASM felts (limit 81,920) |
 |---|---|---|
-| `LootPureComposer` | the Loot composer, storage-free: Editions, Rounds, Sound Checks, each with the lab's band (and the Round's +7 lift) written in place, and an Edition's volumes (style MIX; LEAD_SOFT x LEAD_ALL, then LEAD_DROP, on the lead and second lead) | 80,750 |
-| `LootMidiProvider` | every track behind one ABI (`ILootMidiProvider`): Editions/Rounds/Checks library-call `LootPureComposer`; Species/Name Songs build the Loot Beast's `SongInputs` and library-call the pinned v1.1.0 `BeastPureComposer`, then add the band (a Name Song's lead from NAME_LEADS), the Name Song's +12 and the volumes in one pass; TOP_SOFT on every kind; OpenZeppelin Ownable + Upgradeable, `set_classes` | 35,074 |
+| `LootPureComposer` | the Loot composer, storage-free: Editions, Rounds, Sound Checks, each with the lab's band (and the Round's +7 lift) written in place, and an Edition's volumes (style MIX; LEAD_SOFT x LEAD_ALL, then LEAD_DROP, on the lead and second lead) | 72,878 |
+| `LootMidiProvider` | every track behind one ABI (`ILootMidiProvider`): Editions/Rounds/Checks library-call `LootPureComposer`; Species/Name Songs build the Loot Beast's `SongInputs` and library-call the pinned v1.1.0 `BeastPureComposer`, then add the band (a Name Song's lead from NAME_LEADS), the Name Song's +12 and the volumes in one pass; TOP_SOFT on every kind; OpenZeppelin Ownable + Upgradeable, `set_classes` | 34,326 |
 | `BeastPureComposer` | not ours: Beast Sound v1.1.0's class (`0x07eb6480…02eb63`), used as is | 81,920 |
 | `LootFmPack` | the FM sound pack (gzip+base64 script, `pack()` / chunks / sha256) | 5,499 |
 
@@ -58,9 +58,11 @@ Parity with the JS (all identical):
 | Songs through the v1.1 path vs the lab's (species, name, drift) | 7 | `loot_contracts::v11_song_tests` |
 | Mega/echo Songs through the provider vs the pinned class called directly | 2 | `loot_contracts::tests` |
 
-Gas (l2, per call, approximate): Species/Name Song ~180-390M through the provider (the pinned class plus the band pass); Edition ~37-141M (typical
-97M, with its volumes written in place); Round ~180-290M and Sound Check ~45-65M through the provider. Fitting one class cost Rounds ~1% and
-Sound Checks ~4% (packed tables), Editions ~0.1%.
+Gas (l2, per call, approximate): Species/Name Song ~130-355M through the provider (the pinned class plus the band pass); Edition ~36-141M (typical
+85M, with its volumes written in place); Round ~190-370M and Sound Check ~70-95M through the provider (the most with a vibraphone in the
+band: the provider's TOP_SOFT walk). CASM: the hot helpers have no panic paths (wrapping hashes and rng, felt arithmetic, a panic-free
+track writer with the `midi` crate's bytes), so their many call sites carry no error branches, and the small helpers called from many
+places are out of line; packed tables (u32s 7 to a felt, scales as nibbles).
 
 Run Cairo only through `sh scripts/cairo_run.sh <cmd>` (one at a time, memory watchdog). Parity fixtures are
 `#[ignore]`d batches: e.g. `sh scripts/cairo_run.sh scarb test -p loot_contracts -- --include-ignored`. In

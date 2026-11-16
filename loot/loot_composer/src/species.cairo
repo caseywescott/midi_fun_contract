@@ -36,14 +36,20 @@ pub fn loot_species(id: u32) -> LootSpecies {
 fn nib(ref x: u64) -> u8 {
     let (q, r) = DivRem::div_rem(x, 16);
     x = q;
-    r.try_into().unwrap()
+    match r.try_into() {
+        Option::Some(v) => v,
+        Option::None => 0,
+    }
 }
 
 /// A degree (stored + 8).
 #[inline(never)]
 fn deg(ref x: u64) -> i8 {
     let d: felt252 = nib(ref x).into() - 8;
-    d.try_into().unwrap()
+    match d.try_into() {
+        Option::Some(v) => v,
+        Option::None => 0,
+    }
 }
 
 /// Each species: tier, type, tonic, mode, then the six degrees + 8, 4 bits each from the low end.

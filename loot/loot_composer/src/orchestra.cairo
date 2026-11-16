@@ -12,9 +12,8 @@
 //!   and TOP_SOFT on a track's highest voice (loot-lab.mjs `track0()`, `track()`).
 
 use core::dict::Felt252Dict;
-use core::num::traits::{WrappingAdd, WrappingMul};
 use beast_composer::composition::drift::Drift;
-use crate::common::{at32, opaque};
+use crate::common::{at32, opaque, shr, wadd, wmul};
 use super::orchestra_data::{
     BELL_A, BELL_B, FLUTE, GLOCK, HARP, LEAD_DROP, LEAD_K, NAME_POOL, POOL_DATA, POOL_OFFS,
     ROUND_MONTHLY, ROUND_POOL0, SONG_MELODY, SONG_MONTHLY, SONG_POOL0, VOLS,
@@ -23,11 +22,10 @@ use super::orchestra_data::{
 /// The lab's own mix (loot-lab.mjs `mix`, not the editions').
 #[inline(never)]
 pub fn lab_mix(a: u32, b: u32) -> u32 {
-    let x = (a ^ 0x9e3779b9).wrapping_mul(0x85ebca6b)
-        ^ b.wrapping_add(0x7f4a7c15).wrapping_mul(0xc2b2ae35);
-    let x = x ^ (x / 0x8000);
-    let x = x.wrapping_mul(0x2c1b3c6d);
-    x ^ (x / 0x1000)
+    let x = wmul(a ^ 0x9e3779b9, 0x85ebca6b) ^ wmul(wadd(b, 0x7f4a7c15), 0xc2b2ae35);
+    let x = x ^ shr(x, 0x8000);
+    let x = wmul(x, 0x2c1b3c6d);
+    x ^ shr(x, 0x1000)
 }
 
 #[inline(never)]
@@ -57,11 +55,11 @@ fn moved(len: u32, i: u32, h: Option<u32>, salt: u32) -> u32 {
 }
 
 fn low32(x: felt252) -> u32 {
-    let w: u256 = x.into();
-    (w % 0x100000000).try_into().unwrap()
+    crate::rounds::low32(x)
 }
 
 /// `stepOf(drift)`: the month's and the week's drift words, when they drifted.
+#[inline(never)]
 pub fn drift_steps(drift: Option<Drift>) -> (Option<u32>, Option<u32>) {
     match drift {
         Option::Some(d) => (
@@ -489,14 +487,21 @@ fn push_word(ref out: Array<u8>, w: felt252, len: u32) {
 /// the factor in billionths (the generator checks every reachable factor and value against the lab).
 #[inline(never)]
 pub fn scaled(v: u8, k: u64, d: u8) -> u8 {
-    let x = (v.into() * k + 500000000) / 1000000000;
-    let d: u64 = d.into();
-    if x < d {
-        0
-    } else if x - d > 127 {
-        127
-    } else {
-        (x - d).try_into().unwrap()
+    // (no panic path: CASM size)
+    let p: felt252 = v.into() * k.into() + 500000000;
+    let p: u128 = match p.try_into() {
+        Option::Some(x) => x,
+        Option::None => 0,
+    };
+    let (x, _) = DivRem::div_rem(p, 1000000000);
+    let x: felt252 = x.into() - d.into();
+    match x.try_into() {
+        Option::Some(y) => if y > 127_u8 {
+            127
+        } else {
+            y
+        },
+        Option::None => 0,
     }
 }
 

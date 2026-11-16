@@ -51,6 +51,7 @@ struct Band {
 }
 
 /// One step home: toward 0, from 0 up.
+#[inline(never)]
 fn home_step(x: i32) -> i32 {
     if x == 0 {
         1

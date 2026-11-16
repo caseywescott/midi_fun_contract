@@ -23,6 +23,7 @@ pub fn mega_of(sound_effects: u8) -> bool {
 }
 
 /// The lab's drift of Loot Beast `species` on the day of `drift`: none on day 1 (as written).
+#[inline(never)]
 pub fn loot_drift(species: u32, drift: Option<DriftInputs>) -> Option<Drift> {
     match drift {
         Option::Some(d) => if d.day >= 2 {
@@ -51,6 +52,18 @@ fn seed_of(purchase: u64) -> u64 {
     }
 }
 
+/// A Round (with its day of drift) or a Sound Check (none) as the lab plays it: one body for both
+/// (CASM size).
+#[inline(never)]
+fn round_or_check(species: u32, mega: bool, purchase: u64, d: Option<Drift>, round: bool) -> ByteArray {
+    let b = round_band(loot_species(species).beast_type, species, d);
+    if round {
+        round_played_byte_array(species, mega, seed_of(purchase), d, Play { band: b.span(), lift: 7 })
+    } else {
+        sound_check_played_byte_array(species, mega, seed_of(purchase), Play { band: b.span(), lift: 0 })
+    }
+}
+
 /// `compose`, and with a day `compose_drift`: one body for both (CASM size).
 #[inline(never)]
 pub fn compose_with(inputs: LootInputs, sound_effects: u8, drift: Option<DriftInputs>) -> ByteArray {
@@ -65,15 +78,10 @@ pub fn compose_with(inputs: LootInputs, sound_effects: u8, drift: Option<DriftIn
             );
             edition_played_byte_array(x.species, mega, x.edition, purchase_seed(x.purchase), d, b.span())
         },
-        LootInputs::Round(x) => {
-            let d = loot_drift(x.species, drift);
-            let b = round_band(loot_species(x.species).beast_type, x.species, d);
-            round_played_byte_array(x.species, mega, seed_of(x.purchase), d, Play { band: b.span(), lift: 7 })
-        },
-        LootInputs::SoundCheck(x) => {
-            let b = round_band(loot_species(x.species).beast_type, x.species, Option::None);
-            sound_check_played_byte_array(x.species, mega, seed_of(x.take), Play { band: b.span(), lift: 0 })
-        },
+        LootInputs::Round(x) => round_or_check(
+            x.species, mega, x.purchase, loot_drift(x.species, drift), true,
+        ),
+        LootInputs::SoundCheck(x) => round_or_check(x.species, mega, x.take, Option::None, false),
         LootInputs::Song(_) => panic!("songs: BeastPureComposer"),
     }
 }

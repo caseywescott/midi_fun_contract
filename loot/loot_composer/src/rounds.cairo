@@ -7,8 +7,9 @@
 
 use core::num::traits::WrappingMul;
 use beast_composer::composition::drift::Drift;
-use midi::smf::{TrackWriter, TrackWriterTrait, smf_byte_array, smf_bytes};
-use crate::common::{GLISS_CHANNEL, Rng, RngTrait, at32, fold64, gliss_plan, glissando, mix};
+use midi::smf::{smf_byte_array, smf_bytes};
+use crate::writer::{TrackWriter, TrackWriterTrait};
+use crate::common::{GLISS_CHANNEL, Rng, RngTrait, at32, fold64, gliss_plan, glissando, mix, u32_of};
 use crate::rounds_data::{
     ASSIGN3, ASSIGN4, BASS_AT, BASS_NOTES, CELL_AT, CELL_NOTES, CONTOURS, EPISODES, FAMILY, HEADS,
     LOOPS4, LOOPS8, MODE_BAD, MODE_CAD, MODE_DIM, MODE_IDS, MODE_N4, MODE_N8, MODE_SCALE, PERC_AT,
@@ -70,16 +71,21 @@ pub fn mod7(d: i32) -> u32 {
 /// ((d % 7) + 7) % 7 of a small signed value held in a felt.
 #[inline(never)]
 pub fn m7(d: felt252) -> u32 {
-    let x: u32 = (d + 7000).try_into().unwrap();
-    x % 7
+    let (_, r) = DivRem::div_rem(u32_of(d + 7000), 7);
+    r
 }
 
 /// A small signed value held in a felt, as an i32 (the arithmetic before it unchecked: CASM size).
 #[inline(never)]
 pub fn to_i(x: felt252) -> i32 {
-    x.try_into().unwrap()
+    // (no panic path: CASM size; the values here are small degrees, pitches and their sums)
+    match x.try_into() {
+        Option::Some(v) => v,
+        Option::None => 0,
+    }
 }
 
+#[inline(never)]
 pub fn abs(x: i32) -> i32 {
     if x < 0 {
         to_i(-x.into())
@@ -88,6 +94,7 @@ pub fn abs(x: i32) -> i32 {
     }
 }
 
+#[inline(never)]
 pub fn sign(x: i32) -> i32 {
     if x > 0 {
         1
@@ -127,6 +134,7 @@ fn passing(a: i32, b: i32) -> i32 {
     }
 }
 
+#[inline(never)]
 fn skip(a: i32, role: u32, up: bool) -> i32 {
     let fa: felt252 = a.into();
     to_i(
@@ -147,6 +155,7 @@ fn skip(a: i32, role: u32, up: bool) -> i32 {
 }
 
 /// |a - b| <= 1, for small signed values held in felts.
+#[inline(never)]
 fn near1(a: felt252, b: felt252) -> bool {
     let y = a - b + 1;
     y == 0 || y == 1 || y == 2
@@ -155,9 +164,11 @@ fn near1(a: felt252, b: felt252) -> bool {
 /// `base + 12 * floor(d / 7) + scale[mod7(d)]`.
 #[inline(never)]
 pub fn pitch_of(base: i32, scale: Span<u32>, d: felt252) -> i32 {
-    let x: u32 = (d + 7000).try_into().unwrap();
-    let (q, r) = DivRem::div_rem(x, 7);
-    let s: felt252 = (*scale.at(r)).into();
+    let (q, r) = DivRem::div_rem(u32_of(d + 7000), 7);
+    let s: felt252 = match scale.get(r) {
+        Option::Some(x) => (*x.unbox()).into(),
+        Option::None => 0,
+    };
     to_i(base.into() + 12 * q.into() - 12000 + s)
 }
 
@@ -240,13 +251,19 @@ fn pool_loop(eight: bool, bad: u32, idx: u32) -> Span<u32> {
 #[inline(never)]
 pub fn dig(c: u32, j: u32) -> u32 {
     if j == 0 {
-        c % 3
-    } else if j == 1 {
-        (c / 3) % 3
-    } else if j == 2 {
-        (c / 9) % 3
+        let (_, r) = DivRem::div_rem(c, 3);
+        r
+    } else if j == 3 {
+        let (q, _) = DivRem::div_rem(c, 27);
+        q
     } else {
-        c / 27
+        let (q, _) = DivRem::div_rem(c, if j == 1 {
+            3
+        } else {
+            9
+        });
+        let (_, r) = DivRem::div_rem(q, 3);
+        r
     }
 }
 
@@ -281,7 +298,7 @@ fn deal_cost(b: u32, k: u32) -> u32 {
     let has0 = b0 == 0 || b1 == 0 || b2 == 0 || (four && b3 == 0);
     let has2 = b0 == 2 || b1 == 2 || b2 == 2 || (four && b3 == 2);
     let c = one_if(!(ones == 0 || ones == 1)) + one_if(!has0) + one_if(ones == 0) + one_if(!has2);
-    c.try_into().unwrap()
+    u32_of(c)
 }
 
 #[inline(always)]
@@ -344,7 +361,7 @@ fn deal_penalty(a: u32, b: u32, k: u32, changed: bool, swap: u32) -> u32 {
     } else {
         p
     };
-    p.try_into().unwrap()
+    u32_of(p)
 }
 
 /// The deals of K lines (ASSIGN[K]), as codes.
@@ -356,6 +373,7 @@ fn assign(k: u32) -> Span<u32> {
     }
 }
 
+#[inline(never)]
 fn shape_want(shape: u32, s: u32, n: u32) -> i32 {
     if shape == 0 {
         -1
@@ -370,6 +388,7 @@ fn shape_want(shape: u32, s: u32, n: u32) -> i32 {
     }
 }
 
+#[inline(never)]
 fn shape_restart(shape: u32, s: u32, n: u32) -> bool {
     shape < 2 && n == 8 && s == 4
 }
@@ -451,7 +470,7 @@ fn moves(mt: Span<u32>, a: u32, b: u32, k: u32) -> u32 {
     } else {
         p
     };
-    p.try_into().unwrap()
+    u32_of(p)
 }
 
 /// loot_rounds.js `dealRoles`: the deal of each slot, as codes. (The look ahead at the slot before the
@@ -608,6 +627,7 @@ struct Rd {
     lines: Span<Span<Note>>,
 }
 
+#[inline(never)]
 fn note(t: u32, len: u32, d: i32, anchor: bool) -> Note {
     Note { t, len, d, anchor, grace: 0, to: 0 }
 }
@@ -794,6 +814,7 @@ fn line_notes(
     out.span()
 }
 
+#[inline(never)]
 fn pow16(e: u32) -> u32 {
     if e == 0 {
         1
@@ -1205,13 +1226,16 @@ pub fn programs_of(id: u32, typ: u32, mega: bool) -> Span<u8> {
     array![p0, *f.at((lead + 1) % 3), *f.at(4), *f.at(5), *f.at(3), p5].span()
 }
 
+#[inline(never)]
 pub fn is_lead(p: u8) -> bool {
     p < 12 || p == 50 || p == 65
 }
 
+#[inline(never)]
 pub fn low32(x: felt252) -> u32 {
     let w: u256 = x.into();
-    (w.low % 0x100000000).try_into().unwrap()
+    let (_, r) = DivRem::div_rem(w.low, 0x100000000);
+    u32_of(r.into())
 }
 
 /// The Round's tracks: tempo, the canon voices by channel, the bass, the mega double, the harp, the kit.

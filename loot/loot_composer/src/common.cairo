@@ -1,9 +1,53 @@
 //! Helpers shared by the Loot engines (offchain/loot-sound/src/loot_editions.js): mulberry32 `rng`,
 //! the `mix` hash, and the lab's purchase seed.
 
-use core::num::traits::{WrappingAdd, WrappingMul};
+use core::num::traits::{OverflowingAdd, WideMul, WrappingMul};
 
 const TWO32: u64 = 0x100000000;
+const NZ_TWO32: NonZero<u64> = 0x100000000;
+
+// ── panic-free u32 arithmetic (CASM size: no overflow or division-by-zero panic paths at the call
+// sites; the hashes below wrap by definition) ──
+
+/// `a + b` mod 2^32.
+#[inline(never)]
+pub fn wadd(a: u32, b: u32) -> u32 {
+    let (x, _) = OverflowingAdd::overflowing_add(a, b);
+    x
+}
+
+/// `a * b` mod 2^32.
+#[inline(never)]
+pub fn wmul(a: u32, b: u32) -> u32 {
+    lo32(WideMul::wide_mul(a, b))
+}
+
+/// The low 32 bits of `w`.
+#[inline(never)]
+pub fn lo32(w: u64) -> u32 {
+    let (_, r) = DivRem::div_rem(w, NZ_TWO32);
+    match r.try_into() {
+        Option::Some(x) => x,
+        Option::None => 0,
+    }
+}
+
+/// A felt known to be a u32 (a value the engines keep in range), as one, without a panic path (0 if
+/// it were not).
+#[inline(always)]
+pub fn u32_of(x: felt252) -> u32 {
+    match x.try_into() {
+        Option::Some(v) => v,
+        Option::None => 0,
+    }
+}
+
+/// `t >> k` for a power of two `p` = 2^k.
+#[inline(always)]
+pub fn shr(t: u32, p: NonZero<u32>) -> u32 {
+    let (q, _) = DivRem::div_rem(t, p);
+    q
+}
 
 /// Returns `x`, hiding a constant from the compiler (one copy of a loop entered with constant state).
 #[inline(never)]
@@ -26,18 +70,21 @@ pub impl RngImpl of RngTrait {
     /// The next 32-bit output (`f()`).
     #[inline(never)]
     fn next(ref self: Rng) -> u32 {
-        self.a = self.a.wrapping_add(0x6d2b79f5);
+        self.a = wadd(self.a, 0x6d2b79f5);
         let t = self.a;
-        let t = (t ^ (t / 0x8000)).wrapping_mul(t | 1);
-        let t = t ^ t.wrapping_add((t ^ (t / 0x80)).wrapping_mul(t | 61));
-        t ^ (t / 0x4000)
+        let t = wmul(t ^ shr(t, 0x8000), t | 1);
+        let t = t ^ wadd(t, wmul(t ^ shr(t, 0x80), t | 61));
+        t ^ shr(t, 0x4000)
     }
 
     /// `f.int(n)`: floor(f() * n / 2^32), 0..n.
     #[inline(never)]
     fn int(ref self: Rng, n: u32) -> u32 {
-        let x: u64 = self.next().into();
-        ((x * n.into()) / TWO32).try_into().unwrap()
+        let (q, _) = DivRem::div_rem(WideMul::wide_mul(self.next(), n), NZ_TWO32);
+        match q.try_into() {
+            Option::Some(x) => x,
+            Option::None => 0,
+        }
     }
 
     /// `f.pick(xs)`.
@@ -50,36 +97,45 @@ pub impl RngImpl of RngTrait {
 #[inline(never)]
 pub fn at32(data: Span<felt252>, i: u32) -> u32 {
     let (q, r) = DivRem::div_rem(i, 7);
-    let w: u256 = (*data.at(q)).into();
-    let (h, s) = if r < 4 {
-        (w.low, r)
-    } else {
-        (w.high, r - 4)
+    let w: u256 = match data.get(q) {
+        Option::Some(x) => (*x.unbox()).into(),
+        Option::None => 0,
     };
-    let x = if s == 0 {
-        h
+    let (hi, s) = DivRem::div_rem(r, 4);
+    let h = if hi == 0 {
+        w.low
+    } else {
+        w.high
+    };
+    let p: NonZero<u128> = if s == 0 {
+        1
     } else if s == 1 {
-        h / 0x100000000
+        0x100000000
     } else if s == 2 {
-        h / 0x10000000000000000
+        0x10000000000000000
     } else {
-        h / 0x1000000000000000000000000
+        0x1000000000000000000000000
     };
-    (x % 0x100000000).try_into().unwrap()
+    let (x, _) = DivRem::div_rem(h, p);
+    let (_, x) = DivRem::div_rem(x, 0x100000000);
+    match x.try_into() {
+        Option::Some(v) => v,
+        Option::None => 0,
+    }
 }
 
 /// loot_editions.js `mix(h, x)`: imul(h ^ x, 0x9e3779b1), xor its top 17 bits down.
 #[inline(never)]
 pub fn mix(h: u32, x: u32) -> u32 {
-    let m = (h ^ x).wrapping_mul(0x9e3779b1);
-    m ^ (m / 0x8000)
+    let m = wmul(h ^ x, 0x9e3779b1);
+    m ^ shr(m, 0x8000)
 }
 
 /// The low 32 bits of a 64-bit seed xor its high 32 (loot_editions.js `fold`).
+#[inline(never)]
 pub fn fold64(seed: u64) -> u32 {
-    let lo: u32 = (seed % TWO32).try_into().unwrap();
-    let hi: u32 = (seed / TWO32).try_into().unwrap();
-    lo ^ hi
+    let (hi, lo) = DivRem::div_rem(seed, NZ_TWO32);
+    lo32(lo) ^ lo32(hi)
 }
 
 /// The lab's purchase seed for purchase number `n` (loot-lab.mjs `purchaseSeed`, splitmix64).

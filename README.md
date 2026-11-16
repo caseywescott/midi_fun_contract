@@ -24,7 +24,7 @@ Upgradeable provider.
 
 | Class | What | CASM felts (limit 81,920) |
 |---|---|---|
-| `LootPureComposer` | the Loot composer, storage-free: Editions, Rounds, Sound Checks, each with the lab's band (and the Round's +7 lift) written in place, and an Edition's volumes (style MIX; LEAD_SOFT x LEAD_ALL, then EDITION_LEAD_DROP less the style's boost, on the lead and second lead; the accompaniment's drops and its octave-lower tracks; TOP_SOFT on the highest voice, its mean kept as the notes are written) | 79,061 |
+| `LootPureComposer` | the Loot composer, storage-free: Editions, Rounds, Sound Checks, each with the lab's band (and the Round's +7 lift) written in place, and an Edition's volumes (style MIX; LEAD_SOFT x LEAD_ALL, then EDITION_LEAD_DROP less the style's boost, on the lead and second lead; the accompaniment's drops and its octave-lower tracks; TOP_SOFT on the highest voice, its mean kept as the notes are written) | 79,000 |
 | `LootMidiProvider` | every track behind one ABI (`ILootMidiProvider`): Editions/Rounds/Checks library-call `LootPureComposer`; Species/Name Songs build the Loot Beast's `SongInputs` and library-call the pinned v1.1.0 `BeastPureComposer`, then add the band (a Name Song's lead from NAME_LEADS), the Name Song's +12 and the volumes in one pass; a Name Song's kick softer and TOP_SOFT on Songs; OpenZeppelin Ownable + Upgradeable, `set_classes` | 33,424 |
 | `BeastPureComposer` | not ours: Beast Sound v1.1.0's class (`0x07eb6480…02eb63`), used as is | 81,920 |
 | `LootFmPack` | the FM sound pack (gzip+base64 script, `pack()` / chunks / sha256) | 5,499 |

@@ -106,14 +106,20 @@ pub impl TrackWriterImpl of TrackWriterTrait {
             };
         }
         if stats == 1 && (ty == 8 || ty == 9) {
+            // key k's bit, 50 + k, in the low or the high u128 half (cheaper than a u256 division)
             let b = bit(key) * OPEN1;
             let bb: u256 = b.into();
-            let nz: NonZero<u256> = match bb.try_into() {
+            let (half, p) = if bb.high == 0 {
+                (xl.low, bb.low)
+            } else {
+                (xl.high, bb.high)
+            };
+            let nz: NonZero<u128> = match p.try_into() {
                 Option::Some(n) => n,
                 Option::None => { return key; },
             };
-            let (q, _) = DivRem::div_rem(xl, nz);
-            let (_, odd) = DivRem::div_rem(q.low, 2);
+            let (q, _) = DivRem::div_rem(half, nz);
+            let (_, odd) = DivRem::div_rem(q, 2);
             if ty == 9 && velocity != 0 {
                 if odd == 0 {
                     self.x += b;

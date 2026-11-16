@@ -177,7 +177,7 @@ export function soundCheckScore(sp, mega, take = 0n) {
   // harp glissandi: over the first two beats, into the first drill, into the close or into the last chord
   const glAt = [[960, 'at the start'], [SEG, 'into the first drill'], [4 * SEG, 'into the close'], [4 * SEG + BAR, 'into the last chord']];
   const glPlan = glissPlan(glDraw, glSeed, [0, 2, 3, 3, 1]);
-  for (const x of glPlan) parts[6].push(...glissando(x, glAt[x.spot][0], 960, glSeed));
+  for (const x of glPlan) parts[6].push(...glissando(x, glAt[x.spot][0], 960, glSeed, undefined, bpm));
   if (mega) for (const n of parts[0]) parts[5].push({ ...n, v: Math.max(40, n.v - 14) });
   for (const p of parts) p.sort((a, b) => a.t - b.t);
   perc.sort((a, b) => a.t - b.t);

@@ -10,6 +10,23 @@ const pools = [...STYLES.flatMap((S) => ORCH.pools[S.key]), ...ORCH.songPools.fl
 const data = pools.flat(), offs = [0]; for (const p of pools) offs.push(offs.at(-1) + p.length);
 // u32s 7 to a felt252, item i at bit 32 * (i % 7) of felt i / 7 (read with common::at32)
 const packed = (xs) => { const fs = []; for (let i = 0; i < xs.length; i += 7) fs.push('0x' + xs.slice(i, i + 7).reduce((v, w, j) => v + (BigInt(w) << BigInt(32 * j)), 0n).toString(16)); return fs; };
+// a volume factor in ten-thousandths: CC 7 v becomes min(127, (v * k + 5000) / 10000), checked against the
+// lab's Math.round(v * f) (clamped 0..127) for every v
+const tenK = (f) => {
+  const k = Math.round(f * 10000);
+  if (k >= 1 << 14) throw new Error('volume factor ' + f + ' too large');
+  for (let v = 0; v < 128; v++) if (Math.min(127, Math.floor((v * k + 5000) / 10000)) !== Math.max(0, Math.min(127, Math.round(v * f)))) throw new Error('volume factor ' + f + ' is not exact in ten-thousandths at ' + v);
+  return k;
+};
+// an edition's volumes (track0's vol): style s, a lead channel (LEAD_CH) or not, the band instrument p:
+// MIX times LEAD_SOFT, as the lab multiplies them before its one Math.round
+const leadSoft = ORCH.leadSoft;
+const vols = STYLES.flatMap((S, s) => { const mixOf = ORCH.mix[S.key];
+  const progs = [...new Set([...Object.keys(mixOf ?? {}), ...Object.keys(leadSoft)])].map(Number).sort((a, b) => a - b);
+  return progs.flatMap((p) => [0, 1].map((lead) => [p, lead, ((mixOf && mixOf[p]) || 1) * ((lead && leadSoft[p]) || 1)]).filter(([, , f]) => f !== 1).map(([p, lead, f]) => s * 4194304 + lead * 2097152 + p * 16384 + tenK(f)));
+});
+const softs = Object.entries(ORCH.topSoft).map(([p, f]) => +p * 16384 + tenK(f));
+const leads = Object.entries(leadSoft).map(([p, f]) => +p * 16384 + tenK(f));
 const monthly = (kinds) => kinds.reduce((m, k, c) => m | ((k === 'melody' || k === 'bass') ? 1 << c : 0), 0);
 if (ORCH.songKinds.length !== 8 || ORCH.roundKinds.length !== 7) throw new Error('channel counts changed');
 const out = `//! The Loot lab's orchestration tables (onchain/loot-lab.mjs POOLS, SONG, ROUND, ALIKE), as bank programs.
@@ -26,6 +43,15 @@ pub const BELL_B: u8 = ${ORCH.bells[1]};
 pub const GLOCK: u8 = ${ORCH.glock};
 pub const FLUTE: u8 = ${ORCH.flute};
 pub const HARP: u8 = ${ORCH.harp};
+/// An accompaniment the composer wrote an octave lower plays this (band(..., low)).
+pub const LOW: u8 = ${ORCH.low};
+/// An edition's volumes (sample banks: MIX times LEAD_SOFT on the lead channels 0, 1, 7): style * 2^22 +
+/// lead channel * 2^21 + program * 2^14 + the factor on CC 7 in ten-thousandths.
+pub const VOLS: [u32; ${vols.length}] = [${vols.join(', ')}];
+/// A song's LEAD_SOFT on channel 0: program * 2^14 + ten-thousandths.
+pub const LEAD_SOFT: [u32; ${leads.length}] = [${leads.join(', ')}];
+/// TOP_SOFT (sample banks): program * 2^14 + ten-thousandths on the CC 7 of a track's highest voice.
+pub const TOP_SOFT: [u32; ${softs.length}] = [${softs.join(', ')}];
 
 /// Where pool i starts in POOL_DATA (and ends: the next), u32s 7 to a felt (common::at32).
 pub const POOL_OFFS: [felt252; ${packed(offs).length}] = [${packed(offs).join(', ')}];

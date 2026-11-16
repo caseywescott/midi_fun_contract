@@ -2,11 +2,16 @@
 //! pattern of Beast Sound v1.1.0: a storage-free composer class does the composing, this contract
 //! knows where the classes live.
 //!
-//! - Editions, Rounds and Sound Checks: library calls into `LootPureComposer`.
+//! - Editions, Rounds and Sound Checks: library calls into `LootPureComposer` (band, lift and an
+//!   edition style's MIX written in place).
 //! - Species and Name Songs: the Loot Beast's song inputs (`genesis::genesis_song_inputs`, level 1,
 //!   health 100, as the Loot lab calls the Beasts composer) played by the pinned v1.1.0
 //!   `BeastPureComposer` (a library call: the same class every Beast plays), then given the lab's band
 //!   (a Species Song's drifts with the day, a Name Song's does not) and a Name Song lifted an octave.
+//! - Songs: LEAD_SOFT on channel 0 when the theme's instrument is in it (loot-lab.mjs `track0()`).
+//! - Every kind: the lab's TOP_SOFT (loot-lab.mjs `track()`, a sample bank such as the FM bank): the
+//!   highest voice's volume turned down when its instrument is one of TOP_SOFT. Done here, on the
+//!   finished file, when the band has such an instrument (the composer class has no room for it).
 //!
 //! Upgrades (OpenZeppelin Ownable and Upgradeable, as v1.1's `BeastMidiProvider`): the owner (set at
 //! deploy) can `upgrade` the class or `set_classes`; `renounce_ownership` ends both for good.
@@ -34,7 +39,11 @@ pub mod LootMidiProvider {
     use beast_composer::composition::genesis::genesis_song_inputs;
     use beast_composer::inputs::ComposerInputs;
     use beast_composer::inputs::drift::DriftInputs;
-    use loot_composer::orchestra::{byte_array_bytes, orchestrate_byte_array, song_band};
+    use loot_composer::orchestra::{
+        band, byte_array_bytes, has_soft, lead_soft, orchestrate, orchestrate_byte_array, round_band,
+        song_band, top_soft_byte_array, top_soft_smf,
+    };
+    use loot_composer::orchestra_data::STYLE_COUNT;
     use loot_composer::songs::name_from_variant;
     use loot_composer::species::loot_species;
     use openzeppelin_access::ownable::OwnableComponent;
@@ -137,7 +146,15 @@ pub mod LootMidiProvider {
         } else {
             12
         };
-        orchestrate_byte_array(byte_array_bytes(@sound.midi).span(), band.span(), lift)
+        // LEAD_SOFT on channel 0 (the theme) and TOP_SOFT on the highest voice, when the band has such
+        // instruments (the lab's track0() and track())
+        let lead = lead_soft(*band.at(0));
+        if lead != 0 || has_soft(band.span()) {
+            let smf = orchestrate(byte_array_bytes(@sound.midi).span(), band.span(), lift);
+            top_soft_byte_array(smf.span(), band.span(), lead)
+        } else {
+            orchestrate_byte_array(byte_array_bytes(@sound.midi).span(), band.span(), lift)
+        }
     }
 
     fn route(
@@ -147,9 +164,35 @@ pub mod LootMidiProvider {
             LootInputs::Song(x) => song(self, x, sound_effects, drift),
             _ => {
                 let c = ILootPureComposerLibraryDispatcher { class_hash: self.composer_class.read() };
-                match drift {
+                let out = match drift {
                     Option::Some(d) => c.compose_drift(inputs, sound_effects, d),
                     Option::None => c.compose(inputs, sound_effects),
+                };
+                // TOP_SOFT (the lab's track(), sample banks): only a band with such an instrument
+                // can need it; the instrument is then read from the file (the band, written in
+                // place: an edition's accompaniment may have been changed to the low instrument)
+                let band = match inputs {
+                    LootInputs::Edition(x) => band(
+                        (x.edition - 1) % STYLE_COUNT,
+                        x.species,
+                        x.edition,
+                        x.purchase.try_into().unwrap(),
+                        loot_drift(x.species, drift),
+                    ),
+                    LootInputs::Round(x) => round_band(
+                        loot_species(x.species).beast_type, x.species, loot_drift(x.species, drift),
+                    ),
+                    LootInputs::SoundCheck(x) => round_band(
+                        loot_species(x.species).beast_type, x.species, Option::None,
+                    ),
+                    LootInputs::Song(_) => array![],
+                };
+                if !has_soft(band.span()) {
+                    return out;
+                }
+                match top_soft_smf(byte_array_bytes(@out).span(), array![].span(), 0) {
+                    Option::Some(x) => midi::pack::bytes_to_byte_array(x.span()),
+                    Option::None => out,
                 }
             },
         }

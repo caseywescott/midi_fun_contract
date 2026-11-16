@@ -11,7 +11,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, dirname } from 'node:path';
 import { build } from 'esbuild';
 import { loadReference } from './ref.mjs';
-import { GEN, stringZone } from './gen.js';
+import { GEN } from './gen.js';
 
 const here = dirname(fileURLToPath(import.meta.url)), root = resolve(here, '..'), dist = resolve(root, 'dist');
 const ref = loadReference(resolve(root, process.argv[2] ?? 'kankyo.min.js'));
@@ -34,10 +34,6 @@ function compact(d, lo, hi) {
     const roots = e.zones.map((_, k) => lo + 4 * k);
     const gen = Object.keys(GEN).find((g) => e.zones.every((z, k) => J(GEN[g](roots[k])) === J(z)));
     if (gen) { e.Z = gen; delete e.zones; }
-    else {
-      const T = (v) => Math.round(v * 1000), S = e.zones.map((z) => { const o = z.ops, h = o.length / 2, a = [T(o[1]?.[7] ?? 0), T(o[0][5])]; for (let j = 1; j < h; j++) { const op = o[j]; if (+(0.28 * op[3]).toFixed(3) === op[2]) a.push(op[0], T(op[5]), T(op[3])); else a.push(-op[0], T(op[5]), T(op[3]), T(op[2])); } return J(stringZone(a)) === J(z) ? a : null; });
-      if (S.every(Boolean)) { e.S = S; delete e.zones; }
-    }
   }
   return e;
 }
@@ -71,4 +67,4 @@ writeFileSync(resolve(dist, 'loot-fm-pack.min.js.gz.b64'), gz.toString('base64')
 writeFileSync(resolve(dist, 'demo.html'), readFileSync(resolve(here, 'demo.src.html'), 'utf8').replace('/*__PACK_B64__*/', () => gz.toString('base64')));
 const dataText = (await build({ stdin: { contents: readFileSync(resolve(here, 'kankyo-data.js'), 'utf8'), loader: 'js' }, minify: true, write: false })).outputFiles[0].text;
 const refGz = gzipSync(Buffer.from(ref.text), { level: 9 }).length;
-console.log(JSON.stringify({ pack: { raw: text.length, gzip: gz.length, gzipBase64: Math.ceil(gz.length / 3) * 4, data: dataText.length }, reference: { raw: Buffer.byteLength(ref.text.replace('jobs:f0,', '')), gzip: refGz }, instruments: rows.length, drums: drums.length, zones: ref.jobs.length }, null, 1));
+console.log(JSON.stringify({ pack: { raw: text.length, gzip: gz.length, gzipBase64: Math.ceil(gz.length / 3) * 4, data: dataText.length }, reference: { raw: Buffer.byteLength(ref.text), gzip: refGz }, instruments: rows.length, drums: drums.length, zones: ref.jobs.length }, null, 1));

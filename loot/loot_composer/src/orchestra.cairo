@@ -7,13 +7,17 @@
 //!   kind's pool by species.
 //! - `orchestrate`: every program change on a pitched channel set to its band instrument, and every
 //!   pitched note lifted by `lift` semitones (the lab plays Name Songs +12, Rounds +7).
+//! - `vol_factor`, `lead_soft`, `top_soft_smf`: the lab's volume changes on a sample bank (the FM bank is
+//!   one): an edition style's MIX times LEAD_SOFT on its lead channels, LEAD_SOFT on a song's channel 0,
+//!   and TOP_SOFT on a track's highest voice (loot-lab.mjs `track0()`, `track()`).
 
+use core::dict::Felt252Dict;
 use core::num::traits::{WrappingAdd, WrappingMul};
 use beast_composer::composition::drift::Drift;
 use crate::common::{at32, opaque};
 use super::orchestra_data::{
-    BELL_A, BELL_B, FLUTE, GLOCK, HARP, POOL_DATA, POOL_OFFS, ROUND_MONTHLY, ROUND_POOL0,
-    SONG_MONTHLY, SONG_POOL0,
+    BELL_A, BELL_B, FLUTE, GLOCK, HARP, LEAD_SOFT, POOL_DATA, POOL_OFFS, ROUND_MONTHLY, ROUND_POOL0,
+    SONG_MONTHLY, SONG_POOL0, TOP_SOFT, VOLS,
 };
 
 /// The lab's own mix (loot-lab.mjs `mix`, not the editions').
@@ -261,7 +265,7 @@ pub fn orchestrate(smf: Span<u8>, band: Span<u8>, lift: u8) -> Array<u8> {
 /// A VLQ's value, moving `i` past it (no copy).
 #[inline(never)]
 fn skip_vlq(smf: Span<u8>, ref i: u32) -> u32 {
-    let mut l: u32 = 0;
+    let mut l: u32 = opaque(0);
     loop {
         let b = *smf.at(i);
         i += 1;
@@ -341,14 +345,276 @@ pub fn orchestrate_byte_array(smf: Span<u8>, band: Span<u8>, lift: u8) -> ByteAr
     midi::pack::chunks_to_byte_array(chunks.span())
 }
 
-/// A `ByteArray`'s bytes (a file a class returned, to orchestrate).
+/// A `ByteArray`'s bytes (a file a class returned, to orchestrate): read a word (31 bytes) at a time
+/// from its serialized form, far cheaper than `at` byte by byte.
 pub fn byte_array_bytes(x: @ByteArray) -> Array<u8> {
-    let mut out = array![];
-    let n = x.len();
-    let mut i = 0;
+    let mut f: Array<felt252> = array![];
+    x.serialize(ref f);
+    let f = f.span();
+    let n: u32 = (*f.at(0)).try_into().unwrap();
+    let mut out: Array<u8> = array![];
+    let mut i: u32 = 0;
     while i != n {
-        out.append(x.at(i).unwrap());
+        push_word(ref out, *f.at(1 + i), 31);
         i += 1;
     }
+    push_word(ref out, *f.at(n + 1), (*f.at(n + 2)).try_into().unwrap());
     out
+}
+
+/// The `len` low bytes of `w`, most significant first.
+#[inline(never)]
+fn push_word(ref out: Array<u8>, w: felt252, len: u32) {
+    let v: u256 = w.into();
+    let mut le: Array<u8> = array![];
+    let (mut lo, mut hi) = (v.low, v.high);
+    let mut k: u32 = 0;
+    while k != len {
+        let b = if k < 16 {
+            let (q, r) = DivRem::div_rem(lo, 256);
+            lo = q;
+            r
+        } else {
+            let (q, r) = DivRem::div_rem(hi, 256);
+            hi = q;
+            r
+        };
+        le.append(b.try_into().unwrap());
+        k += 1;
+    }
+    let le = le.span();
+    let mut k = len;
+    while k != 0 {
+        k -= 1;
+        out.append(*le.at(k));
+    }
+}
+
+// ── the lab's volume changes (sample banks) ──
+
+/// A CC 7 value scaled by a factor in ten-thousandths: the lab's `Math.round(v * f)` held to 0..127
+/// (the generator checks every factor is exact this way for every value).
+#[inline(never)]
+pub fn scaled(v: u8, k: u32) -> u8 {
+    let x = (v.into() * k + 5000) / 10000;
+    if x > 127 {
+        127
+    } else {
+        x.try_into().unwrap()
+    }
+}
+
+/// The factor (ten-thousandths) of a program in a table of program * 2^14 + factor entries whose
+/// keys (entry / 2^14) are `key`; `none` when there is no entry.
+#[inline(never)]
+fn factor(table: Span<u32>, key: u32, none: u32) -> u32 {
+    for x in table {
+        if *x / 16384 == key {
+            return *x % 16384;
+        }
+    }
+    none
+}
+
+/// An edition's volume on band instrument `program` (ten-thousandths, 10000: none): style `style`'s
+/// MIX times LEAD_SOFT when the channel is a lead (0, 1, 7).
+pub fn vol_factor(style: u32, program: u8, lead: bool) -> u32 {
+    let l: u32 = if lead {
+        128
+    } else {
+        0
+    };
+    factor(VOLS.span(), style * 256 + l + program.into(), 10000)
+}
+
+/// LEAD_SOFT on a song's channel 0 playing `program` (ten-thousandths, 0: none).
+pub fn lead_soft(program: u8) -> u32 {
+    factor(LEAD_SOFT.span(), program.into(), 0)
+}
+
+/// TOP_SOFT on band instrument `program` (ten-thousandths, 0: none).
+fn soft_pct(program: u8) -> u32 {
+    factor(TOP_SOFT.span(), program.into(), 0)
+}
+
+/// Walks a track body (running status; meta and sysex events skipped). With `ch` 16: adds each note
+/// the lab's `notesOf` finds (a note on, velocity > 0, closed by the next note off or zero-velocity
+/// note on of its channel and key in this track) to `sums` and `counts` by channel, notes each
+/// channel's program (+ 1) in `counts` at 32 + channel, and returns nothing. Otherwise returns where
+/// channel `ch`'s CC 7 values are.
+#[inline(never)]
+fn walk(
+    tr: Span<u8>, ch: u32, ref sums: Felt252Dict<u64>, ref counts: Felt252Dict<u64>,
+) -> Array<u32> {
+    let mut marks: Array<u32> = opaque(array![]);
+    let mut on: Felt252Dict<u8> = Default::default();
+    let n = tr.len();
+    let mut i: u32 = opaque(0);
+    let mut run: u8 = opaque(0);
+    while i < n {
+        skip_vlq(tr, ref i);
+        let mut s = *tr.at(i);
+        if s >= 128 {
+            i += 1;
+        } else {
+            s = run;
+        }
+        if s == 0xff {
+            i += 1;
+            let l = skip_vlq(tr, ref i);
+            i += l;
+            continue;
+        }
+        if s == 0xf0 || s == 0xf7 {
+            let l = skip_vlq(tr, ref i);
+            i += l;
+            continue;
+        }
+        run = s;
+        let ty = s & 0xf0;
+        let c: u32 = (s & 15).into();
+        if ty == 0xc0 || ty == 0xd0 {
+            if ty == 0xc0 && ch == 16 {
+                // the channel's program (+ 1), at 32 + channel
+                let p: u64 = (*tr.at(i)).into();
+                counts.insert((32 + c).into(), p + 1);
+            }
+            i += 1;
+            continue;
+        }
+        let a = *tr.at(i);
+        if ch == 16 {
+            let k: felt252 = (c * 128 + a.into()).into();
+            if ty == 0x90 && *tr.at(i + 1) != 0 {
+                on.insert(k, 1);
+            } else if (ty == 0x80 || ty == 0x90) && on.get(k) == 1 {
+                on.insert(k, 0);
+                let kc: felt252 = c.into();
+                sums.insert(kc, sums.get(kc) + a.into());
+                counts.insert(kc, counts.get(kc) + 1);
+            }
+        } else if ty == 0xb0 && a == 7 && c == ch {
+            marks.append(i + 1);
+        }
+        i += 2;
+    }
+    marks
+}
+
+/// loot-lab.mjs `track()`: of the channels other than 9 and 6, the one whose notes are highest on
+/// average (ties: the lowest channel) over the track bodies; with its instrument in TOP_SOFT, that
+/// channel and the percentage. The instrument is `band[ch % band.len()]`, or with `band` empty the
+/// channel's program in the file (a played file: the band's, written in place).
+fn soft_top(tracks: Span<Span<u8>>, band: Span<u8>) -> Option<(u32, u32)> {
+    let mut sums: Felt252Dict<u64> = Default::default();
+    let mut counts: Felt252Dict<u64> = Default::default();
+    for t in tracks {
+        walk(*t, 16, ref sums, ref counts);
+    }
+    let (mut top, mut bs, mut bc): (u32, u64, u64) = opaque((16, 0, 1));
+    let mut c: u32 = opaque(0);
+    while c != 16 {
+        let k: felt252 = c.into();
+        let n = counts.get(k);
+        if c != 6 && c != 9 && n != 0 {
+            let s = sums.get(k);
+            if top == 16 || s * bc > bs * n {
+                top = c;
+                bs = s;
+                bc = n;
+            }
+        }
+        c += 1;
+    }
+    if top == 16 {
+        return Option::None;
+    }
+    let program: u64 = if band.len() != 0 {
+        (*band.at(top % band.len())).into() + 1
+    } else {
+        counts.get((32 + top).into())
+    };
+    let p = if program == 0 {
+        0
+    } else {
+        soft_pct((program - 1).try_into().unwrap())
+    };
+    if p == 0 {
+        Option::None
+    } else {
+        Option::Some((top, p))
+    }
+}
+
+/// A track body with channel `ch`'s CC 7 values scaled by `pct`.
+#[inline(never)]
+fn soften(tr: Span<u8>, ch: u32, pct: u32) -> Array<u8> {
+    let mut sums: Felt252Dict<u64> = Default::default();
+    let mut counts: Felt252Dict<u64> = Default::default();
+    let mut out: Array<u8> = opaque(array![]);
+    let mut from: u32 = opaque(0);
+    for m in walk(tr, ch, ref sums, ref counts) {
+        out.append_span(tr.slice(from, m - from));
+        out.append(scaled(*tr.at(m), pct));
+        from = m + 1;
+    }
+    out.append_span(tr.slice(from, tr.len() - from));
+    out
+}
+
+/// Whether any instrument of the band is in TOP_SOFT (else `top_soft_smf` changes nothing).
+#[inline(never)]
+pub fn has_soft(band: Span<u8>) -> bool {
+    for p in band {
+        if soft_pct(*p) != 0 {
+            return true;
+        }
+    }
+    false
+}
+
+/// TOP_SOFT (see `soft_top`) on a whole file (a Song's: the Beast composer's, orchestrated; or a played
+/// file from the composer class, with `band` empty), after `lead` (ten-thousandths, 0: none) on channel
+/// 0's CC 7 (a song's LEAD_SOFT): the new file, or none when nothing changes.
+pub fn top_soft_smf(smf: Span<u8>, band: Span<u8>, lead: u32) -> Option<Array<u8>> {
+    let ntr: u32 = (*smf.at(10)).into() * 256 + (*smf.at(11)).into();
+    let mut spans: Array<Span<u8>> = array![];
+    let mut i: u32 = 14;
+    let mut tr = 0;
+    while tr != ntr {
+        let len: u32 = (*smf.at(i + 4)).into() * 0x1000000
+            + (*smf.at(i + 5)).into() * 0x10000
+            + (*smf.at(i + 6)).into() * 0x100
+            + (*smf.at(i + 7)).into();
+        spans.append(smf.slice(i + 8, len));
+        i += 8 + len;
+        tr += 1;
+    }
+    let top = soft_top(spans.span(), band);
+    if top.is_none() && lead == 0 {
+        return Option::None;
+    }
+    let mut out: Array<u8> = array![];
+    out.append_span(smf.slice(0, 14));
+    for t in spans {
+        let t = if lead != 0 {
+            soften(t, 0, lead).span()
+        } else {
+            t
+        };
+        let t = match top {
+            Option::Some((ch, k)) => soften(t, ch, k).span(),
+            Option::None => t,
+        };
+        midi::smf::push_chunk(ref out, 0x4d54726b, t);
+    }
+    Option::Some(out)
+}
+
+/// `top_soft_smf`, packed.
+pub fn top_soft_byte_array(smf: Span<u8>, band: Span<u8>, lead: u32) -> ByteArray {
+    match top_soft_smf(smf, band, lead) {
+        Option::Some(x) => midi::pack::bytes_to_byte_array(x.span()),
+        Option::None => midi::pack::bytes_to_byte_array(smf),
+    }
 }

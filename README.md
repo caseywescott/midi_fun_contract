@@ -24,10 +24,10 @@ Upgradeable provider.
 
 | Class | What | CASM felts (limit 81,920) |
 |---|---|---|
-| `LootPureComposer` | the Loot composer, storage-free: Editions, Rounds, Sound Checks, each with the lab's band (and the Round's +7 lift) written in place | 79,517 |
-| `LootMidiProvider` | every track behind one ABI (`ILootMidiProvider`): Editions/Rounds/Checks library-call `LootPureComposer`; Species/Name Songs build the Loot Beast's `SongInputs` and library-call the pinned v1.1.0 `BeastPureComposer`, then add the band (and the Name Song's +12); OpenZeppelin Ownable + Upgradeable, `set_classes` | 26,628 |
+| `LootPureComposer` | the Loot composer, storage-free: Editions, Rounds, Sound Checks, each with the lab's band (and the Round's +7 lift) written in place | 80,259 |
+| `LootMidiProvider` | every track behind one ABI (`ILootMidiProvider`): Editions/Rounds/Checks library-call `LootPureComposer`; Species/Name Songs build the Loot Beast's `SongInputs` and library-call the pinned v1.1.0 `BeastPureComposer`, then add the band (and the Name Song's +12); OpenZeppelin Ownable + Upgradeable, `set_classes` | 32,661 |
 | `BeastPureComposer` | not ours: Beast Sound v1.1.0's class (`0x07eb6480…02eb63`), used as is | 81,920 |
-| `LootFmPack` | the FM sound pack (gzip+base64 script, `pack()` / chunks / sha256) | 5,361 |
+| `LootFmPack` | the FM sound pack (gzip+base64 script, `pack()` / chunks / sha256) | 5,499 |
 
 ABI (`loot/loot_contracts/src/interfaces.cairo`): `LootInputs` is `Song { species, name }`,
 `Edition { species, edition, purchase }`, `Round { species, purchase }` or `SoundCheck { species, take }`.
@@ -65,8 +65,11 @@ Run Cairo only through `sh scripts/cairo_run.sh <cmd>` (one at a time, memory wa
 `#[ignore]`d batches: e.g. `sh scripts/cairo_run.sh scarb test -p loot_contracts -- --include-ignored`.
 
 The FM pack (`offchain/fm/`, see its README): the Kankyo FM bank as one 28 KB script (12.7 KB gzip; was 59 KB),
-bit-identical renders, faster startup; `offchain/fm/dist/demo.html` plays any .mid through it. The JS sources the
-port was made from are snapshotted at commit 33c18b1 (2026-11-16 00:48); later lab changes must be re-ported.
+bit-identical renders, faster startup; `offchain/fm/dist/demo.html` plays any .mid through it. The port matches the
+Loot lab at loot_dungeon_sound 5278b88 (engines, band pools, the lab's playback volumes: style MIX, LEAD_SOFT, TOP_SOFT)
+and the FM pack the Kankyo bank at midi_fun_contract-v101 7d64b83; later lab or bank changes must be re-ported.
+TOP_SOFT (the vibraphone turned down when it is the top voice) is applied in the provider, which walks the file:
++35-68% gas on tracks with a vibraphone in the band.
 
 ## Editions
 

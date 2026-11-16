@@ -51,6 +51,7 @@ fn nib(ref x: u64) -> u8 {
 }
 
 /// A degree (stored + 8).
+#[inline(never)]
 fn deg(ref x: u64) -> i8 {
     let d: felt252 = nib(ref x).into() - 8;
     d.try_into().unwrap()

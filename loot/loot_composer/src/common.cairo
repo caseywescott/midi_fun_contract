@@ -132,9 +132,26 @@ pub struct GlissNote {
     pub v: u8,
 }
 
-/// `glissando(plan, end, span, seed, last)`: floor(span / 60) steps ending at `end`; pass
-/// `last = end + 480` for the source's default.
-pub fn glissando(plan: GlissPlan, end: u32, span: u32, seed: u32, last: u32) -> Array<GlissNote> {
+/// `glissando(plan, end, span, seed, last, bpm)`: floor(glissSpan(span, bpm) / 60) steps ending at
+/// `end`; pass `last = end + 480` for the source's default.
+pub fn glissando(
+    plan: GlissPlan, end: u32, span: u32, seed: u32, last: u32, bpm: u32,
+) -> Array<GlissNote> {
+    // glissSpan: shorter at speed (from 120 BPM half the span, from 160 three eighths), each note
+    // ringing half the span at most then
+    let (eighths, ring) = if bpm >= 160 {
+        (3, 0)
+    } else if bpm >= 120 {
+        (4, 0)
+    } else {
+        (8, 360)
+    };
+    let span = span * eighths / 8;
+    let ring = if ring == 0 && span / 2 < 360 {
+        span / 2
+    } else {
+        360
+    };
     let n = span / GLISS_STEP;
     let n_i: i32 = n.try_into().unwrap();
     let low: i32 = 1 - n_i / 2 + if plan.high {
@@ -146,10 +163,10 @@ pub fn glissando(plan: GlissPlan, end: u32, span: u32, seed: u32, last: u32) -> 
     let mut k: u32 = opaque(0);
     while k != n {
         let t = end - (n - k) * GLISS_STEP;
-        let len = if last - t < 360 {
+        let len = if last - t < ring {
             last - t
         } else {
-            360
+            ring
         };
         let k_i: i32 = k.try_into().unwrap();
         let d = if plan.up {

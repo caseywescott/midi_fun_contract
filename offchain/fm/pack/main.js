@@ -21,7 +21,7 @@ if (worker) {
   const bank = { format: 'BSBRR1', name: 'kankyo', samples: [], instruments: [] }, jobs = [];
   // roughly how long a zone takes to render (samples x operators and filters), so that among zones of the same
   // priority the longest start first and the workers finish together
-  const cost = (d, m) => { const z = d.zones ? d.zones[0] : d; return (d.sus ? d.pre + 65536 : (d.len ?? 2.5) * RATE * (m < 60 ? 1 : 0.8)) * (2 + (z.ops?.length ?? 2) + ((z.eq ?? d.eq)?.length ?? 0) / 2 + (d.air ? 4 : 0)); };
+  const cost = (d, m) => { const z = d.zones ? d.zones[0] : d; return (d.sus ? d.pre + 65536 : (d.len ?? 2.5) * RATE * (m < 60 ? 1 : 0.8)) * (2 + (d.fmv ? 3 : z.ops?.length ?? 2) * ((d.section ?? d.choir?.singers)?.length ?? 1) + ((z.eq ?? d.eq)?.length ?? 0) / 2 + (d.air ? 4 : 0)); };
   const finish = (j, y) => { if (j.state === 2) return; j.state = 2; if (y) j.s.pcm = y; j.s.ready = true; j.wait.splice(0).forEach((f) => f()); };
   // a sample: rendered by a worker ahead of time, or here the moment it is played before that; playing a zone's
   // first take queues its other takes

@@ -567,7 +567,7 @@ export function roundScore(sp, mega, seedKey, drift = null) {
   const glSeed = drift && drift.rotate !== null ? mix(glSeed0, low32(drift.rotate)) : glSeed0;
   const glAt = [[epStart, 'the episode'], [bStart, 'the return'], [cadStart, 'the cadence'], [cadStart + CADL, 'the last chord']];
   const glPlan = glissPlan(glDraw, glSeed, [0, 1, 3, 3, 2]);
-  const gliss = glPlan.flatMap((x) => glissando(x, glAt[x.spot][0], SL === 1440 ? 960 : SL, glSeed));
+  const gliss = glPlan.flatMap((x) => glissando(x, glAt[x.spot][0], SL === 1440 ? 960 : SL, glSeed, undefined, bpm0));
   const bpm = bpm0, base = tonic < 6 ? 60 + tonic : 48 + tonic;
   let us = Math.round(60e6 / bpm);
   if (bpmDelta) { const D = 60000000 + bpmDelta * us; us = Math.min(1048575, Math.floor((2 * 60000000 * us + D) / (2 * D))); }
@@ -589,7 +589,7 @@ export function roundScore(sp, mega, seedKey, drift = null) {
     entries: voices.map((v) => 'ch' + (v.ch + 1)).join(' → '), drift: changes.length ? changes.join(' · ') : 'as written',
     seconds: Math.round((end / TPQ) * (us / 1e6)),
   };
-  return { gliss, glPlan, glAt: glAt.map((x) => x[0]), K, S, cyc, slot: SL, bar: BR, late, cadLen: CADL, meter: mi, sig: meter.sig, CA, CB, epStart, bStart, cadStart, end, slots, voices, bass, perc, scale, base, tonic, mode, us, art, mega, programs, chords, loop, hr, roles, theme, second: RB, first: RA, epKind, info };
+  return { gliss, glPlan, bpm0, glAt: glAt.map((x) => x[0]), K, S, cyc, slot: SL, bar: BR, late, cadLen: CADL, meter: mi, sig: meter.sig, CA, CB, epStart, bStart, cadStart, end, slots, voices, bass, perc, scale, base, tonic, mode, us, art, mega, programs, chords, loop, hr, roles, theme, second: RB, first: RA, epKind, info };
 }
 
 // ── the file ──

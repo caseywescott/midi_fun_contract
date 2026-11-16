@@ -41,6 +41,34 @@ function tone12(d, f, y, loopStart) {
   for (let i = ls; i < L; i++) y[i] = X[L + i - ls];
   return y;
 }
+// Sections and formants (engines.js sectionOps, verbatim): `section` players [detune cents, level, vibrato cents,
+// vibrato cycles in the loop, phase, jitter cents, jitter cycles], each playing the template operators detuned with
+// their own vibrato `ov` (and `rvib` [cents, [cycles]]); `form` {f, range, db, idx, rise, tau} adds formant
+// carriers at the harmonics either side of each formant; `choir` is both (`singers`); `fmv` [index, attack ratio,
+// tau] replaces the template with Schottstaedt's fm-violin (modulators at 1, 3 and 4 times the note).
+function sectionOps(d, f, cycles) {
+  const c = d.choir, form = d.form ?? c, players = d.section ?? c?.singers ?? [[0, 1, 0, 1, 0]], m = 69 + 12 * Math.log2(f / 440), ops = [];
+  let F = [];
+  if (form) {
+    const two = Array.isArray(form.f[0]), u = two ? Math.max(0, Math.min(1, (m - form.range[0]) / (form.range[1] - form.range[0]))) : 0;
+    F = two ? form.f[0].map((x, k) => x + (form.f[1][k] - x) * u) : [...form.f];
+    if (c) F[0] = Math.max(F[0], 1.1 * f);
+  }
+  let tpl = d.ops;
+  if (d.fmv) { const [k, ar = 2, tau = 0.15] = d.fmv, lf = Math.log(f), i1 = Math.min(Math.PI, 5 / lf) * k, i2 = Math.min(Math.PI, (8.5 - lf) / (3 + f / 1000)) * k, i3 = Math.min(Math.PI, 1 / Math.sqrt(f)) * k;
+    tpl = [[1, 1, i1 * ar, i1, tau, 1, 0, d.fmvFb ?? 0, null, [[3, i2], [4, i3]], 0]]; tpl[0].ar = [i2 * ar, i3 * ar];
+  }
+  players.forEach(([cents, lv, vc, vr, vq, jc = 0, jr = 3], s) => {
+    const b = cents * cycles * Math.LN2 / 1200, beat = (h) => Math.round(h * b);
+    const ov = [[vc, vr, vq], [jc, jr, vq * 2.3 + 1], ...(d.rvib ? d.rvib[1].map((r, k) => [d.rvib[0], r, vq * (k + 1.7) + 0.9 * k + s]) : [])];
+    for (const o of tpl) { const q = [o[0], o[1], o[2], o[3], o[4], o[5] * lv, beat(o[0]) + (o[6] ?? 0), o[7], o[8], o[9], o[10], ov]; if (o.ar) q.ar = o.ar; ops.push(q); }
+    F.forEach((fk, k) => {
+      const r = fk / f, h0 = Math.max(1, Math.floor(r)), w = Math.max(0, Math.min(1, r - h0)), a = lv * 10 ** (form.db[k] / 20), x = form.idx[k];
+      for (const [h, g] of [[h0, Math.cos(w * Math.PI / 2)], [h0 + 1, Math.sin(w * Math.PI / 2)]]) if (g > 0.05 && h * f < 12000) ops.push([h, 1, x * (form.rise ?? 0.5), x, form.tau ?? 0.15, a * g, beat(h), 0, null, null, 0, ov]);
+    });
+  });
+  return ops;
+}
 // FM: operators [carrier ratio, modulator ratio, index at the attack, index held, index time constant (s),
 // level, level decay dB/s (struck) or beat cycles over the loop (sustained), feedback, [ratio, index]].
 // Same arithmetic as the reference engine, sample for sample; what changed is only what is computed once:
@@ -50,25 +78,29 @@ function fm(d, midi) {
   const f = hz(midi), ease = Math.min(1, Math.sqrt(523 / f)), mods = new Map();
   if (!d.sus) {
     const k = (f / hz(60)) ** (d.dk ?? 0.4), n = Math.round(Math.min(d.len ?? 2.5, 55 / (Math.min(...d.ops.map((o) => o[6])) * k) + 0.1) * RATE), y = new Float32Array(n), dry = d.comb ? new Float32Array(n) : y;
+    // `bend` [cents, s]: the note starts that far flat and slides up; B is the phase lost, as a multiple of the
+    // note's, added (times the ratio) to the operators that follow the note (a zero term otherwise: x + 0 is x)
+    let B = null;
+    if (d.bend) { B = new Float64Array(n); let acc = 0; for (let i = 0; i < n; i++) { B[i] = acc; acc += TAU * f / RATE * (2 ** (-d.bend[0] * Math.exp(-i / RATE / d.bend[1]) / 1200) - 1); } }
     for (const [cr, mr, i0, is, tau, lv, ad, fb = 0, st, , , i2, atk = 0, isDry] of d.ops) {
       if (f * cr > 14000) continue; // a negative ratio is a fixed frequency in Hz (a pick's click does not follow the note)
-      const out = isDry ? dry : y, [is2, tau2] = i2 ?? [is, 1], wc = TAU * (cr < 0 ? -cr : f * cr) / RATE, wm = TAU * (mr < 0 ? -mr : f * mr) / RATE, dec = Math.exp(-ad * k * Math.LN10 / 20 / RATE), fbe = fb * ease * 0.5, d2 = is - is2, d0 = i0 - is;
-      let amp = lv;
+      const out = isDry ? dry : y, [is2, tau2] = i2 ?? [is, 1], wc = TAU * (cr < 0 ? -cr : f * cr) / RATE, wm = TAU * (mr < 0 ? -mr : f * mr) / RATE, dec = Math.exp(-ad * k * Math.LN10 / 20 / RATE), fbe = fb * ease * 0.5, d2 = is - is2, d0 = i0 - is, bc = B && cr > 0 ? cr : 0, bm = B && mr > 0 ? mr : 0;
+      let amp = lv; const W = (i) => wc * i + (bc ? bc * B[i] : 0); // the carrier's phase
       if (!i0 && !is && !is2) { // no modulation at all: wc * i + 0 * m is wc * i
-        for (let i = 0; i < n; i++) { const t = i / RATE; out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(wc * i); amp *= dec; }
+        for (let i = 0; i < n; i++) { const t = i / RATE; out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(W(i)); amp *= dec; }
         continue;
       }
       // the modulator, shared by operators with the same one (it does not depend on the carrier unless it is stacked)
-      const key = st ? null : wm + ',' + fbe; let M = key && mods.get(key);
+      const key = st ? null : wm + ',' + fbe + ',' + bm; let M = key && mods.get(key);
       if (!M) {
         M = new Float64Array(n); let m1 = 0, m2 = 0;
-        if (st) { const w2 = TAU * f * st[0] / RATE; for (let i = 0; i < n; i++) { const t = i / RATE, e = Math.exp(-t / tau), m = Math.sin(wm * i + fbe * (m1 + m2) + st[1] * (0.15 + 0.85 * e) * Math.sin(w2 * i)); m2 = m1; m1 = m; M[i] = m; } }
-        else { for (let i = 0; i < n; i++) { const m = Math.sin(wm * i + fbe * (m1 + m2) + 0); m2 = m1; m1 = m; M[i] = m; } if (key) mods.set(key, M); }
+        if (st) { const w2 = TAU * f * st[0] / RATE; for (let i = 0; i < n; i++) { const t = i / RATE, e = Math.exp(-t / tau), m = Math.sin(wm * i + (bm ? bm * B[i] : 0) + fbe * (m1 + m2) + st[1] * (0.15 + 0.85 * e) * Math.sin(w2 * i)); m2 = m1; m1 = m; M[i] = m; } }
+        else { for (let i = 0; i < n; i++) { const m = Math.sin(wm * i + (bm ? bm * B[i] : 0) + fbe * (m1 + m2) + 0); m2 = m1; m1 = m; M[i] = m; } if (key) mods.set(key, M); }
       }
       // (is2 + (is - is2) * e2 + (i0 - is) * e) * m, leaving out the terms that are exactly zero
-      if (d2 === 0 && d0 === 0) for (let i = 0; i < n; i++) { const t = i / RATE; out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(wc * i + (is2 + 0 + 0) * M[i]); amp *= dec; }
-      else if (d2 === 0) for (let i = 0; i < n; i++) { const t = i / RATE; out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(wc * i + (is2 + 0 + d0 * Math.exp(-t / tau)) * M[i]); amp *= dec; }
-      else for (let i = 0; i < n; i++) { const t = i / RATE; out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(wc * i + (is2 + d2 * Math.exp(-t / tau2) + d0 * Math.exp(-t / tau)) * M[i]); amp *= dec; }
+      if (d2 === 0 && d0 === 0) for (let i = 0; i < n; i++) { const t = i / RATE; out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(W(i) + (is2 + 0 + 0) * M[i]); amp *= dec; }
+      else if (d2 === 0) for (let i = 0; i < n; i++) { const t = i / RATE; out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(W(i) + (is2 + 0 + d0 * Math.exp(-t / tau)) * M[i]); amp *= dec; }
+      else for (let i = 0; i < n; i++) { const t = i / RATE; out[i] += amp * (atk && t < atk ? t / atk : 1) * Math.sin(W(i) + (is2 + d2 * Math.exp(-t / tau2) + d0 * Math.exp(-t / tau)) * M[i]); amp *= dec; }
     }
     if (d.trem) for (let i = 0; i < n; i++) y[i] *= 1 + d.trem[0] * Math.sin(TAU * d.trem[1] * i / RATE); // a vibraphone's motor: [depth, Hz]
     if (d.comb) { const D = d.comb * RATE / f, g = 1 / (2 * Math.sin(Math.PI * d.comb)); for (let i = n - 1; i >= 0; i--) { const x = i - D, j = Math.floor(x), fr = x - j; y[i] = (y[i] - (j >= 0 ? y[j] * (1 - fr) + y[j + 1] * fr : 0)) * g + dry[i]; } }
@@ -77,7 +109,7 @@ function fm(d, midi) {
   // Sustained: `pre` samples of attack, then a loop of N. `vib` [cents, cycles in the loop, delay s, fade s],
   // `vibAmp`, `vibIdx`, `vibWob`, `drift` (cents), `scoop` [cents, s]; the attack's pitch is integrated back from the loop's first sample.
   const A = d.pre, L = A + N, cycles = Math.round(f * N / RATE), y = new Float32Array(L), [vc, vm, vdel = 0, vfade = 0] = d.vib, pv = cycles * vc * Math.LN2 / 1200 / vm;
-  const reg = Math.max(0, Math.min(1, Math.log2(f / 261.626) / 3)), ph = new Float64Array(L), vcos = new Float32Array(L), rnd = rng(midi + 3);
+  const reg = Math.max(0, Math.min(1, Math.log2(f / 261.626) / 3)), ph = new Float64Array(L), vcos = new Float32Array(L), ven = new Float32Array(L).fill(1), rnd = rng(midi + 3);
   const dr = [1, 2, 3].map((m) => [m, (d.drift ?? 0) / Math.sqrt(0.9167) * cycles * Math.LN2 / 1200 / m / Math.sqrt(m), TAU * rnd()]);
   // vibrato and pitch deviation at every n from -A to N - 1 (each once; the reference evaluated them several times over)
   const wk = d.vibWob ?? 0, tv = TAU * vm, VIB = new Float64Array(L + 1), DEV = new Float64Array(L + 1);
@@ -88,28 +120,42 @@ function fm(d, midi) {
   for (let n = -1, acc = DEV[A]; n >= -A; n--) {
     const t = (n + A) / RATE, x = vdel || vfade ? Math.max(0, Math.min(1, (t - vdel) / Math.max(vfade, 1e-3))) : 1, e = 1 - (1 - x) ** 2, j = n + A;
     acc -= (VIB[j + 1] - VIB[j]) * e + (DEV[j + 1] - VIB[j + 1]) - (DEV[j] - VIB[j]) - (sc ? scK * Math.exp(-t / sc[1]) : 0);
-    ph[j] = acc; vcos[j] = e * Math.cos(tv * n / N);
+    ph[j] = acc; vcos[j] = e * Math.cos(tv * n / N); ven[j] = e;
   }
-  const vI = d.vibIdx ?? 0, BR = new Float64Array(L), U4 = new Float64Array(A), EX = new Map(); for (let i = 0; i < L; i++) BR[i] = 1 + vI * vcos[i];
+  // `nmod` [depth, bandwidth Hz]: slow noise moving every operator's index (breath in the tone), periodic over the loop
+  let nz = null;
+  if (d.nmod) { const re = new Float64Array(N), im = new Float64Array(N), kmax = Math.round(d.nmod[1] * N / RATE); for (let k = 1; k <= kmax; k++) { const q = TAU * rnd(), g = 1 / (1 + (k / kmax) ** 2); re[k] = g * Math.cos(q); im[k] = -g * Math.sin(q); } fft(re, im); let e = 0; for (let k = 0; k < N; k++) e += re[k] * re[k]; const g = d.nmod[0] / Math.sqrt(e / N); nz = Float32Array.from(re, (v) => v * g); }
+  const vI = d.vibIdx ?? 0, BR = new Float64Array(L), U4 = new Float64Array(A), EX = new Map(); for (let i = 0; i < L; i++) BR[i] = (1 + vI * vcos[i]) * (nz ? 1 + nz[((i - A) % N + N) % N] : 1);
   for (let i = 0; i < A; i++) { const u = i / A; U4[i] = 1 - u ** 4; }
-  d.ops.forEach(([cr, mr, i0, is, tau, lv, beat, fb = 0, st, par, ks = 0], j) => {
-    const phj = d.align ? 0 : TAU * ((j * 0.618034 * (1 + (d.ps ?? 0))) % 1), kI = 1 - reg * ks, pars = (par ? (Array.isArray(par[0]) ? par : [par]) : []).map(([r, x, k = 0]) => [TAU * Math.round(r * cycles), r, x * (1 - reg * k)]), P = pars.length;
+  // an operator's own vibrato `ov` [[cents, cycles in the loop, phase]] (a section's players), arriving with the shared
+  // vibrato's delay: its phase, once per player (the player's operators share their `ov`)
+  const PHS = new Map(), phOf = (ov) => {
+    if (!ov || !ov.length) return [ph, ''];
+    let r = PHS.get(ov);
+    if (!r) { const os = ov.map(([c, q, s]) => [cycles * c * Math.LN2 / 1200 / q, q, s]), P = new Float64Array(L); for (let n = -A; n < N; n++) { const i = n + A; let o = 0; for (const [a, q, s] of os) o += a * Math.sin(TAU * q * n / N + s); P[i] = ph[i] + o * ven[i]; } PHS.set(ov, r = [P, PHS.size + 1]); }
+    return r;
+  };
+  (d.choir || d.section || d.form || d.fmv ? sectionOps(d, f, cycles) : d.ops).forEach((op, j) => {
+    const [cr, mr, i0, is, tau, lv, beat, fb = 0, st, par, ks = 0, ov] = op, [ph, pid] = phOf(ov);
+    // parallel modulators [round(ratio * cycles) * TAU, ratio, index, attack index (`ar`), index in the loop]: in the
+    // attack x1 + (x - x1) * (1 - e), in the loop x1 + (x - x1) (x when there is no `ar`: then x1 is x and these are exact)
+    const phj = d.align ? 0 : TAU * ((j * 0.618034 * (1 + (d.ps ?? 0))) % 1), kI = 1 - reg * ks, pars = (par ? (Array.isArray(par[0]) ? par : [par]) : []).map(([r, x, k = 0], q) => { x *= 1 - reg * k; const x1 = op.ar ? op.ar[q] : x; return [TAU * Math.round(r * cycles), r, x, x1, x1 + (x - x1)]; }), P = pars.length, AR = !!op.ar;
     const tc = TAU * (Math.round(cr * cycles) + beat);
     if (!i0 && !is && !P) { for (let n = -A; n < N; n++) { const i = n + A; y[i] += lv * Math.sin(tc * n / N + phj + cr * ph[i]); } return; } // index 0 throughout
-    const key = mr + ',' + fb + ',' + (st ? st[0] + ',' + st[1] : ''); let M = mods.get(key);
+    const key = pid + ',' + mr + ',' + fb + ',' + (st ? st[0] + ',' + st[1] : ''); let M = mods.get(key);
     if (!M) {
       M = new Float64Array(L); mods.set(key, M); let m1 = 0, m2 = 0; const tm = TAU * Math.round(mr * cycles), fbe = fb * ease * 0.5;
       if (st) { const ts = TAU * Math.round(st[0] * cycles); for (let n = -A; n < N; n++) { const i = n + A, p = ph[i], m = Math.sin(tm * n / N + mr * p + fbe * (m1 + m2) + st[1] * Math.sin(ts * n / N + st[0] * p)); m2 = m1; m1 = m; M[i] = m; } }
       else for (let n = -A; n < N; n++) { const i = n + A, m = Math.sin(tm * n / N + mr * ph[i] + fbe * (m1 + m2) + 0); m2 = m1; m1 = m; M[i] = m; }
     }
     const d0 = i0 - is, tr = tau * RATE;
-    let E = d0 && EX.get(tr); if (d0 && !E) { E = new Float64Array(A); for (let i = 0; i < A; i++) E[i] = Math.exp(-i / tr); EX.set(tr, E); }
+    let E = (d0 || AR) && EX.get(tr); if ((d0 || AR) && !E) { E = new Float64Array(A); for (let i = 0; i < A; i++) E[i] = Math.exp(-i / tr); EX.set(tr, E); }
     for (let n = -A; n < 0; n++) { // the attack: the index from i0 to is
-      const i = n + A, p = ph[i]; let pm = 0; for (let q = 0; q < P; q++) { const s = pars[q]; pm += s[2] * Math.sin(s[0] * n / N + s[1] * p); }
+      const i = n + A, p = ph[i], ae = AR ? 1 - E[i] * U4[i] : 0; let pm = 0; for (let q = 0; q < P; q++) { const s = pars[q]; pm += (AR ? s[3] + (s[2] - s[3]) * ae : s[2]) * Math.sin(s[0] * n / N + s[1] * p); }
       y[i] += lv * Math.sin(tc * n / N + phj + cr * p + BR[i] * ((is + (d0 ? d0 * E[i] * U4[i] : 0)) * kI * M[i] + pm));
     }
     for (let n = 0; n < N; n++) {
-      const i = n + A, p = ph[i]; let pm = 0; for (let q = 0; q < P; q++) { const s = pars[q]; pm += s[2] * Math.sin(s[0] * n / N + s[1] * p); }
+      const i = n + A, p = ph[i]; let pm = 0; for (let q = 0; q < P; q++) { const s = pars[q]; pm += s[4] * Math.sin(s[0] * n / N + s[1] * p); }
       y[i] += lv * Math.sin(tc * n / N + phj + cr * p + BR[i] * ((is + 0) * kI * M[i] + pm));
     }
   });

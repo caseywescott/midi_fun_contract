@@ -19,19 +19,19 @@ fn editions_gas_smallest() {
         delta_bpm: 0,
         day: 45,
     };
-    assert_eq!(edition_smf_bytes(90, false, 20, purchase_seed(14), Option::Some(d)).len(), 2163);
+    assert_eq!(edition_smf_bytes(90, false, 20, purchase_seed(14), Option::Some(d)).len(), 2143);
 }
 
 #[test]
 #[ignore]
 fn editions_gas_typical() {
-    assert_eq!(edition_smf_bytes(76, false, 1, purchase_seed(1), Option::None).len(), 6346);
+    assert_eq!(edition_smf_bytes(76, false, 1, purchase_seed(1), Option::None).len(), 6117);
 }
 
 #[test]
 #[ignore]
 fn editions_gas_largest() {
-    assert_eq!(edition_byte_array(77, true, 14, purchase_seed(82), Option::None).len(), 12491);
+    assert_eq!(edition_byte_array(77, true, 14, purchase_seed(82), Option::None).len(), 12411);
 }
 
 /// The typical file again, orchestrated and packed as LootEditionComposer returns it: the cost of
@@ -51,7 +51,7 @@ fn editions_gas_typical_played() {
 fn editions_gas_typical_played_fast() {
     let midi = edition_smf_bytes(76, false, 1, purchase_seed(1), Option::None);
     let b = crate::orchestra::band(0, 76, 1, 1, Option::None);
-    assert_eq!(crate::orchestra::orchestrate_byte_array(midi.span(), b.span(), 0).len(), 6346);
+    assert_eq!(crate::orchestra::orchestrate_byte_array(midi.span(), b.span(), 0).len(), 6117);
 }
 
 #[test]
@@ -59,20 +59,28 @@ fn editions_gas_typical_played_fast() {
 fn editions_gas_typical_played_inline() {
     let b = crate::orchestra::band(0, 76, 1, 1, Option::None);
     let x = crate::editions::edition_played_byte_array(76, false, 1, purchase_seed(1), Option::None, b.span());
-    let midi = edition_smf_bytes(76, false, 1, purchase_seed(1), Option::None);
-    assert!(x == crate::orchestra::orchestrate_byte_array(midi.span(), b.span(), 0));
+    // the lab's playback (loot-lab.mjs track0: the band, the low accompaniment instrument, the volumes)
+    let mut h: u32 = 0;
+    let mut i: u32 = 0;
+    while i != x.len() {
+        h = core::num::traits::WrappingAdd::wrapping_add(
+            core::num::traits::WrappingMul::wrapping_mul(h, 31), x.at(i).unwrap().into(),
+        );
+        i += 1;
+    }
+    assert_eq!((x.len(), h), (6117, 1885193286));
 }
 
 #[test]
 #[ignore]
 fn editions_gas_typical_inline_only() {
     let b = crate::orchestra::band(0, 76, 1, 1, Option::None);
-    assert_eq!(crate::editions::edition_played_byte_array(76, false, 1, purchase_seed(1), Option::None, b.span()).len(), 6346);
+    assert_eq!(crate::editions::edition_played_byte_array(76, false, 1, purchase_seed(1), Option::None, b.span()).len(), 6117);
 }
 
 #[test]
 #[ignore]
 fn editions_gas_typical_bytes_only() {
     let midi = edition_smf_bytes(76, false, 1, purchase_seed(1), Option::None);
-    assert_eq!(midi::pack::bytes_to_byte_array(midi.span()).len(), 6346);
+    assert_eq!(midi::pack::bytes_to_byte_array(midi.span()).len(), 6117);
 }

@@ -58,37 +58,54 @@ const BEASTS = LOOT_BEASTS.map((b) => ({ ...b, ...SPECIES.find((s) => s.id === b
 // the bank's instruments (MIDI programs) and the orchestration: an edition style's roles (lead,
 // accompaniment, bass, pad; the descant plays the lead, the mega double a glockenspiel or flute), a
 // song channel's instrument by family (channel 0 the theme, 4 the countersubject)
-const BANK = { piano: 0, glockenspiel: 9, marimba: 12, cello: 42, pizzicato: 45, harp: 46, timpani: 47, strings: 48, clarinet: 71, flute: 73, organ: 19, pad: 89, violin: 40, guitar: 25, upright: 32, vibraphone: 11, latelybass: 38, recorder: 74, ocarina: 79, whistle: 78, drawbar: 16, horn: 60 };
+const BANK = { piano: 0, glockenspiel: 9, marimba: 12, cello: 42, pizzicato: 45, harp: 46, timpani: 47, strings: 48, clarinet: 71, flute: 73, organ: 19, pad: 89, violin: 40, guitar: 25, upright: 32, vibraphone: 11, latelybass: 38, ocarina: 79, drawbar: 16, horn: 60,
+  oboe: 68, bassoon: 70, trumpet: 56, trombone: 57, bowedcello: 43, choir: 52, kalimba: 108, koto: 107 };
 // options only some banks have: a bank without one plays the instrument it stands in for
 const FALLBACK = { [BANK.organ]: BANK.strings, [BANK.pad]: BANK.strings, [BANK.violin]: BANK.strings, [BANK.guitar]: BANK.pizzicato, [BANK.upright]: BANK.cello, [BANK.vibraphone]: BANK.harp, [BANK.latelybass]: BANK.cello,
-  [BANK.recorder]: BANK.flute, [BANK.ocarina]: BANK.flute, [BANK.whistle]: BANK.flute, [BANK.drawbar]: BANK.strings, [BANK.horn]: BANK.strings };
+  [BANK.ocarina]: BANK.flute, [BANK.drawbar]: BANK.strings, [BANK.horn]: BANK.strings,
+  [BANK.oboe]: BANK.clarinet, [BANK.bassoon]: BANK.cello, [BANK.trumpet]: BANK.clarinet, [BANK.trombone]: BANK.cello, [BANK.bowedcello]: BANK.cello, [BANK.choir]: BANK.strings, [BANK.kalimba]: BANK.harp, [BANK.koto]: BANK.harp };
 // Each style's band is chosen for the track from these pools (lead, accompaniment, bass, pad), by Beast,
 // edition and purchase, so the same style comes round with different instruments; the first of each pool
 // is the style's original choice. The lead and the pad are never the same instrument. A bank without an
 // optional instrument plays the one it stands in for (FALLBACK). A string lead is the violin (a quieter, softer
 // take on the strings, which keep the pads); a bank without it plays its strings.
+// The Kankyo bank's newer voices (oboe, bassoon, trumpet, trombones, bowed cello, choir, kalimba, koto) are added
+// where they suit a style, after its original choices: a trumpet leads the marches and the fast styles, an oboe the
+// pastoral and Eastern ones, the choir pads the slow and solemn ones, the kalimba and koto pluck the accompaniments;
+// the bassoon plays only where a song's or round's cello melody may be swapped (ALIKE).
+// Bass lines are played by the basses and cellos only, never the bassoon or the trombones (Casey).
 const POOLS = {
-  overworld: [['whistle', 'flute', 'recorder', 'clarinet'], ['guitar', 'pizzicato', 'marimba'], ['cello', 'latelybass', 'upright'], ['horn', 'strings', 'drawbar']],
-  field: [['ocarina', 'flute', 'recorder', 'whistle'], ['harp', 'guitar', 'vibraphone'], ['cello', 'upright', 'latelybass'], ['strings', 'pad', 'horn']],
-  lullaby: [['flute', 'ocarina', 'clarinet'], ['vibraphone', 'harp', 'piano'], ['cello', 'upright'], ['pad', 'strings', 'horn']],
-  forest: [['recorder', 'flute', 'clarinet', 'ocarina'], ['marimba', 'guitar', 'harp'], ['pizzicato', 'upright', 'cello', 'latelybass'], ['drawbar', 'strings', 'horn']],
-  temple: [['clarinet', 'recorder', 'horn'], ['harp', 'vibraphone', 'piano'], ['cello', 'upright', 'latelybass'], ['organ', 'pad', 'strings']],
-  boss: [['violin', 'horn', 'clarinet'], ['marimba', 'guitar', 'piano'], ['latelybass', 'cello'], ['organ', 'drawbar', 'strings']],
-  flowers: [['flute', 'violin', 'ocarina'], ['harp', 'vibraphone', 'piano'], ['cello', 'upright'], ['horn', 'strings', 'pad']],
-  toymarch: [['glockenspiel', 'whistle', 'recorder'], ['pizzicato', 'guitar', 'marimba'], ['cello', 'upright', 'latelybass'], ['clarinet', 'horn', 'drawbar']],
-  adagio: [['flute', 'violin', 'horn', 'clarinet'], ['piano', 'vibraphone', 'harp'], ['cello', 'upright'], ['pad', 'strings', 'organ']],
-  sugarplum: [['glockenspiel', 'vibraphone', 'flute'], ['pizzicato', 'harp', 'guitar'], ['clarinet', 'upright', 'cello'], ['strings', 'pad', 'drawbar']],
-  trepak: [['violin', 'whistle', 'clarinet', 'flute'], ['guitar', 'pizzicato', 'marimba'], ['latelybass', 'upright', 'cello'], ['clarinet', 'horn', 'drawbar']],
-  arabian: [['flute', 'clarinet', 'recorder', 'ocarina'], ['harp', 'guitar', 'piano'], ['cello', 'upright', 'latelybass'], ['pad', 'strings', 'organ']],
-  speedrun: [['whistle', 'violin', 'flute', 'clarinet'], ['marimba', 'guitar', 'piano', 'pizzicato'], ['latelybass', 'upright', 'cello'], ['organ', 'strings', 'drawbar']],
-  dash: [['whistle', 'flute', 'violin', 'recorder'], ['marimba', 'piano', 'guitar', 'pizzicato'], ['latelybass', 'cello', 'upright'], ['strings', 'organ', 'horn']],
-  punkrun: [['clarinet', 'violin', 'whistle', 'flute'], ['guitar', 'piano', 'marimba'], ['cello', 'latelybass', 'upright'], ['drawbar', 'organ', 'strings']],
+  overworld: [['flute', 'ocarina', 'clarinet', 'trumpet'], ['guitar', 'pizzicato', 'marimba', 'kalimba'], ['cello', 'latelybass', 'upright'], ['horn', 'strings', 'drawbar', 'trombone']],
+  field: [['ocarina', 'flute', 'clarinet', 'oboe'], ['harp', 'guitar', 'vibraphone', 'kalimba'], ['cello', 'upright', 'latelybass', 'bowedcello'], ['strings', 'pad', 'horn', 'choir']],
+  lullaby: [['flute', 'ocarina', 'clarinet', 'oboe'], ['vibraphone', 'harp', 'piano', 'kalimba'], ['cello', 'upright', 'bowedcello'], ['pad', 'strings', 'horn', 'choir']],
+  forest: [['clarinet', 'flute', 'ocarina', 'oboe'], ['marimba', 'guitar', 'harp', 'kalimba', 'koto'], ['pizzicato', 'upright', 'cello', 'latelybass'], ['drawbar', 'strings', 'horn', 'choir']],
+  temple: [['clarinet', 'ocarina', 'horn', 'oboe'], ['harp', 'vibraphone', 'piano', 'koto'], ['cello', 'upright', 'latelybass'], ['organ', 'pad', 'strings', 'choir']],
+  boss: [['violin', 'horn', 'clarinet', 'trumpet', 'bowedcello'], ['marimba', 'guitar', 'piano'], ['latelybass', 'cello'], ['organ', 'drawbar', 'strings', 'choir']],
+  flowers: [['flute', 'violin', 'ocarina', 'oboe'], ['harp', 'vibraphone', 'piano', 'kalimba'], ['cello', 'upright', 'bowedcello'], ['horn', 'strings', 'pad', 'choir']],
+  toymarch: [['glockenspiel', 'ocarina', 'flute', 'trumpet', 'kalimba'], ['pizzicato', 'guitar', 'marimba'], ['cello', 'upright', 'latelybass'], ['clarinet', 'horn', 'drawbar', 'trombone']],
+  adagio: [['flute', 'violin', 'horn', 'clarinet', 'oboe', 'bowedcello'], ['piano', 'vibraphone', 'harp'], ['cello', 'upright', 'bowedcello'], ['pad', 'strings', 'organ', 'choir']],
+  sugarplum: [['glockenspiel', 'vibraphone', 'flute', 'kalimba'], ['pizzicato', 'harp', 'guitar', 'kalimba'], ['clarinet', 'upright', 'cello'], ['strings', 'pad', 'drawbar', 'choir']],
+  trepak: [['violin', 'clarinet', 'flute', 'trumpet'], ['guitar', 'pizzicato', 'marimba'], ['latelybass', 'upright', 'cello'], ['clarinet', 'horn', 'drawbar', 'trombone']],
+  arabian: [['flute', 'clarinet', 'ocarina', 'oboe'], ['harp', 'guitar', 'piano', 'koto'], ['cello', 'upright', 'latelybass', 'bowedcello'], ['pad', 'strings', 'organ', 'choir']],
+  speedrun: [['flute', 'violin', 'clarinet', 'trumpet'], ['marimba', 'guitar', 'piano', 'pizzicato', 'kalimba'], ['latelybass', 'upright', 'cello'], ['organ', 'strings', 'drawbar', 'trombone']],
+  dash: [['flute', 'violin', 'ocarina', 'trumpet'], ['marimba', 'piano', 'guitar', 'pizzicato', 'koto'], ['latelybass', 'cello', 'upright'], ['strings', 'organ', 'horn', 'trombone']],
+  punkrun: [['clarinet', 'violin', 'flute', 'trumpet'], ['guitar', 'piano', 'marimba'], ['cello', 'latelybass', 'upright'], ['drawbar', 'organ', 'strings', 'trombone']],
 };
+// a style's mix by instrument, as factors on the channel's volume (CC 7, whose level goes by its square): Punk
+// Run's piano accompaniment is quieter and its violin louder (Casey, by ear)
+const MIX = { punkrun: { piano: 0.75, violin: 1.27 } };
+// an instrument that is turned down when it is a track's highest voice (by average pitch), in any kind of track:
+// the vibraphone on top rings over everything (Casey, by ear)
+const TOP_SOFT = { vibraphone: 0.72 };
+// an instrument that is turned down when it plays the lead (an edition's lead, its descant and its second lead; a
+// song's theme): the clarinet, 20% (Casey, by ear; as a CC 7 factor, the square root of 0.8)
+const LEAD_SOFT = { clarinet: 0.894 };
 // songs and rounds: each channel's instrument may be exchanged for another of its kind, by species
 const ALIKE = {
-  melody: { flute: ['flute', 'ocarina', 'recorder', 'whistle'], clarinet: ['clarinet', 'recorder', 'horn'], strings: ['violin', 'horn', 'flute'], glockenspiel: ['glockenspiel', 'vibraphone'], cello: ['cello', 'horn'] },
-  accomp: { harp: ['harp', 'vibraphone', 'guitar'], marimba: ['marimba', 'vibraphone', 'guitar'], piano: ['piano', 'vibraphone', 'harp'], pizzicato: ['pizzicato', 'guitar', 'harp'] },
-  bass: { cello: ['cello', 'latelybass', 'upright'] }, pad: { strings: ['strings', 'pad', 'horn', 'drawbar', 'organ'] }, keep: {},
+  // (a newer voice sits in one list of each kind only, so two channels of a song or round do not both draw it)
+  melody: { flute: ['flute', 'ocarina'], clarinet: ['clarinet', 'horn', 'oboe'], strings: ['violin', 'horn', 'flute', 'trumpet'], glockenspiel: ['glockenspiel', 'vibraphone'], cello: ['cello', 'horn', 'bowedcello', 'bassoon'] },
+  accomp: { harp: ['harp', 'vibraphone', 'guitar', 'kalimba', 'koto'], marimba: ['marimba', 'vibraphone', 'guitar'], piano: ['piano', 'vibraphone', 'harp'], pizzicato: ['pizzicato', 'guitar', 'harp'] },
+  bass: { cello: ['cello', 'latelybass', 'upright', 'bowedcello'] }, pad: { strings: ['strings', 'pad', 'horn', 'drawbar', 'organ', 'choir'] }, keep: {},
 };
 const prog = (n) => { if (BANK[n] === undefined) throw new Error('no bank instrument ' + n); return BANK[n]; };
 const pooled = (rows, kinds) => rows.map((r) => r.map((n, ch) => (ALIKE[kinds[ch]][n] ?? [n]).map(prog)));
@@ -105,7 +122,10 @@ const ROUND = [
 const SONG_KINDS = ['melody', 'melody', 'accomp', 'bass', 'melody', 'pad', 'accomp', 'pad'], ROUND_KINDS = ['melody', 'melody', 'accomp', 'accomp', 'bass', 'melody', 'keep'];
 const ORCH = {
   pools: Object.fromEntries(STYLES.map((S) => [S.key, (POOLS[S.key] ?? []).map((pool) => pool.map(prog))])),
-  bells: [BANK.glockenspiel, BANK.vibraphone], glock: BANK.glockenspiel, flute: BANK.flute, harp: BANK.harp,
+  mix: Object.fromEntries(Object.entries(MIX).map(([k, m]) => [k, Object.fromEntries(Object.entries(m).map(([n, f]) => [prog(n), f]))])),
+  topSoft: Object.fromEntries(Object.entries(TOP_SOFT).map(([n, f]) => [prog(n), f])),
+  leadSoft: Object.fromEntries(Object.entries(LEAD_SOFT).map(([n, f]) => [prog(n), f])),
+  bells: [BANK.glockenspiel, BANK.vibraphone], low: BANK.pizzicato, glock: BANK.glockenspiel, flute: BANK.flute, harp: BANK.harp,
   songKinds: SONG_KINDS, roundKinds: ROUND_KINDS, songPools: pooled(SONG, SONG_KINDS), roundPools: pooled(ROUND, ROUND_KINDS),
   song: SONG.map((r) => r.map(prog)),
   // a Round's channels by family: the four canon voices, the bass, the mega double, the harp glissando
@@ -164,7 +184,7 @@ h2{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em
 <div class="ctl"><button class="go" id="play">▶ Play</button><button id="stop">■ Stop</button><button id="mega">Mega: off</button></div>
 <div class="banks" id="banks" role="radiogroup" aria-label="Instruments"></div>
 <label class="age" id="row-d">Drift day <b id="d-val"></b> (1 = as written)<input type="range" id="day" min="1" max="400" value="1" aria-label="Drift day"></label>
-<label class="age" id="row-v">Reverb <b id="v-val"></b>% (the sample banks; the chip presets keep their own 30)<input type="range" id="rev" min="0" max="100" value="75" aria-label="Reverb"></label>
+<label class="age" id="row-v">Reverb <b id="v-val"></b>% (the sample banks; the chip presets keep their own 30)<input type="range" id="rev" min="0" max="100" value="50" aria-label="Reverb"></label>
 </div>
 <div class="card"><h2 id="title"></h2><dl id="readout"></dl></div>
 <div class="card"><canvas id="roll" width="1600" height="440" aria-label="Notes"></canvas><div class="legend" id="legend"></div></div>
@@ -179,7 +199,7 @@ h2{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em
 const DATA = ${JSON.stringify(DATA)};
 const KINDS = ['song', 'round', 'name', 'check', 'edition'];
 const $ = (id) => document.getElementById(id), RD = BS.rd, CK = BS.ck, E = BS.engine, V = BS.v11, L = BS.lab, ED = BS.ed, U64 = (1n << 64n) - 1n, N = DATA.beasts.length, NSTYLE = DATA.styles.length;
-const st = { kind: 'song', b: 0, name: 1, e: 1, p: 1, r: 0, c: 0, day: 1, mega: false, inst: 0, rev: 75 };
+const st = { kind: 'song', b: 0, name: 1, e: 1, p: 1, r: 0, c: 0, day: 1, mega: false, inst: 0, rev: 50 };
 (function readUrl() {
   const q = new URLSearchParams(location.search), num = (k, lo, hi, d) => (q.has(k) ? Math.max(lo, Math.min(hi, Math.round(+q.get(k)) || 0)) : d);
   if (KINDS.includes(q.get('track'))) st.kind = q.get('track');
@@ -202,10 +222,12 @@ const mix = (a, b) => { let x = (Math.imul(a ^ 0x9e3779b9, 0x85ebca6b) ^ Math.im
 // pool, never the one the track was written with. Day 1 is as written.
 const stepOf = (drift) => (drift ? { month: drift.rhythm !== null ? Number(BigInt(drift.rhythm) & 0xffffffffn) : null, week: drift.rotate !== null ? Number(BigInt(drift.rotate) & 0xffffffffn) : null } : { month: null, week: null });
 const moved = (pool, i, h, salt) => (h === null || pool.length < 2 ? i : (i + 1 + mix(h, salt) % (pool.length - 1)) % pool.length);
-function band(key, id, e, p, drift) {
+function band(key, id, e, p, drift, low) {
   const P = DATA.orch.pools[key], { month, week } = stepOf(drift), when = [month, week, month, week];
   const pick = (r, avoid) => { const pool = P[r]; let i = moved(pool, mix(mix(id, e * 131 + r), p) % pool.length, when[r], 31 + r); if (pool[i] === avoid && pool.length > 1) i = (i + 1) % pool.length; return pool[i]; };
-  const lead = pick(0), acc = pick(1, lead), bass = pick(2, lead), pad = pick(3, lead);
+  // an accompaniment the composer wrote an octave lower is plucked short (pizzicato): a harp or a guitar rings
+  // on down there and blurs
+  const lead = pick(0), acc = low ? DATA.orch.low : pick(1, lead), bass = pick(2, lead), pad = pick(3, lead);
   // the second lead (a B or C tune's, on channel 8): the next instrument in the lead pool
   const second = P[0][(P[0].indexOf(lead) + 1 + mix(id, e * 977 + p) % Math.max(1, P[0].length - 1)) % P[0].length];
   return [lead, lead, acc, bass, pad, DATA.orch.bells.includes(lead) ? DATA.orch.flute : DATA.orch.glock, DATA.orch.harp, second];
@@ -216,8 +238,8 @@ const choose = (pools, kinds, id, salt, drift) => { const { month, week } = step
 // register, and plays both with quicker attacks and shorter releases so the low entries do not smear. This is
 // the lab's playback only: the composer still writes them where it did.
 const LIFT = { name: 12, round: 7 }, CRISP = { name: { attack: 0.4, attackMax: 0.03, release: 0.6 }, round: { attack: 0.4, attackMax: 0.03, release: 0.6 } };
-function lifted(u8, by) {
-  if (!by) return u8;
+function lifted(u8, by, vol) { // and, with vol (channel: factor), those channels' volume (CC 7) scaled
+  if (!by && !vol) return u8;
   const out = u8.slice(); let i = 14; const ntr = (out[10] << 8) | out[11];
   for (let tr = 0; tr < ntr; tr++) {
     i += 4; const len = (out[i] << 24 | out[i + 1] << 16 | out[i + 2] << 8 | out[i + 3]) >>> 0; i += 4; const stop = i + len; let run = 0;
@@ -228,19 +250,33 @@ function lifted(u8, by) {
       if (s === 0xf0 || s === 0xf7) { let l = 0; do { b = out[i++]; l = (l << 7) | (b & 127); } while (b & 128); i += l; continue; }
       run = s; const ty = s & 0xf0;
       if (ty === 0xc0 || ty === 0xd0) { i += 1; continue; }
-      if ((ty === 0x80 || ty === 0x90 || ty === 0xa0) && (s & 15) !== 9) out[i] = Math.max(0, Math.min(127, out[i] + by));
+      if (by && (ty === 0x80 || ty === 0x90 || ty === 0xa0) && (s & 15) !== 9) out[i] = Math.max(0, Math.min(127, out[i] + by));
+      if (vol && ty === 0xb0 && out[i] === 7 && vol[s & 15]) out[i + 1] = Math.max(0, Math.min(127, Math.round(out[i + 1] * vol[s & 15])));
       i += 2;
     }
     i = stop;
   }
   return out;
 }
+// the track as it plays: with a sample bank, the highest voice is turned down if its instrument is one of topSoft
 function track() {
+  const tr = track0(); if (isChip()) return tr;
+  const sum = {}; for (const n of notesOf(tr.midi).notes) if (n[3] !== 9 && n[3] !== 6) { const a = sum[n[3]] || (sum[n[3]] = [0, 0]); a[0] += n[2]; a[1]++; }
+  const top = Object.keys(sum).sort((a, b) => sum[b][0] / sum[b][1] - sum[a][0] / sum[a][1])[0];
+  const f = top === undefined ? 0 : DATA.orch.topSoft[padOf(+top, tr.orch[top % tr.orch.length])];
+  return f ? { ...tr, midi: lifted(tr.midi, 0, { [top]: f }), topSoft: +top } : tr;
+}
+const LEAD_CH = [0, 1, 7]; // an edition's lead, descant (the lead doubled) and second lead
+function track0() {
   const x = beast(), day = st.day > 1 ? st.day : null;
   if (st.kind === 'edition') {
     const d = day ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null;
     const o = ED.editionMidi(x, st.mega, st.e, purchaseSeed(st.p), d, false, st.walk);
-    return { midi: o.midi, info: o.info, settings: DATA.edition[(st.e - 1) % NSTYLE][x.type][st.mega ? 1 : 0], orch: band(DATA.styles[(st.e - 1) % NSTYLE].key, x.id, st.e, st.p, d) };
+    const key = DATA.styles[(st.e - 1) % NSTYLE].key, orch = band(key, x.id, st.e, st.p, d, o.info.accompLow), mixOf = DATA.orch.mix[key];
+    // the style's mix for the instruments this track drew (sample banks only: the chip presets keep their own)
+    // and the lead's own turn-down (leadSoft) on the lead, descant and second-lead channels
+    const vol = isChip() ? null : Object.fromEntries(orch.map((g, ch) => [ch, ((mixOf && mixOf[padOf(ch, g)]) || 1) * ((LEAD_CH.includes(ch) && DATA.orch.leadSoft[padOf(ch, g)]) || 1)]).filter(([, f]) => f !== 1));
+    return { midi: lifted(o.midi, 0, vol), info: o.info, settings: DATA.edition[(st.e - 1) % NSTYLE][x.type][st.mega ? 1 : 0], orch };
   }
   const settings = DATA.family[x.type * 2 + (st.mega ? 1 : 0)];
   if (st.kind === 'round') {
@@ -251,8 +287,8 @@ function track() {
   const orch = choose(DATA.orch.songPools[x.type], DATA.orch.songKinds, x.id, 1, day && st.kind === 'song' ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null);
   if (st.kind === 'check') { const o = CK.soundCheckMidi(x, st.mega, st.c ? purchaseSeed(st.c) : 0n); return { midi: o.midi, info: o.info, settings, orch: choose(DATA.orch.roundPools[x.type], DATA.orch.roundKinds, x.id, 2, null) }; }
   const opts = { ...L.GENESIS_DEFAULTS, ...(st.kind === 'name' ? { name: st.name } : {}), ...(day ? { epoch: day, driftMode: 'v2', blockHashes: true } : {}) };
-  const o = L.sampleTrackMidi(bOf(x, st.kind === 'name'), { species_count: 1 }, opts, E, V);
-  return { midi: lifted(o.midi, LIFT[st.kind]), info: o.info, settings, orch };
+  const o = L.sampleTrackMidi(bOf(x, st.kind === 'name'), { species_count: 1 }, opts, E, V), lf = isChip() ? 0 : DATA.orch.leadSoft[padOf(0, orch[0])];
+  return { midi: lifted(o.midi, LIFT[st.kind], lf ? { 0: lf } : null), info: o.info, settings, orch };
 }
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const COLORS = ['#8a2be2', '#e0742a', '#1f9d8c', '#c0392b', '#7f8c8d', '#2a7ae0', '#b8860b', '#888'];
@@ -274,7 +310,7 @@ function show() {
   cur = track();
   const i = cur.info || {};
   const rows = st.kind === 'edition'
-    ? [['Style', S.label + ' (' + i.family + ')'], ['Key', i.key], ['Meter / tempo', i.meter + ' · ' + i.bpm + ' BPM'], ['Form', i.form], ['A', i.progA], ['B', i.progB], ...(i.progC ? [['C', i.progC]] : []), ['Parts', i.parts.join(', ')], ['Intro', i.intro], ['Bass', i.bass], ['Drums', i.drums], ['Lead doubled', i.doubling], ['Second lead', i.secondLead], ['Taken faster', i.quicker ? i.quicker + '%' : 'no'], ['Accompaniment', i.accomp], ['Chords', i.chords], ['Glissandi', i.glissandi], ['Theme', i.theme], ['Ornaments', i.ornaments], ['Phrasing', i.phrasing], ['Length', i.seconds + ' s']]
+    ? [['Style', S.label + ' (' + i.family + ')'], ['Key', i.key], ['Meter / tempo', i.meter + ' · ' + i.bpm + ' BPM'], ['Form', i.form], ['A', i.progA], ['B', i.progB], ...(i.progC ? [['C', i.progC]] : []), ['Parts', i.parts.join(', ')], ['Intro', i.intro], ['Bass', i.bass], ['Drums', i.drums], ['Lead doubled', i.doubling], ['Last tune', i.lastTune], ['Second lead', i.secondLead], ['Taken faster', i.quicker ? i.quicker + '%' : 'no'], ['Accompaniment', i.accomp], ['Chords', i.chords], ['Glissandi', i.glissandi], ['Theme', i.theme], ['Ornaments', i.ornaments], ['Phrasing', i.phrasing], ['Length', i.seconds + ' s']]
     : st.kind === 'round' ? [['Key', i.key], ['Tempo', i.bpm + ' BPM'], ['Meter', i.meter], ['Form', i.form], ['Loop', i.loop + ' (' + i.loopBars + ' bars)'], ['Second loop', i.loopB], ['Voices', i.voices + ', entering ' + i.entries], ['Lines', i.shapes + ' · registers: ' + i.contour], ['Theme', i.themeBars + ' bars: ' + i.theme], ['Second theme', i.themeB], ['Motif rhythm', i.motifRhythm], ['Suspensions', i.suspensions], ['Glissandi', i.glissandi], ['Episode', i.episode], ['Cadence', i.cadence], ['Bass', i.bass], ['Percussion', i.percussion], ['Ornaments', i.ornaments], ['Drift', i.drift], ['Length', i.seconds + ' s']]
     : st.kind === 'check' ? [['Key', i.key], ['Tempo', i.bpm + ' BPM'], ['Opening', i.opening], ['Drills', i.drills], ['Close', i.close], ['Colour note', i.colour], ['Cadence', i.cadence], ['Band', i.band], ['Glissandi', i.glissandi], ['Length', i.seconds + ' s']]
     : [['Key', i.key], ['Voices', i.voices], ['Tempo', i.bpm ? i.bpm + ' BPM' : ''], ['Drift', st.day > 1 ? 'day ' + st.day : 'as written']];
@@ -342,7 +378,7 @@ function go(at) {
   BS.installSettings(synth, cur.settings);
   if (!isChip()) synth.setReverbLev(st.rev / 100); // the settings carry the chip presets' reverb (30); the sample banks play in more
   if (layer && (isChip() || layerBank !== st.inst)) { synth.setProgram = setProgram0; layer.dispose(); layer = null; layerBank = -1; }
-  if (!isChip() && !layer) { layer = Banks[st.inst].attach(synth, { maxVoices: 24 }); layerBank = st.inst; setProgram0 = synth.setProgram; synth.setProgram = (ch, p, ...r) => setProgram0.call(synth, ch, ch === 9 || !cur ? p : padOf(ch, cur.orch[ch % cur.orch.length]), ...r); }
+  if (!isChip() && !layer) { layer = Banks[st.inst].attach(synth, { maxVoices: 48 }); /* 24 was too few: a glissando over ringing chords needs 31, and a stolen voice clicks */ layerBank = st.inst; setProgram0 = synth.setProgram; synth.setProgram = (ch, p, ...r) => setProgram0.call(synth, ch, ch === 9 || !cur ? p : padOf(ch, cur.orch[ch % cur.orch.length]), ...r); }
   if (layer && layer.sampler.articulate) layer.sampler.articulate(CRISP[st.kind]);
   const m = cur.midi;
   synth.loadMIDI(m.buffer.slice(m.byteOffset, m.byteOffset + m.length));

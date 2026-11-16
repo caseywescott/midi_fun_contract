@@ -338,7 +338,7 @@ pub fn sound_check_tracks(species: u32, mega: bool, take: u64, how: Play) -> Arr
         if ch == 6 {
             if let Option::Some(plan) = gliss_plan(gl_draw, gl_seed, GLISS_WEIGHTS.span()) {
                 let at = *GLISS_AT.span().at(plan.spot);
-                for g in glissando(plan, at, opaque(960), gl_seed, at + 480) {
+                for g in glissando(plan, at, opaque(960), gl_seed, at + 480, bpm) {
                     part.append(Sound { t: g.t, len: g.len, p: pitch_of(base, scale, g.d.into()), v: g.v.into() });
                 }
             }

@@ -2,11 +2,10 @@
 // instrument as [id, program, lowest root, highest root, volume, [attack, decay, sustain, release], def] and
 // each drum as [id, key, volume, def], where a def is the engine's definition with a few shorthands:
 //   b: n   start from instrument n's def (decoded) and change only the keys given; a key set to null is removed
-//   Z: 'h' | 'c'   zones computed per root by harpAt / clarinetAt (gen.js), roots every 4 semitones from lo to hi
-//   S: [...]       bowed-string zones, one array of fitted numbers each (stringZone)
+//   Z: 'h'   zones computed per root by harpAt (gen.js), roots every 4 semitones from lo to hi
 //   t is 'f' (FM) unless given.
 import { ROWS, DRUMS } from './kankyo-data.js';
-import { GEN, stringZone } from './gen.js';
+import { GEN } from './gen.js';
 
 function expand(list, lo) {
   const out = [];
@@ -16,8 +15,7 @@ function expand(list, lo) {
     delete src.b;
     const d = { t: 'f', ...src }, from = lo ? row[2] : 0;
     if (d.Z) d.zones = Array.from({ length: ((row[3] - from) >> 2) + 1 }, (_, k) => GEN[d.Z](from + 4 * k));
-    if (d.S) d.zones = d.S.map(stringZone);
-    delete d.Z; delete d.S;
+    delete d.Z;
     out.push({ row, e: src, d });
   });
   return out;

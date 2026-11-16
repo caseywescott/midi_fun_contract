@@ -202,11 +202,16 @@ export function spreadChord(how, t, d, room, pitches, v, step = room >= 720 ? 24
 // track has one (11 in 20) or none (9 in 20), never more. It plays on channel 6 (GLISS_CHANNEL).
 export const GLISS_CHANNEL = 6, GLISS_STEP = 60;
 // a tune's last bar in the drums: fills and cuts out of 20, and the fill (snare, then down the toms)
-export const DRUM_FILLS = 7, DRUM_CUTS = 5, DRUM_FILL = [38, 38, 50, 48, 47, 45, 43, 41];
+export const DRUM_FILLS = 7, DRUM_CUTS = 5, DRUM_FILL = [38, 38, 50, 48, 47, 45, 43, 41], DRUM_FILL_VEL = [68, 28]; // the fill's velocity: from 68, rising by 28 (it was 58 and 26)
 // a second lead, for a B or C tune given to another instrument
+// the last tune, when it is the first one come back: this many scale steps higher (a third)
+export const GRAND_STEP = 2;
+// the accompaniment's octave doubling below the root rather than above: one purchase in three
+export const OCTAVE_BELOW = [1, 3];
 export const ALT_CHANNEL = 7, ALT_SHARE = [2, 5]; // two purchases in five
 // slower styles and how much faster a purchase may take them, in percent
 export const SLOW_TOP = 124, QUICKER = [0, 0, 0, 8, 14, 20, 26, 34, 42];
+export const INTRO_MAX_S = 4.5;
 /** A track's glissando, if it has one, from a draw of 20 and a seed: which of its four places (`weights`
  * lists them, the likelier ones more than once), which way it goes and whether it is an octave higher.
  * A list of one or none. */
@@ -214,12 +219,17 @@ export function glissPlan(draw20, seed, weights) {
   const spot = weights[seed % weights.length];
   return draw20 < 9 ? [] : [{ spot, up: ((seed >>> (16 + spot)) & 1) === 1, high: (seed >>> 8) % 3 === 0 }];
 }
-/** A glissando's notes { t, len, d, v }: `span` ticks of scale steps ending at tick `end`, about the
- * tonic above the bass register (degrees 1 - n/2 to n/2 for n notes; `high`: an octave above that), each
- * ringing on, velocities 43-63 (the sketch's 51-74, 15% quieter). */
-export function glissando(plan, end, span, seed, last = end + 480) {
-  const n = Math.floor(span / GLISS_STEP), low = 1 - Math.floor(n / 2) + (plan.high ? 7 : 0);
-  return Array.from({ length: n }, (_, k) => { const t = end - (n - k) * GLISS_STEP; return { t, len: Math.min(360, last - t), d: plan.up ? low + k : low + n - 1 - k, v: Math.round((51 + mix(seed, k) % 24) * 0.85) }; });
+// a faster track's glissando is shorter, so it lands as a flick rather than a sweep: from 120 BPM half the
+// span, from 160 three eighths of it, and each note rings half the span at most (never over 360 ticks)
+export const GLISS_QUICK = [[160, 3], [120, 4]];
+export const glissSpan = (span, bpm) => (span * (GLISS_QUICK.find(([from]) => bpm >= from)?.[1] ?? 8)) >> 3;
+/** A glissando's notes { t, len, d, v }: `span` ticks of scale steps (fewer on a faster track: glissSpan)
+ * ending at tick `end`, about the tonic above the bass register (degrees 1 - n/2 to n/2 for n notes;
+ * `high`: an octave above that), each ringing on, velocities 43-63 (the sketch's 51-74, 15% quieter). */
+export function glissando(plan, end, span, seed, last = end + 480, bpm = 0) {
+  span = glissSpan(span, bpm);
+  const n = Math.floor(span / GLISS_STEP), low = 1 - Math.floor(n / 2) + (plan.high ? 7 : 0), ring = Math.min(360, bpm >= 120 ? span >> 1 : 360);
+  return Array.from({ length: n }, (_, k) => { const t = end - (n - k) * GLISS_STEP; return { t, len: Math.min(ring, last - t), d: plan.up ? low + k : low + n - 1 - k, v: Math.round((51 + mix(seed, k) % 24) * 0.85) }; });
 }
 
 /** The styles whose accompaniment the sample bank plays pizzicato: there it sits an octave lower on a
@@ -428,6 +438,11 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
   if (!LOW_ACCOMP_STYLES.includes(S.key)) accLow = false;
   if (accLow) accDown = true;
   if (plainChords) spreadShare = -1;
+  // The accompaniment's octave doubling (a figure's root-and-octave, or its lone upper root) sits above the
+  // root; on one purchase in three it sits below instead, for the whole track, from a stream of its own. Not
+  // when the accompaniment is already an octave lower.
+  const octaveBelow = rng((fold ^ imul(e, 0x4cf5ad43) ^ imul(sp.id, 0x2745937f)) >>> 0).int(OCTAVE_BELOW[1]) < OCTAVE_BELOW[0] && !accDown;
+  const octave = octaveBelow ? -12 : 12;
   // harp glissandi: into the second, third or fourth tune, or into the end; the week moves them
   const GL = rng((fold ^ imul(e, 0x7feb352d) ^ imul(sp.id, 0x846ca68b)) >>> 0);
   const glDraw = GL.int(20);
@@ -480,6 +495,9 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
   const inAnswer = [-3, 2, -5][IN.int(3)], inMirror = IN.int(2) === 0, inCounter = IN.int(3) > 0, inRun = IN.int(4) === 0, inArp = inKind === 3 && IN.int(2) === 0;
   if (intro !== null) introBars = intro === false ? 0 : intro === true ? introBars || 2 : Math.max(0, Math.min(4, intro | 0));
   if (introBars === 1 && S.num === 2) introBars = 2;
+  // and lasts at most INTRO_MAX_S seconds (Casey: the intros drag): fewer bars at slow tempos, never under one bar
+  // (two in 2/4); an intro asked for by number is played as asked
+  if (intro === null && introBars) introBars = Math.max(S.num === 2 ? 2 : 1, Math.min(introBars, Math.floor(INTRO_MAX_S / (S.num * (4 / S.den) * 60 / bpm))));
   const introHas = [];
   if (introBars) {
     const N = introBars, plan = (S.home === 'minor' ? ['i', 'VI', 'iv', 'V'] : S.home === 'lydian' ? ['I', 'II', 'I', 'V'] : ['I', 'vi', 'IV', 'V']).slice(4 - N).map((x) => chordToken(S.home, x));
@@ -505,7 +523,7 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
         for (let i = 0; i < count; i++) { const up = i < count / 2 ? i : count - 1 - i; T.accomp.block(2, t + i * sub, sub - 10, [P(v[0] + steps[up % 7], tok) + low], 36 + Math.round(16 * i / count)); }
       } else if (groove) {
         note('the accompaniment figure'); const ev = [];
-        accomp.forEach(([off, d, voice, dv], j) => { const ps = voice === 9 ? vr.map((x) => P(x, tok)) : voice === 10 ? [P(vr[0], tok), P(vr[0], tok) + 12] : voice === 3 ? [P(vr[0], tok) + 12] : [P(vr[voice], tok)], room = (j + 1 < accomp.length ? accomp[j + 1][0] : bar) - off, len = Math.max(30, Math.min(d, room) - 10);
+        accomp.forEach(([off, d, voice, dv], j) => { const ps = voice === 9 ? vr.map((x) => P(x, tok)) : voice === 10 ? [P(vr[0], tok), P(vr[0], tok) + octave] : voice === 3 ? [P(vr[0], tok) + (octaveBelow ? 0 : 12)] : [P(vr[voice], tok)], room = (j + 1 < accomp.length ? accomp[j + 1][0] : bar) - off, len = Math.max(30, Math.min(d, room) - 10);
           for (const x of ps) ev.push([t + off, 1, 0x90 | 2, x + low, Math.max(1, Math.min(127, 50 + swell + dv))], [t + off + len, 0, 0x80 | 2, x + low, 0]); });
         ev.sort((a, b2) => a[0] - b2[0] || a[1] - b2[1]); for (const [at, , ...msg] of ev) T.accomp.msg(at, ...msg);
       } else if (call.length) { // the response: the call again half a bar later, in the accompaniment's voice, at another pitch
@@ -526,10 +544,16 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
     t0 = N * bar;
   }
   const introTicks = t0;
+  // When the track ends on the tune it began with (A, or its variant A'), that last time the tune is a third
+  // higher: every note two scale steps up, the notes on strong beats and the long ones moved onto the chord
+  // as the melody's own are, and the last note the upper tonic. The track loops, so without this the tune
+  // would come round twice running.
+  const grand = kinds[3] === 0 || kinds[3] === 3;
   for (let s = 0; s < 4; s++) {
     const kind = kinds[s];
     const chords = sectionChords(kind);
-    const m = kind === 3 ? melD : kind === 2 ? melC : (kind === 1) !== (knob === 1) ? melB : melA;
+    const m0 = kind === 3 ? melD : kind === 2 ? melC : (kind === 1) !== (knob === 1) ? melB : melA;
+    const m = s === 3 && grand ? m0.map((n, i) => ({ ...n, d: i === m0.length - 1 ? 7 : c.strong(n.t) || n.len >= 720 ? snap(n.d + GRAND_STEP, deg(chords[Math.floor(n.t / bar)])) : n.d + GRAND_STEP })) : m0;
     for (const n of m) {
       const t = t0 + n.t, len = n.len - gap(n.len);
       const tok = chords[Math.floor(n.t / bar)]; // the bar's chord colours the lead
@@ -553,7 +577,7 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
       if (accomp.some((x) => x[2] >= 9)) { chordBars++; if (how) spreadBars++; }
       const ev = [];
       accomp.forEach(([off, d, voice, dv], k) => {
-        const ps = voice === 9 ? [...vr.map((x) => P(x, tok)), ...seventh] : voice === 10 ? [P(vr[0], tok), P(vr[0], tok) + 12] : voice === 3 ? [P(vr[0], tok) + 12] : [P(vr[voice], tok)];
+        const ps = voice === 9 ? [...vr.map((x) => P(x, tok)), ...seventh] : voice === 10 ? [P(vr[0], tok), P(vr[0], tok) + octave] : voice === 3 ? [P(vr[0], tok) + (octaveBelow ? 0 : 12)] : [P(vr[voice], tok)];
         const room = (k + 1 < accomp.length ? accomp[k + 1][0] : bar) - off;
         let step = how >= 3 && voice >= 9 ? spreadStep(spreadSeed, kind, b, room) : 0;
         // thirty-seconds in one bar of one tune at most: elsewhere sixteenths, or a roll where those do not fit
@@ -577,14 +601,14 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
       // the last bar of a tune: the pattern, or a fill over its second half, or the drums cut out altogether
       const ending = b === 7 ? drumEnds[s] : 0;
       if (ending !== 2) for (const [off, note, dv] of perc) if (ending === 0 || off < halfBar) T.percussion.block(9, t + off, 120, [note], 100 + dv);
-      if (ending === 1) { const count = Math.floor(halfBar / 120); for (let i = 0; i < count; i++) T.percussion.block(9, t + halfBar + i * 120, 100, [DRUM_FILL[Math.min(DRUM_FILL.length - 1, Math.floor(i * DRUM_FILL.length / count))]], 58 + Math.round(26 * i / count)); }
+      if (ending === 1) { const count = Math.floor(halfBar / 120); for (let i = 0; i < count; i++) T.percussion.block(9, t + halfBar + i * 120, 100, [DRUM_FILL[Math.min(DRUM_FILL.length - 1, Math.floor(i * DRUM_FILL.length / count))]], DRUM_FILL_VEL[0] + Math.round(DRUM_FILL_VEL[1] * i / count)); }
     }
     t0 += 8 * bar;
     const gl = glPlan.find((x) => x.spot === s);
     if (gl) {
       // in the last bar's chord colour, over its last half bar (a bar of 2/4)
       const tok = chords[7];
-      for (const n of glissando(gl, t0, S.den === 8 ? 720 : Math.min(bar, 960), glSeed, s === 3 ? t0 : t0 + 480)) glEv.push([n.t, 1, 0x90 | GLISS_CHANNEL, P(n.d, tok), n.v], [n.t + n.len, 0, 0x80 | GLISS_CHANNEL, P(n.d, tok), 0]);
+      for (const n of glissando(gl, t0, S.den === 8 ? 720 : Math.min(bar, 960), glSeed, s === 3 ? t0 : t0 + 480, bpm)) glEv.push([n.t, 1, 0x90 | GLISS_CHANNEL, P(n.d, tok), n.v], [n.t + n.len, 0, 0x80 | GLISS_CHANNEL, P(n.d, tok), 0]);
     }
   }
   glEv.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
@@ -615,10 +639,11 @@ export function editionTrack(sp, mega, e, seedKey, drift = null, plainChords = f
     edition: e, month: g.month, name: g.name, engine: S.label, desc: S.desc, family: S.family ?? (g.style < 6 ? 'Realm of Common Tones' : 'Kingdom of Sweets'),
     key: NOTE[tonic] + ' ' + SCALE_NAMES[S.modes[0]], meter: S.num + '/' + S.den, bpm, form: form.split('').map((x) => (x === 'D' ? "A'" : x)).join(' ') + (formId >= 4 ? (newEnding ? " (A' new ending)" : " (A' decorated)") : ''),
     progA: NUM[0].join(' '), progB: NUM[1].join(' '), progC: formId % 4 === 3 ? NUM[2].join(' ') : null,
-    accomp: S.source + ' ' + fig(S.accomps, accomp) + (accDown ? ' · an octave lower' : ''), accompLow: accDown,
+    accomp: S.source + ' ' + fig(S.accomps, accomp) + (accDown ? ' · an octave lower' : '') + (octaveBelow && accomp.some((x) => x[2] === 10 || x[2] === 3) ? ' · its octave below the root' : ''), accompLow: accDown, octaveBelow,
     chords: !chordBars ? 'the figure has no chords' : plainChords ? 'struck' : SPREAD_LEANS[spreadLean] + ' in ' + spreadBars + ' of ' + chordBars + ' bars' + (stepsUsed.size ? ' · arpeggios in ' + SPREAD_STEPS.filter((x) => stepsUsed.has(x)).map((x) => STEP_NAMES[x]).join(', ') : ''),
     spread: { bars: spreadBars, rolled: rolledBars, steps: SPREAD_STEPS.filter((x) => stepsUsed.has(x)) }, bass: !on('bass') ? 'none' : S.source + ' ' + fig(S.basses, bassFig) + ['', ' doubled', ' detached'][bassMode] + (walking ? ' · walking in ' + WALK_SPAN_NAMES[walkSpan] : ''), walking: walking && on('bass'), walkTunes: walking && on('bass') ? WALK_SPANS[walkSpan] : [],
     drums: on('percussion') ? S.source + ' ' + fig(S.percs, perc) + [1, 2].map((k) => { const at = drumEnds.map((x, i) => (x === k ? i + 1 : 0)).filter(Boolean); return at.length ? ' · ' + ['', 'a fill', 'cut'][k] + ' at the end of tune' + (at.length > 1 ? 's ' : ' ') + at.join(', ') : ''; }).join('') : 'none', drumEnds: on('percussion') ? drumEnds : [0, 0, 0, 0], theme: THEMES[theme],
+    lastTune: grand ? 'the first tune a third higher' : 'as written', grand,
     secondLead: altKind < 0 ? 'none' : 'the ' + 'ABC'[altKind] + ' tune', altKind, quicker,
     intro: introBars ? introBars + (introBars > 1 ? ' bars: ' : ' bar: ') + introHas.join(', ') : 'none', introBars, introTicks,
     doubling: doubled.some(Boolean) ? doubled.map((iv, k) => (iv ? 'tune ' + (k + 1) + ' in ' + { 2: 'thirds above', [-3]: 'fourths below', [-4]: 'fifths below' }[iv] : '')).filter(Boolean).join(', ') : 'none', doubled,

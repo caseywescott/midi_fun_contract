@@ -1,5 +1,5 @@
 // Harp glissandi: at most one a track and some tracks none, some an octave higher, each a run of
-// scale steps a thirty-second note apart, up or down, ending where a section ends.
+// scale steps a thirty-second note apart, up or down, ending where a section ends; shorter on a faster track.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SPECIES } from '../src/loot_species.js';
@@ -17,12 +17,16 @@ function runs(notes) {
   return out;
 }
 /** Check a track's glissandi; returns how many it has. */
-function check(label, notes, plan, ends, pcs, trackEnd) {
+function check(label, notes, plan, ends, pcs, trackEnd, bpm) {
+  // 12-16 notes under 120 BPM, 6-8 from there, 4-6 from 160, and no note rings longer than half the run
+  const [least, most, ring] = bpm >= 160 ? [4, 6, 180] : bpm >= 120 ? [6, 8, 240] : [12, 16, 360];
+  lengths.add(least);
   const rs = runs(notes);
   assert.equal(rs.length, plan.length, `${label}: ${rs.length} runs for ${plan.length} planned`);
   assert.ok(plan.length <= 1);
   rs.forEach((run, k) => {
-    assert.ok(run.length >= 12 && run.length <= 16, `${label}: ${run.length} notes`);
+    assert.ok(run.length >= least && run.length <= most, `${label}: ${run.length} notes at ${bpm} BPM`);
+    assert.ok(run.every((n) => n[1] <= ring), `${label}: a note rings longer than ${ring} ticks`);
     assert.ok(ends.includes(run[run.length - 1][0] + E.GLISS_STEP), `${label}: a glissando ends at ${run[run.length - 1][0] + E.GLISS_STEP}, not at a section's end`);
     const up = run[1][2] > run[0][2];
     assert.equal(up, plan[k].up);
@@ -32,7 +36,7 @@ function check(label, notes, plan, ends, pcs, trackEnd) {
   if (rs.length) { const low = Math.min(...rs[0].map((n) => n[2])); (plan[0].high ? highs : lows).push(low); }
   return rs.length;
 }
-const highs = [], lows = [];
+const highs = [], lows = [], lengths = new Set();
 const tally = (name, counts) => {
   console.log(`${name}: ${counts[0]} tracks with none, ${counts[1]} with one; ${highs.length} of ${highs.length + lows.length} so far an octave higher`);
   assert.equal(counts[2], 0); assert.ok(counts[0] * 4 >= counts[0] + counts[1] && counts[1] * 4 >= counts[0] + counts[1]);
@@ -44,7 +48,7 @@ test('Rounds', () => {
   const counts = [0, 0, 0], spots = new Set(), ways = new Set();
   for (const sp of SPECIES) for (let k = 0; k < 12; k++) for (const d of [null, week(k)]) {
     const sc = R.roundScore(sp, false, k ? seedOf(k) : 0n, d), pcs = sc.scale.map((x) => (sc.tonic + x) % 12);
-    counts[check(`round ${sp.id} ${k}`, R.glissNotes(sc), sc.glPlan, sc.glAt, pcs, sc.end)]++;
+    counts[check(`round ${sp.id} ${k}`, R.glissNotes(sc), sc.glPlan, sc.glAt, pcs, sc.end, sc.bpm0)]++;
     sc.glPlan.forEach((x) => { spots.add(x.spot); ways.add(x.up); });
     assert.equal(R.roundMidi(sp, false, k ? seedOf(k) : 0n, d).info.channels.includes(E.GLISS_CHANNEL), sc.gliss.length > 0);
   }
@@ -55,7 +59,7 @@ test('Sound Checks', () => {
   const counts = [0, 0, 0];
   for (const sp of SPECIES) for (let k = 0; k < 20; k++) {
     const sc = C.soundCheckScore(sp, false, k ? seedOf(k) : 0n), pcs = sc.scale.map((x) => (sc.tonic + x) % 12);
-    counts[check(`check ${sp.id} ${k}`, C.checkNotes(sc, 6), sc.glPlan, sc.glAt, pcs, sc.end)]++;
+    counts[check(`check ${sp.id} ${k}`, C.checkNotes(sc, 6), sc.glPlan, sc.glAt, pcs, sc.end, sc.info.bpm)]++;
   }
   tally('Sound Checks', counts);
 });
@@ -82,10 +86,11 @@ test('editions', () => {
       }
       assert.equal(on.size, 0);
     }
-    counts[check(`edition ${e} species ${sp.id} ${k}`, notes, tr.info.gliss, [8, 16, 24, 32].map((b) => b * bar), null, tr.ticks)]++;
+    counts[check(`edition ${e} species ${sp.id} ${k}`, notes, tr.info.gliss, [8, 16, 24, 32].map((b) => b * bar), null, tr.ticks, tr.bpm)]++;
     if (d) { weeks++; const base = E.editionTrack(sp, false, e, seedOf(k), null).info.glissandi; if (base !== tr.info.glissandi) moved++; assert.equal(tr.info.gliss.length, E.editionTrack(sp, false, e, seedOf(k), null).info.gliss.length); }
   }
   tally('editions', counts);
   console.log(`a week of drift moves or turns the glissandi in ${moved} of ${weeks} tracks`);
   assert.ok(moved > 0);
+  assert.equal(lengths.size, 3, 'slow, quick and fast tracks all met');
 });

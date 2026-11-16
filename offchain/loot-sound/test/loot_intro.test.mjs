@@ -1,5 +1,5 @@
 // The editions' intro (loot_editions.js, `introBars`): on half the purchases, one to four bars before the
-// first tune, which it leaves note for note as it was.
+// first tune, at most INTRO_MAX_S seconds long, which it leaves note for note as it was.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { LOOT_BEASTS } from '../src/loot_beasts.js';
@@ -13,7 +13,7 @@ const BEASTS = LOOT_BEASTS.map((b) => ({ ...b, ...SPECIES.find((s) => s.id === b
 // a track body's events as [tick, status, data1, data2], meta events left out
 function events(body) { const out = []; let i = 0, t = 0, run = 0; while (i < body.length) { let d = 0, b; do { b = body[i++]; d = (d << 7) | (b & 127); } while (b & 128); t += d; let s = body[i]; if (s & 128) i++; else s = run; if (s === 0xff) { i++; let l = 0; do { b = body[i++]; l = (l << 7) | (b & 127); } while (b & 128); i += l; continue; } run = s; const ty = s & 0xf0; if (ty === 0xc0 || ty === 0xd0) { out.push([t, s, body[i], 0]); i++; continue; } out.push([t, s, body[i], body[i + 1]]); i += 2; } return out; }
 
-test('half the purchases have an intro of one to four bars, and the tunes after it are unchanged', () => {
+test('half the purchases have an intro of one to four bars, at most four and a half seconds, and the tunes after it are unchanged', () => {
   let n = 0, withIntro = 0, runs = 0; const lengths = new Set(), layers = new Set();
   for (const sp of BEASTS.filter((_, i) => i % 3 === 0)) for (let e = 1; e <= STYLES.length; e++) for (const p of [1, 2, 3, 4]) {
     const S = STYLES[E.editionGenome(e).style], bar = S.num * (1920 / S.den), a = E.editionTrack(sp, false, e, seed(p)), plain = E.editionTrack(sp, false, e, seed(p), null, false, null, false);
@@ -22,6 +22,7 @@ test('half the purchases have an intro of one to four bars, and the tunes after 
     assert.equal(shift, N * bar); assert.equal(a.ticks, 32 * bar + shift);
     if (!N) { assert.deepEqual(a.bodies, plain.bodies); continue; }
     withIntro++; lengths.add(N); assert.ok(N >= (S.num === 2 ? 2 : 1) && N <= 4, `${S.key}: an intro of ${N} bars`);
+    const secs = shift / 480 * 60 / a.bpm; assert.ok(secs <= E.INTRO_MAX_S + 0.01 || N === (S.num === 2 ? 2 : 1), `${S.key}: an intro of ${secs.toFixed(1)} s`);
     for (const x of a.info.intro.split(': ')[1].split(', ')) layers.add(x.replace(/ (up|down) /, ' '));
     assert.deepEqual(a.info.channels, plain.info.channels, 'the intro brings in no part the track does not have');
     a.info.channels.forEach((ch, k) => {

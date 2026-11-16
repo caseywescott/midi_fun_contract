@@ -10,7 +10,7 @@ const cases = JSON.parse(readFileSync(new URL('./editions_cases.json', import.me
 const lines = process.argv[2] ? readFileSync(process.argv[2], 'utf8').split('\n').filter((l) => l.startsWith('ED ')) : [];
 const got = new Map(lines.map((l) => { const c = Object.fromEntries(l.trim().split(/\s+/).slice(1).map((kv) => kv.split('='))); return [+c.i, c]; }));
 let ok = 0, bad = 0;
-const seen = { style: new Set(), intro: new Set(), walk: 0, alt: 0, gliss: 0, doubled: 0, drumFill: 0, accLow: 0, arp32: 0, form: new Set(), knob: new Set(), parts: new Set(), quicker: 0, theme: new Set(), mega: 0 };
+const seen = { style: new Set(), intro: new Set(), walk: 0, alt: 0, gliss: 0, doubled: 0, drumFill: 0, accLow: 0, arp32: 0, form: new Set(), knob: new Set(), parts: new Set(), quicker: 0, theme: new Set(), mega: 0, grand: 0, below: 0, fastGliss: 0 };
 for (const c of cases) {
   const sp = SPECIES.find((s) => s.id === c.sp);
   const drift = c.drift && { ...c.drift, rhythm: c.drift.rhythm === null ? null : BigInt(c.drift.rhythm), rotate: c.drift.rotate === null ? null : BigInt(c.drift.rotate) };
@@ -20,6 +20,7 @@ for (const c of cases) {
   seen.gliss += inf.gliss.length; seen.doubled += inf.doubled.some(Boolean) ? 1 : 0; seen.drumFill += inf.drumEnds.some((x) => x === 1) ? 1 : 0;
   seen.accLow += inf.accompLow ? 1 : 0; seen.arp32 += inf.spread.steps.includes(60) ? 1 : 0; seen.form.add(inf.form); seen.knob.add(c.drift ? c.drift.dayKnob : 6);
   seen.parts.add(inf.parts.length); seen.quicker += inf.quicker ? 1 : 0; seen.theme.add(inf.theme); seen.mega += c.mega ? 1 : 0;
+  seen.grand += inf.grand ? 1 : 0; seen.below += inf.octaveBelow ? 1 : 0; seen.fastGliss += inf.gliss.length && inf.bpm >= 120 ? 1 : 0;
   const g = got.get(c.i);
   if (!g) continue;
   if (js === g.hex) { ok++; continue; }
@@ -30,6 +31,6 @@ for (const c of cases) {
   console.log('  cairo ' + g.hex.slice(Math.max(0, i - 40), i + 40));
 }
 const f = (s) => [...s].sort((a, b) => (a > b ? 1 : -1)).join(' ');
-console.log(`coverage: ${seen.style.size} styles, intro bars {${f(seen.intro)}}, ${seen.walk} walking, ${seen.alt} second leads, ${seen.gliss} glissandi, ${seen.doubled} doubled, ${seen.drumFill} drum fills, ${seen.accLow} accomp low, ${seen.arp32} with 32nds, ${seen.form.size} forms, knobs {${f(seen.knob)}}, part counts {${f(seen.parts)}}, ${seen.quicker} quicker, ${seen.theme.size} themes, ${seen.mega} mega`);
+console.log(`coverage: ${seen.style.size} styles, intro bars {${f(seen.intro)}}, ${seen.walk} walking, ${seen.alt} second leads, ${seen.gliss} glissandi, ${seen.doubled} doubled, ${seen.drumFill} drum fills, ${seen.accLow} accomp low, ${seen.arp32} with 32nds, ${seen.form.size} forms, knobs {${f(seen.knob)}}, part counts {${f(seen.parts)}}, ${seen.quicker} quicker, ${seen.theme.size} themes, ${seen.mega} mega, ${seen.grand} grand last tunes, ${seen.below} octave below, ${seen.fastGliss} glissandi at 120+ BPM`);
 console.log(`EDITIONS PARITY: ${ok}/${got.size} match (${cases.length} cases defined)`);
 process.exit(bad === 0 && got.size > 0 ? 0 : 1);

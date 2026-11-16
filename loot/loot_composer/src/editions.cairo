@@ -21,6 +21,8 @@ use crate::common::{GLISS_CHANNEL, GlissPlan, Rng, RngTrait, fold64, gliss_plan,
 use crate::editions_data::{
     COLOURS, INTRO_PLAN, SCALES, STYLE_COUNT, SUBS, SUBS_AT, Style, WALKS, style,
 };
+use crate::orchestra::{scaled, vol_factor};
+use crate::orchestra_data::LOW;
 use crate::species::loot_species;
 
 const SEVEN: NonZero<u32> = 7;
@@ -239,17 +241,29 @@ fn vol_of(flags: u32, ch: u8, program: u32) -> u8 {
 
 /// A channel's track, opened with its program, volume, pan and reverb.
 #[inline(never)]
-fn channel_track(ch: u8, program: u32, flags: u32, band: Span<u8>) -> TrackWriter {
+fn channel_track(ch: u8, program: u32, c: @Ctx) -> TrackWriter {
+    let (flags, band): (u32, Span<u8>) = (c.flags, c.band);
     let mut tw = TrackWriterTrait::new();
     // the band's instrument when one is given (the lab's setProgram override; drums keep theirs);
     // the volume still follows the written program, as in the lab
-    let played: u8 = if band.len() != 0 && ch != 9 {
+    // (an accompaniment written an octave lower plays the band's low instrument, pizzicato)
+    let played: u8 = if band.len() != 0 && ch == 2 && c.acc_down {
+        LOW
+    } else if band.len() != 0 && ch != 9 {
         *band.at(ch.into() % band.len())
     } else {
         program.try_into().unwrap()
     };
     tw.message1(0, 0xC0 + ch, played);
-    tw.message(0, 0xB0 + ch, 7, vol_of(flags, ch, program));
+    // the style's MIX and the lead's LEAD_SOFT on the band's instrument (loot-lab.mjs: sample banks,
+    // as played)
+    let vol = vol_of(flags, ch, program);
+    let vol = if band.len() != 0 && ch < 8 {
+        scaled(vol, vol_factor(c.style, played, ch == 0 || ch == 1 || ch == ALT_CHANNEL))
+    } else {
+        vol
+    };
+    tw.message(0, 0xB0 + ch, 7, vol);
     tw.message(0, 0xB0 + ch, 10, *PAN.span().at(ch.into()));
     tw.message(0, 0xB0 + ch, 91, 40);
     tw
@@ -664,12 +678,16 @@ struct Intro {
 #[derive(Copy, Drop)]
 struct Ctx {
     s: Box<Style>,
+    /// the style's index (its MIX)
+    style: u32,
     base: felt252,
     home: Span<u8>,
     bar: u32,
     rot: u32,
     parts: u32,
     acc_down: bool,
+    /// the accompaniment's octave doubling: 12, or -12 (below the root, one purchase in three)
+    octave: felt252,
     detached: bool,
     accomp: Span<u32>,
     bass: Span<u32>,
@@ -691,6 +709,8 @@ struct Ctx {
     nums: Span<Span<u32>>,
     mels: Span<Span<Note>>,
     mel_a: Span<Note>,
+    /// the last tune's melody: a third higher when the form ends on A or A' (`grand`)
+    last_mel: Span<Note>,
     doubled: Span<felt252>,
     drum_ends: Span<u32>,
     /// the walking bass: which tunes (bits), its seed, the month's hash (0: none)
@@ -716,7 +736,8 @@ fn sound(detached: bool, len: u32) -> felt252 {
 
 /// The accompaniment's three voices on chord `tok` (root, then the week's inversion).
 #[inline(never)]
-fn voicing(c: @Ctx, tok: u32) -> (felt252, felt252, felt252, felt252) {
+fn voicing(k: Box<Ctx>, tok: u32) -> (felt252, felt252, felt252, felt252) {
+    let c = k.unbox();
     let r = triad_root(deg(tok), -3);
     let rot = c.rot;
     let (base, home) = (c.base, c.home);
@@ -729,10 +750,17 @@ fn voicing(c: @Ctx, tok: u32) -> (felt252, felt252, felt252, felt252) {
 }
 
 /// An accompaniment event's pitches by voice (9 the chord, with `seventh`; 10 root and octave; 3
-/// the octave; 0-2 one tone), moved by `low`.
+/// the octave; 0-2 one tone), moved by `low`; the octave doubling `octave` (12, or -12 below the
+/// root: then voice 3 is the root itself).
 #[inline(never)]
 fn voices(
-    voice: u32, p0: felt252, p1: felt252, p2: felt252, seventh: Option<felt252>, low: felt252,
+    voice: u32,
+    p0: felt252,
+    p1: felt252,
+    p2: felt252,
+    seventh: Option<felt252>,
+    low: felt252,
+    octave: felt252,
 ) -> Span<felt252> {
     if voice == 9 {
         match seventh {
@@ -740,9 +768,14 @@ fn voices(
             Option::None => array![p0 + low, p1 + low, p2 + low].span(),
         }
     } else if voice == 10 {
-        array![p0 + low, p0 + 12 + low].span()
+        array![p0 + low, p0 + octave + low].span()
     } else if voice == 3 {
-        array![p0 + 12 + low].span()
+        array![p0 + if octave == 12 {
+            12
+        } else {
+            0
+        } + low]
+            .span()
     } else if voice == 0 {
         array![p0 + low].span()
     } else if voice == 1 {
@@ -785,7 +818,8 @@ fn drum_fill(ref tw: TrackWriter, t: u32, count: u32, v0: felt252, rise: u32) {
 
 /// The pad's chord on `tok` (with its seventh), from `t` for `d` ticks.
 #[inline(never)]
-fn pad_chord(ref tw: TrackWriter, c: @Ctx, tok: u32, t: u32, d: felt252, v: felt252) {
+fn pad_chord(ref tw: TrackWriter, k: Box<Ctx>, tok: u32, t: u32, d: felt252, v: felt252) {
+    let c = k.unbox();
     let (base, home) = (c.base, c.home);
     let r = triad_root(deg(tok), -7);
     let mut ps = array![
@@ -836,6 +870,8 @@ fn intro(ref tw: TrackWriter, k: Box<Ctx>, role: u32) {
     }
     let c = k.unbox();
     let s = c.s.unbox();
+    let (num, den) = (s.num, s.den);
+    let (acc, octave) = (c.accomp, c.octave);
     let it = c.intro;
     let n_bars = it.bars;
     let mel_a = c.mel_a;
@@ -881,7 +917,7 @@ fn intro(ref tw: TrackWriter, k: Box<Ctx>, role: u32) {
         let seq = f(kb) - f(n_bars - 1);
         let groove = n_bars >= 3 && kb == 0;
         if role == 4 {
-            pad_chord(ref tw, @c, tok, t, f(bar) - 40, 34 + swell);
+            pad_chord(ref tw, k, tok, t, f(bar) - 40, 34 + swell);
         } else if role == 3 {
             if it.counter && !groove && call.len() > 1 {
                 call_line(ref tw, 3, t, call, true, ch + first, bass_base, home, tok, 70 + swell, 20);
@@ -890,7 +926,7 @@ fn intro(ref tw: TrackWriter, k: Box<Ctx>, role: u32) {
                 one(ref tw, 3, t, f(bar) - 30, pt(bass_base, home, ch, tok), 68 + swell);
             }
         } else if role == 2 {
-            let (v0, p0, p1, p2) = voicing(@c, tok);
+            let (v0, p0, p1, p2) = voicing(k, tok);
             if last && it.arp {
                 let steps = [0, 2, 4, 7, 9, 11, 14];
                 let count = bar / 120;
@@ -911,7 +947,6 @@ fn intro(ref tw: TrackWriter, k: Box<Ctx>, role: u32) {
                 }
             } else if groove {
                 let mut ev: Array<u64> = array![];
-                let acc = c.accomp;
                 for j in 0..acc.len() {
                     let (off, d, voice, dv) = fig(*acc.at(j));
                     let room = room_of(acc, j, off, bar);
@@ -926,7 +961,7 @@ fn intro(ref tw: TrackWriter, k: Box<Ctx>, role: u32) {
                         m - 10
                     };
                     let v = vel(50 + swell + dv);
-                    for p in voices(voice, p0, p1, p2, Option::None, low) {
+                    for p in voices(voice, p0, p1, p2, Option::None, low, octave) {
                         let p: u32 = (*p).try_into().unwrap();
                         ev_push(ref ev, t + off, true, p, v);
                         ev_push(ref ev, t + off + len, false, p, 0);
@@ -959,10 +994,10 @@ fn intro(ref tw: TrackWriter, k: Box<Ctx>, role: u32) {
             }
         } else {
             if n_bars > 1 {
-                let (nb, step) = if s.den == 8 {
+                let (nb, step) = if den == 8 {
                     (2, 720)
                 } else {
-                    (s.num, 480)
+                    (num, 480)
                 };
                 // 34 + (swell >> 1)
                 let v = 34 + f((28 * (kb + 1) + n_bars) / (2 * n_bars) / 2);
@@ -1001,6 +1036,9 @@ fn lead_section(
         return;
     }
     let (base, home, bar) = (c.base, c.home, c.bar);
+    let (detached, parts, orn, orn_seed, orn_kind, intro_ticks) = (
+        c.detached, c.parts, c.orn, c.orn_seed, c.orn_kind, c.intro_ticks,
+    );
     let (ch, up): (u8, felt252) = if role == 5 {
         (5, 12)
     } else {
@@ -1009,21 +1047,21 @@ fn lead_section(
     for n in m {
         let n = *n;
         let t = t0 + n.t;
-        let len = sound(c.detached, n.len);
+        let len = sound(detached, n.len);
         let tok = *chords.at(n.t / bar);
         let d: felt252 = n.d.into();
         if role == 1 {
             if doubled != 0 {
                 one(ref tw, 1, t, len, pt(base, home, d + doubled, tok), 70);
-            } else if n.len >= 480 && c.parts & DESCANT != 0 && !plain {
+            } else if n.len >= 480 && parts & DESCANT != 0 && !plain {
                 one(ref tw, 1, t, len, pt(base, home, d + 2, tok), 64);
             }
             continue;
         }
         let d70: u32 = (d + 70).try_into().unwrap();
-        let grace = c.orn > 0
+        let grace = orn > 0
             && n.len >= 480
-            && (((t - c.intro_ticks) / 240) * 7 + d70 * 13 + c.orn_seed) % 100 < c.orn;
+            && (((t - intro_ticks) / 240) * 7 + d70 * 13 + orn_seed) % 100 < orn;
         let v: felt252 = if role == 5 {
             70
         } else if n.t % bar != 0 {
@@ -1032,12 +1070,12 @@ fn lead_section(
             100
         };
         let main = pt(base, home, d, tok) + up;
-        if grace && c.orn_kind == 3 {
+        if grace && orn_kind == 3 {
             one(ref tw, ch, t, 60, main, v);
             one(ref tw, ch, t + 60, 60, pt(base, home, d + 1, tok) + up, v - 10);
             one(ref tw, ch, t + 120, len - 120, main, v);
         } else if grace {
-            let g = pt(base, home, d + *[1, -1, -2].span().at(c.orn_kind), tok);
+            let g = pt(base, home, d + *[1, -1, -2].span().at(orn_kind), tok);
             one(ref tw, ch, t, 80, g + up, v - 10);
             one(ref tw, ch, t + 80, len - 80, main, v);
         } else {
@@ -1050,7 +1088,7 @@ fn lead_section(
 #[inline(never)]
 fn accomp_bar(ref tw: TrackWriter, k: Box<Ctx>, tok: u32, kind: u32, b: u32, t: u32, ref fast: u32) {
     let c = k.unbox();
-    let (v0, p0, p1, p2) = voicing(@c, tok);
+    let (v0, p0, p1, p2) = voicing(k, tok);
     let how = spread_of(
         c.spread_seed, *[20_u32, 35, 50].span().at(c.spread_share), c.spread_lean, kind, b,
     );
@@ -1066,20 +1104,21 @@ fn accomp_bar(ref tw: TrackWriter, k: Box<Ctx>, tok: u32, kind: u32, b: u32, t: 
     };
     let mut ev: Array<u64> = array![];
     let acc = c.accomp;
+    let (bar, spread_seed, octave) = (c.bar, c.spread_seed, c.octave);
     let key = kind * 16 + b;
     let mut j: u32 = opaque(0);
     while j < acc.len() {
         let (off, d, voice, dv) = fig(*acc.at(j));
-        let room = room_of(acc, j, off, c.bar);
+        let room = room_of(acc, j, off, bar);
         let chord = voice >= 9;
         let mut step = if how >= 3 && chord {
-            spread_step(c.spread_seed, kind, b, room)
+            spread_step(spread_seed, kind, b, room)
         } else {
             0
         };
         // thirty-seconds in one bar of one tune at most
         if step == 60 && fast != key {
-            if (c.spread_seed / 0x100000) % 4 == 0 && fast == NO_FAST {
+            if (spread_seed / 0x100000) % 4 == 0 && fast == NO_FAST {
                 fast = key;
             } else {
                 step = if room >= 240 {
@@ -1089,7 +1128,7 @@ fn accomp_bar(ref tw: TrackWriter, k: Box<Ctx>, tok: u32, kind: u32, b: u32, t: 
                 };
             }
         }
-        let ps = voices(voice, p0, p1, p2, seventh, low);
+        let ps = voices(voice, p0, p1, p2, seventh, low, octave);
         spread_chord(ref ev, if chord {
             how
         } else {
@@ -1241,7 +1280,7 @@ fn rhythm_bar(ref tw: TrackWriter, k: Box<Ctx>, role: u32, tok: u32, b: u32, t: 
         }
     } else if role == 4 {
         if b % 2 == 0 {
-            pad_chord(ref tw, @c, tok, t, f(2 * bar) - 40, 46);
+            pad_chord(ref tw, k, tok, t, f(2 * bar) - 40, 46);
         }
     } else {
         let half = bar / 2;
@@ -1255,7 +1294,7 @@ fn rhythm_bar(ref tw: TrackWriter, k: Box<Ctx>, role: u32, tok: u32, b: u32, t: 
             }
         }
         if ending == 1 {
-            drum_fill(ref tw, t + half, half / 120, 58, 26);
+            drum_fill(ref tw, t + half, half / 120, 68, 28);
         }
     }
 }
@@ -1264,7 +1303,7 @@ fn rhythm_bar(ref tw: TrackWriter, k: Box<Ctx>, role: u32, tok: u32, b: u32, t: 
 #[inline(never)]
 fn part(k: Box<Ctx>, role: u32, ch: u8, program: u32) -> Array<u8> {
     let c = k.unbox();
-    let mut tw = channel_track(ch, program, c.flags, c.band);
+    let mut tw = channel_track(ch, program, @c);
     if c.intro.bars > 0 {
         intro(ref tw, k, role);
     }
@@ -1277,9 +1316,12 @@ fn part(k: Box<Ctx>, role: u32, ch: u8, program: u32) -> Array<u8> {
         let chords = *c.nums.at(kind);
         if role == 0 || role == 1 || role == 5 || role == 7 {
             let plain = sec < 3 && *c.kinds.at(sec + 1) == kind;
-            lead_section(
-                ref tw, k, role, *c.mels.at(kind), chords, t0, kind, *c.doubled.at(sec), plain,
-            );
+            let m = if sec == 3 {
+                c.last_mel
+            } else {
+                *c.mels.at(kind)
+            };
+            lead_section(ref tw, k, role, m, chords, t0, kind, *c.doubled.at(sec), plain);
         } else {
             let walks = role == 3 && (c.walk_tunes / *[1_u32, 2, 4, 8].span().at(sec)) % 2 == 1;
             if walks {
@@ -1421,7 +1463,9 @@ fn tempo_track(bpm: u32, knob: u8, delta: i64, num: u32, den: u32, ticks: u32) -
 /// The harp glissando's track (channel 6): into the end of tune `plan.spot`, in its last chord's
 /// colour, over its last half bar (a bar of 2/4, 720 ticks in 6/8).
 #[inline(never)]
-fn gliss_track(k: Box<Ctx>, plan: GlissPlan, seed: u32, program: u32, ticks: u32) -> Array<u8> {
+fn gliss_track(
+    k: Box<Ctx>, plan: GlissPlan, seed: u32, program: u32, ticks: u32, bpm: u32,
+) -> Array<u8> {
     let c = k.unbox();
     let s = c.s.unbox();
     let (bar, sec) = (c.bar, plan.spot);
@@ -1440,12 +1484,12 @@ fn gliss_track(k: Box<Ctx>, plan: GlissPlan, seed: u32, program: u32, ticks: u32
         t0 + 480
     };
     let mut ev: Array<u64> = array![];
-    for n in glissando(plan, t0, span, seed, last) {
+    for n in glissando(plan, t0, span, seed, last, bpm) {
         let p: u32 = pt(c.base, c.home, n.d.into(), tok).try_into().unwrap();
         ev_push(ref ev, n.t, true, p, n.v);
         ev_push(ref ev, n.t + n.len, false, p, 0);
     }
-    let mut tw = channel_track(GLISS_CHANNEL, program, c.flags, c.band);
+    let mut tw = channel_track(GLISS_CHANNEL, program, @c);
     ev_write(ref tw, GLISS_CHANNEL, ev.span());
     tw.finish_at(ticks)
 }
@@ -1621,6 +1665,8 @@ fn side_draws(
     kinds: Span<u32>,
     form_id: u32,
     num: u32,
+    den: u32,
+    bpm: u32,
 ) -> Box<Side> {
     // the walking bass (WK): three purchases in five, for the second half, the last tune or the
     // third tune
@@ -1712,6 +1758,23 @@ fn side_draws(
     if bars == 1 && num == 2 {
         bars = 2;
     }
+    // at most INTRO_MAX_S (4.5) seconds at the track's tempo, never under one bar (two in 2/4):
+    // floor(4.5 / (num * (4 / den) * 60 / bpm)) exactly (scripts/intro_max_check.mjs checks the source's
+    // float form agrees wherever it matters, under 4)
+    if bars != 0 {
+        let cap = (3 * bpm * den) / (160 * num);
+        let least = if num == 2 {
+            2
+        } else {
+            1
+        };
+        if cap < bars {
+            bars = cap;
+        }
+        if bars < least {
+            bars = least;
+        }
+    }
     BoxTrait::new(
         Side {
             walk_tunes: if walking {
@@ -1779,6 +1842,30 @@ fn tunes(
     (nums, [mel_a, mel_b, mel_c, mel_d].span())
 }
 
+/// The last tune when the form ends on A or A' (`grand`): every note GRAND_STEP (2) scale steps
+/// higher, those on strong beats and the long ones snapped onto the bar's chord, the last the upper
+/// tonic.
+#[inline(never)]
+fn grand(m: Span<Note>, chords: Span<u32>, bar: u32, strong2: u32) -> Span<Note> {
+    let mut out: Array<Note> = opaque(array![]);
+    let n = m.len();
+    let mut i: u32 = opaque(0);
+    while i != n {
+        let x = *m.at(i);
+        let d2: felt252 = x.d.into() + 2;
+        let d: felt252 = if i + 1 == n {
+            7
+        } else if strong(x.t, bar, strong2) || x.len >= 720 {
+            d2 + (*SNAP.span().at(m7(d2 - deg(*chords.at(x.t / bar))))).into()
+        } else {
+            d2
+        };
+        out.append(Note { t: x.t, len: x.len, d: d.try_into().unwrap() });
+        i += 1;
+    }
+    out.span()
+}
+
 /// Everything the tracks read.
 #[derive(Copy, Drop)]
 struct Plan {
@@ -1813,7 +1900,7 @@ fn plan(
         Option::None => (Option::None, Option::None, 6, 0),
     };
     let sp = loot_species(species);
-    let (_, sb, g_bpm) = edition_genome(e);
+    let (style, sb, g_bpm) = edition_genome(e);
     let s = sb.unbox();
     let id = species;
     let ty: u32 = sp.beast_type.into();
@@ -1833,7 +1920,7 @@ fn plan(
     let m = mm.unbox();
     let form = *FORMS.span().at(m.form_id);
     let kinds = [kind_of(form, 0), kind_of(form, 1), kind_of(form, 2), kind_of(form, 3)].span();
-    let sd = side_draws(fold, e, id, month, rotate, kinds, m.form_id, s.num);
+    let sd = side_draws(fold, e, id, month, rotate, kinds, m.form_id, s.num, s.den, m.bpm);
     let side = sd.unbox();
     // the theme as the A tune opens with it: as written, inverted, reversed or a third up
     let mut motif: Array<i32> = array![];
@@ -1873,9 +1960,36 @@ fn plan(
     let acc_down = (acc_p == 99 && (m.orn_seed / 8) % 3 == 0)
         || (side.acc_low && (s.flags / 4) % 2 == 1);
     let intro_ticks = side.intro.bars * bar;
+    let mels = if knob == 1 {
+        [*mels.at(1), mel_a, *mels.at(2), *mels.at(3)].span()
+    } else {
+        mels
+    };
+    // the last tune a third higher when the form ends on A or A'
+    let last_kind = *kinds.at(3);
+    let last_mel = if last_kind == 0 || last_kind == 3 {
+        let strong2 = if s.den == 8 {
+            720
+        } else if s.num == 4 {
+            960
+        } else {
+            0
+        };
+        grand(*mels.at(last_kind), *nums.at(last_kind), bar, strong2)
+    } else {
+        *mels.at(last_kind)
+    };
+    // the accompaniment's octave doubling below the root: one purchase in three (its own stream)
+    let mut ob = stream(fold, e, id, 0x4cf5ad43, 0x2745937f);
+    let octave: felt252 = if ob.int(3) < 1 && !acc_down {
+        -12
+    } else {
+        12
+    };
     let ctx = BoxTrait::new(
         Ctx {
             s: sb,
+            style,
             base: f(if m.tonic < 6 {
                 60 + m.tonic
             } else {
@@ -1886,6 +2000,7 @@ fn plan(
             rot: m.rot,
             parts: m.parts,
             acc_down,
+            octave,
             detached: m.detached,
             accomp: *s.accomps.at(m.acc_i),
             bass: *s.basses.at(m.bass_i),
@@ -1903,12 +2018,9 @@ fn plan(
             flags: s.flags,
             kinds,
             nums,
-            mels: if knob == 1 {
-                [*mels.at(1), mel_a, *mels.at(2), *mels.at(3)].span()
-            } else {
-                mels
-            },
+            mels,
             mel_a,
+            last_mel,
             doubled: side.doubled,
             drum_ends: side.drum_ends,
             walk_tunes: side.walk_tunes,
@@ -1980,7 +2092,7 @@ pub fn edition_tracks_played(
         tracks.append(part(ctx, 5, 5, *MEGA_LEADS.span().at((species + 1) % 2)));
     }
     if let Option::Some(gp) = gliss_plan(p.gl_draw, p.gl_seed, [3, 3, 1, 0, 2].span()) {
-        tracks.append(gliss_track(ctx, gp, p.gl_seed, acc_p, ticks));
+        tracks.append(gliss_track(ctx, gp, p.gl_seed, acc_p, ticks, p.bpm));
     }
     if c.alt_kind != NO_KIND {
         tracks.append(part(ctx, 7, ALT_CHANNEL, acc_p));

@@ -33,15 +33,36 @@ fn species_table() {
 fn gliss_matches_js() {
     let p = gliss_plan(12, 0xabcdef12, [3, 3, 1, 0, 2].span()).unwrap();
     assert_eq!(p, GlissPlan { spot: 0, up: true, high: true });
-    let n = glissando(p, 5000, 960, 0xabcdef12, 5480);
+    let n = glissando(p, 5000, 960, 0xabcdef12, 5480, 0);
     assert_eq!(n.len(), 16);
     assert_eq!(*n.at(0), GlissNote { t: 4040, len: 360, d: 0, v: 61 });
     assert_eq!(*n.at(1), GlissNote { t: 4100, len: 360, d: 1, v: 54 });
     assert_eq!(*n.at(15), GlissNote { t: 4940, len: 360, d: 15, v: 51 });
     let p2 = gliss_plan(19, 123456789, [0, 1, 3, 3, 2].span()).unwrap();
     assert_eq!(p2, GlissPlan { spot: 2, up: false, high: true });
-    let n2 = glissando(p2, 5000, 960, 123456789, 5480);
+    let n2 = glissando(p2, 5000, 960, 123456789, 5480, 0);
     assert_eq!(*n2.at(0), GlissNote { t: 4040, len: 360, d: 15, v: 50 });
     assert_eq!(*n2.at(15), GlissNote { t: 4940, len: 360, d: 0, v: 59 });
     assert!(gliss_plan(5, 1, [0, 2, 3, 3, 1].span()).is_none());
+}
+
+#[test]
+fn byte_array_bytes_reads_every_length() {
+    let mut n: u32 = 0;
+    while n != 70 {
+        let mut x: ByteArray = "";
+        let mut k: u32 = 0;
+        while k != n {
+            x.append_byte(((k * 37 + n) % 256).try_into().unwrap());
+            k += 1;
+        }
+        let b = crate::orchestra::byte_array_bytes(@x);
+        assert_eq!(b.len(), n);
+        let mut k: u32 = 0;
+        while k != n {
+            assert_eq!(*b.at(k), x.at(k).unwrap());
+            k += 1;
+        }
+        n += 1;
+    }
 }

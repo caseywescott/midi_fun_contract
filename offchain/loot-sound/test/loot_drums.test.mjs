@@ -21,7 +21,7 @@ test('a tune ends with a fill 7 times in 20 and a cut 5 in 20; a cut bar has no 
       tally[k]++;
       const from = (8 * s + 7) * bar, inBar = hits.filter(([t]) => t >= from && t < from + bar), late = inBar.filter(([t]) => t >= from + (bar >> 1));
       if (k === 2) assert.equal(inBar.length, 0, `${S.key}: a cut bar has drums`);
-      else if (k === 1) { const count = Math.floor((bar >> 1) / 120); assert.equal(late.length, count); assert.ok(late.every(([, n, v]) => E.DRUM_FILL.includes(n) && v >= 58 && v <= 84)); assert.equal(late.at(-1)[0], from + bar - 120); }
+      else if (k === 1) { const count = Math.floor((bar >> 1) / 120); assert.equal(late.length, count); assert.ok(late.every(([, n, v]) => E.DRUM_FILL.includes(n) && v >= E.DRUM_FILL_VEL[0] && v <= E.DRUM_FILL_VEL[0] + E.DRUM_FILL_VEL[1])); assert.equal(late.at(-1)[0], from + bar - 120); }
       else assert.equal(inBar.length, usual, `${S.key}: an ordinary last bar plays the pattern`);
     });
   }

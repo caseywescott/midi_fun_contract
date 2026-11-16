@@ -273,50 +273,28 @@ fn code(d: Span<u32>) -> u32 {
 #[inline(never)]
 fn deal_cost(b: u32, k: u32) -> u32 {
     let (b0, b1, b2, b3) = digits4(b);
-    let mut n0: u32 = opaque(0);
-    let mut n1: u32 = opaque(0);
-    let mut n2: u32 = opaque(0);
-    count(b0, ref n0, ref n1, ref n2);
-    count(b1, ref n0, ref n1, ref n2);
-    count(b2, ref n0, ref n1, ref n2);
-    if k == 4 {
-        count(b3, ref n0, ref n1, ref n2);
-    }
-    (if n1 > 1 {
+    let four = k == 4;
+    let ones: felt252 = one_if(b0 == 1)
+        + one_if(b1 == 1)
+        + one_if(b2 == 1)
+        + one_if(four && b3 == 1);
+    let has0 = b0 == 0 || b1 == 0 || b2 == 0 || (four && b3 == 0);
+    let has2 = b0 == 2 || b1 == 2 || b2 == 2 || (four && b3 == 2);
+    let c = one_if(!(ones == 0 || ones == 1)) + one_if(!has0) + one_if(ones == 0) + one_if(!has2);
+    c.try_into().unwrap()
+}
+
+#[inline(always)]
+fn one_if(x: bool) -> felt252 {
+    if x {
         1
     } else {
         0
-    })
-        + (if n0 == 0 {
-            1
-        } else {
-            0
-        })
-        + (if n1 == 0 {
-            1
-        } else {
-            0
-        })
-        + (if n2 == 0 {
-            1
-        } else {
-            0
-        })
-}
-
-#[inline(always)]
-fn count(x: u32, ref n0: u32, ref n1: u32, ref n2: u32) {
-    if x == 0 {
-        n0 += 1;
-    } else if x == 1 {
-        n1 += 1;
-    } else {
-        n2 += 1;
     }
 }
 
 #[inline(always)]
-fn kept(x: u32, y: u32) -> u32 {
+fn kept(x: u32, y: u32) -> felt252 {
     if x == y && x != 1 {
         8
     } else {
@@ -325,7 +303,7 @@ fn kept(x: u32, y: u32) -> u32 {
 }
 
 #[inline(always)]
-fn pair(ax: u32, ay: u32, bx: u32, by: u32, swap: u32) -> u32 {
+fn pair(ax: u32, ay: u32, bx: u32, by: u32, swap: felt252) -> felt252 {
     (if ax == ay && bx == by {
         8
     } else {
@@ -350,13 +328,14 @@ fn deal_penalty(a: u32, b: u32, k: u32, changed: bool, swap: u32) -> u32 {
     }
     let (a0, a1, a2, a3) = digits4(a);
     let (b0, b1, b2, b3) = digits4(b);
+    let swap: felt252 = swap.into();
     let p = kept(a0, b0)
         + kept(a1, b1)
         + kept(a2, b2)
         + pair(a0, a1, b0, b1, swap)
         + pair(a0, a2, b0, b2, swap)
         + pair(a1, a2, b1, b2, swap);
-    if k == 4 {
+    let p = if k == 4 {
         p
             + kept(a3, b3)
             + pair(a0, a3, b0, b3, swap)
@@ -364,7 +343,8 @@ fn deal_penalty(a: u32, b: u32, k: u32, changed: bool, swap: u32) -> u32 {
             + pair(a2, a3, b2, b3, swap)
     } else {
         p
-    }
+    };
+    p.try_into().unwrap()
 }
 
 /// The deals of K lines (ASSIGN[K]), as codes.
@@ -463,12 +443,15 @@ fn move_table(shapes: Span<u32>, chords: Span<u32>, s: u32) -> Span<u32> {
 fn moves(mt: Span<u32>, a: u32, b: u32, k: u32) -> u32 {
     let (a0, a1, a2, a3) = digits4(a);
     let (b0, b1, b2, b3) = digits4(b);
-    let p = *mt.at(a0 * 3 + b0) + *mt.at(9 + a1 * 3 + b1) + *mt.at(18 + a2 * 3 + b2);
-    if k == 4 {
-        p + *mt.at(27 + a3 * 3 + b3)
+    let p: felt252 = (*mt.at(a0 * 3 + b0)).into()
+        + (*mt.at(9 + a1 * 3 + b1)).into()
+        + (*mt.at(18 + a2 * 3 + b2)).into();
+    let p = if k == 4 {
+        p + (*mt.at(27 + a3 * 3 + b3)).into()
     } else {
         p
-    }
+    };
+    p.try_into().unwrap()
 }
 
 /// loot_rounds.js `dealRoles`: the deal of each slot, as codes. (The look ahead at the slot before the
@@ -1811,7 +1794,7 @@ pub fn round_tracks(
         } else {
             sl
         };
-        for gn in glissando(plan, at, span, gl_seed, at + 480) {
+        for gn in glissando(plan, at, span, gl_seed, at + 480, bpm0) {
             gliss.append(Sound { t: gn.t, len: gn.len, p: pitch_of(base, scale, gn.d.into()), v: (gn.v).into() });
         }
     }

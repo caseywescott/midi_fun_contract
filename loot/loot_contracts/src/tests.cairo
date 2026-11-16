@@ -64,7 +64,7 @@ fn the_owner_sets_classes() {
 }
 
 /// A song with sound effects through the provider is the pinned class's own performed file (called
-/// directly here), given the lab's band and lift.
+/// directly here), given the lab's band, lift, LEAD_SOFT and TOP_SOFT.
 fn performed_song_matches(species: u32, name: u16, sound_effects: u8) {
     let s = deploy();
     let (prefix, suffix) = loot_composer::songs::name_from_variant(name);
@@ -78,7 +78,7 @@ fn performed_song_matches(species: u32, name: u16, sound_effects: u8) {
     let band = loot_composer::orchestra::song_band(
         loot_composer::species::loot_species(species).beast_type, species, Option::None,
     );
-    let want = loot_composer::orchestra::orchestrate_byte_array(
+    let played = loot_composer::orchestra::orchestrate(
         loot_composer::orchestra::byte_array_bytes(@direct.midi).span(),
         band.span(),
         if name == 0 {
@@ -86,6 +86,10 @@ fn performed_song_matches(species: u32, name: u16, sound_effects: u8) {
         } else {
             12
         },
+    );
+    // and LEAD_SOFT and TOP_SOFT, as the lab plays it
+    let want = loot_composer::orchestra::top_soft_byte_array(
+        played.span(), band.span(), loot_composer::orchestra::lead_soft(*band.at(0)),
     );
     let got = s
         .compose(crate::interfaces::LootInputs::Song(crate::interfaces::LootSongInputs { species, name }), sound_effects);

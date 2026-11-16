@@ -41,7 +41,7 @@ const DEFS = [
   ['toymarch', 'Toy March', 'March', 'a crisp toy-soldier march with secondary dominants', 'march', 'major', [108, 124], [
     'I-V7-V7-I', 'I-IV-V7-I', 'I-II7-V7-I', 'I-vi-ii-V7', 'I-vii°7-V7-I', 'IV-V7-I-I', 'I-III7-vi-V7', 'I-iv-V7-I',
     'ii7-V7-I-I', 'I-VI7-ii-V7', 'I-V-II7-V7', 'vi-II7-V7-I', 'I-IV-Ger-V7', 'I-N-V7-I', 'IV-iv-V7-I', 'I-bVI-V7-I']],
-  ['adagio', 'Grand Adagio', 'Adagio', 'a descending adagio, more chromatic toward each cadence', 'chorale', 'major', [66, 80], [
+  ['adagio', 'Grand Adagio', 'Adagio', 'a descending adagio, more chromatic toward each cadence', 'chorale', 'major', [82, 96], [
     'I-V-vi-iii-IV-I-ii7-V7', 'IV-iv-I-vi-ii7-Ger-V7-I', 'I-VI7-ii-II7-V7-vi-N-V7', 'vi-iii-IV-I-ii-vii°7-V7-I',
     'I-V-vi-iii', 'IV-I-ii7-V7', 'I-vi-N-V7', 'IV-iv-I-V7', 'I-Ger-V7-I', 'ii7-vii°7-V7-I', 'I-II7-IV-V7', 'vi-III7-IV-V7',
     'I-bVI-ii7-V7', 'I-V-IV-iv', 'I-iii-IV-iv-I-VI7-II7-V7', 'I-V-vi-III7-IV-iv-V7-I']],

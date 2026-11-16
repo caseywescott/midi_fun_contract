@@ -231,7 +231,7 @@ const KINDS = ['song', 'round', 'name', 'check', 'edition'];
 const $ = (id) => document.getElementById(id), RD = BS.rd, CK = BS.ck, E = BS.engine, V = BS.v11, L = BS.lab, ED = BS.ed, U64 = (1n << 64n) - 1n, N = DATA.beasts.length, NSTYLE = DATA.styles.length;
 const st = { kind: 'song', b: 0, name: 1, e: 1, p: 1, r: 0, c: 0, day: 1, mega: false, inst: 0, rev: 50 };
 (function readUrl() {
-  const q = new URLSearchParams(location.search), num = (k, lo, hi, d) => (q.has(k) ? Math.max(lo, Math.min(hi, Math.round(+q.get(k)) || 0)) : d);
+  const q = new URLSearchParams(location.search); LAT_Q = q.get('lat'); const num = (k, lo, hi, d) => (q.has(k) ? Math.max(lo, Math.min(hi, Math.round(+q.get(k)) || 0)) : d);
   if (KINDS.includes(q.get('track'))) st.kind = q.get('track');
   st.b = num('b', 0, N - 1, 0); st.name = num('name', 1, L.NAME_COUNT, 1); st.e = num('e', 1, NSTYLE * 2, 1); st.p = num('p', 1, 1e6, 1); st.r = num('r', 0, 1e6, 0); st.c = num('c', 0, 1e6, 0); st.day = num('day', 1, 400, 1); st.mega = q.get('mega') === '1'; st.walk = q.get('walk') === '1' ? true : q.get('walk') === '0' ? false : null; st.inst = q.get('inst') === 'chip' ? DATA.insts.length - 1 : Math.max(0, Math.min(DATA.insts.length - 1, +(q.get('inst') || 0) || 0));
 })();
@@ -392,7 +392,7 @@ function show() {
   for (const bt of $('styles').querySelectorAll('button')) bt.onclick = () => { st.kind = 'edition'; st.e = +bt.dataset.k + 1; change(); };
   roll(cur.midi);
   if (!isChip() && window.Banks && Banks[st.inst].need) Banks[st.inst].need(wanted()); // start preparing this track's sounds
-  history.replaceState(null, '', '?' + new URLSearchParams({ track: st.kind, b: st.b, name: st.name, e: st.e, p: st.p, r: st.r, day: st.day, ...(st.mega ? { mega: 1 } : {}), ...(st.inst ? { inst: isChip() ? 'chip' : st.inst } : {}) }));
+  history.replaceState(null, '', '?' + new URLSearchParams({ ...(LAT_Q ? { lat: LAT_Q } : {}), track: st.kind, b: st.b, name: st.name, e: st.e, p: st.p, r: st.r, day: st.day, ...(st.mega ? { mega: 1 } : {}), ...(st.inst ? { inst: isChip() ? 'chip' : st.inst } : {}) }));
 }
 function notesOf(u8) {
   const notes = [], prog = {}; let end = 0, i = 14, ntr = (u8[10] << 8) | u8[11];
@@ -443,10 +443,20 @@ function start(at) {
   if (bankNow && bankNow.need) { const w = bankNow.need(wanted()); if (w.pending) { playing = true; $('play').textContent = 'Preparing…'; w.then(() => { $('play').textContent = '▶ Play'; if (tok === startTok && playing) go(at); }); return; } }
   go(at);
 }
+var LAT_Q; // ?lat=, read once at load (the address is rewritten from the state after); var, as it is set above
 function go(at) {
   // On a touch device the scheduler looks a second ahead (0.2 s by default), so a phone that falls behind for a
   // moment does not starve the output (Android pops; the default output buffer, which loothero found steadier)
-  if (!synth) { synth = new WebAudioTinySynth({ quality: 1, useReverb: 1, voices: 64 }); try { if (matchMedia('(pointer: coarse)').matches) synth.preroll = 1; } catch (e) {} }
+  // and plays through a larger output buffer (latencyHint 'playback': on Android the default ~10 ms buffer misses
+  // a brief spike, a crack; a player can take the extra start-up latency). ?lat=default keeps the device default,
+  // ?lat=0.1 (seconds) asks for that buffer, for comparing on a phone.
+  if (!synth) {
+    let touch = false; try { touch = matchMedia('(pointer: coarse)').matches; } catch (e) {}
+    const q = LAT_Q, hint = q === 'default' ? null : q && !isNaN(+q) ? +q : q === 'playback' || touch ? 'playback' : null;
+    if (hint !== null) { synth = new WebAudioTinySynth({ quality: 1, useReverb: 1, voices: 64, internalcontext: 0 }); const ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: hint }); synth.setAudioContext(ctx, ctx.destination); }
+    else synth = new WebAudioTinySynth({ quality: 1, useReverb: 1, voices: 64 });
+    if (touch) synth.preroll = 1;
+  }
   synth.getAudioContext().resume(); synth.stopMIDI();
   BS.installSettings(synth, cur.settings);
   if (!isChip()) synth.setReverbLev(st.rev / 100); // the settings carry the chip presets' reverb (30); the sample banks play in more

@@ -9,7 +9,9 @@ dist/loot-fm-pack.min.js          the pack (a classic script; also its own worke
 dist/loot-fm-pack.min.js.gz       gzip -9 of it
 dist/loot-fm-pack.min.js.gz.b64   base64 of the gzip: what the LootFmPack contract returns
 dist/demo.html                    drop a .mid file to hear it played with the pack (pack inlined as .gz.b64); it builds the
-                                  first seconds' buffers before playing (`prepare`) and schedules 1 s ahead on a touch device
+                                  first seconds' buffers before playing (`prepare`) and schedules 1 s ahead on a touch device,
+                                  where it also opens its AudioContext with latencyHint 'playback' (Android cracks);
+                                  ?lat=default keeps the device default, ?lat=<seconds> asks for that buffer
 ```
 
 ## API

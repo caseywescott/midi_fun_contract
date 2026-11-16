@@ -85,7 +85,12 @@ const PACK_B64 = "H4sIAAAAAAACE819eXObTLfn//MpYldeFQ1HqBu0IrdVcRIneZ44i+2sDDeFJG
   const drumOf = (k) => (bank.instruments.some((i) => i.drum === k) ? k : DRUM[k] ?? -1);
 
   // ---- audio graph: per channel gain and pan -> dry and a convolution reverb
-  const ac = new AudioContext(), master = ac.createGain(), wet = ac.createGain(), verb = ac.createConvolver();
+  // on a touch device a larger output buffer (latencyHint 'playback': Android's default ~10 ms buffer misses a brief
+  // spike, a crack); ?lat=default keeps the device default, ?lat=<seconds> asks for that buffer (to compare on a phone)
+  let touch = false; try { touch = matchMedia('(pointer: coarse)').matches; } catch (e) {}
+  const latQ = new URLSearchParams(location.search).get('lat');
+  const hint = latQ === 'default' ? null : latQ && !isNaN(+latQ) ? +latQ : latQ === 'playback' || touch ? 'playback' : null;
+  const ac = hint === null ? new AudioContext() : new AudioContext({ latencyHint: hint }), master = ac.createGain(), wet = ac.createGain(), verb = ac.createConvolver();
   const ir = ac.createBuffer(2, Math.round(ac.sampleRate * 2.4), ac.sampleRate);
   for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); let z = 0; for (let i = 0; i < d.length; i++) { z += 0.35 * (Math.random() * 2 - 1 - z); d[i] = z * Math.exp(-i / (ac.sampleRate * 0.55)); } }
   verb.buffer = ir; master.connect(ac.destination); master.connect(verb); verb.connect(wet); wet.connect(ac.destination);

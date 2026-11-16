@@ -112,7 +112,8 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
   }
   const api = {
     /** Play every instrument more crisply (or pass nothing for as set): { attack, release } scale those
-     *  envelope times and attackMax caps the attack in seconds. For pieces that want it; the bank is unchanged. */
+     *  envelope times and attackMax caps the attack in seconds; `keep` lists channels that play as set. For
+     *  pieces that want it; the bank is unchanged. */
     articulate(a) { art = a || null; },
     get activeVoices() { return [...voices].filter((v) => v.start <= ac.currentTime && v.end > ac.currentTime).length; },
     noteOn({ channel = 0, program = 0, drum = false, note, velocity = 100, time = ac.currentTime, destination = ac.destination, bend = 0 }) {
@@ -128,7 +129,7 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
       // `human`: each note a few tenths of a cent to a cent off and a touch louder or softer
       const jitter = inst.human ? (Math.random() * 2 - 1) * inst.human : 0, touch = inst.human ? 1 + (Math.random() * 2 - 1) * 0.05 : 1;
       const t = Math.max(ac.currentTime, time), sample = bank.samples[si]; let env = envelope(inst.envelope), offset = 0;
-      if (art) env = { ...env, attack: Math.min(env.attack * (art.attack ?? 1), art.attackMax ?? Infinity), release: env.release * (art.release ?? 1) };
+      if (art && !(art.keep && art.keep.includes(channel))) env = { ...env, attack: Math.min(env.attack * (art.attack ?? 1), art.attackMax ?? Infinity), release: env.release * (art.release ?? 1) };
       // Scheduler submits notes chronologically. Pending future voices are not stolen early.
       const overlapping = [...voices].filter((v) => v.start <= t && v.end > t).sort((a, b) => a.start - b.start);
       while (overlapping.length >= maxVoices) kill(overlapping.shift(), t);

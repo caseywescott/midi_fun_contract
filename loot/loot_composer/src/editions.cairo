@@ -21,7 +21,7 @@ use crate::common::{GLISS_CHANNEL, GlissPlan, Rng, RngTrait, fold64, gliss_plan,
 use crate::editions_data::{
     COLOURS, INTRO_PLAN, SCALES, STYLE_COUNT, SUBS, SUBS_AT, Style, WALKS, style,
 };
-use crate::orchestra::{scaled, vol_factor};
+use crate::orchestra::{scaled, vol_k};
 use crate::orchestra_data::LOW;
 use crate::species::loot_species;
 
@@ -255,11 +255,17 @@ fn channel_track(ch: u8, program: u32, c: @Ctx) -> TrackWriter {
         program.try_into().unwrap()
     };
     tw.message1(0, 0xC0 + ch, played);
-    // the style's MIX and the lead's LEAD_SOFT on the band's instrument (loot-lab.mjs: sample banks,
-    // as played)
+    // the volumes on the band's instrument (loot-lab.mjs track0: sample banks, as played): the
+    // style's MIX, and on the lead channels (0 and the second lead) LEAD_SOFT x LEAD_ALL, then
+    // LEAD_DROP
     let vol = vol_of(flags, ch, program);
     let vol = if band.len() != 0 && ch < 8 {
-        scaled(vol, vol_factor(c.style, played, ch == 0 || ch == 1 || ch == ALT_CHANNEL))
+        let (k, d) = vol_k(if ch == 0 || ch == ALT_CHANNEL {
+            1
+        } else {
+            0
+        }, c.style, played);
+        scaled(vol, k, d)
     } else {
         vol
     };

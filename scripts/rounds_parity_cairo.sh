@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.." || exit 2
 : > "$out"
 for i in $(seq -f %02g "$first" "$last"); do
   log="${TMPDIR:-/tmp}/${kind}_batch_$i.txt"
-  sh scripts/cairo_run.sh scarb test -p loot_composer -- "${kind}_parity_$i" --include-ignored > "$log" 2>&1
+  sh scripts/cairo_run.sh scarb test -p loot_composer -- "${kind}_parity_$i" --include-ignored --no-default-features --features "${kind}_fx" > "$log" 2>&1
   code=$?
   grep "^$prefix " "$log" >> "$out"
   gas=$(grep -o "l2_gas: ~[0-9]*" "$log" | head -1)

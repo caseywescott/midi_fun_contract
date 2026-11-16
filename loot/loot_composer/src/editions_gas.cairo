@@ -41,8 +41,8 @@ fn editions_gas_largest() {
 fn editions_gas_typical_played() {
     let midi = edition_smf_bytes(76, false, 1, purchase_seed(1), Option::None);
     let b = crate::orchestra::band(0, 76, 1, 1, Option::None);
-    let played = crate::orchestra::orchestrate(midi.span(), b.span(), 0);
-    let fast = crate::orchestra::orchestrate_byte_array(midi.span(), b.span(), 0);
+    let played = crate::orchestra::orchestrate(midi.span(), b.span(), 0, array![].span());
+    let fast = crate::orchestra::orchestrate_byte_array(midi.span(), b.span(), 0, array![].span());
     assert!(fast == midi::pack::bytes_to_byte_array(played.span()));
 }
 
@@ -51,7 +51,7 @@ fn editions_gas_typical_played() {
 fn editions_gas_typical_played_fast() {
     let midi = edition_smf_bytes(76, false, 1, purchase_seed(1), Option::None);
     let b = crate::orchestra::band(0, 76, 1, 1, Option::None);
-    assert_eq!(crate::orchestra::orchestrate_byte_array(midi.span(), b.span(), 0).len(), 6117);
+    assert_eq!(crate::orchestra::orchestrate_byte_array(midi.span(), b.span(), 0, array![].span()).len(), 6117);
 }
 
 #[test]
@@ -68,7 +68,7 @@ fn editions_gas_typical_played_inline() {
         );
         i += 1;
     }
-    assert_eq!((x.len(), h), (6117, 1885193286));
+    assert_eq!((x.len(), h), (6117, 2699704190));
 }
 
 #[test]

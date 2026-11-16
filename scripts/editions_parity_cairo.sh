@@ -9,7 +9,7 @@ out=${1:?out file}; first=${2:-0}; last=${3:-23}
 : > "$out"
 for i in $(seq -f %02g "$first" "$last"); do
   log="${TMPDIR:-/tmp}/loot_editions_batch_$i.txt"
-  (cd "$here/.." && sh scripts/cairo_run.sh scarb test -p loot_composer -- "editions_parity_$i" --include-ignored) > "$log" 2>&1
+  (cd "$here/.." && sh scripts/cairo_run.sh scarb test -p loot_composer -- "editions_parity_$i" --include-ignored --no-default-features --features editions_fx) > "$log" 2>&1
   code=$?
   grep "^ED " "$log" >> "$out"
   gas=$(grep -o "l2_gas: ~[0-9]*" "$log" | head -1)

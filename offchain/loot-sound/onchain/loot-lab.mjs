@@ -2,7 +2,7 @@
 // Species Song and Name Song are the Beasts v1.0.1 composer's; Sound Checks are src/loot_checks.js. The first two come from its JS reference (lab.js);
 // Monthly Track Editions are src/loot_editions.js (Realm of Common Tones and Kingdom of Sweets
 // harmony). Rounds are src/loot_rounds.js (canons over a chord loop). Drift is Casey Drift on Species
-// Songs, Rounds and editions. Sound effects: 0 regular, 1 mega.
+// Songs, Name Songs (by the name, as in Beasts v1.0.1), Rounds and editions. Sound effects: 0 regular, 1 mega.
 // Instruments: the sample bank (16 kHz BRR, ten CC0 VSCO 2 instruments; midi_fun_contract branch
 // feat/snes-brr-pipeline, onchain/snes/dist-16k/bank.min.js) by default, each channel's role mapped to a
 // bank instrument; drums stay on TinySynth's chip kit. TinyChip presets remain a toggle.
@@ -97,9 +97,24 @@ const MIX = { punkrun: { piano: 0.75, violin: 1.27 } };
 // an instrument that is turned down when it is a track's highest voice (by average pitch), in any kind of track:
 // the vibraphone on top rings over everything (Casey, by ear)
 const TOP_SOFT = { vibraphone: 0.72 };
-// an instrument that is turned down when it plays the lead (an edition's lead, its descant and its second lead; a
-// song's theme): the clarinet, 20% (Casey, by ear; as a CC 7 factor, the square root of 0.8)
-const LEAD_SOFT = { clarinet: 0.894 };
+// an instrument that is turned down when it plays the lead (an edition's lead and its second lead; a song's theme),
+// as a CC 7 factor (the square root of the level's): the clarinet 20% and then 15% more (0.8 x 0.85 = 0.68), the
+// trumpet 15% and then 20% three times (0.85 x 0.8^3 = 0.435), the oboe 30% and then 20% three times (0.358), the
+// vibraphone 30%, the horn 20% twice (0.64) (Casey, by ear; on the vibraphone this comes on top of TOP_SOFT when it
+// is also the top voice)
+const LEAD_SOFT = { clarinet: 0.825, trumpet: 0.66, oboe: 0.599, vibraphone: 0.837, horn: 0.8 };
+// and every lead, whatever plays it, down against the other instruments: 20%, then 25% more (0.8 x 0.75 = 0.6) on
+// top (Casey, by ear; CC 7 factor, the square root of 0.6)
+const LEAD_ALL = 0.775;
+// then 7 steps of CC 7 off every lead after those factors (Casey: subtract another 15 off each lead volume, then
+// add 5 back, then 3 more)
+const LEAD_DROP = 7;
+// an instrument turned down on every channel of a Name Song: the oboe 35%, then 40% and 20% more (0.65 x 0.6 x 0.8 =
+// 0.312) (Casey, by ear; CC 7 factor, as above)
+const NAME_SOFT = { oboe: 0.559 };
+// a Name Song's lead (its theme, channel 1) comes from this pool, by species and name, so a species' names do not all
+// share one lead (Casey: good variation of leads); the oboe is left out (turned down on Name Songs)
+const NAME_LEADS = ['flute', 'ocarina', 'clarinet', 'violin', 'horn', 'trumpet'];
 // songs and rounds: each channel's instrument may be exchanged for another of its kind, by species
 const ALIKE = {
   // (a newer voice sits in one list of each kind only, so two channels of a song or round do not both draw it)
@@ -125,6 +140,7 @@ const ORCH = {
   mix: Object.fromEntries(Object.entries(MIX).map(([k, m]) => [k, Object.fromEntries(Object.entries(m).map(([n, f]) => [prog(n), f]))])),
   topSoft: Object.fromEntries(Object.entries(TOP_SOFT).map(([n, f]) => [prog(n), f])),
   leadSoft: Object.fromEntries(Object.entries(LEAD_SOFT).map(([n, f]) => [prog(n), f])),
+  nameSoft: Object.fromEntries(Object.entries(NAME_SOFT).map(([n, f]) => [prog(n), f])), nameLeads: NAME_LEADS.map(prog), leadAll: LEAD_ALL, leadDrop: LEAD_DROP,
   bells: [BANK.glockenspiel, BANK.vibraphone], low: BANK.pizzicato, glock: BANK.glockenspiel, flute: BANK.flute, harp: BANK.harp,
   songKinds: SONG_KINDS, roundKinds: ROUND_KINDS, songPools: pooled(SONG, SONG_KINDS), roundPools: pooled(ROUND, ROUND_KINDS),
   song: SONG.map((r) => r.map(prog)),
@@ -228,17 +244,26 @@ function band(key, id, e, p, drift, low) {
   // an accompaniment the composer wrote an octave lower is plucked short (pizzicato): a harp or a guitar rings
   // on down there and blurs
   const lead = pick(0), acc = low ? DATA.orch.low : pick(1, lead), bass = pick(2, lead), pad = pick(3, lead);
+  // the descant (the lead's harmony and doubling, channel 1) is never the lead's own instrument (Casey): another
+  // from the lead pool
+  const others = P[0].filter((g) => g !== lead), descant = others.length ? others[mix(id, e * 389 + p) % others.length] : lead;
   // the second lead (a B or C tune's, on channel 8): the next instrument in the lead pool
   const second = P[0][(P[0].indexOf(lead) + 1 + mix(id, e * 977 + p) % Math.max(1, P[0].length - 1)) % P[0].length];
-  return [lead, lead, acc, bass, pad, DATA.orch.bells.includes(lead) ? DATA.orch.flute : DATA.orch.glock, DATA.orch.harp, second];
+  return [lead, descant, acc, bass, pad, DATA.orch.bells.includes(lead) ? DATA.orch.flute : DATA.orch.glock, DATA.orch.harp, second];
 }
-const choose = (pools, kinds, id, salt, drift) => { const { month, week } = stepOf(drift); return pools.map((pool, ch) => pool[moved(pool, mix(mix(id, ch * 977 + 13), salt) % pool.length, kinds[ch] === 'melody' || kinds[ch] === 'bass' ? month : week, 57 + ch)]); };
+// (a song's other melody voices, its theme's harmony and countersubject, are never the theme's instrument: the next in
+// their pool)
+const choose = (pools, kinds, id, salt, drift, song) => { const { month, week } = stepOf(drift); const out = pools.map((pool, ch) => pool[moved(pool, mix(mix(id, ch * 977 + 13), salt) % pool.length, kinds[ch] === 'melody' || kinds[ch] === 'bass' ? month : week, 57 + ch)]);
+  if (song) for (let ch = 1; ch < out.length; ch++) if (kinds[ch] === 'melody' && out[ch] === out[0]) { const pool = pools[ch], i = pool.indexOf(out[ch]); out[ch] = pool.find((g, k) => k > i && g !== out[0]) ?? pool.find((g) => g !== out[0]) ?? out[ch]; }
+  return out; };
 // Name Songs and Rounds are written low (a Name Song's theme centres on D3, an octave and a half under a Species
 // Song's): the lab plays Name Songs an octave up and Rounds a fifth up, which puts both in the editions'
 // register, and plays both with quicker attacks and shorter releases so the low entries do not smear. This is
 // the lab's playback only: the composer still writes them where it did.
-const LIFT = { name: 12, round: 7 }, CRISP = { name: { attack: 0.4, attackMax: 0.03, release: 0.6 }, round: { attack: 0.4, attackMax: 0.03, release: 0.6 } };
-function lifted(u8, by, vol) { // and, with vol (channel: factor), those channels' volume (CC 7) scaled
+// One voice keeps its own attack and release (Casey: on these, have one voice normal): the theme (channel 1) on a
+// Name Song, the first canon voice on a Round, so a line still sings over the crisp parts.
+const LIFT = { name: 12, round: 7 }, CRISP = { name: { attack: 0.4, attackMax: 0.03, release: 0.6, keep: [0] }, round: { attack: 0.4, attackMax: 0.03, release: 0.6, keep: [0] } };
+function lifted(u8, by, vol) { // and, with vol (channel: factor, or { f: factor, d: steps taken off after it }), those channels' volume (CC 7) scaled
   if (!by && !vol) return u8;
   const out = u8.slice(); let i = 14; const ntr = (out[10] << 8) | out[11];
   for (let tr = 0; tr < ntr; tr++) {
@@ -251,7 +276,7 @@ function lifted(u8, by, vol) { // and, with vol (channel: factor), those channel
       run = s; const ty = s & 0xf0;
       if (ty === 0xc0 || ty === 0xd0) { i += 1; continue; }
       if (by && (ty === 0x80 || ty === 0x90 || ty === 0xa0) && (s & 15) !== 9) out[i] = Math.max(0, Math.min(127, out[i] + by));
-      if (vol && ty === 0xb0 && out[i] === 7 && vol[s & 15]) out[i + 1] = Math.max(0, Math.min(127, Math.round(out[i + 1] * vol[s & 15])));
+      const v = vol && vol[s & 15]; if (v && ty === 0xb0 && out[i] === 7) out[i + 1] = Math.max(0, Math.min(127, Math.round(out[i + 1] * (v.f ?? v) - (v.d ?? 0))));
       i += 2;
     }
     i = stop;
@@ -266,7 +291,7 @@ function track() {
   const f = top === undefined ? 0 : DATA.orch.topSoft[padOf(+top, tr.orch[top % tr.orch.length])];
   return f ? { ...tr, midi: lifted(tr.midi, 0, { [top]: f }), topSoft: +top } : tr;
 }
-const LEAD_CH = [0, 1, 7]; // an edition's lead, descant (the lead doubled) and second lead
+const LEAD_CH = [0, 7]; // an edition's lead and second lead (the descant has its own instrument)
 function track0() {
   const x = beast(), day = st.day > 1 ? st.day : null;
   if (st.kind === 'edition') {
@@ -275,7 +300,7 @@ function track0() {
     const key = DATA.styles[(st.e - 1) % NSTYLE].key, orch = band(key, x.id, st.e, st.p, d, o.info.accompLow), mixOf = DATA.orch.mix[key];
     // the style's mix for the instruments this track drew (sample banks only: the chip presets keep their own)
     // and the lead's own turn-down (leadSoft) on the lead, descant and second-lead channels
-    const vol = isChip() ? null : Object.fromEntries(orch.map((g, ch) => [ch, ((mixOf && mixOf[padOf(ch, g)]) || 1) * ((LEAD_CH.includes(ch) && DATA.orch.leadSoft[padOf(ch, g)]) || 1)]).filter(([, f]) => f !== 1));
+    const vol = isChip() ? null : Object.fromEntries(orch.map((g, ch) => { const f = ((mixOf && mixOf[padOf(ch, g)]) || 1) * (LEAD_CH.includes(ch) ? (DATA.orch.leadSoft[padOf(ch, g)] || 1) * DATA.orch.leadAll : 1); return [ch, LEAD_CH.includes(ch) ? { f, d: DATA.orch.leadDrop } : f]; }).filter(([, f]) => f !== 1));
     return { midi: lifted(o.midi, 0, vol), info: o.info, settings: DATA.edition[(st.e - 1) % NSTYLE][x.type][st.mega ? 1 : 0], orch };
   }
   const settings = DATA.family[x.type * 2 + (st.mega ? 1 : 0)];
@@ -284,11 +309,15 @@ function track0() {
     const o = RD.roundMidi(x, st.mega, st.r ? purchaseSeed(st.r) : 0n, d);
     return { midi: lifted(o.midi, LIFT.round), info: o.info, settings, orch: choose(DATA.orch.roundPools[x.type], DATA.orch.roundKinds, x.id, 2, d) };
   }
-  const orch = choose(DATA.orch.songPools[x.type], DATA.orch.songKinds, x.id, 1, day && st.kind === 'song' ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null);
+  // a Name Song's band by species and name, its lead from NAME_LEADS; a Species Song's by species
+  const named = st.kind === 'name', pools = named ? [DATA.orch.nameLeads, ...DATA.orch.songPools[x.type].slice(1)] : DATA.orch.songPools[x.type];
+  const orch = choose(pools, DATA.orch.songKinds, x.id, named ? 1 + st.name * 7919 : 1, day && (st.kind === 'song' || named) ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null, true);
   if (st.kind === 'check') { const o = CK.soundCheckMidi(x, st.mega, st.c ? purchaseSeed(st.c) : 0n); return { midi: o.midi, info: o.info, settings, orch: choose(DATA.orch.roundPools[x.type], DATA.orch.roundKinds, x.id, 2, null) }; }
   const opts = { ...L.GENESIS_DEFAULTS, ...(st.kind === 'name' ? { name: st.name } : {}), ...(day ? { epoch: day, driftMode: 'v2', blockHashes: true } : {}) };
-  const o = L.sampleTrackMidi(bOf(x, st.kind === 'name'), { species_count: 1 }, opts, E, V), lf = isChip() ? 0 : DATA.orch.leadSoft[padOf(0, orch[0])];
-  return { midi: lifted(o.midi, LIFT[st.kind], lf ? { 0: lf } : null), info: o.info, settings, orch };
+  const o = L.sampleTrackMidi(bOf(x, st.kind === 'name'), { species_count: 1 }, opts, E, V);
+  // the theme's lead turn-down (leadSoft), and on a Name Song the nameSoft instruments on any channel
+  const vol = isChip() ? null : Object.fromEntries(orch.map((g, ch) => { const q = padOf(ch, g); const f = (ch === 0 ? (DATA.orch.leadSoft[q] || 1) * DATA.orch.leadAll : 1) * ((st.kind === 'name' && DATA.orch.nameSoft[q]) || 1); return [ch, ch === 0 ? { f, d: DATA.orch.leadDrop } : f]; }).filter(([, f]) => f !== 1));
+  return { midi: lifted(o.midi, LIFT[st.kind], vol && Object.keys(vol).length ? vol : null), info: o.info, settings, orch };
 }
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const COLORS = ['#8a2be2', '#e0742a', '#1f9d8c', '#c0392b', '#7f8c8d', '#2a7ae0', '#b8860b', '#888'];
@@ -296,7 +325,7 @@ function show() {
   for (const k of KINDS) $('t-' + k).classList.toggle('on', st.kind === k);
   $('row-n').classList.toggle('off', st.kind !== 'name'); $('row-e').classList.toggle('off', st.kind !== 'edition'); $('row-p').classList.toggle('off', st.kind !== 'edition' && st.kind !== 'round' && st.kind !== 'check');
   $('p-lbl').textContent = st.kind === 'check' ? 'Take' : 'Purchase';
-  $('row-d').classList.toggle('off', st.kind === 'check' || st.kind === 'name');
+  $('row-d').classList.toggle('off', st.kind === 'check'); // a Name Song drifts by its name, as in Beasts v1.0.1; a Sound Check never drifts
   const x = beast();
   $('b-val').innerHTML = x.id + '. ' + esc(x.name) + ' <small>tier ' + x.tier + ' ' + DATA.types[x.type] + '</small>';
   const nm = L.nameFromVariant(st.name); $('n-val').innerHTML = '#' + st.name + ' <small>prefix ' + nm.prefix + ', suffix ' + nm.suffix + '</small>';

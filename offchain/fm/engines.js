@@ -136,10 +136,11 @@ function fm(d, midi) {
     acc -= (vibOf(n + 1) - vibOf(n)) * e + (dev(n + 1) - vibOf(n + 1)) - (dev(n) - vibOf(n)) - (d.scoop ? TAU * f / RATE * d.scoop[0] * Math.LN2 / 1200 * Math.exp(-t / d.scoop[1]) : 0);
     ph[A + n] = acc; vcos[A + n] = e * Math.cos(TAU * vm * n / N); ven[A + n] = e;
   }
-  // `nmod` [depth, bandwidth Hz]: breath inside the tone: slow noise moving every operator's index (so the noise
-  // sits in sidebands around each harmonic, not beside the tone), periodic over the loop
+  // `nmod` [depth, bandwidth Hz, bandwidth as a multiple of the note]: breath inside the tone: slow noise moving every
+  // operator's index (so the noise sits in sidebands around each harmonic, not beside the tone), periodic over the
+  // loop; the narrower bandwidth wins, so a low note's skirt stays close to it (a wide one growls under the note)
   let nz = null;
-  if (d.nmod) { const re = new Float64Array(N), im = new Float64Array(N), kmax = Math.round(d.nmod[1] * N / RATE); for (let k = 1; k <= kmax; k++) { const q = TAU * rnd(), g = 1 / (1 + (k / kmax) ** 2); re[k] = g * Math.cos(q); im[k] = -g * Math.sin(q); } fft(re, im); let e = 0; for (let k = 0; k < N; k++) e += re[k] * re[k]; const g = d.nmod[0] / Math.sqrt(e / N); nz = Float32Array.from(re, (v) => v * g); }
+  if (d.nmod) { const re = new Float64Array(N), im = new Float64Array(N), kmax = Math.max(1, Math.round(Math.min(d.nmod[1], (d.nmod[2] ?? Infinity) * f) * N / RATE)); for (let k = 1; k <= kmax; k++) { const q = TAU * rnd(), g = 1 / (1 + (k / kmax) ** 2); re[k] = g * Math.cos(q); im[k] = -g * Math.sin(q); } fft(re, im); let e = 0; for (let k = 0; k < N; k++) e += re[k] * re[k]; const g = d.nmod[0] / Math.sqrt(e / N); nz = Float32Array.from(re, (v) => v * g); }
   // an operator may add modulators in parallel, `par` [ratio, index, key scaling] or a list of them, and ease its
   // indices up the keyboard, `ks` (a flute's upper register is purer): index * (1 - ks * register)
   // an operator's own vibrato, `ov` [[cents, cycles in the loop, phase], ...], on top of the shared one (a choir's

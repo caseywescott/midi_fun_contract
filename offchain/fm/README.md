@@ -1,6 +1,6 @@
 # Loot FM pack
 
-The Kankyo FM instruments of Loot Dungeon Sound (28 instruments, 10 drums, 298 key zones, 415 zone takes; the bank of midi_fun_contract 7d64b83, 2026-11-16)
+The Kankyo FM instruments of Loot Dungeon Sound (28 instruments, 10 drums, 298 key zones, 415 zone takes; the bank of midi_fun_contract 0f2d0ba, 2026-11-16)
 as one self-contained script, built from the reference bank script `kankyo.min.js` (the one the Loot lab
 loads) and sounding exactly like it: every zone and take renders to the same samples, bit for bit.
 
@@ -69,8 +69,8 @@ Size (bytes):
 
 | | raw | gzip | gzip + base64 |
 |---|---|---|---|
-| kankyo.min.js (reference, 7d64b83 bank) | 58,562 | 22,593 | 30,124 |
-| loot-fm-pack.min.js | 31,427 | 13,748 | 18,332 |
+| kankyo.min.js (reference, 0f2d0ba bank) | 58,678 | 22,622 | 30,164 |
+| loot-fm-pack.min.js | 31,502 | 13,785 | 18,380 |
 | (previous bank: kankyo.min.js / pack) | 59,205 / 28,370 | 21,467 / 12,680 | 28,624 / 16,908 |
 
 - The workers run the pack's own source (`'(' + LootFmPack + ')()'` as a Blob) instead of a second copy of
@@ -87,7 +87,7 @@ six players and a soloist), the clarinet with Chowning's 1:2 FM clarinet, gave t
 added oboe, bassoon, trumpet, trombone section, bowed cello, koto, kalimba and choir. The pack's engine gained
 what engines.js gained, keeping the reference's arithmetic: `sectionOps` (verbatim: section players, formant
 carriers, choir, `fmv`), each operator's own vibrato `ov` (computed once per player, and the shared modulator cache
-keyed per player), attack indices for parallel modulators (`ar`), `nmod` (noise in the index, folded into the
+keyed per player), attack indices for parallel modulators (`ar`), `nmod` (noise in the index, its bandwidth the narrower of `nmod[1]` Hz and `nmod[2]` times the note since cb728e0, folded into the
 per-sample brightness), and `bend` on struck notes. `clarinetAt` and the fitted string zones (`stringZone`)
 left the pack with the voices they made (+5.0 KB raw for the new engine paths and the bigger bank, +1.1 KB gzip).
 
@@ -117,7 +117,7 @@ figures below were measured on the previous bank. Chrome as the lab uses it (6 w
 | every first take ready | 1,516 ms | 1,329 ms |
 | JS heap after | 77 MB | 77 MB |
 
-Parity (`node pack/parity.mjs`, 7d64b83 bank): all 28 instruments and 10 drums, 415 zone takes (34.5 M samples),
+Parity (`node pack/parity.mjs`, 0f2d0ba bank): all 28 instruments and 10 drums, 415 zone takes (34.5 M samples),
 bit-identical to kankyo.min.js's worker engine; plus 121 takes the bank does not hold, for the instruments on the
 new paths (strings, lead violin, trumpet, trombone, bowed cello, choir, flute, koto: each zone 2 semitones above
 its root, and as a take beyond the bank's), rendered by the dist script loaded as its own worker, bit-identical
@@ -133,11 +133,11 @@ land one unit off in the 4th decimal of a setting.
 ## Onchain
 
 `loot/loot_contracts/src/fm_pack.cairo`, contract `LootFmPack` (no storage, no constructor arguments):
-`pack() -> ByteArray` (base64 of the gzip, 18,332 characters), `chunk_count()`, `chunk_len()` (3,968 =
+`pack() -> ByteArray` (base64 of the gzip, 18,380 characters), `chunk_count()`, `chunk_len()` (3,968 =
 128 words of 31 bytes, a multiple of 4, so each chunk is base64 on its own), `chunk(i)`, `pack_len()`,
 `gzip_len()`, `script_len()`, `pack_sha256()`, `encoding()` (`'gzip+base64'`), `version()`.
 The data is `fm_pack_data.cairo` (generated): one string literal per chunk (Cairo string literals hold ASCII
-only, hence base64 rather than raw gzip). Compiled (previous bank, 16,908 characters): 5,361 CASM felts (limit 81,920), 4,045 Sierra felts; one
+only, hence base64 rather than raw gzip). Compiled (0f2d0ba bank, 18,380 characters): 5,502 CASM felts (limit 81,920), 4,469 Sierra felts (the first bank, 16,908 characters: 5,361 and 4,045); one
 class, no split needed (room for about 15 times this much data before a split into data classes, read with
 `library_call_syscall`, would be needed). The tests (`fm_pack::tests`) deploy the class and check that
 `pack()` and the joined chunks equal `dist/loot-fm-pack.min.js.gz.b64` (read with snforge `read_txt` from

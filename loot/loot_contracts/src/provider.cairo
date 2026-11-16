@@ -8,7 +8,8 @@
 //!   health 100, as the Loot lab calls the Beasts composer) played by the pinned v1.1.0
 //!   `BeastPureComposer` (a library call: the same class every Beast plays), then given the lab's band
 //!   (a Species Song's drifts with the day, a Name Song's does not) and a Name Song lifted an octave.
-//! - Songs: LEAD_SOFT on channel 0 when the theme's instrument is in it (loot-lab.mjs `track0()`).
+//! - Songs: the band (a Name Song's lead from NAME_LEADS, both kinds drifting with the species) and
+//!   the volumes (loot-lab.mjs `track0()`: LEAD_SOFT x LEAD_ALL and LEAD_DROP on the theme, NAME_SOFT).
 //! - Every kind: the lab's TOP_SOFT (loot-lab.mjs `track()`, a sample bank such as the FM bank): the
 //!   highest voice's volume turned down when its instrument is one of TOP_SOFT. Done here, on the
 //!   finished file, when the band has such an instrument (the composer class has no room for it).
@@ -40,8 +41,8 @@ pub mod LootMidiProvider {
     use beast_composer::inputs::ComposerInputs;
     use beast_composer::inputs::drift::DriftInputs;
     use loot_composer::orchestra::{
-        band, byte_array_bytes, has_soft, lead_soft, orchestrate, orchestrate_byte_array, round_band,
-        song_band, top_soft_byte_array, top_soft_smf,
+        band, byte_array_bytes, has_soft, orchestrate, orchestrate_byte_array, round_band, song_band,
+        song_vols, top_soft_byte_array, top_soft_smf,
     };
     use loot_composer::orchestra_data::STYLE_COUNT;
     use loot_composer::songs::name_from_variant;
@@ -134,26 +135,25 @@ pub mod LootMidiProvider {
             Option::Some(d) => beasts.compose_drift(inputs, sound_effects, d),
             Option::None => beasts.compose(inputs, sound_effects),
         };
-        // the lab drifts a Species Song's band, not a Name Song's
-        let band_day = if x.name == 0 {
-            loot_drift(x.species, day)
-        } else {
-            Option::None
-        };
-        let band = song_band(loot_species(x.species).beast_type, x.species, band_day);
+        // the band drifts with the species' clock, a Name Song's as a Species Song's (the lab, cc0c9d4);
+        // a Name Song's lead comes from NAME_LEADS by species and name
+        let band = song_band(
+            loot_species(x.species).beast_type, x.species, x.name.into(), loot_drift(x.species, day),
+        );
         let lift = if x.name == 0 {
             0
         } else {
             12
         };
-        // LEAD_SOFT on channel 0 (the theme) and TOP_SOFT on the highest voice, when the band has such
-        // instruments (the lab's track0() and track())
-        let lead = lead_soft(*band.at(0));
-        if lead != 0 || has_soft(band.span()) {
-            let smf = orchestrate(byte_array_bytes(@sound.midi).span(), band.span(), lift);
-            top_soft_byte_array(smf.span(), band.span(), lead)
+        // the volumes (LEAD_SOFT x LEAD_ALL and LEAD_DROP on the theme, NAME_SOFT on a Name Song) in
+        // the same pass as the band and lift, then TOP_SOFT on the highest voice when the band has
+        // such an instrument (the lab's track0() and track())
+        let vol = song_vols(band.span(), x.name != 0);
+        if has_soft(band.span()) {
+            let smf = orchestrate(byte_array_bytes(@sound.midi).span(), band.span(), lift, vol.span());
+            top_soft_byte_array(smf.span(), band.span())
         } else {
-            orchestrate_byte_array(byte_array_bytes(@sound.midi).span(), band.span(), lift)
+            orchestrate_byte_array(byte_array_bytes(@sound.midi).span(), band.span(), lift, vol.span())
         }
     }
 
@@ -190,7 +190,7 @@ pub mod LootMidiProvider {
                 if !has_soft(band.span()) {
                     return out;
                 }
-                match top_soft_smf(byte_array_bytes(@out).span(), array![].span(), 0) {
+                match top_soft_smf(byte_array_bytes(@out).span(), array![].span()) {
                     Option::Some(x) => midi::pack::bytes_to_byte_array(x.span()),
                     Option::None => out,
                 }

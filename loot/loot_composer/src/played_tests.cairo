@@ -13,7 +13,7 @@ fn round_same(species: u32, mega: bool, purchase: u64, clock: Option<DriftClock>
     };
     let seed = purchase_seed(purchase);
     let b = round_band(loot_species(species).beast_type, species, d);
-    let old = orchestrate_byte_array(round_smf_bytes(species, mega, seed, d).span(), b.span(), 7);
+    let old = orchestrate_byte_array(round_smf_bytes(species, mega, seed, d).span(), b.span(), 7, array![].span());
     let new = round_played_byte_array(species, mega, seed, d, Play { band: b.span(), lift: 7 });
     assert!(old == new, "round {} differs", species);
 }
@@ -21,7 +21,7 @@ fn round_same(species: u32, mega: bool, purchase: u64, clock: Option<DriftClock>
 fn check_same(species: u32, mega: bool, take: u64) {
     let seed = purchase_seed(take);
     let b = round_band(loot_species(species).beast_type, species, Option::None);
-    let old = orchestrate_byte_array(sound_check_smf_bytes(species, mega, seed).span(), b.span(), 0);
+    let old = orchestrate_byte_array(sound_check_smf_bytes(species, mega, seed).span(), b.span(), 0, array![].span());
     let new = sound_check_played_byte_array(species, mega, seed, Play { band: b.span(), lift: 0 });
     assert!(old == new, "check {} differs", species);
 }

@@ -122,9 +122,10 @@ function fm(d, midi) {
     acc -= (VIB[j + 1] - VIB[j]) * e + (DEV[j + 1] - VIB[j + 1]) - (DEV[j] - VIB[j]) - (sc ? scK * Math.exp(-t / sc[1]) : 0);
     ph[j] = acc; vcos[j] = e * Math.cos(tv * n / N); ven[j] = e;
   }
-  // `nmod` [depth, bandwidth Hz]: slow noise moving every operator's index (breath in the tone), periodic over the loop
+  // `nmod` [depth, bandwidth Hz, bandwidth as a multiple of the note]: slow noise moving every operator's index (breath
+  // in the tone), periodic over the loop; the narrower bandwidth wins
   let nz = null;
-  if (d.nmod) { const re = new Float64Array(N), im = new Float64Array(N), kmax = Math.round(d.nmod[1] * N / RATE); for (let k = 1; k <= kmax; k++) { const q = TAU * rnd(), g = 1 / (1 + (k / kmax) ** 2); re[k] = g * Math.cos(q); im[k] = -g * Math.sin(q); } fft(re, im); let e = 0; for (let k = 0; k < N; k++) e += re[k] * re[k]; const g = d.nmod[0] / Math.sqrt(e / N); nz = Float32Array.from(re, (v) => v * g); }
+  if (d.nmod) { const re = new Float64Array(N), im = new Float64Array(N), kmax = Math.max(1, Math.round(Math.min(d.nmod[1], (d.nmod[2] ?? Infinity) * f) * N / RATE)); for (let k = 1; k <= kmax; k++) { const q = TAU * rnd(), g = 1 / (1 + (k / kmax) ** 2); re[k] = g * Math.cos(q); im[k] = -g * Math.sin(q); } fft(re, im); let e = 0; for (let k = 0; k < N; k++) e += re[k] * re[k]; const g = d.nmod[0] / Math.sqrt(e / N); nz = Float32Array.from(re, (v) => v * g); }
   const vI = d.vibIdx ?? 0, BR = new Float64Array(L), U4 = new Float64Array(A), EX = new Map(); for (let i = 0; i < L; i++) BR[i] = (1 + vI * vcos[i]) * (nz ? 1 + nz[((i - A) % N + N) % N] : 1);
   for (let i = 0; i < A; i++) { const u = i / A; U4[i] = 1 - u ** 4; }
   // an operator's own vibrato `ov` [[cents, cycles in the loop, phase]] (a section's players), arriving with the shared

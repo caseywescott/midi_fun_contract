@@ -1,7 +1,7 @@
 // Writes loot/loot_contracts/src/front_tests.cairo: files from the deployed LootMidiProvider
 // (compose / compose_drift; LootPureComposer and the pinned v1.1.0 BeastPureComposer declared) checked
-// against what the Loot lab plays on the FM bank (its track(): band/choose, lifted, an edition style's
-// MIX, TOP_SOFT, and the setProgram override; orchestra_ref.mjs takes these from loot-lab.mjs): Songs
+// against what the Loot lab plays on the FM bank (its track(): band/choose, lifted, the volumes (MIX,
+// LEAD_SOFT, LEAD_ALL, LEAD_DROP, NAME_SOFT), TOP_SOFT, and the setProgram override; orchestra_ref.mjs takes these from loot-lab.mjs): Songs
 // (sound_effects 0: the lab's Mega is not v1.1's performance), Editions, Rounds and Sound Checks, with
 // cases where MIX, TOP_SOFT and the low accompaniment instrument apply.
 // Loot songs are identical under Beast Sound v1.0.1 and v1.1.0 (loot_contracts::v11_song_tests).
@@ -50,13 +50,13 @@ const beast = (id) => ({ ...LOOT_BEASTS[id - 76], ...SPECIES.find((s) => s.id ==
 const dr = (id, day) => (day > 1 ? L.drift2({ id, prefix: 0, suffix: 0 }, day, anchor) : null);
 const calls = []; let changed = 0;
 const differs = (a, b) => { if (Buffer.compare(Buffer.from(a), Buffer.from(b))) changed++; };
-for (const [id, name, day] of [[76, 0, 1], [90, 1242, 1], [80, 0, 45], [97, 12, 70], [103, 0, 290], [83, 0, 9]]) {
+for (const [id, name, day] of [[76, 0, 1], [90, 1242, 1], [80, 0, 45], [97, 12, 70], [103, 0, 290], [83, 0, 9], [83, 400, 45]]) {
   const x = LOOT_BEASTS[id - 76], n = L.nameFromVariant(name);
   const bb = { id, prefix: n.prefix, suffix: n.suffix, level: 1, health: 100, shiny: 0, animated: 0, tier: x.tier, beast_type: x.type };
   const opts = { ...L.GENESIS_DEFAULTS, ...(name ? { name } : {}), ...(day > 1 ? { epoch: day, driftMode: 'v2', blockHashes: true } : {}) };
   const midi = L.sampleTrackMidi(bb, { species_count: 1 }, opts, E, V).midi;
-  const d = day > 1 && !name ? L.drift2({ id, prefix: 0, suffix: 0 }, day, anchor) : null;
-  const band = O.choose(O.ORCH.songPools[x.type], O.ORCH.songKinds, id, 1, d);
+  const d = day > 1 ? L.drift2({ id, prefix: 0, suffix: 0 }, day, anchor) : null;
+  const band = O.songBand(name ? 'name' : 'song', x.type, id, name, d);
   const out = remap(playedRef(name ? 'name' : 'song', midi, band), band);
   differs(out, remap(O.lifted(midi, name ? 12 : 0), band));
   calls.push(call(`LootInputs::Song(LootSongInputs { species: ${id}, name: ${name} })`, false, day), [out.length, sum(out)]);
@@ -103,4 +103,4 @@ for (let k = 0; k < calls.length; k += 2) {
 }
 writeFileSync(new URL('../loot/loot_contracts/src/front_tests.cairo', import.meta.url), t);
 console.log('editions with the low accompaniment instrument:', edCases.filter(([id, mega, e, p, day]) => ED.editionMidi(beast(id), mega, e, purchaseSeed(p), dr(id, day), false, null).info.accompLow).length);
-console.log(calls.length / 2, 'front cases,', changed, 'changed by MIX or TOP_SOFT');
+console.log(calls.length / 2, 'front cases,', changed, 'changed by the volumes or TOP_SOFT');

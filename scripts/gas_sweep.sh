@@ -8,7 +8,7 @@ n=$(grep -c "^fn ${kind}_gas_" "loot/loot_composer/src/${kind}_parity.cairo")
 out="${TMPDIR:-/tmp}/${kind}_gas.txt"; : > "$out"
 g=0
 while [ $((g * 10)) -lt "$n" ]; do
-  sh scripts/cairo_run.sh scarb test -p loot_composer -- "${kind}_gas_$(printf %02d $g)" --include-ignored 2>&1 \
+  sh scripts/cairo_run.sh scarb test -p loot_composer -- "${kind}_gas_$(printf %02d $g)" --include-ignored --no-default-features --features "${kind}_fx" 2>&1 \
     | grep -o "${kind}_gas_[0-9]* (l1_gas: ~0, l1_data_gas: ~0, l2_gas: ~[0-9]*" | sed 's/ (.*l2_gas: ~/ /' >> "$out"
   g=$((g + 1))
 done

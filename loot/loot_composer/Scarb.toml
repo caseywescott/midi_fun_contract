@@ -13,6 +13,15 @@ beast_composer_inputs.workspace = true
 snforge_std.workspace = true
 assert_macros.workspace = true
 
+[features]
+default = ["songs_fx", "editions_fx", "gas_fx", "rounds_fx", "checks_fx", "played_fx"]
+songs_fx = []
+editions_fx = []
+gas_fx = []
+rounds_fx = []
+checks_fx = ["rounds_fx"] # checks_parity uses rounds_parity::hex
+played_fx = []
+
 [lib]
 
 [scripts]

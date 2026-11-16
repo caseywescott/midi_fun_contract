@@ -41,20 +41,25 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
       // Windowed sinc (8 source samples each side, cutoff 0.95 of the source Nyquist), reading
       // through the loop so the seam is interpolated as it plays.
       const src = out.slice(), n = src.length, R = 8, fc = 0.95, up = ac.createBuffer(1, n * k, sample.rate * k), dst = up.getChannelData(0);
-      const at = (i, center) => {
-        if (sample.loopStart !== null && center >= sample.loopStart) { const length = n - sample.loopStart; i = sample.loopStart + ((i - sample.loopStart) % length + length) % length; }
-        return src[Math.max(0, Math.min(n - 1, i))];
-      };
+      // the source as each output reads it, padded R samples each side so the inner loop has no tests: before the
+      // loop clamped to the ends, from the loop on wrapped through it (the values `at(i, center)` gave, unchanged)
+      const L0 = sample.loopStart, clamp = new Float32Array(n + 2 * R);
+      for (let q = -R; q < n + R; q++) clamp[q + R] = src[Math.max(0, Math.min(n - 1, q))];
+      let wrap = null;
+      if (L0 !== null) { const length = n - L0; wrap = new Float32Array(length + 2 * R); for (let q = L0 - R; q < n + R; q++) { const w = L0 + ((q - L0) % length + length) % length; wrap[q - (L0 - R)] = src[Math.max(0, Math.min(n - 1, w))]; } }
       const taps = [];
       for (let f = 0; f < k; f++) {
         const row = [];
         for (let j = -R + 1; j <= R; j++) { const d = j - f / k, x = Math.PI * fc * d; row.push(fc * (d === 0 ? 1 : Math.sin(x) / x) * (0.5 + 0.5 * Math.cos(Math.PI * d / R))); }
         const sum = row.reduce((a, b) => a + b, 0); taps.push(row.map((w) => w / sum));
       }
-      for (let i = 0; i < n; i++) for (let f = 0; f < k; f++) {
-        let v = 0; const row = taps[f];
-        for (let j = -R + 1, t = 0; j <= R; j++, t++) v += row[t] * at(i + j, i);
-        dst[i * k + f] = v;
+      for (let i = 0; i < n; i++) {
+        const inLoop = L0 !== null && i >= L0, base = inLoop ? wrap : clamp, off = inLoop ? i - (L0 - R) : i + R;
+        for (let f = 0; f < k; f++) {
+          let v = 0; const row = taps[f];
+          for (let j = -R + 1, t = 0; j <= R; j++, t++) v += row[t] * base[off + j];
+          dst[i * k + f] = v;
+        }
       }
       buffers.set(index, up); return up;
     }
@@ -97,6 +102,10 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
     voice.end = Math.min(voice.end, t + voice.env.release + 0.002);
     voice.source.stop(voice.end);
   }
+  // buffers built in the background, one per task
+  const pending = []; let pumping = false;
+  function later(list) { for (const i of list) if (!pending.includes(i)) pending.push(i); if (!pumping) { pumping = true; setTimeout(pump, 0); } }
+  function pump() { const i = pending.shift(); if (i !== undefined && !buffers.has(i) && !disposed) buffer(i); if (pending.length) setTimeout(pump, 0); else pumping = false; }
   function kill(voice, time) {
     const t = Math.max(ac.currentTime, time), g = voice.gain.gain;
     if (!softSteal) {
@@ -115,6 +124,14 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
      *  envelope times and attackMax caps the attack in seconds; `keep` lists channels that play as set. For
      *  pieces that want it; the bank is unchanged. */
     articulate(a) { art = a || null; },
+    /** Build the buffers of these notes' zones ([[program, note], ...]; a drum as [-1, key]), every take already
+     *  rendered, before they play: one per task, so the page stays responsive. A Promise. */
+    prepare(list) {
+      const want = [];
+      for (const [program, note] of list) { const inst = zone((program < 0 ? drums : programs).get(program < 0 ? note : program), note); if (!inst) continue;
+        for (const i of inst.takes || [inst.sample]) if (bank.samples[i].ready !== false && !buffers.has(i) && !want.includes(i)) want.push(i); }
+      return new Promise((done) => { const step = () => { if (disposed || !want.length) return done(); buffer(want.shift()); setTimeout(step, 0); }; step(); });
+    },
     get activeVoices() { return [...voices].filter((v) => v.start <= ac.currentTime && v.end > ac.currentTime).length; },
     noteOn({ channel = 0, program = 0, drum = false, note, velocity = 100, time = ac.currentTime, destination = ac.destination, bend = 0 }) {
       if (disposed) throw new Error('Sampler is disposed');
@@ -125,7 +142,11 @@ export function createSampler(ac, bank, { maxVoices = 16, smoothing = true, echo
       // An instrument may have several takes of each zone (the same note rendered with slightly different
       // settings): a note plays one at random, never the same twice running, from those already rendered.
       let si = inst.sample;
-      if (inst.takes) { const ok = inst.takes.filter((i) => bank.samples[i].ready !== false); if (ok.length) { si = ok[Math.floor(Math.random() * ok.length)]; if (ok.length > 1 && si === inst.last) si = ok[(ok.indexOf(si) + 1) % ok.length]; inst.last = si; } }
+      // A take whose buffer is not built yet would be built here, on the main thread, as the note starts (a
+      // stall a phone hears): those already built are preferred, and the others are built in the background.
+      if (inst.takes) { const ready = inst.takes.filter((i) => bank.samples[i].ready !== false), built = ready.filter((i) => buffers.has(i)), ok = built.length ? built : ready;
+        if (built.length < ready.length) later(ready.filter((i) => !buffers.has(i)));
+        if (ok.length) { si = ok[Math.floor(Math.random() * ok.length)]; if (ok.length > 1 && si === inst.last) si = ok[(ok.indexOf(si) + 1) % ok.length]; inst.last = si; } }
       // `human`: each note a few tenths of a cent to a cent off and a touch louder or softer
       const jitter = inst.human ? (Math.random() * 2 - 1) * inst.human : 0, touch = inst.human ? 1 + (Math.random() * 2 - 1) * 0.05 : 1;
       const t = Math.max(ac.currentTime, time), sample = bank.samples[si]; let env = envelope(inst.envelope), offset = 0;

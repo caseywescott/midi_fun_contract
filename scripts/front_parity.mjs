@@ -63,7 +63,10 @@ for (const [id, name, day] of [[78, 0, 1], [92, 1242, 1], [82, 0, 45], [99, 12, 
 }
 const edCases = [[78, false, 1, 1, 1], [85, true, 5, 2, 1], [92, false, 9, 3, 45], [101, false, 13, 1, 290], [107, true, 15, 4, 9], [90, false, 22, 7, 100], [78, false, 15, 1, 1], [85, false, 3, 2, 1], [85, false, 10, 1, 1],
   // the edition mix (8c9284f): a high accompaniment, Speedrun an octave lower, Forest's drop and high, Speedrun high, Dungeon Dash's leads
-  [78, false, 2, 3, 1], [78, false, 13, 2, 1], [98, false, 19, 1, 1], [88, false, 13, 4, 1], [78, false, 14, 3, 1]];
+  [78, false, 2, 3, 1], [78, false, 13, 2, 1], [98, false, 19, 1, 1], [88, false, 13, 4, 1], [78, false, 14, 3, 1],
+  // TOP_SOFT in the composer: a vibraphone on top (the accompaniment, the descant, the second lead), a vibraphone not on
+  // top, and a vibraphone accompaniment written an octave lower (played pizzicato)
+  [102, false, 5, 3, 1], [78, false, 10, 2, 1], [81, false, 10, 2, 1], [78, false, 2, 2, 1], [99, false, 3, 2, 1]];
 for (const [id, mega, e, p, day] of edCases) {
   const x = beast(id), d = dr(id, day), key = STYLES[(e - 1) % STYLES.length].key;
   const o = ED.editionMidi(x, mega, e, purchaseSeed(p), d, false, null);

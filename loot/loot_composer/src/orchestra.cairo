@@ -591,6 +591,67 @@ fn soft_k(program: u8) -> u64 {
     }
 }
 
+/// A pitched channel's track as the composer wrote it, for TOP_SOFT: the channel, the track's index,
+/// the instrument it plays, and the pitch sum and count of the notes the lab's `notesOf` finds.
+#[derive(Copy, Drop)]
+pub struct Voice {
+    pub ch: u32,
+    pub at: u32,
+    pub program: u8,
+    pub sum: felt252,
+    pub count: felt252,
+}
+
+/// loot-lab.mjs `track()` on the composer's own tracks: of the channels other than 9 and 6, the one
+/// whose notes are highest on average (ties: the lowest channel); with its instrument in TOP_SOFT,
+/// its CC 7 (byte 6 of its track, after the program change) scaled again, after its other volumes.
+#[inline(never)]
+pub fn soften_top(tracks: Array<Array<u8>>, voices: Span<Voice>) -> Array<Array<u8>> {
+    let mut best: Option<Voice> = Option::None;
+    for v in voices {
+        let v = *v;
+        if v.ch == 6 || v.ch == 9 || v.count == 0 {
+            continue;
+        }
+        best = match best {
+            Option::None => Option::Some(v),
+            Option::Some(b) => {
+                let l: u256 = (v.sum * b.count).into();
+                let r: u256 = (b.sum * v.count).into();
+                if l > r || (l == r && v.ch < b.ch) {
+                    Option::Some(v)
+                } else {
+                    Option::Some(b)
+                }
+            },
+        };
+    }
+    let b = match best {
+        Option::Some(b) => b,
+        Option::None => { return tracks; },
+    };
+    let k = soft_k(b.program);
+    if k == 0 {
+        return tracks;
+    }
+    let mut out: Array<Array<u8>> = array![];
+    let mut i: u32 = 0;
+    for t in tracks {
+        if i == b.at {
+            let t = t.span();
+            let mut x: Array<u8> = array![];
+            x.append_span(t.slice(0, 6));
+            x.append(scaled(*t.at(6), k, 0));
+            x.append_span(t.slice(7, t.len() - 7));
+            out.append(x);
+        } else {
+            out.append(t);
+        }
+        i += 1;
+    }
+    out
+}
+
 /// Walks a track body (running status; meta and sysex events skipped). With `ch` 16: adds each note
 /// the lab's `notesOf` finds (a note on, velocity > 0, closed by the next note off or zero-velocity
 /// note on of its channel and key in this track) to `sums` and `counts` by channel, notes each

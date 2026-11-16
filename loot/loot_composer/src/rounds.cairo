@@ -8,7 +8,8 @@
 use core::num::traits::WrappingMul;
 use beast_composer::composition::drift::Drift;
 use midi::smf::{smf_byte_array, smf_bytes};
-use crate::writer::{TrackWriter, TrackWriterTrait};
+use crate::orchestra::{Voice, soften_top};
+use crate::writer::{STATS, TrackWriter, TrackWriterTrait};
 use crate::common::{GLISS_CHANNEL, Rng, RngTrait, at32, fold64, gliss_plan, glissando, mix, u32_of};
 use crate::rounds_data::{
     ASSIGN3, ASSIGN4, BASS_AT, BASS_NOTES, CELL_AT, CELL_NOTES, CONTOURS, EPISODES, FAMILY, HEADS,
@@ -1131,33 +1132,49 @@ fn merge(a: Span<u64>, b: Span<u64>) -> Span<u64> {
 pub struct Play {
     pub band: Span<u8>,
     pub lift: u8,
+    /// Whether the band has a TOP_SOFT instrument (`orchestra::has_soft`): the tracks then keep their
+    /// notes' means and the highest voice is turned down (the lab's track()).
+    pub soft: bool,
 }
 
 /// The file as written.
 pub fn as_written() -> Play {
-    Play { band: array![].span(), lift: 0 }
+    Play { band: array![].span(), lift: 0, soft: false }
 }
 
 /// A part's track (`track` in roundMidi, `smfFile`'s parts): program, volume, pan, reverb (none for
 /// channel 9), then the notes' on and off events by time, offs before ons at the same tick, in the
-/// order the notes come otherwise.
+/// order the notes come otherwise; appended to `tracks`, and with `play.soft` its notes' means to
+/// `voices` (TOP_SOFT, `orchestra::soften_top`).
 #[inline(never)]
 pub fn note_track(
-    ch: u8, program: u8, vol: u8, pan: u8, notes: Span<Sound>, end: u32, play: Play,
-) -> Array<u8> {
+    ref tracks: Array<Array<u8>>,
+    ref voices: Array<Voice>,
+    ch: u8,
+    program: u8,
+    vol: u8,
+    pan: u8,
+    notes: Span<Sound>,
+    end: u32,
+    play: Play,
+) {
     let mut tw = TrackWriterTrait::new();
+    let stats = play.soft && ch != 9 && ch != GLISS_CHANNEL;
+    if stats {
+        tw.x = STATS;
+    }
+    let played = if play.band.len() != 0 {
+        *play.band.at(ch.into() % play.band.len())
+    } else {
+        program
+    };
     let lift: u8 = if ch != 9 {
         play.lift
     } else {
         0
     };
     if ch != 9 {
-        let nb = play.band.len();
-        tw.program(0, ch, if nb != 0 {
-            *play.band.at(ch.into() % nb)
-        } else {
-            program
-        });
+        tw.program(0, ch, played);
         tw.control(0, ch, 7, vol);
         tw.control(0, ch, 10, pan);
         tw.control(0, ch, 91, 40);
@@ -1195,7 +1212,11 @@ pub fn note_track(
             tw.note_off(time, ch, p, 0);
         }
     }
-    tw.finish_at(end)
+    if stats {
+        let (sum, count) = tw.stats();
+        voices.append(Voice { ch: ch.into(), at: tracks.len(), program: played, sum, count });
+    }
+    tracks.append(tw.finish_at(end));
 }
 
 /// The tempo track: tempo and time signature at 0, closed at `end`.
@@ -1859,6 +1880,7 @@ pub fn round_tracks(
     }
     let programs = programs_of(id, typ, mega);
     let mut tracks = array![tempo_track(us, SIGS.span().slice(mi * 4, 4), end)];
+    let mut heard: Array<Voice> = array![];
     let octave = OCTAVE.span();
     let pan = PAN.span();
     let mut first_voice = *voices.at(0);
@@ -1876,41 +1898,46 @@ pub fn round_tracks(
         let mut s = opaque(array![]);
         sounding(ref s, part, base + 12 * *octave.at(ch), scale, art, br);
         let chu: u8 = ch.try_into().unwrap();
-        tracks
-            .append(
-                note_track(
-                    chu,
-                    prog,
-                    if is_lead(prog) {
-                        72
-                    } else {
-                        118
-                    },
-                    *pan.at(ch),
-                    s.span(),
-                    end,
-                    play,
-                ),
-            );
+        note_track(
+            ref tracks,
+            ref heard,
+            chu,
+            prog,
+            if is_lead(prog) {
+                72
+            } else {
+                118
+            },
+            *pan.at(ch),
+            s.span(),
+            end,
+            play,
+        );
         ch += 1;
     }
     if bass.len() != 0 {
         let mut s = opaque(array![]);
         sounding(ref s, bass.span(), base - 24, scale, art, br);
-        tracks.append(note_track(4, *programs.at(4), 118, 64, s.span(), end, play));
+        note_track(ref tracks, ref heard, 4, *programs.at(4), 118, 64, s.span(), end, play);
     }
     if mega {
         let mut s = opaque(array![]);
         sounding(ref s, first_voice, base + 12, scale, art, br);
-        tracks.append(note_track(5, *programs.at(5), 56, 76, s.span(), end, play));
+        note_track(ref tracks, ref heard, 5, *programs.at(5), 56, 76, s.span(), end, play);
     }
     if gliss.len() != 0 {
-        tracks.append(note_track(GLISS_CHANNEL, *programs.at(2), 100, 100, gliss.span(), end, play));
+        note_track(
+            ref tracks, ref heard, GLISS_CHANNEL, *programs.at(2), 100, 100, gliss.span(), end, play,
+        );
     }
     if perc.len() != 0 {
-        tracks.append(note_track(9, 0, 0, 0, perc.span(), end, play));
+        note_track(ref tracks, ref heard, 9, 0, 0, 0, perc.span(), end, play);
     }
-    tracks
+    if play.soft {
+        soften_top(tracks, heard.span())
+    } else {
+        tracks
+    }
 }
 
 /// A fill window ending at `c`, kept once, when `c` is in `lo..=hi`.

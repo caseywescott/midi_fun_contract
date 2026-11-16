@@ -14,6 +14,7 @@ use crate::rounds::{
     Play, as_written, programs_of, sign, sort_keys, tempo_track,
 };
 use crate::rounds_data::MODE_DIM;
+use crate::orchestra::{Voice, soften_top};
 use crate::species::loot_species;
 
 const BAR: u32 = 1920;
@@ -334,6 +335,7 @@ pub fn sound_check_tracks(species: u32, mega: bool, take: u64, how: Play) -> Arr
     let (mut tracks, mut ch): (Array<Array<u8>>, u32) = opaque(
         (array![tempo_track(us, SIG.span(), end)], 0),
     );
+    let mut voices: Array<Voice> = opaque(array![]);
     while ch != 7 {
         let mut part: Array<Sound> = array![];
         if ch == 6 {
@@ -378,19 +380,28 @@ pub fn sound_check_tracks(species: u32, mega: bool, take: u64, how: Play) -> Arr
             } else {
                 118
             };
-            tracks
-                .append(
-                    note_track(
-                        ch.try_into().unwrap(), prog, vol, *PAN.span().at(ch), by_start(part.span()), end, how,
-                    ),
-                );
+            note_track(
+                ref tracks,
+                ref voices,
+                ch.try_into().unwrap(),
+                prog,
+                vol,
+                *PAN.span().at(ch),
+                by_start(part.span()),
+                end,
+                how,
+            );
         }
         ch += 1;
     }
     if hits.len() != 0 {
-        tracks.append(note_track(9, 0, 0, 0, by_start(hits.span()), end, how));
+        note_track(ref tracks, ref voices, 9, 0, 0, 0, by_start(hits.span()), end, how);
     }
-    tracks
+    if how.soft {
+        soften_top(tracks, voices.span())
+    } else {
+        tracks
+    }
 }
 
 /// The Sound Check of Loot Beast `species` as a format-1 MIDI file (`soundCheckMidi(...).midi`).

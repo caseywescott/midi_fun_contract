@@ -157,89 +157,124 @@ fn front_20() {
 #[ignore]
 fn front_21() {
     let s = deploy();
-    assert_eq!(sum(@s.compose(LootInputs::Round(LootRoundInputs { species: 78, purchase: 0 }), 0)), (8157, 1628490112));
+    assert_eq!(sum(@s.compose(LootInputs::Edition(LootEditionInputs { species: 102, edition: 5, purchase: 3 }), 0)), (3918, 3075964222));
 }
 
 #[test]
 #[ignore]
 fn front_22() {
     let s = deploy();
-    assert_eq!(sum(@s.compose(LootInputs::Round(LootRoundInputs { species: 86, purchase: 0 }), 1)), (5703, 1062985622));
+    assert_eq!(sum(@s.compose(LootInputs::Edition(LootEditionInputs { species: 78, edition: 10, purchase: 2 }), 0)), (3756, 2204561246));
 }
 
 #[test]
 #[ignore]
 fn front_23() {
     let s = deploy();
-    assert_eq!(sum(@s.compose_drift(LootInputs::Round(LootRoundInputs { species: 93, purchase: 3 }), 0, DriftInputs { name_variant_id: 0, day: 45, day_hash: 0x2956ffbf266d21c7d5e01968335e1bab126495564d8dcf5a92c5b14507e72c6, week_hash: 0x52e10e4521547a4ed4aa421ffc96e651368b640e0f5998520234a674eb594dc, month_hash: 0x3b2372967bbbc009fcabee385f9fd3a22c32d4f5cd9f29b6b424a25ea8b9ec3 })), (4862, 384158514));
+    assert_eq!(sum(@s.compose(LootInputs::Edition(LootEditionInputs { species: 81, edition: 10, purchase: 2 }), 0)), (5158, 316622189));
 }
 
 #[test]
 #[ignore]
 fn front_24() {
     let s = deploy();
-    assert_eq!(sum(@s.compose_drift(LootInputs::Round(LootRoundInputs { species: 102, purchase: 0 }), 0, DriftInputs { name_variant_id: 0, day: 290, day_hash: 0x751b50a16a83719e77709e3993d8e7647a1369f95c1ff67af8612ec4847fede, week_hash: 0x5df86804762153ce15b694cff782ea1b150ea9168b47ac3480b91c366f49920, month_hash: 0x58e4df17f5c690f07fa000d1ab0463862d39799a04d559de783506519689c7f })), (9718, 1512811695));
+    assert_eq!(sum(@s.compose(LootInputs::Edition(LootEditionInputs { species: 78, edition: 2, purchase: 2 }), 0)), (5643, 214109997));
 }
 
 #[test]
 #[ignore]
 fn front_25() {
     let s = deploy();
-    assert_eq!(sum(@s.compose_drift(LootInputs::Round(LootRoundInputs { species: 97, purchase: 2 }), 1, DriftInputs { name_variant_id: 0, day: 9, day_hash: 0x34279274b2038b00d9c5b37e9ce4e185f05ecf8faf3ce3f78aa064f915449d4, week_hash: 0x418f5d30068fe217b6e4fcada355b570426efa0bc0fff7a8bfe100e05e3f87a, month_hash: 0x3e1800ea5338d65c1bf7bf773eaa1c0daccf374beae3941cbd080109de1ecda })), (6799, 154013354));
+    assert_eq!(sum(@s.compose(LootInputs::Edition(LootEditionInputs { species: 99, edition: 3, purchase: 2 }), 0)), (5129, 3548522915));
 }
 
 #[test]
 #[ignore]
 fn front_26() {
     let s = deploy();
-    assert_eq!(sum(@s.compose(LootInputs::Round(LootRoundInputs { species: 86, purchase: 0 }), 0)), (4691, 274105986));
+    assert_eq!(sum(@s.compose(LootInputs::Round(LootRoundInputs { species: 78, purchase: 0 }), 0)), (8157, 1628490112));
 }
 
 #[test]
 #[ignore]
 fn front_27() {
     let s = deploy();
-    assert_eq!(sum(@s.compose(LootInputs::Round(LootRoundInputs { species: 92, purchase: 2 }), 0)), (5704, 1705264817));
+    assert_eq!(sum(@s.compose(LootInputs::Round(LootRoundInputs { species: 86, purchase: 0 }), 1)), (5703, 1062985622));
 }
 
 #[test]
 #[ignore]
 fn front_28() {
     let s = deploy();
-    assert_eq!(sum(@s.compose(LootInputs::SoundCheck(LootSoundCheckInputs { species: 79, take: 0 }), 0)), (1046, 414981360));
+    assert_eq!(sum(@s.compose_drift(LootInputs::Round(LootRoundInputs { species: 93, purchase: 3 }), 0, DriftInputs { name_variant_id: 0, day: 45, day_hash: 0x2956ffbf266d21c7d5e01968335e1bab126495564d8dcf5a92c5b14507e72c6, week_hash: 0x52e10e4521547a4ed4aa421ffc96e651368b640e0f5998520234a674eb594dc, month_hash: 0x3b2372967bbbc009fcabee385f9fd3a22c32d4f5cd9f29b6b424a25ea8b9ec3 })), (4862, 384158514));
 }
 
 #[test]
 #[ignore]
 fn front_29() {
     let s = deploy();
-    assert_eq!(sum(@s.compose(LootInputs::SoundCheck(LootSoundCheckInputs { species: 88, take: 0 }), 1)), (1729, 1733015674));
+    assert_eq!(sum(@s.compose_drift(LootInputs::Round(LootRoundInputs { species: 102, purchase: 0 }), 0, DriftInputs { name_variant_id: 0, day: 290, day_hash: 0x751b50a16a83719e77709e3993d8e7647a1369f95c1ff67af8612ec4847fede, week_hash: 0x5df86804762153ce15b694cff782ea1b150ea9168b47ac3480b91c366f49920, month_hash: 0x58e4df17f5c690f07fa000d1ab0463862d39799a04d559de783506519689c7f })), (9718, 1512811695));
 }
 
 #[test]
 #[ignore]
 fn front_30() {
     let s = deploy();
-    assert_eq!(sum(@s.compose(LootInputs::SoundCheck(LootSoundCheckInputs { species: 98, take: 5 }), 0)), (1149, 1396615504));
+    assert_eq!(sum(@s.compose_drift(LootInputs::Round(LootRoundInputs { species: 97, purchase: 2 }), 1, DriftInputs { name_variant_id: 0, day: 9, day_hash: 0x34279274b2038b00d9c5b37e9ce4e185f05ecf8faf3ce3f78aa064f915449d4, week_hash: 0x418f5d30068fe217b6e4fcada355b570426efa0bc0fff7a8bfe100e05e3f87a, month_hash: 0x3e1800ea5338d65c1bf7bf773eaa1c0daccf374beae3941cbd080109de1ecda })), (6799, 154013354));
 }
 
 #[test]
 #[ignore]
 fn front_31() {
     let s = deploy();
-    assert_eq!(sum(@s.compose(LootInputs::SoundCheck(LootSoundCheckInputs { species: 105, take: 2 }), 1)), (1539, 2810354021));
+    assert_eq!(sum(@s.compose(LootInputs::Round(LootRoundInputs { species: 86, purchase: 0 }), 0)), (4691, 274105986));
 }
 
 #[test]
 #[ignore]
 fn front_32() {
     let s = deploy();
-    assert_eq!(sum(@s.compose(LootInputs::SoundCheck(LootSoundCheckInputs { species: 87, take: 1 }), 0)), (1074, 3568357716));
+    assert_eq!(sum(@s.compose(LootInputs::Round(LootRoundInputs { species: 92, purchase: 2 }), 0)), (5704, 1705264817));
 }
 
 #[test]
 #[ignore]
 fn front_33() {
+    let s = deploy();
+    assert_eq!(sum(@s.compose(LootInputs::SoundCheck(LootSoundCheckInputs { species: 79, take: 0 }), 0)), (1046, 414981360));
+}
+
+#[test]
+#[ignore]
+fn front_34() {
+    let s = deploy();
+    assert_eq!(sum(@s.compose(LootInputs::SoundCheck(LootSoundCheckInputs { species: 88, take: 0 }), 1)), (1729, 1733015674));
+}
+
+#[test]
+#[ignore]
+fn front_35() {
+    let s = deploy();
+    assert_eq!(sum(@s.compose(LootInputs::SoundCheck(LootSoundCheckInputs { species: 98, take: 5 }), 0)), (1149, 1396615504));
+}
+
+#[test]
+#[ignore]
+fn front_36() {
+    let s = deploy();
+    assert_eq!(sum(@s.compose(LootInputs::SoundCheck(LootSoundCheckInputs { species: 105, take: 2 }), 1)), (1539, 2810354021));
+}
+
+#[test]
+#[ignore]
+fn front_37() {
+    let s = deploy();
+    assert_eq!(sum(@s.compose(LootInputs::SoundCheck(LootSoundCheckInputs { species: 87, take: 1 }), 0)), (1074, 3568357716));
+}
+
+#[test]
+#[ignore]
+fn front_38() {
     let s = deploy();
     assert_eq!(sum(@s.compose(LootInputs::SoundCheck(LootSoundCheckInputs { species: 92, take: 2 }), 0)), (1153, 874519361));
 }

@@ -10,7 +10,7 @@ use beast_composer::inputs::drift::DriftInputs;
 use loot_composer::checks::sound_check_played_byte_array;
 use loot_composer::common::purchase_seed;
 use loot_composer::editions::edition_played_byte_array;
-use loot_composer::orchestra::{band, round_band};
+use loot_composer::orchestra::{band, has_soft, round_band};
 use loot_composer::orchestra_data::STYLE_COUNT;
 use loot_composer::rounds::{Play, round_played_byte_array};
 use loot_composer::species::loot_species;
@@ -58,9 +58,13 @@ fn seed_of(purchase: u64) -> u64 {
 fn round_or_check(species: u32, mega: bool, purchase: u64, d: Option<Drift>, round: bool) -> ByteArray {
     let b = round_band(loot_species(species).beast_type, species, d);
     if round {
-        round_played_byte_array(species, mega, seed_of(purchase), d, Play { band: b.span(), lift: 7 })
+        round_played_byte_array(
+            species, mega, seed_of(purchase), d, Play { band: b.span(), lift: 7, soft: has_soft(b.span()) },
+        )
     } else {
-        sound_check_played_byte_array(species, mega, seed_of(purchase), Play { band: b.span(), lift: 0 })
+        sound_check_played_byte_array(
+            species, mega, seed_of(purchase), Play { band: b.span(), lift: 0, soft: has_soft(b.span()) },
+        )
     }
 }
 

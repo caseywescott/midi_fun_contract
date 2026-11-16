@@ -1,8 +1,9 @@
-// Played paths (band and lift written into the tracks) against orchestrating the written file.
+// Played paths (band, lift and TOP_SOFT written into the tracks) against orchestrating the written
+// file and walking it for TOP_SOFT, as the provider did.
 use beast_composer::composition::drift::{DriftClock, layered_drift};
 use crate::checks::{sound_check_played_byte_array, sound_check_smf_bytes};
 use crate::common::purchase_seed;
-use crate::orchestra::{orchestrate_byte_array, round_band};
+use crate::orchestra::{has_soft, orchestrate, round_band, top_soft_byte_array};
 use crate::rounds::{Play, round_played_byte_array, round_smf_bytes};
 use crate::species::loot_species;
 
@@ -13,16 +14,20 @@ fn round_same(species: u32, mega: bool, purchase: u64, clock: Option<DriftClock>
     };
     let seed = purchase_seed(purchase);
     let b = round_band(loot_species(species).beast_type, species, d);
-    let old = orchestrate_byte_array(round_smf_bytes(species, mega, seed, d).span(), b.span(), 7, array![].span(), 0);
-    let new = round_played_byte_array(species, mega, seed, d, Play { band: b.span(), lift: 7 });
+    let old = orchestrate(round_smf_bytes(species, mega, seed, d).span(), b.span(), 7, array![].span(), 0);
+    let old = top_soft_byte_array(old.span(), b.span());
+    let new = round_played_byte_array(
+        species, mega, seed, d, Play { band: b.span(), lift: 7, soft: has_soft(b.span()) },
+    );
     assert!(old == new, "round {} differs", species);
 }
 
 fn check_same(species: u32, mega: bool, take: u64) {
     let seed = purchase_seed(take);
     let b = round_band(loot_species(species).beast_type, species, Option::None);
-    let old = orchestrate_byte_array(sound_check_smf_bytes(species, mega, seed).span(), b.span(), 0, array![].span(), 0);
-    let new = sound_check_played_byte_array(species, mega, seed, Play { band: b.span(), lift: 0 });
+    let old = orchestrate(sound_check_smf_bytes(species, mega, seed).span(), b.span(), 0, array![].span(), 0);
+    let old = top_soft_byte_array(old.span(), b.span());
+    let new = sound_check_played_byte_array(species, mega, seed, Play { band: b.span(), lift: 0, soft: has_soft(b.span()) });
     assert!(old == new, "check {} differs", species);
 }
 

@@ -23,7 +23,7 @@ use crate::common::{
 use crate::editions_data::{
     COLOURS, INTRO_PLAN, SCALES, STYLE_COUNT, SUBS, SUBS_AT, Style, WALKS, style,
 };
-use crate::orchestra::{lab_mix, scaled, vol_k};
+use crate::orchestra::{Voice, has_soft, lab_mix, scaled, soften_top, vol_k};
 use crate::orchestra_data::{HIGH_ACCOMP_DROP, LOW, STYLE_ACCOMP_DROP, STYLE_ACCOMP_LOWER};
 use crate::species::loot_species;
 
@@ -722,6 +722,9 @@ struct Ctx {
     /// sits above the lead, and `acc_shift` (STYLE_ACCOMP_LOWER: -12 on some tracks) apply
     hi: bool,
     acc_shift: felt252,
+    /// the band has a TOP_SOFT instrument: every pitched part keeps its notes' means (the lab's
+    /// track(): the highest voice turned down)
+    soft: bool,
     /// the accompaniment's octave doubling: 12, or -12 (below the root, one purchase in three)
     octave: felt252,
     detached: bool,
@@ -1342,7 +1345,7 @@ fn part(k: Box<Ctx>, role: u32, ch: u8, program: u32, ref stats: (felt252, felt2
     let c = k.unbox();
     let mut tw = channel_track(ch, program, @c);
     // the lead's and the accompaniment's mean pitch (for HIGH_ACCOMP_DROP); the accompaniment's shift
-    tw.x = if c.hi && (role == 0 || role == 2) {
+    tw.x = if (c.hi && (role == 0 || role == 2)) || (c.soft && ch != 9) {
         STATS
     } else {
         0
@@ -2060,6 +2063,7 @@ fn plan(
             acc_down,
             hi,
             acc_shift,
+            soft: has_soft(band),
             octave,
             detached: m.detached,
             accomp: *s.accomps.at(m.acc_i),
@@ -2132,42 +2136,65 @@ pub fn edition_tracks_played(
     let s = c.s.unbox();
     let ty: u32 = loot_species(species).beast_type.into();
     let (parts, ticks, acc_p) = (p.parts, p.ticks, p.acc_p);
-    let mut lead: (felt252, felt252) = (0, 0);
-    let mut acc: (felt252, felt252) = (0, 0);
-    let mut none: (felt252, felt252) = (0, 0);
+    let mut voices: Array<Voice> = array![];
     let mut tracks: Array<Array<u8>> = array![
-        tempo_track(p.bpm, knob, delta, s.num, s.den, ticks), part(ctx, 0, 0, p.lead_p, ref lead),
+        tempo_track(p.bpm, knob, delta, s.num, s.den, ticks),
     ];
+    let (s0, n0) = add_part(ref tracks, ref voices, ctx, 0, 0, p.lead_p);
     if parts & DESCANT != 0 || p.any_doubled {
-        tracks.append(part(ctx, 1, 1, p.lead_p, ref none));
+        add_part(ref tracks, ref voices, ctx, 1, 1, p.lead_p);
     }
     let acc_at = tracks.len();
-    tracks.append(part(ctx, 2, 2, acc_p, ref acc));
+    let (s2, n2) = add_part(ref tracks, ref voices, ctx, 2, 2, acc_p);
     if parts & BASS != 0 {
-        tracks.append(part(ctx, 3, 3, *s.palette.at(9 + ty), ref none));
+        add_part(ref tracks, ref voices, ctx, 3, 3, *s.palette.at(9 + ty));
     }
     if parts & PAD != 0 {
-        tracks.append(part(ctx, 4, 4, *s.palette.at(12 + ty), ref none));
+        add_part(ref tracks, ref voices, ctx, 4, 4, *s.palette.at(12 + ty));
     }
     if parts & PERC != 0 {
-        tracks.append(part(ctx, 9, 9, 0, ref none));
+        add_part(ref tracks, ref voices, ctx, 9, 9, 0);
     }
     if mega {
-        tracks.append(part(ctx, 5, 5, *MEGA_LEADS.span().at((species + 1) % 2), ref none));
+        add_part(ref tracks, ref voices, ctx, 5, 5, *MEGA_LEADS.span().at((species + 1) % 2));
     }
     if let Option::Some(gp) = gliss_plan(p.gl_draw, p.gl_seed, [3, 3, 1, 0, 2].span()) {
         tracks.append(gliss_track(ctx, gp, p.gl_seed, acc_p, ticks, p.bpm));
     }
     if c.alt_kind != NO_KIND {
-        tracks.append(part(ctx, 7, ALT_CHANNEL, acc_p, ref none));
+        add_part(ref tracks, ref voices, ctx, 7, ALT_CHANNEL, acc_p);
     }
     // HIGH_ACCOMP_DROP: the accompaniment (as played, shifted) above the lead on average
-    let (s0, n0) = lead;
-    let (s2, n2) = acc;
     if c.hi && above(s2, n2, s0, n0) {
         tracks = high_accomp(tracks, acc_at, c.style, vol_of(c.flags, 2, acc_p), *c.band.at(2));
     }
+    // then TOP_SOFT on the highest voice (the lab's track())
+    if c.soft {
+        tracks = soften_top(tracks, voices.span());
+    }
     tracks
+}
+
+/// Part `role` on channel `ch` appended to `tracks`, its notes' means to `voices` when the band has a
+/// TOP_SOFT instrument; the pitch sum and count it kept.
+#[inline(never)]
+fn add_part(
+    ref tracks: Array<Array<u8>>, ref voices: Array<Voice>, ctx: Box<Ctx>, role: u32, ch: u8, program: u32,
+) -> (felt252, felt252) {
+    let mut st: (felt252, felt252) = (0, 0);
+    let t = part(ctx, role, ch, program, ref st);
+    let c = ctx.unbox();
+    if c.soft && ch != 9 {
+        let (sum, count) = st;
+        let played = if ch == 2 && c.acc_down {
+            LOW
+        } else {
+            *c.band.at(ch.into() % c.band.len())
+        };
+        voices.append(Voice { ch: ch.into(), at: tracks.len(), program: played, sum, count });
+    }
+    tracks.append(t);
+    st
 }
 
 /// Whether mean s2 / n2 is above mean s0 / n0 (both counts above 0).

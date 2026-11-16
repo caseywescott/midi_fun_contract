@@ -275,7 +275,8 @@ const KANKYO = {
   // Breath in the tone (2026-11-16, Casey: the A/B version, a bit less breathy): slow noise moves the index (engines.js
   // `nmod`, 15% at up to 120 Hz), so the breath rides in sidebands on each harmonic and moves with the tone, and the
   // breath beside it is 5 dB down (gain 0.045, was 0.08). At G4 the noise on the harmonics is 2 dB over the voice without.
-  flute: { t: 'f', sus: 1, nmod: [0.15, 120], airGain: 0.045, takes: 2, human: 1, var: { index: 0.08, vibRate: 1, vibDepth: 0.15, vibDelay: 0.2, air: 2 }, pre: 30400, vib: [13, 11, 0.32, 0.55], vibAmp: 0.16, vibIdx: 0.15, drift: 1.8, scoop: [6.75, 0.025], lp: 2000, lpk: 8, lpo: 1500, env: [0.039, 0, 1, 0.18],
+  // 3 dB up (Casey: quieter than the clarinet; measured K-weighted, it sat 3 dB under it at every register).
+  flute: { t: 'f', sus: 1, trim: 3, nmod: [0.15, 120], airGain: 0.045, takes: 2, human: 1, var: { index: 0.08, vibRate: 1, vibDepth: 0.15, vibDelay: 0.2, air: 2 }, pre: 30400, vib: [13, 11, 0.32, 0.55], vibAmp: 0.16, vibIdx: 0.15, drift: 1.8, scoop: [6.75, 0.025], lp: 2000, lpk: 8, lpo: 1500, env: [0.039, 0, 1, 0.18],
     air: { reg: 0.4, bands: [[950, 0.65, 0.8, 0.65, 700, 4500], [4200, 0, 0.65, 0.32], [0, 2, 0.12, 0.22, 500, 8000]], gain: 0.08, vib: 0.2, puff: [2600, 0.9, 0.06] }, // breath and puff 4 dB and 3 dB above the patch (0.0506, 0.044)
     // a lot brighter than the patch, by ear (Casey): its indices were 0.61 falling to 0.44 and 0.067, its lowpass 5.6x the note + 900 Hz
     ops: [[1, 1, 1.25, 0.95, 0.09, 1, 0, 0, null, [2, 0.2, 0.35], 0.28]] },

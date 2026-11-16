@@ -28,7 +28,7 @@ Upgradeable provider.
 | `LootPureComposer` | the Loot composer, storage-free: Editions, Rounds, Sound Checks, each with the lab's band (and the Round's +7 lift) written in place, and an Edition's volumes (style MIX; LEAD_SOFT x LEAD_ALL, then EDITION_LEAD_DROP less the style's boost, on the lead and second lead; the accompaniment's drops and its octave-lower tracks; TOP_SOFT on the highest voice, its mean kept as the notes are written) | 79,000 |
 | `LootMidiProvider` | every track behind one ABI (`ILootMidiProvider`): Editions/Rounds/Checks library-call `LootPureComposer`; Species/Name Songs build the Loot Beast's `SongInputs` and library-call the pinned v1.1.0 `BeastPureComposer`, then add the band (a Name Song's lead from NAME_LEADS), the Name Song's +12 and the volumes in one pass; a Name Song's kick softer and TOP_SOFT on Songs; OpenZeppelin Ownable + Upgradeable, `set_classes` | 33,600 |
 | `BeastPureComposer` | not ours: Beast Sound v1.1.0's class (`0x07eb6480…02eb63`), used as is | 81,920 |
-| `LootFmPack` | the FM sound pack (gzip+base64 script, `pack()` / chunks / sha256) | 5,499 |
+| `LootFmPack` | the FM sound pack (gzip+base64 script, `pack()` / chunks / sha256; `prepare()` builds buffers ahead) | 5,538 |
 
 ABI (`loot/loot_contracts/src/interfaces.cairo`): `LootInputs` is `Song { species, name }`,
 `Edition { species, edition, purchase }`, `Round { species, purchase }` or `SoundCheck { species, take }`.
@@ -73,7 +73,7 @@ Run Cairo only through `sh scripts/cairo_run.sh <cmd>` (one at a time, memory wa
 whole test crate no longer fits a 16 GB machine's memory. The watchdog measures the memory footprint (resident,
 compressed and swapped), not RSS.
 
-The FM pack (`offchain/fm/`, see its README): the Kankyo FM bank as one 31.5 KB script (13.8 KB gzip; the reference is 58.7 KB),
+The FM pack (`offchain/fm/`, see its README): the Kankyo FM bank as one 32.1 KB script (14.1 KB gzip; the reference is 58.7 KB),
 bit-identical renders, faster startup; `offchain/fm/dist/demo.html` plays any .mid through it. The port matches the
 Loot lab at loot_dungeon_sound **9103b11** (the final 30 Beasts, public ids 78-107, each keeping the soundtrack
 written at the provisional ids 76-105 through its musical id, the public id less two, after loothero's PR #35:

@@ -444,17 +444,25 @@ function start(at) {
   go(at);
 }
 function go(at) {
-  if (!synth) synth = new WebAudioTinySynth({ quality: 1, useReverb: 1, voices: 64 });
+  // On a touch device the scheduler looks a second ahead (0.2 s by default), so a phone that falls behind for a
+  // moment does not starve the output (Android pops; the default output buffer, which loothero found steadier)
+  if (!synth) { synth = new WebAudioTinySynth({ quality: 1, useReverb: 1, voices: 64 }); try { if (matchMedia('(pointer: coarse)').matches) synth.preroll = 1; } catch (e) {} }
   synth.getAudioContext().resume(); synth.stopMIDI();
   BS.installSettings(synth, cur.settings);
   if (!isChip()) synth.setReverbLev(st.rev / 100); // the settings carry the chip presets' reverb (30); the sample banks play in more
   if (layer && (isChip() || layerBank !== st.inst)) { synth.setProgram = setProgram0; layer.dispose(); layer = null; layerBank = -1; }
   if (!isChip() && !layer) { layer = Banks[st.inst].attach(synth, { maxVoices: 48 }); /* 24 was too few: a glissando over ringing chords needs 31, and a stolen voice clicks */ layerBank = st.inst; setProgram0 = synth.setProgram; synth.setProgram = (ch, p, ...r) => setProgram0.call(synth, ch, ch === 9 || !cur ? p : padOf(ch, cur.orch[ch % cur.orch.length]), ...r); }
   if (layer && layer.sampler.articulate) layer.sampler.articulate(CRISP[st.kind]);
-  const m = cur.midi;
-  synth.loadMIDI(m.buffer.slice(m.byteOffset, m.byteOffset + m.length));
-  synth.setLoop(1); synth.setLoopEnd(synth.getPlayStatus().maxTick); synth.playMIDI(); playing = true;
-  if (at != null && synth.locateMIDI) { try { synth.locateMIDI(at); } catch (e) {} }
+  // the sampler builds every buffer this track plays before it starts (on a phone, building them as the notes
+  // first sound stalled the page mid-track)
+  const tok = startTok, play = () => {
+    const m = cur.midi;
+    synth.loadMIDI(m.buffer.slice(m.byteOffset, m.byteOffset + m.length));
+    synth.setLoop(1); synth.setLoopEnd(synth.getPlayStatus().maxTick); synth.playMIDI(); playing = true;
+    if (at != null && synth.locateMIDI) { try { synth.locateMIDI(at); } catch (e) {} }
+  };
+  if (layer && layer.sampler.prepare) { playing = true; $('play').textContent = 'Preparing…'; layer.sampler.prepare(wanted()).then(() => { if (tok !== startTok || !playing) return; $('play').textContent = '▶ Play'; play(); }); return; }
+  play();
 }
 function stop() { startTok++; $('play').textContent = '▶ Play'; if (synth) synth.stopMIDI(); playing = false; draw(-1); }
 function change() { show(); if (playing) start(); }

@@ -133,7 +133,9 @@ const PACK_B64 = "/*__PACK_B64__*/";
     return ev.filter((e) => e.type !== 'tempo');
   }
 
-  // ---- playback: schedule a little ahead of the audio clock
+  // ---- playback: schedule a little ahead of the audio clock (a second on a touch device, so a phone that falls
+  // behind for a moment does not starve the output: Android pops)
+  let ahead = 0.25; try { if (matchMedia('(pointer: coarse)').matches) ahead = 1; } catch (e) {}
   let events = [], title = '', timer = 0, start = 0, idx = 0, dur = 0;
   function load(ev, name) {
     stop(); events = ev; title = name; dur = ev.length ? ev[ev.length - 1].t : 0; $('name').textContent = name; $('play').disabled = false;
@@ -147,13 +149,16 @@ const PACK_B64 = "/*__PACK_B64__*/";
   async function play() {
     await ac.resume(); stop();
     $('play').disabled = true; $('play').textContent = 'Preparing…';
-    await P.need(zonesFor(0, 8)); P.need(zonesFor(8, Infinity)); // the first seconds' zones now, the rest in the background
+    // the first seconds' zones rendered and their buffers built before it starts (building a buffer as its note first
+    // sounds stalls a phone mid-track); the rest rendered and built in the background, one buffer per task
+    const rest = zonesFor(8, Infinity);
+    await P.need(zonesFor(0, 8)); await sampler.prepare(zonesFor(0, 8)); P.need(rest).then(() => sampler.prepare(rest));
     $('play').textContent = 'Play'; $('stop').disabled = false;
     chans.forEach((c) => { c.prog = 0; c.vol = 100; c.expr = 127; c.bend = 0; c.sus = false; c.pan.pan.value = 0; chGain(c, ac.currentTime); });
     start = ac.currentTime + 0.1; idx = 0; timer = setInterval(pump, 25); pump();
   }
   function pump() {
-    const horizon = ac.currentTime + 0.25;
+    const horizon = ac.currentTime + ahead;
     while (idx < events.length && start + events[idx].t < horizon) {
       const e = events[idx++], t = start + e.t, c = chans[e.ch];
       if (e.type === 0x90 && e.b) { const drum = e.ch === 9, note = drum ? drumOf(e.a) : e.a, prog = drum ? 0 : progOf(c.prog); if (note >= 0 && prog >= 0) sampler.noteOn({ channel: e.ch, program: prog, drum, note, velocity: e.b, time: t, destination: c.g, bend: c.bend }); }

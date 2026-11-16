@@ -1,6 +1,6 @@
 # Loot FM pack
 
-The Kankyo FM instruments of Loot Dungeon Sound (28 instruments, 10 drums, 298 key zones, 415 zone takes; the bank of midi_fun_contract 0f2d0ba, its sampler fix e27ac75, 2026-11-16)
+The Kankyo FM instruments of Loot Dungeon Sound (28 instruments, 10 drums, 298 key zones, 415 zone takes; the bank of midi_fun_contract 0f2d0ba, its sampler at runtime.js 3a72379, 2026-11-17)
 as one self-contained script, built from the reference bank script `kankyo.min.js` (the one the Loot lab
 loads) and sounding exactly like it: every zone and take renders to the same samples, bit for bit.
 
@@ -8,7 +8,8 @@ loads) and sounding exactly like it: every zone and take renders to the same sam
 dist/loot-fm-pack.min.js          the pack (a classic script; also its own worker script)
 dist/loot-fm-pack.min.js.gz       gzip -9 of it
 dist/loot-fm-pack.min.js.gz.b64   base64 of the gzip: what the LootFmPack contract returns
-dist/demo.html                    drop a .mid file to hear it played with the pack (pack inlined as .gz.b64)
+dist/demo.html                    drop a .mid file to hear it played with the pack (pack inlined as .gz.b64); it builds the
+                                  first seconds' buffers before playing (`prepare`) and schedules 1 s ahead on a touch device
 ```
 
 ## API
@@ -24,7 +25,7 @@ so the pack drops in where `kankyo.min.js` was (checked: the lab page with the p
 | `need([[program, note], …])` | render those zones first (a drum: `[-1, key]`); a Promise that resolves when they are ready, with `.pending` false if they already were |
 | `ready()` | a Promise for every first take |
 | `progress()` | `{ done, total }` first takes rendered |
-| `createSampler(audioContext, options)` | a sampler on the bank (runtime.js API: `noteOn({ channel, program, drum, note, velocity, time, destination, bend })`, `noteOff`, `releaseSustain`, `bend`, `stop`, `articulate`, `dispose`, `activeVoices`) |
+| `createSampler(audioContext, options)` | a sampler on the bank (runtime.js API: `noteOn({ channel, program, drum, note, velocity, time, destination, bend })`, `noteOff`, `releaseSustain`, `bend`, `stop`, `articulate` (with `keep`), `prepare`, `dispose`, `activeVoices`). `prepare([[program, note], …])` (a drum: `[-1, key]`) builds those zones' playback buffers, every take already rendered, one per task, and returns a Promise: call it after `need` and before playing, as building a buffer when its note first sounds stalls a phone. `noteOn` prefers a take whose buffer is built and builds the others in the background, one per task |
 | `attach(tinySynth, options)` | the same, wired into a TinySynth instance (unmatched programs fall back to TinySynth) |
 | `version` | `1` |
 
@@ -70,7 +71,7 @@ Size (bytes):
 | | raw | gzip | gzip + base64 |
 |---|---|---|---|
 | kankyo.min.js (reference, 0f2d0ba bank) | 58,678 | 22,622 | 30,164 |
-| loot-fm-pack.min.js | 31,502 | 13,785 | 18,380 |
+| loot-fm-pack.min.js | 32,142 | 14,051 | 18,736 |
 | (previous bank: kankyo.min.js / pack) | 59,205 / 28,370 | 21,467 / 12,680 | 28,624 / 16,908 |
 
 - The workers run the pack's own source (`'(' + LootFmPack + ')()'` as a Blob) instead of a second copy of
@@ -96,8 +97,8 @@ by zero is gone): a modulator shared by several operators (the string carriers a
 modulator) is computed once; operators whose index is zero throughout skip their modulator; index envelopes
 that cancel (held = attack) skip their `Math.exp`; the vibrato and pitch wander are evaluated once per sample
 instead of up to six times; the attack's `exp` and `(1 - u^4)` are shared between operators; the EQ runs a
-filter at a time over the whole buffer from typed arrays; the sampler's upsampler reads straight from the
-source away from the edges and loop seam. The queue starts the longest zones first among equal priority.
+filter at a time over the whole buffer from typed arrays; the sampler's upsampler reads padded copies of the
+source (clamped at the ends; from the loop on, the loop wrapped), as runtime.js does since 3a72379. The queue starts the longest zones first among equal priority.
 
 | one thread, all 374 zone takes (previous bank) | reference | pack |
 |---|---|---|
@@ -117,12 +118,13 @@ figures below were measured on the previous bank. Chrome as the lab uses it (6 w
 | every first take ready | 1,516 ms | 1,329 ms |
 | JS heap after | 77 MB | 77 MB |
 
-Parity (`node pack/parity.mjs`, 0f2d0ba bank): all 28 instruments and 10 drums, 415 zone takes (34.5 M samples),
+Parity (`node pack/parity.mjs`, 0f2d0ba bank, sampler 3a72379): all 28 instruments and 10 drums, 415 zone takes (34.5 M samples),
 bit-identical to kankyo.min.js's worker engine; plus 121 takes the bank does not hold, for the instruments on the
 new paths (strings, lead violin, trumpet, trombone, bowed cello, choir, flute, koto: each zone 2 semitones above
 its root, and as a take beyond the bank's), rendered by the dist script loaded as its own worker, bit-identical
 too; the instrument table (zones, keys, tuning, volumes, envelopes, takes) is identical; the sampler's playback
-buffers (upsampled for a 44.1, 48 or 96 kHz context) are identical. (On the previous bank, in Chrome, the
+buffers (upsampled for a 44.1, 48 or 96 kHz context; `node pack/sampler-parity.mjs`, against kankyo.min.js's
+sampler, which still reads each tap through `at()`) are identical. (On the previous bank, in Chrome, the
 first takes the pack's workers render hashed the same as the reference's; not rerun.)
 
 Caveat: the computed harp zones use `Math.pow`/`Math.log` in the page and round to 4 decimals,
@@ -133,11 +135,11 @@ land one unit off in the 4th decimal of a setting.
 ## Onchain
 
 `loot/loot_contracts/src/fm_pack.cairo`, contract `LootFmPack` (no storage, no constructor arguments):
-`pack() -> ByteArray` (base64 of the gzip, 18,380 characters), `chunk_count()`, `chunk_len()` (3,968 =
+`pack() -> ByteArray` (base64 of the gzip, 18,736 characters), `chunk_count()`, `chunk_len()` (3,968 =
 128 words of 31 bytes, a multiple of 4, so each chunk is base64 on its own), `chunk(i)`, `pack_len()`,
 `gzip_len()`, `script_len()`, `pack_sha256()`, `encoding()` (`'gzip+base64'`), `version()`.
 The data is `fm_pack_data.cairo` (generated): one string literal per chunk (Cairo string literals hold ASCII
-only, hence base64 rather than raw gzip). Compiled (0f2d0ba bank, 18,380 characters): 5,502 CASM felts (limit 81,920), 4,469 Sierra felts (the first bank, 16,908 characters: 5,361 and 4,045); one
+only, hence base64 rather than raw gzip). Compiled (0f2d0ba bank with the 3a72379 sampler, 18,736 characters): 5,538 CASM felts (limit 81,920), 4,525 Sierra felts (the first bank, 16,908 characters: 5,361 and 4,045); one
 class, no split needed (room for about 15 times this much data before a split into data classes, read with
 `library_call_syscall`, would be needed). The tests (`fm_pack::tests`) deploy the class and check that
 `pack()` and the joined chunks equal `dist/loot-fm-pack.min.js.gz.b64` (read with snforge `read_txt` from

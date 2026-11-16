@@ -1,7 +1,7 @@
 # Loot Dungeon Sound: Cairo release notes
 
 Music for the 30 Loot Dungeon Beasts (public ids **78–107**) onchain, byte for byte the Loot lab at
-loot_dungeon_sound **9103b11** with the Kankyo FM bank at midi_fun_contract **0f2d0ba** (sampler fix
+loot_dungeon_sound **9103b11** with the Kankyo FM bank at midi_fun_contract **0f2d0ba** (sampler 3a72379; fix
 e27ac75). Scarb workspace at the repo root (scarb 2.21.0, snforge 0.64.1).
 
 Built on Beast Sound **v1.1.0**, pinned by tag (`midi`, `beast_composer`, `beast_composer_inputs` from
@@ -14,7 +14,7 @@ midi_fun_contract `v1.1.0`) and never modified. This branch is standalone and do
 |---|---|---|---|
 | `LootPureComposer` | Monthly Track Editions, Rounds and Sound Checks: composes the track and writes the lab's band (programs), the Round's +7 lift and the volumes in place (style MIX, lead turn-downs and drops, the accompaniment's drops and octave-lower tracks, TOP_SOFT on the highest voice). A `Song` reverts here. | none | 79,128 |
 | `LootMidiProvider` | Every track behind one ABI (`ILootMidiProvider`): Editions/Rounds/Checks library-call `LootPureComposer`; Species/Name Songs build the Beast's song inputs and library-call the pinned `BeastPureComposer`, then add the band, a Name Song's +12 and lead pool, the song volumes, a Name Song's softer kick and TOP_SOFT. OpenZeppelin Ownable + Upgradeable; `set_classes`. | class hashes, pack address, owner | 33,600 |
-| `LootFmPack` | The FM sound pack that plays these files: one gzip + base64 script (31.5 KB raw, 13.8 KB gzip), `pack()`, `chunk(i)`, `pack_sha256()`. | none (data in code) | 5,505 |
+| `LootFmPack` | The FM sound pack that plays these files: one gzip + base64 script (32.1 KB raw, 14.1 KB gzip), `pack()`, `chunk(i)`, `pack_sha256()`. Its sampler builds buffers ahead (`prepare()`; sampler e27ac75 + 3a72379: no clicks on slurs, steadier on Android). | none (data in code) | 5,538 |
 | `BeastPureComposer` | Not ours: Beast Sound v1.1.0's class `0x07eb6480204a1367381b782116e6a3d6dedd8fb8b03535ca453e5c681002eb63`, used as is. `loot/deps/beast_contracts` (v1.1.0's source verbatim, test only) builds to this hash. | none | 81,920 |
 
 ## ABI

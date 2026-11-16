@@ -18,7 +18,7 @@ const DAYS = [null, 1, 9, 45, 100, 290];
 const PER = 4, N = 96;
 const cases = [];
 for (let i = 0; i < N; i++) {
-  const e = (i % 30) + 1, sp = 76 + ((i * 7 + Math.floor(i / 30)) % 30), mega = (i + Math.floor(i / 15)) % 2 === 1;
+  const e = (i % 30) + 1, sp = 78 + ((i * 7 + Math.floor(i / 30)) % 30), mega = (i + Math.floor(i / 15)) % 2 === 1;
   const p = 1 + ((i * 37) % 200), day = DAYS[Math.floor(i / 15) % 6];
   const d = day === null ? null : L.drift2({ id: sp, prefix: 0, suffix: 0 }, day, anchor);
   cases.push({

@@ -10,7 +10,43 @@ pub struct TrackWriter {
     data: Array<u8>,
     /// Time of the last event, in ticks.
     time: u32,
+    /// 0, or (one felt, so the writer stays small): bit 0 STATS, bit 1 SHIFT, the pitch sum at 2^2, the
+    /// count at 2^34, the open keys at 2^50 (bit k for key k). With STATS the writer keeps the sum and
+    /// count of the notes the lab's `notesOf` finds in this (one channel) track: a note on (velocity
+    /// above 0) closed by the next note off or zero-velocity note on of its key. With SHIFT every note
+    /// (on, off, aftertouch) of a pitched channel is an octave lower, held to 0..127 (the lab's
+    /// `lifted` t: an edition's accompaniment an octave lower).
+    pub x: felt252,
 }
+
+pub const STATS: felt252 = 1;
+pub const SHIFT: felt252 = 2;
+const SUM1: felt252 = 4;
+const COUNT1: felt252 = 0x400000000;
+const OPEN1: felt252 = 0x4000000000000;
+
+/// 2^k for k below 128 (no loop, no panic path).
+#[inline(never)]
+fn bit(k: u8) -> felt252 {
+    let (h, l) = DivRem::div_rem(k, 16);
+    let lo: felt252 = match LOW16.span().get(l.into()) {
+        Option::Some(x) => *x.unbox(),
+        Option::None => 0,
+    };
+    let hi: felt252 = match HIGH16.span().get(h.into()) {
+        Option::Some(x) => *x.unbox(),
+        Option::None => 0,
+    };
+    lo * hi
+}
+
+const LOW16: [felt252; 16] = [
+    1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768,
+];
+const HIGH16: [felt252; 8] = [
+    1, 0x10000, 0x100000000, 0x1000000000000, 0x10000000000000000, 0x100000000000000000000,
+    0x1000000000000000000000000, 0x10000000000000000000000000000,
+];
 
 /// `x` (below 256) as a byte.
 #[inline(always)]
@@ -21,32 +57,81 @@ pub fn byte(x: felt252) -> u8 {
     }
 }
 
-/// `v` (below 2^28) as a variable-length quantity, without a loop.
+/// `v` (below 2^28) as a variable-length quantity: 1 and 2 bytes straight-line, the longer forms a
+/// loop (as `midi::smf::push_vlq`: a loop-free function is charged for its longest path).
 #[inline(never)]
 fn push_vlq(ref out: Array<u8>, v: u32) {
     if v < 0x80 {
         out.append(byte(v.into()));
-        return;
-    }
-    let (q1, g0) = DivRem::div_rem(v, 0x80);
-    if q1 != 0 {
-        let (q2, g1) = DivRem::div_rem(q1, 0x80);
-        if q2 != 0 {
-            let (g3, g2) = DivRem::div_rem(q2, 0x80);
-            if g3 != 0 {
-                out.append(byte(0x80 + g3.into()));
-            }
-            out.append(byte(0x80 + g2.into()));
+    } else if v < 0x4000 {
+        let (h, l) = DivRem::div_rem(v, 0x80);
+        out.append(byte(0x80 + h.into()));
+        out.append(byte(l.into()));
+    } else {
+        let mut place: u32 = if v >= 0x200000 {
+            0x200000
+        } else {
+            0x4000
+        };
+        let mut rest = v;
+        while place > 1 {
+            let (group, below) = DivRem::div_rem(rest, place.try_into().unwrap());
+            out.append(byte(0x80 + group.into()));
+            rest = below;
+            place /= 0x80;
         }
-        out.append(byte(0x80 + g1.into()));
+        out.append(byte(rest.into()));
     }
-    out.append(byte(g0.into()));
 }
 
 #[generate_trait]
 pub impl TrackWriterImpl of TrackWriterTrait {
     fn new() -> TrackWriter {
-        TrackWriter { data: array![], time: 0 }
+        TrackWriter { data: array![], time: 0, x: 0 }
+    }
+
+    /// A note event under `x` (see the field): the key moved (SHIFT), the notes counted (STATS).
+    #[inline(never)]
+    fn note_x(ref self: TrackWriter, status: u8, key: u8, velocity: u8) -> u8 {
+        let xl: u256 = self.x.into();
+        let (_, flags) = DivRem::div_rem(xl.low, 4);
+        let (ty, ch) = DivRem::div_rem(status, 16);
+        let (shift, stats) = DivRem::div_rem(flags, 2);
+        let mut key = key;
+        if shift == 1 && ty >= 8 && ty <= 10 && ch != 9 {
+            key = if key < 12 {
+                0
+            } else {
+                key - 12
+            };
+        }
+        if stats == 1 && (ty == 8 || ty == 9) {
+            let b = bit(key) * OPEN1;
+            let bb: u256 = b.into();
+            let nz: NonZero<u256> = match bb.try_into() {
+                Option::Some(n) => n,
+                Option::None => { return key; },
+            };
+            let (q, _) = DivRem::div_rem(xl, nz);
+            let (_, odd) = DivRem::div_rem(q.low, 2);
+            if ty == 9 && velocity != 0 {
+                if odd == 0 {
+                    self.x += b;
+                }
+            } else if odd == 1 {
+                self.x += SUM1 * key.into() + COUNT1 - b;
+            }
+        }
+        key
+    }
+
+    /// The pitch sum and count STATS kept.
+    fn stats(self: @TrackWriter) -> (felt252, felt252) {
+        let xl: u256 = self.x.into();
+        let (_, low) = DivRem::div_rem(xl.low, 0x4000000000000);
+        let (count, rest) = DivRem::div_rem(low, 0x400000000);
+        let (sum, _) = DivRem::div_rem(rest, 4);
+        (sum.into(), count.into())
     }
 
     /// The delta to `time`, which becomes the track's time.
@@ -59,6 +144,11 @@ pub impl TrackWriterImpl of TrackWriterTrait {
     /// A channel message with two data bytes.
     #[inline(never)]
     fn message(ref self: TrackWriter, time: u32, status: u8, data1: u8, data2: u8) {
+        let data1 = if self.x != 0 && status < 0xB0 {
+            self.note_x(status, data1, data2)
+        } else {
+            data1
+        };
         self.delta(time);
         self.data.append(status);
         self.data.append(data1);

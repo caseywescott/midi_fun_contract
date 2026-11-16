@@ -15,7 +15,8 @@ use core::dict::Felt252Dict;
 use beast_composer::composition::drift::Drift;
 use crate::common::{at32, opaque, shr, wadd, wmul};
 use super::orchestra_data::{
-    BELL_A, BELL_B, FLUTE, GLOCK, HARP, LEAD_DROP, LEAD_K, NAME_POOL, POOL_DATA, POOL_OFFS,
+    BELL_A, BELL_B, EDITION_LEAD_DROP, FLUTE, GLOCK, HARP, LEAD_DROP, LEAD_K, NAME_POOL, POOL_DATA, POOL_OFFS,
+    STYLE_LEAD_BOOST,
     ROUND_MONTHLY, ROUND_POOL0, SONG_MELODY, SONG_MONTHLY, SONG_POOL0, VOLS,
 };
 
@@ -251,8 +252,9 @@ fn copy_vlq(smf: Span<u8>, ref i: u32, ref out: Array<u8>) -> u32 {
 /// The file with each pitched channel's program changes set to `band[ch % band.len()]`, each pitched
 /// note (note on/off, poly aftertouch) raised `lift` semitones, at most to 127, and each CC 7 of a
 /// channel with a volume in `vol` (K * 256 + d by channel, 0 none: `song_vols`) scaled (the lab's
-/// `lifted` and its setProgram override); channel 10 (drums) untouched.
-pub fn orchestrate(smf: Span<u8>, band: Span<u8>, lift: u8, vol: Span<u64>) -> Array<u8> {
+/// `lifted` and its setProgram override); channel 10 (drums) untouched but for `kick`: its note ons on
+/// keys 35 and 36 that many velocity steps softer, at least 1 (a Name Song's, the lab's `drumSoft`).
+pub fn orchestrate(smf: Span<u8>, band: Span<u8>, lift: u8, vol: Span<u64>, kick: u8) -> Array<u8> {
     let mut out = array![];
     let mut i: u32 = 0;
     while i != 14 {
@@ -328,10 +330,17 @@ pub fn orchestrate(smf: Span<u8>, band: Span<u8>, lift: u8, vol: Span<u64>) -> A
                     v.try_into().unwrap()
                 });
                 out.append(b2);
+            } else if kick != 0 && ty == 0x90 && ch == 9 && (b == 35 || b == 36) && b2 != 0 {
+                out.append(b);
+                out.append(if b2 > kick {
+                    b2 - kick
+                } else {
+                    1
+                });
             } else if ty == 0xb0 && b == 7 && ch < vol.len() && *vol.at(ch) != 0 {
                 out.append(b);
                 let x = *vol.at(ch);
-                out.append(scaled(b2, x / 256, (x % 256).try_into().unwrap()));
+                out.append(scaled(b2, x / 256, (x % 256).into()));
             } else {
                 out.append(b);
                 out.append(b2);
@@ -362,9 +371,11 @@ fn skip_vlq(smf: Span<u8>, ref i: u32) -> u32 {
 /// changes differ from the file, so it finds them and packs the untouched runs between them as
 /// slices of the input (far fewer steps than copying byte by byte); with a lift it is
 /// `orchestrate` then `bytes_to_byte_array`. Same bytes either way.
-pub fn orchestrate_byte_array(smf: Span<u8>, band: Span<u8>, lift: u8, vol: Span<u64>) -> ByteArray {
-    if lift != 0 || band.len() == 0 {
-        return midi::pack::bytes_to_byte_array(orchestrate(smf, band, lift, vol).span());
+pub fn orchestrate_byte_array(
+    smf: Span<u8>, band: Span<u8>, lift: u8, vol: Span<u64>, kick: u8,
+) -> ByteArray {
+    if lift != 0 || band.len() == 0 || kick != 0 {
+        return midi::pack::bytes_to_byte_array(orchestrate(smf, band, lift, vol, kick).span());
     }
     let nb = band.len();
     let mut chunks: Array<Span<u8>> = array![];
@@ -421,7 +432,7 @@ pub fn orchestrate_byte_array(smf: Span<u8>, band: Span<u8>, lift: u8, vol: Span
             let ch: u32 = (s & 15).into();
             if ty == 0xb0 && *smf.at(i) == 7 && ch < vol.len() && *vol.at(ch) != 0 {
                 let x = *vol.at(ch);
-                let v = scaled(*smf.at(i + 1), x / 256, (x % 256).try_into().unwrap());
+                let v = scaled(*smf.at(i + 1), x / 256, (x % 256).into());
                 if v != *smf.at(i + 1) {
                     chunks.append(smf.slice(from, i + 1 - from));
                     chunks.append(array![v].span());
@@ -486,7 +497,7 @@ fn push_word(ref out: Array<u8>, w: felt252, len: u32) {
 /// A CC 7 value as the lab's `lifted` scales it: max(0, min(127, Math.round(v * f - d))), with `k`
 /// the factor in billionths (the generator checks every reachable factor and value against the lab).
 #[inline(never)]
-pub fn scaled(v: u8, k: u64, d: u8) -> u8 {
+pub fn scaled(v: u8, k: u64, d: felt252) -> u8 {
     // (no panic path: CASM size)
     let p: felt252 = v.into() * k.into() + 500000000;
     let p: u128 = match p.try_into() {
@@ -494,7 +505,7 @@ pub fn scaled(v: u8, k: u64, d: u8) -> u8 {
         Option::None => 0,
     };
     let (x, _) = DivRem::div_rem(p, 1000000000);
-    let x: felt252 = x.into() - d.into();
+    let x: felt252 = x.into() - d;
     match x.try_into() {
         Option::Some(y) => if y > 127_u8 {
             127
@@ -509,7 +520,7 @@ pub fn scaled(v: u8, k: u64, d: u8) -> u8 {
 /// 7, 2 a song's channel 0, 3 a Name Song's others, 4 TOP_SOFT), `s` (the edition's style, 1 for a Name
 /// Song) and the band instrument: the factor in billionths and the steps taken off after it.
 #[inline(never)]
-pub fn vol_k(ctx: u32, s: u32, program: u8) -> (u64, u8) {
+pub fn vol_k(ctx: u32, s: u32, program: u8) -> (u64, felt252) {
     let key: u64 = ((ctx * 16 + s) * 128 + program.into()).into();
     let any: u64 = ((ctx * 16 + 15) * 128 + program.into()).into();
     let mut found: u64 = 0;
@@ -531,11 +542,15 @@ pub fn vol_k(ctx: u32, s: u32, program: u8) -> (u64, u8) {
             1000000000
         };
     }
-    (found, if lead {
-        LEAD_DROP
+    let d: felt252 = if ctx == 1 {
+        // an edition's leads: EDITION_LEAD_DROP less the style's boost (it may be negative)
+        EDITION_LEAD_DROP.into() - (*STYLE_LEAD_BOOST.span().at(s)).into()
+    } else if ctx == 2 {
+        LEAD_DROP.into()
     } else {
         0
-    })
+    };
+    (found, d)
 }
 
 /// A song's volumes by channel (loot-lab.mjs track0's `vol`), for `orchestrate`: K * 256 + d, 0 for
@@ -559,7 +574,7 @@ pub fn song_vols(band: Span<u8>, named: bool) -> Array<u64> {
         out.append(if k == 1000000000 && d == 0 {
             0
         } else {
-            k * 256 + d.into()
+            k * 256 + crate::common::u32_of(d).into()
         });
         ch += 1;
     }

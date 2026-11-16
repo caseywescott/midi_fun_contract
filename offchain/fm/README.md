@@ -1,6 +1,6 @@
 # Loot FM pack
 
-The Kankyo FM instruments of Loot Dungeon Sound (28 instruments, 10 drums, 298 key zones, 415 zone takes; the bank of midi_fun_contract 0f2d0ba, 2026-11-16)
+The Kankyo FM instruments of Loot Dungeon Sound (28 instruments, 10 drums, 298 key zones, 415 zone takes; the bank of midi_fun_contract 0f2d0ba, its sampler fix e27ac75, 2026-11-16)
 as one self-contained script, built from the reference bank script `kankyo.min.js` (the one the Loot lab
 loads) and sounding exactly like it: every zone and take renders to the same samples, bit for bit.
 

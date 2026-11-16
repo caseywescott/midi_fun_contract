@@ -30,7 +30,7 @@ const flat = (groups, enc) => { const items = [], at = []; for (const g of group
 const [cells, cellAt] = flat(M.METERS.flatMap((m) => m.cells), ([o, l, s]) => o * 65536 + l * 8 + SRC[s]);
 const [bass, bassAt] = flat(M.METERS.flatMap((m) => [...m.bass2, ...m.bass1]), ([o, l, s]) => o * 65536 + l * 8 + BSRC[s]);
 const [perc, percAt] = flat(M.METERS.flatMap((m) => m.perc), ([o, k, v]) => o * 65536 + k * 256 + v);
-for (const m of M.METERS) if (m.cells.length !== 12 || m.bass2.length !== 6 || m.bass1.length !== 6 || m.perc.length !== 3) throw new Error('meter shape');
+for (const m of M.METERS) if (m.cells.length !== 12 || m.bass2.length !== 6 || m.bass1.length !== 6 || m.perc.length !== 6) throw new Error('meter shape');
 const family = M.METERS.flatMap((m) => m.family.flatMap((t) => t.map((f) => f.reduce((v, c, i) => v + c * 16 ** i, 0))));
 const heads = M.METERS.flatMap((m) => m.head.map(([a, b]) => a * 65536 + b));
 const code = (a) => a.reduce((v, r, i) => v + r * 3 ** i, 0);
@@ -59,6 +59,6 @@ ${packed('HEADS', heads, 'meter.head, at meter * 3 + h: the lengths, first * 655
 ${packed('BASS_NOTES', bass, 'The bass figures, flat: offset * 65536 + length * 8 + source (R O T F N).')}
 ${packed('BASS_AT', bassAt, 'Where figure (meter * 2 + (0 bass2, 1 bass1)) * 6 + f starts in BASS_NOTES.')}
 ${packed('PERC_HITS', perc, 'The percussion bars, flat: offset * 65536 + key * 256 + velocity.')}
-${packed('PERC_AT', percAt, 'Where bar meter * 3 + i starts in PERC_HITS.')}`;
+${packed('PERC_AT', percAt, 'Where bar meter * 6 + i starts in PERC_HITS.')}`;
 writeFileSync(out, src);
 console.log('wrote', out);

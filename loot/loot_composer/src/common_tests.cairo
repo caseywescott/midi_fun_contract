@@ -25,8 +25,8 @@ fn mix_and_seeds_match_js() {
 #[test]
 fn species_table() {
     let s = loot_species(LOOT_FIRST);
-    assert_eq!(s.id, 76);
-    assert_eq!(s.degrees, [0, 1, 3, 5, 3, 4]);
+    assert_eq!(s.id, 78);
+    assert_eq!(s.degrees, [0, 2, 3, 4, 2, 0]);
 }
 
 #[test]

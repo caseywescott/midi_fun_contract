@@ -1268,12 +1268,8 @@ pub fn round_tracks(
         bass_on = r.int(100) < 70;
     }
     let mut perc_i = r.int(3);
-    let perc_share = if tier <= 2 {
-        70
-    } else {
-        40
-    };
-    let mut perc_on = r.int(100) < perc_share;
+    // (the old percussion draw stays in place: every Round now has drums)
+    r.int(100);
     let mut ep_kind = r.int(6);
     let mut ep_leader = r.int(k);
     let mut orn_i = *ORN_PICK.span().at(r.int(4));
@@ -1282,6 +1278,10 @@ pub fn round_tracks(
     let mut shape = r.int(4);
     let mut sus_i = r.int(3);
     let loop_draw_b = r.int(65536);
+    // the drums: the groove from the purchase, half of them among the last three; the fill from the
+    // same draw's bits
+    perc_i += 3 * ((loop_draw_b / 0x80) % 2);
+    let mut fill_k = (loop_draw_b / 8) % 4;
     let gl_draw = r.int(20);
     let gl_seed0 = r.next();
     let meter_draw = r.int(100);
@@ -1333,6 +1333,7 @@ pub fn round_tracks(
             role_seed = role_seed ^ m;
             cell_seed = cell_seed ^ m.wrapping_mul(0x9e3779b1);
             shape = (shape + 1 + (m / 0x1000) % 3) % 4;
+            perc_i = (perc_i + 1 + (m / 0x10000) % 5) % 6;
         }
         if let Option::Some(x) = dr.rotate {
             let w = low32(x);
@@ -1341,11 +1342,9 @@ pub fn round_tracks(
             let part = (w / 0x100) % 3;
             if part == 0 {
                 bass_on = !bass_on;
-            } else if part == 1 {
-                perc_on = !perc_on;
             }
             bass_fig = (bass_fig + 1 + (w / 0x400) % 5) % 6;
-            perc_i = (perc_i + 1 + (w / 0x100000) % 2) % 3;
+            fill_k = (fill_k + 1 + (w / 0x100000) % 3) % 4;
             level0 = (w / 0x1000) % 2;
             orn_i = (w / 0x4000) % 3;
             sus_i = (w / 0x400000) % 3;
@@ -1783,27 +1782,51 @@ pub fn round_tracks(
             x += 1;
         }
     }
-    // the percussion, from the second voice's entry
+    // the drums, from the second voice's entry: the week's fill over the half bar before each loop,
+    // the episode, the return and the cadence, the groove elsewhere; a cymbal where the round comes
+    // back and on the last chord
     let mut perc: Array<Sound> = opaque(array![]);
-    if perc_on {
-        let at = PERC_AT.span();
-        let from = at32(at, mi * 3 + perc_i);
-        let stop = at32(at, mi * 3 + perc_i + 1);
-        let mut t = cyc;
-        while t < cad_start {
-            let mut y = from;
-            while y != stop {
-                let z = at32(PERC_HITS.span(), y);
-                perc.append(Sound { t: t + z / 65536, len: 120, p: i((z / 256) % 256), v: z % 256 });
-                y += 1;
-            }
-            t += br;
+    let half = br / 2;
+    let mut fill_at: Array<u32> = opaque(array![]);
+    if fill_k != 0 {
+        let lo = cyc + half;
+        let mut g: u32 = opaque(1);
+        while g != ca + cb {
+            end_at(ref fill_at, if g < ca {
+                g * cyc
+            } else {
+                b_start + (g - ca) * cyc
+            }, lo, cad_start);
+            g += 1;
         }
-        // (the source sorts these by time; an equal sort key keeps the order they come in)
-        perc.append(Sound { t: b_start, len: 120, p: 49, v: 84 });
-        perc.append(Sound { t: cad_start + cadl, len: 120, p: 49, v: 90 });
-        perc.append(Sound { t: cad_start + cadl, len: 120, p: 36, v: 104 });
+        end_at(ref fill_at, ep_start, lo, cad_start);
+        end_at(ref fill_at, b_start, lo, cad_start);
+        end_at(ref fill_at, cad_start, lo, cad_start);
     }
+    let fill_at = fill_at.span();
+    let at = PERC_AT.span();
+    let from = at32(at, mi * 6 + perc_i);
+    let stop = at32(at, mi * 6 + perc_i + 1);
+    let mut t = cyc;
+    while t < cad_start {
+        let mut y = from;
+        while y != stop {
+            let z = at32(PERC_HITS.span(), y);
+            let tt = t + z / 65536;
+            if !in_fill(fill_at, tt, half) {
+                perc.append(Sound { t: tt, len: 120, p: i((z / 256) % 256), v: z % 256 });
+            }
+            y += 1;
+        }
+        t += br;
+    }
+    for c in fill_at {
+        fill_notes(ref perc, fill_k, *c, half);
+    }
+    // (the source sorts these by time; an equal sort key keeps the order they come in)
+    perc.append(Sound { t: b_start, len: 120, p: 49, v: 84 });
+    perc.append(Sound { t: cad_start + cadl, len: 120, p: 49, v: 90 });
+    perc.append(Sound { t: cad_start + cadl, len: 120, p: 36, v: 104 });
     // the harp glissando
     let base: i32 = i(if tonic < 6 {
         60 + tonic
@@ -1888,6 +1911,62 @@ pub fn round_tracks(
         tracks.append(note_track(9, 0, 0, 0, perc.span(), end, play));
     }
     tracks
+}
+
+/// A fill window ending at `c`, kept once, when `c` is in `lo..=hi`.
+#[inline(never)]
+fn end_at(ref xs: Array<u32>, c: u32, lo: u32, hi: u32) {
+    if c < lo || c > hi {
+        return;
+    }
+    for y in xs.span() {
+        if *y == c {
+            return;
+        }
+    }
+    xs.append(c);
+}
+
+/// Whether tick `t` falls in a fill: the half bar before one of `ends`.
+#[inline(never)]
+fn in_fill(ends: Span<u32>, t: u32, half: u32) -> bool {
+    for c in ends {
+        if t + half >= *c && t < *c {
+            return true;
+        }
+    }
+    false
+}
+
+/// loot_rounds.js `fillNotes(kind, end, span)`: eighths over the `span` ticks before `end`, rising
+/// from velocity 60 to 90: the snare (1), the toms falling by thirds (2), or kick and snare in turn
+/// (3).
+#[inline(never)]
+fn fill_notes(ref out: Array<Sound>, kind: u32, end: u32, span: u32) {
+    let n = span / 240;
+    let n = if n > 2 {
+        n
+    } else {
+        2
+    };
+    let mut j: u32 = opaque(0);
+    while j != n {
+        let key: u32 = if kind == 1 {
+            38
+        } else if kind == 2 {
+            *[45, 43, 41].span().at(3 * j / n)
+        } else {
+            36 + 2 * (j % 2)
+        };
+        // 60 + Math.round(30 * j / (n - 1))
+        out
+            .append(
+                Sound {
+                    t: end - span + j * 240, len: 120, p: i(key), v: 60 + (60 * j + n - 1) / (2 * (n - 1)),
+                },
+            );
+        j += 1;
+    }
 }
 
 /// A root degree in -3..3.

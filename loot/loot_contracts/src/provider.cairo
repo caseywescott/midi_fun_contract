@@ -44,7 +44,7 @@ pub mod LootMidiProvider {
         band, byte_array_bytes, has_soft, orchestrate, orchestrate_byte_array, round_band, song_band,
         song_vols, top_soft_byte_array, top_soft_smf,
     };
-    use loot_composer::orchestra_data::STYLE_COUNT;
+    use loot_composer::orchestra_data::{NAME_KICK_SOFT, STYLE_COUNT};
     use loot_composer::songs::name_from_variant;
     use loot_composer::species::loot_species;
     use openzeppelin_access::ownable::OwnableComponent;
@@ -149,11 +149,21 @@ pub mod LootMidiProvider {
         // the same pass as the band and lift, then TOP_SOFT on the highest voice when the band has
         // such an instrument (the lab's track0() and track())
         let vol = song_vols(band.span(), x.name != 0);
+        // a Name Song's kick (keys 35, 36) NAME_KICK_SOFT velocity steps softer (the lab's drumSoft)
+        let kick = if x.name == 0 {
+            0
+        } else {
+            NAME_KICK_SOFT
+        };
         if has_soft(band.span()) {
-            let smf = orchestrate(byte_array_bytes(@sound.midi).span(), band.span(), lift, vol.span());
+            let smf = orchestrate(
+                byte_array_bytes(@sound.midi).span(), band.span(), lift, vol.span(), kick,
+            );
             top_soft_byte_array(smf.span(), band.span())
         } else {
-            orchestrate_byte_array(byte_array_bytes(@sound.midi).span(), band.span(), lift, vol.span())
+            orchestrate_byte_array(
+                byte_array_bytes(@sound.midi).span(), band.span(), lift, vol.span(), kick,
+            )
         }
     }
 

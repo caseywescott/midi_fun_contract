@@ -15,53 +15,53 @@ const from = (key) => { const s = BEAST.find((x) => x.key === key); if (!s) thro
 
 // [key, label, noun, desc, source style, home ('major' | 'minor' | 'lydian'), bpm, progressions]
 const DEFS = [
-  ['overworld', 'Overworld March', 'March', 'a heroic brass tune closing on bVI-bVII-I', 'overworld', 'major', [132, 150], [
+  ['overworld', 'Underworld March', 'March', 'a grim brass march through the halls below, closing on bVI-bVII-I', 'overworld', 'major', [132, 150], [
     'I-bVI-bVII-I', 'I-IV-bVII-I', 'I-bVII-IV-I', 'I-bIII-IV-I', 'bVI-bVII-I-I', 'I-V-bVI-bVII', 'I-iv-bVII-I', 'I-II-IV-I',
     'IV-bVII-I-I', 'I-bVI-IV-bVII', 'I-III-IV-I', 'vi-bVI-bVII-I', 'I-bVII-bVI-bVII', 'I-IV-bVI-bVII', 'I-v-bVII-IV', 'I-bIII-bVII-IV']],
-  ['field', 'Open Field', 'Field', 'a Mixolydian drive that never quite cadences, then the long close', 'reel', 'major', [120, 140], [
+  ['field', 'Catacomb Reel', 'Reel', 'a Mixolydian drive through the catacombs that never quite cadences, then the long close', 'reel', 'major', [120, 140], [
     'I-bVII-I-bVII-I-bVII-IV-I', 'I-bVII-IV-I-bVI-v-N-V', 'I-bVII-I-IV-bVI-bVII-I-I', 'I-IV-bVII-I-I-IV-bVII-I',
     'I-bVII-I-bVII', 'I-v-bVII-I', 'I-bVII-IV-IV', 'bVI-v-N-V', 'I-IV-I-bVII', 'I-bVII-v-IV', 'IV-bVII-I-I', 'I-bIII-bVII-I',
     'I-bVII-I-I-bVI-bVII-I-I', 'I-v-IV-I-bVI-v-N-V', 'I-I-bVII-IV', 'bVII-IV-I-I']],
-  ['lullaby', 'Royal Lullaby', 'Lullaby', 'a slow lullaby that lingers on the dominant and closes IV-iv-I', 'lullaby', 'major', [72, 88], [
+  ['lullaby', 'Crypt Lullaby', 'Lullaby', 'a slow lullaby for the sleeping dead that lingers on the dominant and closes IV-iv-I', 'lullaby', 'major', [72, 88], [
     'I-V-IV-V7', 'IV-iv-I-I', 'V-IV-V-V7', 'I-vi-IV-iv', 'ii7-V7-IV-iv', 'V-IV-iv-I', 'I-iii-IV-V7', 'IV-V-iii-vi',
     'ii-V-IV-iv', 'vi-IV-V-V7', 'I-IV-iv-V7', 'V-vi-IV-iv', 'IV-I-V-V7', 'I-V-vi-iv', 'IV-iv-V-I', 'ii7-iv-I-V7']],
-  ['forest', 'Forest Dance', 'Dance', 'a Lydian dance on the raised fourth, closing V-II-I', 'hoedown', 'lydian', [132, 150], [
+  ['forest', 'Cavern Dance', 'Dance', 'a Lydian dance by torchlight on the raised fourth, closing V-II-I', 'hoedown', 'lydian', [132, 150], [
     'I-II-I-II', 'I-II-V-I', 'I-II-vi-II', 'V-II-I-I', 'I-vii-II-I', 'I-iii-II-I', 'vi-II-I-V', 'I-V-II-I',
     'I-II-iii-II', 'II-I-V-I', 'I-vi-II-V', 'I-II-I-V', 'iii-II-I-I', 'I-V-vi-II', 'II-V-I-I', 'I-iii-vi-II']],
-  ['temple', 'Temple Depths', 'Depths', 'minor chords pivoting on common tones, a Neapolitan before the dominant', 'dungeon', 'minor', [76, 92], [
+  ['temple', 'Sunken Temple', 'Depths', 'minor chords pivoting on common tones in a drowned temple, a Neapolitan before the dominant', 'dungeon', 'minor', [76, 92], [
     'i-VI-N-i', 'i-iv-VI-V', 'i-III-N-V', 'i-VI-iv-V', 'i-N-V-i', 'iv-i-VI-V', 'i-VII-VI-V', 'i-v-VI-N',
     'i-i-VI-V', 'VI-N-V-i', 'i-iv-N-V', 'i-III-iv-V', 'i-IV-VI-V', 'i-Ger-V-i', 'VI-Ger-V-V', 'i-VI-III-V']],
-  ['boss', 'Dungeon Boss', 'Showdown', 'a driving minor battle with Neapolitan and augmented-sixth turns', 'boss', 'minor', [150, 170], [
+  ['boss', 'Dungeon Boss', 'Showdown', 'a driving minor battle in the deepest hall, with Neapolitan and augmented-sixth turns', 'boss', 'minor', [150, 170], [
     'i-N-i-V', 'i-VI-VII-i', 'i-iv-V-i', 'i-N-V-i', 'i-VII-VI-V', 'i-VI-Ger-V', 'i-i-N-V', 'VI-VII-i-i',
     'i-v-VI-V', 'i-III-VII-V', 'iv-V-i-i', 'i-VI-iv-V', 'i-N-VI-V', 'i-VII-i-V', 'VI-N-V-i', 'i-iv-VI-V']],
-  ['flowers', 'Waltz of the Flowers', 'Waltz', 'a sweeping waltz through applied dominants and a German sixth', 'waltz', 'major', [150, 170], [
+  ['flowers', 'Waltz of the Wraiths', 'Waltz', 'a sweeping waltz of wraiths through applied dominants and a German sixth', 'waltz', 'major', [150, 170], [
     'I-vi-ii7-V7-I-VI7-ii-V7', 'I-III7-vi-IV-I-II7-V7-I', 'I-I-ii-V7-V7-V7-I-I', 'IV-iv-I-vi-ii-V7-I-I',
     'I-vii°7-I-V7-vi-II7-V-V7', 'I-V7-I-IV-iv-I-V7-I', 'I-iii-IV-iv-I-vi-II7-V7', 'I-VI7-ii-iv-I-Ger-V7-I',
     'I-II7-V7-I', 'I-vi-ii-V7', 'I-III7-vi-V7', 'IV-iv-I-V7', 'I-bVI-V7-I', 'ii7-V7-I-vi', 'I-V7-vi-iv', 'I-vii°7-V7-I']],
-  ['toymarch', 'Toy March', 'March', 'a crisp toy-soldier march with secondary dominants', 'march', 'major', [108, 124], [
+  ['toymarch', 'Skeleton March', 'March', 'a crisp march of rattling skeletons with secondary dominants', 'march', 'major', [108, 124], [
     'I-V7-V7-I', 'I-IV-V7-I', 'I-II7-V7-I', 'I-vi-ii-V7', 'I-vii°7-V7-I', 'IV-V7-I-I', 'I-III7-vi-V7', 'I-iv-V7-I',
     'ii7-V7-I-I', 'I-VI7-ii-V7', 'I-V-II7-V7', 'vi-II7-V7-I', 'I-IV-Ger-V7', 'I-N-V7-I', 'IV-iv-V7-I', 'I-bVI-V7-I']],
-  ['adagio', 'Grand Adagio', 'Adagio', 'a descending adagio, more chromatic toward each cadence', 'chorale', 'major', [82, 96], [
+  ['adagio', 'Tomb Adagio', 'Adagio', 'a descending adagio among the tombs, more chromatic toward each cadence', 'chorale', 'major', [82, 96], [
     'I-V-vi-iii-IV-I-ii7-V7', 'IV-iv-I-vi-ii7-Ger-V7-I', 'I-VI7-ii-II7-V7-vi-N-V7', 'vi-iii-IV-I-ii-vii°7-V7-I',
     'I-V-vi-iii', 'IV-I-ii7-V7', 'I-vi-N-V7', 'IV-iv-I-V7', 'I-Ger-V7-I', 'ii7-vii°7-V7-I', 'I-II7-IV-V7', 'vi-III7-IV-V7',
     'I-bVI-ii7-V7', 'I-V-IV-iv', 'I-iii-IV-iv-I-VI7-II7-V7', 'I-V-vi-III7-IV-iv-V7-I']],
-  ['sugarplum', 'Sugar Plum', 'Dance', 'a delicate minor dance of diminished sevenths and a German sixth', 'galop', 'minor', [100, 116], [
+  ['sugarplum', 'Dance of the Wisps', 'Dance', 'a delicate minor dance of will-o-the-wisps, of diminished sevenths and a German sixth', 'galop', 'minor', [100, 116], [
     'i-iv-V7-i', 'i-VI-Ger-V7', 'i-N-V7-i', 'i-vii°7-i-V7', 'iv-V7-i-i', 'i-VI-iv-V7', 'i-III-iv-V', 'VI-N-V7-i',
     'i-v-VI-V7', 'i-iv-vii°7-V7', 'i-I7-iv-V7', 'i-VII-III-V7', 'i-Ger-V7-i', 'iv-VI-N-V7', 'i-i-iv-V7', 'i-VI-vii°7-V7']],
-  ['trepak', 'Trepak', 'Trepak', 'a stamping Russian dance, fast and bright', 'klezmer', 'major', [150, 176], [
+  ['trepak', 'Ghoul Trepak', 'Trepak', 'a stamping dance of ghouls, fast and wild', 'klezmer', 'major', [150, 176], [
     'I-V7-I-V7', 'I-IV-V7-I', 'I-I-V7-I', 'I-ii-V7-I', 'IV-I-V7-I', 'I-vi-II7-V7', 'I-V-I-V', 'I-IV-I-V7',
     'ii-V7-I-I', 'I-iii-IV-V7', 'I-II7-V7-I', 'I-vi-IV-V7', 'vi-ii-V7-I', 'I-V7-vi-V7', 'IV-V7-I-I', 'I-III7-IV-V7']],
-  ['arabian', 'Arabian Night', 'Mirage', 'a slow minor drone with a Neapolitan shadow', 'dirge', 'minor', [96, 112], [
+  ['arabian', 'Tomb of Sands', 'Mirage', 'a slow minor drone in a buried tomb, with a Neapolitan shadow', 'dirge', 'minor', [96, 112], [
     'i-i-iv-i', 'i-VII-VI-V', 'i-iv-i-V', 'i-VI-i-V', 'i-i-VI-V', 'iv-i-VII-i', 'i-N-i-V', 'i-v-iv-i',
     'VI-V-i-i', 'i-VII-i-VII', 'i-iv-VI-V', 'i-i-N-i', 'i-III-iv-i', 'i-v-VI-V', 'iv-VI-V-i', 'i-VI-iv-i']],
   // a thirteenth style, in six: the Beasts tarantella's meter and figures at a chase's pace, Realm harmony in minor
-  ['speedrun', 'Speedrun', 'Run', 'a racing 6/8 chase in minor: a whirling tune over a driving bass, bVI-bVII-i at the tape', 'tarantella', 'minor', [160, 184], [
+  ['speedrun', 'Dungeon Run', 'Run', 'a racing 6/8 chase through the dungeon in minor: a whirling tune over a driving bass, bVI-bVII-i at the tape', 'tarantella', 'minor', [160, 184], [
     'i-VI-VII-i', 'i-VII-VI-VII', 'i-VI-III-VII', 'i-iv-VII-III', 'i-VII-i-V', 'VI-VII-i-i', 'i-III-VII-iv', 'i-v-VI-VII',
     'i-VI-iv-V', 'iv-VII-III-VI', 'i-VII-VI-V', 'i-III-VI-VII', 'VI-III-VII-i', 'i-iv-VI-VII', 'i-N-VII-i', 'i-VI-VII-V']],
   // two faster ones in four, from the Beasts speedrun and punk styles (their figures, Realm harmony in major)
-  ['dash', 'Dungeon Dash', 'Dash', 'a flat-out 4/4 sprint: racing arpeggios over a driving bass, bVI-bVII-I at the line', 'speedrun', 'major', [190, 212], [
+  ['dash', 'Crypt Dash', 'Dash', 'a flat-out 4/4 sprint through the crypt: racing arpeggios over a driving bass, bVI-bVII-I at the line', 'speedrun', 'major', [190, 212], [
     'I-bIII-bVII-IV', 'I-IV-bVII-I', 'bVI-bVII-I-I', 'I-IV-V-I', 'I-bVII-bVI-IV', 'IV-II-IV-V', 'I-bVII-I-IV', 'bVI-IV-bVII-V', 'IV-bIII-IV-bVII', 'IV-V-bVI-V', 'bVI-IV-V-IV', 'IV-bVII-I-IV', 'I-iii-IV-I', 'IV-bVII-IV-bVII', 'bVI-bVII-bVI-V', 'I-bVII-IV-bVII']],
-  ['punkrun', 'Punk Run', 'Riot', 'three chords at full tilt: power chords on every eighth, a pounding bass, the snare on two and four', 'punk', 'major', [196, 220], [
+  ['punkrun', 'Skull Punk', 'Riot', 'three chords at full tilt in the depths: power chords on every eighth, a pounding bass, the snare on two and four', 'punk', 'major', [196, 220], [
     'I-V-vi-IV', 'I-bVII-IV-I', 'I-bVI-bVII-I', 'vi-IV-I-V', 'I-IV-I-V', 'vi-V-vi-IV', 'IV-bIII-IV-V', 'vi-V-vi-I', 'I-bIII-bVII-IV', 'I-bVII-bVI-IV', 'vi-bVII-bVI-IV', 'vi-bIII-IV-I', 'I-IV-V-bVII', 'vi-v-IV-I', 'I-v-IV-V', 'I-vi-IV-bVII']],
 ];
 // 16 more per style (32 in all), the same idioms with the seventh colours

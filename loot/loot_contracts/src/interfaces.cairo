@@ -19,7 +19,7 @@ use midi::types::TinySynthSound;
 use starknet::{ClassHash, ContractAddress};
 
 /// A Species Song (`name` 0) or a Name Song (special-name variant 1..1242) of Loot Beast `species`
-/// (76..105).
+/// (78..107).
 #[derive(Copy, Drop, Serde, PartialEq, Debug)]
 pub struct LootSongInputs {
     pub species: u32,

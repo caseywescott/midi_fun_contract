@@ -88,6 +88,11 @@ fn performed_song_matches(species: u32, name: u16, sound_effects: u8) {
             12
         },
         vol.span(),
+        if name == 0 {
+            0
+        } else {
+            loot_composer::orchestra_data::NAME_KICK_SOFT
+        },
     );
     // and TOP_SOFT, as the lab plays it
     let want = loot_composer::orchestra::top_soft_byte_array(played.span(), band.span());
@@ -99,13 +104,13 @@ fn performed_song_matches(species: u32, name: u16, sound_effects: u8) {
 #[test]
 #[ignore]
 fn mega_species_song() {
-    performed_song_matches(84, 0, 1);
+    performed_song_matches(86, 0, 1);
 }
 
 #[test]
 #[ignore]
 fn mega_echo_name_song() {
-    performed_song_matches(99, 300, 3);
+    performed_song_matches(101, 300, 3);
 }
 
 #[test]

@@ -64,28 +64,28 @@ fn same(species: u32, mega: bool, name: u16, drift: Option<DriftInputs>) -> bool
 #[test]
 #[ignore]
 fn v11_species_songs() {
-    assert!(same(76, false, 0, Option::None), "76");
-    assert!(same(90, false, 0, Option::None), "90");
-    assert!(same(105, false, 0, Option::None), "105");
+    assert!(same(78, false, 0, Option::None), "78");
+    assert!(same(92, false, 0, Option::None), "92");
+    assert!(same(107, false, 0, Option::None), "107");
 }
 
 #[test]
 #[ignore]
 fn v11_name_songs() {
-    assert!(same(83, false, 1242, Option::None), "83 name");
-    assert!(same(97, false, 7, Option::None), "97 name");
+    assert!(same(85, false, 1242, Option::None), "85 name");
+    assert!(same(99, false, 7, Option::None), "99 name");
 }
 
 #[test]
 #[ignore]
 fn v11_drift_songs() {
-    assert!(same(86, false, 0, Option::Some(DriftInputs { name_variant_id: 0, day: 45, day_hash: 0x2956ffbf266d21c7d5e01968335e1bab126495564d8dcf5a92c5b14507e72c6, week_hash: 0x52e10e4521547a4ed4aa421ffc96e651368b640e0f5998520234a674eb594dc, month_hash: 0x3b2372967bbbc009fcabee385f9fd3a22c32d4f5cd9f29b6b424a25ea8b9ec3 })), "86 drift");
-    assert!(same(93, false, 300, Option::Some(DriftInputs { name_variant_id: 300, day: 45, day_hash: 0x2956ffbf266d21c7d5e01968335e1bab126495564d8dcf5a92c5b14507e72c6, week_hash: 0x52e10e4521547a4ed4aa421ffc96e651368b640e0f5998520234a674eb594dc, month_hash: 0x3b2372967bbbc009fcabee385f9fd3a22c32d4f5cd9f29b6b424a25ea8b9ec3 })), "93 name drift");
+    assert!(same(88, false, 0, Option::Some(DriftInputs { name_variant_id: 0, day: 45, day_hash: 0x2956ffbf266d21c7d5e01968335e1bab126495564d8dcf5a92c5b14507e72c6, week_hash: 0x52e10e4521547a4ed4aa421ffc96e651368b640e0f5998520234a674eb594dc, month_hash: 0x3b2372967bbbc009fcabee385f9fd3a22c32d4f5cd9f29b6b424a25ea8b9ec3 })), "88 drift");
+    assert!(same(95, false, 300, Option::Some(DriftInputs { name_variant_id: 300, day: 45, day_hash: 0x2956ffbf266d21c7d5e01968335e1bab126495564d8dcf5a92c5b14507e72c6, week_hash: 0x52e10e4521547a4ed4aa421ffc96e651368b640e0f5998520234a674eb594dc, month_hash: 0x3b2372967bbbc009fcabee385f9fd3a22c32d4f5cd9f29b6b424a25ea8b9ec3 })), "95 name drift");
 }
 
 #[test]
 #[ignore]
 fn v11_mega_is_not_the_labs_mega() {
     // v1.1's mega (sound_effects 1) also plays faster, louder and tenuto; the lab's Mega does not
-    assert!(!same(80, true, 0, Option::None), "80 mega");
+    assert!(!same(82, true, 0, Option::None), "82 mega");
 }

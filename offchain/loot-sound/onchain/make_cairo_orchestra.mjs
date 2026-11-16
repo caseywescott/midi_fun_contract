@@ -12,20 +12,27 @@ const data = pools.flat(), offs = [0]; for (const p of pools) offs.push(offs.at(
 const packed = (xs) => { const fs = []; for (let i = 0; i < xs.length; i += 7) fs.push('0x' + xs.slice(i, i + 7).reduce((v, w, j) => v + (BigInt(w) << BigInt(32 * j)), 0n).toString(16)); return fs; };
 // The lab's volume changes (CC 7 v becomes max(0, min(127, Math.round(v * f - d)))) as one table of
 // factors in billionths: Cairo computes max(0, min(127, (v * K + 5e8) / 1e9 - d)), K = round(f * 1e9).
-// Contexts: 0 an edition's other channels (MIX), 1 an edition's lead channels LEAD_CH (MIX x LEAD_SOFT x
-// LEAD_ALL, then LEAD_DROP), 2 a song's channel 0 (LEAD_SOFT x LEAD_ALL x NAME_SOFT, then LEAD_DROP), 3 a
-// Name Song's other channels (NAME_SOFT), 4 TOP_SOFT. An entry is keyed by context, s (the edition's style,
+// Contexts: 0 an edition's other channels (MIX; on the accompaniment, channel 2, d is the style's
+// STYLE_ACCOMP_DROP plus HIGH_ACCOMP_DROP when it sits above the lead), 1 an edition's lead channels LEAD_CH
+// (MIX x LEAD_SOFT x LEAD_ALL, then EDITION_LEAD_DROP less the style's STYLE_LEAD_BOOST), 2 a song's channel
+// 0 (LEAD_SOFT x LEAD_ALL x NAME_SOFT, then LEAD_DROP), 3 a Name Song's other channels (NAME_SOFT), 4
+// TOP_SOFT. An entry is keyed by context, s (the edition's style,
 // 1 for a Name Song, 15 any) and program; none found: s 15, then the context's default (LEAD_ALL on the lead
 // contexts, else 1). Every (context, style or name, program, CC 7 value) is checked below against the lab's
 // own functions, exhaustively.
 const D = 1e9, K = (f) => Math.round(f * D);
 const LEAD_DROP = ORCH.leadDrop, LEAD_K = K(ORCH.leadAll);
+const perStyle = (m) => STYLES.map((S) => m[S.key] || 0);
+const BOOST = perStyle(ORCH.styleLeadBoost), ACC_DROP = perStyle(ORCH.styleAccompDrop), ACC_LOWER = perStyle(ORCH.styleAccompLower);
+const leadD = (s) => ORCH.editionLeadDrop - BOOST[s];
+const SMF0 = new Uint8Array([0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 1, 0, 0, 1, 0xe0]); // no tracks: no pitch means
 const progs = [...new Set(Object.values(O.BANK))].sort((a, b) => a - b);
 const entries = new Map(); // key -> K
 const keyOf = (ctx, s, p) => (ctx * 16 + s) * 128 + p;
 const put = (ctx, s, p, f) => { const k = keyOf(ctx, s, p); if (entries.has(k) && entries.get(k) !== K(f)) throw new Error('volume table clash'); entries.set(k, K(f)); };
 const fOf = (x) => (x === undefined ? 1 : x.f ?? x);
-const edVol = (key, ch, p) => { const orch = Array(8).fill(-1); orch[ch] = p; return O.styleVol(key, orch)[ch]; };
+// (accompLow: the accompaniment's own drops are checked apart, below)
+const edVol = (key, ch, p) => { const orch = Array(8).fill(-1); orch[ch] = p; return O.styleVol(key, orch, SMF0, true, 78, 1, 1)[ch]; };
 const songVol = (named, ch, p) => { const orch = Array(8).fill(-1); orch[ch] = p; return O.songVol(orch, named)[ch]; };
 for (const p of progs) {
   // any style: an edition's lead (no MIX); a song's channel 0; a Name Song's others
@@ -41,14 +48,17 @@ STYLES.forEach((S, s) => { const mixOf = ORCH.mix[S.key]; if (!mixOf) return;
     if (fo !== 1) put(0, s, p, fo); } });
 // the Cairo lookup, emulated, against the lab for every CC 7 value
 const lookup = (ctx, s, p) => entries.get(keyOf(ctx, s, p)) ?? entries.get(keyOf(ctx, 15, p)) ?? (ctx === 1 || ctx === 2 ? LEAD_K : D);
-const cairoCc = (v, k, d) => { const x = Math.floor((v * k + D / 2) / D); return x < d ? 0 : Math.min(127, x - d); };
+const cairoCc = (v, k, d) => { const x = Math.floor((v * k + D / 2) / D); return x < d ? 0 : Math.min(127, x - d); }; // d may be negative
 const labCc = (v, x) => (x === undefined ? v : Math.max(0, Math.min(127, Math.round(v * (x.f ?? x) - (x.d ?? 0)))));
 let checked = 0;
-const check = (what, x, ctx, s, p) => { const k = lookup(ctx, s, p), d = ctx === 1 || ctx === 2 ? LEAD_DROP : 0;
+const check = (what, x, ctx, s, p, dd = null) => { const k = lookup(ctx, s, p), d = dd ?? (ctx === 1 ? leadD(s) : ctx === 2 ? LEAD_DROP : 0);
   for (let v = 0; v < 128; v++) { checked++; if (cairoCc(v, k, d) !== labCc(v, x)) throw new Error(`volume ${what} program ${p} at CC 7 ${v}: lab ${labCc(v, x)}, table ${cairoCc(v, k, d)}`); } };
 STYLES.forEach((S, s) => { for (const p of progs) for (let ch = 0; ch < 8; ch++) check(S.key + ' ch' + ch, edVol(S.key, ch, p), ch === 0 || ch === 7 ? 1 : 0, s, p); });
 for (const named of [0, 1]) for (const p of progs) for (let ch = 0; ch < 8; ch++) check((named ? 'name' : 'song') + ' ch' + ch, songVol(!!named, ch, p), ch === 0 ? 2 : named ? 3 : 0, ch === 0 ? named : named ? 1 : 15, p);
 for (const p of progs) check('top', ORCH.topSoft[p], 4, 15, p);
+// the accompaniment's drops: the style's, plus HIGH_ACCOMP_DROP, as the lab's Math.round(v * f - d)
+STYLES.forEach((S, s) => { for (const p of progs) { const f = fOf(edVol(S.key, 2, p));
+  for (const d of [ACC_DROP[s], ACC_DROP[s] + ORCH.highAccompDrop]) check(S.key + ' accompaniment', { f, d }, 0, s, p, d); } });
 const vols = [...entries].sort((a, b) => a[0] - b[0]).map(([k, v]) => (BigInt(k) << 32n) + BigInt(v));
 // a Name Song's lead pool (NAME_LEADS), after the others
 const melody = (kinds) => kinds.reduce((m, k, c) => m | (k === 'melody' ? 1 << c : 0), 0);
@@ -77,9 +87,20 @@ pub const SONG_MELODY: u32 = ${melody(ORCH.songKinds)};
 /// The lab's volume changes on CC 7 (sample banks): (context * 16 + style or name) * 128 + program, then
 /// the factor in billionths, at 2^32 (orchestra::vol_k; checked by the generator for every CC 7 value).
 pub const VOLS: [u64; ${vols.length}] = [${vols.join(', ')}];
-/// LEAD_ALL in billionths, and LEAD_DROP (the lead contexts' defaults).
+/// LEAD_ALL in billionths (the lead contexts' default), LEAD_DROP (a song's theme) and EDITION_LEAD_DROP
+/// (an edition's leads, less the style's STYLE_LEAD_BOOST).
 pub const LEAD_K: u64 = ${LEAD_K};
 pub const LEAD_DROP: u8 = ${LEAD_DROP};
+pub const EDITION_LEAD_DROP: u8 = ${ORCH.editionLeadDrop};
+/// By style: the leads' boost, the accompaniment's drop and, 1 in this many tracks (0 never), the
+/// accompaniment an octave lower (STYLE_LEAD_BOOST, STYLE_ACCOMP_DROP, STYLE_ACCOMP_LOWER).
+pub const STYLE_LEAD_BOOST: [u8; ${STYLES.length}] = [${BOOST.join(', ')}];
+pub const STYLE_ACCOMP_DROP: [u8; ${STYLES.length}] = [${ACC_DROP.join(', ')}];
+pub const STYLE_ACCOMP_LOWER: [u8; ${STYLES.length}] = [${ACC_LOWER.join(', ')}];
+/// The accompaniment's drop when it sits above the lead (HIGH_ACCOMP_DROP), and a Name Song's kick
+/// (keys 35, 36) this many velocity steps softer (NAME_KICK_SOFT).
+pub const HIGH_ACCOMP_DROP: u8 = ${ORCH.highAccompDrop};
+pub const NAME_KICK_SOFT: u8 = ${ORCH.nameKickSoft};
 
 /// Where pool i starts in POOL_DATA (and ends: the next), u32s 7 to a felt (common::at32).
 pub const POOL_OFFS: [felt252; ${packed(offs).length}] = [${packed(offs).join(', ')}];

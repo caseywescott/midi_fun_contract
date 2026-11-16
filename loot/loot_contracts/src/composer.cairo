@@ -73,10 +73,11 @@ pub fn compose_with(inputs: LootInputs, sound_effects: u8, drift: Option<DriftIn
             assert(x.edition >= 1, 'editions start at 1');
             assert(x.purchase >= 1 && x.purchase < 0x100000000, 'purchase 1..2^32');
             let d = loot_drift(x.species, drift);
-            let b = band(
-                (x.edition - 1) % STYLE_COUNT, x.species, x.edition, x.purchase.try_into().unwrap(), d,
-            );
-            edition_played_byte_array(x.species, mega, x.edition, purchase_seed(x.purchase), d, b.span())
+            let p: u32 = x.purchase.try_into().unwrap();
+            let b = band((x.edition - 1) % STYLE_COUNT, x.species, x.edition, p, d);
+            edition_played_byte_array(
+                x.species, mega, x.edition, purchase_seed(x.purchase), d, b.span(), p,
+            )
         },
         LootInputs::Round(x) => round_or_check(
             x.species, mega, x.purchase, loot_drift(x.species, drift), true,

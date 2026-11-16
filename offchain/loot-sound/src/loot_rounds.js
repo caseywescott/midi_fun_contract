@@ -248,8 +248,22 @@ const PERC = [
   [[0, 36, 100], [480, 42, 60], [960, 38, 80], [1440, 42, 60]],
   [[0, 36, 100], [240, 42, 50], [720, 42, 50], [960, 36, 84], [1200, 42, 50], [1680, 42, 56]],
   [[0, 36, 104], [960, 41, 84], [1440, 43, 80], [1680, 45, 84]],
+  [[0, 36, 100], [480, 38, 72], [960, 36, 88], [1200, 36, 70], [1440, 38, 80]],
+  [[0, 36, 96], [240, 42, 44], [480, 42, 54], [720, 42, 44], [960, 38, 78], [1200, 42, 44], [1440, 42, 54], [1680, 42, 44]],
+  [[0, 36, 100], [720, 36, 78], [960, 38, 80], [1440, 42, 52], [1680, 41, 70]],
 ];
-export const PERC_NAMES = ['backbeat', 'offbeat hats', 'toms'];
+// Every Round has drums (Casey: drums on the rounds, varying with drift): the purchase picks a groove (one of the first
+// three, or of the last three on some), the month moves it to another of the six, and the week picks the fill that
+// closes each loop, the episode and the return.
+export const PERC_NAMES = ['backbeat', 'offbeat hats', 'toms', 'driving', 'running hats', 'half-time'];
+export const FILL_NAMES = ['no fills', 'snare fills', 'tom fills', 'kick and snare fills'];
+// a fill over `span` ticks before `end`, on an eighth grid: snare rising, toms falling, or kick and snare in turn
+function fillNotes(kind, end, span) {
+  const n = Math.max(2, Math.floor(span / 240)), out = [];
+  for (let j = 0; j < n; j++) { const t = end - span + j * 240, v = 60 + Math.round(30 * j / (n - 1));
+    out.push(kind === 1 ? { t, key: 38, v } : kind === 2 ? { t, key: [45, 43, 41][Math.min(2, Math.floor(3 * j / n))], v } : { t, key: j % 2 ? 38 : 36, v }); }
+  return out;
+}
 export const ROUND_DRUMS = [36, 38, 41, 42, 43, 45, 49];
 // the episode: a sequence, the roots a fixed step apart, the leader's chord member turning each chord
 export const EPISODES = [
@@ -300,11 +314,17 @@ const PERC68 = [
   [[0, 36, 100], [480, 42, 56], [720, 38, 80], [1200, 42, 56]],
   [[0, 36, 100], [240, 42, 50], [480, 42, 50], [720, 36, 84], [960, 42, 50], [1200, 42, 56]],
   [[0, 36, 104], [720, 41, 84], [960, 43, 80], [1200, 45, 84]],
+  [[0, 36, 100], [240, 42, 48], [480, 42, 48], [720, 38, 80], [960, 42, 48], [1200, 42, 48]],
+  [[0, 36, 100], [480, 36, 70], [720, 38, 80], [1200, 41, 72]],
+  [[0, 36, 100], [720, 36, 84], [1200, 38, 64]],
 ];
 const PERC34 = [
   [[0, 36, 100], [480, 42, 60], [960, 38, 76]],
   [[0, 36, 100], [240, 42, 50], [720, 42, 50], [1200, 42, 56]],
   [[0, 36, 104], [480, 41, 80], [960, 43, 84]],
+  [[0, 36, 100], [480, 38, 70], [960, 38, 70]],
+  [[0, 36, 100], [240, 42, 46], [480, 42, 56], [720, 42, 46], [960, 42, 56], [1200, 42, 46]],
+  [[0, 36, 100], [960, 36, 76], [1200, 38, 72]],
 ];
 /** slot and bar in ticks, the time signature's bytes, how late a suspension resolves, a cadence chord's length. */
 export const METERS = [
@@ -337,6 +357,9 @@ export function roundScore(sp, mega, seedKey, drift = null) {
   const ornSeed = R.int(100), ornKind = R.int(3);
   let shape = R.int(4), susI = R.int(3);
   const loopDrawB = R.int(65536);
+  // the drums: always on (the old draw stays in place, so nothing after it moves); the groove from the purchase, half of
+  // them among the last three; the fill from the same draw's bits
+  percOn = true; percI += 3 * ((loopDrawB >>> 7) & 1); let fillK = (loopDrawB >>> 3) % 4;
   // the meter is the purchase's, like its key: no clock of drift changes it
   const glDraw = R.int(20), glSeed0 = R();
   const mi = meterFor(sp.type, R.int(100)), meter = METERS[mi], SL = meter.slot, BR = meter.bar, late = meter.late, CADL = meter.cad;
@@ -348,17 +371,17 @@ export function roundScore(sp, mega, seedKey, drift = null) {
   if (drift && drift.rhythm !== null) {
     const m = low32(drift.rhythm);
     loopStep = 1 + (m % 5); hr = (hr + 1 + ((m >>> 8) % 2)) % 3; roleSeed = (roleSeed ^ m) >>> 0; cellSeed = (cellSeed ^ imul(m, 0x9e3779b1)) >>> 0;
-    shape = (shape + 1 + ((m >>> 12) % 3)) % 4;
-    changes.push('month: new loops and new lines');
+    shape = (shape + 1 + ((m >>> 12) % 3)) % 4; percI = (percI + 1 + ((m >>> 16) % 5)) % 6;
+    changes.push('month: new loops and new lines, a new groove');
   }
   if (drift && drift.rotate !== null) {
     const w = low32(drift.rotate);
     rot = 1 + (w % (K - 1)); contour = (contour + 1 + ((w >>> 4) % 3)) % 4;
-    const part = (w >>> 8) % 3; if (part === 0) bassOn = !bassOn; else if (part === 1) percOn = !percOn;
-    bassFig = (bassFig + 1 + ((w >>> 10) % 5)) % 6; percI = (percI + 1 + ((w >>> 20) % 2)) % 3; level0 = (w >>> 12) % 2;
+    const part = (w >>> 8) % 3; if (part === 0) bassOn = !bassOn;
+    bassFig = (bassFig + 1 + ((w >>> 10) % 5)) % 6; fillK = (fillK + 1 + ((w >>> 20) % 3)) % 4; level0 = (w >>> 12) % 2;
     ornI = (w >>> 14) % 3; susI = (w >>> 22) % 3;
     epLeader = (epLeader + 1 + ((w >>> 18) % (K - 1))) % K;
-    changes.push('week: the instruments trade voices, the contour is ' + CONTOUR_NAMES[contour] + (part === 0 ? ', the bass ' + (bassOn ? 'joins' : 'rests') : part === 1 ? ', the percussion ' + (percOn ? 'joins' : 'rests') : '') + (level0 ? ', it starts moving' : ''));
+    changes.push('week: the instruments trade voices, the contour is ' + CONTOUR_NAMES[contour] + (part === 0 ? ', the bass ' + (bassOn ? 'joins' : 'rests') : part === 1 ? ', the drums play ' + FILL_NAMES[fillK] : '') + (level0 ? ', it starts moving' : ''));
   }
   if (drift) {
     const k = drift.dayKnob;
@@ -558,8 +581,14 @@ export function roundScore(sp, mega, seedKey, drift = null) {
     });
   }
   if (percOn) {
-    // from the second voice's entry; a cymbal where the round comes back and on the last chord
-    for (let t = cyc; t < cadStart; t += BR) for (const [off, key, v] of meter.perc[percI]) perc.push({ t: t + off, key, v });
+    // from the second voice's entry; the week's fill over the half bar before each loop, the episode, the return and
+    // the cadence; a cymbal where the round comes back and on the last chord
+    const half = BR / 2, ends = [];
+    if (fillK) { for (let g = 1; g < CA + CB; g++) ends.push(g < CA ? g * cyc : bStart + (g - CA) * cyc); ends.push(epStart, bStart, cadStart); }
+    const fillAt = [...new Set(ends)].filter((c) => c - half >= cyc && c <= cadStart);
+    const inFill = (t) => fillAt.some((c) => t >= c - half && t < c);
+    for (let t = cyc; t < cadStart; t += BR) for (const [off, key, v] of meter.perc[percI]) if (!inFill(t + off)) perc.push({ t: t + off, key, v });
+    for (const c of fillAt) perc.push(...fillNotes(fillK, c, half));
     perc.push({ t: bStart, key: 49, v: 84 }, { t: cadStart + CADL, key: 49, v: 90 }, { t: cadStart + CADL, key: 36, v: 104 });
     perc.sort((a, b) => a.t - b.t);
   }
@@ -583,7 +612,7 @@ export function roundScore(sp, mega, seedKey, drift = null) {
     shapes: shapes.map((g) => SHAPE_NAMES[g]).join(', '), motifRhythm: headI.map((h) => HEAD_NAMES[h]).join(' then '),
     suspensions: RA.suspensions + ' in the first theme, ' + RB.suspensions + ' in the second',
     episode: E.name + ', led by voice ' + (epLeader + 1), cadence: numeral(scale, cad) + ' – ' + numeral(scale, 0),
-    bass: bassOn ? BASS_NAMES[bassFig] : 'none', percussion: percOn ? PERC_NAMES[percI] : 'none',
+    bass: bassOn ? BASS_NAMES[bassFig] : 'none', percussion: percOn ? PERC_NAMES[percI] + ', ' + FILL_NAMES[fillK] : 'none',
     ornaments: orn ? orn + '% of the notes: ' + [...new Set(palette)].map((g) => ORNAMENT_NAMES[g - 1]).join(', ') : 'none',
     glissandi: glPlan.length ? glPlan.map((x) => (x.up ? 'up' : 'down') + (x.high ? ', an octave higher,' : '') + ' into ' + glAt[x.spot][1]).join(', ') : 'none',
     entries: voices.map((v) => 'ch' + (v.ch + 1)).join(' → '), drift: changes.length ? changes.join(' · ') : 'as written',

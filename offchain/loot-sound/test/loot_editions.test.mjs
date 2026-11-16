@@ -95,6 +95,8 @@ test('the pizzicato accompaniment is an octave lower on some purchases and some 
       for (let k = 1; k <= 4; k++) { const w = E.editionTrack(sp, false, e, BigInt(s) * 0x9e3779b97f4a7c15n, week(k + 7 * s)); if (w.info.accompLow !== a.info.accompLow) flips++; assert.ok(lowest(w) >= 36, `edition ${e} purchase ${s} week ${k}: lowest ${lowest(w)}`); }
     }
     if (pizz) { assert.ok(low >= 10 && low <= 45, `edition ${e}: ${low} of 60 purchases low`); assert.ok(flips >= 60 && flips <= 180, `edition ${e}: ${flips} of 240 weeks change the octave`); }
-    else assert.ok(low <= 25);
+    // elsewhere only the octave-below doubling (one purchase in three, about 20 of 60) lowers it; 28 leaves room for the
+    // spread over 60 (the final Beast list put Dungeon Boss's sample at 26)
+    else assert.ok(low <= 28, `edition ${e}: ${low} of 60 purchases low outside the pizzicato styles`);
   }
 });

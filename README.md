@@ -24,8 +24,8 @@ Upgradeable provider.
 
 | Class | What | CASM felts (limit 81,920) |
 |---|---|---|
-| `LootPureComposer` | the Loot composer, storage-free: Editions, Rounds, Sound Checks, each with the lab's band (and the Round's +7 lift) written in place, and an Edition's volumes (style MIX; LEAD_SOFT x LEAD_ALL, then LEAD_DROP, on the lead and second lead) | 72,878 |
-| `LootMidiProvider` | every track behind one ABI (`ILootMidiProvider`): Editions/Rounds/Checks library-call `LootPureComposer`; Species/Name Songs build the Loot Beast's `SongInputs` and library-call the pinned v1.1.0 `BeastPureComposer`, then add the band (a Name Song's lead from NAME_LEADS), the Name Song's +12 and the volumes in one pass; TOP_SOFT on every kind; OpenZeppelin Ownable + Upgradeable, `set_classes` | 34,326 |
+| `LootPureComposer` | the Loot composer, storage-free: Editions, Rounds, Sound Checks, each with the lab's band (and the Round's +7 lift) written in place, and an Edition's volumes (style MIX; LEAD_SOFT x LEAD_ALL, then EDITION_LEAD_DROP less the style's boost, on the lead and second lead; the accompaniment's drops and its octave-lower tracks) | 77,326 |
+| `LootMidiProvider` | every track behind one ABI (`ILootMidiProvider`): Editions/Rounds/Checks library-call `LootPureComposer`; Species/Name Songs build the Loot Beast's `SongInputs` and library-call the pinned v1.1.0 `BeastPureComposer`, then add the band (a Name Song's lead from NAME_LEADS), the Name Song's +12 and the volumes in one pass; a Name Song's kick softer; TOP_SOFT on every kind; OpenZeppelin Ownable + Upgradeable, `set_classes` | 34,645 |
 | `BeastPureComposer` | not ours: Beast Sound v1.1.0's class (`0x07eb6480…02eb63`), used as is | 81,920 |
 | `LootFmPack` | the FM sound pack (gzip+base64 script, `pack()` / chunks / sha256) | 5,499 |
 
@@ -52,17 +52,18 @@ Parity with the JS (all identical):
 | Sound Checks | 100 | `KIND=checks PREFIX=CK sh scripts/rounds_parity_cairo.sh` + `checks_parity.mjs` |
 | Species/Name Songs, raw and as played (drifted Name Songs included) | 49 | `scripts/songs_parity.mjs` |
 | Orchestration (bands: editions, Species and Name Songs, Rounds) | 525 vectors | `scripts/songs_parity.mjs` |
-| The lab's volume changes (every context, style or name, instrument and CC 7 value) | 491,008 | `offchain/loot-sound/onchain/make_cairo_orchestra.mjs` (at generation) |
-| Deployed provider vs the lab's playback (Songs, Editions, Rounds, Checks) | 29 | `scripts/front_parity.mjs <midi_fun_contract v1.0.1 checkout> rounds` |
+| The lab's volume changes (every context, style or name, instrument, drop and CC 7 value) | 598,528 | `offchain/loot-sound/onchain/make_cairo_orchestra.mjs` (at generation) |
+| Deployed provider vs the lab's playback (Songs, Editions with the edition mix, Rounds, Checks) | 34 | `scripts/front_parity.mjs <midi_fun_contract v1.0.1 checkout> rounds` |
 | Rounds/Checks played in place vs orchestrating the written file | 14 | `loot_composer::played_tests` |
 | Songs through the v1.1 path vs the lab's (species, name, drift) | 7 | `loot_contracts::v11_song_tests` |
 | Mega/echo Songs through the provider vs the pinned class called directly | 2 | `loot_contracts::tests` |
 
-Gas (l2, per call, approximate): Species/Name Song ~130-355M through the provider (the pinned class plus the band pass); Edition ~36-141M (typical
-85M, with its volumes written in place); Round ~190-370M and Sound Check ~70-95M through the provider (the most with a vibraphone in the
-band: the provider's TOP_SOFT walk). CASM: the hot helpers have no panic paths (wrapping hashes and rng, felt arithmetic, a panic-free
-track writer with the `midi` crate's bytes), so their many call sites carry no error branches, and the small helpers called from many
-places are out of line; packed tables (u32s 7 to a felt, scales as nibbles).
+Gas (l2, per call, approximate): Species/Name Song ~137-343M through the provider (the pinned class plus the band pass); Edition ~35-131M
+written (typical 102M), ~104-244M through the provider with its volumes written in place; Round ~178-486M (now with drums) and Sound
+Check ~42-66M through the provider (the most with a vibraphone in the band: the provider's TOP_SOFT walk). CASM: the hot helpers
+have no panic paths (wrapping hashes and rng, felt arithmetic, a panic-free track writer with the `midi` crate's bytes, its
+variable-length quantities looped past two bytes as `midi`'s are, for gas), so their many call sites carry no error branches, and
+the small helpers called from many places are out of line; packed tables (u32s 7 to a felt, scales as nibbles).
 
 Run Cairo only through `sh scripts/cairo_run.sh <cmd>` (one at a time, memory watchdog). Parity fixtures are
 `#[ignore]`d batches: e.g. `sh scripts/cairo_run.sh scarb test -p loot_contracts -- --include-ignored`. In
@@ -73,12 +74,16 @@ compressed and swapped), not RSS.
 
 The FM pack (`offchain/fm/`, see its README): the Kankyo FM bank as one 31.5 KB script (13.8 KB gzip; the reference is 58.7 KB),
 bit-identical renders, faster startup; `offchain/fm/dist/demo.html` plays any .mid through it. The port matches the
-Loot lab at loot_dungeon_sound **cc0c9d4** (engines, band pools, the descant's own instrument, a song's melody
-voices off the theme's instrument, Name Song leads (NAME_LEADS) and drift, and the lab's playback volumes: style
-MIX, LEAD_SOFT x LEAD_ALL then LEAD_DROP on the leads, NAME_SOFT, TOP_SOFT) and the FM pack the Kankyo bank at
-**0f2d0ba**; later lab or bank changes must be re-ported. The volumes are exact: the generator turns every factor
+Loot lab at loot_dungeon_sound **8c9284f** (the final 30 Beasts, ids 78-107; engines, the Rounds' drums and fills,
+band pools, the descant's own instrument, a song's melody voices off the theme's instrument, Name Song leads
+(NAME_LEADS) and drift, and the lab's playback: style MIX, LEAD_SOFT x LEAD_ALL then LEAD_DROP on a song's theme and
+EDITION_LEAD_DROP less STYLE_LEAD_BOOST on an edition's leads, the accompaniment's STYLE_ACCOMP_DROP,
+HIGH_ACCOMP_DROP when it sits above the lead and STYLE_ACCOMP_LOWER, NAME_SOFT, a Name Song's kick softer,
+TOP_SOFT) and the FM pack the Kankyo bank at
+**0f2d0ba** (sampler: e27ac75, voices silent until their envelope starts); later lab or bank changes must be re-ported. The volumes are exact: the generator turns every factor
 product into billionths and checks the integer form against the lab's `Math.round(v * f - d)` for every CC 7
-value. An Edition's are written in place by the composer; a Song's are applied in the provider's band-and-lift
+value. An Edition's are written in place by the composer (the lead's and the accompaniment's mean pitch kept as
+the notes are written); a Song's are applied in the provider's band-and-lift
 pass; TOP_SOFT (the vibraphone turned down when it is the top voice) is applied in the provider, which walks the
 file, on tracks with a vibraphone in the band. The FM bank has every program the lab uses, so its `padOf`
 fallback is the identity here.
@@ -207,4 +212,4 @@ node onchain/loot-lab.mjs <engine .min.js> <onchain-midi-player> <midi_fun_contr
 open public/loot-lab.html
 ```
 
-`src/loot_beasts.js` is a placeholder list (ids 76-105) until the final Beasts are known.
+`src/loot_beasts.js` is the final list of the 30 Loot Dungeon Beasts (ids 78-107).

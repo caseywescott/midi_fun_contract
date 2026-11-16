@@ -106,9 +106,23 @@ const LEAD_SOFT = { clarinet: 0.825, trumpet: 0.66, oboe: 0.599, vibraphone: 0.8
 // and every lead, whatever plays it, down against the other instruments: 20%, then 25% more (0.8 x 0.75 = 0.6) on
 // top (Casey, by ear; CC 7 factor, the square root of 0.6)
 const LEAD_ALL = 0.775;
-// then 7 steps of CC 7 off every lead after those factors (Casey: subtract another 15 off each lead volume, then
-// add 5 back, then 3 more)
-const LEAD_DROP = 7;
+// then steps of CC 7 off every lead after those factors (Casey: subtract another 15 off each lead volume, then add 5
+// back and 3 more: 7 off; then the editions' leads 5 louder: 2 off)
+const LEAD_DROP = 7, EDITION_LEAD_DROP = 2;
+// and a style's own lead boost, in steps added back (Casey: Punk Run and Dungeon Dash leads 5 louder)
+const STYLE_LEAD_BOOST = { punkrun: 7, dash: 10 };
+// a style's accompaniment (channel 3, when it is not the octave-lower pizzicato), this many steps of CC 7 down
+// (Casey: Dungeon Dash's high accompaniment 5 down, Punk Run's 7; then Speedrun and Dungeon Dash as Punk Run; Forest Dance
+// the same but two higher)
+const STYLE_ACCOMP_DROP = { dash: 7, punkrun: 7, speedrun: 7, forest: 5 };
+// a style whose high accompaniment plays an octave lower on some tracks, 1 in this many, by Beast, edition and
+// purchase, on its own instrument (Casey: Punk Run, depending on the track; then Speedrun and Dungeon Dash too)
+const STYLE_ACCOMP_LOWER = { punkrun: 2, speedrun: 2, dash: 2 };
+// an edition's accompaniment that sits above its lead (mean pitch, as played) this many steps of CC 7 down, in every
+// style (Casey: a high accompaniment like Forest's harp over the oboe)
+const HIGH_ACCOMP_DROP = 5;
+// a Name Song's kick (drum keys 35 and 36), this many velocity steps softer (Casey)
+const NAME_KICK_SOFT = 5;
 // an instrument turned down on every channel of a Name Song: the oboe 35%, then 40% and 20% more (0.65 x 0.6 x 0.8 =
 // 0.312) (Casey, by ear; CC 7 factor, as above)
 const NAME_SOFT = { oboe: 0.559 };
@@ -140,7 +154,7 @@ const ORCH = {
   mix: Object.fromEntries(Object.entries(MIX).map(([k, m]) => [k, Object.fromEntries(Object.entries(m).map(([n, f]) => [prog(n), f]))])),
   topSoft: Object.fromEntries(Object.entries(TOP_SOFT).map(([n, f]) => [prog(n), f])),
   leadSoft: Object.fromEntries(Object.entries(LEAD_SOFT).map(([n, f]) => [prog(n), f])),
-  nameSoft: Object.fromEntries(Object.entries(NAME_SOFT).map(([n, f]) => [prog(n), f])), nameLeads: NAME_LEADS.map(prog), leadAll: LEAD_ALL, leadDrop: LEAD_DROP,
+  nameSoft: Object.fromEntries(Object.entries(NAME_SOFT).map(([n, f]) => [prog(n), f])), nameLeads: NAME_LEADS.map(prog), leadAll: LEAD_ALL, leadDrop: LEAD_DROP, editionLeadDrop: EDITION_LEAD_DROP, styleLeadBoost: STYLE_LEAD_BOOST, styleAccompDrop: STYLE_ACCOMP_DROP, styleAccompLower: STYLE_ACCOMP_LOWER, highAccompDrop: HIGH_ACCOMP_DROP, nameKickSoft: NAME_KICK_SOFT,
   bells: [BANK.glockenspiel, BANK.vibraphone], low: BANK.pizzicato, glock: BANK.glockenspiel, flute: BANK.flute, harp: BANK.harp,
   songKinds: SONG_KINDS, roundKinds: ROUND_KINDS, songPools: pooled(SONG, SONG_KINDS), roundPools: pooled(ROUND, ROUND_KINDS),
   song: SONG.map((r) => r.map(prog)),
@@ -184,7 +198,7 @@ dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 12px;mar
 h2{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px}
 </style></head><body><main>
 <h1>Loot Dungeon Sound Lab</h1>
-<p class="sub">Every track the 30 Loot Dungeon Beasts play. Species Songs and Name Songs come from the Beasts composer unchanged. Sound Checks are new: the Beast's whole band warms up for ten bars in its key (an opening, three drills drawn from nine, a close), and every take is another routine. Rounds are new, a candidate to replace the Species Song's canon: the harmony comes first (a chord loop in the Beast's mode, in 4/4, 6/8 or 3/4 by family), one line is written over it for each voice, the lines end to end are the theme, and every voice plays that theme exactly, one loop apart. Each line has a shape and opens with the motif's rhythm, lines that step down across a chord change may hold over it as suspensions, and after a sequence canon in the middle the round comes back over a second loop. Monthly Track Editions are new: the edition engine with chromatic harmony after <i>Realm of Common Tones</i> (mode mixture, chromatic mediants, common-tone pivots) and <i>Kingdom of Sweets</i> (applied dominants, diminished sevenths, the Neapolitan and German sixth). Sound effects: regular or mega. ${INSTRUMENTS_NOTE} Beast ids, tiers and families are placeholders until the final list.</p>
+<p class="sub">Every track the 30 Loot Dungeon Beasts play. Species Songs and Name Songs come from the Beasts composer unchanged. Sound Checks are new: the Beast's whole band warms up for ten bars in its key (an opening, three drills drawn from nine, a close), and every take is another routine. Rounds are new, a candidate to replace the Species Song's canon: the harmony comes first (a chord loop in the Beast's mode, in 4/4, 6/8 or 3/4 by family), one line is written over it for each voice, the lines end to end are the theme, and every voice plays that theme exactly, one loop apart. Each line has a shape and opens with the motif's rhythm, lines that step down across a chord change may hold over it as suspensions, and after a sequence canon in the middle the round comes back over a second loop. Monthly Track Editions are new: the edition engine with chromatic harmony after <i>Realm of Common Tones</i> (mode mixture, chromatic mediants, common-tone pivots) and <i>Kingdom of Sweets</i> (applied dominants, diminished sevenths, the Neapolitan and German sixth). Sound effects: regular or mega. ${INSTRUMENTS_NOTE}</p>
 <div class="tabs" role="tablist">
 <button id="t-song"><b>Species Song</b><span>shared by every Beast of the species</span></button>
 <button id="t-round"><b>Round</b><span>new: a canon over a chord loop</span></button>
@@ -263,7 +277,27 @@ const choose = (pools, kinds, id, salt, drift, song) => { const { month, week } 
 // One voice keeps its own attack and release (Casey: on these, have one voice normal): the theme (channel 1) on a
 // Name Song, the first canon voice on a Round, so a line still sings over the crisp parts.
 const LIFT = { name: 12, round: 7 }, CRISP = { name: { attack: 0.4, attackMax: 0.03, release: 0.6, keep: [0] }, round: { attack: 0.4, attackMax: 0.03, release: 0.6, keep: [0] } };
-function lifted(u8, by, vol) { // and, with vol (channel: factor, or { f: factor, d: steps taken off after it }), those channels' volume (CC 7) scaled
+// the drum channel's notes on the given keys (velocity above 0) made that many steps softer, never below 1
+function drumSoft(u8, keys, by) {
+  if (!by) return u8;
+  const out = u8.slice(); let i = 14; const ntr = (out[10] << 8) | out[11];
+  for (let tr = 0; tr < ntr; tr++) {
+    i += 4; const len = (out[i] << 24 | out[i + 1] << 16 | out[i + 2] << 8 | out[i + 3]) >>> 0; i += 4; const stop = i + len; let run = 0;
+    while (i < stop) {
+      let b; do { b = out[i++]; } while (b & 128);
+      let s = out[i]; if (s & 128) i++; else s = run;
+      if (s === 0xff) { i++; let l = 0; do { b = out[i++]; l = (l << 7) | (b & 127); } while (b & 128); i += l; continue; }
+      if (s === 0xf0 || s === 0xf7) { let l = 0; do { b = out[i++]; l = (l << 7) | (b & 127); } while (b & 128); i += l; continue; }
+      run = s; const ty = s & 0xf0;
+      if (ty === 0xc0 || ty === 0xd0) { i += 1; continue; }
+      if (ty === 0x90 && (s & 15) === 9 && keys.includes(out[i]) && out[i + 1]) out[i + 1] = Math.max(1, out[i + 1] - by);
+      i += 2;
+    }
+    i = stop;
+  }
+  return out;
+}
+function lifted(u8, by, vol) { // and, with vol (channel: factor, or { f: factor, d: steps taken off after it, t: semitones }), those channels' volume (CC 7) scaled and notes moved
   if (!by && !vol) return u8;
   const out = u8.slice(); let i = 14; const ntr = (out[10] << 8) | out[11];
   for (let tr = 0; tr < ntr; tr++) {
@@ -275,7 +309,7 @@ function lifted(u8, by, vol) { // and, with vol (channel: factor, or { f: factor
       if (s === 0xf0 || s === 0xf7) { let l = 0; do { b = out[i++]; l = (l << 7) | (b & 127); } while (b & 128); i += l; continue; }
       run = s; const ty = s & 0xf0;
       if (ty === 0xc0 || ty === 0xd0) { i += 1; continue; }
-      if (by && (ty === 0x80 || ty === 0x90 || ty === 0xa0) && (s & 15) !== 9) out[i] = Math.max(0, Math.min(127, out[i] + by));
+      const vt = vol && vol[s & 15] && vol[s & 15].t; if ((by || vt) && (ty === 0x80 || ty === 0x90 || ty === 0xa0) && (s & 15) !== 9) out[i] = Math.max(0, Math.min(127, out[i] + by + (vt || 0)));
       const v = vol && vol[s & 15]; if (v && ty === 0xb0 && out[i] === 7) out[i + 1] = Math.max(0, Math.min(127, Math.round(out[i + 1] * (v.f ?? v) - (v.d ?? 0))));
       i += 2;
     }
@@ -298,9 +332,13 @@ function track0() {
     const d = day ? L.drift2({ id: x.id, prefix: 0, suffix: 0 }, day, anchor) : null;
     const o = ED.editionMidi(x, st.mega, st.e, purchaseSeed(st.p), d, false, st.walk);
     const key = DATA.styles[(st.e - 1) % NSTYLE].key, orch = band(key, x.id, st.e, st.p, d, o.info.accompLow), mixOf = DATA.orch.mix[key];
+    // each channel's mean pitch as written (for the high accompaniment)
+    const pm = {}; { const acc = {}; for (const n of notesOf(o.midi).notes) { if (n[3] === 9) continue; const a = acc[n[3]] || (acc[n[3]] = [0, 0]); a[0] += n[2]; a[1]++; } for (const c in acc) pm[c] = acc[c][0] / acc[c][1]; }
     // the style's mix for the instruments this track drew (sample banks only: the chip presets keep their own)
     // and the lead's own turn-down (leadSoft) on the lead, descant and second-lead channels
-    const vol = isChip() ? null : Object.fromEntries(orch.map((g, ch) => { const f = ((mixOf && mixOf[padOf(ch, g)]) || 1) * (LEAD_CH.includes(ch) ? (DATA.orch.leadSoft[padOf(ch, g)] || 1) * DATA.orch.leadAll : 1); return [ch, LEAD_CH.includes(ch) ? { f, d: DATA.orch.leadDrop } : f]; }).filter(([, f]) => f !== 1));
+    const vol = isChip() ? null : Object.fromEntries(orch.map((g, ch) => { const f = ((mixOf && mixOf[padOf(ch, g)]) || 1) * (LEAD_CH.includes(ch) ? (DATA.orch.leadSoft[padOf(ch, g)] || 1) * DATA.orch.leadAll : 1); const hi = ch === 2 && !o.info.accompLow, lw = DATA.orch.styleAccompLower[key], at = hi && lw && mix(mix(x.id, st.e * 613 + 5), st.p) % lw === 0 ? -12 : 0;
+      const ad = hi ? (DATA.orch.styleAccompDrop[key] || 0) + (pm[2] !== undefined && pm[0] !== undefined && pm[2] + at > pm[0] ? DATA.orch.highAccompDrop : 0) : 0;
+      return [ch, LEAD_CH.includes(ch) ? { f, d: DATA.orch.editionLeadDrop - (DATA.orch.styleLeadBoost[key] || 0) } : ad || at ? { f, d: ad, t: at } : f]; }).filter(([, f]) => f !== 1));
     return { midi: lifted(o.midi, 0, vol), info: o.info, settings: DATA.edition[(st.e - 1) % NSTYLE][x.type][st.mega ? 1 : 0], orch };
   }
   const settings = DATA.family[x.type * 2 + (st.mega ? 1 : 0)];
@@ -317,7 +355,8 @@ function track0() {
   const o = L.sampleTrackMidi(bOf(x, st.kind === 'name'), { species_count: 1 }, opts, E, V);
   // the theme's lead turn-down (leadSoft), and on a Name Song the nameSoft instruments on any channel
   const vol = isChip() ? null : Object.fromEntries(orch.map((g, ch) => { const q = padOf(ch, g); const f = (ch === 0 ? (DATA.orch.leadSoft[q] || 1) * DATA.orch.leadAll : 1) * ((st.kind === 'name' && DATA.orch.nameSoft[q]) || 1); return [ch, ch === 0 ? { f, d: DATA.orch.leadDrop } : f]; }).filter(([, f]) => f !== 1));
-  return { midi: lifted(o.midi, LIFT[st.kind], vol && Object.keys(vol).length ? vol : null), info: o.info, settings, orch };
+  const m0 = lifted(o.midi, LIFT[st.kind], vol && Object.keys(vol).length ? vol : null);
+  return { midi: st.kind === 'name' ? drumSoft(m0, [35, 36], DATA.orch.nameKickSoft) : m0, info: o.info, settings, orch };
 }
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const COLORS = ['#8a2be2', '#e0742a', '#1f9d8c', '#c0392b', '#7f8c8d', '#2a7ae0', '#b8860b', '#888'];

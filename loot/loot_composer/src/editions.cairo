@@ -16,15 +16,15 @@
 use beast_composer::composition::drift::{Drift, nudge_tempo};
 use beast_composer::opaque::opaque;
 use midi::smf::{smf_byte_array, smf_bytes};
-use crate::writer::{TrackWriter, TrackWriterTrait, byte as b8};
+use crate::writer::{SHIFT, STATS, TrackWriter, TrackWriterTrait, byte as b8};
 use crate::common::{
     GLISS_CHANNEL, GlissPlan, Rng, RngTrait, fold64, gliss_plan, glissando, mix, u32_of, wmul,
 };
 use crate::editions_data::{
     COLOURS, INTRO_PLAN, SCALES, STYLE_COUNT, SUBS, SUBS_AT, Style, WALKS, style,
 };
-use crate::orchestra::{scaled, vol_k};
-use crate::orchestra_data::LOW;
+use crate::orchestra::{lab_mix, scaled, vol_k};
+use crate::orchestra_data::{HIGH_ACCOMP_DROP, LOW, STYLE_ACCOMP_DROP, STYLE_ACCOMP_LOWER};
 use crate::species::loot_species;
 
 const SEVEN: NonZero<u32> = 7;
@@ -238,6 +238,7 @@ fn ev_write(ref tw: TrackWriter, ch: u8, ev: Span<u64>) {
 }
 
 /// CC 7 as a mix level (loot_editions.js volOf).
+#[inline(never)]
 fn vol_of(flags: u32, ch: u8, program: u32) -> u8 {
     let k: u32 = if (flags % 2 == 1 && ch == 3) || ((flags / 2) % 2 == 1 && ch == 2) {
         837
@@ -275,6 +276,7 @@ fn channel_track(ch: u8, program: u32, c: @Ctx) -> TrackWriter {
     // the volumes on the band's instrument (loot-lab.mjs track0: sample banks, as played): the
     // style's MIX, and on the lead channels (0 and the second lead) LEAD_SOFT x LEAD_ALL, then
     // LEAD_DROP
+    // (the accompaniment's STYLE_ACCOMP_DROP here; HIGH_ACCOMP_DROP once its notes are known)
     let vol = vol_of(flags, ch, program);
     let vol = if band.len() != 0 && ch < 8 {
         let (k, d) = vol_k(if ch == 0 || ch == ALT_CHANNEL {
@@ -282,6 +284,11 @@ fn channel_track(ch: u8, program: u32, c: @Ctx) -> TrackWriter {
         } else {
             0
         }, c.style, played);
+        let d = if ch == 2 && c.hi {
+            (*STYLE_ACCOMP_DROP.span().at(c.style)).into()
+        } else {
+            d
+        };
         scaled(vol, k, d)
     } else {
         vol
@@ -711,6 +718,10 @@ struct Ctx {
     rot: u32,
     parts: u32,
     acc_down: bool,
+    /// as played (a band) and the accompaniment not an octave lower: its style drop, its drop when it
+    /// sits above the lead, and `acc_shift` (STYLE_ACCOMP_LOWER: -12 on some tracks) apply
+    hi: bool,
+    acc_shift: felt252,
     /// the accompaniment's octave doubling: 12, or -12 (below the root, one purchase in three)
     octave: felt252,
     detached: bool,
@@ -1327,9 +1338,19 @@ fn rhythm_bar(ref tw: TrackWriter, k: Box<Ctx>, role: u32, tok: u32, b: u32, t: 
 
 /// The track of part `role` on channel `ch` with `program`, over the intro and the four tunes.
 #[inline(never)]
-fn part(k: Box<Ctx>, role: u32, ch: u8, program: u32) -> Array<u8> {
+fn part(k: Box<Ctx>, role: u32, ch: u8, program: u32, ref stats: (felt252, felt252)) -> Array<u8> {
     let c = k.unbox();
     let mut tw = channel_track(ch, program, @c);
+    // the lead's and the accompaniment's mean pitch (for HIGH_ACCOMP_DROP); the accompaniment's shift
+    tw.x = if c.hi && (role == 0 || role == 2) {
+        STATS
+    } else {
+        0
+    } + if role == 2 && c.acc_shift != 0 {
+        SHIFT
+    } else {
+        0
+    };
     if c.intro.bars > 0 {
         intro(ref tw, k, role);
     }
@@ -1379,6 +1400,7 @@ fn part(k: Box<Ctx>, role: u32, ch: u8, program: u32) -> Array<u8> {
         t0 += 8 * bar;
         sec += 1;
     }
+    stats = tw.stats();
     tw.finish_at(t0)
 }
 
@@ -1909,7 +1931,7 @@ struct Plan {
 
 #[inline(never)]
 fn plan(
-    species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>, band: Span<u8>,
+    species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>, band: Span<u8>, purchase: u32,
 ) -> Box<Plan> {
     let (month, rotate, knob, day) = match drift {
         Option::Some(d) => (
@@ -2013,6 +2035,15 @@ fn plan(
     } else {
         12
     };
+    // the lab's accompaniment, as played: an octave lower on some tracks of some styles (by Beast,
+    // edition and purchase)
+    let hi = band.len() != 0 && !acc_down;
+    let lw: u32 = (*STYLE_ACCOMP_LOWER.span().at(style)).into();
+    let acc_shift: felt252 = if hi && lw != 0 && lab_mix(lab_mix(id, e * 613 + 5), purchase) % lw == 0 {
+        -12
+    } else {
+        0
+    };
     let ctx = BoxTrait::new(
         Ctx {
             s: sb,
@@ -2027,6 +2058,8 @@ fn plan(
             rot: m.rot,
             parts: m.parts,
             acc_down,
+            hi,
+            acc_shift,
             octave,
             detached: m.detached,
             accomp: *s.accomps.at(m.acc_i),
@@ -2081,15 +2114,15 @@ fn plan(
 pub fn edition_tracks(
     species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>,
 ) -> Array<Array<u8>> {
-    edition_tracks_played(species, mega, e, seed, drift, array![].span())
+    edition_tracks_played(species, mega, e, seed, drift, array![].span(), 0)
 }
 
 /// `edition_tracks` with each pitched channel's program change set to `band[ch % band.len()]`
 /// (empty: as written): the file `orchestra::orchestrate` would make, written that way directly.
 pub fn edition_tracks_played(
-    species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>, band: Span<u8>,
+    species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>, band: Span<u8>, purchase: u32,
 ) -> Array<Array<u8>> {
-    let p = plan(species, mega, e, seed, drift, band).unbox();
+    let p = plan(species, mega, e, seed, drift, band, purchase).unbox();
     let (knob, delta) = match drift {
         Option::Some(d) => (d.day_knob, d.delta_bpm),
         Option::None => (6, 0),
@@ -2099,32 +2132,79 @@ pub fn edition_tracks_played(
     let s = c.s.unbox();
     let ty: u32 = loot_species(species).beast_type.into();
     let (parts, ticks, acc_p) = (p.parts, p.ticks, p.acc_p);
+    let mut lead: (felt252, felt252) = (0, 0);
+    let mut acc: (felt252, felt252) = (0, 0);
+    let mut none: (felt252, felt252) = (0, 0);
     let mut tracks: Array<Array<u8>> = array![
-        tempo_track(p.bpm, knob, delta, s.num, s.den, ticks), part(ctx, 0, 0, p.lead_p),
+        tempo_track(p.bpm, knob, delta, s.num, s.den, ticks), part(ctx, 0, 0, p.lead_p, ref lead),
     ];
     if parts & DESCANT != 0 || p.any_doubled {
-        tracks.append(part(ctx, 1, 1, p.lead_p));
+        tracks.append(part(ctx, 1, 1, p.lead_p, ref none));
     }
-    tracks.append(part(ctx, 2, 2, acc_p));
+    let acc_at = tracks.len();
+    tracks.append(part(ctx, 2, 2, acc_p, ref acc));
     if parts & BASS != 0 {
-        tracks.append(part(ctx, 3, 3, *s.palette.at(9 + ty)));
+        tracks.append(part(ctx, 3, 3, *s.palette.at(9 + ty), ref none));
     }
     if parts & PAD != 0 {
-        tracks.append(part(ctx, 4, 4, *s.palette.at(12 + ty)));
+        tracks.append(part(ctx, 4, 4, *s.palette.at(12 + ty), ref none));
     }
     if parts & PERC != 0 {
-        tracks.append(part(ctx, 9, 9, 0));
+        tracks.append(part(ctx, 9, 9, 0, ref none));
     }
     if mega {
-        tracks.append(part(ctx, 5, 5, *MEGA_LEADS.span().at((species + 1) % 2)));
+        tracks.append(part(ctx, 5, 5, *MEGA_LEADS.span().at((species + 1) % 2), ref none));
     }
     if let Option::Some(gp) = gliss_plan(p.gl_draw, p.gl_seed, [3, 3, 1, 0, 2].span()) {
         tracks.append(gliss_track(ctx, gp, p.gl_seed, acc_p, ticks, p.bpm));
     }
     if c.alt_kind != NO_KIND {
-        tracks.append(part(ctx, 7, ALT_CHANNEL, acc_p));
+        tracks.append(part(ctx, 7, ALT_CHANNEL, acc_p, ref none));
+    }
+    // HIGH_ACCOMP_DROP: the accompaniment (as played, shifted) above the lead on average
+    let (s0, n0) = lead;
+    let (s2, n2) = acc;
+    if c.hi && above(s2, n2, s0, n0) {
+        tracks = high_accomp(tracks, acc_at, c.style, vol_of(c.flags, 2, acc_p), *c.band.at(2));
     }
     tracks
+}
+
+/// Whether mean s2 / n2 is above mean s0 / n0 (both counts above 0).
+#[inline(never)]
+fn above(s2: felt252, n2: felt252, s0: felt252, n0: felt252) -> bool {
+    if n2 == 0 || n0 == 0 {
+        return false;
+    }
+    let l: u256 = (s2 * n0).into();
+    let r: u256 = (s0 * n2).into();
+    l > r
+}
+
+/// The tracks with the accompaniment's (track `at`) CC 7 lowered by HIGH_ACCOMP_DROP more: its value
+/// sits at byte 6 (after the program change), recomputed from the written volume `v`.
+#[inline(never)]
+fn high_accomp(
+    tracks: Array<Array<u8>>, at: u32, style: u32, v: u8, played: u8,
+) -> Array<Array<u8>> {
+    let (k, _) = vol_k(0, style, played);
+    let d: felt252 = (*STYLE_ACCOMP_DROP.span().at(style)).into() + HIGH_ACCOMP_DROP.into();
+    let mut out: Array<Array<u8>> = array![];
+    let mut i: u32 = 0;
+    for t in tracks {
+        if i == at {
+            let t = t.span();
+            let mut x: Array<u8> = array![];
+            x.append_span(t.slice(0, 6));
+            x.append(scaled(v, k, d));
+            x.append_span(t.slice(7, t.len() - 7));
+            out.append(x);
+        } else {
+            out.append(t);
+        }
+        i += 1;
+    }
+    out
 }
 
 /// Edition `e`'s track as a Standard MIDI File (format 1, 480 ticks per quarter note):
@@ -2144,7 +2224,15 @@ pub fn edition_byte_array(
 
 /// The edition as the lab plays it, packed for a contract: band instruments written in place.
 pub fn edition_played_byte_array(
-    species: u32, mega: bool, e: u32, seed: u64, drift: Option<Drift>, band: Span<u8>,
+    species: u32,
+    mega: bool,
+    e: u32,
+    seed: u64,
+    drift: Option<Drift>,
+    band: Span<u8>,
+    purchase: u32,
 ) -> ByteArray {
-    smf_byte_array(1, 480, edition_tracks_played(species, mega, e, seed, drift, band).span())
+    smf_byte_array(
+        1, 480, edition_tracks_played(species, mega, e, seed, drift, band, purchase).span(),
+    )
 }

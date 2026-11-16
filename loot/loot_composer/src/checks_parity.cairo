@@ -11,899 +11,899 @@ fn case(i: u32, species: u32, mega: bool, take: u64) {
 #[test]
 #[ignore]
 fn checks_parity_01() {
-    case(0, 76, false, 0);
-    case(1, 77, true, 0);
-    case(2, 78, false, 0);
-    case(3, 79, true, 0);
-    case(4, 80, false, 0);
+    case(0, 78, false, 0);
+    case(1, 79, true, 0);
+    case(2, 80, false, 0);
+    case(3, 81, true, 0);
+    case(4, 82, false, 0);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_02() {
-    case(5, 81, true, 0);
-    case(6, 82, false, 0);
-    case(7, 83, true, 0);
-    case(8, 84, false, 0);
-    case(9, 85, true, 0);
+    case(5, 83, true, 0);
+    case(6, 84, false, 0);
+    case(7, 85, true, 0);
+    case(8, 86, false, 0);
+    case(9, 87, true, 0);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_03() {
-    case(10, 86, false, 0);
-    case(11, 87, true, 0);
-    case(12, 88, false, 0);
-    case(13, 89, true, 0);
-    case(14, 90, false, 0);
+    case(10, 88, false, 0);
+    case(11, 89, true, 0);
+    case(12, 90, false, 0);
+    case(13, 91, true, 0);
+    case(14, 92, false, 0);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_04() {
-    case(15, 91, true, 0);
-    case(16, 92, false, 0);
-    case(17, 93, true, 0);
-    case(18, 94, false, 0);
-    case(19, 95, true, 0);
+    case(15, 93, true, 0);
+    case(16, 94, false, 0);
+    case(17, 95, true, 0);
+    case(18, 96, false, 0);
+    case(19, 97, true, 0);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_05() {
-    case(20, 96, false, 0);
-    case(21, 97, true, 0);
-    case(22, 98, false, 0);
-    case(23, 99, true, 0);
-    case(24, 100, false, 0);
+    case(20, 98, false, 0);
+    case(21, 99, true, 0);
+    case(22, 100, false, 0);
+    case(23, 101, true, 0);
+    case(24, 102, false, 0);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_06() {
-    case(25, 101, true, 0);
-    case(26, 102, false, 0);
-    case(27, 103, true, 0);
-    case(28, 104, false, 0);
-    case(29, 105, true, 0);
+    case(25, 103, true, 0);
+    case(26, 104, false, 0);
+    case(27, 105, true, 0);
+    case(28, 106, false, 0);
+    case(29, 107, true, 0);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_07() {
-    case(30, 76, true, 0);
-    case(31, 77, false, 0);
-    case(32, 78, true, 0);
-    case(33, 79, false, 0);
-    case(34, 80, true, 0);
+    case(30, 78, true, 0);
+    case(31, 79, false, 0);
+    case(32, 80, true, 0);
+    case(33, 81, false, 0);
+    case(34, 82, true, 0);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_08() {
-    case(35, 81, false, 0);
-    case(36, 82, true, 0);
-    case(37, 83, false, 0);
-    case(38, 84, true, 0);
-    case(39, 85, false, 0);
+    case(35, 83, false, 0);
+    case(36, 84, true, 0);
+    case(37, 85, false, 0);
+    case(38, 86, true, 0);
+    case(39, 87, false, 0);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_09() {
-    case(40, 86, true, 0);
-    case(41, 87, false, 0);
-    case(42, 88, true, 0);
-    case(43, 89, false, 0);
-    case(44, 90, true, 0);
+    case(40, 88, true, 0);
+    case(41, 89, false, 0);
+    case(42, 90, true, 0);
+    case(43, 91, false, 0);
+    case(44, 92, true, 0);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_10() {
-    case(45, 91, false, 0);
-    case(46, 92, true, 0);
-    case(47, 93, false, 0);
-    case(48, 94, true, 0);
-    case(49, 95, false, 0);
+    case(45, 93, false, 0);
+    case(46, 94, true, 0);
+    case(47, 95, false, 0);
+    case(48, 96, true, 0);
+    case(49, 97, false, 0);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_11() {
-    case(50, 96, true, 0);
-    case(51, 97, false, 0);
-    case(52, 98, true, 0);
-    case(53, 99, false, 0);
-    case(54, 100, true, 0);
+    case(50, 98, true, 0);
+    case(51, 99, false, 0);
+    case(52, 100, true, 0);
+    case(53, 101, false, 0);
+    case(54, 102, true, 0);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_12() {
-    case(55, 101, false, 0);
-    case(56, 102, true, 0);
-    case(57, 103, false, 0);
-    case(58, 104, true, 0);
-    case(59, 105, false, 0);
+    case(55, 103, false, 0);
+    case(56, 104, true, 0);
+    case(57, 105, false, 0);
+    case(58, 106, true, 0);
+    case(59, 107, false, 0);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_13() {
-    case(60, 83, false, 16294208416658607535);
-    case(61, 90, true, 7960286522194355700);
-    case(62, 97, false, 487617019471545679);
-    case(63, 104, true, 17909611376780542444);
-    case(64, 81, false, 1961750202426094747);
+    case(60, 85, false, 16294208416658607535);
+    case(61, 92, true, 7960286522194355700);
+    case(62, 99, false, 487617019471545679);
+    case(63, 106, true, 17909611376780542444);
+    case(64, 83, false, 1961750202426094747);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_14() {
-    case(65, 88, true, 6038094601263162090);
-    case(66, 95, false, 3207296026000306913);
-    case(67, 102, true, 14232521865600346940);
-    case(68, 79, false, 4532161160992623299);
-    case(69, 86, true, 17561866513979060390);
+    case(65, 90, true, 6038094601263162090);
+    case(66, 97, false, 3207296026000306913);
+    case(67, 104, true, 14232521865600346940);
+    case(68, 81, false, 4532161160992623299);
+    case(69, 88, true, 17561866513979060390);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_15() {
-    case(70, 93, false, 7313543279846440201);
-    case(71, 100, true, 14038607207048404726);
-    case(72, 77, false, 9665182471527586683);
-    case(73, 84, true, 10241033088150448431);
-    case(74, 91, false, 13064396156225473817);
+    case(70, 95, false, 7313543279846440201);
+    case(71, 102, true, 14038607207048404726);
+    case(72, 79, false, 9665182471527586683);
+    case(73, 86, true, 10241033088150448431);
+    case(74, 93, false, 13064396156225473817);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_16() {
-    case(75, 98, true, 9564308153959284907);
-    case(76, 105, false, 9018883062403043925);
-    case(77, 82, true, 14109521515791744902);
-    case(78, 89, false, 3775962213208117092);
-    case(79, 96, true, 15571913878924461484);
+    case(75, 100, true, 9564308153959284907);
+    case(76, 107, false, 9018883062403043925);
+    case(77, 84, true, 14109521515791744902);
+    case(78, 91, false, 3775962213208117092);
+    case(79, 98, true, 15571913878924461484);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_17() {
-    case(80, 103, false, 15781000307351985879);
-    case(81, 80, true, 12178730177414951181);
-    case(82, 87, false, 17146877070824583018);
-    case(83, 94, true, 6073503041918755660);
-    case(84, 101, false, 15959633193653531241);
+    case(80, 105, false, 15781000307351985879);
+    case(81, 82, true, 12178730177414951181);
+    case(82, 89, false, 17146877070824583018);
+    case(83, 96, true, 6073503041918755660);
+    case(84, 103, false, 15959633193653531241);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_18() {
-    case(85, 78, true, 10619068946664148859);
-    case(86, 85, false, 7617890157137703680);
-    case(87, 92, true, 4670970265874846992);
-    case(88, 99, false, 11741057589345805078);
-    case(89, 76, true, 17172820739197057138);
+    case(85, 80, true, 10619068946664148859);
+    case(86, 87, false, 7617890157137703680);
+    case(87, 94, true, 4670970265874846992);
+    case(88, 101, false, 11741057589345805078);
+    case(89, 78, true, 17172820739197057138);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_19() {
-    case(90, 83, false, 17395526219779491151);
-    case(91, 90, true, 3998411274607395365);
-    case(92, 97, false, 900130614242687664);
-    case(93, 104, true, 385107482673595689);
-    case(94, 81, false, 15155866324004882167);
+    case(90, 85, false, 17395526219779491151);
+    case(91, 92, true, 3998411274607395365);
+    case(92, 99, false, 900130614242687664);
+    case(93, 106, true, 385107482673595689);
+    case(94, 83, false, 15155866324004882167);
 }
 
 #[test]
 #[ignore]
 fn checks_parity_20() {
-    case(95, 88, true, 7593930394342328515);
-    case(96, 95, false, 4719483656716592003);
-    case(97, 102, true, 4340416312237048737);
-    case(98, 79, false, 7933530951116992991);
-    case(99, 86, true, 5740394572501292841);
+    case(95, 90, true, 7593930394342328515);
+    case(96, 97, false, 4719483656716592003);
+    case(97, 104, true, 4340416312237048737);
+    case(98, 81, false, 7933530951116992991);
+    case(99, 88, true, 5740394572501292841);
 }
 
 #[test]
 #[ignore]
 fn checks_gas_000() {
-    let n = sound_check_smf_bytes(76, false, 0).len();
-    assert(n > 0, 'empty');
-}
-
-#[test]
-#[ignore]
-fn checks_gas_001() {
-    let n = sound_check_smf_bytes(77, true, 0).len();
-    assert(n > 0, 'empty');
-}
-
-#[test]
-#[ignore]
-fn checks_gas_002() {
     let n = sound_check_smf_bytes(78, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_003() {
+fn checks_gas_001() {
     let n = sound_check_smf_bytes(79, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_004() {
+fn checks_gas_002() {
     let n = sound_check_smf_bytes(80, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_005() {
+fn checks_gas_003() {
     let n = sound_check_smf_bytes(81, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_006() {
+fn checks_gas_004() {
     let n = sound_check_smf_bytes(82, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_007() {
+fn checks_gas_005() {
     let n = sound_check_smf_bytes(83, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_008() {
+fn checks_gas_006() {
     let n = sound_check_smf_bytes(84, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_009() {
+fn checks_gas_007() {
     let n = sound_check_smf_bytes(85, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_010() {
+fn checks_gas_008() {
     let n = sound_check_smf_bytes(86, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_011() {
+fn checks_gas_009() {
     let n = sound_check_smf_bytes(87, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_012() {
+fn checks_gas_010() {
     let n = sound_check_smf_bytes(88, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_013() {
+fn checks_gas_011() {
     let n = sound_check_smf_bytes(89, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_014() {
+fn checks_gas_012() {
     let n = sound_check_smf_bytes(90, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_015() {
+fn checks_gas_013() {
     let n = sound_check_smf_bytes(91, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_016() {
+fn checks_gas_014() {
     let n = sound_check_smf_bytes(92, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_017() {
+fn checks_gas_015() {
     let n = sound_check_smf_bytes(93, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_018() {
+fn checks_gas_016() {
     let n = sound_check_smf_bytes(94, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_019() {
+fn checks_gas_017() {
     let n = sound_check_smf_bytes(95, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_020() {
+fn checks_gas_018() {
     let n = sound_check_smf_bytes(96, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_021() {
+fn checks_gas_019() {
     let n = sound_check_smf_bytes(97, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_022() {
+fn checks_gas_020() {
     let n = sound_check_smf_bytes(98, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_023() {
+fn checks_gas_021() {
     let n = sound_check_smf_bytes(99, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_024() {
+fn checks_gas_022() {
     let n = sound_check_smf_bytes(100, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_025() {
+fn checks_gas_023() {
     let n = sound_check_smf_bytes(101, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_026() {
+fn checks_gas_024() {
     let n = sound_check_smf_bytes(102, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_027() {
+fn checks_gas_025() {
     let n = sound_check_smf_bytes(103, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_028() {
+fn checks_gas_026() {
     let n = sound_check_smf_bytes(104, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_029() {
+fn checks_gas_027() {
     let n = sound_check_smf_bytes(105, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
+fn checks_gas_028() {
+    let n = sound_check_smf_bytes(106, false, 0).len();
+    assert(n > 0, 'empty');
+}
+
+#[test]
+#[ignore]
+fn checks_gas_029() {
+    let n = sound_check_smf_bytes(107, true, 0).len();
+    assert(n > 0, 'empty');
+}
+
+#[test]
+#[ignore]
 fn checks_gas_030() {
-    let n = sound_check_smf_bytes(76, true, 0).len();
-    assert(n > 0, 'empty');
-}
-
-#[test]
-#[ignore]
-fn checks_gas_031() {
-    let n = sound_check_smf_bytes(77, false, 0).len();
-    assert(n > 0, 'empty');
-}
-
-#[test]
-#[ignore]
-fn checks_gas_032() {
     let n = sound_check_smf_bytes(78, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_033() {
+fn checks_gas_031() {
     let n = sound_check_smf_bytes(79, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_034() {
+fn checks_gas_032() {
     let n = sound_check_smf_bytes(80, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_035() {
+fn checks_gas_033() {
     let n = sound_check_smf_bytes(81, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_036() {
+fn checks_gas_034() {
     let n = sound_check_smf_bytes(82, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_037() {
+fn checks_gas_035() {
     let n = sound_check_smf_bytes(83, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_038() {
+fn checks_gas_036() {
     let n = sound_check_smf_bytes(84, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_039() {
+fn checks_gas_037() {
     let n = sound_check_smf_bytes(85, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_040() {
+fn checks_gas_038() {
     let n = sound_check_smf_bytes(86, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_041() {
+fn checks_gas_039() {
     let n = sound_check_smf_bytes(87, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_042() {
+fn checks_gas_040() {
     let n = sound_check_smf_bytes(88, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_043() {
+fn checks_gas_041() {
     let n = sound_check_smf_bytes(89, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_044() {
+fn checks_gas_042() {
     let n = sound_check_smf_bytes(90, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_045() {
+fn checks_gas_043() {
     let n = sound_check_smf_bytes(91, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_046() {
+fn checks_gas_044() {
     let n = sound_check_smf_bytes(92, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_047() {
+fn checks_gas_045() {
     let n = sound_check_smf_bytes(93, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_048() {
+fn checks_gas_046() {
     let n = sound_check_smf_bytes(94, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_049() {
+fn checks_gas_047() {
     let n = sound_check_smf_bytes(95, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_050() {
+fn checks_gas_048() {
     let n = sound_check_smf_bytes(96, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_051() {
+fn checks_gas_049() {
     let n = sound_check_smf_bytes(97, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_052() {
+fn checks_gas_050() {
     let n = sound_check_smf_bytes(98, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_053() {
+fn checks_gas_051() {
     let n = sound_check_smf_bytes(99, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_054() {
+fn checks_gas_052() {
     let n = sound_check_smf_bytes(100, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_055() {
+fn checks_gas_053() {
     let n = sound_check_smf_bytes(101, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_056() {
+fn checks_gas_054() {
     let n = sound_check_smf_bytes(102, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_057() {
+fn checks_gas_055() {
     let n = sound_check_smf_bytes(103, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_058() {
+fn checks_gas_056() {
     let n = sound_check_smf_bytes(104, true, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
-fn checks_gas_059() {
+fn checks_gas_057() {
     let n = sound_check_smf_bytes(105, false, 0).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
+fn checks_gas_058() {
+    let n = sound_check_smf_bytes(106, true, 0).len();
+    assert(n > 0, 'empty');
+}
+
+#[test]
+#[ignore]
+fn checks_gas_059() {
+    let n = sound_check_smf_bytes(107, false, 0).len();
+    assert(n > 0, 'empty');
+}
+
+#[test]
+#[ignore]
 fn checks_gas_060() {
-    let n = sound_check_smf_bytes(83, false, 16294208416658607535).len();
+    let n = sound_check_smf_bytes(85, false, 16294208416658607535).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_061() {
-    let n = sound_check_smf_bytes(90, true, 7960286522194355700).len();
+    let n = sound_check_smf_bytes(92, true, 7960286522194355700).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_062() {
-    let n = sound_check_smf_bytes(97, false, 487617019471545679).len();
+    let n = sound_check_smf_bytes(99, false, 487617019471545679).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_063() {
-    let n = sound_check_smf_bytes(104, true, 17909611376780542444).len();
+    let n = sound_check_smf_bytes(106, true, 17909611376780542444).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_064() {
-    let n = sound_check_smf_bytes(81, false, 1961750202426094747).len();
+    let n = sound_check_smf_bytes(83, false, 1961750202426094747).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_065() {
-    let n = sound_check_smf_bytes(88, true, 6038094601263162090).len();
+    let n = sound_check_smf_bytes(90, true, 6038094601263162090).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_066() {
-    let n = sound_check_smf_bytes(95, false, 3207296026000306913).len();
+    let n = sound_check_smf_bytes(97, false, 3207296026000306913).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_067() {
-    let n = sound_check_smf_bytes(102, true, 14232521865600346940).len();
+    let n = sound_check_smf_bytes(104, true, 14232521865600346940).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_068() {
-    let n = sound_check_smf_bytes(79, false, 4532161160992623299).len();
+    let n = sound_check_smf_bytes(81, false, 4532161160992623299).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_069() {
-    let n = sound_check_smf_bytes(86, true, 17561866513979060390).len();
+    let n = sound_check_smf_bytes(88, true, 17561866513979060390).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_070() {
-    let n = sound_check_smf_bytes(93, false, 7313543279846440201).len();
+    let n = sound_check_smf_bytes(95, false, 7313543279846440201).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_071() {
-    let n = sound_check_smf_bytes(100, true, 14038607207048404726).len();
+    let n = sound_check_smf_bytes(102, true, 14038607207048404726).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_072() {
-    let n = sound_check_smf_bytes(77, false, 9665182471527586683).len();
+    let n = sound_check_smf_bytes(79, false, 9665182471527586683).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_073() {
-    let n = sound_check_smf_bytes(84, true, 10241033088150448431).len();
+    let n = sound_check_smf_bytes(86, true, 10241033088150448431).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_074() {
-    let n = sound_check_smf_bytes(91, false, 13064396156225473817).len();
+    let n = sound_check_smf_bytes(93, false, 13064396156225473817).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_075() {
-    let n = sound_check_smf_bytes(98, true, 9564308153959284907).len();
+    let n = sound_check_smf_bytes(100, true, 9564308153959284907).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_076() {
-    let n = sound_check_smf_bytes(105, false, 9018883062403043925).len();
+    let n = sound_check_smf_bytes(107, false, 9018883062403043925).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_077() {
-    let n = sound_check_smf_bytes(82, true, 14109521515791744902).len();
+    let n = sound_check_smf_bytes(84, true, 14109521515791744902).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_078() {
-    let n = sound_check_smf_bytes(89, false, 3775962213208117092).len();
+    let n = sound_check_smf_bytes(91, false, 3775962213208117092).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_079() {
-    let n = sound_check_smf_bytes(96, true, 15571913878924461484).len();
+    let n = sound_check_smf_bytes(98, true, 15571913878924461484).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_080() {
-    let n = sound_check_smf_bytes(103, false, 15781000307351985879).len();
+    let n = sound_check_smf_bytes(105, false, 15781000307351985879).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_081() {
-    let n = sound_check_smf_bytes(80, true, 12178730177414951181).len();
+    let n = sound_check_smf_bytes(82, true, 12178730177414951181).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_082() {
-    let n = sound_check_smf_bytes(87, false, 17146877070824583018).len();
+    let n = sound_check_smf_bytes(89, false, 17146877070824583018).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_083() {
-    let n = sound_check_smf_bytes(94, true, 6073503041918755660).len();
+    let n = sound_check_smf_bytes(96, true, 6073503041918755660).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_084() {
-    let n = sound_check_smf_bytes(101, false, 15959633193653531241).len();
+    let n = sound_check_smf_bytes(103, false, 15959633193653531241).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_085() {
-    let n = sound_check_smf_bytes(78, true, 10619068946664148859).len();
+    let n = sound_check_smf_bytes(80, true, 10619068946664148859).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_086() {
-    let n = sound_check_smf_bytes(85, false, 7617890157137703680).len();
+    let n = sound_check_smf_bytes(87, false, 7617890157137703680).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_087() {
-    let n = sound_check_smf_bytes(92, true, 4670970265874846992).len();
+    let n = sound_check_smf_bytes(94, true, 4670970265874846992).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_088() {
-    let n = sound_check_smf_bytes(99, false, 11741057589345805078).len();
+    let n = sound_check_smf_bytes(101, false, 11741057589345805078).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_089() {
-    let n = sound_check_smf_bytes(76, true, 17172820739197057138).len();
+    let n = sound_check_smf_bytes(78, true, 17172820739197057138).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_090() {
-    let n = sound_check_smf_bytes(83, false, 17395526219779491151).len();
+    let n = sound_check_smf_bytes(85, false, 17395526219779491151).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_091() {
-    let n = sound_check_smf_bytes(90, true, 3998411274607395365).len();
+    let n = sound_check_smf_bytes(92, true, 3998411274607395365).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_092() {
-    let n = sound_check_smf_bytes(97, false, 900130614242687664).len();
+    let n = sound_check_smf_bytes(99, false, 900130614242687664).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_093() {
-    let n = sound_check_smf_bytes(104, true, 385107482673595689).len();
+    let n = sound_check_smf_bytes(106, true, 385107482673595689).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_094() {
-    let n = sound_check_smf_bytes(81, false, 15155866324004882167).len();
+    let n = sound_check_smf_bytes(83, false, 15155866324004882167).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_095() {
-    let n = sound_check_smf_bytes(88, true, 7593930394342328515).len();
+    let n = sound_check_smf_bytes(90, true, 7593930394342328515).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_096() {
-    let n = sound_check_smf_bytes(95, false, 4719483656716592003).len();
+    let n = sound_check_smf_bytes(97, false, 4719483656716592003).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_097() {
-    let n = sound_check_smf_bytes(102, true, 4340416312237048737).len();
+    let n = sound_check_smf_bytes(104, true, 4340416312237048737).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_098() {
-    let n = sound_check_smf_bytes(79, false, 7933530951116992991).len();
+    let n = sound_check_smf_bytes(81, false, 7933530951116992991).len();
     assert(n > 0, 'empty');
 }
 
 #[test]
 #[ignore]
 fn checks_gas_099() {
-    let n = sound_check_smf_bytes(86, true, 5740394572501292841).len();
+    let n = sound_check_smf_bytes(88, true, 5740394572501292841).len();
     assert(n > 0, 'empty');
 }

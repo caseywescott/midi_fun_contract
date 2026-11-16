@@ -110,7 +110,9 @@ export const EDITION_DRUMS = [...new Set(STYLES.flatMap((S) => S.percs.flat().ma
 // ── the calendar: edition 1 is December 2026, the styles in turn ──
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 export const editionMonth = (e) => { const m = 10 + e; return MONTHS[m % 12] + ' ' + (2026 + Math.floor(m / 12)); };
-const ADJ = ['Ember', 'Hollow', 'Gilded', 'Shattered', 'Sunken', 'Howling', 'Crimson', 'Frost', 'Ashen', 'Verdant', 'Obsidian', 'Wandering', 'Midnight', 'Thorned', 'Silver', 'Abyssal', 'Storm', 'Lantern'];
+// edition names' adjectives, dungeon-dark (Casey: names dungeon and dark related; Gilded, Verdant, Silver and Lantern
+// became Cursed, Rotting, Grave and Shadow, in their places)
+const ADJ = ['Ember', 'Hollow', 'Cursed', 'Shattered', 'Sunken', 'Howling', 'Crimson', 'Frost', 'Ashen', 'Rotting', 'Obsidian', 'Wandering', 'Midnight', 'Thorned', 'Grave', 'Abyssal', 'Storm', 'Shadow'];
 
 /** Edition e's style: the styles in turn; each pass through them moves on the tempo. */
 export function editionGenome(e) {

@@ -46,12 +46,12 @@ const hex = (x) => '0x' + BigInt(x).toString(16);
 const drift = (day) => `DriftInputs { name_variant_id: 0, day: ${day}, day_hash: ${hex(anchor(day))}, week_hash: ${hex(anchor(Math.floor((day - 1) / 7) * 7 + 1))}, month_hash: ${hex(anchor(Math.floor((day - 1) / 30) * 30 + 1))} }`;
 // a provider call: compose on day 1 (as written), compose_drift with the day's hashes after
 const call = (inputs, mega, day) => (day > 1 ? `s.compose_drift(${inputs}, ${mega ? 1 : 0}, ${drift(day)})` : `s.compose(${inputs}, ${mega ? 1 : 0})`);
-const beast = (id) => ({ ...LOOT_BEASTS[id - 76], ...SPECIES.find((s) => s.id === id) });
+const beast = (id) => ({ ...LOOT_BEASTS[id - LOOT_BEASTS[0].id], ...SPECIES.find((s) => s.id === id) });
 const dr = (id, day) => (day > 1 ? L.drift2({ id, prefix: 0, suffix: 0 }, day, anchor) : null);
 const calls = []; let changed = 0;
 const differs = (a, b) => { if (Buffer.compare(Buffer.from(a), Buffer.from(b))) changed++; };
-for (const [id, name, day] of [[76, 0, 1], [90, 1242, 1], [80, 0, 45], [97, 12, 70], [103, 0, 290], [83, 0, 9], [83, 400, 45]]) {
-  const x = LOOT_BEASTS[id - 76], n = L.nameFromVariant(name);
+for (const [id, name, day] of [[78, 0, 1], [92, 1242, 1], [82, 0, 45], [99, 12, 70], [105, 0, 290], [85, 0, 9], [85, 400, 45]]) {
+  const x = LOOT_BEASTS[id - LOOT_BEASTS[0].id], n = L.nameFromVariant(name);
   const bb = { id, prefix: n.prefix, suffix: n.suffix, level: 1, health: 100, shiny: 0, animated: 0, tier: x.tier, beast_type: x.type };
   const opts = { ...L.GENESIS_DEFAULTS, ...(name ? { name } : {}), ...(day > 1 ? { epoch: day, driftMode: 'v2', blockHashes: true } : {}) };
   const midi = L.sampleTrackMidi(bb, { species_count: 1 }, opts, E, V).midi;
@@ -61,19 +61,21 @@ for (const [id, name, day] of [[76, 0, 1], [90, 1242, 1], [80, 0, 45], [97, 12, 
   differs(out, remap(O.lifted(midi, name ? 12 : 0), band));
   calls.push(call(`LootInputs::Song(LootSongInputs { species: ${id}, name: ${name} })`, false, day), [out.length, sum(out)]);
 }
-const edCases = [[76, false, 1, 1, 1], [83, true, 5, 2, 1], [90, false, 9, 3, 45], [99, false, 13, 1, 290], [105, true, 15, 4, 9], [88, false, 22, 7, 100], [76, false, 15, 1, 1], [83, false, 3, 2, 1], [83, false, 10, 1, 1]];
+const edCases = [[78, false, 1, 1, 1], [85, true, 5, 2, 1], [92, false, 9, 3, 45], [101, false, 13, 1, 290], [107, true, 15, 4, 9], [90, false, 22, 7, 100], [78, false, 15, 1, 1], [85, false, 3, 2, 1], [85, false, 10, 1, 1],
+  // the edition mix (8c9284f): a high accompaniment, Speedrun an octave lower, Forest's drop and high, Speedrun high, Dungeon Dash's leads
+  [78, false, 2, 3, 1], [78, false, 13, 2, 1], [98, false, 19, 1, 1], [88, false, 13, 4, 1], [78, false, 14, 3, 1]];
 for (const [id, mega, e, p, day] of edCases) {
   const x = beast(id), d = dr(id, day), key = STYLES[(e - 1) % STYLES.length].key;
   const o = ED.editionMidi(x, mega, e, purchaseSeed(p), d, false, null);
   const band = O.band(key, id, e, p, d, o.info.accompLow);
-  const out = remap(playedRef('edition', o.midi, band, key), band);
+  const out = remap(playedRef('edition', o.midi, band, key, { accompLow: o.info.accompLow, id, e, p }), band);
   differs(out, remap(o.midi, band));
   calls.push(call(`LootInputs::Edition(LootEditionInputs { species: ${id}, edition: ${e}, purchase: ${p} })`, mega, day), [out.length, sum(out)]);
 }
 if (withRounds) {
   const RD = await import('../offchain/loot-sound/src/loot_rounds.js');
   const CK = await import('../offchain/loot-sound/src/loot_checks.js');
-  for (const [id, mega, r, day] of [[76, false, 0, 1], [84, true, 0, 1], [91, false, 3, 45], [100, false, 0, 290], [95, true, 2, 9], [84, false, 0, 1], [90, false, 2, 1]]) {
+  for (const [id, mega, r, day] of [[78, false, 0, 1], [86, true, 0, 1], [93, false, 3, 45], [102, false, 0, 290], [97, true, 2, 9], [86, false, 0, 1], [92, false, 2, 1]]) {
     const x = beast(id), d = dr(id, day);
     const midi = RD.roundMidi(x, mega, r ? purchaseSeed(r) : 0n, d).midi;
     const band = O.choose(O.ORCH.roundPools[x.type], O.ORCH.roundKinds, id, 2, d);
@@ -81,7 +83,7 @@ if (withRounds) {
     differs(out, remap(O.lifted(midi, 7), band));
     calls.push(call(`LootInputs::Round(LootRoundInputs { species: ${id}, purchase: ${r} })`, mega, day), [out.length, sum(out)]);
   }
-  for (const [id, mega, c] of [[77, false, 0], [86, true, 0], [96, false, 5], [103, true, 2], [85, false, 1], [90, false, 2]]) {
+  for (const [id, mega, c] of [[79, false, 0], [88, true, 0], [98, false, 5], [105, true, 2], [87, false, 1], [92, false, 2]]) {
     const x = beast(id);
     const midi = CK.soundCheckMidi(x, mega, c ? purchaseSeed(c) : 0n).midi;
     const band = O.choose(O.ORCH.roundPools[x.type], O.ORCH.roundKinds, id, 2, null);

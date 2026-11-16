@@ -322,10 +322,11 @@ const KANKYO = {
     // Its attack is 12 ms, not 1, and the index falls in 25 ms, not 12: as written every note began with a spike
     // 2-6 ms in, a click on each one at speed (Casey heard it in Punk Run); the bite now outlasts the attack.
     { id: 'latelybass', program: 38, lo: 28, hi: 64, like: 'cello', gain: 1, def: { t: 'f', sus: 1, pre: 3200, vib: [0, 11], lp: 2800, trim: 9, env: [0.012, 0.12, 0.3, 0.22], ops: [[1, 0.5, 3.2, 0, 0.025, 1, 0, 0.7], [2, 0.5, 0.96, 0, 0.025, 0.2, 0, 0.7]] } },
+    // (3 dB up, 2026-11-16, Casey: level with the flute, which it sat 3 dB under, K-weighted.)
     // Ocarina (program 79): the flute's machinery with less in it: nearly a sine, hollow, a narrow band of air
     // on the octave. (A recorder and a whistle were built the same way, programs 74 and 78; of the three this is
     // the smallest, and Casey kept one: the whistle sounded like the flute.)
-    { id: 'ocarina', program: 79, lo: 52, hi: 88, like: 'flute', gain: 1, def: { t: 'f', sus: 1, takes: 2, human: 1, var: { index: 0.06, vibDepth: 0.2, vibDelay: 0.2, air: 2 }, pre: 23360, vib: [10, 10, 0.25, 0.4], vibAmp: 0.08, drift: 2, scoop: [5, 0.03], lpk: 8, lpo: 2000, env: [0.04, 0, 1, 0.14],
+    { id: 'ocarina', program: 79, lo: 52, hi: 88, like: 'flute', gain: 1, def: { t: 'f', sus: 1, trim: 3, takes: 2, human: 1, var: { index: 0.06, vibDepth: 0.2, vibDelay: 0.2, air: 2 }, pre: 23360, vib: [10, 10, 0.25, 0.4], vibAmp: 0.08, drift: 2, scoop: [5, 0.03], lpk: 8, lpo: 2000, env: [0.04, 0, 1, 0.14],
       air: { bands: [[0, 2, 0.1, 0.8, 500, 8000], [1500, 0, 0.9, 0.3]], gain: 0.05, vib: 0.15, puff: [1800, 0.9, 0.015, 0, 0.04] }, ops: [[1, 1, 0.55, 0.5, 0.08, 1, 0, 0, null, [2, 0.12, 0.3], 0.2]] } }, // brighter, by ear (Casey): the indices were 0.15 and 0.03, the lowpass 5x the note + 1200 Hz
     // Drawbar organ (program 16): pure sines at the 16', 5 1/3', 8', 4' and 2 2/3' footages (the 88 8000 000 jazz
     // setting with a little above it), a key click, and a fast rotary speaker as vibrato that also moves the level.
@@ -345,7 +346,8 @@ const KANKYO = {
     // near 1.1 kHz, a second near 2.9 kHz, a dark top. Tongued: brighter for the first 40 ms, a puff and a small
     // scoop; vibrato after 0.25 s that also moves level and brightness (an oboe's vibrato is mostly level); slurs.
     // Measured (loop, H1..H8 dB): Bb3 -14 -6 -1 0 0 -7 -12 -16; G4 -12 -10 0 -7 -12 -15 -17 -21; E6 near a sine.
-    { id: 'oboe', program: 68, lo: 56, hi: 88, like: 'clarinet', gain: 1, def: { t: 'f', sus: 1, slur: 1, takes: 2, human: 1, var: { index: 0.06, vibDepth: 0.2, vibDelay: 0.2, air: 2 }, pre: 19200,
+    // 4.5 dB down (Casey: way too loud, so reedy it should sit under the flute): 3 dB under the flute, K-weighted.
+    { id: 'oboe', program: 68, lo: 56, hi: 88, like: 'clarinet', gain: 1, def: { t: 'f', sus: 1, slur: 1, trim: -4.5, takes: 2, human: 1, var: { index: 0.06, vibDepth: 0.2, vibDelay: 0.2, air: 2 }, pre: 19200,
       vib: [12, 10, 0.25, 0.35], vibAmp: 0.1, vibIdx: 0.08, drift: 1.2, scoop: [10, 0.02], lpk: 7, lpo: 2200, eq: [['l', 300, 1, -8], ['p', 1150, 1.8, 8], ['p', 2900, 2.2, 4], ['s', 5200, 1, -9]], env: [0.022, 0, 1, 0.1],
       air: { bands: [[2700, 0, 0.6, 0.5], [0, 3, 0.15, 0.25, 600, 9000]], gain: 0.018, vib: 0.1, puff: [1900, 0.9, 0.04, 0, 0.012] },
       ops: [[1, 1, 3.0, 2.2, 0.04, 1, 0, 0.9, null, [2, 0.35, 0.4], 0.15]] } },
@@ -353,7 +355,7 @@ const KANKYO = {
     // a weak fundamental at the bottom, little above 3 kHz; slower, narrower vibrato (its delay and fade inside the
     // attack, or the attack would not meet the loop). Measured (loop, H1..H8 dB): Bb1 -19 -8 -2 -1 -1 -1 0 0;
     // D3 -18 -8 0 -4 -8 -12 -14 -17; C5 0 -8 -8 -17 -22 -25 -29 -34.
-    { id: 'bassoon', program: 70, lo: 34, hi: 72, like: 'clarinet', gain: 1, def: { base: 'oboe', vib: [8, 9, 0.25, 0.35], vibAmp: 0.07, vibIdx: 0.06, drift: 1, scoop: [8, 0.025], lpk: 6, lpo: 1100,
+    { id: 'bassoon', program: 70, lo: 34, hi: 72, like: 'clarinet', gain: 1, def: { base: 'oboe', trim: 0, vib: [8, 9, 0.25, 0.35], vibAmp: 0.07, vibIdx: 0.06, drift: 1, scoop: [8, 0.025], lpk: 6, lpo: 1100,
       eq: [['l', 140, 1, -7], ['p', 480, 1.4, 8], ['p', 1200, 2, 4], ['s', 3000, 1, -10]], env: [0.03, 0, 1, 0.12],
       air: { bands: [[1400, 0, 0.6, 0.5], [0, 3, 0.15, 0.2, 300, 6000]], gain: 0.016, vib: 0.08, puff: [1200, 0.9, 0.035, 0, 0.014] } } },
     // Trumpet (program 56): Dexter Morrill's FM trumpet (1977): the index rises with the attack (brightness follows

@@ -362,12 +362,13 @@ const KANKYO = {
     // loudness, Risset's rule for brass), formant carriers near 1.4 and 2.6 kHz, a start 45 cents flat that slides up,
     // vibrato after 0.25 s, a fast random-sounding vibrato. Index and feedback found by a search against a trumpet's
     // spectrum at G3 and C5. Measured (loop, H1..H8 dB): G3 -1 -10 -8 -6 -7 0 -4 -5; C5 -4 0 -12 -11 -16 -16 -21 -26.
-    { id: 'trumpet', program: 56, lo: 52, hi: 84, like: 'flute', gain: 1, def: { t: 'f', sus: 1, pre: 16000, vib: [11, 14, 0.25, 0.2], vibAmp: 0.04, drift: 1, scoop: [45, 0.03], lpk: 9, lpo: 2000, env: [0.035, 0, 1, 0.12],
+    // 20% down (-1.94 dB; Casey, by ear). The trombones, a reference to it, state trim 0 to keep their level.
+    { id: 'trumpet', program: 56, lo: 52, hi: 84, like: 'flute', gain: 1, def: { t: 'f', sus: 1, trim: -1.94, pre: 16000, vib: [11, 14, 0.25, 0.2], vibAmp: 0.04, drift: 1, scoop: [45, 0.03], lpk: 9, lpo: 2000, env: [0.035, 0, 1, 0.12],
       section: [[0, 1, 0, 1, 0, 4, 3]], rvib: [2, [31, 41]], ops: [[1, 1, 0.5, 2.6, 0.06, 1, 0, 0.8]], form: { f: [1400, 2600], db: [-4, -14], idx: [1.8, 1.8], rise: 0.25, tau: 0.06 },
       eq: [['p', 1300, 1.2, 3], ['s', 4500, 1, -6]], air: { bands: [[1500, 0, 0.8, 0.3]], gain: 0.005, puff: [1500, 0.8, 0.05, 0, 0.01] } } },
     // Trombone section (program 57): the trumpet as a reference (`base`), three players, formants near 580 Hz and 1.2 kHz,
     // a darker lowpass, less vibrato, a slower slide in. Measured (loop, H1..H8 dB): C3 -6 -9 -1 0 -4 -8 -13 -13.
-    { id: 'trombone', program: 57, lo: 40, hi: 72, like: 'violin', gain: 1, def: { base: 'trumpet', vib: [6, 11, 0.3, 0.2], scoop: [35, 0.04], lpk: 7, lpo: 900,
+    { id: 'trombone', program: 57, lo: 40, hi: 72, like: 'violin', gain: 1, def: { base: 'trumpet', trim: 0, vib: [6, 11, 0.3, 0.2], scoop: [35, 0.04], lpk: 7, lpo: 900,
       section: [[0, 1, 6, 11, 0, 4, 3], [-6, 0.85, 7, 12, 2.2, 4, 4], [5, 0.8, 5, 10, 4.1, 5, 2]], form: { f: [580, 1200], db: [-3, -10], idx: [1.6, 1.6], rise: 0.25, tau: 0.07 }, eq: [['p', 550, 1.2, 3], ['s', 3000, 1, -8]] } },
     // Bowed cello (program 43): feedback FM (the modulator on itself, towards a sawtooth: a bowed string's -6 dB an
     // octave), index opening with the bow, a quiet second player, bow friction, the cello's body (air near 100 Hz,

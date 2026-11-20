@@ -1,0 +1,368 @@
+{
+  "record": false,
+  "tools": {
+    "scarb": {
+      "path": "/Users/caseywescott/.asdf/installs/scarb/2.21.0/bin/scarb",
+      "version": "scarb 2.21.0 (fbd5bd03d 2026-10-09)\ncairo: 2.21.0 (https://crates.io/crates/cairo-lang-compiler/2.21.0)\nsierra: 1.9.5\narch: aarch64-apple-darwin"
+    },
+    "snforge": {
+      "path": "/Users/caseywescott/.asdf/installs/starknet-foundry/0.64.1/bin/snforge",
+      "version": "snforge 0.64.1"
+    },
+    "universal_sierra_compiler": {
+      "path": "/Users/caseywescott/.local/bin/universal-sierra-compiler",
+      "version": "universal-sierra-compiler 2.10.2"
+    },
+    "node": {
+      "path": "/Users/caseywescott/.nvm/versions/node/v20.19.2/bin/node",
+      "version": "v20.19.2"
+    }
+  },
+  "git": {
+    "rev": "89a16b34e9e8897ee93a528b99d8f8c2af25e779",
+    "dirty": true,
+    "status": [
+      " M core/midi/src/lib.cairo",
+      " M core/midi_contracts/src/lib.cairo",
+      "?? bench/kernel/",
+      "?? core/midi/src/kernel.cairo",
+      "?? core/midi_contracts/src/kernel.cairo"
+    ],
+    "tracked_tree": {
+      "sha256": "da6318c7faac60659c6ec03d9e7fa1b2cedc4ebd7fcafa8d48af988c044fe253",
+      "files": 542
+    },
+    "production_tree": {
+      "sha256": "c91a2ef5db621e177a61ba3df98b51ae599071517046983055a689ac8725efab",
+      "files": 96
+    },
+    "bench_tree": {
+      "sha256": "a02af86e9079d083d6a042a9f3ffdb050efb14e29cd70f8442acf7891d6e812e",
+      "files": 25
+    },
+    "root_scarb_lock_sha256": "c861374bf89146f945034622f18d13fd8d2677a87a44d0a24c557bd0a2a10d48",
+    "bench_scarb_lock_sha256": "590626ad0144f73cfbda37f5c3cc4564696938ad3ab4241e539ec472b32954ef"
+  },
+  "command": [
+    "/Users/caseywescott/.asdf/installs/starknet-foundry/0.64.1/bin/snforge",
+    "test",
+    "--no-optimization",
+    "--tracked-resource",
+    "sierra-gas",
+    "--max-n-steps",
+    "50000000",
+    "--trace-components",
+    "contract-name",
+    "gas",
+    "--color",
+    "never",
+    "--max-threads",
+    "2"
+  ],
+  "wall_s": 13.1,
+  "peak_rss_mb": 1345,
+  "summary": {
+    "passed": 39,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 0
+  },
+  "classes": {
+    "BeastPureComposer": {
+      "casm_felts": 81920,
+      "casm_sha256": "f571a8e2adfff2a7355b2ecbda7c2ed1fecebd26260629b474aac4edbd4f288e"
+    },
+    "MidiKernel": {
+      "casm_felts": 2372,
+      "casm_sha256": "5c82d3da142be8edada5477a4ebc251df2d2018da77a2418919ff95062d6e9a4"
+    }
+  },
+  "rows": {
+    "probe_build_1024": {
+      "gas": 5730550,
+      "nested": [],
+      "test_l2_gas": 5999330
+    },
+    "probe_build_4096": {
+      "gas": 22841590,
+      "nested": [],
+      "test_l2_gas": 23110370
+    },
+    "case_08_song_32_fx3": {
+      "gas": 183445232,
+      "nested": [],
+      "test_l2_gas": 188290138
+    },
+    "case_09_named_44_fx0": {
+      "gas": 56935570,
+      "nested": [],
+      "test_l2_gas": 60440731
+    },
+    "probe_build_8192": {
+      "gas": 45656310,
+      "nested": [],
+      "test_l2_gas": 45925090
+    },
+    "case_12_drift_20_d2_fx0": {
+      "gas": 70400845,
+      "nested": [],
+      "test_l2_gas": 73509529
+    },
+    "probe_smf_local_4096": {
+      "gas": 25521500,
+      "nested": [],
+      "test_l2_gas": 51722460
+    },
+    "case_10_edition_40_fx0": {
+      "gas": 32973669,
+      "nested": [],
+      "test_l2_gas": 37664641
+    },
+    "probe_smf_local_8192": {
+      "gas": 50517750,
+      "nested": [],
+      "test_l2_gas": 102121520
+    },
+    "case_13_drift_32_d40_fx3": {
+      "gas": 185085526,
+      "nested": [],
+      "test_l2_gas": 189950863
+    },
+    "probe_take_0": {
+      "gas": 164260,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take",
+          "gas": 21300
+        }
+      ],
+      "test_l2_gas": 445050
+    },
+    "case_11_edition_40_fx3": {
+      "gas": 42427709,
+      "nested": [],
+      "test_l2_gas": 47687047
+    },
+    "probe_take_1024": {
+      "gas": 9837530,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take",
+          "gas": 2386740
+        }
+      ],
+      "test_l2_gas": 10118320
+    },
+    "probe_take_4096": {
+      "gas": 38867930,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take",
+          "gas": 9483060
+        }
+      ],
+      "test_l2_gas": 39148720
+    },
+    "probe_take_felts_0": {
+      "gas": 105350,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 385940
+    },
+    "probe_take_8192": {
+      "gas": 77575130,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take",
+          "gas": 18944820
+        }
+      ],
+      "test_l2_gas": 77855920
+    },
+    "probe_take_felts_1024": {
+      "gas": 4282700,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 4563490
+    },
+    "probe_take_felts_4096": {
+      "gas": 16816460,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 17097250
+    },
+    "probe_smf_kernel_1024": {
+      "gas": 11218200,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 3610020
+        }
+      ],
+      "test_l2_gas": 18548660
+    },
+    "case_06_song_68_fx0": {
+      "gas": 82917902,
+      "nested": [],
+      "test_l2_gas": 86143984
+    },
+    "case_00_check_1_fx0": {
+      "gas": 7342370,
+      "nested": [],
+      "test_l2_gas": 9916737
+    },
+    "probe_build_felts_1024": {
+      "gas": 2574420,
+      "nested": [],
+      "test_l2_gas": 2843200
+    },
+    "case_05_song_32_fx0": {
+      "gas": 168087852,
+      "nested": [],
+      "test_l2_gas": 171898823
+    },
+    "probe_take_felts_8192": {
+      "gas": 33528140,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 33808930
+    },
+    "probe_smf_local_1024": {
+      "gas": 6943910,
+      "nested": [],
+      "test_l2_gas": 14262360
+    },
+    "case_07_song_44_fx3": {
+      "gas": 99116290,
+      "nested": [],
+      "test_l2_gas": 104077924
+    },
+    "case_02_check_64_fx1": {
+      "gas": 5266830,
+      "nested": [],
+      "test_l2_gas": 6895047
+    },
+    "case_01_check_64_fx0": {
+      "gas": 5267650,
+      "nested": [],
+      "test_l2_gas": 6895867
+    },
+    "probe_noop": {
+      "gas": 94210,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "noop",
+          "gas": 1370
+        }
+      ],
+      "test_l2_gas": 374500
+    },
+    "probe_smf_kernel_8192": {
+      "gas": 83585630,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 23816180
+        }
+      ],
+      "test_l2_gas": 135201410
+    },
+    "case_03_song_21_fx0": {
+      "gas": 67959334,
+      "nested": [],
+      "test_l2_gas": 71052227
+    },
+    "probe_build_felts_4096": {
+      "gas": 10285140,
+      "nested": [],
+      "test_l2_gas": 10553920
+    },
+    "probe_build_0": {
+      "gas": 30400,
+      "nested": [],
+      "test_l2_gas": 299180
+    },
+    "probe_build_felts_8192": {
+      "gas": 20566100,
+      "nested": [],
+      "test_l2_gas": 20834880
+    },
+    "probe_smf_kernel_4096": {
+      "gas": 42135900,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 12172890
+        }
+      ],
+      "test_l2_gas": 68348870
+    },
+    "case_04_song_1_fx0": {
+      "gas": 143686092,
+      "nested": [],
+      "test_l2_gas": 147388178
+    },
+    "probe_smf_local_0": {
+      "gas": 333040,
+      "nested": [],
+      "test_l2_gas": 939050
+    },
+    "probe_smf_kernel_0": {
+      "gas": 493960,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 333860
+        }
+      ],
+      "test_l2_gas": 1111980
+    },
+    "probe_build_felts_0": {
+      "gas": 4750,
+      "nested": [],
+      "test_l2_gas": 273330
+    }
+  }
+}

@@ -16,6 +16,8 @@
 //! `beast_contracts`) build on it; it depends on nothing of theirs.
 
 pub mod interfaces;
+/// EXPERIMENT: the shared kernel's interface (exp/kernel-libcall).
+pub mod kernel;
 pub mod pack;
 #[cfg(test)]
 mod pack_tests;

@@ -6,6 +6,8 @@
 //!   interface is collection-agnostic.
 
 pub mod examples;
+/// EXPERIMENT: the shared MIDI kernel class (exp/kernel-libcall).
+pub mod kernel;
 pub mod page;
 
 #[cfg(test)]

@@ -1,0 +1,38 @@
+# EXPERIMENT (exp/kernel-libcall): gas of BeastPureComposer with and without the shared MidiKernel
+# reached by library call. Its own workspace (like bench/), so the root workspace is untouched and
+# the 286-case bench crate is not compiled. Runner: bench/kernel/run.py.
+[workspace]
+
+[package]
+name = "kernel_bench"
+version = "0.1.0"
+edition = "2025_12"
+
+[dependencies]
+starknet = "2.21.0"
+midi = { path = "../../core/midi" }
+midi_contracts = { path = "../deps/midi_contracts" }
+beast_composer = { path = "../../beasts/beast_composer" }
+beast_contracts = { path = "../deps/beast_contracts" }
+
+[dev-dependencies]
+snforge_std = "=0.64.1"
+assert_macros = "2.21.0"
+
+[[target.starknet-contract]]
+sierra = true
+casm = true
+build-external-contracts = [
+    "beast_contracts::pure_composer::BeastPureComposer",
+    "midi_contracts::kernel::MidiKernel",
+]
+
+[features]
+# run.py record: print each case's output digest instead of checking it.
+record = []
+
+[tool.scarb]
+allow-prebuilt-plugins = ["snforge_std"]
+
+[tool.snforge]
+tracked_resource = "sierra-gas"

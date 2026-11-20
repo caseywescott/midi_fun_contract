@@ -54,6 +54,7 @@ fn run(case: u32, kind: u8, sid: u64, fx: u8, day: u64) {
     // The kernel is declared in every case (outside the measured call) so the harness is the same
     // for the baseline composer, which never calls it, and the candidate, which does.
     let kernel = class("MidiKernel");
+    class("BeastEditionComposer");
     let x = inputs(kind, sid);
     let composer = IBeastPureComposerDispatcher { contract_address: deploy("BeastPureComposer") };
     let sound = if day == 0 {
@@ -150,6 +151,12 @@ fn case_12_drift_20_d2_fx0() {
 #[test]
 fn case_13_drift_32_d40_fx3() {
     run(13, 1, 32, 3, 40);
+}
+
+#[test]
+fn print_class_hashes() {
+    println!("CLASS MidiKernel={:?}", class("MidiKernel"));
+    println!("CLASS BeastEditionComposer={:?}", class("BeastEditionComposer"));
 }
 
 #[test]

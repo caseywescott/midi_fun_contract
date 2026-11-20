@@ -94,7 +94,7 @@ def capture(args, record):
     results, traces, summary, problems = gb.parse_output(text)
     if code != 0 or problems:
         sys.exit(f'snforge exit {code}, problems {problems[:5]}; see {log}')
-    expected_n = len(CASES) + 1 + 8 * len(PROBE_SIZES)
+    expected_n = len(CASES) + 2 + 8 * len(PROBE_SIZES)
     if summary is None or summary['passed'] != expected_n or summary['failed']:
         sys.exit(f'unexpected summary {summary}; see {log}')
     rows = {}
@@ -105,6 +105,8 @@ def capture(args, record):
         hits = [r for r in roots if r['contract'] in ('BeastPureComposer', 'KernelProbe')
                 and r['selector'] in ('compose', 'compose_drift', 'build', 'noop', 'take',
                                       'smf_local', 'smf_kernel', 'build_felts', 'take_felts', 'ser_felts', 'raw_felts')]
+        if short == 'print_class_hashes':
+            continue
         if len(hits) != 1:
             sys.exit(f'{name}: expected one measured call, got {len(hits)}')
         rows[short] = dict(gas=hits[0]['gas'], nested=gb.flatten(hits[0]['calls']),
@@ -125,7 +127,8 @@ def capture(args, record):
         for i, (_, _, midi_len, kernel) in rec.items():
             rows[f'case_{i:02}_{CASES[i][0]}']['midi_len'] = midi_len
         print('kernel class hash:', next(iter(rec.values()))[3])
-    snap = dict(record=record, tools=info, git=gb.git_info(), command=cmd, wall_s=wall,
+    hashes = dict(re.findall(r'^CLASS (\w+)=(\d+)$', text, re.M))
+    snap = dict(record=record, class_hashes={k: hex(int(v)) for k, v in hashes.items()}, tools=info, git=gb.git_info(), command=cmd, wall_s=wall,
                 peak_rss_mb=peak, summary=summary, classes=classes(), rows=rows)
     Path(args.out).write_text(json.dumps(snap, indent=2) + '\n')
     print(f'{summary}; wall {wall}s; peak RSS {peak} MB; classes {snap["classes"]}')

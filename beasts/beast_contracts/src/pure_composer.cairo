@@ -3,15 +3,27 @@
 //! class turns one written song or Sound Check, played with a token's `sound_effects` (and with
 //! drift, the manager's day: `DriftInputs`), into its MIDI and settings.
 use beast_composer::composition::drift::drift_of;
-use beast_composer::composition::editions::edition_tracks_on;
 use beast_composer::composition::full_midi::{SMF_DIVISION, SMF_FORMAT};
 use beast_composer::composition::genesis::{drifted_song_inputs, song_tracks};
 use beast_composer::composition::performance::apply_performance;
 use beast_composer::composition::sound_check::sound_check_tracks;
 use beast_composer::inputs::drift::DriftInputs;
 use beast_composer::inputs::{ComposerInputs, SpecialArrangement};
-use midi::kernel::{IMidiKernelDispatcherTrait, IMidiKernelLibraryDispatcher};
+use midi::smf::smf_byte_array;
 use midi::types::{TinySynthSettings, TinySynthSound};
+use crate::edition_composer::{
+    IBeastEditionComposerDispatcherTrait, IBeastEditionComposerLibraryDispatcher,
+};
+
+/// EXPERIMENT (exp/kernel-libcall, K2): the class hash of `edition_composer::BeastEditionComposer`.
+/// A constant, not storage: the Sound Manager reaches this class by library call, so storage here
+/// would be the manager's. In production a registry (or the manager) would pass it.
+pub const EDITION_CLASS_HASH: felt252 =
+    0x7ab92522902afc9c31792d8c08acd50f7f7fb43ea459d862696c84af495187;
+
+fn editions() -> IBeastEditionComposerLibraryDispatcher {
+    IBeastEditionComposerLibraryDispatcher { class_hash: EDITION_CLASS_HASH.try_into().unwrap() }
+}
 
 #[starknet::interface]
 pub trait IBeastPureComposer<T> {
@@ -23,18 +35,6 @@ pub trait IBeastPureComposer<T> {
     fn compose_drift(
         self: @T, inputs: ComposerInputs, sound_effects: u8, drift: DriftInputs,
     ) -> TinySynthSound;
-}
-
-/// EXPERIMENT (exp/kernel-libcall): the class hash of `midi_contracts::kernel::MidiKernel`, which
-/// assembles the file from the track bodies by library call. A constant, not storage: the Sound
-/// Manager reaches this class by library call, so storage here would be the manager's. Production
-/// would declare the kernel first; a kernel change is a new hash and a new composer class (or the
-/// hash passed in by the manager / a registry).
-pub const MIDI_KERNEL_CLASS_HASH: felt252 =
-    0x38c78e8558fcff099a9208ecbbac306bb589dd9dca1ba2862b7f0b284fcd754;
-
-fn kernel() -> IMidiKernelLibraryDispatcher {
-    IMidiKernelLibraryDispatcher { class_hash: MIDI_KERNEL_CLASS_HASH.try_into().unwrap() }
 }
 
 pub fn compose_sound(inputs: ComposerInputs, sound_effects: u8) -> TinySynthSound {
@@ -73,20 +73,18 @@ fn compose_with(
         Option::Some(d) => d.day,
         Option::None => 0,
     };
-    let tracks = match performed {
-        ComposerInputs::Song(song) => song_tracks(song, mega, echo, day),
-        ComposerInputs::SoundCheck(check) => sound_check_tracks(check, mega),
+    let midi = match performed {
+        ComposerInputs::Song(song) => smf_byte_array(
+            SMF_FORMAT, SMF_DIVISION, song_tracks(song, mega, echo, day).span(),
+        ),
+        ComposerInputs::SoundCheck(check) => smf_byte_array(
+            SMF_FORMAT, SMF_DIVISION, sound_check_tracks(check, mega).span(),
+        ),
+        // K2b: one library call for the whole sound
         ComposerInputs::Edition(edition) => {
-            let species = edition.identity.source_species_id;
-            let day = match drift {
-                Option::Some(d) => Option::Some(drift_of(species, d)),
-                Option::None => Option::None,
-            };
-            edition_tracks_on(species, mega, edition.edition, edition.seed, day, echo)
+            return BoxTrait::new(editions().compose_edition(edition, mega, echo, drift));
         },
     };
-    // Songs and checks are SMF_FORMAT/SMF_DIVISION (1, 480); editions write (1, 480) too.
-    let midi = kernel().smf_byte_array(SMF_FORMAT, SMF_DIVISION, tracks.span());
     BoxTrait::new(TinySynthSound { midi, settings: settings_for(performed, mega, echo) })
 }
 
@@ -113,11 +111,7 @@ pub fn settings_for(inputs: ComposerInputs, mega: bool, echo: bool) -> TinySynth
         },
         // the edition's style for the species' type (1..=75: Magic, Hunter, Brute by 25s): editions
         // take the styles in turn (`edition_genome`)
-        ComposerInputs::Edition(x) => {
-            let style = (x.edition - 1) % beast_composer::composition::editions_data::STYLE_COUNT;
-            let beast_type = (x.identity.source_species_id - 1) / 25;
-            return crate::synth_settings::edition_synth_settings(style, beast_type, mega);
-        },
+        ComposerInputs::Edition(x) => { return editions().edition_settings(x, mega); },
     };
     let yeti = match special {
         SpecialArrangement::None => false,

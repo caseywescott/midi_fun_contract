@@ -25,6 +25,7 @@ casm = true
 build-external-contracts = [
     "beast_contracts::pure_composer::BeastPureComposer",
     "midi_contracts::kernel::MidiKernel",
+    "beast_contracts::edition_composer::BeastEditionComposer",
 ]
 
 [features]

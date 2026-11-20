@@ -8,6 +8,8 @@
 use beast_composer::composition::beast_trait_map::BeastCompositionParams;
 use beast_composer::composition::beast_v3_sound::BeastV3LiveState;
 
+/// EXPERIMENT (exp/kernel-libcall, K2): the edition engine as its own class.
+pub mod edition_composer;
 pub mod provider;
 pub mod pure_composer;
 pub mod pure_generator;

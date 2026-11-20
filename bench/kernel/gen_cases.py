@@ -79,6 +79,7 @@ fn run(case: u32, kind: u8, sid: u64, fx: u8, day: u64) {
     // The kernel is declared in every case (outside the measured call) so the harness is the same
     // for the baseline composer, which never calls it, and the candidate, which does.
     let kernel = class("MidiKernel");
+    class("BeastEditionComposer");
     let x = inputs(kind, sid);
     let composer = IBeastPureComposerDispatcher { contract_address: deploy("BeastPureComposer") };
     let sound = if day == 0 {
@@ -113,6 +114,8 @@ def main():
     tests = []
     for i, (name, kind, sid, fx, day) in enumerate(CASES):
         tests.append(f'#[test]\nfn case_{i:02}_{name}() {{\n    run({i}, {kind}, {sid}, {fx}, {day});\n}}')
+    tests.append('#[test]\nfn print_class_hashes() {\n    println!("CLASS MidiKernel={:?}", class("MidiKernel"));\n'
+                 '    println!("CLASS BeastEditionComposer={:?}", class("BeastEditionComposer"));\n}')
     tests.append('#[test]\nfn probe_noop() {\n    let s = class("Sink");\n    probe().noop(s);\n}')
     for n in PROBE_SIZES:
         tests.append(f'#[test]\nfn probe_build_{n}() {{\n    assert(probe().build({n}) == 4, \'build\');\n}}')

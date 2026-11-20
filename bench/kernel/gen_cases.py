@@ -126,6 +126,9 @@ def main():
                      f'    assert(got == midi::smf::smf_byte_array(1, 480, crate::probes::tracks_of({n}).span()), \'kernel\');\n}}')
     for n in PROBE_SIZES:
         tests.append(f'#[test]\nfn probe_build_felts_{n}() {{\n    assert(probe().build_felts({n}) == {n}, \'bf\');\n}}')
+        tests.append(f'#[test]\nfn probe_ser_felts_{n}() {{\n    assert(probe().ser_felts({n}) == {n} + 1, \'sf\');\n}}')
+        tests.append(f'#[test]\nfn probe_raw_felts_{n}() {{\n    let s = class("Sink");\n'
+                     f'    assert(probe().raw_felts(s, {n}) == {n}, \'rf\');\n}}')
         tests.append(f'#[test]\nfn probe_take_felts_{n}() {{\n    let s = class("Sink");\n'
                      f'    assert(probe().take_felts(s, {n}) == {n}, \'tf\');\n}}')
     (HERE / 'src/cases.cairo').write_text(HEAD + '\n' + '\n\n'.join(tests) + '\n')

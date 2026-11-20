@@ -94,7 +94,7 @@ def capture(args, record):
     results, traces, summary, problems = gb.parse_output(text)
     if code != 0 or problems:
         sys.exit(f'snforge exit {code}, problems {problems[:5]}; see {log}')
-    expected_n = len(CASES) + 1 + 6 * len(PROBE_SIZES)
+    expected_n = len(CASES) + 1 + 8 * len(PROBE_SIZES)
     if summary is None or summary['passed'] != expected_n or summary['failed']:
         sys.exit(f'unexpected summary {summary}; see {log}')
     rows = {}
@@ -104,7 +104,7 @@ def capture(args, record):
             gb.check_tree(r, problems, name)
         hits = [r for r in roots if r['contract'] in ('BeastPureComposer', 'KernelProbe')
                 and r['selector'] in ('compose', 'compose_drift', 'build', 'noop', 'take',
-                                      'smf_local', 'smf_kernel', 'build_felts', 'take_felts')]
+                                      'smf_local', 'smf_kernel', 'build_felts', 'take_felts', 'ser_felts', 'raw_felts')]
         if len(hits) != 1:
             sys.exit(f'{name}: expected one measured call, got {len(hits)}')
         rows[short] = dict(gas=hits[0]['gas'], nested=gb.flatten(hits[0]['calls']),

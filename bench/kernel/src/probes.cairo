@@ -38,6 +38,8 @@ pub trait IKernelProbe<T> {
     fn smf_kernel(self: @T, kernel: ClassHash, n: u32) -> ByteArray;
     fn build_felts(self: @T, n: u32) -> u32;
     fn take_felts(self: @T, sink: ClassHash, n: u32) -> u32;
+    fn ser_felts(self: @T, n: u32) -> u32;
+    fn raw_felts(self: @T, sink: ClassHash, n: u32) -> u32;
 }
 
 /// `n` felts (no range check on the callee's side: the cost of a packed, one-felt-per-event or
@@ -109,6 +111,117 @@ pub mod KernelProbe {
         }
         fn take_felts(self: @ContractState, sink: ClassHash, n: u32) -> u32 {
             ISinkLibraryDispatcher { class_hash: sink }.take_felts(felts_of(n).span())
+        }
+        /// Build, then Serde-serialize into a calldata array (no call).
+        fn ser_felts(self: @ContractState, n: u32) -> u32 {
+            let words = felts_of(n);
+            let mut calldata: Array<felt252> = array![];
+            Serde::serialize(@words.span(), ref calldata);
+            calldata.len()
+        }
+        /// Build the calldata array directly (length first) and pass it to the syscall as is.
+        fn raw_felts(self: @ContractState, sink: ClassHash, n: u32) -> u32 {
+            let mut calldata: Array<felt252> = array![n.into()];
+            let mut i: u32 = 0;
+            while i < n {
+                calldata.append((i * 7919).into());
+                i += 1;
+            }
+            let ret = starknet::syscalls::library_call_syscall(
+                sink, selector!("take_felts"), calldata.span(),
+            )
+                .unwrap();
+            (*ret.at(0)).try_into().unwrap()
+        }
+    }
+}
+
+/// CASM-size probes (never called): each `*Empty` class has the same ABI as its partner without
+/// the helper, so the difference of their CASM sizes is the helper's code.
+#[starknet::interface]
+pub trait ISizeTracks<T> {
+    fn f(self: @T, tracks: Span<Array<u8>>) -> ByteArray;
+}
+#[starknet::interface]
+pub trait ISizeBytes<T> {
+    fn f(self: @T, bytes: Span<u8>) -> ByteArray;
+}
+#[starknet::interface]
+pub trait ISizeWriter<T> {
+    fn f(self: @T, n: u32) -> Array<u8>;
+}
+
+#[starknet::contract]
+pub mod SizeSmfEmpty {
+    #[storage]
+    struct Storage {}
+    #[abi(embed_v0)]
+    impl I of super::ISizeTracks<ContractState> {
+        fn f(self: @ContractState, tracks: Span<Array<u8>>) -> ByteArray {
+            Default::default()
+        }
+    }
+}
+
+#[starknet::contract]
+pub mod SizeBytesEmpty {
+    #[storage]
+    struct Storage {}
+    #[abi(embed_v0)]
+    impl I of super::ISizeBytes<ContractState> {
+        fn f(self: @ContractState, bytes: Span<u8>) -> ByteArray {
+            Default::default()
+        }
+    }
+}
+
+#[starknet::contract]
+pub mod SizeBytes {
+    #[storage]
+    struct Storage {}
+    #[abi(embed_v0)]
+    impl I of super::ISizeBytes<ContractState> {
+        fn f(self: @ContractState, bytes: Span<u8>) -> ByteArray {
+            midi::pack::bytes_to_byte_array(bytes)
+        }
+    }
+}
+
+#[starknet::contract]
+pub mod SizeWriterEmpty {
+    #[storage]
+    struct Storage {}
+    #[abi(embed_v0)]
+    impl I of super::ISizeWriter<ContractState> {
+        fn f(self: @ContractState, n: u32) -> Array<u8> {
+            array![(n % 256).try_into().unwrap()]
+        }
+    }
+}
+
+/// Every TrackWriter method once, with runtime arguments.
+#[starknet::contract]
+pub mod SizeWriter {
+    use midi::smf::TrackWriterTrait;
+    #[storage]
+    struct Storage {}
+    #[abi(embed_v0)]
+    impl I of super::ISizeWriter<ContractState> {
+        fn f(self: @ContractState, n: u32) -> Array<u8> {
+            let b: u8 = (n % 128).try_into().unwrap();
+            let mut w = if n % 2 == 0 {
+                TrackWriterTrait::new()
+            } else {
+                TrackWriterTrait::with_running_status()
+            };
+            w.tempo(n, n * 3);
+            w.program(n + 1, b % 16, b);
+            w.control(n + 2, b % 16, b, b);
+            w.note_on(n + 3, b % 16, b, b);
+            w.note_off(n + 4, b % 16, b, b);
+            w.message1(n + 5, 0xD0, b);
+            w.meta(n + 6, 1, array![b].span());
+            w.finish_at(n * 2)
         }
     }
 }

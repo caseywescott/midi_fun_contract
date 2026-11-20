@@ -19,26 +19,25 @@
     }
   },
   "git": {
-    "rev": "89a16b34e9e8897ee93a528b99d8f8c2af25e779",
+    "rev": "37f36b55042b150dfd367b3f0f9ecb145e4aa29d",
     "dirty": true,
     "status": [
-      " M core/midi/src/lib.cairo",
-      " M core/midi_contracts/src/lib.cairo",
-      "?? bench/kernel/",
-      "?? core/midi/src/kernel.cairo",
-      "?? core/midi_contracts/src/kernel.cairo"
+      " M bench/kernel/gen_cases.py",
+      " M bench/kernel/run.py",
+      " M bench/kernel/src/cases.cairo",
+      " M bench/kernel/src/probes.cairo"
     ],
     "tracked_tree": {
-      "sha256": "da6318c7faac60659c6ec03d9e7fa1b2cedc4ebd7fcafa8d48af988c044fe253",
-      "files": 542
+      "sha256": "4a524899884c1e27a28ac7091b1c90fa8a32a91b064dae58aab8d38338ee0715",
+      "files": 554
     },
     "production_tree": {
-      "sha256": "c91a2ef5db621e177a61ba3df98b51ae599071517046983055a689ac8725efab",
-      "files": 96
+      "sha256": "f9da756afa97224e9eacfbe3ae7398aac6c949a082920f272040c5c5ec27a87a",
+      "files": 98
     },
     "bench_tree": {
-      "sha256": "a02af86e9079d083d6a042a9f3ffdb050efb14e29cd70f8442acf7891d6e812e",
-      "files": 25
+      "sha256": "49e56945a3c03cd0cea6a80ebc87d6873127471b26e66958d6f9e79e0a55a1cb",
+      "files": 35
     },
     "root_scarb_lock_sha256": "c861374bf89146f945034622f18d13fd8d2677a87a44d0a24c557bd0a2a10d48",
     "bench_scarb_lock_sha256": "590626ad0144f73cfbda37f5c3cc4564696938ad3ab4241e539ec472b32954ef"
@@ -59,10 +58,10 @@
     "--max-threads",
     "2"
   ],
-  "wall_s": 13.1,
-  "peak_rss_mb": 1345,
+  "wall_s": 14.3,
+  "peak_rss_mb": 1362,
   "summary": {
-    "passed": 39,
+    "passed": 47,
     "failed": 0,
     "ignored": 0,
     "filtered": 0
@@ -78,55 +77,83 @@
     }
   },
   "rows": {
-    "probe_build_1024": {
-      "gas": 5730550,
+    "case_01_check_64_fx0": {
+      "gas": 5267650,
       "nested": [],
-      "test_l2_gas": 5999330
+      "test_l2_gas": 6895867
     },
-    "probe_build_4096": {
-      "gas": 22841590,
+    "case_00_check_1_fx0": {
+      "gas": 7342370,
       "nested": [],
-      "test_l2_gas": 23110370
+      "test_l2_gas": 9916737
     },
-    "case_08_song_32_fx3": {
-      "gas": 183445232,
-      "nested": [],
-      "test_l2_gas": 188290138
+    "probe_smf_kernel_0": {
+      "gas": 493960,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 333860
+        }
+      ],
+      "test_l2_gas": 1111980
     },
-    "case_09_named_44_fx0": {
-      "gas": 56935570,
-      "nested": [],
-      "test_l2_gas": 60440731
+    "probe_smf_kernel_1024": {
+      "gas": 11218200,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 3610020
+        }
+      ],
+      "test_l2_gas": 18548660
     },
-    "probe_build_8192": {
-      "gas": 45656310,
+    "case_02_check_64_fx1": {
+      "gas": 5266830,
       "nested": [],
-      "test_l2_gas": 45925090
+      "test_l2_gas": 6895047
     },
-    "case_12_drift_20_d2_fx0": {
-      "gas": 70400845,
-      "nested": [],
-      "test_l2_gas": 73509529
+    "probe_smf_kernel_4096": {
+      "gas": 42135900,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 12172890
+        }
+      ],
+      "test_l2_gas": 68348870
     },
-    "probe_smf_local_4096": {
-      "gas": 25521500,
+    "case_03_song_21_fx0": {
+      "gas": 67959334,
       "nested": [],
-      "test_l2_gas": 51722460
+      "test_l2_gas": 71052227
     },
-    "case_10_edition_40_fx0": {
-      "gas": 32973669,
+    "probe_smf_local_0": {
+      "gas": 333040,
       "nested": [],
-      "test_l2_gas": 37664641
+      "test_l2_gas": 939050
     },
-    "probe_smf_local_8192": {
-      "gas": 50517750,
+    "probe_smf_local_1024": {
+      "gas": 6943910,
       "nested": [],
-      "test_l2_gas": 102121520
+      "test_l2_gas": 14262360
     },
-    "case_13_drift_32_d40_fx3": {
-      "gas": 185085526,
-      "nested": [],
-      "test_l2_gas": 189950863
+    "probe_smf_kernel_8192": {
+      "gas": 83585630,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 23816180
+        }
+      ],
+      "test_l2_gas": 135201410
     },
     "probe_take_0": {
       "gas": 164260,
@@ -140,10 +167,10 @@
       ],
       "test_l2_gas": 445050
     },
-    "case_11_edition_40_fx3": {
-      "gas": 42427709,
+    "probe_smf_local_4096": {
+      "gas": 25521500,
       "nested": [],
-      "test_l2_gas": 47687047
+      "test_l2_gas": 51722460
     },
     "probe_take_1024": {
       "gas": 9837530,
@@ -156,6 +183,11 @@
         }
       ],
       "test_l2_gas": 10118320
+    },
+    "probe_smf_local_8192": {
+      "gas": 50517750,
+      "nested": [],
+      "test_l2_gas": 102121520
     },
     "probe_take_4096": {
       "gas": 38867930,
@@ -205,50 +237,6 @@
       ],
       "test_l2_gas": 4563490
     },
-    "probe_take_felts_4096": {
-      "gas": 16816460,
-      "nested": [
-        {
-          "depth": 1,
-          "contract": "Sink",
-          "selector": "take_felts",
-          "gas": 4720
-        }
-      ],
-      "test_l2_gas": 17097250
-    },
-    "probe_smf_kernel_1024": {
-      "gas": 11218200,
-      "nested": [
-        {
-          "depth": 1,
-          "contract": "MidiKernel",
-          "selector": "smf_byte_array",
-          "gas": 3610020
-        }
-      ],
-      "test_l2_gas": 18548660
-    },
-    "case_06_song_68_fx0": {
-      "gas": 82917902,
-      "nested": [],
-      "test_l2_gas": 86143984
-    },
-    "case_00_check_1_fx0": {
-      "gas": 7342370,
-      "nested": [],
-      "test_l2_gas": 9916737
-    },
-    "probe_build_felts_1024": {
-      "gas": 2574420,
-      "nested": [],
-      "test_l2_gas": 2843200
-    },
-    "case_05_song_32_fx0": {
-      "gas": 168087852,
-      "nested": [],
-      "test_l2_gas": 171898823
-    },
     "probe_take_felts_8192": {
       "gas": 33528140,
       "nested": [
@@ -261,25 +249,106 @@
       ],
       "test_l2_gas": 33808930
     },
-    "probe_smf_local_1024": {
-      "gas": 6943910,
+    "probe_ser_felts_8192": {
+      "gas": 33429910,
       "nested": [],
-      "test_l2_gas": 14262360
+      "test_l2_gas": 33698690
+    },
+    "probe_ser_felts_0": {
+      "gas": 7120,
+      "nested": [],
+      "test_l2_gas": 275900
+    },
+    "case_06_song_68_fx0": {
+      "gas": 82917902,
+      "nested": [],
+      "test_l2_gas": 86143984
+    },
+    "probe_ser_felts_1024": {
+      "gas": 4184470,
+      "nested": [],
+      "test_l2_gas": 4453250
+    },
+    "case_05_song_32_fx0": {
+      "gas": 168087852,
+      "nested": [],
+      "test_l2_gas": 171898823
+    },
+    "probe_raw_felts_1024": {
+      "gas": 2671650,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 2952440
     },
     "case_07_song_44_fx3": {
       "gas": 99116290,
       "nested": [],
       "test_l2_gas": 104077924
     },
-    "case_02_check_64_fx1": {
-      "gas": 5266830,
-      "nested": [],
-      "test_l2_gas": 6895047
+    "probe_raw_felts_4096": {
+      "gas": 10382370,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 10663160
     },
-    "case_01_check_64_fx0": {
-      "gas": 5267650,
+    "case_11_edition_40_fx3": {
+      "gas": 42427709,
       "nested": [],
-      "test_l2_gas": 6895867
+      "test_l2_gas": 47687047
+    },
+    "case_10_edition_40_fx0": {
+      "gas": 32973669,
+      "nested": [],
+      "test_l2_gas": 37664641
+    },
+    "case_08_song_32_fx3": {
+      "gas": 183445232,
+      "nested": [],
+      "test_l2_gas": 188290138
+    },
+    "probe_build_1024": {
+      "gas": 5730550,
+      "nested": [],
+      "test_l2_gas": 5999330
+    },
+    "probe_build_0": {
+      "gas": 30400,
+      "nested": [],
+      "test_l2_gas": 299180
+    },
+    "case_12_drift_20_d2_fx0": {
+      "gas": 70400845,
+      "nested": [],
+      "test_l2_gas": 73509529
+    },
+    "probe_raw_felts_8192": {
+      "gas": 20663330,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 20944120
+    },
+    "probe_build_felts_8192": {
+      "gas": 20566100,
+      "nested": [],
+      "test_l2_gas": 20834880
     },
     "probe_noop": {
       "gas": 94210,
@@ -293,76 +362,74 @@
       ],
       "test_l2_gas": 374500
     },
-    "probe_smf_kernel_8192": {
-      "gas": 83585630,
-      "nested": [
-        {
-          "depth": 1,
-          "contract": "MidiKernel",
-          "selector": "smf_byte_array",
-          "gas": 23816180
-        }
-      ],
-      "test_l2_gas": 135201410
-    },
-    "case_03_song_21_fx0": {
-      "gas": 67959334,
+    "probe_build_felts_1024": {
+      "gas": 2574420,
       "nested": [],
-      "test_l2_gas": 71052227
+      "test_l2_gas": 2843200
+    },
+    "probe_build_felts_0": {
+      "gas": 4750,
+      "nested": [],
+      "test_l2_gas": 273330
+    },
+    "probe_build_4096": {
+      "gas": 22841590,
+      "nested": [],
+      "test_l2_gas": 23110370
     },
     "probe_build_felts_4096": {
       "gas": 10285140,
       "nested": [],
       "test_l2_gas": 10553920
     },
-    "probe_build_0": {
-      "gas": 30400,
-      "nested": [],
-      "test_l2_gas": 299180
-    },
-    "probe_build_felts_8192": {
-      "gas": 20566100,
-      "nested": [],
-      "test_l2_gas": 20834880
-    },
-    "probe_smf_kernel_4096": {
-      "gas": 42135900,
+    "probe_raw_felts_0": {
+      "gas": 101980,
       "nested": [
         {
           "depth": 1,
-          "contract": "MidiKernel",
-          "selector": "smf_byte_array",
-          "gas": 12172890
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
         }
       ],
-      "test_l2_gas": 68348870
+      "test_l2_gas": 382570
+    },
+    "case_13_drift_32_d40_fx3": {
+      "gas": 185085526,
+      "nested": [],
+      "test_l2_gas": 189950863
+    },
+    "probe_build_8192": {
+      "gas": 45656310,
+      "nested": [],
+      "test_l2_gas": 45925090
+    },
+    "probe_take_felts_4096": {
+      "gas": 16816460,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 17097250
+    },
+    "probe_ser_felts_4096": {
+      "gas": 16718230,
+      "nested": [],
+      "test_l2_gas": 16987010
+    },
+    "case_09_named_44_fx0": {
+      "gas": 56935570,
+      "nested": [],
+      "test_l2_gas": 60440731
     },
     "case_04_song_1_fx0": {
       "gas": 143686092,
       "nested": [],
       "test_l2_gas": 147388178
-    },
-    "probe_smf_local_0": {
-      "gas": 333040,
-      "nested": [],
-      "test_l2_gas": 939050
-    },
-    "probe_smf_kernel_0": {
-      "gas": 493960,
-      "nested": [
-        {
-          "depth": 1,
-          "contract": "MidiKernel",
-          "selector": "smf_byte_array",
-          "gas": 333860
-        }
-      ],
-      "test_l2_gas": 1111980
-    },
-    "probe_build_felts_0": {
-      "gas": 4750,
-      "nested": [],
-      "test_l2_gas": 273330
     }
   }
 }

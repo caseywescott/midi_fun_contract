@@ -3,14 +3,14 @@
 //! class turns one written song or Sound Check, played with a token's `sound_effects` (and with
 //! drift, the manager's day: `DriftInputs`), into its MIDI and settings.
 use beast_composer::composition::drift::drift_of;
-use beast_composer::composition::editions::edition_byte_array;
+use beast_composer::composition::editions::edition_tracks_on;
 use beast_composer::composition::full_midi::{SMF_DIVISION, SMF_FORMAT};
 use beast_composer::composition::genesis::{drifted_song_inputs, song_tracks};
 use beast_composer::composition::performance::apply_performance;
 use beast_composer::composition::sound_check::sound_check_tracks;
 use beast_composer::inputs::drift::DriftInputs;
 use beast_composer::inputs::{ComposerInputs, SpecialArrangement};
-use midi::smf::smf_byte_array;
+use midi::kernel::{IMidiKernelDispatcherTrait, IMidiKernelLibraryDispatcher};
 use midi::types::{TinySynthSettings, TinySynthSound};
 
 #[starknet::interface]
@@ -23,6 +23,18 @@ pub trait IBeastPureComposer<T> {
     fn compose_drift(
         self: @T, inputs: ComposerInputs, sound_effects: u8, drift: DriftInputs,
     ) -> TinySynthSound;
+}
+
+/// EXPERIMENT (exp/kernel-libcall): the class hash of `midi_contracts::kernel::MidiKernel`, which
+/// assembles the file from the track bodies by library call. A constant, not storage: the Sound
+/// Manager reaches this class by library call, so storage here would be the manager's. Production
+/// would declare the kernel first; a kernel change is a new hash and a new composer class (or the
+/// hash passed in by the manager / a registry).
+pub const MIDI_KERNEL_CLASS_HASH: felt252 =
+    0x38c78e8558fcff099a9208ecbbac306bb589dd9dca1ba2862b7f0b284fcd754;
+
+fn kernel() -> IMidiKernelLibraryDispatcher {
+    IMidiKernelLibraryDispatcher { class_hash: MIDI_KERNEL_CLASS_HASH.try_into().unwrap() }
 }
 
 pub fn compose_sound(inputs: ComposerInputs, sound_effects: u8) -> TinySynthSound {
@@ -61,22 +73,20 @@ fn compose_with(
         Option::Some(d) => d.day,
         Option::None => 0,
     };
-    let midi = match performed {
-        ComposerInputs::Song(song) => smf_byte_array(
-            SMF_FORMAT, SMF_DIVISION, song_tracks(song, mega, echo, day).span(),
-        ),
-        ComposerInputs::SoundCheck(check) => smf_byte_array(
-            SMF_FORMAT, SMF_DIVISION, sound_check_tracks(check, mega).span(),
-        ),
+    let tracks = match performed {
+        ComposerInputs::Song(song) => song_tracks(song, mega, echo, day),
+        ComposerInputs::SoundCheck(check) => sound_check_tracks(check, mega),
         ComposerInputs::Edition(edition) => {
             let species = edition.identity.source_species_id;
             let day = match drift {
                 Option::Some(d) => Option::Some(drift_of(species, d)),
                 Option::None => Option::None,
             };
-            edition_byte_array(species, mega, edition.edition, edition.seed, day, echo)
+            edition_tracks_on(species, mega, edition.edition, edition.seed, day, echo)
         },
     };
+    // Songs and checks are SMF_FORMAT/SMF_DIVISION (1, 480); editions write (1, 480) too.
+    let midi = kernel().smf_byte_array(SMF_FORMAT, SMF_DIVISION, tracks.span());
     BoxTrait::new(TinySynthSound { midi, settings: settings_for(performed, mega, echo) })
 }
 

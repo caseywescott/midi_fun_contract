@@ -268,6 +268,17 @@ fn probe_build_felts_0() {
 }
 
 #[test]
+fn probe_ser_felts_0() {
+    assert(probe().ser_felts(0) == 0 + 1, 'sf');
+}
+
+#[test]
+fn probe_raw_felts_0() {
+    let s = class("Sink");
+    assert(probe().raw_felts(s, 0) == 0, 'rf');
+}
+
+#[test]
 fn probe_take_felts_0() {
     let s = class("Sink");
     assert(probe().take_felts(s, 0) == 0, 'tf');
@@ -276,6 +287,17 @@ fn probe_take_felts_0() {
 #[test]
 fn probe_build_felts_1024() {
     assert(probe().build_felts(1024) == 1024, 'bf');
+}
+
+#[test]
+fn probe_ser_felts_1024() {
+    assert(probe().ser_felts(1024) == 1024 + 1, 'sf');
+}
+
+#[test]
+fn probe_raw_felts_1024() {
+    let s = class("Sink");
+    assert(probe().raw_felts(s, 1024) == 1024, 'rf');
 }
 
 #[test]
@@ -290,6 +312,17 @@ fn probe_build_felts_4096() {
 }
 
 #[test]
+fn probe_ser_felts_4096() {
+    assert(probe().ser_felts(4096) == 4096 + 1, 'sf');
+}
+
+#[test]
+fn probe_raw_felts_4096() {
+    let s = class("Sink");
+    assert(probe().raw_felts(s, 4096) == 4096, 'rf');
+}
+
+#[test]
 fn probe_take_felts_4096() {
     let s = class("Sink");
     assert(probe().take_felts(s, 4096) == 4096, 'tf');
@@ -298,6 +331,17 @@ fn probe_take_felts_4096() {
 #[test]
 fn probe_build_felts_8192() {
     assert(probe().build_felts(8192) == 8192, 'bf');
+}
+
+#[test]
+fn probe_ser_felts_8192() {
+    assert(probe().ser_felts(8192) == 8192 + 1, 'sf');
+}
+
+#[test]
+fn probe_raw_felts_8192() {
+    let s = class("Sink");
+    assert(probe().raw_felts(s, 8192) == 8192, 'rf');
 }
 
 #[test]

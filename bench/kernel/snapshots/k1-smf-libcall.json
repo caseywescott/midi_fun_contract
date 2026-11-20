@@ -1,0 +1,534 @@
+{
+  "record": false,
+  "tools": {
+    "scarb": {
+      "path": "/Users/caseywescott/.asdf/installs/scarb/2.21.0/bin/scarb",
+      "version": "scarb 2.21.0 (fbd5bd03d 2026-10-09)\ncairo: 2.21.0 (https://crates.io/crates/cairo-lang-compiler/2.21.0)\nsierra: 1.9.5\narch: aarch64-apple-darwin"
+    },
+    "snforge": {
+      "path": "/Users/caseywescott/.asdf/installs/starknet-foundry/0.64.1/bin/snforge",
+      "version": "snforge 0.64.1"
+    },
+    "universal_sierra_compiler": {
+      "path": "/Users/caseywescott/.local/bin/universal-sierra-compiler",
+      "version": "universal-sierra-compiler 2.10.2"
+    },
+    "node": {
+      "path": "/Users/caseywescott/.nvm/versions/node/v20.19.2/bin/node",
+      "version": "v20.19.2"
+    }
+  },
+  "git": {
+    "rev": "37f36b55042b150dfd367b3f0f9ecb145e4aa29d",
+    "dirty": true,
+    "status": [
+      " M beasts/beast_contracts/src/pure_composer.cairo",
+      " M bench/kernel/gen_cases.py",
+      " M bench/kernel/run.py",
+      " M bench/kernel/src/cases.cairo",
+      " M bench/kernel/src/probes.cairo"
+    ],
+    "tracked_tree": {
+      "sha256": "0c4f5fa9982641f02dc355b4f2fe3efa602481042feb0f0f7fba210281dce8e2",
+      "files": 554
+    },
+    "production_tree": {
+      "sha256": "5a4a9ab7ef43a6e1b61d7b529a636d57ffe96de7980578192494afd566a05ebc",
+      "files": 98
+    },
+    "bench_tree": {
+      "sha256": "49e56945a3c03cd0cea6a80ebc87d6873127471b26e66958d6f9e79e0a55a1cb",
+      "files": 35
+    },
+    "root_scarb_lock_sha256": "c861374bf89146f945034622f18d13fd8d2677a87a44d0a24c557bd0a2a10d48",
+    "bench_scarb_lock_sha256": "590626ad0144f73cfbda37f5c3cc4564696938ad3ab4241e539ec472b32954ef"
+  },
+  "command": [
+    "/Users/caseywescott/.asdf/installs/starknet-foundry/0.64.1/bin/snforge",
+    "test",
+    "--no-optimization",
+    "--tracked-resource",
+    "sierra-gas",
+    "--max-n-steps",
+    "50000000",
+    "--trace-components",
+    "contract-name",
+    "gas",
+    "--color",
+    "never",
+    "--max-threads",
+    "2"
+  ],
+  "wall_s": 9.7,
+  "peak_rss_mb": 1081,
+  "summary": {
+    "passed": 47,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 0
+  },
+  "classes": {
+    "BeastPureComposer": {
+      "casm_felts": 81169,
+      "casm_sha256": "63bd011df310acba2c3df60ddeee3303be7996e541fc4cbd2c5a5f2180bb97f7"
+    },
+    "MidiKernel": {
+      "casm_felts": 2372,
+      "casm_sha256": "5c82d3da142be8edada5477a4ebc251df2d2018da77a2418919ff95062d6e9a4"
+    }
+  },
+  "rows": {
+    "case_03_song_21_fx0": {
+      "gas": 73580734,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 4443500
+        }
+      ],
+      "test_l2_gas": 76673627
+    },
+    "case_04_song_1_fx0": {
+      "gas": 162598522,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 14014520
+        }
+      ],
+      "test_l2_gas": 166300608
+    },
+    "case_06_song_68_fx0": {
+      "gas": 90777582,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 6246990
+        }
+      ],
+      "test_l2_gas": 94003664
+    },
+    "case_05_song_32_fx0": {
+      "gas": 190035562,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 16276400
+        }
+      ],
+      "test_l2_gas": 193846533
+    },
+    "probe_smf_kernel_0": {
+      "gas": 493960,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 333860
+        }
+      ],
+      "test_l2_gas": 1111980
+    },
+    "probe_smf_kernel_1024": {
+      "gas": 11218200,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 3610020
+        }
+      ],
+      "test_l2_gas": 18548660
+    },
+    "probe_smf_kernel_4096": {
+      "gas": 42135900,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 12172890
+        }
+      ],
+      "test_l2_gas": 68348870
+    },
+    "probe_smf_local_0": {
+      "gas": 333040,
+      "nested": [],
+      "test_l2_gas": 939050
+    },
+    "probe_smf_local_1024": {
+      "gas": 6943910,
+      "nested": [],
+      "test_l2_gas": 14262360
+    },
+    "probe_smf_local_4096": {
+      "gas": 25521500,
+      "nested": [],
+      "test_l2_gas": 51722460
+    },
+    "probe_smf_kernel_8192": {
+      "gas": 83585630,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 23816180
+        }
+      ],
+      "test_l2_gas": 135201410
+    },
+    "probe_take_0": {
+      "gas": 164260,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take",
+          "gas": 21300
+        }
+      ],
+      "test_l2_gas": 445050
+    },
+    "probe_take_1024": {
+      "gas": 9837530,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take",
+          "gas": 2386740
+        }
+      ],
+      "test_l2_gas": 10118320
+    },
+    "probe_smf_local_8192": {
+      "gas": 50517750,
+      "nested": [],
+      "test_l2_gas": 102121520
+    },
+    "probe_take_4096": {
+      "gas": 38867930,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take",
+          "gas": 9483060
+        }
+      ],
+      "test_l2_gas": 39148720
+    },
+    "probe_take_felts_0": {
+      "gas": 105350,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 385940
+    },
+    "probe_take_8192": {
+      "gas": 77575130,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take",
+          "gas": 18944820
+        }
+      ],
+      "test_l2_gas": 77855920
+    },
+    "probe_take_felts_1024": {
+      "gas": 4282700,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 4563490
+    },
+    "probe_take_felts_4096": {
+      "gas": 16816460,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 17097250
+    },
+    "case_00_check_1_fx0": {
+      "gas": 9359190,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 1642020
+        }
+      ],
+      "test_l2_gas": 11933557
+    },
+    "probe_ser_felts_0": {
+      "gas": 7120,
+      "nested": [],
+      "test_l2_gas": 275900
+    },
+    "case_01_check_64_fx0": {
+      "gas": 8237660,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 2374710
+        }
+      ],
+      "test_l2_gas": 9865877
+    },
+    "case_02_check_64_fx1": {
+      "gas": 8236840,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 2374710
+        }
+      ],
+      "test_l2_gas": 9865057
+    },
+    "probe_take_felts_8192": {
+      "gas": 33528140,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 33808930
+    },
+    "probe_ser_felts_8192": {
+      "gas": 33429910,
+      "nested": [],
+      "test_l2_gas": 33698690
+    },
+    "case_09_named_44_fx0": {
+      "gas": 95931630,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 28077780
+        }
+      ],
+      "test_l2_gas": 99436791
+    },
+    "probe_build_1024": {
+      "gas": 5730550,
+      "nested": [],
+      "test_l2_gas": 5999330
+    },
+    "probe_raw_felts_1024": {
+      "gas": 2671650,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 2952440
+    },
+    "case_08_song_32_fx3": {
+      "gas": 216816022,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 24537250
+        }
+      ],
+      "test_l2_gas": 221660928
+    },
+    "probe_ser_felts_1024": {
+      "gas": 4184470,
+      "nested": [],
+      "test_l2_gas": 4453250
+    },
+    "probe_raw_felts_4096": {
+      "gas": 10382370,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 10663160
+    },
+    "case_12_drift_20_d2_fx0": {
+      "gas": 76232505,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 4560200
+        }
+      ],
+      "test_l2_gas": 79341189
+    },
+    "probe_build_felts_1024": {
+      "gas": 2574420,
+      "nested": [],
+      "test_l2_gas": 2843200
+    },
+    "probe_build_felts_4096": {
+      "gas": 10285140,
+      "nested": [],
+      "test_l2_gas": 10553920
+    },
+    "probe_raw_felts_8192": {
+      "gas": 20663330,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 20944120
+    },
+    "probe_build_4096": {
+      "gas": 22841590,
+      "nested": [],
+      "test_l2_gas": 23110370
+    },
+    "probe_raw_felts_0": {
+      "gas": 101980,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "take_felts",
+          "gas": 4720
+        }
+      ],
+      "test_l2_gas": 382570
+    },
+    "case_10_edition_40_fx0": {
+      "gas": 49092299,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 12206590
+        }
+      ],
+      "test_l2_gas": 53783271
+    },
+    "case_11_edition_40_fx3": {
+      "gas": 64361689,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 16533820
+        }
+      ],
+      "test_l2_gas": 69621027
+    },
+    "case_13_drift_32_d40_fx3": {
+      "gas": 218748426,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 24581030
+        }
+      ],
+      "test_l2_gas": 223613763
+    },
+    "probe_noop": {
+      "gas": 94210,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "Sink",
+          "selector": "noop",
+          "gas": 1370
+        }
+      ],
+      "test_l2_gas": 374500
+    },
+    "probe_build_8192": {
+      "gas": 45656310,
+      "nested": [],
+      "test_l2_gas": 45925090
+    },
+    "probe_ser_felts_4096": {
+      "gas": 16718230,
+      "nested": [],
+      "test_l2_gas": 16987010
+    },
+    "probe_build_felts_0": {
+      "gas": 4750,
+      "nested": [],
+      "test_l2_gas": 273330
+    },
+    "probe_build_felts_8192": {
+      "gas": 20566100,
+      "nested": [],
+      "test_l2_gas": 20834880
+    },
+    "probe_build_0": {
+      "gas": 30400,
+      "nested": [],
+      "test_l2_gas": 299180
+    },
+    "case_07_song_44_fx3": {
+      "gas": 148441820,
+      "nested": [
+        {
+          "depth": 1,
+          "contract": "MidiKernel",
+          "selector": "smf_byte_array",
+          "gas": 35690660
+        }
+      ],
+      "test_l2_gas": 153403454
+    }
+  }
+}

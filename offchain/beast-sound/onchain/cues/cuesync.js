@@ -12,13 +12,22 @@
 //   downbeats       a small nudge on every bar line
 //
 // It never touches BeatSync's code: BeatSync takes a `synth` function, and CueSync hands it a clock
-// (frameSynth) that is the real tinysynth in 'tempo' mode and a warped one in 'music' mode (the same
-// audible tick, run faster at the climax, slower at cadences, stopped at the end). Everything is a
-// pure function of the audible tick except the decaying envelopes, so seeking and looping are exact.
+// (frameSynth) that decides which GIF frame shows. Frame modes (setFrameMode):
+//   tempo    the real tinysynth: one frame per eighth note (BeatSync today)
+//   music    the audible tick warped: faster through the climax bar, slower at cadences, held at the end
+//   melody   one frame per note-on of the voice carrying the tune (cues.frames.melody); held notes hold
+//   contour  the same onsets, stepping forward on a rising interval, backward on a falling one, holding
+//            on a repeat; the frame index wraps (frame 0 after the last going up, the last after 0 down)
+//   harmony  the frame from the bass's harmonic tension (cues.frames.harmony): tonic = frame 0 (rest),
+//            then the other frames in order of tension; cadence arrivals land on 0
+// The cue effects (pulses, backdrop, climax flash, settling) are a separate switch (setEffects), so the
+// frame logic can be watched alone. Everything is a pure function of the audible tick except the
+// decaying envelopes, so seeking and looping are exact.
 //
-//   const cs = CueSync.attach({ stage, art, cues, synth: () => synth, onCue, mode: 'music' })
-//   BeatSync.attach({ img, svg, synth: cs.frameSynth })      // frames on CueSync's clock
-//   cs.setMode('tempo' | 'music'); cs.tick (audible tick or null); cs.energy (per channel 0-1); cs.detach()
+//   const cs = CueSync.attach({ stage, art, cues, synth: () => synth, onCue, frameMode: 'music', effects: true })
+//   const beat = BeatSync.attach({ img, svg, synth: cs.frameSynth }); cs.setFrames(beat.frames)
+//   cs.setFrameMode(m); cs.setEffects(on); cs.setMode('tempo' | 'music') (frames + effects together)
+//   cs.tick (audible tick or null); cs.frame (the frame frameSynth asks for); cs.energy; cs.detach()
 (function (root) {
   const VOICE_COLORS = ['#ffcf4a', '#5ad1ff', '#ff7ab6', '#8dff6a', '#c49bff', '#ffa25a', '#6affd8', '#ff6a6a', '#b0b0ff', '#9aa0a6'];
 
@@ -56,23 +65,49 @@
 
   const lowerBound = (arr, t) => { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] < t) lo = m + 1; else hi = m; } return lo; };
 
-  function attach({ stage, art, cues, synth, onCue = () => {}, mode = 'music', reduceMotion = false }) {
+  function attach({ stage, art, cues, synth, onCue = () => {}, mode = 'music', frameMode = mode, effects = mode === 'music', reduceMotion = false }) {
     const L = cues.length, bar = cues.bar;
     const list = cues.cues, ticks = list.map((c) => c.tick);
     const notes = cues.notes, noteTicks = notes.map((n) => n[0]);
     const warp = warpOf(cues);
     const sectionAt = (t) => cues.sections.find((s) => t >= s.start && t < s.end) || cues.sections[0];
     const cadenceRegions = list.filter((c) => c.type === 'cadence').map((c) => [c.tick, c.final ? L : (sectionAt(c.tick) || { end: L }).end, c.final]);
-    const state = { mode, tick: null, last: null, energy: {}, pulse: 0, pulseColor: VOICE_COLORS[0], hit: 0, sweep: 0, nudge: 0, settle: 0, t0: performance.now() };
-    // frames for BeatSync: the real synth (tempo) or the warped audible tick (music)
+    const state = { frameMode, effects, frames: 0, frame: null, tick: null, last: null, energy: {}, pulse: 0, pulseColor: VOICE_COLORS[0], hit: 0, sweep: 0, nudge: 0, settle: 0, t0: performance.now() };
+    // frames for BeatSync: the real synth (tempo), the warped audible tick (music), or a clock parked on
+    // the chosen frame k (BeatSync shows floor(tick / eighth) mod frames, so tick = k eighths + 1)
+    const tracks = cues.frames || null;
+    const melTicks = tracks ? tracks.melody.map((m) => m[0]) : [], harTicks = tracks ? tracks.harmony.map((h) => h[0]) : [];
+    let contour = [];
+    const setFrames = (n) => {
+      state.frames = n || 0;
+      contour = [];
+      if (!tracks || !n) return;
+      let k = 0;
+      tracks.melody.forEach((m, i) => { if (i) k = (k + Math.sign(m[1] - tracks.melody[i - 1][1]) + n) % n; contour.push(k); });
+    };
+    const lastAt = (arr, t) => lowerBound(arr, t + 1e-6) - 1; // index of the last entry at or before t
+    function frameAt(t) {
+      const n = state.frames;
+      if (!n || !tracks) return null;
+      if (state.frameMode === 'melody') return Math.max(0, lastAt(melTicks, t) + 1) % n;
+      if (state.frameMode === 'contour') { const i = lastAt(melTicks, t); return i < 0 ? 0 : contour[i]; }
+      if (state.frameMode === 'harmony') { const i = lastAt(harTicks, t); return i < 0 ? 0 : Math.round((tracks.harmony[i][1] * (n - 1)) / 3); }
+      return null;
+    }
     const warped = { playing: 1, actx: { currentTime: 0 }, tick2Time: 1, playTime: 0, playTick: 0, loopEnd: 0, maxTick: 1e12, song: { timebase: 4 * cues.ppq } };
     const frameSynth = () => {
       const s = synth();
-      if (state.mode !== 'music') return s;
+      state.frame = null;
+      if (state.frameMode === 'tempo') return s;
       const t = audibleTick(s);
       if (t == null) return s;
-      warped.playTick = warp(t);
-      warped.song.timebase = (s.song && s.song.timebase) || 4 * cues.ppq;
+      const tb = (s.song && s.song.timebase) || 4 * cues.ppq;
+      warped.song.timebase = tb;
+      if (state.frameMode === 'music') { warped.playTick = warp(t); return warped; }
+      const k = frameAt(t);
+      if (k == null) return s;
+      state.frame = k;
+      warped.playTick = (k * tb) / 8 + 1;
       return warped;
     };
 
@@ -84,7 +119,7 @@
       }
     };
     function trigger(c) {
-      if (state.mode === 'music') {
+      if (state.effects) {
         if (c.type === 'entry') {
           const amp = c.role === 'countersubject' ? 0.55 : c.voice === 0 ? 1 : 0.75;
           if (amp >= state.pulse * 0.8) state.pulseColor = VOICE_COLORS[c.voice % VOICE_COLORS.length];
@@ -113,17 +148,17 @@
       for (const ch in state.energy) state.energy[ch] = decay(state.energy[ch], 0.22);
       state.pulse = decay(state.pulse, 0.32); state.hit = decay(state.hit, 0.75); state.sweep = decay(state.sweep, 0.6); state.nudge = decay(state.nudge, 0.12);
       const inCad = t != null && cadenceRegions.find(([a, b]) => t >= a && t < b);
-      const target = state.mode === 'music' && inCad ? (inCad[2] ? 1 : 0.6) : 0;
+      const target = state.effects && inCad ? (inCad[2] ? 1 : 0.6) : 0;
       state.settle += (target - state.settle) * (1 - Math.exp(-dt / 0.35));
       paint(t);
       raf = requestAnimationFrame(frame);
     }
 
     function paint(t) {
-      if (state.mode !== 'music' || t == null) {
+      if (!state.effects || t == null) {
         art.style.transform = ''; art.style.filter = '';
         stage.style.setProperty('--flash', 0); stage.style.setProperty('--sweep', 0);
-        if (t == null || state.mode !== 'music') stage.style.removeProperty('--key-hue');
+        stage.style.removeProperty('--key-hue');
         return;
       }
       const m = reduceMotion ? 0.35 : 1;
@@ -150,8 +185,15 @@
       VOICE_COLORS,
       get tick() { return state.tick; },
       get energy() { return state.energy; },
-      get mode() { return state.mode; },
-      setMode(next) { state.mode = next; state.pulse = state.hit = state.sweep = state.settle = 0; },
+      get mode() { return state.frameMode; },
+      get frameMode() { return state.frameMode; },
+      get effects() { return state.effects; },
+      get frame() { return state.frame; },
+      get tracks() { return tracks; },
+      setFrames,
+      setFrameMode(next) { state.frameMode = next; },
+      setEffects(on) { state.effects = !!on; state.pulse = state.hit = state.sweep = state.settle = 0; },
+      setMode(next) { state.frameMode = next; this.setEffects(next === 'music'); },
       warp,
       detach() { cancelAnimationFrame(raf); art.style.transform = ''; art.style.filter = ''; },
     };

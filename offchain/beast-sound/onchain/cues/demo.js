@@ -6,9 +6,9 @@
   const $ = (id) => document.getElementById(id);
   const COLORS = CueSync.VOICE_COLORS;
   const b64bytes = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-  let cur = 0, synth = null, playing = false, cs = null, beat = null, mode = 'music';
+  let cur = 0, synth = null, playing = false, cs = null, beat = null, mode = 'music', effects = true;
   const fired = []; // [{ cue, at (ms) }] for the strip's glow
-  const S = (window.DEMO_STATE = { fired: [], get cs() { return cs; }, get beat() { return beat; }, get synth() { return synth; }, get playing() { return playing; }, get mode() { return mode; }, get beast() { return cur; } });
+  const S = (window.DEMO_STATE = { fired: [], get cs() { return cs; }, get beat() { return beat; }, get synth() { return synth; }, get playing() { return playing; }, get mode() { return mode; }, get effects() { return effects; }, get beast() { return cur; } });
 
   // ── audio: the pinned engine with the Beast timbres (as mega.html and onchain-midi-player) ──
   function ensure() {
@@ -57,8 +57,9 @@
     img.alt = b.name;
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(b.svg);
     holder.appendChild(img);
-    cs = CueSync.attach({ stage: $('stage'), art: holder, cues: cuesOf(b), synth: () => synth, mode, onCue, reduceMotion: matchMedia('(prefers-reduced-motion: reduce)').matches });
+    cs = CueSync.attach({ stage: $('stage'), art: holder, cues: cuesOf(b), synth: () => synth, frameMode: mode, effects, onCue, reduceMotion: matchMedia('(prefers-reduced-motion: reduce)').matches });
     beat = BeatSync.attach({ img, svg: b.svg, synth: cs.frameSynth });
+    if (beat) cs.setFrames(beat.frames);
     $('name').textContent = b.name;
     $('facts').innerHTML = [b.key, b.bpm + ' BPM', b.cues.sections.length + ' sections', b.cues.length / b.cues.bar + ' bars', beat ? beat.frames + '-frame GIF' : 'static art (no GIF): only the cue layer moves', b.shiny ? 'shiny (mega)' : 'regular']
       .map((x) => '<span>' + x + '</span>').join('');
@@ -66,6 +67,7 @@
     const m = b.marker;
     $('marker').innerHTML = `<b>Onchain cue track (optional, not in the MIDI the Beast plays):</b> one extra MTrk of FF 06 markers adds <b>${m.bytes} bytes</b> to this ${m.midi}-byte file (${m.count} markers, +${(100 * m.bytes / m.midi).toFixed(1)}%); with a marker on every bar line, ${m.bytesBars} bytes.<code>${m.preview}</code>`;
     $('log').innerHTML = '';
+    if ($('fmode').value) setMode(mode);
     fired.length = 0;
     drawStrip();
     if (was) start();
@@ -167,6 +169,7 @@
     if (cs) {
       const e = cs.energy;
       document.querySelectorAll('.meter').forEach((m) => { m.style.setProperty('--e', (e[m.dataset.ch] || 0).toFixed(3)); });
+      $('fbadge').textContent = beat && beat.shown >= 0 ? `frame ${beat.shown + 1} / ${beat.frames}` : '';
       drawStrip();
     }
     requestAnimationFrame(loop);
@@ -176,19 +179,31 @@
   $('pick').innerHTML = DATA.beasts.map((b, i) => `<button type="button" aria-label="${b.name}"><img alt="" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(b.svg)}"><span>${b.short}</span><small>${b.badge}</small></button>`).join('');
   document.querySelectorAll('.pick button').forEach((el, i) => { el.onclick = () => show(i); });
   $('play').onclick = () => (playing ? stop() : start());
+  const MODES = {
+    tempo: ['Tempo only (today)', 'Today: the GIF steps one frame per eighth note. Nothing else follows the music.'],
+    music: ['Music-driven', 'Frames on the beat, faster through the climax bar, slower at cadences, held at the final cadence.'],
+    melody: ['Melody steps', 'One frame per note of the voice carrying the tune (the theme voice in its theme, else the top voice). Held notes hold the frame.'],
+    contour: ['Contour', 'The tune\u2019s notes again: a rising interval steps forward, a falling one steps back (the index wraps), a repeated note holds.'],
+    harmony: ['Harmony', 'The bass\u2019s harmonic function on beats 1 and 3: tonic = frame 0 (rest pose), then the other frames by tension (III/VI, II/IV, V/VII). Cadence arrivals land on 0.'],
+  };
+  const ORDER = Object.keys(MODES);
+  $('fmode').innerHTML = ORDER.map((k) => `<option value="${k}">${MODES[k][0]}</option>`).join('');
+  const setEffects = (on) => { effects = on; $('fx').checked = on; if (cs) cs.setEffects(on); };
   const setMode = (m) => {
     mode = m;
-    if (cs) cs.setMode(m);
-    $('m-tempo').classList.toggle('on', m === 'tempo'); $('m-music').classList.toggle('on', m === 'music');
-    $('m-tempo').setAttribute('aria-pressed', m === 'tempo'); $('m-music').setAttribute('aria-pressed', m === 'music');
-    $('mode-note').textContent = m === 'tempo' ? 'Today: the GIF steps one frame per eighth note. Nothing else follows the music.' : 'The structure drives the art: entries pulse, the climax hits, cadences settle, each voice’s velocity glows below.';
+    if (cs) cs.setFrameMode(m);
+    // the two original modes keep their meaning: today = no effects, music-driven = with them
+    if (m === 'tempo') setEffects(false); else if (m === 'music') setEffects(true);
+    $('fmode').value = m;
+    $('mode-note').textContent = MODES[m][1] + (DATA.beasts[cur].gif || m === 'tempo' ? '' : ' (This Beast has no GIF, so no frames change.)');
   };
-  $('m-tempo').onclick = () => setMode('tempo');
-  $('m-music').onclick = () => setMode('music');
+  $('fmode').onchange = () => setMode($('fmode').value);
+  $('fx').onchange = () => setEffects($('fx').checked);
   document.addEventListener('keydown', (ev) => {
-    if (ev.metaKey || ev.ctrlKey || ev.target.tagName === 'BUTTON' && ev.key === ' ') return;
+    if (ev.metaKey || ev.ctrlKey || (ev.target.tagName === 'BUTTON' && ev.key === ' ') || ev.target.tagName === 'SELECT') return;
     if (ev.key === ' ') { ev.preventDefault(); playing ? stop() : start(); }
-    else if (ev.key === 'm') setMode(mode === 'music' ? 'tempo' : 'music');
+    else if (ev.key === 'm') setMode(ORDER[(ORDER.indexOf(mode) + 1) % ORDER.length]);
+    else if (ev.key === 'e') setEffects(!effects);
     else if (ev.key >= '1' && ev.key <= String(DATA.beasts.length)) show(+ev.key - 1);
   });
   addEventListener('resize', drawStrip);

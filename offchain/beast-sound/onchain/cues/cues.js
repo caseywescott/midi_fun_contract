@@ -255,3 +255,53 @@ export function readMarkers(midi) {
   }
   return out.sort((x, y) => x.tick - y.tick);
 }
+
+// ── frame tracks: what the melody and the harmony say, for the GIF's frame modes (cuesync.js) ───
+/**
+ * The melody line and the harmonic tension through the song, from the composer's role tags.
+ *   melody   [[tick, pitch], ...] the onsets of the voice carrying the tune: at any moment the voice
+ *            whose sounding note ranks highest (the theme voice 0 in its theme > another voice in its
+ *            theme > any other note), ties to the higher pitch; drums, the mega double, the Yeti's
+ *            avalanche and drones never lead. A note held across a change of carrier adds no onset.
+ *   harmony  [[tick, level], ...] tension 0-3 from the bass's scale degree in the home key (the engine
+ *            tags no chords): I = 0, III/VI = 1, II/IV = 2, V/VII or a chromatic bass = 3. Sampled on
+ *            beats 1 and 3 (a half-note harmonic rhythm), the bass being the lowest note sounding there;
+ *            from the last onset of each cadence (its held arrival) to the section end: 0.
+ * `scale`: the home mode's semitone offsets (lab.js MODE_SCALES[params.mode_id]).
+ */
+export function frameTracks(result, cues, { scale } = {}) {
+  const ev = ((result && result.form && result.form.events) || []).filter((e) => e.role && !['drone', 'avalanche'].includes(e.role));
+  if (!ev.length) return null;
+  const rank = (e) => (e.role === 'canon' ? (e.voice_id === 0 ? 3 : 2) : 1) * 1000 + e.pitch;
+  const sounding = (t) => ev.filter((e) => e.time <= t && t < e.time + e.duration);
+  const melody = [];
+  for (const e of [...ev].sort((a, b) => a.time - b.time || rank(b) - rank(a))) {
+    if (melody.length && melody[melody.length - 1][0] === e.time) continue;
+    const top = sounding(e.time).reduce((a, b) => (rank(b) > rank(a) ? b : a));
+    if (top === e) melody.push([e.time, e.pitch]);
+  }
+  const tonic = ((result.params && result.params.tonic_keynum) || 0) % 12, sc = scale || [0, 2, 3, 5, 7, 8, 10];
+  const LEVEL = [0, 2, 1, 2, 3, 1, 3]; // I II III IV V VI VII
+  const cadRest = cues.cues.filter((c) => c.type === 'cadence').map((c) => {
+    const end = (cues.sections.find((s) => c.tick >= s.start && c.tick < s.end) || { end: cues.length }).end;
+    const last = ev.filter((e) => e.role === 'cadence' && e.time >= c.tick && e.time < end).reduce((m, e) => Math.max(m, e.time), c.tick);
+    return [last, end];
+  });
+  const harmony = [];
+  for (let t = 0; t < cues.length; t += 2 * PPQ) {
+    const rest = cadRest.find(([a, b]) => t >= a && t < b) || cadRest.find(([a]) => a > t && a < t + 2 * PPQ);
+    let level;
+    if (rest && t >= rest[0]) level = 0;
+    else {
+      const now = sounding(t);
+      if (!now.length) { level = harmony.length ? harmony[harmony.length - 1][1] : 0; }
+      else {
+        const pc = (Math.min(...now.map((e) => e.pitch)) - tonic + 120) % 12, deg = sc.indexOf(pc);
+        level = deg < 0 ? 3 : LEVEL[deg];
+      }
+    }
+    if (!harmony.length || harmony[harmony.length - 1][1] !== level) harmony.push([t, level]);
+    if (rest && rest[0] > t && rest[0] < t + 2 * PPQ) harmony.push([rest[0], 0]); // land on the cadence's arrival
+  }
+  return { melody, harmony };
+}

@@ -11,10 +11,10 @@ import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { engine as E, decodeTokenId } from '../../src/index.js';
 import { createEngineV11 } from '../../src/engine_v11.js';
-import { genesisMidi } from '../../src/lab.js';
+import { genesisMidi, MODE_SCALES } from '../../src/lab.js';
 import { beastSynthSettings } from '../tinychip/synth_settings.mjs';
 import { ESSENTIALS } from '../tinychip/essentials.mjs';
-import { songCues, withCueTrack, cueTrack, markerText } from './cues.js';
+import { songCues, withCueTrack, cueTrack, markerText, frameTracks } from './cues.js';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const ENGINE_SHA = '8ad79ab8214e45a601e7d929e676b34b78e3f2b4200fd751d6548cf2b7df7749';
@@ -48,6 +48,7 @@ const beasts = PICKS.map((p) => {
   const withCues = withCueTrack(midi, cues.cues), withBars = withCueTrack(midi, cues.cues, { bars: true });
   const markers = cues.cues.filter((c) => c.type !== 'bar');
   const { notes, ...rest } = cues; // notes ride separately (the meters and the strip)
+  rest.frames = frameTracks(r.result, cues, { scale: MODE_SCALES[r.result.params.mode_id] }); // melody / contour / harmony frame modes
   return {
     token: p.token, name: g.name, short: p.short, badge: p.badge, species: b.id, shiny: b.shiny, tier: b.tier,
     key: r.info.key, bpm: Math.round(60e6 / cues.tempo_us), svg, gif: /data:image\/gif/.test(svg),
@@ -95,9 +96,10 @@ h1{font-size:22px;margin:0 0 2px;letter-spacing:.01em}p.sub{color:var(--mut);mar
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .ctl{display:flex;gap:8px;flex-wrap:wrap}
 button.big{padding:11px 18px;border-radius:10px;border:0;background:var(--fg);color:var(--bg);font:700 15px system-ui;cursor:pointer;min-width:110px}button.big.on{background:var(--acc)}
-.seg{display:flex;flex:1;min-width:250px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.seg button{flex:1;padding:10px 8px;border:0;background:transparent;color:var(--mut);font:600 13px system-ui;cursor:pointer}.seg button.on{background:#2c2a38;color:var(--fg)}
-.seg button.on#m-music{background:color-mix(in srgb,var(--acc) 22%,#1c1b24);color:#fff}
+.sel{display:flex;align-items:center;gap:8px;flex:1;min-width:200px;color:var(--mut);font-size:13px}
+.sel select{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:#1f1d28;color:var(--fg);font:600 14px system-ui}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--fg);cursor:pointer}.chk input{width:16px;height:16px;accent-color:var(--acc)}
+#fbadge{position:absolute;right:10px;bottom:8px;z-index:2;font:11px ui-monospace,monospace;color:rgba(255,255,255,.75);background:rgba(0,0,0,.45);padding:1px 6px;border-radius:6px}
 #mode-note{color:var(--mut);font-size:13px;margin:8px 0 0}
 #name{font-weight:700;font-size:17px}.facts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.facts span{font-size:12px;color:var(--mut);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
 .now{display:flex;justify-content:space-between;align-items:baseline;gap:8px}#now{font-weight:600}#bar{color:var(--mut);font:12px ui-monospace,monospace;white-space:nowrap}
@@ -114,17 +116,18 @@ canvas#strip{width:100%;display:block;height:120px;border-radius:8px;background:
 @media (prefers-reduced-motion:reduce){#log li{animation:none}}
 </style></head><body><main>
 <h1>Music-driven Beasts</h1>
-<p class="sub">Each Beast plays its Species Song, exactly the MIDI its token plays. Today (BeatSync) a GIF steps one frame per eighth note, so it follows the tempo and nothing else. Here the composer's own structure drives the art too: the sections and their keys, each voice's theme entry, the climax and the final cadence, plus every note's velocity. Switch modes while it plays to compare.</p>
+<p class="sub">Each Beast plays its Species Song, exactly the MIDI its token plays. Today (BeatSync) a GIF steps one frame per eighth note, so it follows the tempo and nothing else. Here the composer's own structure drives the art too: the sections and their keys, each voice's theme entry, the climax and the final cadence, plus every note's velocity. Switch modes while it plays to compare (<kbd>m</kbd> cycles the frame modes, <kbd>e</kbd> the cue effects). The frame modes change only which GIF frame shows; the cue effects are a separate switch.</p>
 <div class="pick" id="pick"></div>
 <div class="grid">
  <div>
-  <div class="stage" id="stage"><div id="art"></div></div>
+  <div class="stage" id="stage"><div id="art"></div><span id="fbadge"></span></div>
   <div class="meters" id="meters"></div>
  </div>
  <div>
   <div class="card">
    <div class="ctl"><button class="big" id="play" type="button">▶ Play</button>
-    <div class="seg" role="group" aria-label="Animation mode"><button id="m-tempo" type="button">Tempo only (today)</button><button id="m-music" type="button">Music-driven</button></div></div>
+    <label class="sel"><span>Frames</span><select id="fmode" aria-label="Frame mode"></select></label>
+    <label class="chk"><input type="checkbox" id="fx" checked> Cue effects</label></div>
    <p id="mode-note"></p>
   </div>
   <div class="card"><div id="name"></div><div class="facts" id="facts"></div></div>
